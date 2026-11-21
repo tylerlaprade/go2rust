@@ -55,7 +55,59 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 	if !namedScalarArgsUseDisplay(format, call.Args[formatIndex+1:]) {
 		return "", false
 	}
+	if !complexArgsUseRustFormat(format, call.Args[formatIndex+1:]) {
+		return "", false
+	}
 	return format, true
+}
+
+// complexArgsUseRustFormat reports whether Rust's formatting traits can
+// handle a literal format containing complex arguments. num::Complex only
+// implements Display for floating-point components; Rust's binary and hex
+// traits require those component types to implement the same trait, which
+// f32 and f64 do not. Rust's {:?} also quotes the intermediate string used
+// for Go's %#v spelling. Route such calls through the Go run-time formatter.
+func complexArgsUseRustFormat(quoted string, args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	hasComplex := false
+	for _, arg := range args {
+		typ := typeInfo.GetType(arg)
+		if typ == nil {
+			continue
+		}
+		if basic, ok := typ.Underlying().(*types.Basic); ok && basic.Info()&types.IsComplex != 0 {
+			hasComplex = true
+			break
+		}
+	}
+	if !hasComplex {
+		return true
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		if i < len(format) && format[i] == '%' {
+			continue
+		}
+		sharp := false
+		for i < len(format) && !((format[i] >= 'A' && format[i] <= 'Z') || (format[i] >= 'a' && format[i] <= 'z') || format[i] == '%') {
+			sharp = sharp || format[i] == '#'
+			i++
+		}
+		if i < len(format) && (strings.IndexByte("bxX", format[i]) >= 0 || sharp && format[i] == 'v') {
+			return false
+		}
+	}
+	return true
 }
 
 // namedScalarArgsUseDisplay reports whether every argument of a type the
@@ -267,7 +319,7 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 // arrived in. anyFormatArms are the types the program puts in an interface
 // value; the ones with a String or an Error method are listed in
 // go_format_is_text.
-func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[string]anyFormatArm) {
+func generateGoSprintf(out *strings.Builder, spread bool, complex bool, anyFormatArms map[string]anyFormatArm) {
 	TrackImport("Any")
 	anyValue, anyBox := "dyn Any", "Box<dyn Any>"
 	sliceType, guard := "Rc<RefCell<Option<Vec<Box<dyn Any>>>>>", "args.borrow()"
@@ -280,7 +332,38 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		bytesHandle, bytesGuard = "Arc<Mutex<Option<Vec<u8>>>>", ".lock().unwrap()"
 	}
 	trackWrapperImports()
-	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
+	complexFormatting, complexCases := "", ""
+	floatBaseUnsupported := goSprintfFloatBaseUnsupported
+	floatBaseVerbs := ""
+	floatBaseSharpGuard := goSprintfFloatSharpUnsupported
+	floatBaseCase, floatBaseHelper := "", ""
+	floatSharpCase, floatSharpHelper := "", ""
+	if complex {
+		complexFormatting = goSprintfComplexFormatting
+		complexCases = goSprintfComplexCases
+		floatBaseUnsupported = ""
+		floatBaseVerbs = " | 'b' | 'x' | 'X'"
+		floatBaseSharpGuard = ""
+		floatBaseCase = goSprintfFloatBaseCase
+		floatBaseHelper = goSprintfFloatBaseFormatting
+		floatSharpCase = goSprintfFloatSharpCase
+		floatSharpHelper = goSprintfFloatSharpFormatting
+	}
+	replace := strings.NewReplacer(
+		"GO_ANY_VALUE", anyValue,
+		"GO_ANY_BOX", anyBox,
+		"GO_BYTES_HANDLE", bytesHandle,
+		"GO_BYTES_GUARD", bytesGuard,
+		"GO_COMPLEX_FORMAT_HELPER", complexFormatting,
+		"GO_COMPLEX_FORMAT_CASES", complexCases,
+		"GO_FLOAT_BASE_UNSUPPORTED", floatBaseUnsupported,
+		"GO_FLOAT_BASE_VERBS", floatBaseVerbs,
+		"GO_FLOAT_BASE_SHARP_GUARD", floatBaseSharpGuard,
+		"GO_FLOAT_BASE_CASE", floatBaseCase,
+		"GO_FLOAT_BASE_HELPER", floatBaseHelper,
+		"GO_FLOAT_SHARP_CASE", floatSharpCase,
+		"GO_FLOAT_SHARP_HELPER", floatSharpHelper,
+	)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	for rustType, arm := range anyFormatArms {
@@ -353,6 +436,174 @@ pub(super) fn go_sprintf_spread(format: &str, args: &` + sliceType + `, wraps: b
 		out.WriteString("use __go_runtime_format::go_sprintf;\n")
 	}
 }
+
+const goSprintfComplexFormatting = `
+fn go_format_complex(spec: &GoFormatSpec, verb: char, real: f64, imaginary: f64, single: bool) -> Option<String> {
+    if !matches!(verb, 'v' | 'b' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G' | 'x' | 'X') {
+        return None;
+    }
+    let real = go_format_float(spec, verb, real, single)?;
+    // Go formats each component with the requested width and precision, but
+    // the imaginary component always carries a sign so the two values remain
+    // unambiguous inside the surrounding parentheses.
+    let imaginary_spec = GoFormatSpec { plus: true, space: false, ..*spec };
+    let imaginary = go_format_float(&imaginary_spec, verb, imaginary, single)?;
+    Some(format!("({}{}i)", real, imaginary))
+}
+`
+
+const goSprintfComplexCases = `    if let Some(v) = value.downcast_ref::<num::Complex<f64>>() {
+        return go_format_complex(&basic, verb, v.re, v.im, false);
+    }
+    if let Some(v) = value.downcast_ref::<num::Complex<f32>>() {
+        return go_format_complex(&basic, verb, v.re as f64, v.im as f64, true);
+    }
+`
+
+const goSprintfFloatBaseCase = `    if matches!(verb, 'b' | 'x' | 'X') {
+        let digits = go_format_float_base(spec, verb, magnitude, single);
+        let sign = go_format_sign(spec, negative);
+        return Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true));
+    }
+`
+
+const goSprintfFloatBaseFormatting = `
+// Formats the finite magnitude of a float using strconv.FormatFloat's binary
+// and hexadecimal forms. Keeping the IEEE mantissa is important: %b prints
+// that integer directly, and %x rounds its normalized hexadecimal fraction.
+fn go_format_float_base(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> String {
+    let (bits, mantissa_bits, exponent_bits, bias) = if single {
+        ((value as f32).to_bits() as u64, 23_u32, 8_u32, -127_i32)
+    } else {
+        (value.to_bits(), 52_u32, 11_u32, -1023_i32)
+    };
+    let exponent_mask = (1_u64 << exponent_bits) - 1;
+    let mut exponent = ((bits >> mantissa_bits) & exponent_mask) as i32;
+    let mut mantissa = bits & ((1_u64 << mantissa_bits) - 1);
+    if exponent == 0 {
+        exponent += 1;
+    } else {
+        mantissa |= 1_u64 << mantissa_bits;
+    }
+    exponent += bias;
+
+    if verb == 'b' {
+        return format!("{}p{:+}", mantissa, exponent - mantissa_bits as i32);
+    }
+
+    if mantissa == 0 {
+        exponent = 0;
+    }
+    mantissa <<= 60 - mantissa_bits;
+    while mantissa != 0 && mantissa & (1_u64 << 60) == 0 {
+        mantissa <<= 1;
+        exponent -= 1;
+    }
+
+    if let Some(precision) = spec.precision.filter(|precision| *precision < 15) {
+        let shift = (precision * 4) as u32;
+        let extra = (mantissa << shift) & ((1_u64 << 60) - 1);
+        mantissa >>= 60 - shift;
+        if extra | (mantissa & 1) > 1_u64 << 59 {
+            mantissa += 1;
+        }
+        mantissa <<= 60 - shift;
+        if mantissa & (1_u64 << 61) != 0 {
+            mantissa >>= 1;
+            exponent += 1;
+        }
+    }
+
+    let upper = verb == 'X';
+    let alphabet = if upper { b"0123456789ABCDEF" } else { b"0123456789abcdef" };
+    let mut out = format!("0{}{}", verb, (b'0' + ((mantissa >> 60) & 1) as u8) as char);
+    mantissa <<= 4;
+    match spec.precision {
+        None if mantissa != 0 => {
+            out.push('.');
+            while mantissa != 0 {
+                out.push(alphabet[((mantissa >> 60) & 15) as usize] as char);
+                mantissa <<= 4;
+            }
+        }
+        Some(precision) if precision > 0 => {
+            out.push('.');
+            for _ in 0..precision {
+                out.push(alphabet[((mantissa >> 60) & 15) as usize] as char);
+                mantissa <<= 4;
+            }
+        }
+        _ => {}
+    }
+
+    if spec.sharp {
+        if !out.contains('.') {
+            out.push('.');
+        }
+        // fmt's %#x with no explicit precision retains six significant
+        // digits. %#X only forces the point, matching Go's implementation.
+        if verb == 'x' && spec.precision.is_none() {
+            // Go's sharp-padding loop counts the x in 0x as the first
+            // significant character, but not the leading zero or point.
+            let digits = out.bytes().skip(1).filter(|byte| *byte != b'.').count();
+            if digits < 6 {
+                out.push_str(&"0".repeat(6 - digits));
+            }
+        }
+    }
+
+    out.push(if upper { 'P' } else { 'p' });
+    out.push_str(&format!("{:+03}", exponent));
+    out
+}
+`
+
+const goSprintfFloatBaseUnsupported = `    // fmt also writes a float in binary (%b) and in hex (%x). Neither is
+    // done here.
+    if matches!(verb, 'b' | 'x' | 'X') {
+        panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
+    }
+`
+
+const goSprintfFloatSharpUnsupported = `    if spec.sharp {
+        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
+    }
+`
+
+const goSprintfFloatSharpCase = `    let digits = if spec.sharp { go_format_float_sharp(digits, verb, spec.precision) } else { digits };
+`
+
+const goSprintfFloatSharpFormatting = `
+// The # flag forces a decimal point and, for %g, restores trailing zeros up
+// to the requested number of significant digits. strconv removes those
+// zeros before fmt applies the flag.
+fn go_format_float_sharp(mut text: String, verb: char, precision: Option<usize>) -> String {
+    let mut remaining = if matches!(verb, 'v' | 'g' | 'G') { precision.unwrap_or(6) } else { 0 };
+    let tail_at = text.find(|c| matches!(c, 'e' | 'E' | 'p' | 'P')).unwrap_or(text.len());
+    let tail = text.split_off(tail_at);
+    let mut saw_nonzero = false;
+    for byte in text.bytes() {
+        if byte == b'.' {
+            continue;
+        }
+        if byte != b'0' {
+            saw_nonzero = true;
+        }
+        if saw_nonzero {
+            remaining = remaining.saturating_sub(1);
+        }
+    }
+    if !text.contains('.') {
+        if text == "0" {
+            remaining = remaining.saturating_sub(1);
+        }
+        text.push('.');
+    }
+    text.push_str(&"0".repeat(remaining));
+    text.push_str(&tail);
+    text
+}
+`
 
 const goSprintfFormatting = `
 // A verb with its flags, as fmt reads it from a format.
@@ -578,18 +829,10 @@ fn go_format_float_magnitude(verb: char, precision: Option<usize>, shortest: &st
 }
 
 fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> Option<String> {
-    // fmt also writes a float in binary (%b) and in hex (%x). Neither is
-    // done here.
-    if matches!(verb, 'b' | 'x' | 'X') {
-        panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
-    }
-    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
+GO_FLOAT_BASE_UNSUPPORTED    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G'GO_FLOAT_BASE_VERBS) {
         return None;
     }
-    if spec.sharp {
-        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
-    }
-    if value.is_nan() {
+GO_FLOAT_BASE_SHARP_GUARD    if value.is_nan() {
         let sign = if spec.plus { "+" } else if spec.space { " " } else { "" };
         return Some(go_format_pad(spec, format!("{}NaN", sign), 0, false));
     }
@@ -600,7 +843,7 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
         return Some(go_format_pad(spec, format!("{}Inf", sign), 0, false));
     }
     let magnitude = value.abs();
-    // A float32 keeps the digits of the float32, not of the float64 it was
+GO_FLOAT_BASE_CASE    // A float32 keeps the digits of the float32, not of the float64 it was
     // widened to.
     let narrow = magnitude as f32;
     let shortest = if single { format!("{:e}", narrow) } else { format!("{:e}", magnitude) };
@@ -608,10 +851,10 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     let fixed = |precision: usize| if single { format!("{:.*}", precision, narrow) } else { format!("{:.*}", precision, magnitude) };
     let verb = if verb == 'v' { 'g' } else { verb };
     let digits = go_format_float_magnitude(verb, spec.precision, &shortest, with_precision, fixed);
-    let sign = go_format_sign(spec, negative);
+GO_FLOAT_SHARP_CASE    let sign = go_format_sign(spec, negative);
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
-
+GO_FLOAT_BASE_HELPERGO_FLOAT_SHARP_HELPERGO_COMPLEX_FORMAT_HELPER
 // %x and %X of a string or a []byte: two digits for each byte. A precision
 // counts bytes here, not characters.
 fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {
@@ -749,7 +992,7 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
     if let Some(v) = value.downcast_ref::<f32>() {
         return go_format_float(&basic, verb, *v as f64, true);
     }
-    if let Some(v) = value.downcast_ref::<bool>() {
+GO_COMPLEX_FORMAT_CASES    if let Some(v) = value.downcast_ref::<bool>() {
         return if matches!(verb, 't' | 'v') { Some(go_format_pad(&basic, v.to_string(), 0, true)) } else { None };
     }
     let string_verb = if sharp_v { 'q' } else { verb };

@@ -8632,7 +8632,13 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		RegisterAnyCloneType(typeInfo.GetType(expr))
+		typ := typeInfo.GetType(expr)
+		RegisterAnyCloneType(typ)
+		if typ != nil {
+			if basic, ok := types.Unalias(typ).Underlying().(*types.Basic); ok && basic.Info()&types.IsComplex != 0 {
+				NeedGoSprintfComplex()
+			}
+		}
 	}
 	if writeFunctionValueAnyBox(out, expr) {
 		return
