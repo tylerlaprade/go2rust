@@ -17906,6 +17906,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		rustType = "i32" // rune is an alias for int32
 	// Complex types
 	case "complex64":
+		var constant strings.Builder
+		if writeConstExpressionForExpectedComplex(&constant, call.Args[0], types.Typ[types.Complex64]) {
+			WriteWrapperPrefix(out)
+			out.WriteString(constant.String())
+			WriteWrapperSuffix(out)
+			return
+		}
 		if writeComplexToComplexConversion(out, call.Args[0], "f32") {
 			return
 		}
@@ -17915,6 +17922,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(" as f32, 0.0))))")
 		return
 	case "complex128":
+		var constant strings.Builder
+		if writeConstExpressionForExpectedComplex(&constant, call.Args[0], types.Typ[types.Complex128]) {
+			WriteWrapperPrefix(out)
+			out.WriteString(constant.String())
+			WriteWrapperSuffix(out)
+			return
+		}
 		if writeComplexToComplexConversion(out, call.Args[0], "f64") {
 			return
 		}

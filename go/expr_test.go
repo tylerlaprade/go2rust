@@ -1651,6 +1651,29 @@ func widen(x complex64) complex128 {
 	}
 }
 
+func TestExplicitComplexConstantConversionsUseTypedConstructors(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	z64 := complex64(3 + 4i)
+	z128 := complex128(-2.5 + 0.25i)
+	_, _ = z64, z128
+}
+`)
+
+	for _, want := range []string{
+		"num::Complex::<f32>::new(3.0, 4.0)",
+		"num::Complex::<f64>::new(-2.5, 0.25)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("explicit complex constant conversion missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "4i") || strings.Contains(rust, "0.25i") {
+		t.Fatalf("explicit complex conversion must not copy Go imaginary literals into Rust:\n%s", rust)
+	}
+}
+
 func TestConcurrentComplexComparisonCastsZeroConstant(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

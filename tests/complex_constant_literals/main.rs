@@ -641,8 +641,10 @@ fn main() {
     let mut z128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some(num::Complex::<f64>::new(-2.5, 0.25))));
     let mut pureReal: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some(num::Complex::<f64>::new(7.0, 0.0))));
     let mut pureImag: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(num::Complex::<f32>::new(0.0, -8.0))));
+    let mut converted64 = Rc::new(RefCell::new(Some(num::Complex::<f32>::new(6.0, 2.0))));
+    let mut converted128 = Rc::new(RefCell::new(Some(num::Complex::<f64>::new(-3.5, -1.25))));
 
-    if (*z64.borrow().as_ref().unwrap()) != num::Complex::<f32>::new(3.0, 4.0) || (*z128.borrow().as_ref().unwrap()) != num::Complex::<f64>::new(-2.5, 0.25) || (*pureReal.borrow().as_ref().unwrap()) != num::Complex::<f64>::new(7.0, 0.0) || (*pureImag.borrow().as_ref().unwrap()) != num::Complex::<f32>::new(0.0, -8.0) {
+    if (*z64.borrow().as_ref().unwrap()) != num::Complex::<f32>::new(3.0, 4.0) || (*z128.borrow().as_ref().unwrap()) != num::Complex::<f64>::new(-2.5, 0.25) || (*pureReal.borrow().as_ref().unwrap()) != num::Complex::<f64>::new(7.0, 0.0) || (*pureImag.borrow().as_ref().unwrap()) != num::Complex::<f32>::new(0.0, -8.0) || (*converted64.borrow().as_ref().unwrap()) != num::Complex::<f32>::new(6.0, 2.0) || (*converted128.borrow().as_ref().unwrap()) != num::Complex::<f64>::new(-3.5, -1.25) {
         panic!("complex constants changed");
     }
     println!("{}", format!("{}", "ok".to_string()));
