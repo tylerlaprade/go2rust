@@ -6620,7 +6620,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			}
 			if ident, ok := t.(*ast.Ident); ok && isEqualityComparableDefinedUnderlying(ident.Name) {
 				writeScalarTypeDefinitionPartialEq(out, typeSpec.Name.Name)
-				if rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name); ok {
+				if ident.Name == "complex64" || ident.Name == "complex128" {
+					writeComplexTypeDefinitionNumericOps(out, typeSpec.Name.Name)
+				} else if rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name); ok {
 					writeScalarTypeDefinitionNumericOps(out, typeSpec.Name.Name, rustType, ident.Name)
 				}
 				if isBitwiseDefinedUnderlying(ident.Name) {
@@ -7082,6 +7084,36 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
 		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
 	}
+}
+
+func writeComplexTypeDefinitionNumericOps(out *strings.Builder, typeName string) {
+	rustTypeName := RustTypeNameForUse(typeName)
+	for _, op := range []struct {
+		trait  string
+		method string
+		symbol string
+	}{
+		{"Add", "add", "+"},
+		{"Sub", "sub", "-"},
+		{"Mul", "mul", "*"},
+		{"Div", "div", "/"},
+	} {
+		out.WriteString("\nimpl std::ops::" + op.trait + " for " + rustTypeName + " {\n")
+		out.WriteString("    type Output = " + rustTypeName + ";\n")
+		out.WriteString("    fn " + op.method + "(self, other: Self) -> " + rustTypeName + " {\n")
+		out.WriteString("        let __left = { *self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() };\n")
+		out.WriteString("        let __right = { *other.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() };\n")
+		out.WriteString("        " + rustTypeName + "(")
+		WriteWrapperPrefix(out)
+		out.WriteString("__left " + op.symbol + " __right")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n    }\n}\n")
+	}
+	writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Neg", "neg", "-")
 }
 
 // typeDefinitionCopiesScalarValue reports whether a type definition is

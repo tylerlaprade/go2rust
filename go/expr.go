@@ -14040,6 +14040,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.UnaryExpr:
+		if (e.Op == token.SUB || e.Op == token.ADD) && writeNamedComplexArithmeticValue(out, e) {
+			return
+		}
 		if (e.Op == token.SUB || e.Op == token.ADD) && writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
@@ -14247,6 +14250,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeNamedComplexArithmeticValue(out, e) {
+			return
+		}
 		if writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
@@ -18070,6 +18076,9 @@ func writeComplexToComplexConversion(out *strings.Builder, arg ast.Expr, targetC
 }
 
 func writeComplexConversionSourceValue(out *strings.Builder, arg ast.Expr) {
+	if writeNamedComplexPrimitiveExpression(out, arg) {
+		return
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
 		out.WriteString("(*")
