@@ -1743,6 +1743,10 @@ run_xfail_test() {
     run_test "tests/logical_short_circuit_return"
 }
 
+@test "main_sibling_mutex_reservation" {
+    run_test "tests/main_sibling_mutex_reservation"
+}
+
 @test "make_capacity_wrapped_call" {
     run_test "tests/make_capacity_wrapped_call"
 }

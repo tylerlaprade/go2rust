@@ -408,6 +408,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		var fileExternalPkgs map[string]bool
 
 		runCtx.CurrentModuleName = outputName
+		runCtx.SiblingTypeModuleName = outputName
 		if pg.packageMapping != nil {
 			rustCode, fileImports, fileExternalPkgs = TranspileWithMapping(file, fileSet, pg.typeInfo, pg.packageMapping)
 		} else {
@@ -1227,6 +1228,8 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 	// resolving cross-file helper locations for main.go.
 	if runCtx := GetTranspileContext(); runCtx != nil {
 		runCtx.CurrentModuleName = ""
+		runCtx.SiblingTypeModuleName = pg.moduleNameForBase("main")
+		defer func() { runCtx.SiblingTypeModuleName = "" }()
 	}
 
 	var (

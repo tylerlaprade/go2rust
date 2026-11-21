@@ -142,6 +142,7 @@ type TranspileContext struct {
 	UsePackageExternalStubs bool
 	UsePackageHelpers       bool
 	CurrentModuleName       string
+	SiblingTypeModuleName   string
 }
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {

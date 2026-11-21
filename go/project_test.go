@@ -813,6 +813,50 @@ func useNoCopy() noCopy { return noCopy{} }
 	}
 }
 
+func TestMainRsReservesSiblingMutexTypeName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+type Mutex struct {
+	Value int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+func main() {
+	done := make(chan bool)
+	go func() {
+		var value Mutex
+		fmt.Println(value.Value)
+		done <- true
+	}()
+	<-done
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "types.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use std::sync::{Arc, Mutex as StdMutex};") {
+		t.Fatalf("main.rs should alias wrapper Mutex around the sibling Go type:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "Arc<Mutex<Option<") || strings.Contains(mainRS, "Arc::new(Mutex::new") {
+		t.Fatalf("main.rs should use StdMutex for wrappers while keeping sibling Mutex references:\n%s", mainRS)
+	}
+}
+
 func TestImportedGenericSelectorCallEmitsInferredTypeArgs(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

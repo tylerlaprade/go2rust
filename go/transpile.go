@@ -3494,6 +3494,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		ctx.UsePackageExternalStubs = parentCtx.UsePackageExternalStubs
 		ctx.UsePackageHelpers = parentCtx.UsePackageHelpers
 		ctx.CurrentModuleName = parentCtx.CurrentModuleName
+		ctx.SiblingTypeModuleName = parentCtx.SiblingTypeModuleName
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
@@ -4298,11 +4299,18 @@ func reserveSiblingRustTypeNames(imports *ImportTracker) {
 		return
 	}
 	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	currentModuleName := ctx.SiblingTypeModuleName
+	if currentModuleName == "" {
+		currentModuleName = ctx.CurrentModuleName
+	}
+	if currentModuleName == "" {
 		return
 	}
 	for typeName, moduleName := range ctx.Package.TypeModuleNames {
-		if moduleName == "" || moduleName == ctx.CurrentModuleName {
+		if moduleName == "" || moduleName == currentModuleName {
 			continue
 		}
 		imports.ReserveName(RustTypeNameForUse(typeName))
