@@ -2067,6 +2067,14 @@ run_xfail_test() {
     run_test "tests/named_basic_value_in_interface_goroutines"
 }
 
+@test "named_complex_values" {
+    run_test "tests/named_complex_values"
+}
+
+@test "named_complex_values_goroutines" {
+    run_test "tests/named_complex_values_goroutines"
+}
+
 @test "named_const_method_call" {
     run_test "tests/named_const_method_call"
 }

@@ -207,6 +207,22 @@ func main() {
 	}
 }
 
+func TestLiteralNumericVerbOnInterfaceUsesRuntimeFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var value any = complex(3, 4)
+	fmt.Printf("%v %.2f %T", value, value, value)
+}
+`)
+
+	if !strings.Contains(rust, `go_sprintf(&"%v %.2f %T".to_string()`) {
+		t.Fatalf("numeric formatting of an interface should use the run-time formatter:\n%s", rust)
+	}
+}
+
 // What the formatter cannot do must stop the program, not print something
 // that looks right.
 func TestRuntimeFormatterFailsLoudlyOnWhatItDoesNotSupport(t *testing.T) {

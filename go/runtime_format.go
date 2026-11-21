@@ -58,7 +58,53 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 	if !complexArgsUseRustFormat(format, call.Args[formatIndex+1:]) {
 		return "", false
 	}
+	if !interfaceArgsUseRustFormat(format, call.Args[formatIndex+1:]) {
+		return "", false
+	}
 	return format, true
+}
+
+// interfaceArgsUseRustFormat keeps literal formatting on the run-time path
+// when an interface value receives a numeric verb. Its concrete value is only
+// known while the translated program runs, so format_any cannot apply the
+// verb (or its precision) faithfully.
+func interfaceArgsUseRustFormat(quoted string, args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	hasInterface := false
+	for _, arg := range args {
+		if typ := typeInfo.GetType(arg); typ != nil {
+			if _, ok := typ.Underlying().(*types.Interface); ok {
+				hasInterface = true
+				break
+			}
+		}
+	}
+	if !hasInterface {
+		return true
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		if i < len(format) && format[i] == '%' {
+			continue
+		}
+		for i < len(format) && !((format[i] >= 'A' && format[i] <= 'Z') || (format[i] >= 'a' && format[i] <= 'z') || format[i] == '%') {
+			i++
+		}
+		if i >= len(format) || strings.IndexByte("vsT", format[i]) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // complexArgsUseRustFormat reports whether Rust's formatting traits can

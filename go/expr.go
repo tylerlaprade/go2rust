@@ -17952,6 +17952,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			// Custom type definition
 			if underlying == "string" {
 				writeStringTypeDefinitionConstructor(out, RustTypeNameForUse(targetType), call.Args[0])
+			} else if underlying == "complex64" || underlying == "complex128" {
+				writeComplexTypeDefinitionConstructor(out, RustTypeNameForUse(targetType), call.Args[0], underlying)
 			} else {
 				out.WriteString(RustTypeNameForUse(targetType))
 				out.WriteString("(")
@@ -17997,6 +17999,40 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		// No cast needed or unknown type
 		TranspileExpression(out, call.Args[0])
 	}
+}
+
+func writeComplexTypeDefinitionConstructor(out *strings.Builder, rustTypeName string, arg ast.Expr, underlying string) {
+	target := types.Typ[types.Complex128]
+	componentRust := "f64"
+	if underlying == "complex64" {
+		target = types.Typ[types.Complex64]
+		componentRust = "f32"
+	}
+	out.WriteString(rustTypeName)
+	out.WriteString("(")
+	var constant strings.Builder
+	if writeConstExpressionForExpectedComplex(&constant, arg, target) {
+		WriteWrapperPrefix(out)
+		out.WriteString(constant.String())
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return
+	}
+	if writeComplexToComplexConversion(out, arg, componentRust) {
+		out.WriteString(")")
+		return
+	}
+	TrackImport("num::Complex")
+	WriteWrapperPrefix(out)
+	out.WriteString("num::Complex::<")
+	out.WriteString(componentRust)
+	out.WriteString(">::new(")
+	writeNumericConversionValue(out, arg)
+	out.WriteString(" as ")
+	out.WriteString(componentRust)
+	out.WriteString(", 0.0)")
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
 }
 
 func writeComplexToComplexConversion(out *strings.Builder, arg ast.Expr, targetComponentRust string) bool {
