@@ -58,6 +58,34 @@ func main() {
 	}
 }
 
+func TestGoSliceInterfaceAppendCopiesHeadersAndPreflightsGrowth(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	base := []any{1, 2}
+	_ = append(base[:1:1], 3)
+	_ = append(base[:1:2], 3, 4)
+	_ = append(base[:1:2], 3)
+}
+`)
+	for _, want := range []string{
+		"let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()",
+		"self.ensure_boxed_capacity(1);",
+		"self.ensure_boxed_capacity(__values.len());",
+		"let __values = __values.into_boxed_values();\n        self.ensure_boxed_capacity(__values.len());",
+		"None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("boxed GoSlice append output is missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "push_without_copy") ||
+		strings.Contains(rust, "__seq_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone") {
+		t.Fatalf("boxed GoSlice append must preserve the reslice header and detach before a full write:\n%s", rust)
+	}
+}
+
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the
 // names that GoSlice adds to each of them, so that a test can check the
 // helpers a module imports for its own use.

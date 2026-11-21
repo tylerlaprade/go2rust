@@ -118,8 +118,16 @@ func goSliceStubText(text string) string {
 	).Replace(text)
 }
 
-func generateGoSliceHelper(out *strings.Builder) {
-	out.WriteString(goSliceRuntime)
+func generateGoSliceHelper(out *strings.Builder, includeBoxedImpls bool) {
+	runtime := goSliceRuntime
+	boxedImpls := ""
+	if includeBoxedImpls {
+		boxedImpls = goSliceBoxedImpl
+		if NeedsConcurrentWrapper() {
+			boxedImpls = goSliceBoxedConcurrentImpl
+		}
+	}
+	out.WriteString(strings.Replace(runtime, "__GO_SLICE_BOXED_IMPLS__", boxedImpls, 1))
 }
 
 // goSliceRuntime is the Rust definition of GoSlice. The backing is an
@@ -285,23 +293,6 @@ impl<T> GoSlice<T> {
         self.len += 1;
     }
 
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
 }
 
 impl<T: Clone> GoSlice<T> {
@@ -432,44 +423,15 @@ impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
     }
 }
 
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
 /// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
+/// is full and shares its backing array, its existing values are copied into
+/// a fresh backing array before the new values are written.
 pub trait GoSliceAppendBoxed<T> {
     fn push(&mut self, __value: T);
     fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
 }
 
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
+__GO_SLICE_BOXED_IMPLS__
 
 /// Reads the header of a slice value, whichever form the value has.
 pub trait GoSliceHeader<T> {
@@ -698,6 +660,86 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+`
+
+const goSliceBoxedImpl = `impl GoSliceBoxedValues<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<Box<dyn std::any::Any>> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
+        }
+    }
+}
+
+impl GoSlice<Box<dyn std::any::Any>> {
+    fn ensure_boxed_capacity(&mut self, __additional: usize) {
+        let __needed = self.len + __additional;
+        if __needed <= self.cap {
+            return;
+        }
+        let __cap = self.grown_cap(__needed);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        *self = Self::fresh(__elems, __cap);
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.ensure_boxed_capacity(1);
+        self.store_at_end(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        let __values = __values.into_boxed_values();
+        self.ensure_boxed_capacity(__values.len());
+        for __value in __values {
+            self.store_at_end(__value);
+        }
+    }
+}
+`
+
+const goSliceBoxedConcurrentImpl = `impl GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<Box<dyn std::any::Any + Send + Sync>> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
+        }
+    }
+}
+
+impl GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn ensure_boxed_capacity(&mut self, __additional: usize) {
+        let __needed = self.len + __additional;
+        if __needed <= self.cap {
+            return;
+        }
+        let __cap = self.grown_cap(__needed);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        *self = Self::fresh(__elems, __cap);
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.ensure_boxed_capacity(1);
+        self.store_at_end(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        let __values = __values.into_boxed_values();
+        self.ensure_boxed_capacity(__values.len());
+        for __value in __values {
+            self.store_at_end(__value);
+        }
+    }
+}
 `
 
 // writeGoSliceParamHeaderCopies gives each slice parameter that the function

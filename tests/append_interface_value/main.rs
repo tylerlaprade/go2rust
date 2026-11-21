@@ -175,23 +175,6 @@ impl<T> GoSlice<T> {
         self.len += 1;
     }
 
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
 }
 
 impl<T: Clone> GoSlice<T> {
@@ -322,44 +305,53 @@ impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
     }
 }
 
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
 /// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
+/// is full and shares its backing array, its existing values are copied into
+/// a fresh backing array before the new values are written.
 pub trait GoSliceAppendBoxed<T> {
     fn push(&mut self, __value: T);
     fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
 }
 
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
+impl GoSliceBoxedValues<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<Box<dyn std::any::Any>> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
         }
     }
 }
 
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
+impl GoSlice<Box<dyn std::any::Any>> {
+    fn ensure_boxed_capacity(&mut self, __additional: usize) {
+        let __needed = self.len + __additional;
+        if __needed <= self.cap {
+            return;
+        }
+        let __cap = self.grown_cap(__needed);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().iter().map(|__value| go_any_clone(__value.as_ref())).collect(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        *self = Self::fresh(__elems, __cap);
     }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.ensure_boxed_capacity(1);
+        self.store_at_end(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        let __values = __values.into_boxed_values();
+        self.ensure_boxed_capacity(__values.len());
+        for __value in __values {
+            self.store_at_end(__value);
         }
     }
 }
+
 
 /// Reads the header of a slice value, whichever form the value has.
 pub trait GoSliceHeader<T> {
@@ -713,4 +705,16 @@ fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>))))]))));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kept.clone(); let __append_value = { let __any_holder = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kept.borrow_mut() = __slice_header; };
     println!("{}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+
+    let mut base = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])));
+    let mut detached = { let __append_target = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = base.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (1) as usize; let __max = (1) as usize; __seq.reslice3(__low, __high, __max) }))).clone(); let __append_value = Box::new(3i64) as Box<dyn Any>; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) };
+    println!("{} {} {} {}", format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = base.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = base.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = detached.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = detached.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())));
+
+    let mut batchBase = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])));
+    let mut batch = { let __append_target = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = batchBase.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (1) as usize; let __max = (2) as usize; __seq.reslice3(__low, __high, __max) }))).clone(); let __append_values = vec![Box::new(3i64) as Box<dyn Any>, Box::new(4i64) as Box<dyn Any>]; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) };
+    println!("{} {} {} {} {}", format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = batchBase.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = batchBase.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (2) as usize; let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())));
+
+    let mut fitBase = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])));
+    let mut fit = { let __append_target = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = fitBase.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (1) as usize; let __max = (2) as usize; __seq.reslice3(__low, __high, __max) }))).clone(); let __append_value = Box::new(3i64) as Box<dyn Any>; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) };
+    println!("{} {}", format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = fitBase.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = fit.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())));
 }

@@ -12650,7 +12650,13 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 
 func writeClonedValueFromGuard(out *strings.Builder, expr ast.Expr, guardName string) {
 	if unnamedSliceExpression(expr) {
-		if rangeSliceElementIsEmptyInterface(expr) {
+		if goSliceModeEnabled() {
+			// GoSlice<T>::clone copies only the slice header, including when T is
+			// Box<dyn Any> and therefore is not Clone.  Deep-copying []any here
+			// breaks the shared-backing semantics of a reslice before append.
+			out.WriteString(guardName)
+			out.WriteString(".as_ref().cloned().unwrap_or_default()")
+		} else if rangeSliceElementIsEmptyInterface(expr) {
 			NeedAnyClone()
 			out.WriteString(guardName)
 			out.WriteString(".as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")

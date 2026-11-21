@@ -307,7 +307,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
 
 	if ht.goSlice() {
-		generateGoSliceHelper(&result)
+		generateGoSliceHelper(&result, ht.needsAnyClone)
 	}
 
 	// In a program of several packages, each helper also carries the cases

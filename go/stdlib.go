@@ -5216,6 +5216,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		if transpileNamedSliceAppend(out, call) {
 			return
 		}
+		if goSliceModeEnabled() {
+			if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetSliceElemType(call.Args[0])) {
+				// The boxed GoSlice append implementation detaches a shared full
+				// backing array by copying its dynamic interface values.
+				NeedAnyClone()
+			}
+		}
 		writeAppendElement := func(expr ast.Expr) {
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
