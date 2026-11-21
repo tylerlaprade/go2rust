@@ -603,6 +603,44 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
+    pub op: Rc<RefCell<Option<String>>>,
+    pub path: Rc<RefCell<Option<String>>>,
+}
+
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op.borrow();
+        let __path_guard = self.path.borrow();
+        let __err_guard = self.err.borrow();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
+    }
+}
+
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+        self.err.clone()
+    }
+}
+
+
 #[derive(Clone)]
 pub struct io_ReadCloser {
     pub __go_id: usize,
@@ -822,6 +860,11 @@ pub mod os {
         Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
     }
 
+    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = fs_PathError { err: Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>))), op: Rc::new(RefCell::new(Some::<String>(op.to_string()))), path: Rc::new(RefCell::new(Some::<String>(path))) };
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(path_error) as std::rc::Rc<dyn std::error::Error>)))
+    }
+
     pub fn open<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
@@ -829,7 +872,7 @@ pub mod os {
                 let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };
                 (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
             }
-            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), io_error(err)),
+            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
         }
     }
 }

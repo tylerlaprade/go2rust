@@ -233,6 +233,53 @@ against the `// TEMPORARY:` comments of that one file.
   yet; that waits for the same change.
 - Added: 2026-11-20
 
+## Behavioral bridges in external stubs without TEMPORARY markers
+
+These rows cover existing external-stub behavior that predates the
+`// TEMPORARY:` marker convention. They use named `// BRIDGE:` markers and are
+kept outside "## Shims" because that historical section is counted one-for-one
+against `// TEMPORARY:` comments.
+
+**io-fs-path-error**
+
+- Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
+- Go symbol: `io/fs.PathError`
+- Transpiler gap: ordinary non-source-mapped programs cannot use a
+  source-transpiled `io/fs.PathError`, so the external stub emits its concrete
+  fields and wrapped cause.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`
+- Removal trigger: source-transpile and source-map `io/fs.PathError` for
+  ordinary callers, then delete the stub.
+- Added: 2026-11-20 (backfill)
+
+**os-open-path-error**
+
+- Location: `go/external_type_stubs.go`, `writeOsErrorHelpers` and
+  `writeOsOpenFunction`
+- Go symbol: `os.Open`
+- Transpiler gap: the ordinary `os.Open` stub calls Rust `std::fs` and cannot
+  construct the source-transpiled `io/fs.PathError` across that boundary.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`
+- Removal trigger: source-transpile the `os.Open`/`io/fs.PathError` boundary
+  and delete the external-stub constructor.
+- Added: 2026-11-20 (backfill)
+
+**io-fs-err-not-exist**
+
+- Location: `go/external_type_stubs.go`,
+  `writeExternalPackageStubVariable`
+- Go symbol: `io/fs.ErrNotExist`
+- Transpiler gap: external package variables cannot refer to the
+  source-transpiled sentinel, so the ordinary stub maps it to Rust
+  `ErrorKind::NotFound`.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`
+- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
+  route `errors.Is` through it, then delete the external-stub branch.
+- Added: 2026-11-20 (backfill)
+
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36
