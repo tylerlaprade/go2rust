@@ -846,8 +846,9 @@ func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -858,8 +859,9 @@ func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	writeConstExpressionCastValue(out, expr)
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -14444,6 +14446,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				yIsStringLit = true
 			}
 		}
+		writeConstPeer := func(write func(*strings.Builder, ast.Expr, ast.Expr) bool, expr ast.Expr, other ast.Expr, isLeft bool) bool {
+			var operand strings.Builder
+			if !write(&operand, expr, other) {
+				return false
+			}
+			if isComparison && isLeft && strings.Contains(operand.String(), " as ") {
+				out.WriteString("(")
+				out.WriteString(operand.String())
+				out.WriteString(")")
+			} else {
+				out.WriteString(operand.String())
+			}
+			return true
+		}
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
@@ -14486,10 +14502,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeConstShiftLeftOperandForResult(out, expr, e) {
 				return
 			}
-			if writeConstExpressionForSyntaxPeer(out, expr, other) {
+			if writeConstPeer(writeConstExpressionForSyntaxPeer, expr, other, expr == e.X) {
 				return
 			}
-			if writeConstExpressionForBinaryPeer(out, expr, other) {
+			if writeConstPeer(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 				return
 			}
 			if writeLenCapBinaryOperand(out, expr, other) {
@@ -14555,7 +14571,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeConstShiftLeftOperandForResult(out, expr, e) {
 					return
 				}
-				if writeConstExpressionForBinaryPeer(out, expr, other) {
+				if writeConstPeer(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
@@ -14611,9 +14627,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if needsUnwrapX || needsUnwrapY || xIsStringLit || yIsStringLit {
 			// At least one operand needs special handling
 			// Handle X operand
-			if writeConstShiftLeftOperandForResult(out, e.X, e) {
+			if isComparison && isNumericTypeConversion(e.X) {
+				out.WriteString("(")
+				if !writeConstPeer(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
+					writeOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
+				}
+				out.WriteString(")")
+			} else if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstPeer(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
 				out.WriteString(xLit.Value)
@@ -14627,7 +14649,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Handle Y operand
 			if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstPeer(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
 				out.WriteString(yLit.Value)
@@ -14663,9 +14685,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
+			} else if writeConstPeer(writeConstExpressionForSyntaxPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstPeer(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.X) {
 				// Reference-style range value cloned or copied for comparison.
@@ -14714,9 +14736,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
+			} else if writeConstPeer(writeConstExpressionForSyntaxPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstPeer(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.Y) {
 				// Reference-style range value cloned or copied for comparison.
@@ -19207,6 +19229,23 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	writeNumericConversionValueInner(out, arg)
+}
+
+func isNumericTypeConversion(expr ast.Expr) bool {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	return ok && basic.Info()&types.IsNumeric != 0
 }
 
 func writeNumericConversionValueInner(out *strings.Builder, arg ast.Expr) {
