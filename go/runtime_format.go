@@ -332,16 +332,19 @@ func generateGoSprintf(out *strings.Builder, spread bool, complex bool, anyForma
 	complexFormatting, complexCases := "", ""
 	floatBaseUnsupported := goSprintfFloatBaseUnsupported
 	floatBaseVerbs := ""
-	floatBaseSharpGuard := "    if spec.sharp {"
+	floatBaseSharpGuard := goSprintfFloatSharpUnsupported
 	floatBaseCase, floatBaseHelper := "", ""
+	floatSharpCase, floatSharpHelper := "", ""
 	if complex {
 		complexFormatting = goSprintfComplexFormatting
 		complexCases = goSprintfComplexCases
 		floatBaseUnsupported = ""
 		floatBaseVerbs = " | 'b' | 'x' | 'X'"
-		floatBaseSharpGuard = "    if spec.sharp && !matches!(verb, 'b' | 'x' | 'X') {"
+		floatBaseSharpGuard = ""
 		floatBaseCase = goSprintfFloatBaseCase
 		floatBaseHelper = goSprintfFloatBaseFormatting
+		floatSharpCase = goSprintfFloatSharpCase
+		floatSharpHelper = goSprintfFloatSharpFormatting
 	}
 	replace := strings.NewReplacer(
 		"GO_ANY_VALUE", anyValue,
@@ -355,6 +358,8 @@ func generateGoSprintf(out *strings.Builder, spread bool, complex bool, anyForma
 		"GO_FLOAT_BASE_SHARP_GUARD", floatBaseSharpGuard,
 		"GO_FLOAT_BASE_CASE", floatBaseCase,
 		"GO_FLOAT_BASE_HELPER", floatBaseHelper,
+		"GO_FLOAT_SHARP_CASE", floatSharpCase,
+		"GO_FLOAT_SHARP_HELPER", floatSharpHelper,
 	)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
@@ -555,6 +560,46 @@ const goSprintfFloatBaseUnsupported = `    // fmt also writes a float in binary 
     if matches!(verb, 'b' | 'x' | 'X') {
         panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
     }
+`
+
+const goSprintfFloatSharpUnsupported = `    if spec.sharp {
+        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
+    }
+`
+
+const goSprintfFloatSharpCase = `    let digits = if spec.sharp { go_format_float_sharp(digits, verb, spec.precision) } else { digits };
+`
+
+const goSprintfFloatSharpFormatting = `
+// The # flag forces a decimal point and, for %g, restores trailing zeros up
+// to the requested number of significant digits. strconv removes those
+// zeros before fmt applies the flag.
+fn go_format_float_sharp(mut text: String, verb: char, precision: Option<usize>) -> String {
+    let mut remaining = if matches!(verb, 'v' | 'g' | 'G') { precision.unwrap_or(6) } else { 0 };
+    let tail_at = text.find(|c| matches!(c, 'e' | 'E' | 'p' | 'P')).unwrap_or(text.len());
+    let tail = text.split_off(tail_at);
+    let mut saw_nonzero = false;
+    for byte in text.bytes() {
+        if byte == b'.' {
+            continue;
+        }
+        if byte != b'0' {
+            saw_nonzero = true;
+        }
+        if saw_nonzero {
+            remaining = remaining.saturating_sub(1);
+        }
+    }
+    if !text.contains('.') {
+        if text == "0" {
+            remaining = remaining.saturating_sub(1);
+        }
+        text.push('.');
+    }
+    text.push_str(&"0".repeat(remaining));
+    text.push_str(&tail);
+    text
+}
 `
 
 const goSprintfFormatting = `
@@ -784,10 +829,7 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
 GO_FLOAT_BASE_UNSUPPORTED    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G'GO_FLOAT_BASE_VERBS) {
         return None;
     }
-GO_FLOAT_BASE_SHARP_GUARD
-        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
-    }
-    if value.is_nan() {
+GO_FLOAT_BASE_SHARP_GUARD    if value.is_nan() {
         let sign = if spec.plus { "+" } else if spec.space { " " } else { "" };
         return Some(go_format_pad(spec, format!("{}NaN", sign), 0, false));
     }
@@ -806,10 +848,10 @@ GO_FLOAT_BASE_CASE    // A float32 keeps the digits of the float32, not of the f
     let fixed = |precision: usize| if single { format!("{:.*}", precision, narrow) } else { format!("{:.*}", precision, magnitude) };
     let verb = if verb == 'v' { 'g' } else { verb };
     let digits = go_format_float_magnitude(verb, spec.precision, &shortest, with_precision, fixed);
-    let sign = go_format_sign(spec, negative);
+GO_FLOAT_SHARP_CASE    let sign = go_format_sign(spec, negative);
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
-GO_FLOAT_BASE_HELPERGO_COMPLEX_FORMAT_HELPER
+GO_FLOAT_BASE_HELPERGO_FLOAT_SHARP_HELPERGO_COMPLEX_FORMAT_HELPER
 // %x and %X of a string or a []byte: two digits for each byte. A precision
 // counts bytes here, not characters.
 fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {

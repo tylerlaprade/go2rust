@@ -25,6 +25,7 @@ func main() {
 	fmt.Printf("base flags: %#x %#X\n", positive, negative)
 	fmt.Printf("base precision: %#.0x %#.4x %.3X\n", complex(1.23, 1), complex(123, 1), complex(123, 1))
 	fmt.Printf("binary flags: %#b %.4b\n", positive, negative)
+	fmt.Printf("sharp decimal: %#g %#.0f %#.4e %#.4g %#.4g\n", complex(1, 2), complex(1.23, 1), complex(123, 1), complex(123, 1.23), complex(0, 0))
 	printDynamic("spread: %.1f %g\n", positive, negative)
 	printDynamic("spread bases: %b %x %X\n", positive, negative, positive)
 }

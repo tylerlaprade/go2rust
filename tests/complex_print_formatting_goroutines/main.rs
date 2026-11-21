@@ -1110,9 +1110,6 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G' | 'b' | 'x' | 'X') {
         return None;
     }
-    if spec.sharp && !matches!(verb, 'b' | 'x' | 'X') {
-        panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
-    }
     if value.is_nan() {
         let sign = if spec.plus { "+" } else if spec.space { " " } else { "" };
         return Some(go_format_pad(spec, format!("{}NaN", sign), 0, false));
@@ -1137,6 +1134,7 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     let fixed = |precision: usize| if single { format!("{:.*}", precision, narrow) } else { format!("{:.*}", precision, magnitude) };
     let verb = if verb == 'v' { 'g' } else { verb };
     let digits = go_format_float_magnitude(verb, spec.precision, &shortest, with_precision, fixed);
+    let digits = if spec.sharp { go_format_float_sharp(digits, verb, spec.precision) } else { digits };
     let sign = go_format_sign(spec, negative);
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
@@ -1230,6 +1228,35 @@ fn go_format_float_base(spec: &GoFormatSpec, verb: char, value: f64, single: boo
     out
 }
 
+// The # flag forces a decimal point and, for %g, restores trailing zeros up
+// to the requested number of significant digits. strconv removes those
+// zeros before fmt applies the flag.
+fn go_format_float_sharp(mut text: String, verb: char, precision: Option<usize>) -> String {
+    let mut remaining = if matches!(verb, 'v' | 'g' | 'G') { precision.unwrap_or(6) } else { 0 };
+    let tail_at = text.find(|c| matches!(c, 'e' | 'E' | 'p' | 'P')).unwrap_or(text.len());
+    let tail = text.split_off(tail_at);
+    let mut saw_nonzero = false;
+    for byte in text.bytes() {
+        if byte == b'.' {
+            continue;
+        }
+        if byte != b'0' {
+            saw_nonzero = true;
+        }
+        if saw_nonzero {
+            remaining = remaining.saturating_sub(1);
+        }
+    }
+    if !text.contains('.') {
+        if text == "0" {
+            remaining = remaining.saturating_sub(1);
+        }
+        text.push('.');
+    }
+    text.push_str(&"0".repeat(remaining));
+    text.push_str(&tail);
+    text
+}
 
 fn go_format_complex(spec: &GoFormatSpec, verb: char, real: f64, imaginary: f64, single: bool) -> Option<String> {
     if !matches!(verb, 'v' | 'b' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G' | 'x' | 'X') {
@@ -1623,6 +1650,7 @@ fn main() {
     print!("{}", go_sprintf(&"base flags: %#x %#X\n".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print!("{}", go_sprintf(&"base precision: %#.0x %#.4x %.3X\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(1.23 as f64, 1 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(123 as f64, 1 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(123 as f64, 1 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print!("{}", go_sprintf(&"binary flags: %#b %.4b\n".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&"sharp decimal: %#g %#.0f %#.4e %#.4g %#.4g\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(1 as f64, 2 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(1.23 as f64, 1 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(123 as f64, 1 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(123 as f64, 1.23 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(num::Complex::new(0 as f64, 0 as f64)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print_dynamic(Arc::new(Mutex::new(Some("spread: %.1f %g\n".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
     print_dynamic(Arc::new(Mutex::new(Some("spread bases: %b %x %X\n".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
 }
