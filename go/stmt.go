@@ -4137,13 +4137,13 @@ func writeSwitchInterfaceCaseComparison(out *strings.Builder, switchVal string, 
 
 	out.WriteString("{ let __left_holder = ")
 	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
+	out.WriteString(".clone(); let __left_value = { (*__left_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
+	out.WriteString(").clone() }; let __right_holder = ")
 	out.WriteString(right.String())
 	out.WriteString("; let __right_guard = __right_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
+	out.WriteString("; let __eq = match (__left_value.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
 	if caseKind == switchInterfaceCaseConcretePointer {
 		out.WriteString("{ let __right_trait: ")
 		out.WriteString(rustLocalInterfaceParamBare(ifaceName))
@@ -4202,18 +4202,20 @@ func writeSwitchGoErrorCaseComparison(out *strings.Builder, switchVal string, ca
 
 	out.WriteString("{ let __left_holder = ")
 	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
+	out.WriteString(".clone(); let __left_value = { (*__left_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
+	out.WriteString(").clone() }; let __right_holder = ")
 	if !writeGoErrorHandleValue(out, caseExpr) {
 		out.WriteString(`unimplemented!("type info required for error switch case")`)
 		out.WriteString("; ")
 	} else {
 		out.WriteString("; ")
 	}
-	out.WriteString("let __right_guard = __right_holder")
+	out.WriteString("let __right_value = { (*__right_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => std::ptr::addr_eq(&**__left, &**__right), (None, None) => true, _ => false } }")
+	out.WriteString(").clone() }; match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__left), Some(__right)) => ")
+	writeGoErrorPayloadEquality(out, "__left", "__right")
+	out.WriteString(", (None, None) => true, _ => false } }")
 }
 
 func writeSwitchGoErrorConcreteCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, caseType types.Type) bool {
@@ -8306,21 +8308,30 @@ func concreteGoErrorConversionOperand(expr ast.Expr, typeInfo *TypeInfo) (ast.Ex
 }
 
 func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
-	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		if composite, ok := unary.X.(*ast.CompositeLit); ok {
-			TranspileExpressionContext(out, composite, AddressOf)
-			return
-		}
-	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if typ := typeInfo.GetType(expr); typ != nil && isConcreteGoErrorValue(typ) {
-			if _, ok := types.Unalias(typ).(*types.Pointer); ok {
+			if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+				if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok && named.Obj() != nil &&
+					typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg &&
+					currentPackagePointerImplementsGoError(named.Obj().Name()) {
+					out.WriteString(pointerGoErrorWrapperNameForUse(named.Obj().Name()))
+					out.WriteString("(")
+					writePointerConcreteInterfaceHandle(out, expr)
+					out.WriteString(")")
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, expr, LValue)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
 				return
 			}
+		}
+	}
+	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if composite, ok := unary.X.(*ast.CompositeLit); ok {
+			TranspileExpressionContext(out, composite, AddressOf)
+			return
 		}
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && isConstantExpression(expr) {

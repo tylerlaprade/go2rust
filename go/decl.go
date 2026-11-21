@@ -3691,6 +3691,69 @@ func pointerLocalInterfaceWrapperNameForUse(typeName, ifaceName string) string {
 	return "crate::" + moduleName + "::" + wrapperName
 }
 
+// pointerGoErrorWrapperName allocates a package-stable support name that does
+// not collide with either a source type or another generated pointer-error
+// wrapper. Source identifiers may legally begin with __go_error_ptr_, so a
+// prefix alone is not a sufficient namespace boundary.
+func pointerGoErrorWrapperName(typeName string) string {
+	baseName := func(name string) string {
+		return "__go_error_ptr_" + strings.TrimPrefix(RustTypeNameForUse(name), "r#")
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return baseName(typeName)
+	}
+
+	used := make(map[string]bool, len(ctx.Package.TypeDefinitions)+len(ctx.Package.TypeModuleNames)+len(ctx.Package.PointerErrorImplTypes))
+	for sourceTypeName := range ctx.Package.TypeDefinitions {
+		used[RustTypeNameForUse(sourceTypeName)] = true
+	}
+	for sourceTypeName := range ctx.Package.TypeModuleNames {
+		used[RustTypeNameForUse(sourceTypeName)] = true
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+		scope := typeInfo.pkg.Scope()
+		for _, sourceName := range scope.Names() {
+			if _, ok := scope.Lookup(sourceName).(*types.TypeName); ok {
+				used[RustTypeNameForUse(sourceName)] = true
+			}
+		}
+	}
+	pointerErrorTypes := make([]string, 0, len(ctx.Package.PointerErrorImplTypes)+1)
+	for pointerErrorType := range ctx.Package.PointerErrorImplTypes {
+		pointerErrorTypes = append(pointerErrorTypes, pointerErrorType)
+	}
+	if !ctx.Package.PointerErrorImplTypes[typeName] {
+		pointerErrorTypes = append(pointerErrorTypes, typeName)
+	}
+	sort.Strings(pointerErrorTypes)
+
+	for _, pointerErrorType := range pointerErrorTypes {
+		candidate := baseName(pointerErrorType)
+		for suffix := 1; used[candidate]; suffix++ {
+			candidate = baseName(pointerErrorType) + "_" + strconv.Itoa(suffix)
+		}
+		if pointerErrorType == typeName {
+			return candidate
+		}
+		used[candidate] = true
+	}
+	return baseName(typeName)
+}
+
+func pointerGoErrorWrapperNameForUse(typeName string) string {
+	wrapperName := pointerGoErrorWrapperName(typeName)
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+		return wrapperName
+	}
+	moduleName := ctx.Package.TypeModuleNames[typeName]
+	if moduleName == "" || moduleName == ctx.CurrentModuleName {
+		return wrapperName
+	}
+	return "crate::" + moduleName + "::" + wrapperName
+}
+
 func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName string, ifaceType *types.Interface, emitStruct bool) {
 	trackWrapperImports()
 	rustTypeName := RustTypeNameForUse(typeName)
@@ -3727,6 +3790,37 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 	}
 	writePointerLocalInterfaceSupportImpl(out, ifaceName, wrapperName, ifaceType)
 	out.WriteString("}")
+}
+
+// writePointerGoErrorWrapper preserves the identity of a Go pointer whose
+// method set implements error. Boxing the pointee itself would copy it and
+// make two conversions of the same pointer unequal (and hide later mutation).
+func writePointerGoErrorWrapper(out *strings.Builder, typeName string) {
+	trackWrapperImports()
+	TrackImport("Error")
+	rustTypeName := RustTypeNameForUse(typeName)
+	wrapperName := pointerGoErrorWrapperName(typeName)
+	pointerType := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustTypeName + ">>>"
+
+	out.WriteString("#[derive(Debug, Clone)]\n")
+	out.WriteString("pub struct ")
+	out.WriteString(wrapperName)
+	out.WriteString("(pub ")
+	out.WriteString(pointerType)
+	out.WriteString(");\n\n")
+	out.WriteString("impl std::fmt::Display for ")
+	out.WriteString(wrapperName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        let __guard = self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl StdError for ")
+	out.WriteString(wrapperName)
+	out.WriteString(" {}\n")
 }
 
 func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {

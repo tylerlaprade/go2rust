@@ -1,0 +1,12 @@
+true false
+true
+pointer:2 pointer:2
+true
+true true
+true 3
+true
+true false
+true
+false false
+true true
+true PE

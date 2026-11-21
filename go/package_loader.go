@@ -1057,6 +1057,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
+	pkgState.PointerErrorImplTypes = collectPackagePointerErrorImplTypes(pkgTypeInfo)
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	pkgState.GlobalNameOverrides = assignPackageGlobalNameOverrides(pkg.Syntax, pkgState.FunctionNameOverrides)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)

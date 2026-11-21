@@ -10113,3 +10113,58 @@ func main() {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
 	}
 }
+
+func TestGoErrorEqualityUsesComparableValuesAndPointerIdentity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type valueError struct { code string }
+func (err valueError) Error() string { return err.code }
+
+type pointerError struct { n int }
+func (err *pointerError) Error() string { return "pointer" }
+
+var sentinel = &pointerError{n: 1}
+
+func compare(left, right error) bool { return left == right }
+func compareSentinel(err error) bool { return err == sentinel }
+`)
+
+	for _, want := range []string{
+		"#[derive(Debug, Clone, PartialEq)]\npub struct valueError",
+		"pub struct __go_error_ptr_pointerError(pub Rc<RefCell<Option<pointerError>>>)",
+		"downcast_ref::<valueError>()",
+		"downcast_ref::<__go_error_ptr_pointerError>()",
+		"Rc::ptr_eq(&__go_left.0, &__go_right.0)",
+		"Rc::new(__go_error_ptr_pointerError(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in Go error equality lowering:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Rc::new((*sentinel") {
+		t.Fatalf("pointer errors must preserve the original handle instead of boxing a pointee copy:\n%s", rust)
+	}
+}
+
+func TestConcurrentGoErrorEqualityUsesPointerIdentity(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type pointerError struct { n int }
+func (err *pointerError) Error() string { return "pointer" }
+
+func compare(left, right error) bool {
+	go func() {}()
+	return left == right
+}
+`)
+
+	for _, want := range []string{
+		"pub struct __go_error_ptr_pointerError(pub Arc<Mutex<Option<pointerError>>>)",
+		"downcast_ref::<__go_error_ptr_pointerError>()",
+		"Arc::ptr_eq(&__go_left.0, &__go_right.0)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in concurrent Go error equality lowering:\n%s", want, rust)
+		}
+	}
+}

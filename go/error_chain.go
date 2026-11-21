@@ -60,6 +60,17 @@ func errorChainUnwrapArms() string {
 		arms.WriteString("()")
 		WriteBorrowMethod(&arms, false)
 		arms.WriteString(").clone() { stack.push(__c); } }\n")
+		if types.Implements(types.NewPointer(named), errorType.Underlying().(*types.Interface)) {
+			arms.WriteString("        if let Some(__v) = e.downcast_ref::<")
+			arms.WriteString(pointerGoErrorWrapperNameForUse(named.Obj().Name()))
+			arms.WriteString(">() { let __pointee = __v.0")
+			WriteBorrowMethod(&arms, false)
+			arms.WriteString("; if let Some(__pointee) = __pointee.as_ref() { if let Some(__c) = (*__pointee.")
+			arms.WriteString(rustMethodNameForTypesFunc(fn))
+			arms.WriteString("()")
+			WriteBorrowMethod(&arms, false)
+			arms.WriteString(").clone() { stack.push(__c); } } }\n")
+		}
 	}
 	return arms.String()
 }
@@ -281,19 +292,36 @@ func transpileErrorsAs(out *strings.Builder, call *ast.CallExpr) {
 	}
 	NeedGoErrorChain()
 	heldRust := goTypesTypeToRust(held)
+	pointerErrorWrapper := false
+	if isPointer {
+		if named, ok := types.Unalias(held).(*types.Named); ok && named.Obj() != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+			heldRust = pointerGoErrorWrapperNameForUse(named.Obj().Name())
+			pointerErrorWrapper = true
+		}
+	}
 	WriteWrapperPrefix(out)
 	defer WriteWrapperSuffix(out)
 	out.WriteString("{ let mut __as_found = None; for __as_err in go_error_chain(")
 	out.WriteString(err.String())
 	out.WriteString(") { if let Some(__as_value) = __as_err.downcast_ref::<")
 	out.WriteString(heldRust)
-	out.WriteString(">() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { ")
+	out.WriteString(">() { __as_found = Some(")
+	if pointerErrorWrapper {
+		out.WriteString("__as_value.0.clone()")
+	} else {
+		out.WriteString("__as_value.clone()")
+	}
+	out.WriteString("); break; } } match __as_found { Some(__as_value) => { ")
 	name := rustIdentForUseWithCapture(target)
 	if isPointer {
 		out.WriteString("let new_val = ")
-		WriteWrapperPrefix(out)
-		out.WriteString("__as_value")
-		WriteWrapperSuffix(out)
+		if pointerErrorWrapper {
+			out.WriteString("__as_value")
+		} else {
+			WriteWrapperPrefix(out)
+			out.WriteString("__as_value")
+			WriteWrapperSuffix(out)
+		}
 		out.WriteString("; ")
 		out.WriteString(name)
 		out.WriteString(" = new_val; ")

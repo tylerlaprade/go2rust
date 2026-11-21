@@ -25,7 +25,7 @@ func main() {
 	fmt.Println(errors.Is(err, ErrNotFound), errors.As(err, &pe), errors.Unwrap(err), errors.Join(err, nil))
 }
 `)
-	for _, want := range []string{"go_error_wrap(format!(", "go_errors_is(", "go_error_chain(", ".downcast_ref::<PE>()", "go_errors_unwrap(", "go_errors_join(vec!["} {
+	for _, want := range []string{"go_error_wrap(format!(", "go_errors_is(", "go_error_chain(", ".downcast_ref::<__go_error_ptr_PE>()", "go_errors_unwrap(", "go_errors_join(vec!["} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}

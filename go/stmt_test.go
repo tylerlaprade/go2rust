@@ -1945,6 +1945,12 @@ func classify(t Type) string {
 	if !strings.Contains(rust, "__go_eq_type_(") {
 		t.Fatalf("interface switch concrete case should use the interface equality helper:\n%s", rust)
 	}
+	if strings.Contains(rust, "match (__left_guard.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should not reference an undeclared left guard:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match (__left_value.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should compare the captured left value:\n%s", rust)
+	}
 }
 
 func TestExpressionSwitchOnEmptyInterfaceKeepsHandle(t *testing.T) {
@@ -7400,7 +7406,7 @@ func caller(s string) int {
 	}
 }
 
-func TestConcreteErrorPointerCallReturnBoxesPointee(t *testing.T) {
+func TestConcreteErrorPointerCallReturnPreservesPointerHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type NumError struct{}
@@ -7414,12 +7420,11 @@ func parse() (bool, error) {
 }
 `)
 
-	if strings.Contains(rust, "Rc::new(syntax_error()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should not box the pointer handle:\n%s", rust)
+	if !strings.Contains(rust, "Rc::new(NumErrorPtr(syntax_error().clone())) as Rc<dyn StdError") {
+		t.Fatalf("pointer error call result should box an identity-preserving wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new((*syntax_error()") ||
-		!strings.Contains(rust, ".as_ref().unwrap()).clone()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should box the pointee clone:\n%s", rust)
+	if strings.Contains(rust, "Rc::new((*syntax_error()") {
+		t.Fatalf("pointer error call result must not clone the pointee:\n%s", rust)
 	}
 }
 
@@ -9915,7 +9920,7 @@ func underlyingErrorIs(err, target error) bool {
 	}
 }
 
-func TestPointerErrorAssertionDowncastsConcretePayload(t *testing.T) {
+func TestPointerErrorAssertionDowncastsIdentityWrapper(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type parseError struct {
@@ -9937,16 +9942,11 @@ func code() int {
 }
 `)
 
-	if strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<parseError>>>>") ||
-		strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<parseError>>>>") {
-		t.Fatalf("error assertion to *parseError should not downcast to the wrapper handle:\n%s", rust)
+	if !strings.Contains(rust, "downcast_ref::<__go_error_ptr_parseError>()") {
+		t.Fatalf("error assertion to *parseError should downcast the identity-preserving error wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "downcast_ref::<parseError>()") {
-		t.Fatalf("error assertion to *parseError should downcast the concrete error payload:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(typed_val.clone())))") &&
-		!strings.Contains(rust, "Rc::new(RefCell::new(Some(typed_val.clone())))") {
-		t.Fatalf("error assertion to *parseError should rebuild the pointer handle from the payload:\n%s", rust)
+	if !strings.Contains(rust, "typed_val.0.clone()") {
+		t.Fatalf("error assertion to *parseError should return the original pointer handle:\n%s", rust)
 	}
 }
 

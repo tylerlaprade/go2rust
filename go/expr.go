@@ -5490,10 +5490,10 @@ func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	leftType := typeInfo.GetType(expr.X)
 	rightType := typeInfo.GetType(expr.Y)
 	if isGoErrorType(leftType) && isConcreteGoErrorValue(rightType) {
-		return writeGoErrorConcreteEquality(out, expr.X, expr.Y, rightType, expr.Op)
+		return writeGoErrorConcreteEquality(out, expr.X, expr.Y, rightType, expr.Op, true)
 	}
 	if isConcreteGoErrorValue(leftType) && isGoErrorType(rightType) {
-		return writeGoErrorConcreteEquality(out, expr.Y, expr.X, leftType, expr.Op)
+		return writeGoErrorConcreteEquality(out, expr.Y, expr.X, leftType, expr.Op, false)
 	}
 	if !isGoErrorType(leftType) || !isGoErrorType(rightType) {
 		return false
@@ -5508,19 +5508,13 @@ func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.E
 	TranspileExpressionContext(out, left, LValue)
 	out.WriteString(".clone(); let __right = ")
 	TranspileExpressionContext(out, right, LValue)
-	out.WriteString(".clone(); let __same_handle = ")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::ptr_eq(&__left, &__right)")
-	} else {
-		out.WriteString("Rc::ptr_eq(&__left, &__right)")
-	}
-	out.WriteString("; let __eq = if __same_handle { true } else { let __left_guard = __left")
+	out.WriteString(".clone(); let __left_value = { (*__left")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_guard = __right")
+	out.WriteString(").clone() }; let __right_value = { (*__right")
 	WriteBorrowMethod(out, false)
-	// Two errors are equal when they are the same error: both nil, or both
-	// pointers to one allocation.
-	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; ")
+	out.WriteString(").clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => ")
+	writeGoErrorPayloadEquality(out, "__l", "__r")
+	out.WriteString(", (None, None) => true, _ => false }; ")
 	if op == token.EQL {
 		out.WriteString("__eq")
 	} else {
@@ -5529,9 +5523,127 @@ func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.E
 	out.WriteString(" }")
 }
 
-func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token) bool {
+// writeGoErrorPayloadEquality compares two non-nil error payloads with Go's
+// interface equality rules. Pointer errors keep and compare their original
+// pointer handles. Comparable value errors compare their dynamic values after
+// confirming the same concrete type.
+func writeGoErrorPayloadEquality(out *strings.Builder, left, right string) {
+	wroteTypedBranch := false
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+		errorObj := types.Universe.Lookup("error")
+		if errorObj != nil {
+			errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
+			for _, name := range typeInfo.pkg.Scope().Names() {
+				typeName, ok := typeInfo.pkg.Scope().Lookup(name).(*types.TypeName)
+				if !ok || typeName.IsAlias() {
+					continue
+				}
+				named, ok := typeName.Type().(*types.Named)
+				if !ok || named.TypeParams().Len() != 0 {
+					continue
+				}
+				if types.Implements(named, errorIface) && types.Comparable(named) {
+					rustType := goTypesNamedTypeToRust(named)
+					if wroteTypedBranch {
+						out.WriteString(" else if let (Some(__go_left), Some(__go_right)) = (")
+					} else {
+						out.WriteString("if let (Some(__go_left), Some(__go_right)) = (")
+						wroteTypedBranch = true
+					}
+					out.WriteString(left)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(rustType)
+					out.WriteString(">(), ")
+					out.WriteString(right)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(rustType)
+					out.WriteString(">()) { __go_left == __go_right }")
+				}
+				if types.Implements(types.NewPointer(named), errorIface) {
+					wrapper := pointerGoErrorWrapperNameForUse(named.Obj().Name())
+					if wroteTypedBranch {
+						out.WriteString(" else if let (Some(__go_left), Some(__go_right)) = (")
+					} else {
+						out.WriteString("if let (Some(__go_left), Some(__go_right)) = (")
+						wroteTypedBranch = true
+					}
+					out.WriteString(left)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(wrapper)
+					out.WriteString(">(), ")
+					out.WriteString(right)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(wrapper)
+					out.WriteString(">()) { ")
+					out.WriteString("let __go_left_nil = { __go_left.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".is_none() }; let __go_right_nil = { __go_right.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { ")
+					if NeedsConcurrentWrapper() {
+						out.WriteString("Arc::ptr_eq(&__go_left.0, &__go_right.0)")
+					} else {
+						out.WriteString("Rc::ptr_eq(&__go_left.0, &__go_right.0)")
+					}
+					out.WriteString(" }")
+					out.WriteString(" }")
+				}
+			}
+		}
+	}
+	if wroteTypedBranch {
+		out.WriteString(" else if std::ptr::addr_eq(&**")
+	} else {
+		out.WriteString("std::ptr::addr_eq(&**")
+	}
+	out.WriteString(left)
+	out.WriteString(", &**")
+	out.WriteString(right)
+	if wroteTypedBranch {
+		out.WriteString(") { true } else { false }")
+	} else {
+		out.WriteString(")")
+	}
+}
+
+func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token, errorFirst bool) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
+	}
+	if ptr, ok := types.Unalias(concreteType).(*types.Pointer); ok {
+		named, namedOK := types.Unalias(ptr.Elem()).(*types.Named)
+		typeInfo := GetTypeInfo()
+		if namedOK && named.Obj() != nil && typeInfo != nil && typeInfo.pkg != nil &&
+			named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+			out.WriteString("{ ")
+			if errorFirst {
+				out.WriteString("let __left = ")
+				TranspileExpressionContext(out, errorExpr, LValue)
+				out.WriteString(".clone(); let __right = ")
+				writeGoErrorHandleValue(out, concreteExpr)
+			} else {
+				out.WriteString("let __right = ")
+				writeGoErrorHandleValue(out, concreteExpr)
+				out.WriteString("; let __left = ")
+				TranspileExpressionContext(out, errorExpr, LValue)
+				out.WriteString(".clone()")
+			}
+			out.WriteString("; let __left_value = { (*__left")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone() }; let __right_value = { (*__right")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => ")
+			writeGoErrorPayloadEquality(out, "__l", "__r")
+			out.WriteString(", (None, None) => true, _ => false }; ")
+			if op == token.NEQ {
+				out.WriteString("!__eq")
+			} else {
+				out.WriteString("__eq")
+			}
+			out.WriteString(" }")
+			return true
+		}
 	}
 	if !isConstantExpression(concreteExpr) {
 		return false
@@ -8901,7 +9013,13 @@ func goErrorAnyBoxCandidates(candidates []localInterfaceAssertionCandidate) []lo
 // An interface value holds a pointer as a handle, like any pointer variable,
 // so a pointer error gets a handle around what the error holds.
 func goErrorAnyBoxValue(candidate localInterfaceAssertionCandidate) string {
-	if _, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+	if ptr, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+		if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok && named.Obj() != nil {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+				return "typed_val.0.clone()"
+			}
+		}
 		var value strings.Builder
 		WriteWrapperPrefix(&value)
 		value.WriteString("typed_val.clone()")
@@ -20407,7 +20525,28 @@ func writeGoErrorPointerAssertionSuccess(out *strings.Builder) {
 	WriteWrapperSuffix(out)
 }
 
+func goErrorPointerAssertionWrapperType(e *ast.TypeAssertExpr) (string, bool) {
+	if e == nil || e.Type == nil {
+		return "", false
+	}
+	star, ok := e.Type.(*ast.StarExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(star.X)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg || !currentPackagePointerImplementsGoError(named.Obj().Name()) {
+		return "", false
+	}
+	return pointerGoErrorWrapperNameForUse(named.Obj().Name()), true
+}
+
 func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	wrapperType, usesWrapper := goErrorPointerAssertionWrapperType(e)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -20417,10 +20556,18 @@ func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAsse
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
-	out.WriteString(pointeeRustType)
+	if usesWrapper {
+		out.WriteString(wrapperType)
+	} else {
+		out.WriteString(pointeeRustType)
+	}
 	out.WriteString(">() {\n")
 	out.WriteString("                ")
-	writeGoErrorPointerAssertionSuccess(out)
+	if usesWrapper {
+		out.WriteString("typed_val.0.clone()")
+	} else {
+		writeGoErrorPointerAssertionSuccess(out)
+	}
 	out.WriteString("\n")
 	out.WriteString("            } else {\n")
 	out.WriteString("                panic!(\"type assertion failed\")\n")
@@ -20432,6 +20579,7 @@ func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAsse
 }
 
 func writeGoErrorPointerTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	wrapperType, usesWrapper := goErrorPointerAssertionWrapperType(e)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -20441,10 +20589,18 @@ func writeGoErrorPointerTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAs
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
-	out.WriteString(pointeeRustType)
+	if usesWrapper {
+		out.WriteString(wrapperType)
+	} else {
+		out.WriteString(pointeeRustType)
+	}
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
-	writeGoErrorPointerAssertionSuccess(out)
+	if usesWrapper {
+		out.WriteString("typed_val.0.clone()")
+	} else {
+		writeGoErrorPointerAssertionSuccess(out)
+	}
 	out.WriteString(", true)\n")
 	out.WriteString("            } else {\n")
 	out.WriteString("                (")

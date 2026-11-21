@@ -1,0 +1,11 @@
+[package]
+name = "error_equality_concrete"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_equality_concrete"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

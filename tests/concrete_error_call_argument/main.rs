@@ -588,7 +588,7 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct customError {
     pub msg: Rc<RefCell<Option<String>>>,
 }
@@ -626,6 +626,18 @@ impl customError {
 }
 
 impl StdError for customError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_customError(pub Rc<RefCell<Option<customError>>>);
+
+impl std::fmt::Display for __go_error_ptr_customError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_customError {}
 
 
 pub fn accept(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) {

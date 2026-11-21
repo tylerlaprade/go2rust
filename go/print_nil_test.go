@@ -97,8 +97,11 @@ func main() {
 // "var err error = value" boxes a struct or pointer that implements error,
 // as an assignment to an error variable does.
 func TestErrorVariableDeclaredFromAConcreteErrorIsBoxed(t *testing.T) {
-	for name, source := range map[string]string{
-		"pointer receiver": `package main
+	for name, test := range map[string]struct {
+		source string
+		want   string
+	}{
+		"pointer receiver": {source: `package main
 
 type Broken struct{ Why string }
 
@@ -108,8 +111,8 @@ func main() {
 	var err error = &Broken{"y"}
 	_ = err
 }
-`,
-		"value receiver": `package main
+`, want: "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_Broken("},
+		"value receiver": {source: `package main
 
 type Broken struct{ Why string }
 
@@ -119,13 +122,12 @@ func main() {
 	var err error = Broken{"y"}
 	_ = err
 }
-`,
+`, want: "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken {"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			rust := transpileTypedRegression(t, source)
-			want := "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken {"
-			if !strings.Contains(rust, want) {
-				t.Fatalf("missing %q in:\n%s", want, rust)
+			rust := transpileTypedRegression(t, test.source)
+			if !strings.Contains(rust, test.want) {
+				t.Fatalf("missing %q in:\n%s", test.want, rust)
 			}
 			if !strings.Contains(rust, ") as Rc<dyn StdError>)));") {
 				t.Fatalf("the value must be boxed as an error:\n%s", rust)

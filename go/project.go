@@ -298,6 +298,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 	}
 	packageState := NewPackageState()
+	packageState.PointerErrorImplTypes = collectPackagePointerErrorImplTypes(pg.typeInfo)
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	packageState.PointerComparablePointeeTypes = packageAnalysis.pointerComparablePointees

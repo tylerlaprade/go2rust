@@ -891,6 +891,10 @@ run_xfail_test() {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
 
+@test "cross_file_error_equality" {
+    run_test "tests/cross_file_error_equality"
+}
+
 @test "cross_file_func_vars" {
     run_test "tests/cross_file_func_vars"
 }
@@ -1061,6 +1065,14 @@ run_xfail_test() {
 
 @test "error_custom_type_in_interface_goroutines" {
     run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
+@test "error_equality_concrete" {
+    run_test "tests/error_equality_concrete"
+}
+
+@test "error_equality_concrete_goroutines" {
+    run_test "tests/error_equality_concrete_goroutines"
 }
 
 @test "error_field_return" {

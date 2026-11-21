@@ -596,7 +596,7 @@ pub mod io {
 
 
 pub fn same(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> bool {
-    { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }
+    { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false } }; __eq }
 }
 
 fn main() {

@@ -921,6 +921,13 @@ impl std::fmt::Display for Timeout {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for Timeout {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.seconds.lock().unwrap().as_ref().cloned() }; let __right = { other.seconds.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Status {
@@ -943,6 +950,18 @@ impl Broken {
 
 impl StdError for Broken {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Broken(pub Arc<Mutex<Option<Broken>>>);
+
+impl std::fmt::Display for __go_error_ptr_Broken {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Broken {}
+
 
 impl Timeout {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
@@ -951,6 +970,18 @@ impl Timeout {
 }
 
 impl StdError for Timeout {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Timeout(pub Arc<Mutex<Option<Timeout>>>);
+
+impl std::fmt::Display for __go_error_ptr_Timeout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Timeout {}
 
 
 pub fn find(ok: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
@@ -1021,7 +1052,7 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
+    let mut declared: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_Broken(Arc::new(Mutex::new(Some(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }))).clone())) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match declared.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut plain: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Timeout { seconds: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match plain.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

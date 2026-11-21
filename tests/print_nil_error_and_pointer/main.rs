@@ -723,7 +723,7 @@ impl std::fmt::Display for Broken {
 
 
 /// Timeout is an error through its value.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Timeout {
     pub seconds: Rc<RefCell<Option<i64>>>,
 }
@@ -774,6 +774,18 @@ impl Broken {
 
 impl StdError for Broken {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Broken(pub Rc<RefCell<Option<Broken>>>);
+
+impl std::fmt::Display for __go_error_ptr_Broken {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Broken {}
+
 
 impl Timeout {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
@@ -782,6 +794,18 @@ impl Timeout {
 }
 
 impl StdError for Timeout {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Timeout(pub Rc<RefCell<Option<Timeout>>>);
+
+impl std::fmt::Display for __go_error_ptr_Timeout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Timeout {}
 
 
 pub fn find(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
@@ -845,7 +869,7 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }) as Rc<dyn StdError>)));
+    let mut declared: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_Broken(Rc::new(RefCell::new(Some(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }))).clone())) as Rc<dyn StdError>)));
     println!("{}", format!("{}", { let __text = match declared.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut plain: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Timeout { seconds: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Rc<dyn StdError>)));
     println!("{}", format!("{}", { let __text = match plain.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

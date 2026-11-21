@@ -53,6 +53,32 @@ func main() {
 	}
 }
 
+// Standalone transpilation must allocate pointer-error wrapper names with the
+// full package set in view. Otherwise E and E_1 both choose
+// __go_error_ptr_E_1 when the source already declares __go_error_ptr_E.
+func TestStandalonePointerErrorWrapperNamesDoNotCollide(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type E struct{}
+func (*E) Error() string { return "e" }
+
+type E_1 struct{}
+func (*E_1) Error() string { return "e1" }
+
+type __go_error_ptr_E struct{}
+
+func first() error { return &E{} }
+func second() error { return &E_1{} }
+`)
+
+	if got := strings.Count(rust, "struct __go_error_ptr_E_1("); got != 1 {
+		t.Fatalf("generated pointer-error wrapper name must be unique, got %d definitions:\n%s", got, rust)
+	}
+	if !strings.Contains(rust, "struct __go_error_ptr_E_1_1(") {
+		t.Fatalf("second pointer-error wrapper should advance past the allocated name:\n%s", rust)
+	}
+}
+
 // "last = err" leaves err as it was. It used to empty it.
 func TestAssigningAnErrorLeavesTheSource(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
@@ -125,9 +151,9 @@ func main() {
 	}
 }
 
-// Two errors are equal when they are the same error: both nil, or both
-// pointers to one allocation. Two variables holding one error have two
-// handles, so comparing the handles is not enough.
+// Two errors.New values are equal only when both interface values retain the
+// same dynamic error allocation. Two variables holding one error have two
+// outer handles, so comparing those handles is not enough.
 func TestErrorsAreComparedByIdentity(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -144,9 +170,14 @@ func main() {
 }
 `)
 
-	want := "match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false }"
-	if !strings.Contains(rust, want) {
-		t.Fatalf("missing %q in:\n%s", want, rust)
+	for _, want := range []string{
+		"match (__left_value.as_ref(), __right_value.as_ref())",
+		"std::ptr::addr_eq(&**__l, &**__r)",
+		"(None, None) => true",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
 	}
 }
 

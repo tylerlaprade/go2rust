@@ -34,6 +34,7 @@ type PackageState struct {
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
 	ErrorImplTypes                map[string]bool
+	PointerErrorImplTypes         map[string]bool
 	StringerImplTypes             map[string]bool
 	InterfaceTypes                map[string]bool
 	TypeDefinitions               map[string]string
@@ -170,6 +171,7 @@ func NewPackageState() *PackageState {
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
 		ErrorImplTypes:                make(map[string]bool),
+		PointerErrorImplTypes:         make(map[string]bool),
 		StringerImplTypes:             make(map[string]bool),
 		InterfaceTypes:                make(map[string]bool),
 		TypeDefinitions:               make(map[string]string),
