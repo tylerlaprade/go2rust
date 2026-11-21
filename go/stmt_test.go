@@ -2827,7 +2827,8 @@ func (a nodeQueue) Swap(i, j int) {
 	if strings.Contains(rust, ".take().unwrap_or_default()") {
 		t.Fatalf("parallel pointer slice element swap should keep pointer handles, not move pointees:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = __tmp_0;") || !strings.Contains(rust, "] = __tmp_1;") {
+	if !strings.Contains(rust, ".set(__go_lhs_index_0, __tmp_0);") ||
+		!strings.Contains(rust, ".set(__go_lhs_index_1, __tmp_1);") {
 		t.Fatalf("parallel pointer slice element swap should assign pointer handles back into slice slots:\n%s", rust)
 	}
 }
@@ -2872,8 +2873,8 @@ func assign(left, right []int) {
 		"let __go_lhs_index_1 = (index(",
 		"let __tmp_0 = result(",
 		"let __tmp_1 = result(",
-		"(*__go_lhs_sequence_0",
-		"(*__go_lhs_sequence_1",
+		"__go_lhs_sequence_0.borrow_mut().as_mut().unwrap().set(",
+		"__go_lhs_sequence_1.borrow_mut().as_mut().unwrap().set(",
 	}
 	previous := -1
 	for _, part := range parts {
@@ -6817,7 +6818,7 @@ func pick[S ~[]E, E any](values S, i int, use func(E) bool) bool {
 	if strings.Contains(rust, "Some({ let __seq") {
 		t.Fatalf("type-parameter slice element short declaration should not double-wrap the element handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut v = (*values") {
+	if !strings.Contains(rust, "let mut v = values.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("type-parameter slice element short declaration should bind the existing element handle:\n%s", rust)
 	}
 }
@@ -8189,7 +8190,7 @@ func (x *decimal) bump(n int) {
 	if strings.Contains(rust, ".clone() }.lock().unwrap()") {
 		t.Fatalf("indexed selector inc/dec should not lock a cloned scalar element:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1;") {
+	if !strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1);") {
 		t.Fatalf("indexed selector inc/dec should mutate the underlying sequence element:\n%s", rust)
 	}
 }
@@ -8210,11 +8211,11 @@ func round(z nat, n uint32, lsb Word) {
 	if strings.Contains(rust, "}.borrow_mut()") || strings.Contains(rust, "}.lock().unwrap()") {
 		t.Fatalf("named slice compound assignment should bind the slice handle before borrowing it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __seq_holder = { let __named_slice =") {
+	if !strings.Contains(rust, "let __go_slice_holder = { let __named_slice =") {
 		t.Fatalf("named slice compound assignment should keep a stable slice handle binding:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__seq[__idx].clone() | __rhs") ||
-		!strings.Contains(rust, "__seq[__idx].clone() & ! __rhs") {
+	if !strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current | __rhs)") ||
+		!strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current & ! __rhs)") {
 		t.Fatalf("named slice compound assignment should clone non-Copy elements before applying the operator:\n%s", rust)
 	}
 }
@@ -8437,7 +8438,7 @@ func get(i int) Type {
 	}
 	// The caller gets a copy of the element in a handle of its own, so
 	// assigning to its variable leaves the element alone.
-	if !strings.Contains(rust, "return { let __iface_value = (*types.borrow().as_ref().unwrap())") {
+	if !strings.Contains(rust, "return { let __iface_value = types.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("returning a local-interface slice element should return a copy of it:\n%s", rust)
 	}
 }

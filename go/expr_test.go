@@ -470,7 +470,7 @@ func walk(args []ast.Expr) {
 	if strings.Contains(rust, "].clone().borrow()") || strings.Contains(rust, "].clone().lock()") {
 		t.Fatalf("indexed stub-backed interface argument should box the bare indexed value, not dereference it as a handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*args.borrow().as_ref().unwrap())[(1) as usize].clone()) as Box<dyn positioner") {
+	if !strings.Contains(rust, "Box::new(args.borrow().as_ref().unwrap().get_cloned((1) as usize)) as Box<dyn positioner") {
 		t.Fatalf("indexed stub-backed interface argument should box the indexed interface value:\n%s", rust)
 	}
 }
@@ -1098,8 +1098,8 @@ func flatten(split [][][]Expr) []Expr {
 	if strings.Contains(rust, "let __slice_holder = or[(0) as usize].clone().clone()") {
 		t.Fatalf("append expansion from a bare nested slice index should not treat the source as wrapped:\n%s", rust)
 	}
-	if !strings.Contains(rust, "or[(0) as usize].clone().iter().cloned()") {
-		t.Fatalf("append expansion from a bare nested slice index should extend from the bare Vec:\n%s", rust)
+	if !strings.Contains(rust, "or.get_cloned((0) as usize).as_slice().iter().cloned()") {
+		t.Fatalf("append expansion from a bare nested slice index should extend while a backing read guard is alive:\n%s", rust)
 	}
 }
 
@@ -1321,8 +1321,8 @@ func record() operand {
 }
 `)
 
-	boxedPackageIndex := strings.Contains(rust, "Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type") ||
-		strings.Contains(rust, "Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>")
+	boxedPackageIndex := strings.Contains(rust, "Box::new(BasicPtr(Typ.borrow().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type") ||
+		strings.Contains(rust, "Box::new(BasicPtr(Typ.lock().unwrap().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type + Send + Sync>")
 	if !boxedPackageIndex {
 		t.Fatalf("local interface struct field should box the indexed pointer wrapper:\n%s", rust)
 	}
@@ -2063,8 +2063,8 @@ func pick(h *holder, i int) uint64 {
 	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
 		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
-		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
+	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }.get_cloned(") {
+		t.Fatalf("nested index through array-of-slices should copy the inner GoSlice header, then guard its backing read:\n%s", rust)
 	}
 }
 
@@ -2350,8 +2350,8 @@ func use(x Type) {
 		strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
 		t.Fatalf("fixed local-interface argument should not wrap indexed pointer handles directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type>)))") &&
-		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>)))") {
+	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr(Typ.borrow().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr(Typ.lock().unwrap().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type + Send + Sync>)))") {
 		t.Fatalf("fixed local-interface argument should box the indexed pointer wrapper:\n%s", rust)
 	}
 }
@@ -3982,13 +3982,13 @@ func main() {
 	if strings.Contains(rust, "__tmp_1.borrow_mut().take().unwrap_or_default()") {
 		t.Fatalf("tuple assignment into []error should not move the boxed payload out of the error handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "{ let __idx = (0) as usize; (*errs.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }") {
+	if !strings.Contains(rust, "{ let __idx = (0) as usize; errs.borrow_mut().as_mut().unwrap().set(__idx, __tmp_1); }") {
 		t.Fatalf("tuple assignment into []error should store the returned error handle:\n%s", rust)
 	}
 	if strings.Contains(rust, ".error().borrow()") {
 		t.Fatalf("error slice element Error method should not call a nonexistent boxed-error method:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}\", (*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())") {
+	if !strings.Contains(rust, "format!(\"{}\", errs.borrow().as_ref().unwrap().get_cloned((0) as usize).borrow().as_ref().unwrap())") {
 		t.Fatalf("error slice element Error method should format the element handle:\n%s", rust)
 	}
 }

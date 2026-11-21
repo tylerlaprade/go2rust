@@ -86,6 +86,44 @@ func main() {
 	}
 }
 
+func TestGoSliceBackingAccessCannotEscapeItsLockGuard(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	s := []int{1, 2}
+	t := s[:]
+	t[0] = s[1]
+	for _, value := range t {
+		_ = value
+	}
+}
+`)
+
+	for _, want := range []string{
+		"backing: std::sync::Arc<std::sync::RwLock<std::vec::Vec<T>>>",
+		"pub struct GoSliceReadGuard<'a, T>",
+		"pub struct GoSliceWriteGuard<'a, T>",
+		"s.borrow().as_ref().unwrap().get_cloned((1) as usize)",
+		"t.borrow_mut().as_mut().unwrap().set(__idx, __rhs)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("guarded GoSlice output is missing %q:\n%s", want, rust)
+		}
+	}
+	for _, forbidden := range []string{
+		"Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>",
+		"unsafe impl<T: Send> Send for GoSlice<T>",
+		"unsafe impl<T: Sync> Sync for GoSlice<T>",
+		"impl<T> std::ops::Deref for GoSlice<T>",
+		"impl<T> std::ops::DerefMut for GoSlice<T>",
+	} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("GoSlice backing access must stay behind a lock guard; found %q:\n%s", forbidden, rust)
+		}
+	}
+}
+
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the
 // names that GoSlice adds to each of them, so that a test can check the
 // helpers a module imports for its own use.

@@ -3701,14 +3701,24 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".clone(); let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); ")
+			if goSliceModeEnabled() {
+				out.WriteString("let __slice_view = __slice.as_slice(); ")
+			}
+			iterTarget := "__slice"
+			if goSliceModeEnabled() {
+				iterTarget = "__slice_view"
+			}
 			if ident, ok := call.Args[1].(*ast.Ident); ok && ident.Name == "nil" {
-				out.WriteString("__slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString(iterTarget)
+				out.WriteString(".iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; __item_guard.as_ref().is_none() }) }")
 			} else if isBareLocalInterfaceValue(call.Args[1]) {
 				out.WriteString("let __value = ")
 				TranspileExpression(out, call.Args[1])
-				out.WriteString("; __slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString("; ")
+				out.WriteString(iterTarget)
+				out.WriteString(".iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; if let Some(__left) = __item_guard.as_ref() { __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
@@ -3718,7 +3728,9 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpressionContext(out, call.Args[1], LValue)
 				out.WriteString(".clone(); let __value_guard = __value_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); ")
+				out.WriteString(iterTarget)
+				out.WriteString(".iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; match (__item_guard.as_ref(), __value_option.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
@@ -3733,9 +3745,18 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); let __value = ")
+	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); ")
+	if goSliceModeEnabled() {
+		out.WriteString("let __slice_view = __slice.as_slice(); ")
+	}
+	out.WriteString("let __value = ")
 	writeMaybeUnwrappedExpression(out, call.Args[1])
-	out.WriteString("; __slice.contains(&__value) }")
+	out.WriteString("; ")
+	if goSliceModeEnabled() {
+		out.WriteString("__slice_view.contains(&__value) }")
+	} else {
+		out.WriteString("__slice.contains(&__value) }")
+	}
 	WriteWrapperSuffix(out)
 }
 
@@ -3763,9 +3784,19 @@ func writeSlicesContainsPointerIdentity(out *strings.Builder, call *ast.CallExpr
 	TranspileExpressionContext(out, call.Args[0], LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); let __value = ")
+	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); ")
+	if goSliceModeEnabled() {
+		out.WriteString("let __slice_view = __slice.as_slice(); ")
+	}
+	out.WriteString("let __value = ")
 	writePointerHandleExpression(out, call.Args[1])
-	out.WriteString("; __slice.iter().any(|__item| { let __both_nil = (*__item")
+	out.WriteString("; ")
+	if goSliceModeEnabled() {
+		out.WriteString("__slice_view")
+	} else {
+		out.WriteString("__slice")
+	}
+	out.WriteString(".iter().any(|__item| { let __both_nil = (*__item")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").is_none() && (*__value")
 	WriteBorrowMethod(out, false)
@@ -5403,12 +5434,18 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if typ := typeInfo.GetType(expr); typ != nil {
 					if _, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						TranspileExpression(out, expr)
+						if goSliceModeEnabled() {
+							out.WriteString(".as_slice()")
+						}
 						out.WriteString(goElementCopyIter(expr))
 						return
 					}
 				}
 			} else {
 				writeSliceCloneOrEmpty(out, expr)
+				if goSliceModeEnabled() {
+					out.WriteString(".as_slice()")
+				}
 				out.WriteString(goElementCopyIter(expr))
 			}
 		}
@@ -5462,8 +5499,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			if goSliceModeEnabled() {
 				// A new header; the element keeps its own.
 				out.WriteString("let mut __appended = ")
-				writeReadTarget()
-				out.WriteString(".clone(); __appended")
+				TranspileExpressionContext(out, indexExpr.X, LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap().get_cloned(__append_idx); __appended")
 				out.WriteString(store)
 				out.WriteString("; __appended }")
 				return true
@@ -6192,7 +6230,12 @@ func writeClearSlice(out *strings.Builder, arg ast.Expr, elemType types.Type) {
 	writeClearSliceHandle(out, arg)
 	out.WriteString("; let mut __clear_guard = __clear_holder")
 	WriteBorrowMethod(out, true)
-	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = ")
+	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { ")
+	if goSliceModeEnabled() {
+		out.WriteString("let mut __clear_window = __clear_seq.as_mut_slice(); for __clear_elem in __clear_window.iter_mut() { *__clear_elem = ")
+	} else {
+		out.WriteString("for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = ")
+	}
 	out.WriteString(zeroValue)
 	out.WriteString("; } } }")
 }
@@ -6214,7 +6257,12 @@ func writeClearSliceExpr(out *strings.Builder, slice *ast.SliceExpr, zeroValue s
 	writeClearSliceHandle(out, slice.X)
 	out.WriteString("; let mut __clear_guard = __clear_holder")
 	WriteBorrowMethod(out, true)
-	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = ")
+	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); ")
+	if goSliceModeEnabled() {
+		out.WriteString("let mut __clear_window = __clear_seq.as_mut_slice(); for __clear_i in __clear_start..__clear_end { __clear_window[__clear_i] = ")
+	} else {
+		out.WriteString("for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = ")
+	}
 	out.WriteString(zeroValue)
 	out.WriteString("; } } }")
 }
@@ -6265,10 +6313,19 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			WriteBorrowMethod(out, false)
 			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) };\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
-				out.WriteString("(*_dst_holder")
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap())[_i]")
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), srcIsString, func(writeValue func()) {
+				if goSliceModeEnabled() {
+					out.WriteString("_dst_holder")
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap().set(_i, ")
+					writeValue()
+					out.WriteString(")")
+				} else {
+					out.WriteString("(*_dst_holder")
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap())[_i] = ")
+					writeValue()
+				}
 			})
 			finishCopyBlock(out, indent, innerIndent)
 			return
@@ -6289,11 +6346,20 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
-			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
-				out.WriteString("(*")
-				TranspileExpressionContext(out, dstSlice.X, LValue)
-				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), srcIsString, func(writeValue func()) {
+				if goSliceModeEnabled() {
+					TranspileExpressionContext(out, dstSlice.X, LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap().set(_dst_start + _i, ")
+					writeValue()
+					out.WriteString(")")
+				} else {
+					out.WriteString("(*")
+					TranspileExpressionContext(out, dstSlice.X, LValue)
+					WriteBorrowMethod(out, true)
+					out.WriteString(".as_mut().unwrap())[_dst_start + _i] = ")
+					writeValue()
+				}
 			})
 			finishCopyBlock(out, indent, innerIndent)
 			return
@@ -6310,8 +6376,15 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			writeCopySourceValue(out, call.Args[1], srcIsString)
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst.len()")
-			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
-				out.WriteString("_dst[_i]")
+			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), srcIsString, func(writeValue func()) {
+				if goSliceModeEnabled() {
+					out.WriteString("_dst.set(_i, ")
+					writeValue()
+					out.WriteString(")")
+				} else {
+					out.WriteString("_dst[_i] = ")
+					writeValue()
+				}
 			})
 			finishCopyBlock(out, indent, innerIndent)
 			return
@@ -6327,9 +6400,16 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		writeCopyDestination(out, call.Args[0], false)
 		out.WriteString(".len(), _src.len());\n")
 		// Destination needs mutable borrow for assignment.
-		writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), func() {
+		writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), srcIsString, func(writeValue func()) {
 			writeCopyDestination(out, call.Args[0], true)
-			out.WriteString("[_i]")
+			if goSliceModeEnabled() {
+				out.WriteString(".set(_i, ")
+				writeValue()
+				out.WriteString(")")
+			} else {
+				out.WriteString("[_i] = ")
+				writeValue()
+			}
 		})
 		finishCopyBlock(out, indent, innerIndent)
 	}
@@ -6366,10 +6446,19 @@ func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.Sli
 	writeCopySourceValue(out, src, srcIsString)
 	out.WriteString(";\n")
 	writeCopyCountLine(out, innerIndent, "_dst_len")
-	writeCopyLoop(out, innerIndent, copySourceElementCopy(src, srcIsString), func() {
-		out.WriteString("(*_dst_holder")
-		WriteBorrowMethod(out, true)
-		out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
+	writeCopyLoop(out, innerIndent, copySourceElementCopy(src, srcIsString), srcIsString, func(writeValue func()) {
+		if goSliceModeEnabled() {
+			out.WriteString("_dst_holder")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap().set(_dst_start + _i, ")
+			writeValue()
+			out.WriteString(")")
+		} else {
+			out.WriteString("(*_dst_holder")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap())[_dst_start + _i] = ")
+			writeValue()
+		}
 	})
 	finishCopyBlock(out, indent, innerIndent)
 	return true
@@ -6403,19 +6492,23 @@ func copySourceElementCopy(src ast.Expr, srcIsString bool) string {
 	return copyCall
 }
 
-func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string, writeDestination func()) {
+func writeCopyLoop(out *strings.Builder, innerIndent string, elementCopy string, srcIsString bool, writeDestination func(func())) {
 	out.WriteString(innerIndent)
 	out.WriteString("for _i in 0.._n {\n")
 	out.WriteString(innerIndent)
 	out.WriteString("    ")
-	writeDestination()
-	if elementCopy == "" {
-		out.WriteString(" = ")
-		out.WriteString(goValueCopyNeedsTypeInfo)
-	} else {
-		out.WriteString(" = _src[_i]")
-		out.WriteString(elementCopy)
-	}
+	writeDestination(func() {
+		if elementCopy == "" {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		} else if goSliceModeEnabled() && !srcIsString {
+			out.WriteString("{ let __src_guard = _src.as_slice(); __src_guard[_i]")
+			out.WriteString(elementCopy)
+			out.WriteString(" }")
+		} else {
+			out.WriteString("_src[_i]")
+			out.WriteString(elementCopy)
+		}
+	})
 	out.WriteString(";\n")
 	out.WriteString(innerIndent)
 	out.WriteString("}\n")
@@ -6454,13 +6547,18 @@ func copyDestinationIsBareSlice(dst ast.Expr) bool {
 func writeCopyDestination(out *strings.Builder, dst ast.Expr, mutable bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.IsSlice(dst) && !isExpressionResultBare(dst) {
-		out.WriteString("(*")
+		if !goSliceModeEnabled() {
+			out.WriteString("(*")
+		}
 		TranspileExpressionContext(out, dst, LValue)
 		WriteBorrowMethod(out, mutable)
 		if mutable {
-			out.WriteString(".as_mut().unwrap())")
+			out.WriteString(".as_mut().unwrap()")
 		} else {
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(".as_ref().unwrap()")
+		}
+		if !goSliceModeEnabled() {
+			out.WriteString(")")
 		}
 		return
 	}

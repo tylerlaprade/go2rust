@@ -17,10 +17,10 @@ func update(a [][]int, words []string) {
 `)
 
 	for _, want := range []string{
-		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + __rhs;",
-		"let mut __seq_guard = a.borrow_mut(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] + 1;",
-		"(*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;",
-		"__seq[__idx] = __seq[__idx].clone() + &__rhs;",
+		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs);",
+		"let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1);",
+		"__go_lhs_sequence_0.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_0_0).set(__go_lhs_index_0, __tmp_0);",
+		"let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + &__rhs);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("nested slice element update should lock the outer slice and index down, missing %q:\n%s", want, rust)
@@ -39,7 +39,7 @@ func set(cube [][][]int) {
 }
 `)
 
-	if !strings.Contains(rust, "(*cube.borrow_mut().as_mut().unwrap())[__outer_idx][__outer_idx_1][__idx] = __rhs;") {
+	if !strings.Contains(rust, "cube.borrow().as_ref().unwrap().get_cloned(__outer_idx).get_cloned(__outer_idx_1).set(__idx, __rhs);") {
 		t.Fatalf("three-level slice assignment should index every level under one lock:\n%s", rust)
 	}
 }

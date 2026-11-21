@@ -3512,8 +3512,8 @@ func main() {
 	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
-		t.Fatalf("format_slice should accept arrays and slices through AsRef, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: GoSliceView<T>") {
+		t.Fatalf("format_slice should accept arrays and guarded slices through GoSliceView, got:\n%s", mainRS)
 	}
 }
 

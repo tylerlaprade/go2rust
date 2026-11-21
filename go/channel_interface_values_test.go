@@ -74,7 +74,7 @@ func main() {
 	requireAll(t, rust,
 		".results.clone(); __channel }.send(",
 		".results.clone(); __channel }.recv()",
-		"[(0) as usize].clone().clone(); __channel }.recv()",
+		".get_cloned((0) as usize).clone(); __channel }.recv()",
 	)
 	if strings.Contains(rust, "unwrap()).results.send(") || strings.Contains(rust, "unwrap()).results.recv(") || strings.Contains(rust, "unwrap())[(0) as usize].send(") {
 		t.Errorf("a channel field is used while its struct is locked:\n%s", rust)
@@ -109,7 +109,7 @@ func main() {
 `)
 	// A Box<dyn Any> has no Clone; go_any_clone copies it.
 	requireAll(t, rust,
-		"let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }",
+		"let __seq_guard = __seq_holder.borrow(); let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); go_any_clone(__slice_guard[__idx].as_ref()) }",
 		"__go_type_name(&**(Rc::new(RefCell::new(Some({ let __idx = (1) as usize;",
 	)
 	if strings.Contains(rust, "[(0) as usize].clone()") {

@@ -2344,11 +2344,15 @@ func generateAnySliceFormatter(out *strings.Builder, nestedElements bool) {
 		nestedArg = ", format_any_nested"
 		topLevelArg = ", format_any"
 	}
+	formatValues := "let formatted: std::vec::Vec<String> = s.iter().map(|v| " + formatValue + "(v.as_ref())).collect();"
+	if goSliceModeEnabled() {
+		formatValues = "let __slice_guard = s.as_slice();\n        let formatted: std::vec::Vec<String> = __slice_guard.iter().map(|v| " + formatValue + "(v.as_ref())).collect();"
+	}
 	out.WriteString(`
 fn format_any_slice_values(slice: ` + sliceType + valuesParams + `) -> String {
     let guard = ` + guard + `;
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| ` + formatValue + `(v.as_ref())).collect();
+        ` + formatValues + `
         formatted.join(" ")
     } else {
         String::new()

@@ -3044,7 +3044,11 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	writeExpressionAsUsize(out, index)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
+	if goSliceModeEnabled() {
+		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq.get_cloned(__seq_index) }")
+	} else {
+		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
+	}
 	return true
 }
 
@@ -14835,31 +14839,53 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
+				isGoSlice := goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(e.X)
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
-					// Don't add borrow/unwrap - just index directly
+					// Don't add borrow/unwrap. GoSlice reads clone while its backing
+					// guard is alive; arrays can still index directly.
 					TranspileExpressionContext(out, e.X, LValue)
-					out.WriteString("[")
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("]")
-					out.WriteString(".clone()")
+					if isGoSlice {
+						out.WriteString(".get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(")")
+					} else {
+						out.WriteString("[")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("]")
+						out.WriteString(".clone()")
+					}
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __seq = ")
 					writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-					out.WriteString("; __seq[")
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("].clone() }")
+					if isGoSlice {
+						out.WriteString("; __seq.get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(") }")
+					} else {
+						out.WriteString("; __seq[")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("].clone() }")
+					}
 				} else {
-					out.WriteString("(*")
+					if !isGoSlice {
+						out.WriteString("(*")
+					}
 					// Use LValue context so identifiers don't unwrap themselves
 					TranspileExpressionContext(out, e.X, LValue)
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())[")
-					// Index handling - identifiers will unwrap themselves in RValue context
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("]")
-					// Array/slice elements are wrapped, so we need to clone
-					out.WriteString(".clone()")
+					if isGoSlice {
+						out.WriteString(".as_ref().unwrap().get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(")")
+					} else {
+						out.WriteString(".as_ref().unwrap())[")
+						// Index handling - identifiers will unwrap themselves in RValue context
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("]")
+						// Array/slice elements are wrapped, so we need to clone
+						out.WriteString(".clone()")
+					}
 				}
 			}
 		}
