@@ -8014,8 +8014,9 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 // writeRangeValuesMaterialization emits the `let __range_values = ...;
 // drop(__range_guard);` slice-range snapshot. A []any slice holds Box<dyn Any>
 // elements, which aren't Clone. When the loop writes each value back to its
-// indexed slot, move the element out of the slice; otherwise clone through
-// go_any_clone so ordinary range-copy semantics remain explicit.
+// indexed slot, move the element out of the slice. Otherwise retain the
+// original length and reread each element when its iteration begins, matching
+// Go slice-range semantics when the loop mutates a later backing-array slot.
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
@@ -8027,7 +8028,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
@@ -8114,12 +8115,20 @@ func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type,
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
-// loop values from a materialized range snapshot. A []any snapshot holds
-// Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
-// clones each element. enumerate adds the (index, value) pairing.
-func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
+// loop values from a materialized range snapshot. A normal []any slice stores
+// its original index range, then rereads and clones the current element at the
+// start of each iteration. The indexed-writeback special case owns a Vec of
+// moved Box<dyn Any> values and consumes it instead. enumerate adds the
+// (index, value) pairing.
+func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, moveEmptyInterfaceValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
-		out.WriteString(".into_iter()")
+		if moveEmptyInterfaceValues {
+			out.WriteString(".into_iter()")
+		} else {
+			out.WriteString(".map(|__range_index| { let __range_guard = __range_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) })")
+		}
 	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
 		// The loop variable is Go's copy of the element, taken when the
 		// iteration starts: the map runs once for each step of the loop.
@@ -13359,6 +13368,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(" = Some(new_val); }")
 										}
 									}
+								} else if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Self-wrapping values such as map/slice literals still need boxing
+									// when the assignment target is interface{}.
 								} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 									writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
@@ -15311,14 +15323,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							valCopied = true
 						}
 					}
-					if valCloned {
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						out.WriteString(" in ")
+						out.WriteString(rangeValuesVar)
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+					} else if valCloned {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -15334,7 +15350,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(" in ")
@@ -15363,12 +15379,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					if needsCloned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, true)
+					} else if needsCloned {
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else if valueAssigned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(".iter().enumerate()")
@@ -15388,14 +15406,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valCopied2 = true
 					}
 				}
-				if valCloned2 {
+				if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+					out.WriteString(" in ")
+					out.WriteString(rangeValuesVar)
+					writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+				} else if valCloned2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -15411,7 +15433,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else {
 					rangeValueBoundByReference = valueBindingTemp == ""
 					out.WriteString(" in ")

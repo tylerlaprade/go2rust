@@ -128,6 +128,80 @@ func sum(s float64, h float64) float64 {
 	}
 }
 
+func TestNilArgumentToEmptyInterfaceUsesNilInterfaceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) bool { return v == nil }
+
+func main() { describe(nil) }
+`)
+
+	want := "describe(Rc::new(RefCell::new(None::<Box<dyn Any>>)))"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("nil argument should be a nil interface handle; want %q in:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("nil argument must not be boxed as an untyped Option:\n%s", rust)
+	}
+}
+
+func TestAssertedCollectionsKeepHandlesForDirectConsumers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(x interface{}, y interface{}) (int, int) {
+	return len(x.([]int)), y.(map[string]int)["k"]
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()") {
+		t.Fatalf("len of asserted slice should consume the boxed slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()") {
+		t.Fatalf("indexing an asserted map should consume the boxed map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __value =") {
+		t.Fatalf("direct consumers should not turn asserted collections into bare temporary values:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementCommaOkAssertionDowncastsInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func read(list []interface{}) (int, bool) {
+	n, ok := list[0].(int)
+	return n, ok
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("comma-ok assertion on []any element must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "any_val.downcast_ref::<i64>()") {
+		t.Fatalf("comma-ok assertion on []any element should downcast the boxed value in place:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementArgumentClonesDynamicValueInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) {}
+
+func call(list []interface{}) {
+	describe(list[0])
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("[]any element passed as any must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if strings.Contains(rust, "expect(\"nil []any in interface argument\")") {
+		t.Fatalf("nil []any indexing should reach the bounds check instead of a custom nil expect:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref())") {
+		t.Fatalf("[]any element passed as any should clone its dynamic value under the slice guard:\n%s", rust)
+	}
+}
+
 func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -10111,5 +10185,23 @@ func main() {
 	}
 	if strings.Contains(rust, "Box::new(dir) as") {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}
+
+func TestAnyAliasSliceLiteralUsesRustAnyTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	list := []any{1, "s"}
+	_, _ = list[0].(int), list[1].(string)
+}
+`)
+
+	if strings.Contains(rust, "Box<dyn any>") {
+		t.Fatalf("Go's any alias must not be emitted as a lowercase Rust trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(1i64) as Box<dyn Any>") ||
+		!strings.Contains(rust, "Box::new(\"s\".to_string()) as Box<dyn Any>") {
+		t.Fatalf("[]any literal elements should use Rust's Any trait:\n%s", rust)
 	}
 }

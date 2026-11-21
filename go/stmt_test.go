@@ -669,6 +669,28 @@ func rewrite(args []any) []any {
 	}
 }
 
+func TestAnySliceRangeReadsEachElementAtIterationTime(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func visit(values []any) {
+	for i, value := range values {
+		if i == 0 {
+			values[1] = "updated"
+		}
+		_ = value
+	}
+}
+`)
+
+	if strings.Contains(rust, "__v.iter().map(|__e| go_any_clone(__e.as_ref()))") {
+		t.Fatalf("[]any range must not snapshot dynamic payloads before the loop:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __range_values = 0..__range_len") ||
+		!strings.Contains(rust, "go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref())") {
+		t.Fatalf("[]any range should reread the current backing-array element for each iteration:\n%s", rust)
+	}
+}
+
 func TestAnyRangeWritebackMovesSourceMappedInterfaceValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -2583,6 +2605,41 @@ func assignFromIndex(nodes []Node) Node {
 		!strings.Contains(rust, "let __iface_handle = (*nodes.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *top.lock().unwrap() = (*__iface_guard).clone()") &&
 		!strings.Contains(rust, "top = { let __seq =") {
 		t.Fatalf("index assignment should replace the local interface handle from the slice element:\n%s", rust)
+	}
+}
+
+func TestMapLiteralAssignmentToEmptyInterfaceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func assign() interface{} {
+	var x interface{}
+	x = map[string]int{"k": 3}
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __moved_val") {
+		t.Fatalf("map literal assigned to interface{} should be boxed, not moved into the interface slot as a map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new") || !strings.Contains(rust, "BTreeMap::<") {
+		t.Fatalf("map literal assigned to interface{} should box the concrete map value:\n%s", rust)
+	}
+}
+
+func TestFunctionAssertionBindingKeepsCallableHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bind(x interface{}) int {
+	f := x.(func() int)
+	return f()
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()") {
+		t.Fatalf("bound function assertion should downcast to and clone the callable handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> i64>>") {
+		t.Fatalf("bound function assertion must not try to clone the boxed callable itself:\n%s", rust)
 	}
 }
 

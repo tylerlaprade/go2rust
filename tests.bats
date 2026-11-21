@@ -435,6 +435,14 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_alias_slice_literal" {
+    run_test "tests/any_alias_slice_literal"
+}
+
+@test "any_alias_slice_literal_goroutines" {
+    run_test "tests/any_alias_slice_literal_goroutines"
+}
+
 @test "any_boxed_reference_types" {
     run_test "tests/any_boxed_reference_types"
 }
@@ -475,8 +483,20 @@ run_xfail_test() {
     run_test "tests/any_slice_element_values_goroutines"
 }
 
+@test "any_slice_index_nil_bounds" {
+    run_test "tests/any_slice_index_nil_bounds"
+}
+
 @test "any_slice_index_assign_concrete" {
     run_test "tests/any_slice_index_assign_concrete"
+}
+
+@test "any_slice_range_late_read" {
+    run_test "tests/any_slice_range_late_read"
+}
+
+@test "any_slice_range_late_read_goroutines" {
+    run_test "tests/any_slice_range_late_read_goroutines"
 }
 
 @test "any_struct_empty_literal" {
@@ -1491,6 +1511,14 @@ run_xfail_test() {
     run_test "tests/interface_arg_wrapped_struct_field"
 }
 
+@test "interface_asserted_collection_consumers" {
+    run_test "tests/interface_asserted_collection_consumers"
+}
+
+@test "interface_asserted_collection_consumers_goroutines" {
+    run_test "tests/interface_asserted_collection_consumers_goroutines"
+}
+
 @test "interface_basic" {
     run_test "tests/interface_basic"
 }
@@ -1515,12 +1543,44 @@ run_xfail_test() {
     run_test "tests/interface_field_selector_assign"
 }
 
+@test "interface_function_assertion_binding" {
+    run_test "tests/interface_function_assertion_binding"
+}
+
+@test "interface_function_assertion_binding_goroutines" {
+    run_test "tests/interface_function_assertion_binding_goroutines"
+}
+
+@test "interface_map_literal_assignment" {
+    run_test "tests/interface_map_literal_assignment"
+}
+
+@test "interface_map_literal_assignment_goroutines" {
+    run_test "tests/interface_map_literal_assignment_goroutines"
+}
+
 @test "interface_method_nil_argument" {
     run_test "tests/interface_method_nil_argument"
 }
 
 @test "interface_mutating_method_dispatch" {
     run_test "tests/interface_mutating_method_dispatch"
+}
+
+@test "interface_slice_element_argument" {
+    run_test "tests/interface_slice_element_argument"
+}
+
+@test "interface_slice_element_argument_goroutines" {
+    run_test "tests/interface_slice_element_argument_goroutines"
+}
+
+@test "interface_slice_element_assertion_comma_ok" {
+    run_test "tests/interface_slice_element_assertion_comma_ok"
+}
+
+@test "interface_slice_element_assertion_comma_ok_goroutines" {
+    run_test "tests/interface_slice_element_assertion_comma_ok_goroutines"
 }
 
 @test "interface_slice_index_arg" {
@@ -2173,6 +2233,14 @@ run_xfail_test() {
 
 @test "nil_basic" {
     run_test "tests/nil_basic"
+}
+
+@test "nil_empty_interface_argument" {
+    run_test "tests/nil_empty_interface_argument"
+}
+
+@test "nil_empty_interface_argument_goroutines" {
+    run_test "tests/nil_empty_interface_argument_goroutines"
 }
 
 @test "nil_receiver_methods" {
