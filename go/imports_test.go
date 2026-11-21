@@ -153,6 +153,34 @@ func TestGoPtrHelperCloneDoesNotRequireCloneablePointee(t *testing.T) {
 	}
 }
 
+func TestGoPtrSliceElemMutationReleasesStorageAcrossCallback(t *testing.T) {
+	prevConcurrencyDetector := GetConcurrencyDetector()
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+
+	for _, concurrent := range []bool{false, true} {
+		if concurrent {
+			cd := NewConcurrencyDetector()
+			cd.hasChannels = true
+			SetConcurrencyDetector(cd)
+		} else {
+			SetConcurrencyDetector(nil)
+		}
+
+		helper := (&HelperTracker{needsSliceElemPtr: true}).GenerateHelperModule()
+		for _, want := range []string{
+			"GoPtr::SliceElem(slot) => slot.with_mut(f)",
+			"catch_unwind(std::panic::AssertUnwindSafe(|| f(&mut value)))",
+			"std::panic::resume_unwind(payload)",
+		} {
+			if !strings.Contains(helper, want) {
+				t.Fatalf("concurrent=%t: slice-element mutation helper missing %q:\n%s", concurrent, want, helper)
+			}
+		}
+	}
+}
+
 func TestWrapperMutexImportAliasesWhenLocalTypeUsesMutex(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
