@@ -602,20 +602,29 @@ fn go_errors_join(errs: Vec<Option<Rc<dyn StdError>>>) -> Option<Rc<dyn StdError
     Some(Rc::new(GoWrapError { msg, wrapped: errs, many: true }) as Rc<dyn StdError>)
 }
 
-// err and every error it wraps, depth first, in the order errors.Is and
-// errors.As visit them.
-fn go_error_chain(err: Option<Rc<dyn StdError>>) -> Vec<Rc<dyn StdError>> {
-    let mut out = Vec::new();
+// Visit err and every error it wraps, depth first, in the order errors.Is and
+// errors.As use. Stop before unwrapping the first value accepted by visit.
+fn go_error_chain_visit<F>(err: Option<Rc<dyn StdError>>, mut visit: F) -> bool
+where
+    F: FnMut(&Rc<dyn StdError>) -> bool,
+{
     let mut stack: Vec<Rc<dyn StdError>> = err.into_iter().collect();
     while let Some(e) = stack.pop() {
+        if visit(&e) {
+            return true;
+        }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
             stack.extend(w.wrapped.iter().rev().cloned());
         }
+        if let Some(__v) = e.downcast_ref::<cycleError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_cycleError>() { if let Some(__c) = (*__go_nil_recv_cycle_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<nilSafeError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_nilSafeError>() { if let Some(__c) = (*__go_nil_recv_nil_safe_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
         if let Some(__v) = e.downcast_ref::<wrapError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
-        if let Some(__v) = e.downcast_ref::<__go_error_ptr_wrapError>() { let __pointee = __v.0.borrow(); if let Some(__pointee) = __pointee.as_ref() { if let Some(__c) = (*__pointee.unwrap().borrow()).clone() { stack.push(__c); } } }
-        out.push(e);
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_wrapError>() { if let Some(__c) = (*__go_nil_recv_wrap_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
+
     }
-    out
+    false
 }
 
 fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
@@ -625,8 +634,12 @@ fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
     }
     let e = err;
     let mut stack: Vec<Rc<dyn StdError>> = Vec::new();
+        if let Some(__v) = e.downcast_ref::<cycleError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_cycleError>() { if let Some(__c) = (*__go_nil_recv_cycle_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<nilSafeError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_nilSafeError>() { if let Some(__c) = (*__go_nil_recv_nil_safe_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
         if let Some(__v) = e.downcast_ref::<wrapError>() { if let Some(__c) = (*__v.unwrap().borrow()).clone() { stack.push(__c); } }
-        if let Some(__v) = e.downcast_ref::<__go_error_ptr_wrapError>() { let __pointee = __v.0.borrow(); if let Some(__pointee) = __pointee.as_ref() { if let Some(__c) = (*__pointee.unwrap().borrow()).clone() { stack.push(__c); } } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_wrapError>() { if let Some(__c) = (*__go_nil_recv_wrap_error_unwrap(__v.0.clone()).borrow()).clone() { stack.push(__c); } }
     stack.pop()
 }
 
@@ -635,7 +648,7 @@ fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
 fn go_errors_is(err: Option<Rc<dyn StdError>>, target: Option<Rc<dyn StdError>>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain_visit(Some(err), |e| std::ptr::addr_eq(&**e, &*target)),
         _ => false,
     }
 }

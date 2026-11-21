@@ -19,3 +19,8 @@ impl crate::types::splitError {
 }
 
 impl StdError for crate::types::splitError {}
+
+
+pub fn __go_nil_recv_split_error_error(err: Rc<RefCell<Option<splitError>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("split:{}", (*(*err.borrow().as_ref().unwrap()).code.borrow().as_ref().unwrap())))))
+}

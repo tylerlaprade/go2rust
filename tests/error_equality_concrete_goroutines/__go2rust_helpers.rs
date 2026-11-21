@@ -739,3 +739,81 @@ impl<T> Iterator for GoChannel<T> {
         self.recv()
     }
 }
+
+// An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
+// true when it wraps more than one, and then errors.Unwrap does not see it.
+#[derive(Debug)]
+struct GoWrapError {
+    msg: String,
+    wrapped: Vec<Arc<dyn StdError + Send + Sync>>,
+    many: bool,
+}
+
+impl std::fmt::Display for GoWrapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
+
+impl StdError for GoWrapError {}
+
+fn go_error_wrap(msg: String, wrapped: Vec<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<dyn StdError + Send + Sync> {
+    let many = wrapped.len() > 1;
+    Arc::new(GoWrapError { msg, wrapped: wrapped.into_iter().flatten().collect(), many }) as Arc<dyn StdError + Send + Sync>
+}
+
+fn go_errors_join(errs: Vec<Option<Arc<dyn StdError + Send + Sync>>>) -> Option<Arc<dyn StdError + Send + Sync>> {
+    let errs: Vec<Arc<dyn StdError + Send + Sync>> = errs.into_iter().flatten().collect();
+    if errs.is_empty() {
+        return None;
+    }
+    let msg = errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+    Some(Arc::new(GoWrapError { msg, wrapped: errs, many: true }) as Arc<dyn StdError + Send + Sync>)
+}
+
+// Visit err and every error it wraps, depth first, in the order errors.Is and
+// errors.As use. Stop before unwrapping the first value accepted by visit.
+fn go_error_chain_visit<F>(err: Option<Arc<dyn StdError + Send + Sync>>, mut visit: F) -> bool
+where
+    F: FnMut(&Arc<dyn StdError + Send + Sync>) -> bool,
+{
+    let mut stack: Vec<Arc<dyn StdError + Send + Sync>> = err.into_iter().collect();
+    while let Some(e) = stack.pop() {
+        if visit(&e) {
+            return true;
+        }
+        if let Some(w) = e.downcast_ref::<GoWrapError>() {
+            stack.extend(w.wrapped.iter().rev().cloned());
+        }
+        if let Some(__v) = e.downcast_ref::<cycleError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_cycleError>() { if let Some(__c) = (*__go_nil_recv_cycle_error_unwrap(__v.0.clone()).lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<nilSafeError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_nilSafeError>() { if let Some(__c) = (*__go_nil_recv_nil_safe_error_unwrap(__v.0.clone()).lock().unwrap()).clone() { stack.push(__c); } }
+
+    }
+    false
+}
+
+fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<dyn StdError + Send + Sync>> {
+    let err = err?;
+    if let Some(w) = err.downcast_ref::<GoWrapError>() {
+        return if w.many { None } else { w.wrapped.first().cloned() };
+    }
+    let e = err;
+    let mut stack: Vec<Arc<dyn StdError + Send + Sync>> = Vec::new();
+        if let Some(__v) = e.downcast_ref::<cycleError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_cycleError>() { if let Some(__c) = (*__go_nil_recv_cycle_error_unwrap(__v.0.clone()).lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<nilSafeError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
+        if let Some(__v) = e.downcast_ref::<__go_error_ptr_nilSafeError>() { if let Some(__c) = (*__go_nil_recv_nil_safe_error_unwrap(__v.0.clone()).lock().unwrap()).clone() { stack.push(__c); } }
+    stack.pop()
+}
+
+// Two errors are the same error when they point to the same value, as ==
+// on two errors is written.
+fn go_errors_is(err: Option<Arc<dyn StdError + Send + Sync>>, target: Option<Arc<dyn StdError + Send + Sync>>) -> bool {
+    match (err, target) {
+        (None, None) => true,
+        (Some(err), Some(target)) => go_error_chain_visit(Some(err), |e| std::ptr::addr_eq(&**e, &*target)),
+        _ => false,
+    }
+}

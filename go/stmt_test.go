@@ -7420,7 +7420,7 @@ func parse() (bool, error) {
 }
 `)
 
-	if !strings.Contains(rust, "Rc::new(NumErrorPtr(syntax_error().clone())) as Rc<dyn StdError") {
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_NumError(syntax_error().clone())) as Rc<dyn StdError") {
 		t.Fatalf("pointer error call result should box an identity-preserving wrapper:\n%s", rust)
 	}
 	if strings.Contains(rust, "Rc::new((*syntax_error()") {
@@ -8463,7 +8463,7 @@ func parse() (ok bool, err error) {
 		strings.Contains(rust, "*err.lock().unwrap() = __moved_val") {
 		t.Fatalf("named error return should not assign a concrete error option into the error slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(parseError") ||
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_parseError") ||
 		!strings.Contains(rust, "as Rc<dyn StdError") {
 		t.Fatalf("named error return should box the concrete error value:\n%s", rust)
 	}

@@ -3676,7 +3676,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	reserveFileRustTypeNames(imports, types)
 	registerPackageGlobalNames(globalVars)
-	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, methods)
+	helperMethods := methods
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) > 0 {
+		helperMethods = currentContext.Package.MethodsByType
+	}
+	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, helperMethods)
 	restoreNilPointerReceiverMethodHelpers := setCurrentNilPointerReceiverMethodHelpers(nilPointerReceiverMethodHelpers)
 	defer restoreNilPointerReceiverMethodHelpers()
 	localFunctionInterfaces := fileAnalysis.functionLocalInterfaces

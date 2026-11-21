@@ -959,7 +959,17 @@ func currentMapKeyStructTypes() map[string]bool {
 }
 
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && comparableStructTypes[structName] && NeedsConcurrentWrapper()
+	return structName != "" && structType != nil && comparableStructTypes[structName] &&
+		(NeedsConcurrentWrapper() || structHasPointerComparableField(structType))
+}
+
+func structHasPointerComparableField(structType *ast.StructType) bool {
+	for _, field := range structComparableFields(structType) {
+		if typ, ok := structComparableFieldType(field); ok && isPointerType(typ) {
+			return true
+		}
+	}
+	return false
 }
 
 func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
@@ -1029,9 +1039,11 @@ func writeStructComparablePointerFieldEq(out *strings.Builder, field structCompa
 	outerWrapper := GetOuterWrapperType()
 	out.WriteString("{ let __left_some = self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some(); let __right_some = other.")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_some(); let __right_some = other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
 	out.WriteString(outerWrapper)
 	out.WriteString("::ptr_eq(&self.")
 	out.WriteString(field.name)
@@ -1112,18 +1124,22 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("{ let __left = { self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap().clone() }; let __right = { other.")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone() }; let __right = { other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap().clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 		out.WriteString(traitMethodSuffix(ifaceName))
 		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
 		return
 	}
 	out.WriteString("{ let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() }; let __right = { other.")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().cloned() }; let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() }; __left == __right }")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().cloned() }; __left == __right }")
 }
 
 func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
@@ -3812,15 +3828,58 @@ func writePointerGoErrorWrapper(out *strings.Builder, typeName string) {
 	out.WriteString(wrapperName)
 	out.WriteString(" {\n")
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        let __guard = self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString("        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") }\n")
+	if helper := pointerErrorNilReceiverHelper(typeName, "Error"); helper != "" {
+		out.WriteString("        let __go_is_nil = self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".is_none();\n")
+		out.WriteString("        if !__go_is_nil {\n")
+		out.WriteString("            let __guard = self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            let __go_previous_panic_hook = std::panic::take_hook();\n")
+		out.WriteString("            std::panic::set_hook(Box::new(|_| {}));\n")
+		out.WriteString("            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ")
+		out.WriteString(helper)
+		out.WriteString("(self.0.clone())));\n")
+		out.WriteString("            std::panic::set_hook(__go_previous_panic_hook);\n")
+		out.WriteString("            match __go_error_result { Ok(__text) => { let __guard = __text")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") } }, Err(_) => write!(f, \"<nil>\") }\n")
+		out.WriteString("        }\n")
+	} else {
+		out.WriteString("        let __guard = self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") }\n")
+	}
 	out.WriteString("    }\n")
 	out.WriteString("}\n\n")
 	out.WriteString("impl StdError for ")
 	out.WriteString(wrapperName)
 	out.WriteString(" {}\n")
+}
+
+func pointerErrorNilReceiverHelper(typeName, methodName string) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return ""
+	}
+	typeObj, _ := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
+	if typeObj == nil {
+		return ""
+	}
+	named, _ := types.Unalias(typeObj.Type()).(*types.Named)
+	if named == nil {
+		return ""
+	}
+	obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, methodName)
+	method, _ := obj.(*types.Func)
+	if method == nil || !pointerErrorMethodNeedsNilDispatch(method) {
+		return ""
+	}
+	return nilPointerReceiverMethodHelperNameForUse(method, false)
 }
 
 func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {
@@ -3917,9 +3976,13 @@ func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrap
 	out.WriteString(wrapperName)
 	out.WriteString(">() {\n")
 	if NeedsConcurrentWrapper() {
-		out.WriteString("            Arc::ptr_eq(&self.0, &__other.0)\n")
+		out.WriteString("            let __go_left_nil = { self.0.lock().unwrap().is_none() };\n")
+		out.WriteString("            let __go_right_nil = { __other.0.lock().unwrap().is_none() };\n")
+		out.WriteString("            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }\n")
 	} else {
-		out.WriteString("            Rc::ptr_eq(&self.0, &__other.0)\n")
+		out.WriteString("            let __go_left_nil = self.0.borrow().is_none();\n")
+		out.WriteString("            let __go_right_nil = __other.0.borrow().is_none();\n")
+		out.WriteString("            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }\n")
 	}
 	out.WriteString("        } else {\n")
 	out.WriteString("            false\n")

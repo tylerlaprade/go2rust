@@ -49,8 +49,17 @@ pub struct __go_error_ptr_splitError(pub Rc<RefCell<Option<splitError>>>);
 
 impl std::fmt::Display for __go_error_ptr_splitError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_previous_panic_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(|_| {}));
+            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::methods::__go_nil_recv_split_error_error(self.0.clone())));
+            std::panic::set_hook(__go_previous_panic_hook);
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
     }
 }
 

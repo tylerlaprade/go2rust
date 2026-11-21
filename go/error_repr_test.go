@@ -79,6 +79,32 @@ func second() error { return &E_1{} }
 	}
 }
 
+func TestPointerErrorDisplayDispatchesTypedNilReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Safe struct{}
+func (*Safe) Error() string { return "custom" }
+
+func main() {
+	var p *Safe
+	var err error = p
+	fmt.Println(err)
+}
+`)
+
+	for _, want := range []string{
+		"__go_nil_recv_safe_error(self.0.clone())",
+		"std::panic::catch_unwind",
+		"Err(_) => write!(f, \"<nil>\")",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("typed-nil pointer error formatting missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 // "last = err" leaves err as it was. It used to empty it.
 func TestAssigningAnErrorLeavesTheSource(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
@@ -264,7 +290,7 @@ func main() {
 		// A struct error is boxed as the struct.
 		`if let Some(typed_val) = __err.downcast_ref::<Missing>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) }`,
 		// A pointer error is boxed as a pointer handle, as any pointer is.
-		`if let Some(typed_val) = __err.downcast_ref::<NotFound>() { go_box_any_with_metadata(Rc::new(RefCell::new(Some(typed_val.clone()))), "pointer", true) }`,
+		`if let Some(typed_val) = __err.downcast_ref::<__go_error_ptr_NotFound>() { go_box_any_with_metadata(typed_val.0.clone(), "pointer", true) }`,
 		// The box holds the value and nothing else.
 		"go_register_any_type::<T>(kind, comparable);\n    Box::new(value) as Box<dyn Any>",
 		// Both types are known to the readers of an interface value.

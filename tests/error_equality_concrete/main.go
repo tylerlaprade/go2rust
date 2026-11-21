@@ -50,6 +50,24 @@ type wrapError struct {
 	cause error
 }
 
+type pointerFieldError struct {
+	p *int
+}
+
+func (pointerFieldError) Error() string { return "pointer field" }
+
+type nilSafeError struct{}
+
+func (*nilSafeError) Error() string { return "custom" }
+func (*nilSafeError) Unwrap() error { return errors.New("inner") }
+
+type cycleError struct {
+	next error
+}
+
+func (*cycleError) Error() string     { return "cycle" }
+func (err *cycleError) Unwrap() error { return err.next }
+
 func (err *wrapError) Error() string {
 	return "wrapped: " + err.cause.Error()
 }
@@ -120,6 +138,23 @@ func main() {
 	var nan error = nanError{value: zero / zero}
 	nanCopy := nan
 	fmt.Println(nan == nan, nan == nanCopy)
+
+	firstNumber, secondNumber := 1, 1
+	var pointerFieldLeft error = pointerFieldError{p: &firstNumber}
+	var pointerFieldRight error = pointerFieldError{p: &secondNumber}
+	pointerFieldCopy := pointerFieldLeft
+	fmt.Println(pointerFieldLeft == pointerFieldRight, pointerFieldLeft == pointerFieldCopy)
+
+	var nilSafe *nilSafeError
+	var nilSafeAsError error = nilSafe
+	fmt.Println(nilSafeAsError, errors.Unwrap(nilSafeAsError))
+
+	cycle := &cycleError{}
+	var cycleAsError error = cycle
+	cycle.next = cycleAsError
+	fmt.Println(errors.Is(cycleAsError, cycleAsError))
+	var cycleTarget *cycleError
+	fmt.Println(errors.As(cycleAsError, &cycleTarget), cycleTarget == cycle)
 
 	leaf := errors.New("leaf")
 	var wrapped error = &wrapError{cause: leaf}

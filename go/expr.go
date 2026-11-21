@@ -5539,6 +5539,9 @@ func writeGoErrorPayloadEquality(out *strings.Builder, left, right string) {
 				if !ok || typeName.IsAlias() {
 					continue
 				}
+				if sourceMappedDeclIsPruned(typeName) {
+					continue
+				}
 				named, ok := typeName.Type().(*types.Named)
 				if !ok || named.TypeParams().Len() != 0 {
 					continue

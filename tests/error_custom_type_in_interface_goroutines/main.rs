@@ -993,8 +993,17 @@ pub struct __go_error_ptr_NotFound(pub Arc<Mutex<Option<NotFound>>>);
 
 impl std::fmt::Display for __go_error_ptr_NotFound {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+        let __go_is_nil = self.0.lock().unwrap().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.lock().unwrap();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_previous_panic_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(|_| {}));
+            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_not_found_error(self.0.clone())));
+            std::panic::set_hook(__go_previous_panic_hook);
+            match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
     }
 }
 
@@ -1111,4 +1120,8 @@ fn main() {
             println!("{} {}", format!("{}", "not found:".to_string()), format!("{}", (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).code.clone(); __field }.lock().unwrap().as_ref().unwrap())));;
         }
     }
+}
+
+pub fn __go_nil_recv_not_found_error(n: Arc<Mutex<Option<NotFound>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some(format!("not found {}", (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).code.clone(); __field }.lock().unwrap().as_ref().unwrap())))))
 }

@@ -63,13 +63,24 @@ func errorChainUnwrapArms() string {
 		if types.Implements(types.NewPointer(named), errorType.Underlying().(*types.Interface)) {
 			arms.WriteString("        if let Some(__v) = e.downcast_ref::<")
 			arms.WriteString(pointerGoErrorWrapperNameForUse(named.Obj().Name()))
-			arms.WriteString(">() { let __pointee = __v.0")
+			arms.WriteString(">() { if let Some(__c) = (*")
+			if helper := pointerErrorNilReceiverHelper(named.Obj().Name(), "Unwrap"); helper != "" {
+				if obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, "Unwrap"); obj != nil {
+					if method, ok := obj.(*types.Func); ok {
+						helper = nilPointerReceiverMethodHelperNameForUse(method, true)
+					}
+				}
+				arms.WriteString(helper)
+				arms.WriteString("(__v.0.clone())")
+			} else {
+				arms.WriteString("{ let __pointee = __v.0")
+				WriteBorrowMethod(&arms, false)
+				arms.WriteString("; let __pointee = __pointee.as_ref().unwrap(); __pointee.")
+				arms.WriteString(rustMethodNameForTypesFunc(fn))
+				arms.WriteString("() }")
+			}
 			WriteBorrowMethod(&arms, false)
-			arms.WriteString("; if let Some(__pointee) = __pointee.as_ref() { if let Some(__c) = (*__pointee.")
-			arms.WriteString(rustMethodNameForTypesFunc(fn))
-			arms.WriteString("()")
-			WriteBorrowMethod(&arms, false)
-			arms.WriteString(").clone() { stack.push(__c); } } }\n")
+			arms.WriteString(").clone() { stack.push(__c); } }\n")
 		}
 	}
 	return arms.String()
@@ -112,18 +123,23 @@ fn go_errors_join(errs: Vec<Option<ERR>>) -> Option<ERR> {
     Some(PTR::new(GoWrapError { msg, wrapped: errs, many: true }) as ERR)
 }
 
-// err and every error it wraps, depth first, in the order errors.Is and
-// errors.As visit them.
-fn go_error_chain(err: Option<ERR>) -> Vec<ERR> {
-    let mut out = Vec::new();
+// Visit err and every error it wraps, depth first, in the order errors.Is and
+// errors.As use. Stop before unwrapping the first value accepted by visit.
+fn go_error_chain_visit<F>(err: Option<ERR>, mut visit: F) -> bool
+where
+    F: FnMut(&ERR) -> bool,
+{
     let mut stack: Vec<ERR> = err.into_iter().collect();
     while let Some(e) = stack.pop() {
+        if visit(&e) {
+            return true;
+        }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
             stack.extend(w.wrapped.iter().rev().cloned());
         }
-USER_ARMS        out.push(e);
+USER_ARMS
     }
-    out
+    false
 }
 
 fn go_errors_unwrap(err: Option<ERR>) -> Option<ERR> {
@@ -141,7 +157,7 @@ USER_ARMS    stack.pop()
 fn go_errors_is(err: Option<ERR>, target: Option<ERR>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain_visit(Some(err), |e| std::ptr::addr_eq(&**e, &*target)),
         _ => false,
     }
 }
@@ -301,9 +317,9 @@ func transpileErrorsAs(out *strings.Builder, call *ast.CallExpr) {
 	}
 	WriteWrapperPrefix(out)
 	defer WriteWrapperSuffix(out)
-	out.WriteString("{ let mut __as_found = None; for __as_err in go_error_chain(")
+	out.WriteString("{ let mut __as_found = None; go_error_chain_visit(")
 	out.WriteString(err.String())
-	out.WriteString(") { if let Some(__as_value) = __as_err.downcast_ref::<")
+	out.WriteString(", |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<")
 	out.WriteString(heldRust)
 	out.WriteString(">() { __as_found = Some(")
 	if pointerErrorWrapper {
@@ -311,7 +327,7 @@ func transpileErrorsAs(out *strings.Builder, call *ast.CallExpr) {
 	} else {
 		out.WriteString("__as_value.clone()")
 	}
-	out.WriteString("); break; } } match __as_found { Some(__as_value) => { ")
+	out.WriteString("); true } else { false } }); match __as_found { Some(__as_value) => { ")
 	name := rustIdentForUseWithCapture(target)
 	if isPointer {
 		out.WriteString("let new_val = ")

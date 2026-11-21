@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type valueError struct {
 	code string
@@ -38,6 +41,24 @@ type namedNaN struct {
 type namedHolder struct {
 	value namedValue
 }
+
+type pointerFieldError struct {
+	p *int
+}
+
+func (pointerFieldError) Error() string { return "pointer field" }
+
+type nilSafeError struct{}
+
+func (*nilSafeError) Error() string { return "custom" }
+func (*nilSafeError) Unwrap() error { return errors.New("inner") }
+
+type cycleError struct {
+	next error
+}
+
+func (*cycleError) Error() string     { return "cycle" }
+func (err *cycleError) Unwrap() error { return err.next }
 
 func (err pairError) Error() string {
 	return fmt.Sprintf("%d:%d", err.a, err.b)
@@ -122,4 +143,25 @@ func main() {
 	holder := namedHolder{value: namedNaN{value: zero / zero}}
 	holderCopy := holder
 	fmt.Println(holder == holder, holder == holderCopy)
+
+	var nilNamedLeft *namedNaN
+	var nilNamedRight *namedNaN
+	fmt.Println(namedHolder{value: nilNamedLeft} == namedHolder{value: nilNamedRight})
+
+	firstNumber, secondNumber := 1, 1
+	var pointerFieldLeft error = pointerFieldError{p: &firstNumber}
+	var pointerFieldRight error = pointerFieldError{p: &secondNumber}
+	pointerFieldCopy := pointerFieldLeft
+	fmt.Println(pointerFieldLeft == pointerFieldRight, pointerFieldLeft == pointerFieldCopy)
+
+	var nilSafe *nilSafeError
+	var nilSafeAsError error = nilSafe
+	fmt.Println(nilSafeAsError, errors.Unwrap(nilSafeAsError))
+
+	cycle := &cycleError{}
+	var cycleAsError error = cycle
+	cycle.next = cycleAsError
+	fmt.Println(errors.Is(cycleAsError, cycleAsError))
+	var cycleTarget *cycleError
+	fmt.Println(errors.As(cycleAsError, &cycleTarget), cycleTarget == cycle)
 }

@@ -817,8 +817,17 @@ pub struct __go_error_ptr_NotFound(pub Rc<RefCell<Option<NotFound>>>);
 
 impl std::fmt::Display for __go_error_ptr_NotFound {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_previous_panic_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(|_| {}));
+            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_not_found_error(self.0.clone())));
+            std::panic::set_hook(__go_previous_panic_hook);
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
     }
 }
 
@@ -928,4 +937,8 @@ fn main() {
             println!("{} {}", format!("{}", "not found:".to_string()), format!("{}", (*(*n.borrow().as_ref().unwrap()).code.borrow().as_ref().unwrap())));;
         }
     }
+}
+
+pub fn __go_nil_recv_not_found_error(n: Rc<RefCell<Option<NotFound>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("not found {}", (*(*n.borrow().as_ref().unwrap()).code.borrow().as_ref().unwrap())))))
 }

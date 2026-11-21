@@ -779,8 +779,17 @@ pub struct __go_error_ptr_Broken(pub Rc<RefCell<Option<Broken>>>);
 
 impl std::fmt::Display for __go_error_ptr_Broken {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_previous_panic_hook = std::panic::take_hook();
+            std::panic::set_hook(Box::new(|_| {}));
+            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_broken_error(self.0.clone())));
+            std::panic::set_hook(__go_previous_panic_hook);
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
     }
 }
 
@@ -876,4 +885,8 @@ fn main() {
     println!("{} {}", format!("{}", { let __nil_result = (*declared.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*plain.borrow()).is_some(); __nil_result }));
     let mut unset: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
     println!("{} {}", format!("{}", { let __text = match unset.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.borrow()).is_none(); __nil_result }));
+}
+
+pub fn __go_nil_recv_broken_error(b: Rc<RefCell<Option<Broken>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{}{}", "broken: ".to_string(), (*(*b.borrow().as_ref().unwrap()).why.borrow().as_ref().unwrap()).clone()))))
 }

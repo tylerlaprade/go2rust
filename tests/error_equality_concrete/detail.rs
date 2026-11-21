@@ -5,7 +5,7 @@ use crate::{
     GoSliceHeader,
     GoWrapError,
     Vec,
-    go_error_chain,
+    go_error_chain_visit,
     go_error_wrap,
     go_errors_is,
     go_errors_join,

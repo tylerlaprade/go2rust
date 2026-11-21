@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -45,7 +46,7 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		for _, method := range methodList {
 			fn := methodFuncForDecl(method, typeInfo)
 			key := methodOverrideKey(fn)
-			if key != "" && methodComparesReceiverWithNil(method, typeInfo) {
+			if key != "" && (methodComparesReceiverWithNil(method, typeInfo) || pointerErrorMethodNeedsNilDispatch(fn)) {
 				helpers[key] = nilPointerReceiverMethodHelperName(fn)
 				nilAwareMethodHelpers[key] = true
 			}
@@ -76,6 +77,18 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		return nil
 	}
 	return helpers
+}
+
+// Pointer-receiver Error and Unwrap methods are invoked through interface
+// dispatch even when the dynamic pointer is nil. Keep a helper for them even
+// when the method body does not explicitly compare its receiver with nil:
+// Error may be nil-safe, and Unwrap must either return its result or panic in
+// the method body just as the original Go call does.
+func pointerErrorMethodNeedsNilDispatch(method *types.Func) bool {
+	if method == nil || !methodHasPointerReceiver(method) {
+		return false
+	}
+	return method.Name() == "Error" || method.Name() == "Unwrap"
 }
 
 // nilAwareMethodHelpers holds the methods whose helper every call on a
@@ -213,9 +226,43 @@ func nilPointerReceiverMethodHelperName(method *types.Func) string {
 		if pointer, ok := receiverType.(*types.Pointer); ok {
 			receiverType = types.Unalias(pointer.Elem())
 		}
-		receiverName = goTypesTypeToRust(receiverType)
+		if named, ok := receiverType.(*types.Named); ok && named.Obj() != nil {
+			receiverName = RustTypeNameForUse(named.Obj().Name())
+		} else {
+			receiverName = goTypesTypeToRust(receiverType)
+		}
 	}
 	return "__go_nil_recv_" + rustIdentFragment(receiverName) + "_" + rustIdentFragment(rustMethodNameForTypesFunc(method))
+}
+
+func nilPointerReceiverMethodHelperNameForUse(method *types.Func, fromCrateRoot bool) string {
+	name := nilPointerReceiverMethodHelperName(method)
+	module := nilPointerReceiverMethodModuleName(method)
+	ctx := GetTranspileContext()
+	if module == "" || (!fromCrateRoot && ctx != nil && module == ctx.CurrentModuleName) {
+		return name
+	}
+	return "crate::" + module + "::" + name
+}
+
+func nilPointerReceiverMethodModuleName(method *types.Func) string {
+	ctx := GetTranspileContext()
+	if method == nil || ctx == nil || ctx.File == nil || ctx.File.FileSet == nil {
+		return ""
+	}
+	filename := ctx.File.FileSet.Position(method.Pos()).Filename
+	if filename == "" {
+		return ""
+	}
+	base := strings.TrimSuffix(filepath.Base(filename), ".go")
+	typeInfo := GetTypeInfo()
+	if base == "main" && typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" {
+		return ""
+	}
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" && strings.HasPrefix(base, "lib") && strings.TrimLeft(base[3:], "_") == "" {
+		base += "_"
+	}
+	return SanitizeRustModuleName(base)
 }
 
 func rustIdentFragment(name string) string {

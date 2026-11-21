@@ -7124,6 +7124,53 @@ func live(err error) {
 	}
 }
 
+func TestSourceStdlibPruningFiltersErrorEqualityCandidates(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/types": "go_types"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	pkg := parsePackageForReachabilityTest(t, fset, "go/types", "api.go", `package types
+
+type LiveValue struct{}
+func (LiveValue) Error() string { return "live value" }
+type LivePointer struct{}
+func (*LivePointer) Error() string { return "live pointer" }
+
+type DeadValue struct{}
+func (DeadValue) Error() string { return "dead value" }
+type DeadPointer struct{}
+func (*DeadPointer) Error() string { return "dead pointer" }
+
+func compare(left, right error) bool { return left == right }
+`)
+	typeInfo, err := NewTypeInfoWithImporter("go/types", pkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(go/types) error = %v", err)
+	}
+	pkg.Types = typeInfo.pkg
+	pkg.TypesInfo = typeInfo.info
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, pkg, "LiveValue"):   true,
+		definitionByName(t, pkg, "LivePointer"): true,
+		definitionByName(t, pkg, "compare"):     true,
+	})
+
+	rust, _, _ := TranspileWithMapping(pkg.Syntax[0], fset, typeInfo, map[string]string{"go/types": "go_types"})
+	for _, dead := range []string{"downcast_ref::<DeadValue>()", "downcast_ref::<__go_error_ptr_DeadPointer>()"} {
+		if strings.Contains(rust, dead) {
+			t.Fatalf("error equality dispatch should not reference pruned candidate %q:\n%s", dead, rust)
+		}
+	}
+	for _, live := range []string{"downcast_ref::<LiveValue>()", "downcast_ref::<__go_error_ptr_LivePointer>()"} {
+		if !strings.Contains(rust, live) {
+			t.Fatalf("error equality dispatch should retain reachable candidate %q:\n%s", live, rust)
+		}
+	}
+}
+
 func TestSourceStdlibPruningFiltersImportedInterfaceAssertionCandidatesByStableKey(t *testing.T) {
 	prevCtx := GetTranspileContext()
 	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/types": "go_types"}})
