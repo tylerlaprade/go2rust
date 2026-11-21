@@ -707,6 +707,14 @@ impl Nums {
     }
 }
 
+impl PartialEq for Nums {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.borrow().clone();
+        let __right = other.0.borrow().clone();
+        __left == __right
+    }
+}
+
 impl Display for Nums {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", format_slice(&self.0))

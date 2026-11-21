@@ -1,0 +1,7 @@
+a A a true true
+Z Z z true true
+ö Ö ö true true
+Ö Ö ö true true
+ā Ā ā true true
+Ā Ā ā true true
+! ! ! false false
