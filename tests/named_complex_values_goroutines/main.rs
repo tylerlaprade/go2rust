@@ -1719,6 +1719,57 @@ impl Display for Small {
     }
 }
 
+impl PartialEq for Small {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl std::ops::Add for Small {
+    type Output = Small;
+    fn add(self, other: Self) -> Small {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Small(Arc::new(Mutex::new(Some(__left + __right))))
+    }
+}
+
+impl std::ops::Sub for Small {
+    type Output = Small;
+    fn sub(self, other: Self) -> Small {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Small(Arc::new(Mutex::new(Some(__left - __right))))
+    }
+}
+
+impl std::ops::Mul for Small {
+    type Output = Small;
+    fn mul(self, other: Self) -> Small {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Small(Arc::new(Mutex::new(Some(__left * __right))))
+    }
+}
+
+impl std::ops::Div for Small {
+    type Output = Small;
+    fn div(self, other: Self) -> Small {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Small(Arc::new(Mutex::new(Some(__left / __right))))
+    }
+}
+
+impl std::ops::Neg for Small {
+    type Output = Small;
+    fn neg(self) -> Small {
+        Small(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Phasor(pub Arc<Mutex<Option<num::Complex<f64>>>>);
@@ -1739,6 +1790,57 @@ impl Default for Phasor {
 impl Display for Phasor {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "({})", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for Phasor {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl std::ops::Add for Phasor {
+    type Output = Phasor;
+    fn add(self, other: Self) -> Phasor {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Phasor(Arc::new(Mutex::new(Some(__left + __right))))
+    }
+}
+
+impl std::ops::Sub for Phasor {
+    type Output = Phasor;
+    fn sub(self, other: Self) -> Phasor {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Phasor(Arc::new(Mutex::new(Some(__left - __right))))
+    }
+}
+
+impl std::ops::Mul for Phasor {
+    type Output = Phasor;
+    fn mul(self, other: Self) -> Phasor {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Phasor(Arc::new(Mutex::new(Some(__left * __right))))
+    }
+}
+
+impl std::ops::Div for Phasor {
+    type Output = Phasor;
+    fn div(self, other: Self) -> Phasor {
+        let __left = { *self.0.lock().unwrap().as_ref().unwrap() };
+        let __right = { *other.0.lock().unwrap().as_ref().unwrap() };
+        Phasor(Arc::new(Mutex::new(Some(__left / __right))))
+    }
+}
+
+impl std::ops::Neg for Phasor {
+    type Output = Phasor;
+    fn neg(self) -> Phasor {
+        Phasor(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
     }
 }
 

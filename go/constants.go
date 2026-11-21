@@ -1350,7 +1350,7 @@ func isDisplayableDefinedUnderlying(underlying string) bool {
 	switch underlying {
 	case "string", "bool", "int", "int8", "int16", "int32", "int64", "rune",
 		"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
-		"float32", "float64":
+		"float32", "float64", "complex64", "complex128":
 		return true
 	default:
 		return false

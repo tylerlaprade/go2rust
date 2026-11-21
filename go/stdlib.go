@@ -803,6 +803,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	}
 	// Check if this is a function call that returns a wrapped value
 	if callExpr, ok := arg.(*ast.CallExpr); ok {
+		if ident, ok := callExpr.Fun.(*ast.Ident); ok && (ident.Name == "real" || ident.Name == "imag") {
+			out.WriteString("(*")
+			TranspileExpression(out, arg)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+			return
+		}
 		if callReturnsBareScalar(callExpr) {
 			TranspileExpression(out, arg)
 			return
@@ -864,6 +871,10 @@ func writeGoComplexPrintArg(out *strings.Builder, arg ast.Expr) bool {
 	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
 	if !ok || (basic.Kind() != types.Complex64 && basic.Kind() != types.Complex128 && basic.Kind() != types.UntypedComplex) {
 		return false
+	}
+	if _, _, ok := namedComplexNewtype(typ); ok {
+		transpilePrintArg(out, arg)
+		return true
 	}
 	out.WriteString(`format!("({})", `)
 	transpilePrintArg(out, arg)
@@ -6827,6 +6838,14 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeComplexComponentValue(out *strings.Builder, expr ast.Expr, component string) {
+	var namedComplex strings.Builder
+	if writeNamedComplexPrimitiveExpression(&namedComplex, expr) {
+		out.WriteString("(")
+		out.WriteString(namedComplex.String())
+		out.WriteString(").")
+		out.WriteString(component)
+		return
+	}
 	if isExpressionResultBare(expr) {
 		TranspileExpression(out, expr)
 		out.WriteString(".")

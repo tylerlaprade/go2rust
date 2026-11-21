@@ -30,6 +30,124 @@ func namedFloatNewtype(typ types.Type) (*types.Named, string, bool) {
 	return named, "f64", true
 }
 
+// namedComplexNewtype reports whether typ is a package-level defined complex
+// type and returns the Rust component type held by its num::Complex value.
+func namedComplexNewtype(typ types.Type) (*types.Named, string, bool) {
+	if !anyFormatTypeIsLocalNamedBasic(typ) {
+		return nil, "", false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return nil, "", false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsComplex == 0 {
+		return nil, "", false
+	}
+	if basic.Kind() == types.Complex64 {
+		return named, "f32", true
+	}
+	return named, "f64", true
+}
+
+func writeNamedComplexPrimitiveExpression(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	named, _, ok := namedComplexNewtype(typeInfo.GetType(expr))
+	if !ok {
+		return false
+	}
+	basic := named.Underlying().(*types.Basic)
+	if isConstantExpression(expr) {
+		return writeConstExpressionForExpectedComplex(out, expr, basic)
+	}
+	switch e := expr.(type) {
+	case *ast.ParenExpr:
+		out.WriteString("(")
+		if !writeNamedComplexPrimitiveExpression(out, e.X) {
+			return false
+		}
+		out.WriteString(")")
+		return true
+	case *ast.BinaryExpr:
+		switch e.Op {
+		case token.ADD, token.SUB, token.MUL, token.QUO:
+		default:
+			return false
+		}
+		var left, right strings.Builder
+		if !writeNamedComplexPrimitiveOperand(&left, e.X, basic) || !writeNamedComplexPrimitiveOperand(&right, e.Y, basic) {
+			return false
+		}
+		out.WriteString("(")
+		out.WriteString(left.String())
+		out.WriteString(" ")
+		out.WriteString(e.Op.String())
+		out.WriteString(" ")
+		out.WriteString(right.String())
+		out.WriteString(")")
+		return true
+	case *ast.UnaryExpr:
+		if e.Op != token.SUB && e.Op != token.ADD {
+			return false
+		}
+		if e.Op == token.SUB {
+			out.WriteString("-")
+		}
+		return writeNamedComplexPrimitiveOperand(out, e.X, basic)
+	}
+
+	// A defined scalar variable has an outer Go variable cell and an inner
+	// cell owned by the newtype. Read the Complex value without moving either.
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __named_complex_handle = { let __outer = ")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __outer.as_ref().unwrap().0.clone() }; let __named_complex = *__named_complex_handle")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap(); __named_complex }")
+		return true
+	}
+	out.WriteString("(*(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
+func writeNamedComplexPrimitiveOperand(out *strings.Builder, expr ast.Expr, expected *types.Basic) bool {
+	if isConstantExpression(expr) && writeConstExpressionForExpectedComplex(out, expr, expected) {
+		return true
+	}
+	return writeNamedComplexPrimitiveExpression(out, expr)
+}
+
+func writeNamedComplexArithmeticValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, _, ok := namedComplexNewtype(typeInfo.GetType(expr))
+	if !ok {
+		return false
+	}
+	var primitive strings.Builder
+	if !writeNamedComplexPrimitiveExpression(&primitive, expr) {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString(primitive.String())
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
 // writeRustFloatLiteral writes a constant as a Rust float literal, the
 // value Go gives it when it becomes a float64.
 func writeRustFloatLiteral(out *strings.Builder, value constant.Value) bool {
@@ -366,6 +484,13 @@ func writeNamedScalarVarSpecValue(out *strings.Builder, valueSpec *ast.ValueSpec
 		return false
 	}
 	value := valueSpec.Values[i]
+	if _, _, ok := namedComplexNewtype(named); ok {
+		basic := named.Underlying().(*types.Basic)
+		WriteWrapperPrefix(out)
+		writeComplexTypeDefinitionConstructor(out, goTypesNamedTypeToRust(named), value, basic.Name())
+		WriteWrapperSuffix(out)
+		return true
+	}
 	var inner strings.Builder
 	if !writeExpressionForExpectedTypesType(&inner, value, named) {
 		return false

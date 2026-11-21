@@ -1698,6 +1698,24 @@ func main() {
 	}
 }
 
+func TestDefinedComplexArithmeticUsesInnerComplexValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Phasor complex128
+
+func parts(p, q Phasor) (Phasor, Phasor, float64, float64) {
+	return p + q, -p, real(p), imag(p)
+}
+`)
+
+	if !strings.Contains(rust, "impl std::ops::Add for Phasor") || !strings.Contains(rust, "impl std::ops::Neg for Phasor") {
+		t.Fatalf("defined complex arithmetic should provide value-preserving Rust operators:\n%s", rust)
+	}
+	if !strings.Contains(rust, ").re") || !strings.Contains(rust, ").im") {
+		t.Fatalf("real and imag should read the inner Complex value:\n%s", rust)
+	}
+}
+
 func TestConcurrentComplexComparisonCastsZeroConstant(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
