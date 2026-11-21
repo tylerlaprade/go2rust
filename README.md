@@ -211,6 +211,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Focused type-parameter constraints in concrete helper signatures such as `S ~[]T, T ~string` | ✅ |
 | └ Assignment from function return values | ✅ |
 | └ Variadic functions | ✅ |
+| └ Single tuple-result argument in direct variadic calls with predeclared scalar or string variadic elements; fixed `any` scalars/strings and concrete struct `error` values are converted | ✅ |
 | └ Cross-file variadic function calls | ✅ |
 | └ Imported transpiled package variadic calls | ✅ |
 | └ Address-of selector fields passed as fixed variadic arguments | ✅ |

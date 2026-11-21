@@ -13226,138 +13226,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		case token.CHAR:
 			// In Go, character literals are runes (int32)
 			// Convert 'A' to the numeric value. RustCharLiteral translates
-			// Go-only escapes (\a \b \f \v, octal, \uXXXX) Rust rejects.
-			// An untyped rune constant takes the type of where it goes, as
-			// in []pair{{1, 'r'}} with a byte field; the type checker
-			// records that type.
-			rustType := "i32"
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
-				if basic, ok := types.Unalias(typeInfo.GetType(e)).(*types.Basic); ok && basic.Info()&types.IsInteger != 0 && basic.Info()&types.IsUntyped == 0 && basic.Kind() != types.Int32 {
-					rustType = goTypesTypeToRust(basic)
-				}
-			}
-			out.WriteString("(")
-			out.WriteString(RustCharLiteral(e.Value))
-			out.WriteString(" as ")
-			out.WriteString(rustType)
-			out.WriteString(")")
-		case token.INT:
-			// Check if this integer is used in a float context
-			typeInfo := GetTypeInfo()
-			if typeInfo != nil {
-				exprType := typeInfo.GetType(e)
-				if exprType != nil {
-					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
-						// Integer literal used as float - add .0
-						out.WriteString(e.Value)
-						out.WriteString(".0")
-						return
-					}
-				}
-			}
-			out.WriteString(e.Value)
-		case token.FLOAT:
-			if value, ok := rustFloatLiteral(e); ok {
-				out.WriteString(value)
-			} else {
-				out.WriteString(e.Value)
-			}
-		default:
-			out.WriteString(e.Value)
-		}
-
-	case *ast.Ident:
-		identName := e.Name
-		// Check if this variable has been renamed (captured in closure)
-		varName := RustIdentForUse(e)
-		renamedReceiver := ""
-		if renamed, exists := captureRenameForIdent(e); exists {
-			varName = RustLocalIdent(renamed)
-			if isCurrentReceiverIdent(e) {
-				renamedReceiver = varName
-			}
-		}
-
-		if identName == "nil" {
-			out.WriteString("None")
-			return
-		}
-		if isCurrentReceiverIdent(e) {
-			if renamedReceiver != "" {
-				out.WriteString(renamedReceiver)
-				return
-			}
-			// Method receiver - translate to self
-			// Check if this is a type definition that needs unwrapping
-			receiverName := currentReceiverRustName()
-			if _, isTypeDef := LookupTypeDefinition(currentReceiverType); isTypeDef {
-				if ctx == LValue || ctx == AddressOf {
-					out.WriteString(receiverName)
-					out.WriteString(".0")
-				} else {
-					// For type definitions, access the inner value
-					out.WriteString("(*")
-					out.WriteString(receiverName)
-					out.WriteString(".0")
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
-				}
-			} else {
-				out.WriteString(receiverName)
-			}
-			return
-		}
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-			if _, ok := typeInfo.info.Uses[e].(*types.Func); ok {
-				out.WriteString(rustFunctionNameForUse(identName))
-				return
-			}
-		}
-		writeIdentExpression(out, e, ctx, varName)
-	case *ast.CallExpr:
-		TranspileCall(out, e)
-
-	case *ast.SelectorExpr:
-		// Check if this is a type assertion first (e.g., x.(Type))
-		typeInfo := GetTypeInfo()
-		isPackageSelector := false
-		RegisterExternalSelectorField(e)
-
-		if sig, ok := methodExpressionSignature(e); ok {
-			WriteWrapperPrefix(out)
-			writeMethodExpressionValueBox(out, e, sig)
-			WriteWrapperSuffix(out)
-			break
-		}
-
-		if ident, ok := e.X.(*ast.Ident); ok {
-			isPackageSelector = isPackageSelectorBaseIdent(ident)
-		}
-
-		if isPackageSelector {
-			// Package/type selector
-			// Check if this is an external package that needs mapping
-			if ident, ok := e.X.(*ast.Ident); ok {
-				if pkgPath, exists := goPackageImports[ident.Name]; exists {
-					// Check if we have a mapping for this package
-					transpileCtx := GetTranspileContext()
-					if transpileCtx != nil && transpileCtx.PackageMapping != nil {
-						if crateName, hasCrate := transpileCtx.PackageMapping[pkgPath]; hasCrate {
-							// Use the mapped crate name directly. Some stdlib packages
-							// are source-transpiled for self-hosting, and those must not
-							// fall back to generated semantic stubs.
-							if writeSourceMappedPackageVarSelector(out, e, crateName, ctx) {
-								break
-							}
-							out.WriteString(crateName)
-							out.WriteString("::")
-							out.WriteString(rustPackageSelectorName(e))
-							break
-						}
-					}
-					// If no mapping found but it's a known import, still use package syntax
-					if !isStdlibPackage(pkgPath) {
-						// External package without mapping - use sanitized name
+			// Go-only escapes (\a \b \f \v, octal, \uXXXX) Rust rejÁÆzo+^≤â¢∂◊ùpping - use sanitized name
 						out.WriteString(strings.ReplaceAll(strings.ReplaceAll(pkgPath, "/", "_"), ".", "_"))
 						out.WriteString("::")
 						out.WriteString(rustPackageSelectorName(e))
@@ -23839,11 +23708,34 @@ func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call
 	writeInferredCallTypeArgs(out, ident)
 	out.WriteString("(")
 	params := outerSig.Params()
-	for i := 0; i < params.Len(); i++ {
+	fixedCount := params.Len()
+	if outerSig.Variadic() {
+		fixedCount--
+	}
+	for i := 0; i < fixedCount; i++ {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeExpandedMultiResultArgSlot(out, inner, i, params.At(i).Type())
+		writeExpandedMultiResultArgSlot(out, inner, i, results.At(i).Type(), params.At(i).Type())
+	}
+	if outerSig.Variadic() {
+		if fixedCount > 0 {
+			out.WriteString(", ")
+		}
+		if fixedCount == results.Len() {
+			WriteWrappedNone(out)
+		} else {
+			WriteWrapperPrefix(out)
+			out.WriteString("vec![")
+			for i := fixedCount; i < results.Len(); i++ {
+				if i > fixedCount {
+					out.WriteString(", ")
+				}
+				writeExpandedMultiResultScalarValue(out, inner, i)
+			}
+			out.WriteString("]")
+			WriteWrapperSuffix(out)
+		}
 	}
 	out.WriteString(") }")
 	return true
@@ -23851,15 +23743,78 @@ func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call
 
 func singleMultiResultCallArgument(call *ast.CallExpr) (*ast.CallExpr, *types.Signature, *types.Signature, bool) {
 	outerSig, ok := callSignatureFromTypeInfo(call)
-	if !ok || outerSig == nil || outerSig.Params() == nil || outerSig.Variadic() {
+	if !ok || outerSig == nil || outerSig.Params() == nil {
 		return nil, nil, nil, false
+	}
+	if outerSig.Variadic() {
+		inner, innerSig, ok := singleMultiResultCallArgumentForVariadicParams(call, outerSig.Params())
+		return inner, outerSig, innerSig, ok
 	}
 	inner, innerSig, ok := singleMultiResultCallArgumentForParams(call, outerSig.Params())
 	return inner, outerSig, innerSig, ok
 }
 
 func singleMultiResultCallArgumentForParams(call *ast.CallExpr, params *types.Tuple) (*ast.CallExpr, *types.Signature, bool) {
-	if call == nil || params == nil || len(call.Args) != 1 {
+	inner, innerSig, ok := multiResultCallArgument(call)
+	if !ok || params == nil || params.Len() != innerSig.Results().Len() {
+		return nil, nil, false
+	}
+	for i := 0; i < params.Len(); i++ {
+		if !types.AssignableTo(innerSig.Results().At(i).Type(), params.At(i).Type()) {
+			return nil, nil, false
+		}
+	}
+	return inner, innerSig, true
+}
+
+func singleMultiResultCallArgumentForVariadicParams(call *ast.CallExpr, params *types.Tuple) (*ast.CallExpr, *types.Signature, bool) {
+	inner, innerSig, ok := multiResultCallArgument(call)
+	if !ok || !callUsesGeneratedReturnSignature(inner) || call.Ellipsis.IsValid() {
+		return nil, nil, false
+	}
+	fixedCount := params.Len() - 1
+	elem := types.Unalias(params.At(fixedCount).Type()).(*types.Slice).Elem()
+	basic, isBasic := types.Unalias(elem).(*types.Basic)
+	if !isBasic || !(typeIsPredeclaredCopyScalar(basic) || basic.Kind() == types.String) {
+		return nil, nil, false
+	}
+	results := innerSig.Results()
+	if results.Len() < fixedCount {
+		return nil, nil, false
+	}
+	for i := 0; i < results.Len(); i++ {
+		result := results.At(i).Type()
+		if i >= fixedCount {
+			if !types.Identical(result, elem) {
+				return nil, nil, false
+			}
+			continue
+		}
+		expected := params.At(i).Type()
+		if types.Identical(result, expected) {
+			continue
+		}
+		if !types.AssignableTo(result, expected) {
+			return nil, nil, false
+		}
+		if multiResultScalarBoxesIntoEmptyInterface(result, expected) {
+			continue
+		}
+		if multiResultConcreteStructErrorBoxesIntoError(result, expected) {
+			continue
+		}
+		// Both channel directions use the same Rust handle.
+		_, resultIsChannel := types.Unalias(result).(*types.Chan)
+		_, expectedIsChannel := types.Unalias(expected).(*types.Chan)
+		if !resultIsChannel || !expectedIsChannel {
+			return nil, nil, false
+		}
+	}
+	return inner, innerSig, true
+}
+
+func multiResultCallArgument(call *ast.CallExpr) (*ast.CallExpr, *types.Signature, bool) {
+	if call == nil || len(call.Args) != 1 {
 		return nil, nil, false
 	}
 	inner, ok := unwrapParens(call.Args[0]).(*ast.CallExpr)
@@ -23867,17 +23822,8 @@ func singleMultiResultCallArgumentForParams(call *ast.CallExpr, params *types.Tu
 		return nil, nil, false
 	}
 	innerSig, ok := callSignatureFromTypeInfo(inner)
-	if !ok || innerSig == nil || innerSig.Results() == nil {
+	if !ok || innerSig == nil || innerSig.Results().Len() <= 1 {
 		return nil, nil, false
-	}
-	results := innerSig.Results()
-	if results.Len() <= 1 || params.Len() == 0 || params.Len() != results.Len() {
-		return nil, nil, false
-	}
-	for i := 0; i < params.Len(); i++ {
-		if !types.AssignableTo(results.At(i).Type(), params.At(i).Type()) {
-			return nil, nil, false
-		}
 	}
 	return inner, innerSig, true
 }
@@ -23895,15 +23841,63 @@ func writeExpandedMultiResultArgBinding(out *strings.Builder, inner *ast.CallExp
 	out.WriteString("; ")
 }
 
-func writeExpandedMultiResultArgSlot(out *strings.Builder, inner *ast.CallExpr, index int, expected types.Type) {
+func multiResultScalarBoxesIntoEmptyInterface(result, expected types.Type) bool {
+	basic, ok := types.Unalias(result).(*types.Basic)
+	return ok && isEmptyInterfaceType(expected) &&
+		(typeIsPredeclaredCopyScalar(basic) || basic.Kind() == types.String)
+}
+
+func multiResultConcreteStructErrorBoxesIntoError(result, expected types.Type) bool {
+	if !isGoErrorType(expected) || !isConcreteGoErrorValue(result) {
+		return false
+	}
+	_, ok := types.Unalias(result).Underlying().(*types.Struct)
+	return ok
+}
+
+func writeExpandedMultiResultArgSlot(out *strings.Builder, inner *ast.CallExpr, index int, result, expected types.Type) {
+	if multiResultScalarBoxesIntoEmptyInterface(result, expected) {
+		RegisterAnyCloneType(result)
+		WriteWrapperPrefix(out)
+		out.WriteString("Box::new(")
+		writeExpandedMultiResultScalarValue(out, inner, index)
+		out.WriteString(") as ")
+		out.WriteString(rustAnyTraitObject())
+		WriteWrapperSuffix(out)
+		return
+	}
 	slotName := fmt.Sprintf("__multi_arg_%d", index)
-	if typeIsPredeclaredCopyScalar(expected) && callResultIsBareScalar(inner, index) {
+	if multiResultConcreteStructErrorBoxesIntoError(result, expected) {
+		WriteWrapperPrefix(out)
+		out.WriteString("{ let __value = (*")
+		out.WriteString(slotName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); ")
+		out.WriteString(rustErrorFromValueStart())
+		out.WriteString("__value")
+		out.WriteString(rustErrorFromValueEnd())
+		out.WriteString(" }")
+		WriteWrapperSuffix(out)
+		return
+	}
+	if typeIsPredeclaredCopyScalar(expected) && callResultIsBareScalar(inner, index) &&
+		!callResultNeedsBareScalarUnwrapFromGeneratedWrapper(inner, index) {
 		WriteWrapperPrefix(out)
 		out.WriteString(slotName)
 		WriteWrapperSuffix(out)
 		return
 	}
 	out.WriteString(slotName)
+}
+
+func writeExpandedMultiResultScalarValue(out *strings.Builder, inner *ast.CallExpr, index int) {
+	if callResultIsBareScalar(inner, index) && !callResultNeedsBareScalarUnwrapFromGeneratedWrapper(inner, index) {
+		fmt.Fprintf(out, "__multi_arg_%d", index)
+		return
+	}
+	fmt.Fprintf(out, "{ let __value = __multi_arg_%d", index)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap().clone(); __value }")
 }
 
 func functionCallTargetUsesGoTypesFunctionParamShape(fun ast.Expr) bool {

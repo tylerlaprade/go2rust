@@ -1,0 +1,6 @@
+prefix:gorust
+14
+5 7
+8 9
+go 10
+bad 11 12
