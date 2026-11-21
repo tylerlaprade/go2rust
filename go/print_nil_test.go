@@ -22,11 +22,11 @@ func main() {
 }
 `)
 
-	want := `{ let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
+	want := `{ let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
 	if got := strings.Count(rust, want); got != 2 {
 		t.Fatalf("want the nil-safe print of err twice, got %d in:\n%s", got, rust)
 	}
-	if !strings.Contains(rust, `{ let __text = match find().borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`) {
+	if !strings.Contains(rust, `{ let __go_print_handle = find(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`) {
 		t.Fatalf("a call that returns an error must print nil-safely too:\n%s", rust)
 	}
 	if strings.Contains(rust, "err.borrow().as_ref().unwrap()") {
@@ -88,9 +88,9 @@ func main() {
 }
 `)
 
-	want := `{ let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
+	want := `{ let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
 	if got := strings.Count(rust, want); got != 2 {
-		t.Fatalf("want two self-contained prints of err, got %d in:\n%s", got, rust)
+		t.Fatalf("want two self-contained prints that release the interface lock before Error(), got %d in:\n%s", got, rust)
 	}
 }
 

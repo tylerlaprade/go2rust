@@ -932,13 +932,16 @@ func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Typ
 	if !isGoErrorType(argType) {
 		return false
 	}
-	out.WriteString(printValueOrNilStart)
+	out.WriteString("{ let __go_print_handle = ")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".clone()")
 	} else {
 		TranspileExpressionContext(out, arg, LValue)
 	}
-	writePrintValueOrNil(out, "{}")
+	out.WriteString("; let __go_print_value = { let __go_guard = __go_print_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!(\"{}\", __value), None => \"<nil>\".to_string() }; __text }")
 	return true
 }
 

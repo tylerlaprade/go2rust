@@ -820,8 +820,23 @@ impl std::fmt::Display for brokenError {
 }
 
 
+pub(crate) static entered: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoChannel<bool>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+pub(crate) static release: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoChannel<bool>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *entered.lock().unwrap() = Some(Default::default());
+    *release.lock().unwrap() = Some(Default::default());
+    *entered.lock().unwrap() = Some(GoChannel::<bool>::new_buffered(2 as usize));
+    *release.lock().unwrap() = Some(GoChannel::<bool>::new_buffered(2 as usize));
+}
+
+
 impl brokenError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        { let __channel = entered.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(true);
+        { let __channel = release.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap_or_default();
         return Arc::new(Mutex::new(Some({ let __selector_holder = self.message.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
 }
@@ -848,6 +863,7 @@ impl StdError for __go_error_ptr_brokenError {}
 
 
 fn main() {
+    __go_init_all();
     let mut pointer: Arc<Mutex<Option<brokenError>>> = Arc::new(Mutex::new(None));
     let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_brokenError(pointer.clone())) as Arc<dyn StdError + Send + Sync>)));
 
@@ -857,19 +873,30 @@ fn main() {
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
         let done_thread = done.clone(); let err_thread = err.clone(); let start_thread = start.clone(); std::thread::spawn(move || {
         start_thread.recv().unwrap_or_default();;
-        done_thread.send((*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __text = match err_thread.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());;;
+        done_thread.send((*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __go_print_handle = err_thread.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());;;
     });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     start.send(true);
     start.send(true);
+    { let __channel = entered.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap_or_default();
+    { let __channel = entered.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap_or_default();
+    { let __channel = release.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(true);
+    { let __channel = release.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(true);
 
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
     println!("{}", format!("{}", { let __left = err.clone(); let __right = err.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_brokenError>(), __r.downcast_ref::<__go_error_ptr_brokenError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }));
-    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    { let __channel = release.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(true);
+    println!("{}", format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }
 
 pub fn __go_nil_recv_broken_error_error(err: Arc<Mutex<Option<brokenError>>>) -> Arc<Mutex<Option<String>>> {
+    { let __channel = entered.lock().unwrap().as_ref().unwrap().clone(); __channel }.send(true);
+    { let __channel = release.lock().unwrap().as_ref().unwrap().clone(); __channel }.recv().unwrap_or_default();
     return Arc::new(Mutex::new(Some({ let __selector_holder = (*err.lock().unwrap().as_ref().unwrap()).message.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }

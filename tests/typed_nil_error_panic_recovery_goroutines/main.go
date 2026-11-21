@@ -6,7 +6,14 @@ type brokenError struct {
 	message string
 }
 
-func (err *brokenError) Error() string { return err.message }
+var entered = make(chan bool, 2)
+var release = make(chan bool, 2)
+
+func (err *brokenError) Error() string {
+	entered <- true
+	<-release
+	return err.message
+}
 
 func main() {
 	var pointer *brokenError
@@ -22,9 +29,14 @@ func main() {
 	}
 	start <- true
 	start <- true
+	<-entered
+	<-entered
+	release <- true
+	release <- true
 
 	fmt.Println(<-done)
 	fmt.Println(<-done)
 	fmt.Println(err == err)
+	release <- true
 	fmt.Println(err)
 }
