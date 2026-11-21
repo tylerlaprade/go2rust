@@ -7225,6 +7225,39 @@ func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
 	transpileConstDeclWithCase(out, genDecl, true)
 }
 
+// floatConstLiteral returns the value of a float constant as a Rust float
+// literal, when the constant's Rust type is a float and its value is known.
+func floatConstLiteral(name *ast.Ident, rustType string) (string, bool) {
+	if rustType != "f64" && rustType != "f32" {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.info.Defs[name].(*types.Const)
+	if !ok || obj.Val() == nil {
+		return "", false
+	}
+	value := constant.ToFloat(obj.Val())
+	if value.Kind() != constant.Float {
+		return "", false
+	}
+	f, _ := constant.Float64Val(value)
+	if math.IsInf(f, 0) || math.IsNaN(f) {
+		return "", false
+	}
+	format := byte('f')
+	if math.Abs(f) >= 1e21 || (f != 0 && math.Abs(f) < 1e-6) {
+		format = 'g'
+	}
+	literal := strconv.FormatFloat(f, format, -1, 64)
+	if !strings.ContainsAny(literal, ".eE") {
+		literal += ".0"
+	}
+	return literal, true
+}
+
 func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUpper bool) {
 	// Track iota value and the last expression pattern for each position
 	iotaValue := 0
@@ -7308,7 +7341,12 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString(" = ")
 
 				// Handle value
-				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+				if literal, ok := floatConstLiteral(name, constType); ok {
+					// "KB Size = 1 << (10 * iota)" is an integer expression
+					// for a float constant; write the value the type
+					// checker computed.
+					out.WriteString(literal)
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
 						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)

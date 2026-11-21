@@ -588,7 +588,7 @@ impl std::io::Write for GoSlice<u8> {
 
 pub fn append_parts(out: Rc<RefCell<Option<String>>>, suffix: Rc<RefCell<Option<String>>>) {
     (*out.borrow_mut().as_mut().unwrap()).push_str("go");
-    (*out.borrow_mut().as_mut().unwrap()).push((('2' as i32)) as u8 as char);
+    (*out.borrow_mut().as_mut().unwrap()).push((('2' as u8)) as u8 as char);
     (*out.borrow_mut().as_mut().unwrap()).push('r');
     (*out.borrow_mut().as_mut().unwrap()).push_str(&(*suffix.borrow().as_ref().unwrap()).clone());
 }

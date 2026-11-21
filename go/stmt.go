@@ -5501,6 +5501,11 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
+	// The value of a range over a []any is the element's Box itself, which
+	// has no Clone; the map gets a copy of its own.
+	if isEmptyInterfaceType(valueType) && writeBareAnyReferenceWrappedClone(out, expr) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
 		return
@@ -14469,10 +14474,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							structDefs[typeSpec.Name.Name] = structDef
 							RegisterTypeAlias(typeSpec.Name.Name)
 							RegisterBareStructAlias(typeSpec.Name.Name)
+							structRustType := goTypeToRustBase(typeSpec.Type)
+							// The struct is written as an anonymous struct;
+							// when the local type is compared, so is it.
+							if comparableStructTypes[typeSpec.Name.Name] {
+								comparableStructTypes[structRustType] = true
+							}
 							out.WriteString("type ")
 							out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
 							out.WriteString(" = ")
-							out.WriteString(goTypeToRustBase(typeSpec.Type))
+							out.WriteString(structRustType)
 							out.WriteString(";")
 							continue
 						}
