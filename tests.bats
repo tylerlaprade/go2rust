@@ -899,6 +899,10 @@ run_xfail_test() {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
 
+@test "cross_file_error_equality" {
+    run_test "tests/cross_file_error_equality"
+}
+
 @test "cross_file_func_vars" {
     run_test "tests/cross_file_func_vars"
 }
@@ -941,6 +945,10 @@ run_xfail_test() {
 
 @test "cross_file_named_uint_const_peers" {
     run_test "tests/cross_file_named_uint_const_peers"
+}
+
+@test "cross_file_nil_receiver_helper_qualification" {
+    run_test "tests/cross_file_nil_receiver_helper_qualification"
 }
 
 @test "cross_file_types" {
@@ -1055,6 +1063,14 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_array_pointer_equality" {
+    run_test "tests/error_array_pointer_equality"
+}
+
+@test "error_array_pointer_equality_goroutines" {
+    run_test "tests/error_array_pointer_equality_goroutines"
+}
+
 @test "error_copy_and_identity" {
     run_test "tests/error_copy_and_identity"
 }
@@ -1069,6 +1085,14 @@ run_xfail_test() {
 
 @test "error_custom_type_in_interface_goroutines" {
     run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
+@test "error_equality_concrete" {
+    run_test "tests/error_equality_concrete"
+}
+
+@test "error_equality_concrete_goroutines" {
+    run_test "tests/error_equality_concrete_goroutines"
 }
 
 @test "error_field_return" {
@@ -1719,6 +1743,10 @@ run_xfail_test() {
     run_test "tests/logical_short_circuit_return"
 }
 
+@test "main_sibling_mutex_reservation" {
+    run_test "tests/main_sibling_mutex_reservation"
+}
+
 @test "make_capacity_wrapped_call" {
     run_test "tests/make_capacity_wrapped_call"
 }
@@ -1857,6 +1885,10 @@ run_xfail_test() {
 
 @test "map_slice_range_value_assignment" {
     run_test "tests/map_slice_range_value_assignment"
+}
+
+@test "map_struct_pointer_key_identity" {
+    run_test "tests/map_struct_pointer_key_identity"
 }
 
 @test "map_value_copy_semantics" {
@@ -2589,6 +2621,10 @@ run_xfail_test() {
 
 @test "printf_width_decimal" {
     run_test "tests/printf_width_decimal"
+}
+
+@test "promoted_nil_receiver_error_goroutines" {
+    run_test "tests/promoted_nil_receiver_error_goroutines"
 }
 
 @test "promoted_pointer_index_field_assign" {
@@ -3649,6 +3685,10 @@ run_xfail_test() {
 
 @test "typeblock_ptr_to_any_struct" {
     run_test "tests/typeblock_ptr_to_any_struct"
+}
+
+@test "typed_nil_error_panic_recovery_goroutines" {
+    run_test "tests/typed_nil_error_panic_recovery_goroutines"
 }
 
 @test "types_config_check_bridge" {

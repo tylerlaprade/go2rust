@@ -1,0 +1,11 @@
+[package]
+name = "cross_file_nil_receiver_helper_qualification"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_nil_receiver_helper_qualification"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

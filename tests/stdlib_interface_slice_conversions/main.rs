@@ -100,7 +100,7 @@ fn go_resume_unrecovered_panic() {
 
 pub fn named_type() -> Arc<Mutex<Option<go_types::named::Named>>> {
     let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
-    return go_types::new_named(obj.clone(), Arc::new(Mutex::new(Some(Box::new(go_types::basic::BasicPtr({ let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[2usize].clone() }.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(None)));
+    return go_types::new_named(obj.clone(), Arc::new(Mutex::new(Some(Box::new(go_types::basic::BasicPtr({ let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(2usize) }.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(None)));
 }
 
 pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i64 {
@@ -108,7 +108,7 @@ pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i64 {
         return 0;
     }
     let mut count = Arc::new(Mutex::new(Some(0i64)));
-    for recv in &vec![Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(go_types::pointer::PointerPtr(go_types::new_pointer(Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))] {
+    for recv in vec![Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(go_types::pointer::PointerPtr(go_types::new_pointer(Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))].as_slice().iter() {
         if { let __nil_result = (*recv.lock().unwrap()).is_some(); __nil_result } {
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

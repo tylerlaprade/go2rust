@@ -1945,6 +1945,12 @@ func classify(t Type) string {
 	if !strings.Contains(rust, "__go_eq_type_(") {
 		t.Fatalf("interface switch concrete case should use the interface equality helper:\n%s", rust)
 	}
+	if strings.Contains(rust, "match (__left_guard.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should not reference an undeclared left guard:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match (__left_value.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should compare the captured left value:\n%s", rust)
+	}
 }
 
 func TestExpressionSwitchOnEmptyInterfaceKeepsHandle(t *testing.T) {
@@ -2237,6 +2243,31 @@ func collect(values []Value) map[string]bool {
 	}
 	if !strings.Contains(rust, "let __map_key = (*name).clone();") {
 		t.Fatalf("string map assignment should clone the range ref key:\n%s", rust)
+	}
+}
+
+func TestStructMapAssignmentCopiesRangeKeyByGoValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type key struct {
+	tag int
+}
+
+func copyKey(src map[key]bool) map[key]int {
+	dst := map[key]int{}
+	for k := range src {
+		dst[k] = k.tag
+		k.tag = 2
+	}
+	return dst
+}
+`)
+
+	if strings.Contains(rust, "let __map_key = k.clone();") {
+		t.Fatalf("struct map assignment should copy a range key by Go value, not share its field cells:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = k.__go_value_clone();") {
+		t.Fatalf("struct map assignment should use the generated Go value-copy helper:\n%s", rust)
 	}
 }
 
@@ -2796,7 +2827,8 @@ func (a nodeQueue) Swap(i, j int) {
 	if strings.Contains(rust, ".take().unwrap_or_default()") {
 		t.Fatalf("parallel pointer slice element swap should keep pointer handles, not move pointees:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = __tmp_0;") || !strings.Contains(rust, "] = __tmp_1;") {
+	if !strings.Contains(rust, ".set(__go_lhs_index_0, __tmp_0);") ||
+		!strings.Contains(rust, ".set(__go_lhs_index_1, __tmp_1);") {
 		t.Fatalf("parallel pointer slice element swap should assign pointer handles back into slice slots:\n%s", rust)
 	}
 }
@@ -2841,8 +2873,8 @@ func assign(left, right []int) {
 		"let __go_lhs_index_1 = (index(",
 		"let __tmp_0 = result(",
 		"let __tmp_1 = result(",
-		"(*__go_lhs_sequence_0",
-		"(*__go_lhs_sequence_1",
+		"__go_lhs_sequence_0.borrow_mut().as_mut().unwrap().set(",
+		"__go_lhs_sequence_1.borrow_mut().as_mut().unwrap().set(",
 	}
 	previous := -1
 	for _, part := range parts {
@@ -6786,7 +6818,7 @@ func pick[S ~[]E, E any](values S, i int, use func(E) bool) bool {
 	if strings.Contains(rust, "Some({ let __seq") {
 		t.Fatalf("type-parameter slice element short declaration should not double-wrap the element handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut v = (*values") {
+	if !strings.Contains(rust, "let mut v = values.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("type-parameter slice element short declaration should bind the existing element handle:\n%s", rust)
 	}
 }
@@ -7400,7 +7432,7 @@ func caller(s string) int {
 	}
 }
 
-func TestConcreteErrorPointerCallReturnBoxesPointee(t *testing.T) {
+func TestConcreteErrorPointerCallReturnPreservesPointerHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type NumError struct{}
@@ -7414,12 +7446,11 @@ func parse() (bool, error) {
 }
 `)
 
-	if strings.Contains(rust, "Rc::new(syntax_error()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should not box the pointer handle:\n%s", rust)
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_NumError(syntax_error().clone())) as Rc<dyn StdError") {
+		t.Fatalf("pointer error call result should box an identity-preserving wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new((*syntax_error()") ||
-		!strings.Contains(rust, ".as_ref().unwrap()).clone()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should box the pointee clone:\n%s", rust)
+	if strings.Contains(rust, "Rc::new((*syntax_error()") {
+		t.Fatalf("pointer error call result must not clone the pointee:\n%s", rust)
 	}
 }
 
@@ -8159,7 +8190,7 @@ func (x *decimal) bump(n int) {
 	if strings.Contains(rust, ".clone() }.lock().unwrap()") {
 		t.Fatalf("indexed selector inc/dec should not lock a cloned scalar element:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1;") {
+	if !strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1);") {
 		t.Fatalf("indexed selector inc/dec should mutate the underlying sequence element:\n%s", rust)
 	}
 }
@@ -8180,11 +8211,11 @@ func round(z nat, n uint32, lsb Word) {
 	if strings.Contains(rust, "}.borrow_mut()") || strings.Contains(rust, "}.lock().unwrap()") {
 		t.Fatalf("named slice compound assignment should bind the slice handle before borrowing it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __seq_holder = { let __named_slice =") {
+	if !strings.Contains(rust, "let __go_slice_holder = { let __named_slice =") {
 		t.Fatalf("named slice compound assignment should keep a stable slice handle binding:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__seq[__idx].clone() | __rhs") ||
-		!strings.Contains(rust, "__seq[__idx].clone() & ! __rhs") {
+	if !strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current | __rhs)") ||
+		!strings.Contains(rust, "let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current & ! __rhs)") {
 		t.Fatalf("named slice compound assignment should clone non-Copy elements before applying the operator:\n%s", rust)
 	}
 }
@@ -8407,7 +8438,7 @@ func get(i int) Type {
 	}
 	// The caller gets a copy of the element in a handle of its own, so
 	// assigning to its variable leaves the element alone.
-	if !strings.Contains(rust, "return { let __iface_value = (*types.borrow().as_ref().unwrap())") {
+	if !strings.Contains(rust, "return { let __iface_value = types.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("returning a local-interface slice element should return a copy of it:\n%s", rust)
 	}
 }
@@ -8458,7 +8489,7 @@ func parse() (ok bool, err error) {
 		strings.Contains(rust, "*err.lock().unwrap() = __moved_val") {
 		t.Fatalf("named error return should not assign a concrete error option into the error slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(parseError") ||
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_parseError") ||
 		!strings.Contains(rust, "as Rc<dyn StdError") {
 		t.Fatalf("named error return should box the concrete error value:\n%s", rust)
 	}
@@ -9915,7 +9946,7 @@ func underlyingErrorIs(err, target error) bool {
 	}
 }
 
-func TestPointerErrorAssertionDowncastsConcretePayload(t *testing.T) {
+func TestPointerErrorAssertionDowncastsIdentityWrapper(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type parseError struct {
@@ -9937,16 +9968,11 @@ func code() int {
 }
 `)
 
-	if strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<parseError>>>>") ||
-		strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<parseError>>>>") {
-		t.Fatalf("error assertion to *parseError should not downcast to the wrapper handle:\n%s", rust)
+	if !strings.Contains(rust, "downcast_ref::<__go_error_ptr_parseError>()") {
+		t.Fatalf("error assertion to *parseError should downcast the identity-preserving error wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "downcast_ref::<parseError>()") {
-		t.Fatalf("error assertion to *parseError should downcast the concrete error payload:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(typed_val.clone())))") &&
-		!strings.Contains(rust, "Rc::new(RefCell::new(Some(typed_val.clone())))") {
-		t.Fatalf("error assertion to *parseError should rebuild the pointer handle from the payload:\n%s", rust)
+	if !strings.Contains(rust, "typed_val.0.clone()") {
+		t.Fatalf("error assertion to *parseError should return the original pointer handle:\n%s", rust)
 	}
 }
 

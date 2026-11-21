@@ -107,7 +107,9 @@ impl localDecl for localVarDeclPtr {
     }
     fn __go_eq_local_decl(&self, other: &(dyn localDecl + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<localVarDeclPtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = { self.0.lock().unwrap().is_none() };
+            let __go_right_nil = { __other.0.lock().unwrap().is_none() };
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -132,7 +134,7 @@ pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Sen
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::GenDeclPtr>()).is_some() {
         let d = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::GenDeclPtr>()).unwrap().0.clone();
-        { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).specs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut s in __range_values.iter().cloned() {
+        { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).specs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for mut s in __range_values.iter().cloned() {
         {
     let _ts_subject = s.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -245,7 +247,7 @@ fn main() {
         return;
     }
     {
-    let _ts_subject = { let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
+    let _ts_subject = { let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
@@ -264,7 +266,7 @@ fn main() {
         println!("{}", format!("{}", "other".to_string()));;
     }
     }
-    local_decl_stmt({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone());
+    local_decl_stmt({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.clone());
     let (mut pkg, __tmp_1) = {
         let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default())));
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(
@@ -276,7 +278,7 @@ fn main() {
         __result
     }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{}", format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
 }

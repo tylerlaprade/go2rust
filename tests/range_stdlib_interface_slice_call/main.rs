@@ -16,7 +16,7 @@ macro_rules! vec {
 }
 pub fn has_stmt(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>>) -> bool {
     let mut prev: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         { let __iface_handle = stmt.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *prev.lock().unwrap() = __iface_value; };
         if accept_stmt(stmt.clone()) {
         return accept_stmt(prev.clone());
@@ -30,7 +30,7 @@ pub fn accept_stmt(stmt: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + S
 }
 
 pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<String>>> {
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         {
     let _ts_subject = stmt.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -60,7 +60,7 @@ pub fn stmt_kind(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#
 }
 
 pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>>) -> bool {
-    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
+    { let __range_holder = stmts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for stmt in __range_values.iter() {
         let mut expr = ({
         let val = stmt.clone();
         let guard = val.lock().unwrap();

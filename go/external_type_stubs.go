@@ -2360,7 +2360,7 @@ impl exec_Cmd {
 	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
         let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
         if let Some(cmd_env) = %s.as_ref() {
-            env.extend(cmd_env.iter().cloned());
+            env.extend(cmd_env.as_slice().iter().cloned());
         }
         %s
     }
@@ -2384,8 +2384,9 @@ impl exec_Cmd {
         if args.is_empty() {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
         }
-        let mut command = std::process::Command::new(&args[0]);
-        command.args(&args[1..]);
+        let args_view = args.as_slice();
+        let mut command = std::process::Command::new(&args_view[0]);
+        command.args(&args_view[1..]);
 `, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
@@ -2397,7 +2398,8 @@ impl exec_Cmd {
 	}
 	if _, ok := fields["env"]; ok {
 		fmt.Fprintf(out, `        if let Some(env) = %s.as_ref() {
-            for item in env {
+            let env_values = env.as_slice();
+            for item in env_values.iter() {
                 if let Some((key, value)) = item.split_once('=') {
                     command.env(key, value);
                 }

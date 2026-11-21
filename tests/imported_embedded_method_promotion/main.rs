@@ -172,7 +172,7 @@ impl<T: Clone> GoSliceElemPtr<T> {
     pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemRef {
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: guard.as_ref().map(|values| values.get_cloned(self.index)),
         }
     }
 
@@ -181,7 +181,7 @@ impl<T: Clone> GoSliceElemPtr<T> {
         GoSliceElemMutRef {
             slice: self.slice.clone(),
             index: self.index,
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: guard.as_ref().map(|values| values.get_cloned(self.index)),
         }
     }
 }
@@ -267,7 +267,7 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     fn drop(&mut self) {
         if let Some(value) = self.value.clone() {
             if let Some(values) = self.slice.lock().unwrap().as_mut() {
-                values[self.index] = value;
+                values.set(self.index, value);
             }
         }
     }
@@ -441,7 +441,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::Local(value) => value.lock().unwrap().is_none(),
             GoPtr::SliceElem(value) => {
                 let guard = value.slice.lock().unwrap();
-                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
+                guard.as_ref().map(|values| value.index >= values.len()).unwrap_or(true)
             }
             GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
         }
@@ -458,7 +458,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::SliceElem(slot) => {
                 let mut guard = slot.slice.lock().unwrap();
                 let values = guard.as_mut().expect("nil pointer dereference");
-                f(values.get_mut(slot.index).expect("nil pointer dereference"))
+                values.with_mut(slot.index, f)
             }
             GoPtr::ArrayElem(slot) => {
                 let mut result = None;
@@ -676,7 +676,7 @@ pub fn force_concurrent_wrappers() {
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize) })))
 }
 
 pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) {
@@ -687,17 +687,22 @@ fn main() {
     ::example_com_importedembed_base::__go_init_all();
 
     force_concurrent_wrappers();
+
     let mut r = Arc::new(Mutex::new(Some(Reader { decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::Decoder { value: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), name: Arc::new(Mutex::new(Some("reader".to_string()))), ..Default::default() })));
+
     (*r.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(4))));
     println!("{}", format!("{}", (*(*r.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("reader".to_string())))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*r.lock().unwrap().as_ref().unwrap()).snapshot()));
+
     let mut copied = Arc::new(Mutex::new(Some(Reader { decoder: (*r.lock().unwrap().as_ref().unwrap()).clone(), name: Arc::new(Mutex::new(Some("copy".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", (*(*copied.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("copy".to_string())))).lock().unwrap().as_ref().unwrap())));
+
     let mut pr = Arc::new(Mutex::new(Some(pkgReader { pkg_decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::PkgDecoder { base: Arc::new(Mutex::new(Some(10))), ..Default::default() }))), ..Default::default() })));
     let mut fromPkg = (*pr.lock().unwrap().as_ref().unwrap()).new_reader(Arc::new(Mutex::new(Some(5))));
     println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("frompkg".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
     (*pr.lock().unwrap().as_ref().unwrap()).retire_reader(fromPkg.clone());
     println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("retired".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
+
     let mut idx = Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::Index(Arc::new(Mutex::new(Some(1 as i32)))))));
     println!("{}", format!("{}", (*pick_name(
         Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))),

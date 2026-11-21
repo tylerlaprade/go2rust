@@ -1651,10 +1651,10 @@ func (p *printer) swap(i int) {
 }
 `)
 
-	if strings.Contains(rust, "] = __tmp_0;") || strings.Contains(rust, "] = __tmp_1;") {
+	if strings.Contains(rust, ".set(__go_lhs_index_0, __tmp_0);") || strings.Contains(rust, ".set(__go_lhs_index_1, __tmp_1);") {
 		t.Fatalf("parallel named-integer constants should not be stored raw in named slice elements:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = whiteSpace(") {
+	if !strings.Contains(rust, ".set(__go_lhs_index_0, whiteSpace(") {
 		t.Fatalf("parallel named-integer constants should construct named slice element values:\n%s", rust)
 	}
 }
@@ -1671,10 +1671,10 @@ func (p *printer) mark(i int) {
 }
 `)
 
-	if strings.Contains(rust, "] = __tmp_0;") || strings.Contains(rust, "] = __tmp_1;") {
+	if strings.Contains(rust, ".set(__go_lhs_index_0, __tmp_0);") || strings.Contains(rust, ".set(__go_lhs_index_1, __tmp_1);") {
 		t.Fatalf("parallel byte constants should not be stored as untyped integer temps:\n%s", rust)
 	}
-	if !strings.Contains(rust, "] = __tmp_0 as u8;") || !strings.Contains(rust, "] = __tmp_1 as u8;") {
+	if !strings.Contains(rust, ".set(__go_lhs_index_0, __tmp_0 as u8);") || !strings.Contains(rust, ".set(__go_lhs_index_1, __tmp_1 as u8);") {
 		t.Fatalf("parallel byte constants should cast temps to byte element type:\n%s", rust)
 	}
 }

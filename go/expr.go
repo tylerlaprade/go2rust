@@ -3044,7 +3044,11 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	writeExpressionAsUsize(out, index)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
+	if goSliceModeEnabled() {
+		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq.get_cloned(__seq_index) }")
+	} else {
+		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
+	}
 	return true
 }
 
@@ -5490,10 +5494,10 @@ func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	leftType := typeInfo.GetType(expr.X)
 	rightType := typeInfo.GetType(expr.Y)
 	if isGoErrorType(leftType) && isConcreteGoErrorValue(rightType) {
-		return writeGoErrorConcreteEquality(out, expr.X, expr.Y, rightType, expr.Op)
+		return writeGoErrorConcreteEquality(out, expr.X, expr.Y, rightType, expr.Op, true)
 	}
 	if isConcreteGoErrorValue(leftType) && isGoErrorType(rightType) {
-		return writeGoErrorConcreteEquality(out, expr.Y, expr.X, leftType, expr.Op)
+		return writeGoErrorConcreteEquality(out, expr.Y, expr.X, leftType, expr.Op, false)
 	}
 	if !isGoErrorType(leftType) || !isGoErrorType(rightType) {
 		return false
@@ -5508,19 +5512,13 @@ func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.E
 	TranspileExpressionContext(out, left, LValue)
 	out.WriteString(".clone(); let __right = ")
 	TranspileExpressionContext(out, right, LValue)
-	out.WriteString(".clone(); let __same_handle = ")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::ptr_eq(&__left, &__right)")
-	} else {
-		out.WriteString("Rc::ptr_eq(&__left, &__right)")
-	}
-	out.WriteString("; let __eq = if __same_handle { true } else { let __left_guard = __left")
+	out.WriteString(".clone(); let __left_value = { (*__left")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_guard = __right")
+	out.WriteString(").clone() }; let __right_value = { (*__right")
 	WriteBorrowMethod(out, false)
-	// Two errors are equal when they are the same error: both nil, or both
-	// pointers to one allocation.
-	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; ")
+	out.WriteString(").clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => ")
+	writeGoErrorPayloadEquality(out, "__l", "__r")
+	out.WriteString(", (None, None) => true, _ => false }; ")
 	if op == token.EQL {
 		out.WriteString("__eq")
 	} else {
@@ -5529,9 +5527,130 @@ func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.E
 	out.WriteString(" }")
 }
 
-func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token) bool {
+// writeGoErrorPayloadEquality compares two non-nil error payloads with Go's
+// interface equality rules. Pointer errors keep and compare their original
+// pointer handles. Comparable value errors compare their dynamic values after
+// confirming the same concrete type.
+func writeGoErrorPayloadEquality(out *strings.Builder, left, right string) {
+	wroteTypedBranch := false
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+		errorObj := types.Universe.Lookup("error")
+		if errorObj != nil {
+			errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
+			for _, name := range typeInfo.pkg.Scope().Names() {
+				typeName, ok := typeInfo.pkg.Scope().Lookup(name).(*types.TypeName)
+				if !ok || typeName.IsAlias() {
+					continue
+				}
+				if sourceMappedDeclIsPruned(typeName) {
+					continue
+				}
+				named, ok := typeName.Type().(*types.Named)
+				if !ok || named.TypeParams().Len() != 0 {
+					continue
+				}
+				if types.Implements(named, errorIface) && types.Comparable(named) {
+					rustType := goTypesNamedTypeToRust(named)
+					if wroteTypedBranch {
+						out.WriteString(" else if let (Some(__go_left), Some(__go_right)) = (")
+					} else {
+						out.WriteString("if let (Some(__go_left), Some(__go_right)) = (")
+						wroteTypedBranch = true
+					}
+					out.WriteString(left)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(rustType)
+					out.WriteString(">(), ")
+					out.WriteString(right)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(rustType)
+					out.WriteString(">()) { __go_left == __go_right }")
+				}
+				if types.Implements(types.NewPointer(named), errorIface) {
+					wrapper := pointerGoErrorWrapperNameForUse(named.Obj().Name())
+					if wroteTypedBranch {
+						out.WriteString(" else if let (Some(__go_left), Some(__go_right)) = (")
+					} else {
+						out.WriteString("if let (Some(__go_left), Some(__go_right)) = (")
+						wroteTypedBranch = true
+					}
+					out.WriteString(left)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(wrapper)
+					out.WriteString(">(), ")
+					out.WriteString(right)
+					out.WriteString(".downcast_ref::<")
+					out.WriteString(wrapper)
+					out.WriteString(">()) { ")
+					out.WriteString("let __go_left_nil = { __go_left.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".is_none() }; let __go_right_nil = { __go_right.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { ")
+					if NeedsConcurrentWrapper() {
+						out.WriteString("Arc::ptr_eq(&__go_left.0, &__go_right.0)")
+					} else {
+						out.WriteString("Rc::ptr_eq(&__go_left.0, &__go_right.0)")
+					}
+					out.WriteString(" }")
+					out.WriteString(" }")
+				}
+			}
+		}
+	}
+	if wroteTypedBranch {
+		out.WriteString(" else if std::ptr::addr_eq(&**")
+	} else {
+		out.WriteString("std::ptr::addr_eq(&**")
+	}
+	out.WriteString(left)
+	out.WriteString(", &**")
+	out.WriteString(right)
+	if wroteTypedBranch {
+		out.WriteString(") { true } else { false }")
+	} else {
+		out.WriteString(")")
+	}
+}
+
+func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token, errorFirst bool) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
+	}
+	if ptr, ok := types.Unalias(concreteType).(*types.Pointer); ok {
+		named, namedOK := types.Unalias(ptr.Elem()).(*types.Named)
+		typeInfo := GetTypeInfo()
+		if namedOK && named.Obj() != nil && typeInfo != nil && typeInfo.pkg != nil &&
+			named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+			out.WriteString("{ ")
+			if errorFirst {
+				out.WriteString("let __left = ")
+				TranspileExpressionContext(out, errorExpr, LValue)
+				out.WriteString(".clone(); let __right = ")
+				writeGoErrorHandleValue(out, concreteExpr)
+			} else {
+				out.WriteString("let __right = ")
+				writeGoErrorHandleValue(out, concreteExpr)
+				out.WriteString("; let __left = ")
+				TranspileExpressionContext(out, errorExpr, LValue)
+				out.WriteString(".clone()")
+			}
+			out.WriteString("; let __left_value = { (*__left")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone() }; let __right_value = { (*__right")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => ")
+			writeGoErrorPayloadEquality(out, "__l", "__r")
+			out.WriteString(", (None, None) => true, _ => false }; ")
+			if op == token.NEQ {
+				out.WriteString("!__eq")
+			} else {
+				out.WriteString("__eq")
+			}
+			out.WriteString(" }")
+			return true
+		}
 	}
 	if !isConstantExpression(concreteExpr) {
 		return false
@@ -8915,7 +9034,13 @@ func goErrorAnyBoxCandidates(candidates []localInterfaceAssertionCandidate) []lo
 // An interface value holds a pointer as a handle, like any pointer variable,
 // so a pointer error gets a handle around what the error holds.
 func goErrorAnyBoxValue(candidate localInterfaceAssertionCandidate) string {
-	if _, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+	if ptr, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+		if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok && named.Obj() != nil {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+				return "typed_val.0.clone()"
+			}
+		}
 		var value strings.Builder
 		WriteWrapperPrefix(&value)
 		value.WriteString("typed_val.clone()")
@@ -9521,7 +9646,7 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
@@ -11227,12 +11352,29 @@ func writeMultilineGenericConcurrentSequenceIndexValue(out *strings.Builder, ind
 	writeClonedWrappedExpression(out, indexExpr.X, "__seq_holder", "__seq_guard")
 	out.WriteString(";\n")
 	out.WriteString(indent)
-	out.WriteString("    __seq[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("].clone()\n")
+	if goSliceIndexExpression(indexExpr.X) {
+		out.WriteString("    __seq.get_cloned(")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString(")\n")
+	} else {
+		out.WriteString("    __seq[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("].clone()\n")
+	}
 	out.WriteString(indent)
 	out.WriteString("}")
 	return true
+}
+
+func goSliceIndexExpression(expr ast.Expr) bool {
+	if !goSliceModeEnabled() {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(expr) {
+		return true
+	}
+	kind, ok := localCollectionKind(expr)
+	return ok && kind == "slice"
 }
 
 func genericConcurrentSequenceIndexShouldUseMultiline(indexExpr *ast.IndexExpr) bool {
@@ -12529,10 +12671,16 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 
 func writeClonedValueFromGuard(out *strings.Builder, expr ast.Expr, guardName string) {
 	if unnamedSliceExpression(expr) {
-		if rangeSliceElementIsEmptyInterface(expr) {
+		if goSliceModeEnabled() {
+			// GoSlice<T>::clone copies only the slice header, including when T is
+			// Box<dyn Any> and therefore is not Clone.  Deep-copying []any here
+			// breaks the shared-backing semantics of a reslice before append.
+			out.WriteString(guardName)
+			out.WriteString(".as_ref().cloned().unwrap_or_default()")
+		} else if rangeSliceElementIsEmptyInterface(expr) {
 			NeedAnyClone()
 			out.WriteString(guardName)
-			out.WriteString(".as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
+			out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
 		} else {
 			out.WriteString(guardName)
 			out.WriteString(".as_ref().cloned().unwrap_or_default()")
@@ -14593,17 +14741,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Use type information to determine if this is a map access
 		typeInfo := GetTypeInfo()
 		isMap := false
+		isSlice := false
 		hasIndexType := false
 
 		if typeInfo != nil {
 			if typ := typeInfo.GetType(e.X); typ != nil {
 				hasIndexType = true
 				isMap = typeInfo.IsMap(e.X)
+				isSlice = typeInfo.IsSlice(e.X)
 			}
 		}
 		if !hasIndexType {
 			if kind, ok := localCollectionKind(e.X); ok {
 				isMap = kind == "map"
+				isSlice = kind == "slice"
 			} else {
 				// Type info not available - add error comment
 				out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
@@ -14612,7 +14763,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 		}
-
 		if isMap {
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
@@ -14708,31 +14858,53 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
+				isGoSlice := goSliceModeEnabled() && isSlice
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
-					// Don't add borrow/unwrap - just index directly
+					// Don't add borrow/unwrap. GoSlice reads clone while its backing
+					// guard is alive; arrays can still index directly.
 					TranspileExpressionContext(out, e.X, LValue)
-					out.WriteString("[")
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("]")
-					out.WriteString(".clone()")
+					if isGoSlice {
+						out.WriteString(".get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(")")
+					} else {
+						out.WriteString("[")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("]")
+						out.WriteString(".clone()")
+					}
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __seq = ")
 					writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-					out.WriteString("; __seq[")
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("].clone() }")
+					if isGoSlice {
+						out.WriteString("; __seq.get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(") }")
+					} else {
+						out.WriteString("; __seq[")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("].clone() }")
+					}
 				} else {
-					out.WriteString("(*")
+					if !isGoSlice {
+						out.WriteString("(*")
+					}
 					// Use LValue context so identifiers don't unwrap themselves
 					TranspileExpressionContext(out, e.X, LValue)
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())[")
-					// Index handling - identifiers will unwrap themselves in RValue context
-					writeExpressionAsUsize(out, e.Index)
-					out.WriteString("]")
-					// Array/slice elements are wrapped, so we need to clone
-					out.WriteString(".clone()")
+					if isGoSlice {
+						out.WriteString(".as_ref().unwrap().get_cloned(")
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString(")")
+					} else {
+						out.WriteString(".as_ref().unwrap())[")
+						// Index handling - identifiers will unwrap themselves in RValue context
+						writeExpressionAsUsize(out, e.Index)
+						out.WriteString("]")
+						// Array/slice elements are wrapped, so we need to clone
+						out.WriteString(".clone()")
+					}
 				}
 			}
 		}
@@ -17587,7 +17759,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+				out.WriteString(".as_ref().unwrap())")
+				writeRuneSliceIteratorToString(out)
 				WriteWrapperSuffix(out)
 				return
 			case "u8":
@@ -18811,6 +18984,9 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {
+	if goSliceModeEnabled() {
+		out.WriteString(".as_slice()")
+	}
 	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
 }
 
@@ -19814,9 +19990,15 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	writeUnsafePointerIndexedSequenceHolder(out, indexExpr.X)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; &__seq_guard.as_ref().unwrap()[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] as *const _ as usize }")
+	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
+		out.WriteString("; let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); &__slice_guard[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("] as *const _ as usize }")
+	} else {
+		out.WriteString("; &__seq_guard.as_ref().unwrap()[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("] as *const _ as usize }")
+	}
 	return true
 }
 
@@ -20267,7 +20449,8 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
 	out.WriteString("        ")
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
@@ -20435,7 +20618,28 @@ func writeGoErrorPointerAssertionSuccess(out *strings.Builder) {
 	WriteWrapperSuffix(out)
 }
 
+func goErrorPointerAssertionWrapperType(e *ast.TypeAssertExpr) (string, bool) {
+	if e == nil || e.Type == nil {
+		return "", false
+	}
+	star, ok := e.Type.(*ast.StarExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(star.X)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg || !currentPackagePointerImplementsGoError(named.Obj().Name()) {
+		return "", false
+	}
+	return pointerGoErrorWrapperNameForUse(named.Obj().Name()), true
+}
+
 func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	wrapperType, usesWrapper := goErrorPointerAssertionWrapperType(e)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -20445,10 +20649,18 @@ func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAsse
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
-	out.WriteString(pointeeRustType)
+	if usesWrapper {
+		out.WriteString(wrapperType)
+	} else {
+		out.WriteString(pointeeRustType)
+	}
 	out.WriteString(">() {\n")
 	out.WriteString("                ")
-	writeGoErrorPointerAssertionSuccess(out)
+	if usesWrapper {
+		out.WriteString("typed_val.0.clone()")
+	} else {
+		writeGoErrorPointerAssertionSuccess(out)
+	}
 	out.WriteString("\n")
 	out.WriteString("            } else {\n")
 	out.WriteString("                panic!(\"type assertion failed\")\n")
@@ -20460,6 +20672,7 @@ func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAsse
 }
 
 func writeGoErrorPointerTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	wrapperType, usesWrapper := goErrorPointerAssertionWrapperType(e)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -20469,10 +20682,18 @@ func writeGoErrorPointerTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAs
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
-	out.WriteString(pointeeRustType)
+	if usesWrapper {
+		out.WriteString(wrapperType)
+	} else {
+		out.WriteString(pointeeRustType)
+	}
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
-	writeGoErrorPointerAssertionSuccess(out)
+	if usesWrapper {
+		out.WriteString("typed_val.0.clone()")
+	} else {
+		writeGoErrorPointerAssertionSuccess(out)
+	}
 	out.WriteString(", true)\n")
 	out.WriteString("            } else {\n")
 	out.WriteString("                (")
@@ -20608,7 +20829,8 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
 	out.WriteString("        ")
 	withTypeAssertionFailure(e, "any_val", func() {
 		writePointerHandleAssertionExpectValue(out, "any_val", handleType)
@@ -20637,7 +20859,8 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        match __slice_guard[__idx].downcast_ref::<")
 	out.WriteString(handleType)
 	out.WriteString(">() {\n")
 	out.WriteString("            Some(typed_val) => (typed_val.clone(), true),\n")
@@ -24603,7 +24826,7 @@ func writeTypeParamSliceHandleFromConcreteHolder(out *strings.Builder, holderNam
 	out.WriteString(GetInnerWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(guardName)
-	out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
+	out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__elem")
 	WriteWrapperSuffix(out)
@@ -24680,7 +24903,7 @@ func writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out *strings.Builder,
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __converted_guard_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+		out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()) }; *__slice_holder_")
 		out.WriteString(index)
@@ -24733,7 +24956,7 @@ func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *as
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }")
 	return true

@@ -22,11 +22,11 @@ func main() {
 }
 `)
 
-	want := `{ let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
+	want := `{ let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
 	if got := strings.Count(rust, want); got != 2 {
 		t.Fatalf("want the nil-safe print of err twice, got %d in:\n%s", got, rust)
 	}
-	if !strings.Contains(rust, `{ let __text = match find().borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`) {
+	if !strings.Contains(rust, `{ let __go_print_handle = find(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`) {
 		t.Fatalf("a call that returns an error must print nil-safely too:\n%s", rust)
 	}
 	if strings.Contains(rust, "err.borrow().as_ref().unwrap()") {
@@ -88,17 +88,20 @@ func main() {
 }
 `)
 
-	want := `{ let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
+	want := `{ let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }`
 	if got := strings.Count(rust, want); got != 2 {
-		t.Fatalf("want two self-contained prints of err, got %d in:\n%s", got, rust)
+		t.Fatalf("want two self-contained prints that release the interface lock before Error(), got %d in:\n%s", got, rust)
 	}
 }
 
 // "var err error = value" boxes a struct or pointer that implements error,
 // as an assignment to an error variable does.
 func TestErrorVariableDeclaredFromAConcreteErrorIsBoxed(t *testing.T) {
-	for name, source := range map[string]string{
-		"pointer receiver": `package main
+	for name, test := range map[string]struct {
+		source string
+		want   string
+	}{
+		"pointer receiver": {source: `package main
 
 type Broken struct{ Why string }
 
@@ -108,8 +111,8 @@ func main() {
 	var err error = &Broken{"y"}
 	_ = err
 }
-`,
-		"value receiver": `package main
+`, want: "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_Broken("},
+		"value receiver": {source: `package main
 
 type Broken struct{ Why string }
 
@@ -119,13 +122,12 @@ func main() {
 	var err error = Broken{"y"}
 	_ = err
 }
-`,
+`, want: "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken {"},
 	} {
 		t.Run(name, func(t *testing.T) {
-			rust := transpileTypedRegression(t, source)
-			want := "let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken {"
-			if !strings.Contains(rust, want) {
-				t.Fatalf("missing %q in:\n%s", want, rust)
+			rust := transpileTypedRegression(t, test.source)
+			if !strings.Contains(rust, test.want) {
+				t.Fatalf("missing %q in:\n%s", test.want, rust)
 			}
 			if !strings.Contains(rust, ") as Rc<dyn StdError>)));") {
 				t.Fatalf("the value must be boxed as an error:\n%s", rust)

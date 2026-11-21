@@ -77,6 +77,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut w: Arc<Mutex<Option<Walker>>> = Arc::new(Mutex::new(Some(Default::default())));
+
     println!("{}", format!("{}", has(Arc::new(Mutex::new(Some(Box::new(go_types::tuple::TuplePtr(go_types::new_tuple(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None))])))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))))));
     println!("{}", format!("{}", (*w.lock().unwrap().as_ref().unwrap()).has(Arc::new(Mutex::new(Some(Box::new(go_types::tuple::TuplePtr(go_types::new_tuple(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None))])))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))))));
 }

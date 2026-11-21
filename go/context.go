@@ -34,6 +34,7 @@ type PackageState struct {
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
 	ErrorImplTypes                map[string]bool
+	PointerErrorImplTypes         map[string]bool
 	StringerImplTypes             map[string]bool
 	InterfaceTypes                map[string]bool
 	TypeDefinitions               map[string]string
@@ -141,6 +142,7 @@ type TranspileContext struct {
 	UsePackageExternalStubs bool
 	UsePackageHelpers       bool
 	CurrentModuleName       string
+	SiblingTypeModuleName   string
 }
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {
@@ -170,6 +172,7 @@ func NewPackageState() *PackageState {
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
 		ErrorImplTypes:                make(map[string]bool),
+		PointerErrorImplTypes:         make(map[string]bool),
 		StringerImplTypes:             make(map[string]bool),
 		InterfaceTypes:                make(map[string]bool),
 		TypeDefinitions:               make(map[string]string),
@@ -862,6 +865,16 @@ func NeedAnyClone() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsAnyClone = true
 		TrackImport("Any")
+	}
+}
+
+// NeedSilentPanicCatch marks that typed-nil formatting needs a catch_unwind
+// whose diagnostics are suppressed only on the calling thread. The generated
+// helper installs one stable hook and uses thread-local nesting state instead
+// of swapping the process-wide hook around every formatting call.
+func NeedSilentPanicCatch() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsSilentPanicCatch = true
 	}
 }
 

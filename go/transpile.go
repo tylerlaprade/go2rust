@@ -220,10 +220,39 @@ func analyzeTranspileFiles(files []*ast.File, mapKeyTypeInfo *TypeInfo) *transpi
 	for _, file := range files {
 		analysis.inspect(file, typeInfo, mapKeyTypeInfo)
 	}
+	analysis.recordComparableGoErrorStructs(typeInfo)
 	analysis.recordPointerComparablePointees(typeInfo)
 	analysis.recordImportedOrderedConstraintImpls(typeInfo)
 	analysis.recordImportedInterfaceImplsFromPackageImports(typeInfo)
 	return analysis
+}
+
+func (analysis *transpileFileAnalysis) recordComparableGoErrorStructs(typeInfo *TypeInfo) {
+	if analysis == nil || typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return
+	}
+	errorIface, ok := errorObj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return
+	}
+	errorIface.Complete()
+	for _, name := range typeInfo.pkg.Scope().Names() {
+		typeName, ok := typeInfo.pkg.Scope().Lookup(name).(*types.TypeName)
+		if !ok || typeName.IsAlias() {
+			continue
+		}
+		named, ok := types.Unalias(typeName.Type()).(*types.Named)
+		if !ok || named.TypeParams().Len() != 0 || !types.Comparable(named) {
+			continue
+		}
+		if _, ok := named.Underlying().(*types.Struct); ok && types.Implements(named, errorIface) {
+			markComparableStructWithFields(analysis.comparableStructTypes, named, typeInfo.pkg)
+		}
+	}
 }
 
 func (analysis *transpileFileAnalysis) recordPointerComparablePointees(typeInfo *TypeInfo) {
@@ -1142,6 +1171,44 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 	}
 }
 
+// markComparableGoErrorStructs ensures comparable concrete value errors have
+// Rust equality support. Go compares two interface values by their dynamic
+// comparable values, so two separately boxed equal structs must compare equal.
+func markComparableGoErrorStructs(typeDecls []struct {
+	spec *ast.TypeSpec
+	decl *ast.GenDecl
+}) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return
+	}
+	errorIface, ok := errorObj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return
+	}
+	errorIface.Complete()
+	for _, decl := range typeDecls {
+		if _, isStruct := decl.spec.Type.(*ast.StructType); !isStruct {
+			continue
+		}
+		obj, ok := typeInfo.info.Defs[decl.spec.Name].(*types.TypeName)
+		if !ok || obj == nil || obj.Type() == nil {
+			continue
+		}
+		named, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok || named.TypeParams().Len() != 0 || !types.Comparable(named) {
+			continue
+		}
+		if types.Implements(named, errorIface) {
+			markComparableStructWithFields(comparableStructTypes, named, typeInfo.pkg)
+		}
+	}
+}
+
 func typeSpecCompletenessScore(spec *ast.TypeSpec) int {
 	if spec == nil {
 		return 0
@@ -1585,6 +1652,10 @@ func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm ty
 		return rustType
 	}
 	if isGoErrorType(sourceType) {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg && currentPackagePointerImplementsGoError(named.Obj().Name()) {
+			return pointerGoErrorWrapperNameForUse(named.Obj().Name())
+		}
 		return rustType
 	}
 	typeInfo := GetTypeInfo()
@@ -1819,6 +1890,53 @@ func currentPackagePointerImplementsInterface(typeName string, iface *types.Inte
 	}
 	iface.Complete()
 	return types.Implements(types.NewPointer(named), iface)
+}
+
+func currentPackagePointerImplementsGoError(typeName string) bool {
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && ctx.Package.PointerErrorImplTypes[typeName] {
+		return true
+	}
+	named, ok := currentPackageNamedType(typeName)
+	if !ok {
+		return false
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return false
+	}
+	errorIface, ok := errorObj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorIface.Complete()
+	return types.Implements(types.NewPointer(named), errorIface)
+}
+
+func collectPackagePointerErrorImplTypes(typeInfo *TypeInfo) map[string]bool {
+	result := make(map[string]bool)
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return result
+	}
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return result
+	}
+	errorIface, ok := errorObj.Type().Underlying().(*types.Interface)
+	if !ok {
+		return result
+	}
+	errorIface.Complete()
+	for _, name := range typeInfo.pkg.Scope().Names() {
+		typeName, ok := typeInfo.pkg.Scope().Lookup(name).(*types.TypeName)
+		if !ok || typeName.IsAlias() {
+			continue
+		}
+		named, ok := types.Unalias(typeName.Type()).(*types.Named)
+		if ok && named.TypeParams().Len() == 0 && types.Implements(types.NewPointer(named), errorIface) {
+			result[name] = true
+		}
+	}
+	return result
 }
 
 func typeAliasSkipsLocalImpl(typeName string) bool {
@@ -3338,6 +3456,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	session := NewTranspileSession(typeInfo, packageMapping)
 	packageState := NewPackageState()
+	packageState.PointerErrorImplTypes = collectPackagePointerErrorImplTypes(typeInfo)
 	if parentCtx != nil {
 		if parentCtx.Session != nil {
 			session = parentCtx.Session
@@ -3375,6 +3494,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		ctx.UsePackageExternalStubs = parentCtx.UsePackageExternalStubs
 		ctx.UsePackageHelpers = parentCtx.UsePackageHelpers
 		ctx.CurrentModuleName = parentCtx.CurrentModuleName
+		ctx.SiblingTypeModuleName = parentCtx.SiblingTypeModuleName
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
@@ -3557,7 +3677,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	reserveFileRustTypeNames(imports, types)
 	registerPackageGlobalNames(globalVars)
-	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, methods)
+	helperMethods := methods
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) > 0 {
+		helperMethods = currentContext.Package.MethodsByType
+	}
+	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, helperMethods)
 	restoreNilPointerReceiverMethodHelpers := setCurrentNilPointerReceiverMethodHelpers(nilPointerReceiverMethodHelpers)
 	defer restoreNilPointerReceiverMethodHelpers()
 	localFunctionInterfaces := fileAnalysis.functionLocalInterfaces
@@ -3632,6 +3756,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 	markComparableInterfaceImplementorStructs(types, methods, interfaces)
+	markComparableGoErrorStructs(types)
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
@@ -3717,6 +3842,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	for _, t := range types {
 		typeName := t.spec.Name.Name
 		if typesWithImpls[typeName] {
+			continue
+		}
+		if currentPackagePointerImplementsGoError(typeName) {
+			typeNames = append(typeNames, typeName)
+			typesWithImpls[typeName] = true
 			continue
 		}
 		if _, iface := localInterfaceNamedTypeByName(typeName); iface != nil {
@@ -3851,6 +3981,15 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			body.WriteString(rustTypeName)
 			body.WriteString(" {}\n")
 			// Note: Display impl is already generated by generateStructDisplay
+
+		}
+
+		// The wrapper is a support type for the declaration, not for the file
+		// that happens to contain Error. Keep it in the declaration module so
+		// every reference resolves consistently in multi-file packages.
+		if declaredTypeNames[typeName] && currentPackagePointerImplementsGoError(typeName) {
+			body.WriteString("\n")
+			writePointerGoErrorWrapper(&body, typeName)
 		}
 
 		if declaredTypeNames[typeName] {
@@ -3866,6 +4005,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			// Sort interface names for deterministic output.
 			ifaceNames := packageLocalInterfaceNames(interfaces)
 			slices.Sort(ifaceNames)
+			// Error wrappers and local-interface wrappers have distinct reserved
+			// names and representations; neither suppresses the other.
 			pointerWrapperEmitted := false
 
 			for _, ifaceName := range ifaceNames {
@@ -4158,11 +4299,18 @@ func reserveSiblingRustTypeNames(imports *ImportTracker) {
 		return
 	}
 	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	currentModuleName := ctx.SiblingTypeModuleName
+	if currentModuleName == "" {
+		currentModuleName = ctx.CurrentModuleName
+	}
+	if currentModuleName == "" {
 		return
 	}
 	for typeName, moduleName := range ctx.Package.TypeModuleNames {
-		if moduleName == "" || moduleName == ctx.CurrentModuleName {
+		if moduleName == "" || moduleName == currentModuleName {
 			continue
 		}
 		imports.ReserveName(RustTypeNameForUse(typeName))

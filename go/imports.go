@@ -152,6 +152,7 @@ type HelperTracker struct {
 	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
+	needsSilentPanicCatch                bool
 	needsPanicRecover                    bool
 	needsGoValueClone                    bool
 	needsGoTypeParamFieldClone           bool
@@ -306,7 +307,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	var result strings.Builder
 
 	if ht.goSlice() {
-		generateGoSliceHelper(&result)
+		generateGoSliceHelper(&result, ht.needsAnyClone)
 	}
 
 	// In a program of several packages, each helper also carries the cases
@@ -371,6 +372,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsAnyClone {
 		generateAnyClone(&result, anyCloneTypes)
+	}
+
+	if ht.needsSilentPanicCatch {
+		generateSilentPanicCatch(&result)
 	}
 
 	if ht.needsPanicRecover {
@@ -540,6 +545,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
+		ht.needsSilentPanicCatch ||
 		ht.needsPanicRecover ||
 		ht.needsGoValueClone ||
 		ht.needsGoTypeParamFieldClone ||
@@ -685,6 +691,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsAnyClone {
 		add("go_any_clone")
 	}
+	if ht.needsSilentPanicCatch {
+		add("go_silent_catch_unwind")
+	}
 	if ht.needsPanicRecover {
 		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
 	}
@@ -734,7 +743,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add(goTypeNameHelperRustName)
 	}
 	if ht.needsGoErrorChain {
-		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
+		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain_visit", "go_errors_unwrap", "go_errors_is")
 	}
 	if ht.needsGoSprintf {
 		add("go_sprintf")
@@ -1262,6 +1271,48 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
 	out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+`)
+}
+
+func generateSilentPanicCatch(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(`std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+`)
+	out.WriteString(visibility)
+	out.WriteString(`fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
 }
 `)
 }
@@ -2293,11 +2344,15 @@ func generateAnySliceFormatter(out *strings.Builder, nestedElements bool) {
 		nestedArg = ", format_any_nested"
 		topLevelArg = ", format_any"
 	}
+	formatValues := "let formatted: std::vec::Vec<String> = s.iter().map(|v| " + formatValue + "(v.as_ref())).collect();"
+	if goSliceModeEnabled() {
+		formatValues = "let __slice_guard = s.as_slice();\n        let formatted: std::vec::Vec<String> = __slice_guard.iter().map(|v| " + formatValue + "(v.as_ref())).collect();"
+	}
 	out.WriteString(`
 fn format_any_slice_values(slice: ` + sliceType + valuesParams + `) -> String {
     let guard = ` + guard + `;
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.iter().map(|v| ` + formatValue + `(v.as_ref())).collect();
+        ` + formatValues + `
         formatted.join(" ")
     } else {
         String::new()
@@ -3383,7 +3438,7 @@ fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
     if matches.is_empty() {
         Vec::new()
     } else {
-        vec![matches[0].clone()]
+        vec![matches.as_slice()[0].clone()]
     }
 }
 
@@ -3550,7 +3605,7 @@ fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
     if matches.is_empty() {
         Vec::new()
     } else {
-        vec![matches[0].clone()]
+        vec![matches.as_slice()[0].clone()]
     }
 }
 
@@ -5477,7 +5532,7 @@ impl GoReflectType {
 
     fn field(&self, index: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<GoReflectField>>> {
         let index = *index.lock().unwrap().as_ref().unwrap() as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().as_slice()[index].clone())))
     }
 }
 
@@ -5518,7 +5573,7 @@ impl GoReflectValue {
     fn field(&self, index: i64) -> Arc<Mutex<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().as_slice()[index].clone())))
     }
 
     fn set<T>(&self, _value: T) {
@@ -5633,7 +5688,7 @@ impl GoReflectType {
 
     fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().as_slice()[index].clone())))
     }
 }
 
@@ -5674,7 +5729,7 @@ impl GoReflectValue {
     fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().as_slice()[index].clone())))
     }
 
     fn set<T>(&self, _value: T) {

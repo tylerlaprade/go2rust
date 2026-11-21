@@ -252,6 +252,7 @@ func typeName(flag *Flag) string {
 		"fn kind(&self)",
 		"fn elem(&self)",
 		"reflect_Kind(20)",
+		"self.fields.borrow().as_ref().unwrap().as_slice()[index].clone()",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("reflect.TypeOf should emit kind/elem metadata %q:\n%s", want, rust)
@@ -359,7 +360,7 @@ func contains(values []int, target int) bool {
 	for _, want := range []string{
 		"let mut i = { let mut __sort_i: i64 = 0;",
 		"i <",
-		"[(i) as usize]",
+		".get_cloned((i) as usize)",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("sort.Search short-decl lowering missing %q:\n%s", want, rust)
@@ -1518,7 +1519,7 @@ func fill(dst nat, src nat, d int) int {
 	if !strings.Contains(rust, "let _dst_holder = { let __named_slice = (*dst.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
 		t.Fatalf("copy named-slice destination slice should use the inner slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "[_dst_start + _i]") {
+	if !strings.Contains(rust, ".set(_dst_start + _i,") {
 		t.Fatalf("copy named-slice destination slice should write with the slice offset:\n%s", rust)
 	}
 }
@@ -1653,7 +1654,8 @@ func clearValue(x int) int {
 		t.Fatalf("clear(named slice) should write the typed element zero value:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __clear_start = (1) as usize") ||
-		!strings.Contains(rust, "__clear_seq[__clear_i] = 0;") {
+		!strings.Contains(rust, "let mut __clear_window = __clear_seq.as_mut_slice()") ||
+		!strings.Contains(rust, "__clear_window[__clear_i] = 0;") {
 		t.Fatalf("clear(slice expr) should zero the selected byte range:\n%s", rust)
 	}
 }
@@ -1671,7 +1673,7 @@ func Delete[S ~[]E, E any](s S, i int, j int) S {
 		t.Fatalf("clear on generic slice constraint should use the go/types core slice type:\n%s", rust)
 	}
 	if !strings.Contains(rust, "for __clear_i in __clear_start..__clear_end") ||
-		!strings.Contains(rust, "__clear_seq[__clear_i] = Default::default();") {
+		!strings.Contains(rust, "__clear_window[__clear_i] = Default::default();") {
 		t.Fatalf("clear on generic slice constraint should zero the selected range:\n%s", rust)
 	}
 }

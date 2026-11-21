@@ -166,6 +166,199 @@ func main() {
 	}
 }
 
+func TestCrossFileNilReceiverHelperCallUsesDefiningModule(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "b.go"), `package main
+
+type E struct{}
+
+func (*E) Error() string { return "e" }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "a.go"), `package main
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() { _ = call(nil) }
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "a.go"),
+		filepath.Join(tempDir, "b.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
+	if !strings.Contains(aRS, "crate::b::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("cross-file helper call should name its defining module:\n%s", aRS)
+	}
+}
+
+func TestCrossFileNilReceiverHelperUsesPhysicalFileDespiteLineDirective(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+type E struct{}
+
+//line virtual.go:1
+func (e *E) Error() string {
+	if e == nil { return "nil" }
+	return "e"
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "call.go"), `package main
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() { _ = call(nil) }
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "call.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	callRS := mustReadFile(t, filepath.Join(tempDir, "call.rs"))
+	if strings.Contains(callRS, "crate::virtual::__go_nil_recv_e_error") {
+		t.Fatalf("line directives must not redirect helpers to a nonexistent Rust module:\n%s", callRS)
+	}
+	if !strings.Contains(callRS, "crate::methods::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("helper call should use the physical defining file's module:\n%s", callRS)
+	}
+}
+
+func TestExternalModeNilReceiverHelperUsesLoaderFileSet(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), "module example.com/dep\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Value() string { return "dep" }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "b.go"), `package main
+
+type E struct{}
+
+func (e *E) Error() string {
+	if e == nil { return "nil" }
+	return "e"
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "a.go"), `package main
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	_ = dep.Value()
+	_ = call(nil)
+}
+`)
+
+	// Deliberately differ from go/packages' lexical order. The loader AST and
+	// its go/types positions must be resolved by the loader's own FileSet.
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "b.go"),
+		filepath.Join(tempDir, "a.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
+	if !strings.Contains(aRS, "crate::b::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("external-mode helper call should use the loader FileSet and defining module:\n%s", aRS)
+	}
+}
+
+func TestCrossFileNilReceiverHelperCallUsesCrateRoot(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+type E struct{}
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func (*E) Error() string { return "e" }
+
+func main() { _ = call(nil) }
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "types.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typesRS := mustReadFile(t, filepath.Join(tempDir, "types.rs"))
+	if !strings.Contains(typesRS, "crate::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("cross-file root helper call should use crate qualification:\n%s", typesRS)
+	}
+}
+
+func TestMainFileNilReceiverHelperCallUsesBareCrateRootName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "extra.go"), `package main
+
+func extra() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type E struct{}
+
+func (*E) Error() string { return "e" }
+
+func main() {
+	var p *E
+	_ = p.Error()
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "extra.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "__go_nil_recv_e_error(p.clone())") ||
+		strings.Contains(mainRS, "crate::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("crate-root helper call should use its bare name:\n%s", mainRS)
+	}
+}
+
 func TestMultiFileModuleImportsIncludeInferredSiblingTypes(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
@@ -617,6 +810,50 @@ func useNoCopy() noCopy { return noCopy{} }
 	// trait must be derived from the generated structural impl.
 	if !strings.Contains(condRS, "mutex::{") || !strings.Contains(condRS, "Locker") {
 		t.Fatalf("expected sibling import `use crate::mutex::{...Locker...}` in cond.rs:\n%s", condRS)
+	}
+}
+
+func TestMainRsReservesSiblingMutexTypeName(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+type Mutex struct {
+	Value int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+func main() {
+	done := make(chan bool)
+	go func() {
+		var value Mutex
+		fmt.Println(value.Value)
+		done <- true
+	}()
+	<-done
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "types.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use std::sync::{Arc, Mutex as StdMutex};") {
+		t.Fatalf("main.rs should alias wrapper Mutex around the sibling Go type:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "Arc<Mutex<Option<") || strings.Contains(mainRS, "Arc::new(Mutex::new") {
+		t.Fatalf("main.rs should use StdMutex for wrappers while keeping sibling Mutex references:\n%s", mainRS)
 	}
 }
 
@@ -3272,11 +3509,11 @@ func main() {
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	// The elements are structs, so each loop value is Go's copy of its element.
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e.__go_value_clone()).collect::<std::vec::Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
-		t.Fatalf("format_slice should accept arrays and slices through AsRef, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: GoSliceView<T>") {
+		t.Fatalf("format_slice should accept arrays and guarded slices through GoSliceView, got:\n%s", mainRS)
 	}
 }
 
@@ -7121,6 +7358,53 @@ func live(err error) {
 	}
 	if !strings.Contains(rust, "downcast_ref::<LiveError>()") {
 		t.Fatalf("error-to-any lowering should keep reachable source-mapped candidates:\n%s", rust)
+	}
+}
+
+func TestSourceStdlibPruningFiltersErrorEqualityCandidates(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/types": "go_types"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	pkg := parsePackageForReachabilityTest(t, fset, "go/types", "api.go", `package types
+
+type LiveValue struct{}
+func (LiveValue) Error() string { return "live value" }
+type LivePointer struct{}
+func (*LivePointer) Error() string { return "live pointer" }
+
+type DeadValue struct{}
+func (DeadValue) Error() string { return "dead value" }
+type DeadPointer struct{}
+func (*DeadPointer) Error() string { return "dead pointer" }
+
+func compare(left, right error) bool { return left == right }
+`)
+	typeInfo, err := NewTypeInfoWithImporter("go/types", pkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(go/types) error = %v", err)
+	}
+	pkg.Types = typeInfo.pkg
+	pkg.TypesInfo = typeInfo.info
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, pkg, "LiveValue"):   true,
+		definitionByName(t, pkg, "LivePointer"): true,
+		definitionByName(t, pkg, "compare"):     true,
+	})
+
+	rust, _, _ := TranspileWithMapping(pkg.Syntax[0], fset, typeInfo, map[string]string{"go/types": "go_types"})
+	for _, dead := range []string{"downcast_ref::<DeadValue>()", "downcast_ref::<__go_error_ptr_DeadPointer>()"} {
+		if strings.Contains(rust, dead) {
+			t.Fatalf("error equality dispatch should not reference pruned candidate %q:\n%s", dead, rust)
+		}
+	}
+	for _, live := range []string{"downcast_ref::<LiveValue>()", "downcast_ref::<__go_error_ptr_LivePointer>()"} {
+		if !strings.Contains(rust, live) {
+			t.Fatalf("error equality dispatch should retain reachable candidate %q:\n%s", live, rust)
+		}
 	}
 }
 

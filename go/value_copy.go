@@ -365,6 +365,17 @@ func goElementCopyIter(sliceExpr ast.Expr) string {
 	return ".iter().map(|__go_elem| __go_elem" + copyCall + ")"
 }
 
+// goElementCopyIterFromGoSlice returns the copy iterator for a value whose
+// generated type is a GoSlice. GoSlice does not expose references without a
+// guard, so the iterator must be taken from its guarded slice view.
+func goElementCopyIterFromGoSlice(sliceExpr ast.Expr) string {
+	iter := goElementCopyIter(sliceExpr)
+	if goSliceModeEnabled() {
+		return ".as_slice()" + iter
+	}
+	return iter
+}
+
 // rangeVarGoValueCopyCall returns the call that makes Go's copy of the value
 // a range loop variable holds. The temporary of "for _, p = range s" is made
 // by the translator and unknown to the type checker, so the type the loop

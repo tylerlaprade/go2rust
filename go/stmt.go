@@ -996,6 +996,21 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
 	// the 1, and did not compile.
 	out.WriteString("{ ")
+	if writeGoSliceIndexedMutationSequence(out, indexExpr.X, func() {
+		out.WriteString("let __idx = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; ")
+	}) {
+		out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
+		if op == token.INC {
+			out.WriteString("+ ")
+		} else {
+			out.WriteString("- ")
+		}
+		out.WriteString(incDecStepForType(elemType))
+		out.WriteString("); }")
+		return true
+	}
 	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
 		out.WriteString("let __idx = ")
 		writeExpressionAsUsize(out, indexExpr.Index)
@@ -1787,7 +1802,30 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
-	out.WriteString("; (*")
+	out.WriteString("; ")
+	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
+		if holdsSequence {
+			out.WriteString("__seq")
+		} else {
+			TranspileExpressionContext(out, root, LValue)
+		}
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		for i, sliceContainer := range nestedSequenceContainerKinds(indexExpr.X) {
+			if sliceContainer {
+				out.WriteString(".get_cloned(")
+				out.WriteString(outerIndexTempName(i))
+				out.WriteString(")")
+			} else {
+				out.WriteString("[")
+				out.WriteString(outerIndexTempName(i))
+				out.WriteString("].clone()")
+			}
+		}
+		out.WriteString(".set(__idx, __rhs); }")
+		return true
+	}
+	out.WriteString("(*")
 	if holdsSequence {
 		out.WriteString("__seq")
 	} else {
@@ -1802,6 +1840,53 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	}
 	out.WriteString("[__idx] = __rhs; }")
 	return true
+}
+
+// nestedSequenceChainUsesOnlySlices reports whether every container traversed
+// by seq (a[i][j] in a[i][j][k]) is a Go slice rather than an array. A copied
+// inner GoSlice is still the same header/backing pair, so it can safely perform
+// the final mutation without borrowing a Rust reference out of an outer guard.
+func nestedSequenceChainUsesOnlySlices(seq ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	cur := unwrapParens(seq)
+	for {
+		index, ok := cur.(*ast.IndexExpr)
+		if !ok {
+			return typeInfo.IsSlice(cur)
+		}
+		if !typeInfo.IsSlice(index.X) {
+			return false
+		}
+		cur = unwrapParens(index.X)
+	}
+}
+
+// nestedSequenceContainerKinds reports whether each container traversed from
+// the root of seq to its innermost value is a slice. Its order matches the
+// index list returned by nestedSequenceIndexChain.
+func nestedSequenceContainerKinds(seq ast.Expr) []bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	var reversed []*ast.IndexExpr
+	cur := unwrapParens(seq)
+	for {
+		index, ok := cur.(*ast.IndexExpr)
+		if !ok {
+			break
+		}
+		reversed = append(reversed, index)
+		cur = unwrapParens(index.X)
+	}
+	kinds := make([]bool, 0, len(reversed))
+	for i := len(reversed) - 1; i >= 0; i-- {
+		kinds = append(kinds, typeInfo.IsSlice(reversed[i].X))
+	}
+	return kinds
 }
 
 func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
@@ -1993,6 +2078,9 @@ func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.Index
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
 func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
+	if rangeTargetUsesGoSliceGuard(expr) {
+		defer out.WriteString(".as_slice()")
+	}
 	needsStrip := false
 	switch expr.(type) {
 	case *ast.CompositeLit:
@@ -2030,6 +2118,18 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	} else {
 		TranspileExpressionContext(out, expr, RValue)
 	}
+}
+
+func rangeTargetUsesGoSliceGuard(expr ast.Expr) bool {
+	if !goSliceModeEnabled() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Slice)
+	return ok
 }
 
 func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
@@ -4137,13 +4237,13 @@ func writeSwitchInterfaceCaseComparison(out *strings.Builder, switchVal string, 
 
 	out.WriteString("{ let __left_holder = ")
 	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
+	out.WriteString(".clone(); let __left_value = { (*__left_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
+	out.WriteString(").clone() }; let __right_holder = ")
 	out.WriteString(right.String())
 	out.WriteString("; let __right_guard = __right_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
+	out.WriteString("; let __eq = match (__left_value.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
 	if caseKind == switchInterfaceCaseConcretePointer {
 		out.WriteString("{ let __right_trait: ")
 		out.WriteString(rustLocalInterfaceParamBare(ifaceName))
@@ -4202,18 +4302,20 @@ func writeSwitchGoErrorCaseComparison(out *strings.Builder, switchVal string, ca
 
 	out.WriteString("{ let __left_holder = ")
 	out.WriteString(switchVal)
-	out.WriteString(".clone(); let __left_guard = __left_holder")
+	out.WriteString(".clone(); let __left_value = { (*__left_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __right_holder = ")
+	out.WriteString(").clone() }; let __right_holder = ")
 	if !writeGoErrorHandleValue(out, caseExpr) {
 		out.WriteString(`unimplemented!("type info required for error switch case")`)
 		out.WriteString("; ")
 	} else {
 		out.WriteString("; ")
 	}
-	out.WriteString("let __right_guard = __right_holder")
+	out.WriteString("let __right_value = { (*__right_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => std::ptr::addr_eq(&**__left, &**__right), (None, None) => true, _ => false } }")
+	out.WriteString(").clone() }; match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__left), Some(__right)) => ")
+	writeGoErrorPayloadEquality(out, "__left", "__right")
+	out.WriteString(", (None, None) => true, _ => false } }")
 }
 
 func writeSwitchGoErrorConcreteCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, caseType types.Type) bool {
@@ -5728,7 +5830,11 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 func writeMapAssignmentKeyExpression(out *strings.Builder, key ast.Expr, keyType types.Type, rhs ast.Expr) {
 	if ident, ok := key.(*ast.Ident); ok && mapAssignmentKeyNeedsClone(ident, keyType, rhs) {
 		out.WriteString(rustIdentForUseWithCapture(ident))
-		out.WriteString(".clone()")
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeNeedsGoValueClone(typeInfo.GetType(ident)) {
+			out.WriteString(goStructValueCopyCall)
+		} else {
+			out.WriteString(".clone()")
+		}
 		return
 	}
 	writeMapKeyExpressionWithType(out, key, keyType)
@@ -7499,13 +7605,23 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	}
 	out.WriteString("let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; (*")
+	out.WriteString("; ")
+	isGoSlice := goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X)
+	if !isGoSlice {
+		out.WriteString("(*")
+	}
 	if holdsSequence {
 		out.WriteString("__seq")
 	} else {
 		writeSequenceHandle()
 	}
 	WriteBorrowMethod(out, true)
+	if isGoSlice {
+		out.WriteString(".as_mut().unwrap().set(__idx, ")
+		writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
+		out.WriteString("); }")
+		return true
+	}
 	out.WriteString(".as_mut().unwrap())[__idx] = ")
 	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
 	out.WriteString("; }")
@@ -8027,7 +8143,9 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<")
+		out.WriteString(stdVecPath())
+		out.WriteString("<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
@@ -8041,10 +8159,18 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		// Go copies an array before it ranges over it, so the loop does not
 		// see writes made to the array while it runs. Cloning the array
 		// would clone each struct's handles and let those writes through.
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e")
 		out.WriteString(copyCall)
-		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString(").collect::<")
+		out.WriteString(stdVecPath())
+		out.WriteString("<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
+	}
+	if goSliceModeEnabled() {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(rangeExpr) {
+			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); ")
+			return
+		}
 	}
 	// A slice is not copied: each element is read when its turn comes. The
 	// snapshot holds second handles on the elements, so a field written
@@ -8306,21 +8432,30 @@ func concreteGoErrorConversionOperand(expr ast.Expr, typeInfo *TypeInfo) (ast.Ex
 }
 
 func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
-	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		if composite, ok := unary.X.(*ast.CompositeLit); ok {
-			TranspileExpressionContext(out, composite, AddressOf)
-			return
-		}
-	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if typ := typeInfo.GetType(expr); typ != nil && isConcreteGoErrorValue(typ) {
-			if _, ok := types.Unalias(typ).(*types.Pointer); ok {
+			if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+				if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok && named.Obj() != nil &&
+					typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg &&
+					currentPackagePointerImplementsGoError(named.Obj().Name()) {
+					out.WriteString(pointerGoErrorWrapperNameForUse(named.Obj().Name()))
+					out.WriteString("(")
+					writePointerConcreteInterfaceHandle(out, expr)
+					out.WriteString(")")
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, expr, LValue)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
 				return
 			}
+		}
+	}
+	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		if composite, ok := unary.X.(*ast.CompositeLit); ok {
+			TranspileExpressionContext(out, composite, AddressOf)
+			return
 		}
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && isConstantExpression(expr) {
@@ -9177,6 +9312,22 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ ")
+	if writeGoSliceIndexedMutationSequence(out, indexExpr.X, func() {
+		out.WriteString("let __idx = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; let __rhs = ")
+		writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
+		out.WriteString("; ")
+	}) {
+		out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
+		writeCompoundAssignOperator(out, op)
+		if op == token.ADD_ASSIGN && elemType != nil && isStringTypesType(elemType) {
+			out.WriteString(" &__rhs); }")
+		} else {
+			out.WriteString(" __rhs); }")
+		}
+		return true
+	}
 	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
 		out.WriteString("let __idx = ")
 		writeExpressionAsUsize(out, indexExpr.Index)
@@ -9194,6 +9345,66 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	} else {
 		out.WriteString(" __rhs; }")
 	}
+	return true
+}
+
+// writeGoSliceIndexedMutationSequence evaluates the container and its outer
+// indexes in Go order, then binds __seq to a copied GoSlice header for the
+// innermost slice. The copy shares the backing array, so a later set mutates
+// the same elements without allowing a Rust reference to escape a lock guard.
+func writeGoSliceIndexedMutationSequence(out *strings.Builder, seq ast.Expr, idx func()) bool {
+	if !goSliceModeEnabled() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsSlice(seq) {
+		return false
+	}
+	root, outer, nested := nestedSequenceIndexChain(seq)
+	if !nested {
+		root = seq
+		outer = nil
+	}
+	holdsSequence := expressionCallsOrReceives(root) || isNamedSliceExpression(root)
+	if holdsSequence {
+		out.WriteString("let __go_slice_holder = ")
+		if isNamedSliceExpression(root) {
+			writeNamedSliceInnerHandleClone(out, root)
+		} else {
+			TranspileExpressionContext(out, root, LValue)
+			out.WriteString(".clone()")
+		}
+		out.WriteString("; ")
+	}
+	for i, index := range outer {
+		out.WriteString("let ")
+		out.WriteString(outerIndexTempName(i))
+		out.WriteString(" = ")
+		writeExpressionAsUsize(out, index)
+		out.WriteString("; ")
+	}
+	idx()
+	out.WriteString("let __seq = { let __go_slice_guard = ")
+	if holdsSequence {
+		out.WriteString("__go_slice_holder")
+	} else {
+		TranspileExpressionContext(out, root, LValue)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __go_slice_guard.as_ref().unwrap()")
+	for i, sliceContainer := range nestedSequenceContainerKinds(seq) {
+		if sliceContainer {
+			out.WriteString(".get_cloned(")
+			out.WriteString(outerIndexTempName(i))
+			out.WriteString(")")
+		} else {
+			out.WriteString("[")
+			out.WriteString(outerIndexTempName(i))
+			out.WriteString("].clone()")
+		}
+	}
+	out.WriteString(".clone() }")
+	out.WriteString("; ")
 	return true
 }
 
@@ -9692,7 +9903,11 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 	}
 
 	out.WriteString(indent)
-	out.WriteString("(*")
+	useNestedGoSliceSet := target.nestedRoot != nil && nestedSequenceChainUsesOnlySlices(target.indexExpr.X)
+	useGoSliceSet := goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(target.indexExpr.X) && (target.nestedRoot == nil || useNestedGoSliceSet)
+	if !useGoSliceSet {
+		out.WriteString("(*")
+	}
 	if target.holdsSequence {
 		out.WriteString(target.sequenceName)
 	} else if target.nestedRoot != nil {
@@ -9711,6 +9926,22 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 		TranspileExpressionContext(out, target.indexExpr.X, LValue)
 	}
 	WriteBorrowMethod(out, true)
+	if useGoSliceSet {
+		out.WriteString(".as_mut().unwrap()")
+		if useNestedGoSliceSet {
+			for _, name := range target.outerIndexNames {
+				out.WriteString(".get_cloned(")
+				out.WriteString(name)
+				out.WriteString(")")
+			}
+		}
+		out.WriteString(".set(")
+		out.WriteString(target.indexName)
+		out.WriteString(", ")
+		writeIndexedSequenceTempAssignmentValue(out, target.indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
+		out.WriteString(");\n")
+		return
+	}
 	out.WriteString(".as_mut().unwrap())")
 	for _, name := range target.outerIndexNames {
 		out.WriteString("[")
@@ -13179,14 +13410,25 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 									}
 
-									out.WriteString("; (*")
+									out.WriteString("; ")
+									isGoSlice := false
+									if typeInfo := GetTypeInfo(); goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(indexExpr.X) {
+										isGoSlice = true
+									}
+									if !isGoSlice {
+										out.WriteString("(*")
+									}
 									if holdsSequence {
 										out.WriteString("__seq")
 									} else {
 										writeSequenceHandle()
 									}
 									WriteBorrowMethod(out, true)
-									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
+									if isGoSlice {
+										out.WriteString(".as_mut().unwrap().set(__idx, __rhs); }")
+									} else {
+										out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
+									}
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.
@@ -15341,7 +15583,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 							out.WriteString(".iter()")
-						} else if isReferenceRangeTarget(s.X) {
+						} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
 							writeUnwrappedRangeTarget(out, s.X)
 							out.WriteString(".iter()")
 						} else {
@@ -15418,7 +15660,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 						out.WriteString(".iter()")
-					} else if isReferenceRangeTarget(s.X) {
+					} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
 						writeUnwrappedRangeTarget(out, s.X)
 						out.WriteString(".iter()")
 					} else {

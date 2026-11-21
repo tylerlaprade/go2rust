@@ -31,14 +31,14 @@ func main() {
 `)
 
 	for what, want := range map[string]string{
-		"s[len(s)-1] = s[0]":          "{ let __idx = (((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
-		"append(n, n[0])":             "{ let __append_target = n.clone(); let __append_value = (*n.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }",
-		"append(n, n[0], len(n))":     "let __append_values = vec![(*n.borrow().as_ref().unwrap())[(0) as usize].clone(), (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values);",
+		"s[len(s)-1] = s[0]":          "{ let __idx = (((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = s.borrow().as_ref().unwrap().get_cloned((0) as usize); s.borrow_mut().as_mut().unwrap().set(__idx, __rhs); }",
+		"append(n, n[0])":             "{ let __append_target = n.clone(); let __append_value = n.borrow().as_ref().unwrap().get_cloned((0) as usize); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }",
+		"append(n, n[0], len(n))":     "let __append_values = vec![n.borrow().as_ref().unwrap().get_cloned((0) as usize), (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values);",
 		"append(n, n...)":             ".iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values);",
 		`m["a"] += m["a"]`:            "{ let __map_holder = m.clone(); let __key = \"a\".to_string(); let __rhs = { let __map_holder = m.clone();",
 		`m["a"] += m["a"], the write`: "let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); }",
 		`m["a"]++`:                    "{ let __map_holder = m.clone(); let __key = \"a\".to_string(); let mut __map_guard = __map_holder.borrow_mut();",
-		"append to a slice in a map":  ".unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone();",
+		"append to a slice in a map":  ".unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = { let __map_holder = byKey.clone();",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -80,10 +80,10 @@ func main() {
 `)
 	const lastIndex = "(((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize"
 	for what, want := range map[string]string{
-		"s[len(s)-1]++":                         "{ let __idx = " + lastIndex + "; let mut __seq_guard = s.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }",
-		"s[len(s)-1] += s[0]":                   "{ let __idx = " + lastIndex + "; let __rhs = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __seq_guard = s.borrow_mut();",
+		"s[len(s)-1]++":                         "{ let __idx = " + lastIndex + "; let __seq = { let __go_slice_guard = s.borrow(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1); }",
+		"s[len(s)-1] += s[0]":                   "{ let __idx = " + lastIndex + "; let __rhs = s.borrow().as_ref().unwrap().get_cloned((0) as usize); let __seq = { let __go_slice_guard = s.borrow();",
 		"s[len(s)-1], s[0] = s[0], s[len(s)-1]": "let __go_lhs_index_0 = " + lastIndex + ";",
-		"grid[len(grid)-1][0] = grid[0][1]":     "let __idx = (0) as usize; let __rhs = (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone(); (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
+		"grid[len(grid)-1][0] = grid[0][1]":     "let __idx = (0) as usize; let __rhs = grid.borrow().as_ref().unwrap().get_cloned((0) as usize).get_cloned((1) as usize); grid.borrow().as_ref().unwrap().get_cloned(__outer_idx).set(__idx, __rhs); }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -138,10 +138,10 @@ func main() {
 		"an element is indexed before the value":   "{ let __append_idx = (0) as usize; let __append_value = ",
 		"the index of the target is evaluated too": "{ let __idx = ({ let __f_ptr",
 		"a sequence that is a call is held first":  "{ let __seq = { let __f_ptr",
-		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
-		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
-		"a nested sequence that is a call":         "; (*__seq.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; }",
-		"a call among several targets":             "(*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;",
+		"the held sequence is locked last":         "; __seq.borrow_mut().as_mut().unwrap().set(__idx, __rhs); }",
+		"a plain sequence is not held":             "; row.borrow_mut().as_mut().unwrap().set(__idx, __rhs); }",
+		"a nested sequence that is a call":         "; __seq.borrow().as_ref().unwrap().get_cloned(__outer_idx).set(__idx, __rhs); }",
+		"a call among several targets":             "__go_lhs_sequence_0.borrow_mut().as_mut().unwrap().set(__go_lhs_index_0, __tmp_0);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)

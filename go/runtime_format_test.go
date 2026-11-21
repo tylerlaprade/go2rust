@@ -53,7 +53,8 @@ func main() {
 	for _, want := range []string{
 		`print!("{}", go_sprintf_spread(&format!("{}{}", (*format.borrow().as_ref().unwrap()), "\n".to_string()), &args, false))`,
 		"fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {",
-		"go_sprintf(format, guard.as_deref().unwrap_or(&[]), wraps)",
+		"let args_guard = guard.as_ref().map(|args| args.as_slice());",
+		"go_sprintf(format, args_guard.as_deref().unwrap_or(&[]), wraps)",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in:\n%s", want, rust)

@@ -1057,6 +1057,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
+	pkgState.PointerErrorImplTypes = collectPackagePointerErrorImplTypes(pkgTypeInfo)
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	pkgState.GlobalNameOverrides = assignPackageGlobalNameOverrides(pkg.Syntax, pkgState.FunctionNameOverrides)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
@@ -1437,6 +1438,15 @@ func (pl *PackageLoader) GetMainAST() []*ast.File {
 		return nil
 	}
 	return pl.mainPkg.Syntax
+}
+
+// GetMainFileSet returns the FileSet that owns the main package AST and the
+// go/types positions derived from it.
+func (pl *PackageLoader) GetMainFileSet() *token.FileSet {
+	if pl.mainPkg != nil && pl.mainPkg.Fset != nil {
+		return pl.mainPkg.Fset
+	}
+	return pl.fileSet
 }
 
 // GetMainASTByPath returns the main package AST files keyed by normalized file path.

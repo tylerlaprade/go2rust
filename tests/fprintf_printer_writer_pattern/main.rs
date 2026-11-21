@@ -60,7 +60,7 @@ impl printer {
     let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let mut m: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
+        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = b; let __tmp_y = ('\n' as u8) as u8; __tmp_x == __tmp_y } {
         {
             let (__tmp_0, __tmp_1) = (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
@@ -135,7 +135,9 @@ impl io::r#mod::Writer for printerPtr {
     }
     fn __go_eq_writer(&self, other: &(dyn io::r#mod::Writer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<printerPtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = { self.0.lock().unwrap().is_none() };
+            let __go_right_nil = { __other.0.lock().unwrap().is_none() };
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -158,7 +160,7 @@ fn main() {
     let mut p = Arc::new(Mutex::new(Some(printer { output: Arc::new(Mutex::new(Some(Box::new(bytes::buffer::BufferPtr(buf.clone().clone())) as Box<dyn io::r#mod::Writer + Send + Sync>))), ..Default::default() })));
     let (mut n, mut err) = { let __recv = p.clone(); let __recv_ptr: *mut printer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut printer }; let __result = unsafe { &mut *__recv_ptr }.write(Arc::new(Mutex::new(Some(("ab\nc#d\n".to_string()).as_bytes().to_go_slice())))); __result };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
     println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));

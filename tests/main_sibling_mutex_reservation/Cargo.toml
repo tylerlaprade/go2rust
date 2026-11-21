@@ -1,0 +1,11 @@
+[package]
+name = "main_sibling_mutex_reservation"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "main_sibling_mutex_reservation"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

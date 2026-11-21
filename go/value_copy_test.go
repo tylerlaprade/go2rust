@@ -60,9 +60,9 @@ func TestGoCopyOfAStructUsesTheCopyHelper(t *testing.T) {
 		"b := a":                   "let mut b = { let __owned = a.borrow().as_ref().unwrap().__go_value_clone();",
 		"c = a":                    "{ let new_val = a.borrow().as_ref().unwrap().__go_value_clone(); *c.borrow_mut() = Some(new_val); }",
 		"use(a)":                   "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }",
-		"e := points[0]":           "[(0) as usize].clone().__go_value_clone()",
+		"e := points[0]":           ".get_cloned((0) as usize).__go_value_clone()",
 		"range over a slice":       "for p in __range_values.iter() {\n        let p = &p.__go_value_clone();",
-		"range over an array":      "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default();",
+		"range over an array":      "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e.__go_value_clone()).collect::<std::vec::Vec<_>>()).unwrap_or_default();",
 		"arr2 := arr":              "arr.borrow().as_ref().unwrap().each_ref().map(|__go_elem| __go_elem.__go_value_clone())",
 		"a struct inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone())",
 		"an array inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.each_ref().map(|__go_elem| __go_elem.__go_value_clone()))",
@@ -143,7 +143,7 @@ func main() {
 	}
 }
 `)
-	if !strings.Contains(rust, "let __range_values = __range_guard.as_ref().cloned().unwrap_or_default();") {
+	if !strings.Contains(rust, "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default();") {
 		t.Errorf("the slice must not be copied before the loop:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let p = &p.__go_value_clone();") {
@@ -215,17 +215,17 @@ func TestStoringAndReadingAStructCopiesIt(t *testing.T) {
 	rust := transpileTypedRegression(t, structStoreProgram)
 
 	for what, want := range map[string]string{
-		"s[0] = p":               "let __rhs = (*p.borrow().as_ref().unwrap()).__go_value_clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs;",
+		"s[0] = p":               "let __rhs = (*p.borrow().as_ref().unwrap()).__go_value_clone(); s.borrow_mut().as_mut().unwrap().set(__idx, __rhs);",
 		`m["a"] = p`:             "let __map_value = { let __owned = p.borrow().as_ref().unwrap().__go_value_clone();",
 		`got := m["a"]`:          ".map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone())",
 		"var shape Shape = r":    "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>",
 		"c := *q":                "let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));",
 		"d = *q":                 "{ let new_val = { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.borrow_mut() = Some(new_val); }",
-		"e = s[0]":               "{ let new_val = (*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); *e.borrow_mut() = Some(new_val); }",
+		"e = s[0]":               "{ let new_val = s.borrow().as_ref().unwrap().get_cloned((0) as usize).__go_value_clone(); *e.borrow_mut() = Some(new_val); }",
 		"append(dst, s...)":      ".iter().map(|__go_elem| __go_elem.__go_value_clone()).collect();",
-		"copy(copied, s)":        "(*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();",
-		"append(dst, names...)":  ".unwrap_or_default() }.iter().cloned().collect();",
-		"copy(moreNames, names)": "(*moreNames.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();",
+		"copy(copied, s)":        "copied.borrow_mut().as_mut().unwrap().set(_i, { let __src_guard = _src.as_slice(); __src_guard[_i].__go_value_clone() });",
+		"append(dst, names...)":  ".unwrap_or_default() }.as_slice().iter().cloned().collect();",
+		"copy(moreNames, names)": "moreNames.borrow_mut().as_mut().unwrap().set(_i, { let __src_guard = _src.as_slice(); __src_guard[_i].clone() });",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -253,7 +253,10 @@ func TestGoCopyOfElementsWithoutTypeInfoIsLoud(t *testing.T) {
 		t.Errorf("copySourceElementCopy of a string = %q; want .clone()", got)
 	}
 	var loop strings.Builder
-	writeCopyLoop(&loop, "", "", func() { loop.WriteString("_dst[_i]") })
+	writeCopyLoop(&loop, "", "", true, func(writeValue func()) {
+		loop.WriteString("_dst[_i] = ")
+		writeValue()
+	})
 	if !strings.Contains(loop.String(), "_dst[_i] = "+goValueCopyNeedsTypeInfo) {
 		t.Errorf("copy loop without an element copy = %q; want the type-info stop", loop.String())
 	}
@@ -338,7 +341,7 @@ func main() {
 	ch <- s[0]
 }
 `)
-	if want := "ch.send((*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone());"; !strings.Contains(rust, want) {
+	if want := "ch.send(s.borrow().as_ref().unwrap().get_cloned((0) as usize).__go_value_clone());"; !strings.Contains(rust, want) {
 		t.Fatalf("ch <- s[0] should send Go's copy of the element, missing %q:\n%s", want, rust)
 	}
 }
@@ -529,7 +532,7 @@ func main() {
 		"a named slice variable": namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *numbers.borrow_mut() = __moved_tmp_0;",
 		"a named slice field":    namedHeld + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *(*h.borrow().as_ref().unwrap()).nums.borrow_mut() = __moved_tmp_0;",
 		"a package variable":     held + " let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *global.borrow_mut() = __moved_tmp_0;",
-		"an indexed target":      held + " { let __idx = (0) as usize; (*dst.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0.borrow_mut().take().unwrap_or_default(); }",
+		"an indexed target":      held + " { let __idx = (0) as usize; dst.borrow_mut().as_mut().unwrap().set(__idx, __tmp_0.borrow_mut().take().unwrap_or_default()); }",
 		"a plain local slice":    "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; local = __tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {
@@ -694,7 +697,7 @@ func main() {
 		"if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                (typed_val.clone(), true)",
 		"{ let new_val = ({ let val = x.clone();",
 		"any_val.downcast_ref::<" + handle + ">().expect(\"type assertion failed\").clone()",
-		"match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<" + handle + ">() {",
+		"let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n        match __slice_guard[__idx].downcast_ref::<" + handle + ">() {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)

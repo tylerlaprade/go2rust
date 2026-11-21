@@ -470,7 +470,7 @@ func walk(args []ast.Expr) {
 	if strings.Contains(rust, "].clone().borrow()") || strings.Contains(rust, "].clone().lock()") {
 		t.Fatalf("indexed stub-backed interface argument should box the bare indexed value, not dereference it as a handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*args.borrow().as_ref().unwrap())[(1) as usize].clone()) as Box<dyn positioner") {
+	if !strings.Contains(rust, "Box::new(args.borrow().as_ref().unwrap().get_cloned((1) as usize)) as Box<dyn positioner") {
 		t.Fatalf("indexed stub-backed interface argument should box the indexed interface value:\n%s", rust)
 	}
 }
@@ -1098,8 +1098,8 @@ func flatten(split [][][]Expr) []Expr {
 	if strings.Contains(rust, "let __slice_holder = or[(0) as usize].clone().clone()") {
 		t.Fatalf("append expansion from a bare nested slice index should not treat the source as wrapped:\n%s", rust)
 	}
-	if !strings.Contains(rust, "or[(0) as usize].clone().iter().cloned()") {
-		t.Fatalf("append expansion from a bare nested slice index should extend from the bare Vec:\n%s", rust)
+	if !strings.Contains(rust, "or.get_cloned((0) as usize).as_slice().iter().cloned()") {
+		t.Fatalf("append expansion from a bare nested slice index should extend while a backing read guard is alive:\n%s", rust)
 	}
 }
 
@@ -1321,8 +1321,8 @@ func record() operand {
 }
 `)
 
-	boxedPackageIndex := strings.Contains(rust, "Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type") ||
-		strings.Contains(rust, "Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>")
+	boxedPackageIndex := strings.Contains(rust, "Box::new(BasicPtr(Typ.borrow().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type") ||
+		strings.Contains(rust, "Box::new(BasicPtr(Typ.lock().unwrap().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type + Send + Sync>")
 	if !boxedPackageIndex {
 		t.Fatalf("local interface struct field should box the indexed pointer wrapper:\n%s", rust)
 	}
@@ -2063,8 +2063,8 @@ func pick(h *holder, i int) uint64 {
 	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
 		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
-		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
+	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }.get_cloned(") {
+		t.Fatalf("nested index through array-of-slices should copy the inner GoSlice header, then guard its backing read:\n%s", rust)
 	}
 }
 
@@ -2350,8 +2350,8 @@ func use(x Type) {
 		strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
 		t.Fatalf("fixed local-interface argument should not wrap indexed pointer handles directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type>)))") &&
-		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>)))") {
+	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr(Typ.borrow().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr(Typ.lock().unwrap().as_ref().unwrap().get_cloned((0) as usize).clone())) as Box<dyn Type + Send + Sync>)))") {
 		t.Fatalf("fixed local-interface argument should box the indexed pointer wrapper:\n%s", rust)
 	}
 }
@@ -3982,13 +3982,13 @@ func main() {
 	if strings.Contains(rust, "__tmp_1.borrow_mut().take().unwrap_or_default()") {
 		t.Fatalf("tuple assignment into []error should not move the boxed payload out of the error handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "{ let __idx = (0) as usize; (*errs.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; }") {
+	if !strings.Contains(rust, "{ let __idx = (0) as usize; errs.borrow_mut().as_mut().unwrap().set(__idx, __tmp_1); }") {
 		t.Fatalf("tuple assignment into []error should store the returned error handle:\n%s", rust)
 	}
 	if strings.Contains(rust, ".error().borrow()") {
 		t.Fatalf("error slice element Error method should not call a nonexistent boxed-error method:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}\", (*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())") {
+	if !strings.Contains(rust, "format!(\"{}\", errs.borrow().as_ref().unwrap().get_cloned((0) as usize).borrow().as_ref().unwrap())") {
 		t.Fatalf("error slice element Error method should format the element handle:\n%s", rust)
 	}
 }
@@ -5151,6 +5151,25 @@ func (r *regs) addr(i int) uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfGoSliceElementStaysInsideGuard(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+func addr(values []uint64, i int) uintptr {
+	go func() {}()
+	return uintptr(unsafe.Pointer(&values[i]))
+}
+`)
+
+	if !strings.Contains(rust, "let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); &__slice_guard[") {
+		t.Fatalf("unsafe.Pointer(&slice[index]) must take the address while the GoSlice read guard is alive:\n%s", rust)
+	}
+	if strings.Contains(rust, "&__seq_guard.as_ref().unwrap()[") {
+		t.Fatalf("unsafe.Pointer(&slice[index]) cannot index GoSlice directly:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerAddressOfPointerToArrayElementBorrowsPointerArray(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -6221,7 +6240,7 @@ func text(b []byte) string {
 	if !strings.Contains(rust, `let __len = __bytes.len()`) {
 		t.Fatalf("unsafe.String byte-slice path should reuse the borrowed slice length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `String::from_utf8(__bytes[__start..__end].to_vec()).unwrap()`) {
+	if !strings.Contains(rust, `let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[__start..__end].to_vec()).unwrap()`) {
 		t.Fatalf("unsafe.String byte-slice path should build a String from the selected bytes:\n%s", rust)
 	}
 }
@@ -6250,7 +6269,7 @@ func text(b []byte) string {
 	if !strings.Contains(rust, `let __len = __bytes.len()`) {
 		t.Fatalf("unsafe.String slice-data path should reuse the borrowed slice length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `String::from_utf8(__bytes[..__len].to_vec()).unwrap()`) {
+	if !strings.Contains(rust, `let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[..__len].to_vec()).unwrap()`) {
 		t.Fatalf("unsafe.String slice-data path should build a String from the borrowed bytes:\n%s", rust)
 	}
 }
@@ -7974,7 +7993,7 @@ func main() {
 	if strings.Contains(rust, ".as_bytes()[") {
 		t.Fatalf("tracked slice index should not use string indexing path:\n%s", rust)
 	}
-	if !strings.Contains(rust, "values.borrow().as_ref().unwrap())[") {
+	if !strings.Contains(rust, "values.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("tracked slice index should use slice indexing path:\n%s", rust)
 	}
 }
@@ -10111,5 +10130,60 @@ func main() {
 	}
 	if strings.Contains(rust, "Box::new(dir) as") {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}
+
+func TestGoErrorEqualityUsesComparableValuesAndPointerIdentity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type valueError struct { code string }
+func (err valueError) Error() string { return err.code }
+
+type pointerError struct { n int }
+func (err *pointerError) Error() string { return "pointer" }
+
+var sentinel = &pointerError{n: 1}
+
+func compare(left, right error) bool { return left == right }
+func compareSentinel(err error) bool { return err == sentinel }
+`)
+
+	for _, want := range []string{
+		"#[derive(Debug, Clone, PartialEq)]\npub struct valueError",
+		"pub struct __go_error_ptr_pointerError(pub Rc<RefCell<Option<pointerError>>>)",
+		"downcast_ref::<valueError>()",
+		"downcast_ref::<__go_error_ptr_pointerError>()",
+		"Rc::ptr_eq(&__go_left.0, &__go_right.0)",
+		"Rc::new(__go_error_ptr_pointerError(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in Go error equality lowering:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Rc::new((*sentinel") {
+		t.Fatalf("pointer errors must preserve the original handle instead of boxing a pointee copy:\n%s", rust)
+	}
+}
+
+func TestConcurrentGoErrorEqualityUsesPointerIdentity(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type pointerError struct { n int }
+func (err *pointerError) Error() string { return "pointer" }
+
+func compare(left, right error) bool {
+	go func() {}()
+	return left == right
+}
+`)
+
+	for _, want := range []string{
+		"pub struct __go_error_ptr_pointerError(pub Arc<Mutex<Option<pointerError>>>)",
+		"downcast_ref::<__go_error_ptr_pointerError>()",
+		"Arc::ptr_eq(&__go_left.0, &__go_right.0)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in concurrent Go error equality lowering:\n%s", want, rust)
+		}
 	}
 }

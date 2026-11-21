@@ -4,6 +4,7 @@ use crate::{
     GoSliceAppendBoxed,
     GoSliceFromSlice,
     GoSliceHeader,
+    GoSliceView,
     GoTypeParamFieldClone,
     GoValueClone,
     Vec,

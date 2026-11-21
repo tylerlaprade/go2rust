@@ -362,11 +362,11 @@ fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {
     let prefix = if !spec.sharp { "" } else if verb == 'x' { "0x" } else { "0X" };
     let digits: Vec<String> = bytes.iter().map(|b| if verb == 'x' { format!("{:02x}", b) } else { format!("{:02X}", b) }).collect();
     let text = if spec.space {
-        digits.iter().map(|d| format!("{}{}", prefix, d)).collect::<Vec<_>>().join(" ")
+        digits.as_slice().iter().map(|d| format!("{}{}", prefix, d)).collect::<Vec<_>>().join(" ")
     } else if digits.is_empty() {
         String::new()
     } else {
-        format!("{}{}", prefix, digits.concat())
+        format!("{}{}", prefix, digits.as_slice().concat())
     };
     go_format_pad(spec, text, 0, true)
 }
@@ -501,7 +501,8 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
-        let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
+        let bytes_guard = guard.as_ref().map(|bytes| bytes.as_slice());
+        let bytes: &[u8] = bytes_guard.as_deref().unwrap_or(&[]);
         if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
         }
