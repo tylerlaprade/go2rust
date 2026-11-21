@@ -1870,6 +1870,9 @@ func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bo
 }
 
 func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
+	if writeAnySliceElementBoxClone(out, arg) {
+		return true
+	}
 	if writeBareAnyReferenceBoxClone(out, arg) {
 		return true
 	}
@@ -9418,12 +9421,38 @@ func writeAnyHandleAssertionExpectBareValue(out *strings.Builder, receiver strin
 }
 
 func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool {
+	var value strings.Builder
+	if writeAnySliceElementBoxClone(&value, expr) {
+		WriteWrapperPrefix(out)
+		out.WriteString(value.String())
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if !isBareAnyReferenceExpr(expr) {
 		return false
 	}
 	WriteWrapperPrefix(out)
 	writeBareAnyReferenceBoxClone(out, expr)
 	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeAnySliceElementBoxClone clones the dynamic value in items[i], where
+// items is []any. Its element is a bare Box<dyn Any>, not an interface cell,
+// so callers must keep the slice guard alive and clone through go_any_clone.
+func writeAnySliceElementBoxClone(out *strings.Builder, expr ast.Expr) bool {
+	index, ok := anySliceElementAssertionSource(expr)
+	if !ok {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("{ let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize; let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone(); let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }")
 	return true
 }
 
@@ -9534,10 +9563,10 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if !isEmptyInterfaceValueExpr(expr) {
 		return false
 	}
-	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
+	if writeBareAnyReferenceWrappedClone(out, expr) {
 		return true
 	}
-	if writeBareAnyReferenceWrappedClone(out, expr) {
+	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -20259,6 +20288,40 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	return true
 }
 
+// writeAnySliceElementAssertionCommaOk writes "v, ok := items[i].(T)" for
+// an ordinary value stored in []any. The slice element is a bare Box<dyn Any>,
+// not an interface cell, so it must be downcast in place rather than cloned.
+func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">() {\n")
+	out.WriteString("            (")
+	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	out.WriteString(", true)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+	return true
+}
+
 func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
 	index, ok := unwrapParens(expr).(*ast.IndexExpr)
 	if !ok {
@@ -21403,6 +21466,9 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 	if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 		rustType = aliasRustType
+	}
+	if writeAnySliceElementAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsInterface, targetIsError) {
+		return
 	}
 
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
@@ -23392,6 +23458,11 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 
 			// Check if this parameter expects interface{} (Box<dyn Any>)
 			if expectsEmptyInterface {
+				if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+					writeEmptyInterfaceCallArgumentValue(out, arg)
+					continue
+				}
+
 				// Check if the argument already has type interface{} (Box<dyn Any>)
 				argIsInterface := isEmptyInterfaceValueExpr(arg)
 				typeInfo := GetTypeInfo()
