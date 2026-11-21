@@ -4824,11 +4824,22 @@ func writeWrappedValueCopyFromIdent(out *strings.Builder, ident *ast.Ident) bool
 			varName = RustLocalIdent(renamed)
 		}
 	}
-	out.WriteString("{ let __owned = ")
-	out.WriteString(varName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	out.WriteString(goValueCopyCallForType(typ))
+	if isSliceBackedArrayExpr(ident) {
+		var value strings.Builder
+		value.WriteString(varName)
+		WriteBorrowMethod(&value, false)
+		value.WriteString(".as_ref().unwrap()")
+		out.WriteString("{ let __owned = ")
+		if !writeSliceBackedArrayValueCopy(out, value.String(), typ) {
+			out.WriteString(goValueCopyNeedsTypeInfo)
+		}
+	} else {
+		out.WriteString("{ let __owned = ")
+		out.WriteString(varName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		out.WriteString(goValueCopyCallForType(typ))
+	}
 	out.WriteString("; ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__owned")
@@ -8167,7 +8178,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		return
 	}
 	if goSliceModeEnabled() {
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(rangeExpr) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && (typeInfo.IsSlice(rangeExpr) || isSliceBackedArrayExpr(rangeExpr)) {
 			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); ")
 			return
 		}
@@ -9357,7 +9368,7 @@ func writeGoSliceIndexedMutationSequence(out *strings.Builder, seq ast.Expr, idx
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsSlice(seq) {
+	if typeInfo == nil || (!typeInfo.IsSlice(seq) && !isSliceBackedArrayExpr(seq)) {
 		return false
 	}
 	root, outer, nested := nestedSequenceIndexChain(seq)
@@ -13412,7 +13423,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									out.WriteString("; ")
 									isGoSlice := false
-									if typeInfo := GetTypeInfo(); goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(indexExpr.X) {
+									if typeInfo := GetTypeInfo(); goSliceModeEnabled() && typeInfo != nil && (typeInfo.IsSlice(indexExpr.X) || isSliceBackedArrayExpr(indexExpr.X)) {
 										isGoSlice = true
 									}
 									if !isGoSlice {
@@ -13926,6 +13937,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												}
 											} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && channelElementIsHandleOption(unary.X) {
 												writeErrorHandleFromChannelReceive(out, unary.X)
+											} else if i < len(s.Lhs) && writeSliceBackedArrayInitializerCopy(out, s.Lhs[i], rhs) {
+												// A fixed-array value is copied into the GoSlice backing selected for this local.
 											} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
 												if i < len(s.Lhs) {
 													registerCallResultSyntaxInfo(s.Lhs[i], callExpr)
@@ -14027,7 +14040,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													WriteWrapperSuffix(out)
 												} else {
 													// Array/slice/map literals already wrap themselves
-													TranspileExpression(out, rhs)
+													asGoSlice := false
+													if i < len(s.Lhs) {
+														if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+															asGoSlice = sliceBackedArrayCandidateForDecl(lhsIdent)
+														}
+													}
+													withFixedArrayAsGoSlice(asGoSlice, func() { TranspileExpression(out, rhs) })
 												}
 											} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
 												// Plain slice expressions already return wrapped values; named-slice
@@ -14214,6 +14233,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						for i, name := range valueSpec.Names {
 							registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
+							isSliceBackedArray := sliceBackedArrayCandidateForDecl(name)
 							if rustType, ok := functionTypeRustNameFromTypeExpr(valueSpec.Type); ok {
 								if vt := GetVarTable(); vt != nil {
 									vt.Register(name.Name, &VarInfo{
@@ -14300,9 +14320,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isArrayElemPtr && !isGoPtr && !isGoPtrArrayLocal && !isLocalInterface {
 								if _, isFunctionType := functionTypeRustNameFromTypeExpr(valueSpec.Type); !isFunctionType {
 									if vt := GetVarTable(); vt != nil {
+										rustType := GoTypeToRust(valueSpec.Type)
+										if isSliceBackedArray {
+											if typ := GetTypeInfo().GetType(valueSpec.Type); typ != nil {
+												if sliceRustType, ok := sliceBackedArrayWrappedRustType(typ); ok {
+													rustType = sliceRustType
+												}
+											}
+										}
 										vt.Register(name.Name, &VarInfo{
 											WrapLevel: WrapFull,
-											RustType:  GoTypeToRust(valueSpec.Type),
+											RustType:  rustType,
 											Source:    SourceLocal,
 										})
 									}
@@ -14324,6 +14352,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(goPtrArrayFieldRustType(goPtrArrayLocalInfo))
 								} else if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok {
 									out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+								} else if isSliceBackedArray {
+									if typ := GetTypeInfo().GetType(valueSpec.Type); typ != nil {
+										if rustType, ok := sliceBackedArrayWrappedRustType(typ); ok {
+											out.WriteString(rustType)
+										} else {
+											out.WriteString(GoTypeToRust(valueSpec.Type))
+										}
+									} else {
+										out.WriteString(GoTypeToRust(valueSpec.Type))
+									}
 								} else {
 									out.WriteString(GoTypeToRust(valueSpec.Type))
 								}
@@ -14367,8 +14405,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
 										out.WriteString(ident.Name + ".clone()")
 									} else {
-										TranspileExpression(out, valueSpec.Values[i])
+										withFixedArrayAsGoSlice(isSliceBackedArray, func() {
+											TranspileExpression(out, valueSpec.Values[i])
+										})
 									}
+								} else if writeSliceBackedArrayInitializerCopy(out, name, valueSpec.Values[i]) {
+									// A fixed-array value is copied into the GoSlice backing selected for this local.
 								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									registerCallResultSyntaxInfo(name, call)
 									if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok && isBuiltinCallNamed(call, "make") {
@@ -14571,6 +14613,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if isGoPtrArrayLocal {
 									out.WriteString(" = ")
 									writeGoPtrArrayFieldDefaultValue(out, goPtrArrayLocalInfo)
+								} else if isSliceBackedArray && valueSpec.Type != nil && func() bool {
+									typ := GetTypeInfo().GetType(valueSpec.Type)
+									if typ == nil {
+										return false
+									}
+									out.WriteString(" = ")
+									return writeSliceBackedArrayZeroValue(out, typ)
+								}() {
+									// A sliced fixed array stores its zero value in GoSlice backing.
 								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
 									// nil zero value supplied from go/types
 								} else if valueSpec.Type != nil && !isSyncType && writeWrappedZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {

@@ -539,6 +539,22 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_slice_function_result" {
+    run_test "tests/array_slice_function_result"
+}
+
+@test "array_slice_function_result_goroutines" {
+    run_test "tests/array_slice_function_result_goroutines"
+}
+
+@test "array_slice_shares_backing" {
+    run_test "tests/array_slice_shares_backing"
+}
+
+@test "array_slice_shares_backing_goroutines" {
+    run_test "tests/array_slice_shares_backing_goroutines"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
@@ -3737,6 +3753,10 @@ run_xfail_test() {
 
 @test "url_parsing" {
     run_test "tests/url_parsing"
+}
+
+@test "utf8_encode_rune_array" {
+    run_test "tests/utf8_encode_rune_array"
 }
 
 @test "values_basic" {
