@@ -1055,6 +1055,14 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_array_pointer_equality" {
+    run_test "tests/error_array_pointer_equality"
+}
+
+@test "error_array_pointer_equality_goroutines" {
+    run_test "tests/error_array_pointer_equality_goroutines"
+}
+
 @test "error_copy_and_identity" {
     run_test "tests/error_copy_and_identity"
 }
