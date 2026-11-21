@@ -124,6 +124,67 @@ func main() {
 	}
 }
 
+func TestGoSliceCompositeLiteralRangeIteratesThroughGuard(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	for _, item := range []struct{ name string }{{"widget"}, {"gadget"}} {
+		_ = item
+	}
+}
+`)
+
+	if !strings.Contains(rust, `].as_slice().iter()`) {
+		t.Fatalf("slice literal range must iterate through its read guard:\n%s", rust)
+	}
+	if strings.Contains(rust, ` in &vec![`) {
+		t.Fatalf("slice literal range cannot borrow a GoSlice read guard as IntoIterator:\n%s", rust)
+	}
+}
+
+func TestGoSliceMethodResultIndexClonesInsideGuard(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	rust := transpileTypedRegression(t, `package main
+
+type item struct{}
+type list struct{}
+
+func (*list) items() []*item { return nil }
+func pick(values *list, index int) *item {
+	return values.items()[index]
+}
+`)
+
+	if !strings.Contains(rust, `.get_cloned(`) {
+		t.Fatalf("indexing a slice returned by a method must clone inside its read guard:\n%s", rust)
+	}
+
+	concurrent := transpileTypedConcurrentRegression(t, `package main
+
+type item struct{}
+type list struct{}
+
+func (*list) items() []*item { return nil }
+func pick(values *list, index int) *item {
+	go func() {}()
+	return values.items()[index]
+}
+`)
+	if !strings.Contains(concurrent, `__seq.get_cloned(`) {
+		t.Fatalf("concurrent multiline indexing of a method-returned slice must clone inside its read guard:\n%s", concurrent)
+	}
+}
+
+func TestGoSliceStringerFormatterKeepsViewGuardAlive(t *testing.T) {
+	t.Setenv("GO2RUST_GOSLICE", "")
+	got := goSliceHelperText("format_slice_wrapped_stringer_values(s.as_ref())")
+	want := "{ let __view = s.go_slice_view(); format_slice_wrapped_stringer_values(__view.as_ref()) }"
+	if got != want {
+		t.Fatalf("GoSlice stringer formatter = %q, want %q", got, want)
+	}
+}
+
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the
 // names that GoSlice adds to each of them, so that a test can check the
 // helpers a module imports for its own use.

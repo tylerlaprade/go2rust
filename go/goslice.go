@@ -117,6 +117,7 @@ func goSliceHelperText(text string) string {
 		"format_nested_slice_values(s.as_ref())", "format_nested_slice_values(s.go_slice_view().as_ref())",
 		"format_slice_values(inner.as_ref())", "format_slice_values(inner.go_slice_view().as_ref())",
 		"format_slice_wrapped_values(inner.as_ref())", "format_slice_wrapped_values(inner.go_slice_view().as_ref())",
+		"format_slice_wrapped_stringer_values(s.as_ref())", "{ let __view = s.go_slice_view(); format_slice_wrapped_stringer_values(__view.as_ref()) }",
 		"format_slice_values(values.as_ref())", "format_slice_values(values.go_slice_view().as_ref())",
 		"format_slice_wrapped_values(values.as_ref())", "format_slice_wrapped_values(values.go_slice_view().as_ref())",
 		"self.__go_write_bytes(&bytes);", "{ let __bytes = bytes.as_slice(); self.__go_write_bytes(__bytes.as_ref()); }",

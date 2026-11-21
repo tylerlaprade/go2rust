@@ -11352,12 +11352,29 @@ func writeMultilineGenericConcurrentSequenceIndexValue(out *strings.Builder, ind
 	writeClonedWrappedExpression(out, indexExpr.X, "__seq_holder", "__seq_guard")
 	out.WriteString(";\n")
 	out.WriteString(indent)
-	out.WriteString("    __seq[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("].clone()\n")
+	if goSliceIndexExpression(indexExpr.X) {
+		out.WriteString("    __seq.get_cloned(")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString(")\n")
+	} else {
+		out.WriteString("    __seq[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("].clone()\n")
+	}
 	out.WriteString(indent)
 	out.WriteString("}")
 	return true
+}
+
+func goSliceIndexExpression(expr ast.Expr) bool {
+	if !goSliceModeEnabled() {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(expr) {
+		return true
+	}
+	kind, ok := localCollectionKind(expr)
+	return ok && kind == "slice"
 }
 
 func genericConcurrentSequenceIndexShouldUseMultiline(indexExpr *ast.IndexExpr) bool {
@@ -14724,17 +14741,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Use type information to determine if this is a map access
 		typeInfo := GetTypeInfo()
 		isMap := false
+		isSlice := false
 		hasIndexType := false
 
 		if typeInfo != nil {
 			if typ := typeInfo.GetType(e.X); typ != nil {
 				hasIndexType = true
 				isMap = typeInfo.IsMap(e.X)
+				isSlice = typeInfo.IsSlice(e.X)
 			}
 		}
 		if !hasIndexType {
 			if kind, ok := localCollectionKind(e.X); ok {
 				isMap = kind == "map"
+				isSlice = kind == "slice"
 			} else {
 				// Type info not available - add error comment
 				out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
@@ -14743,7 +14763,6 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 		}
-
 		if isMap {
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
@@ -14839,7 +14858,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
-				isGoSlice := goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(e.X)
+				isGoSlice := goSliceModeEnabled() && isSlice
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
 					// Don't add borrow/unwrap. GoSlice reads clone while its backing
@@ -19967,9 +19986,15 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	writeUnsafePointerIndexedSequenceHolder(out, indexExpr.X)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; &__seq_guard.as_ref().unwrap()[")
-	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("] as *const _ as usize }")
+	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
+		out.WriteString("; let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); &__slice_guard[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("] as *const _ as usize }")
+	} else {
+		out.WriteString("; &__seq_guard.as_ref().unwrap()[")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("] as *const _ as usize }")
+	}
 	return true
 }
 

@@ -5151,6 +5151,25 @@ func (r *regs) addr(i int) uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfGoSliceElementStaysInsideGuard(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+func addr(values []uint64, i int) uintptr {
+	go func() {}()
+	return uintptr(unsafe.Pointer(&values[i]))
+}
+`)
+
+	if !strings.Contains(rust, "let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); &__slice_guard[") {
+		t.Fatalf("unsafe.Pointer(&slice[index]) must take the address while the GoSlice read guard is alive:\n%s", rust)
+	}
+	if strings.Contains(rust, "&__seq_guard.as_ref().unwrap()[") {
+		t.Fatalf("unsafe.Pointer(&slice[index]) cannot index GoSlice directly:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerAddressOfPointerToArrayElementBorrowsPointerArray(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -7974,7 +7993,7 @@ func main() {
 	if strings.Contains(rust, ".as_bytes()[") {
 		t.Fatalf("tracked slice index should not use string indexing path:\n%s", rust)
 	}
-	if !strings.Contains(rust, "values.borrow().as_ref().unwrap())[") {
+	if !strings.Contains(rust, "values.borrow().as_ref().unwrap().get_cloned(") {
 		t.Fatalf("tracked slice index should use slice indexing path:\n%s", rust)
 	}
 }

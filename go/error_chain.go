@@ -119,7 +119,7 @@ fn go_errors_join(errs: Vec<Option<ERR>>) -> Option<ERR> {
     if errs.is_empty() {
         return None;
     }
-    let msg = errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+    let msg = errs.as_slice().iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
     Some(PTR::new(GoWrapError { msg, wrapped: errs, many: true }) as ERR)
 }
 
@@ -135,7 +135,7 @@ where
             return true;
         }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
-            stack.extend(w.wrapped.iter().rev().cloned());
+            stack.extend(w.wrapped.as_slice().iter().rev().cloned());
         }
 USER_ARMS
     }
@@ -145,7 +145,7 @@ USER_ARMS
 fn go_errors_unwrap(err: Option<ERR>) -> Option<ERR> {
     let err = err?;
     if let Some(w) = err.downcast_ref::<GoWrapError>() {
-        return if w.many { None } else { w.wrapped.first().cloned() };
+        return if w.many { None } else { w.wrapped.as_slice().first().cloned() };
     }
     let e = err;
     let mut stack: Vec<ERR> = Vec::new();

@@ -308,10 +308,11 @@ func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".clone(); let __sprint_guard = __sprint_values")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let mut __sprint_text = String::new(); let mut __sprint_after_string = true; ")
-	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { ")
+	out.WriteString("if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); ")
+	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { ")
 	out.WriteString("let __sprint_is_string = __sprint_value.is::<String>(); ")
 	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
-	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } ")
+	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } } ")
 	out.WriteString("__sprint_text }")
 }
 

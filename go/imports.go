@@ -5688,7 +5688,7 @@ impl GoReflectType {
 
     fn field(&self, index: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().as_slice()[index].clone())))
     }
 }
 
@@ -5729,7 +5729,7 @@ impl GoReflectValue {
     fn field(&self, index: i64) -> Rc<RefCell<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
-        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap().as_slice()[index].clone())))
     }
 
     fn set<T>(&self, _value: T) {

@@ -2047,12 +2047,8 @@ func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.Index
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
 func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
-	if goSliceModeEnabled() {
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if _, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Slice); ok {
-				defer out.WriteString(".as_slice()")
-			}
-		}
+	if rangeTargetUsesGoSliceGuard(expr) {
+		defer out.WriteString(".as_slice()")
 	}
 	needsStrip := false
 	switch expr.(type) {
@@ -2091,6 +2087,18 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	} else {
 		TranspileExpressionContext(out, expr, RValue)
 	}
+}
+
+func rangeTargetUsesGoSliceGuard(expr ast.Expr) bool {
+	if !goSliceModeEnabled() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Slice)
+	return ok
 }
 
 func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
@@ -15539,7 +15547,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 							out.WriteString(".iter()")
-						} else if isReferenceRangeTarget(s.X) {
+						} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
 							writeUnwrappedRangeTarget(out, s.X)
 							out.WriteString(".iter()")
 						} else {
@@ -15616,7 +15624,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 						out.WriteString(".iter()")
-					} else if isReferenceRangeTarget(s.X) {
+					} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
 						writeUnwrappedRangeTarget(out, s.X)
 						out.WriteString(".iter()")
 					} else {

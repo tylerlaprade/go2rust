@@ -64,6 +64,27 @@ func use(err error) bool {
 	}
 }
 
+func TestErrorChainSliceAccessStaysInsideGuard(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "errors"
+
+func use(err error) error {
+	return errors.Unwrap(errors.Join(err, errors.New("other")))
+}
+`)
+
+	for _, want := range []string{
+		"errs.as_slice().iter()",
+		"w.wrapped.as_slice().iter()",
+		"w.wrapped.as_slice().first()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("error-chain slice access must remain guarded; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestFormatVerbArgIndices(t *testing.T) {
 	got := formatVerbArgIndices(`"%q: %w and %%w %v %w"`, 'w')
 	if len(got) != 2 || got[0] != 1 || got[1] != 3 {

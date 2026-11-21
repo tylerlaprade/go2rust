@@ -252,6 +252,7 @@ func typeName(flag *Flag) string {
 		"fn kind(&self)",
 		"fn elem(&self)",
 		"reflect_Kind(20)",
+		"self.fields.borrow().as_ref().unwrap().as_slice()[index].clone()",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("reflect.TypeOf should emit kind/elem metadata %q:\n%s", want, rust)

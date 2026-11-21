@@ -20,14 +20,85 @@ macro_rules! vec {
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
 pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
+    backing: std::sync::Arc<std::sync::RwLock<std::vec::Vec<T>>>,
     off: usize,
     len: usize,
     cap: usize,
 }
 
-unsafe impl<T: Send> Send for GoSlice<T> {}
-unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
+pub struct GoSliceReadGuard<'a, T> {
+    guard: std::sync::RwLockReadGuard<'a, std::vec::Vec<T>>,
+    off: usize,
+    len: usize,
+}
+
+impl<T> std::ops::Deref for GoSliceReadGuard<'_, T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        &self.guard[self.off..self.off + self.len]
+    }
+}
+
+impl<T> AsRef<[T]> for GoSliceReadGuard<'_, T> {
+    fn as_ref(&self) -> &[T] {
+        self
+    }
+}
+
+pub struct GoSliceWriteGuard<'a, T> {
+    guard: std::sync::RwLockWriteGuard<'a, std::vec::Vec<T>>,
+    off: usize,
+    len: usize,
+}
+
+impl<T> std::ops::Deref for GoSliceWriteGuard<'_, T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        &self.guard[self.off..self.off + self.len]
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSliceWriteGuard<'_, T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        &mut self.guard[self.off..self.off + self.len]
+    }
+}
+
+pub trait GoSliceView<T> {
+    type Guard<'a>: std::ops::Deref<Target = [T]> + AsRef<[T]>
+    where
+        Self: 'a,
+        T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_>;
+}
+
+impl<T> GoSliceView<T> for GoSlice<T> {
+    type Guard<'a> = GoSliceReadGuard<'a, T> where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T> GoSliceView<T> for std::vec::Vec<T> {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T, const N: usize> GoSliceView<T> for [T; N] {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T> GoSliceView<T> for [T] {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self
+    }
+}
 
 /// The prelude's Vec and vec! are Go slices in generated code.
 pub type Vec<T> = GoSlice<T>;
@@ -46,25 +117,63 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
     }
 
-    fn backing_ref(&self) -> &std::vec::Vec<T> {
-        unsafe { &*self.backing.get() }
+    pub fn len(&self) -> usize {
+        self.len
     }
 
-    #[allow(clippy::mut_from_ref)]
-    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
-        unsafe { &mut *self.backing.get() }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
-    pub fn as_slice(&self) -> &[T] {
-        &self.backing_ref()[self.off..self.off + self.len]
+    pub fn get_cloned(&self, __index: usize) -> T
+    where
+        T: Clone,
+    {
+        self.as_slice()[__index].clone()
     }
 
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        let (__off, __len) = (self.off, self.len);
-        &mut self.backing_mut()[__off..__off + __len]
+    pub fn set(&self, __index: usize, __value: T) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard[self.off + __index] = __value;
+    }
+
+    pub fn with_mut<R>(&self, __index: usize, __f: impl FnOnce(&mut T) -> R) -> R {
+        let mut __guard = self.backing.write().unwrap();
+        __f(&mut __guard[self.off + __index])
+    }
+
+    pub fn swap(&self, __left: usize, __right: usize) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard.swap(self.off + __left, self.off + __right);
+    }
+
+    pub fn reverse(&mut self) {
+        self.as_mut_slice().reverse();
+    }
+
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.as_mut_slice().sort();
+    }
+
+    pub fn sort_by<F>(&mut self, __compare: F)
+    where
+        F: FnMut(&T, &T) -> std::cmp::Ordering,
+    {
+        self.as_mut_slice().sort_by(__compare);
+    }
+
+    pub fn as_slice(&self) -> GoSliceReadGuard<'_, T> {
+        GoSliceReadGuard { guard: self.backing.read().unwrap(), off: self.off, len: self.len }
+    }
+
+    pub fn as_mut_slice(&mut self) -> GoSliceWriteGuard<'_, T> {
+        GoSliceWriteGuard { guard: self.backing.write().unwrap(), off: self.off, len: self.len }
     }
 
     /// Go's cap(s).
@@ -77,12 +186,37 @@ impl<T> GoSlice<T> {
         std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
     }
 
+    fn with_pair<R>(&self, __other: &Self, __f: impl FnOnce(&[T], &[T]) -> R) -> R {
+        if self.shares_backing_with(__other) {
+            let __guard = self.backing.read().unwrap();
+            let __left = &__guard[self.off..self.off + self.len];
+            let __right = &__guard[__other.off..__other.off + __other.len];
+            return __f(__left, __right);
+        }
+        let __self_first = std::sync::Arc::as_ptr(&self.backing) < std::sync::Arc::as_ptr(&__other.backing);
+        if __self_first {
+            let __left_guard = self.backing.read().unwrap();
+            let __right_guard = __other.backing.read().unwrap();
+            __f(
+                &__left_guard[self.off..self.off + self.len],
+                &__right_guard[__other.off..__other.off + __other.len],
+            )
+        } else {
+            let __right_guard = __other.backing.read().unwrap();
+            let __left_guard = self.backing.read().unwrap();
+            __f(
+                &__left_guard[self.off..self.off + self.len],
+                &__right_guard[__other.off..__other.off + __other.len],
+            )
+        }
+    }
+
     /// Go's s[lo:hi].
     pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
         if __lo > __hi || __hi > self.cap {
             panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
         }
-        if self.off + __hi > self.backing_ref().len() {
+        if self.off + __hi > self.backing.read().unwrap().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
         GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
@@ -117,7 +251,7 @@ impl<T> GoSlice<T> {
     pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
         let mut __kept = 0;
         {
-            let __window = self.as_mut_slice();
+            let mut __window = self.as_mut_slice();
             for __index in 0..__window.len() {
                 if __keep(&__window[__index]) {
                     __window.swap(__kept, __index);
@@ -132,7 +266,7 @@ impl<T> GoSlice<T> {
     fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
         let (__off, __len) = (self.off, self.len);
         let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut());
+        let mut __elems = std::mem::take(__backing.get_mut().unwrap());
         __elems.truncate(__off + __len);
         __elems.drain(..__off);
         Some(__elems)
@@ -140,7 +274,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -166,7 +300,7 @@ impl<T> GoSlice<T> {
     /// pushing onto it never moves elements other slices are reading.
     fn store_at_end(&mut self, __value: T) {
         let __at = self.off + self.len;
-        let __backing = self.backing_mut();
+        let mut __backing = self.backing.write().unwrap();
         if __at < __backing.len() {
             __backing[__at] = __value;
         } else {
@@ -175,26 +309,13 @@ impl<T> GoSlice<T> {
         self.len += 1;
     }
 
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
 }
 
 impl<T: Clone> GoSlice<T> {
+    pub fn to_vec(&self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
     pub fn push(&mut self, __value: T) {
@@ -322,44 +443,15 @@ impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
     }
 }
 
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
 /// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
+/// is full and shares its backing array, its existing values are copied into
+/// a fresh backing array before the new values are written.
 pub trait GoSliceAppendBoxed<T> {
     fn push(&mut self, __value: T);
     fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
 }
 
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
 
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
 
 /// Reads the header of a slice value, whichever form the value has.
 pub trait GoSliceHeader<T> {
@@ -410,7 +502,7 @@ impl<T> Default for GoSlice<T> {
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __len }
     }
 }
 
@@ -450,43 +542,6 @@ impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
     }
 }
 
-impl<T> std::ops::Deref for GoSlice<T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::ops::DerefMut for GoSlice<T> {
-    fn deref_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> AsRef<[T]> for GoSlice<T> {
-    fn as_ref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> AsMut<[T]> for GoSlice<T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
-    fn borrow(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
-    fn borrow_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
 impl<T> std::iter::FromIterator<T> for GoSlice<T> {
     fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
         Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
@@ -504,25 +559,10 @@ impl<T: Clone> IntoIterator for GoSlice<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a GoSlice<T> {
-    type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
-    type Item = &'a mut T;
-    type IntoIter = std::slice::IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_mut_slice().iter_mut()
-    }
-}
-
 impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
     fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_slice().fmt(__f)
+        let __guard = self.as_slice();
+        __guard.fmt(__f)
     }
 }
 
@@ -540,21 +580,29 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
     }
 }
 
+impl GoSlice<String> {
+    pub fn join(&self, __separator: &str) -> String {
+        self.as_slice().join(__separator)
+    }
+}
+
 impl<T: PartialEq> PartialEq for GoSlice<T> {
     fn eq(&self, __other: &Self) -> bool {
-        self.as_slice() == __other.as_slice()
+        self.with_pair(__other, |__left, __right| __left == __right)
     }
 }
 
 impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
     fn eq(&self, __other: &[T]) -> bool {
-        self.as_slice() == __other
+        let __guard = self.as_slice();
+        &*__guard == __other
     }
 }
 
 impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
     fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
-        self.as_slice() == __other.as_slice()
+        let __guard = self.as_slice();
+        &*__guard == __other.as_slice()
     }
 }
 
@@ -562,19 +610,20 @@ impl<T: Eq> Eq for GoSlice<T> {}
 
 impl<T: PartialOrd> PartialOrd for GoSlice<T> {
     fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_slice().partial_cmp(__other.as_slice())
+        self.with_pair(__other, |__left, __right| __left.partial_cmp(__right))
     }
 }
 
 impl<T: Ord> Ord for GoSlice<T> {
     fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
-        self.as_slice().cmp(__other.as_slice())
+        self.with_pair(__other, |__left, __right| __left.cmp(__right))
     }
 }
 
 impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
     fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
-        self.as_slice().hash(__state)
+        let __guard = self.as_slice();
+        __guard.hash(__state)
     }
 }
 
@@ -631,6 +680,38 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
+}
+
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
 }
 
 #[derive(Clone, Copy)]
@@ -901,7 +982,7 @@ fn go_errors_join(errs: Vec<Option<Arc<dyn StdError + Send + Sync>>>) -> Option<
     if errs.is_empty() {
         return None;
     }
-    let msg = errs.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
+    let msg = errs.as_slice().iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
     Some(Arc::new(GoWrapError { msg, wrapped: errs, many: true }) as Arc<dyn StdError + Send + Sync>)
 }
 
@@ -917,7 +998,7 @@ where
             return true;
         }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
-            stack.extend(w.wrapped.iter().rev().cloned());
+            stack.extend(w.wrapped.as_slice().iter().rev().cloned());
         }
         if let Some(__v) = e.downcast_ref::<QueryError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
         if let Some(__v) = e.downcast_ref::<__go_error_ptr_QueryError>() { if let Some(__c) = (*__go_nil_recv_query_error_unwrap(__v.0.clone()).lock().unwrap()).clone() { stack.push(__c); } }
@@ -929,7 +1010,7 @@ where
 fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<dyn StdError + Send + Sync>> {
     let err = err?;
     if let Some(w) = err.downcast_ref::<GoWrapError>() {
-        return if w.many { None } else { w.wrapped.first().cloned() };
+        return if w.many { None } else { w.wrapped.as_slice().first().cloned() };
     }
     let e = err;
     let mut stack: Vec<Arc<dyn StdError + Send + Sync>> = Vec::new();
@@ -1243,11 +1324,11 @@ fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {
     let prefix = if !spec.sharp { "" } else if verb == 'x' { "0x" } else { "0X" };
     let digits: Vec<String> = bytes.iter().map(|b| if verb == 'x' { format!("{:02x}", b) } else { format!("{:02X}", b) }).collect();
     let text = if spec.space {
-        digits.iter().map(|d| format!("{}{}", prefix, d)).collect::<Vec<_>>().join(" ")
+        digits.as_slice().iter().map(|d| format!("{}{}", prefix, d)).collect::<Vec<_>>().join(" ")
     } else if digits.is_empty() {
         String::new()
     } else {
-        format!("{}{}", prefix, digits.concat())
+        format!("{}{}", prefix, digits.as_slice().concat())
     };
     go_format_pad(spec, text, 0, true)
 }
@@ -1382,7 +1463,8 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
-        let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
+        let bytes_guard = guard.as_ref().map(|bytes| bytes.as_slice());
+        let bytes: &[u8] = bytes_guard.as_deref().unwrap_or(&[]);
         if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
         }
@@ -2115,10 +2197,7 @@ impl std::fmt::Display for __go_error_ptr_NotFound {
             let __guard = self.0.lock().unwrap();
             std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
         } else {
-            let __go_previous_panic_hook = std::panic::take_hook();
-            std::panic::set_hook(Box::new(|_| {}));
-            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_not_found_error(self.0.clone())));
-            std::panic::set_hook(__go_previous_panic_hook);
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_not_found_error(Arc::new(Mutex::new(None))));
             match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
         }
     }
@@ -2176,10 +2255,7 @@ impl std::fmt::Display for __go_error_ptr_QueryError {
             let __guard = self.0.lock().unwrap();
             std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
         } else {
-            let __go_previous_panic_hook = std::panic::take_hook();
-            std::panic::set_hook(Box::new(|_| {}));
-            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| __go_nil_recv_query_error_error(self.0.clone())));
-            std::panic::set_hook(__go_previous_panic_hook);
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_query_error_error(Arc::new(Mutex::new(None))));
             match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
         }
     }
@@ -2228,7 +2304,7 @@ pub fn run() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
 
 pub fn user_unwrap() {
     let mut err = run();
-    println!("{} {} {}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __left = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).clone(); let __right = ErrTimeout.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }));
+    println!("{} {} {}", format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __left = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).clone(); let __right = ErrTimeout.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }));
     let mut wrapped = Arc::new(Mutex::new(Some(go_error_wrap(format!("db: {}", match { let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))));
     let mut qe: Arc<Mutex<Option<QueryError>>> = Arc::new(Mutex::new(None));
     println!("{} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<__go_error_ptr_QueryError>() { __as_found = Some(__as_value.0.clone()); true } else { false } }); match __as_found { Some(__as_value) => { let new_val = __as_value; qe = new_val; true } None => false } }))).lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*qe.lock().unwrap().as_ref().unwrap()).query.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
@@ -2247,12 +2323,12 @@ fn main() {
     let mut other = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("base".to_string())))));
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = base.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = other.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", { let __left = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).clone(); let __right = base.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }), format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = base.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).lock().unwrap()).is_none(); __nil_result }));
-    println!("{}", format!("{}", { let __text = match wrapped.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_handle = wrapped.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     let mut err = load(Arc::new(Mutex::new(Some("k".to_string()))));
-    println!("{} {} {}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
     let mut inner = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })));
-    println!("{} {}", format!("{}", { let __left = inner.clone(); let __right = ErrNotFound.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }), format!("{}", { let __text = match inner.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __left = inner.clone(); let __right = ErrNotFound.clone(); let __left_value = { (*__left.lock().unwrap()).clone() }; let __right_value = { (*__right.lock().unwrap()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.lock().unwrap().is_none() }; let __go_right_nil = { __go_right.0.lock().unwrap().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }), format!("{}", { let __go_print_handle = inner.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     { let __rhs_holder = load(Arc::new(Mutex::new(Some("".to_string())))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
     let mut nf: Arc<Mutex<Option<NotFound>>> = Arc::new(Mutex::new(None));
@@ -2267,13 +2343,13 @@ fn main() {
     }
 
     let mut both = Arc::new(Mutex::new(Some(go_error_wrap(format!("{} and {}", match { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }, match { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))));
-    println!("{} {} {} {}", format!("{}", { let __text = match both.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {} {} {}", format!("{}", { let __go_print_handle = both.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = both.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).lock().unwrap()).is_none(); __nil_result }));
     let mut joined = Arc::new(Mutex::new(go_errors_join(vec![{ let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = base.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }])));
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = joined.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = base.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = joined.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", { let __text = match joined.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_handle = joined.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {} {}", format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_join(vec![{ let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))).lock().unwrap()).is_none(); __nil_result }), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = base.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
     let mut nilErr: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    println!("{} {}", format!("{}", { let __text = match Arc::new(Mutex::new(Some(go_error_wrap(format!("wrap nil: {}", match { let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = Arc::new(Mutex::new(Some(go_error_wrap(format!("x: {}", match { let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }])))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __go_print_handle = Arc::new(Mutex::new(Some(go_error_wrap(format!("wrap nil: {}", match { let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }])))); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = Arc::new(Mutex::new(Some(go_error_wrap(format!("x: {}", match { let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = nilErr.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }])))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))).lock().unwrap()).is_none(); __nil_result }));
     user_unwrap();
 }
 
