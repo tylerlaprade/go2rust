@@ -267,7 +267,7 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 // arrived in. anyFormatArms are the types the program puts in an interface
 // value; the ones with a String or an Error method are listed in
 // go_format_is_text.
-func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[string]anyFormatArm) {
+func generateGoSprintf(out *strings.Builder, spread bool, complex bool, anyFormatArms map[string]anyFormatArm) {
 	TrackImport("Any")
 	anyValue, anyBox := "dyn Any", "Box<dyn Any>"
 	sliceType, guard := "Rc<RefCell<Option<Vec<Box<dyn Any>>>>>", "args.borrow()"
@@ -280,7 +280,19 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		bytesHandle, bytesGuard = "Arc<Mutex<Option<Vec<u8>>>>", ".lock().unwrap()"
 	}
 	trackWrapperImports()
-	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
+	complexFormatting, complexCases := "", ""
+	if complex {
+		complexFormatting = goSprintfComplexFormatting
+		complexCases = goSprintfComplexCases
+	}
+	replace := strings.NewReplacer(
+		"GO_ANY_VALUE", anyValue,
+		"GO_ANY_BOX", anyBox,
+		"GO_BYTES_HANDLE", bytesHandle,
+		"GO_BYTES_GUARD", bytesGuard,
+		"GO_COMPLEX_FORMAT_HELPER", complexFormatting,
+		"GO_COMPLEX_FORMAT_CASES", complexCases,
+	)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	for rustType, arm := range anyFormatArms {
@@ -353,6 +365,29 @@ pub(super) fn go_sprintf_spread(format: &str, args: &` + sliceType + `, wraps: b
 		out.WriteString("use __go_runtime_format::go_sprintf;\n")
 	}
 }
+
+const goSprintfComplexFormatting = `
+fn go_format_complex(spec: &GoFormatSpec, verb: char, real: f64, imaginary: f64, single: bool) -> Option<String> {
+    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
+        return None;
+    }
+    let real = go_format_float(spec, verb, real, single)?;
+    // Go formats each component with the requested width and precision, but
+    // the imaginary component always carries a sign so the two values remain
+    // unambiguous inside the surrounding parentheses.
+    let imaginary_spec = GoFormatSpec { plus: true, space: false, ..*spec };
+    let imaginary = go_format_float(&imaginary_spec, verb, imaginary, single)?;
+    Some(format!("({}{}i)", real, imaginary))
+}
+`
+
+const goSprintfComplexCases = `    if let Some(v) = value.downcast_ref::<num::Complex<f64>>() {
+        return go_format_complex(&basic, verb, v.re, v.im, false);
+    }
+    if let Some(v) = value.downcast_ref::<num::Complex<f32>>() {
+        return go_format_complex(&basic, verb, v.re as f64, v.im as f64, true);
+    }
+`
 
 const goSprintfFormatting = `
 // A verb with its flags, as fmt reads it from a format.
@@ -611,7 +646,7 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     let sign = go_format_sign(spec, negative);
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
-
+GO_COMPLEX_FORMAT_HELPER
 // %x and %X of a string or a []byte: two digits for each byte. A precision
 // counts bytes here, not characters.
 fn go_format_hex(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> String {
@@ -749,7 +784,7 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
     if let Some(v) = value.downcast_ref::<f32>() {
         return go_format_float(&basic, verb, *v as f64, true);
     }
-    if let Some(v) = value.downcast_ref::<bool>() {
+GO_COMPLEX_FORMAT_CASES    if let Some(v) = value.downcast_ref::<bool>() {
         return if matches!(verb, 't' | 'v') { Some(go_format_pad(&basic, v.to_string(), 0, true)) } else { None };
     }
     let string_verb = if sharp_v { 'q' } else { verb };

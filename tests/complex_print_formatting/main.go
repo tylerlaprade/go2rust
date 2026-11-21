@@ -2,6 +2,10 @@ package main
 
 import "fmt"
 
+func printDynamic(format string, args ...any) {
+	fmt.Printf(format, args...)
+}
+
 func main() {
 	var positive complex64 = 3 + 4i
 	var negative complex128 = 3 - 4i
@@ -14,4 +18,8 @@ func main() {
 	fmt.Println("sprint:", fmt.Sprint(positive))
 	fmt.Println("sprintf:", fmt.Sprintf("%v", negative))
 	fmt.Println("pure:", pureImaginary)
+	fmt.Printf("numeric: %f %.2f %e %g\n", positive, negative, positive, negative)
+	fmt.Printf("flags: %+v % v |%20.2f| |%020.2f| |%-20.2f|\n", positive, positive, negative, negative, negative)
+	fmt.Printf("signs: %+f % f %+f\n", positive, positive, negative)
+	printDynamic("spread: %.1f %g\n", positive, negative)
 }

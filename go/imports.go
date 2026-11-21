@@ -172,6 +172,7 @@ type HelperTracker struct {
 	needsGoErrorChain                    bool
 	needsGoSprintf                       bool
 	needsGoSprintfSpread                 bool
+	needsGoSprintfComplex                bool
 	needsBase64                          bool
 	needsSha256                          bool
 	needsHexFormat                       bool
@@ -447,7 +448,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoSprintf {
-		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
+		generateGoSprintf(&result, ht.needsGoSprintfSpread, ht.needsGoSprintfComplex, anyFormatArms)
 	}
 
 	if ht.needsBase64 {

@@ -1203,6 +1203,16 @@ func NeedGoSprintfSpread() {
 	}
 }
 
+// NeedGoSprintfComplex marks that a complex value can reach the run-time
+// formatter. The formatter itself is still emitted only when NeedGoSprintf
+// is requested, so boxing an otherwise unformatted complex value adds no
+// generated code.
+func NeedGoSprintfComplex() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSprintfComplex = true
+	}
+}
+
 // NeedBase64 marks that we need the base64 helper functions
 func NeedBase64() {
 	if helpers := activeHelperTracker(); helpers != nil {

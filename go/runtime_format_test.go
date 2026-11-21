@@ -33,6 +33,9 @@ func main() {
 	if strings.Contains(rust, "go_sprintf_spread") {
 		t.Fatalf("no call spreads a slice, so the spread form is not needed:\n%s", rust)
 	}
+	if strings.Contains(rust, "go_format_complex") || strings.Contains(rust, "num::Complex") {
+		t.Fatalf("an integer-only run-time format must not emit complex formatting support:\n%s", rust)
+	}
 }
 
 // f(format, args...) hands the slice it received to the formatter.
@@ -143,6 +146,29 @@ func main() {
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+}
+
+func TestRuntimeFormatHandlesComplexNumericVerbs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	format := "%f %.2f %e %g\n"
+	fmt.Printf(format, complex64(3+4i), complex128(3-4i), complex64(3+4i), complex128(3-4i))
+}
+`)
+
+	for _, want := range []string{
+		"fn go_format_complex(",
+		"value.downcast_ref::<num::Complex<f64>>()",
+		"value.downcast_ref::<num::Complex<f32>>()",
+		`Some(format!("({}{}i)", real, imaginary))`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("complex run-time formatting is missing %q:\n%s", want, rust)
 		}
 	}
 }
