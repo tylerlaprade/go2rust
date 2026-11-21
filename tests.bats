@@ -3759,6 +3759,14 @@ run_xfail_test() {
     run_test "tests/variadic_selector_repeated_field"
 }
 
+@test "variadic_tuple_result" {
+    run_test "tests/variadic_tuple_result"
+}
+
+@test "variadic_tuple_result_goroutines" {
+    run_test "tests/variadic_tuple_result_goroutines"
+}
+
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
 }
