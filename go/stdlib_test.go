@@ -111,6 +111,31 @@ func main() {
 	}
 }
 
+func TestComplexPrintArgsUseGoParenthesizedSpelling(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	var positive complex64 = 3 + 4i
+	var negative complex128 = 3 - 4i
+	fmt.Print(positive)
+	fmt.Println(negative)
+	fmt.Printf("%v", positive)
+	fmt.Sprint(negative)
+	fmt.Sprintf("%v", positive)
+	fmt.Println(1)
+}
+`)
+
+	if got := strings.Count(rust, `format!("({})", `); got < 5 {
+		t.Fatalf("complex print arguments should use Go's parenthesized spelling; got %d formatter(s):\n%s", got, rust)
+	}
+	if strings.Contains(rust, `format!("({})", 1`) {
+		t.Fatalf("non-complex print arguments must not use the complex formatter:\n%s", rust)
+	}
+}
+
 func TestLenOfPointerToSliceDerefUsesSliceHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

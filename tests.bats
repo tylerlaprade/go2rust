@@ -767,6 +767,14 @@ run_xfail_test() {
     run_test "tests/complex_expressions"
 }
 
+@test "complex_print_formatting" {
+    run_test "tests/complex_print_formatting"
+}
+
+@test "complex_print_formatting_goroutines" {
+    run_test "tests/complex_print_formatting_goroutines"
+}
+
 @test "compound_assign_len_int" {
     run_test "tests/compound_assign_len_int"
 }
@@ -3667,6 +3675,10 @@ run_xfail_test() {
     run_test "tests/type_assertions"
 }
 
+@test "type_conversions" {
+    run_test "tests/type_conversions"
+}
+
 @test "type_embedding" {
     run_test "tests/type_embedding"
 }
@@ -3873,10 +3885,6 @@ run_xfail_test() {
 
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
-}
-
-@test "XFAIL: type_conversions" {
-    run_xfail_test "tests/XFAIL/type_conversions"
 }
 
 @test "XFAIL: unsafe_pointer_ops" {

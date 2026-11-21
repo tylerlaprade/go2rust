@@ -440,6 +440,9 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("\"<nil>\".to_string()")
 		return
 	}
+	if writeGoComplexPrintArg(out, arg) {
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
@@ -505,7 +508,7 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 	return false
 }
 
-// Helper function to unwrap arguments for print statements
+// Helper function to unwrap arguments for print statements.
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	if isEmptyInterfaceValueExpr(arg) {
 		writeFormatAnyPrintArg(out, arg)
@@ -843,6 +846,29 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 	// For other cases, just use regular expression transpilation
 	TranspileExpression(out, arg)
+}
+
+// writeGoComplexPrintArg preserves fmt's default complex spelling. Rust's
+// num::Complex Display omits the surrounding parentheses that Go prints.
+// Callers use it only for Print/Sprint operands and %v; numeric format verbs
+// must retain the formatter's precision and width handling.
+func writeGoComplexPrintArg(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok || (basic.Kind() != types.Complex64 && basic.Kind() != types.Complex128 && basic.Kind() != types.UntypedComplex) {
+		return false
+	}
+	out.WriteString(`format!("({})", `)
+	transpilePrintArg(out, arg)
+	out.WriteString(")")
+	return true
 }
 
 func writePointerAddressPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
@@ -1462,7 +1488,7 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
-func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, complexParens bool, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
 		if tnIdx == argIndex {
@@ -1515,6 +1541,8 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 			transpilePrintArg(out, arg)
 			out.WriteString(") as u8 as char")
 		}
+	} else if complexParens && writeGoComplexPrintArg(out, arg) {
+		// Go's default %v spelling for complex values includes parentheses.
 	} else if NeedsConcurrentWrapper() && transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
 		// All the arguments of print! live until the macro is done, and so
 		// would the lock on an interface receiver: a second call on the same
@@ -1543,11 +1571,13 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var complexVArgs map[int]bool
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			complexVArgs = formatVerbArgIndexSet(literal, 'v')
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -1564,7 +1594,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, complexVArgs[i-formatArgIndex-1], charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 					})
 					args = append(args, arg.String())
 				}
@@ -1600,7 +1630,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, complexVArgs[i-formatArgIndex-1], charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 				})
 			}
 		}
@@ -2222,12 +2252,14 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var complexVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			complexVArgs = formatVerbArgIndexSet(literal, 'v')
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2244,7 +2276,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-1, complexVArgs[i-1], charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 					})
 					args = append(args, arg.String())
 				}
@@ -2281,7 +2313,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, complexVArgs[i-1], charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 				})
 			}
 		}
@@ -2332,6 +2364,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var complexVArgs map[int]bool
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
@@ -2339,6 +2372,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			complexVArgs = formatVerbArgIndexSet(literal, 'v')
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2375,7 +2409,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, complexVArgs[i-1], charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
 				})
 			}
 		}
@@ -2418,6 +2452,14 @@ func formatVerbArgIndices(format string, verb byte) []int {
 		i = j
 	}
 	return indices
+}
+
+func formatVerbArgIndexSet(format string, verb byte) map[int]bool {
+	set := make(map[int]bool)
+	for _, index := range formatVerbArgIndices(format, verb) {
+		set[index] = true
+	}
+	return set
 }
 
 func transpileErrorsNew(out *strings.Builder, call *ast.CallExpr) {
