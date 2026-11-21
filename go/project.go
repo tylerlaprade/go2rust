@@ -199,8 +199,12 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// which have the proper type information
 		astFiles = loader.GetMainAST()
 		astFilesByPath = loader.GetMainASTByPath()
+		fileSet = loader.GetMainFileSet()
 		if len(astFilesByPath) == 0 {
 			return fmt.Errorf("no AST files from package loader")
+		}
+		if fileSet == nil {
+			return fmt.Errorf("no file set from package loader")
 		}
 
 		// Set up imports for the main package once the package-scoped context exists.

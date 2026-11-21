@@ -1440,6 +1440,15 @@ func (pl *PackageLoader) GetMainAST() []*ast.File {
 	return pl.mainPkg.Syntax
 }
 
+// GetMainFileSet returns the FileSet that owns the main package AST and the
+// go/types positions derived from it.
+func (pl *PackageLoader) GetMainFileSet() *token.FileSet {
+	if pl.mainPkg != nil && pl.mainPkg.Fset != nil {
+		return pl.mainPkg.Fset
+	}
+	return pl.fileSet
+}
+
 // GetMainASTByPath returns the main package AST files keyed by normalized file path.
 func (pl *PackageLoader) GetMainASTByPath() map[string]*ast.File {
 	astByPath := make(map[string]*ast.File)

@@ -239,6 +239,62 @@ func main() { _ = call(nil) }
 	}
 }
 
+func TestExternalModeNilReceiverHelperUsesLoaderFileSet(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), "module example.com/dep\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Value() string { return "dep" }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "b.go"), `package main
+
+type E struct{}
+
+func (e *E) Error() string {
+	if e == nil { return "nil" }
+	return "e"
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "a.go"), `package main
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	_ = dep.Value()
+	_ = call(nil)
+}
+`)
+
+	// Deliberately differ from go/packages' lexical order. The loader AST and
+	// its go/types positions must be resolved by the loader's own FileSet.
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "b.go"),
+		filepath.Join(tempDir, "a.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
+	if !strings.Contains(aRS, "crate::b::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("external-mode helper call should use the loader FileSet and defining module:\n%s", aRS)
+	}
+}
+
 func TestCrossFileNilReceiverHelperCallUsesCrateRoot(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
