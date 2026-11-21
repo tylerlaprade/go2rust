@@ -418,7 +418,7 @@ func constExpressionValue(expr ast.Expr) (constant.Value, bool) {
 }
 
 func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr, expected types.Type) bool {
-	if writeConstZeroExpressionForExpectedComplex(out, value, expected) {
+	if writeConstExpressionForExpectedComplex(out, value, expected) {
 		return true
 	}
 	if writeConstExpressionForExpectedNamedInteger(out, value, expected) {
@@ -966,7 +966,7 @@ func writeConstIdentifierForExpectedFloat(out *strings.Builder, expr ast.Expr, e
 	return true
 }
 
-func writeConstZeroExpressionForExpectedComplex(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+func writeConstExpressionForExpectedComplex(out *strings.Builder, value ast.Expr, expected types.Type) bool {
 	if !isConstantExpression(value) || expected == nil {
 		return false
 	}
@@ -984,13 +984,35 @@ func writeConstZeroExpressionForExpectedComplex(out *strings.Builder, value ast.
 		return false
 	}
 	constValue, ok := constExpressionValue(value)
-	if !ok || constant.Sign(constValue) != 0 {
+	if !ok {
+		return false
+	}
+	realValue := constValue
+	imagValue := constant.MakeInt64(0)
+	switch constValue.Kind() {
+	case constant.Complex:
+		realValue = constant.Real(constValue)
+		imagValue = constant.Imag(constValue)
+	case constant.Int, constant.Float:
+	default:
+		return false
+	}
+	realLiteral, ok := constFloatLiteralForRustType(realValue, componentRust)
+	if !ok {
+		return false
+	}
+	imagLiteral, ok := constFloatLiteralForRustType(imagValue, componentRust)
+	if !ok {
 		return false
 	}
 	TrackImport("num::Complex")
 	out.WriteString("num::Complex::<")
 	out.WriteString(componentRust)
-	out.WriteString(">::new(0.0, 0.0)")
+	out.WriteString(">::new(")
+	out.WriteString(realLiteral)
+	out.WriteString(", ")
+	out.WriteString(imagLiteral)
+	out.WriteString(")")
 	return true
 }
 

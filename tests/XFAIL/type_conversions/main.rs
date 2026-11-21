@@ -894,7 +894,7 @@ fn main() {
         // Complex number conversions
     println!("{}", format!("{}", "\n=== Complex number conversions ===".to_string()));
 
-    let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(3 + 4i)));
+    let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(num::Complex::<f32>::new(3.0, 4.0))));
     let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some({ let __z = (*c64.borrow().as_ref().unwrap()); num::Complex::<f64>::new(__z.re as f64, __z.im as f64) })));
 
     print!("complex64: {}\n", { let __v = (*c64.borrow().as_ref().unwrap()).clone(); __v });
