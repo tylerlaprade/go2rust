@@ -1218,6 +1218,13 @@ func (pg *ProjectGenerator) hasMainFile() bool {
 }
 
 func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPath map[string]*ast.File, packageState *PackageState) error {
+	// Non-main files are transpiled first and leave their module name in the
+	// shared run context. main.rs is the crate root, so clear that state before
+	// resolving cross-file helper locations for main.go.
+	if runCtx := GetTranspileContext(); runCtx != nil {
+		runCtx.CurrentModuleName = ""
+	}
+
 	var (
 		mainGoFile *ast.File
 		mainPath   string

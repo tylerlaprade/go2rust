@@ -1,10071 +1,1938 @@
-package main
-
-import (
-	"fmt"
-	"go/ast"
-	"go/constant"
-	"go/token"
-	"go/types"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
-)
-
-func rustStructFieldName(name *ast.Ident, fieldIndex int, nameIndex int) string {
-	if name == nil {
-		return ""
-	}
-	if name.Name == "_" {
-		return fmt.Sprintf("__blank_%d_%d", fieldIndex, nameIndex)
-	}
-	return ToSnakeCase(name.Name)
-}
-
-// generateStructDisplay generates a Display implementation for a struct to match Go's output format
-type rustTypeGenerics struct {
-	Decl    string
-	Use     string
-	Where   string
-	Phantom []string
-}
-
-const minStructDisplayMultilineWriteFields = 10
-
-func writeRustInherentImplHeader(out *strings.Builder, generics rustTypeGenerics, rustTypeName string) {
-	out.WriteString("impl")
-	out.WriteString(generics.Decl)
-	out.WriteString(" ")
-	out.WriteString(rustTypeName)
-	out.WriteString(generics.Use)
-	out.WriteString(generics.Where)
-	out.WriteString(" {\n")
-}
-
-func writeRustTraitImplHeader(out *strings.Builder, generics rustTypeGenerics, traitName string, rustTypeName string) {
-	out.WriteString("impl")
-	out.WriteString(generics.Decl)
-	out.WriteString(" ")
-	out.WriteString(traitName)
-	out.WriteString(" for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(generics.Use)
-	out.WriteString(generics.Where)
-	out.WriteString(" {\n")
-}
-
-// generateStructDisplay generates a Display implementation for a struct to match Go's output format
-func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	TrackImport("Display")
-	TrackImport("Formatter")
-	rustStructName := RustTypeNameForUse(structName)
-
-	// If this type implements the error interface, Display should delegate to error()
-	if IsErrorImplType(structName) {
-		writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
-		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		out.WriteString("        write!(f, \"{}\", (*self.error()")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()))\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
-		return
-	}
-
-	if namedTypeHasGoStringMethod(structName) {
-		writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
-		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		writeStringerDisplayBody(out, structName, "        ")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
-		return
-	}
-
-	writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-
-	// Collect all fields (including embedded)
-	type fieldEntry struct {
-		name                      string
-		goName                    string
-		isEmbedded                bool
-		isSlice                   bool
-		isMap                     bool
-		isInterface               bool
-		isError                   bool
-		isFunction                bool
-		funcSlice                 bool
-		anySlice                  bool
-		hasTrait                  bool
-		mapOpaque                 bool
-		nestedSlice               bool
-		nestedSliceWrapped        bool
-		nestedPointerSlice        bool
-		nestedPointerSliceWrapped bool
-		ptrSlice                  bool
-		ptrToSlice                bool
-		ptrToPtrSlice             bool
-		isPointer                 bool
-		goPtr                     bool
-		goPtrSlice                bool
-		goPtrArray                bool
-		interfaceSlice            bool
-		zeroLenArray              bool
-	}
-	var fields []fieldEntry
-	for fieldIndex, field := range structType.Fields.List {
-		// Skip sync types (Mutex, WaitGroup) â€” they're not data fields
-		if isSyncParam(field.Type) {
-			continue
-		}
-		_, isSlice := field.Type.(*ast.ArrayType)
-		_, isMap := field.Type.(*ast.MapType)
-		isInterface := isEmptyInterfaceExpr(field.Type)
-		isError := structDisplayFieldIsError(field.Type)
-		isFunction := isFunctionSignatureTypeExpr(field.Type)
-		funcSlice := arrayFieldContainsFunction(field.Type)
-		anySlice := sliceFieldContainsEmptyInterface(field.Type)
-		_, isChannel := field.Type.(*ast.ChanType)
-		hasTrait := typeHasTraitField(field.Type)
-		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
-		nestedSlice := arrayFieldContainsSlice(field.Type)
-		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
-		nestedPointerSlice := arrayFieldNestedPointerInnerIsValue(field.Type)
-		nestedPointerSliceWrapped := arrayFieldNestedPointerInnerIsPointer(field.Type)
-		ptrSlice := arrayFieldContainsPointer(field.Type)
-		ptrToSlice := pointerFieldContainsSlice(field.Type)
-		ptrToPtrSlice := pointerFieldContainsPointerSlice(field.Type)
-		isPointer := structDisplayFieldIsPointer(field.Type)
-		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
-		zeroLenArray := structDisplayFieldIsZeroLenArray(field.Type)
-		if isChannel {
-			continue
-		}
-		if len(field.Names) > 0 {
-			for nameIndex, name := range field.Names {
-				_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name)
-				_, goPtrSliceField := sliceElemPtrSliceFieldInfoForStructField(nil, structType, structName, name.Name)
-				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
-				fields = append(fields, fieldEntry{
-					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
-					goName:                    name.Name,
-					isEmbedded:                false,
-					isSlice:                   isSlice,
-					isMap:                     isMap,
-					isInterface:               isInterface,
-					isError:                   isError,
-					isFunction:                isFunction,
-					funcSlice:                 funcSlice,
-					anySlice:                  anySlice,
-					hasTrait:                  hasTrait,
-					mapOpaque:                 mapOpaque,
-					nestedSlice:               nestedSlice,
-					nestedSliceWrapped:        nestedSliceWrapped,
-					nestedPointerSlice:        nestedPointerSlice,
-					nestedPointerSliceWrapped: nestedPointerSliceWrapped,
-					ptrSlice:                  ptrSlice,
-					ptrToSlice:                ptrToSlice,
-					ptrToPtrSlice:             ptrToPtrSlice,
-					isPointer:                 isPointer || syncAtomicPointerDisplayField(structName, field, name),
-					goPtr:                     goPtrField,
-					goPtrSlice:                goPtrSliceField,
-					goPtrArray:                goPtrArrayField,
-					interfaceSlice:            interfaceSlice,
-					zeroLenArray:              zeroLenArray,
-				})
-			}
-		} else {
-			// Embedded field
-			typeName := getEmbeddedFieldName(field.Type)
-			_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, typeName)
-			_, goPtrSliceField := sliceElemPtrSliceFieldInfoForStructField(nil, structType, structName, typeName)
-			_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, typeName)
-			fields = append(fields, fieldEntry{
-				name:                      typeName,
-				goName:                    typeName,
-				isEmbedded:                true,
-				isSlice:                   isSlice,
-				isMap:                     isMap,
-				isInterface:               isInterface,
-				isFunction:                isFunction,
-				funcSlice:                 funcSlice,
-				anySlice:                  anySlice,
-				hasTrait:                  hasTrait,
-				mapOpaque:                 mapOpaque,
-				nestedSlice:               nestedSlice,
-				nestedSliceWrapped:        nestedSliceWrapped,
-				nestedPointerSlice:        nestedPointerSlice,
-				nestedPointerSliceWrapped: nestedPointerSliceWrapped,
-				ptrSlice:                  ptrSlice,
-				ptrToSlice:                ptrToSlice,
-				ptrToPtrSlice:             ptrToPtrSlice,
-				isPointer:                 isPointer,
-				goPtr:                     goPtrField,
-				goPtrSlice:                goPtrSliceField,
-				goPtrArray:                goPtrArrayField,
-				interfaceSlice:            interfaceSlice,
-				zeroLenArray:              zeroLenArray,
-			})
-		}
-	}
-
-	writeDisplayFieldValue := func(f fieldEntry) {
-		if f.isInterface {
-			// A nil interface field prints as <nil>. The zero value of a
-			// struct has one, so this is the common case, not a corner.
-			// The value in the field is inside the struct, where Go prints
-			// a pointer as its address. format_any_nested knows that.
-			NeedFormatAnyNested()
-			out.WriteString("match self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => \"<nil>\".to_string() }")
-		} else if f.isError {
-			// The same for an error field: nil until something fails.
-			out.WriteString("match self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref() { Some(__v) => format!(\"{}\", __v), None => \"<nil>\".to_string() }")
-		} else if f.isFunction {
-			out.WriteString("\"<func>\"")
-		} else if f.funcSlice {
-			out.WriteString("{ let __guard = self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
-		} else if f.isMap && f.mapOpaque {
-			out.WriteString("\"<map>\"")
-		} else if f.isMap {
-			NeedFormatMap()
-			out.WriteString("format_map(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.zeroLenArray {
-			out.WriteString("\"[]\"")
-		} else if f.nestedSliceWrapped {
-			NeedFormatNestedSliceWrapped()
-			out.WriteString("format_nested_slice_wrapped(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.nestedPointerSlice {
-			NeedFormatNestedPointerSlice()
-			out.WriteString("format_nested_pointer_slice(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.nestedPointerSliceWrapped {
-			NeedFormatNestedPointerSliceWrapped()
-			out.WriteString("format_nested_pointer_slice_wrapped(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.nestedSlice {
-			NeedFormatNestedSlice()
-			out.WriteString("format_nested_slice(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.goPtr {
-			out.WriteString("{ if self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(".is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() } }")
-		} else if f.goPtrSlice || f.goPtrArray {
-			out.WriteString("{ let __guard = self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v.iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
-		} else if f.ptrToPtrSlice {
-			NeedFormatSlice()
-			out.WriteString("format_slice_wrapped(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.ptrToSlice {
-			NeedFormatSlice()
-			out.WriteString("format_slice(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.ptrSlice {
-			NeedFormatSlice()
-			out.WriteString("format_slice_wrapped(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.anySlice {
-			NeedFormatAnySlice()
-			out.WriteString("format_any_slice(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.interfaceSlice {
-			NeedFormatSliceWrappedStringer()
-			out.WriteString("format_slice_wrapped_stringer(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else if f.isPointer {
-			out.WriteString("{ let __guard = self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"{:p}\", __v as *const _), None => \"<nil>\".to_string() } }")
-		} else if f.isSlice {
-			NeedFormatSlice()
-			out.WriteString("format_slice(&self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(")")
-		} else {
-			out.WriteString("(*self.")
-			out.WriteString(ToSnakeCase(f.name))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
-		}
-	}
-
-	// %+v is written as {:#}: the alternate flag asks for the field names,
-	// and a struct value in a field passes it on.
-	plusV := packageFormatsWithPlusV() && len(fields) > 0
-	plainField := func(f fieldEntry) bool {
-		return !f.isInterface && !f.isError && !f.isFunction && !f.funcSlice && !f.isMap && !f.zeroLenArray &&
-			!f.nestedSliceWrapped && !f.nestedPointerSlice && !f.nestedPointerSliceWrapped && !f.nestedSlice &&
-			!f.goPtr && !f.goPtrSlice && !f.goPtrArray && !f.ptrToPtrSlice && !f.ptrToSlice && !f.ptrSlice &&
-			!f.anySlice && !f.interfaceSlice && !f.isPointer && !f.isSlice
-	}
-	if plusV {
-		out.WriteString("        let __go_plus = f.alternate();\n")
-	}
-	for i, f := range fields {
-		out.WriteString("        let __go_fmt_")
-		out.WriteString(fmt.Sprintf("%d", i))
-		if plusV && plainField(f) {
-			out.WriteString(" = if __go_plus { format!(\"{:#}\", ")
-			writeDisplayFieldValue(f)
-			out.WriteString(") } else { format!(\"{}\", ")
-			writeDisplayFieldValue(f)
-			out.WriteString(") };\n")
-			continue
-		}
-		out.WriteString(" = format!(\"{}\", ")
-		writeDisplayFieldValue(f)
-		out.WriteString(");\n")
-	}
-
-	if plusV {
-		out.WriteString("        if __go_plus {\n")
-		out.WriteString("            return write!(f, \"{{")
-		for i, f := range fields {
-			if i > 0 {
-				out.WriteString(" ")
-			}
-			out.WriteString(f.goName)
-			out.WriteString(":{}")
-		}
-		out.WriteString("}}\"")
-		for i := range fields {
-			out.WriteString(", __go_fmt_")
-			out.WriteString(fmt.Sprintf("%d", i))
-		}
-		out.WriteString(");\n")
-		out.WriteString("        }\n")
-	}
-	writeStructDisplayWriteCall(out, len(fields))
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-var packageFormatsWithPlusVCache = map[*types.Info]bool{}
-
-// packageFormatsWithPlusV reports whether a string constant of the package
-// holds a %+v verb. Only then do struct Display impls learn the field-name
-// form, so programs that never ask for it get the impls they had.
-func packageFormatsWithPlusV() bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	if uses, ok := packageFormatsWithPlusVCache[typeInfo.info]; ok {
-		return uses
-	}
-	uses := false
-	for _, tv := range typeInfo.info.Types {
-		if tv.Value == nil || tv.Value.Kind() != constant.String {
-			continue
-		}
-		if formatHasPlusV(constant.StringVal(tv.Value)) {
-			uses = true
-			break
-		}
-	}
-	packageFormatsWithPlusVCache[typeInfo.info] = uses
-	return uses
-}
-
-func formatHasPlusV(format string) bool {
-	for i := 0; i < len(format); i++ {
-		if format[i] != '%' {
-			continue
-		}
-		plus := false
-		j := i + 1
-		for j < len(format) && strings.IndexByte("+-# 0123456789.*", format[j]) >= 0 {
-			if format[j] == '+' {
-				plus = true
-			}
-			j++
-		}
-		if j < len(format) && format[j] == 'v' && plus {
-			return true
-		}
-		if j < len(format) && format[j] == '%' {
-			i = j
-		}
-	}
-	return false
-}
-
-// structDisplayFieldIsError reports whether a struct field's declared type is
-// the predeclared error interface, or an alias of it. It asks go/types and
-// nothing else: the spelling of the type says nothing reliable, because a
-// package can declare its own type named error. Without type information the
-// answer is no, and the field keeps the formatting it had before.
-func structDisplayFieldIsError(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isErrorInterfaceType(typeInfo.GetType(expr))
-}
-
-func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {
-	if fieldCount < minStructDisplayMultilineWriteFields {
-		out.WriteString("        write!(f, \"{{")
-		writeStructDisplayFormatPlaceholders(out, fieldCount)
-		out.WriteString("}}\"")
-		for i := 0; i < fieldCount; i++ {
-			out.WriteString(", __go_fmt_")
-			out.WriteString(fmt.Sprintf("%d", i))
-		}
-		out.WriteString(")\n")
-		return
-	}
-
-	out.WriteString("        write!(\n")
-	out.WriteString("            f,\n")
-	out.WriteString("            \"{{")
-	writeStructDisplayFormatPlaceholders(out, fieldCount)
-	out.WriteString("}}\"")
-	for i := 0; i < fieldCount; i++ {
-		out.WriteString(",\n")
-		out.WriteString("            __go_fmt_")
-		out.WriteString(fmt.Sprintf("%d", i))
-	}
-	out.WriteString("\n")
-	out.WriteString("        )\n")
-}
-
-func writeStructDisplayFormatPlaceholders(out *strings.Builder, fieldCount int) {
-	for i := 0; i < fieldCount; i++ {
-		if i > 0 {
-			out.WriteString(" ")
-		}
-		out.WriteString("{}")
-	}
-}
-
-func structDisplayFieldIsZeroLenArray(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(expr)
-	if typ == nil {
-		return false
-	}
-	array, ok := types.Unalias(typ).Underlying().(*types.Array)
-	return ok && array.Len() == 0
-}
-
-func generateStructDebug(out *strings.Builder, structName string, generics rustTypeGenerics) {
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "std::fmt::Debug", rustStructName)
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        write!(f, \"{}\", self)\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func generateStructDisplayTypeInfoRequired(out *strings.Builder, structName string, generics rustTypeGenerics) {
-	TrackImport("Display")
-	TrackImport("Formatter")
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
-	out.WriteString("    fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        unimplemented!(\"type info required for generic struct Display bounds\")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func arrayFieldContainsSlice(expr ast.Expr) bool {
-	arrayType, ok := expr.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	_, ok = arrayType.Elt.(*ast.ArrayType)
-	return ok
-}
-
-func arrayFieldContainsPointer(expr ast.Expr) bool {
-	arrayType, ok := expr.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	_, ok = arrayType.Elt.(*ast.StarExpr)
-	return ok
-}
-
-func pointerFieldContainsSlice(expr ast.Expr) bool {
-	_, ok := pointerFieldSliceElem(expr)
-	return ok
-}
-
-func pointerFieldContainsPointerSlice(expr ast.Expr) bool {
-	elem, ok := pointerFieldSliceElem(expr)
-	if !ok {
-		return false
-	}
-	_, ok = elem.(*ast.StarExpr)
-	return ok
-}
-
-func pointerFieldSliceElem(expr ast.Expr) (ast.Expr, bool) {
-	star, ok := expr.(*ast.StarExpr)
-	if !ok {
-		return nil, false
-	}
-	arrayType, ok := star.X.(*ast.ArrayType)
-	if !ok {
-		return nil, false
-	}
-	return arrayType.Elt, true
-}
-
-func structDisplayFieldIsPointer(expr ast.Expr) bool {
-	typ, ok := typeInfoTypeForTypeExpr(expr)
-	if !ok {
-		return false
-	}
-	_, ok = types.Unalias(typ).Underlying().(*types.Pointer)
-	return ok
-}
-
-func typeSpecIsSyncAtomicPointer(typeSpec *ast.TypeSpec) bool {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	obj, ok := typeInfo.GetObject(typeSpec.Name).(*types.TypeName)
-	return ok && obj.Pkg() != nil && obj.Pkg().Path() == "sync/atomic" && obj.Name() == "Pointer"
-}
-
-func currentPackageIsSyncAtomic() bool {
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == "sync/atomic"
-}
-
-func fieldTypeIsUnsafePointer(field *ast.Field) bool {
-	if field == nil || field.Type == nil {
-		return false
-	}
-	typ, ok := typeInfoTypeForTypeExpr(field.Type)
-	return ok && isUnsafePointerLikeType(typ)
-}
-
-func syncAtomicPointerStorageField(typeSpec *ast.TypeSpec, field *ast.Field, name *ast.Ident) bool {
-	return typeSpecIsSyncAtomicPointer(typeSpec) &&
-		field != nil &&
-		name != nil &&
-		name.Name == "v" &&
-		fieldTypeIsUnsafePointer(field)
-}
-
-func syncAtomicPointerDisplayField(structName string, field *ast.Field, name *ast.Ident) bool {
-	return currentPackageIsSyncAtomic() &&
-		structName == "Pointer" &&
-		field != nil &&
-		name != nil &&
-		name.Name == "v" &&
-		fieldTypeIsUnsafePointer(field)
-}
-
-func syncAtomicPointerStorageRustType(typeSpec *ast.TypeSpec) string {
-	trackWrapperImports()
-	NeedSliceElemPtr()
-	typeParam := "T"
-	if typeSpec != nil && typeSpec.TypeParams != nil && len(typeSpec.TypeParams.List) > 0 {
-		for _, name := range typeSpec.TypeParams.List[0].Names {
-			if name != nil && name.Name != "" {
-				typeParam = RustTypeNameForUse(name.Name)
-				break
-			}
-		}
-	}
-	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
-	return outerWrapper + "<" + innerWrapper + "<Option<GoPtr<" + typeParam + ">>>>"
-}
-
-// arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)
-// whose innermost element is a pointer (e.g. [][]*T). Such fields store the
-// innermost element as a wrapped Arc/Rc handle, which format_nested_slice cannot
-// Display directly â€” format_nested_slice_wrapped unwraps the handle.
-func arrayFieldNestedInnerIsPointer(expr ast.Expr) bool {
-	outer, ok := expr.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	inner, ok := outer.Elt.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	elt := inner.Elt
-	for {
-		next, ok := elt.(*ast.ArrayType)
-		if !ok {
-			break
-		}
-		elt = next.Elt
-	}
-	_, isPtr := elt.(*ast.StarExpr)
-	return isPtr
-}
-
-func arrayFieldNestedPointerInnerIsPointer(expr ast.Expr) bool {
-	typ, ok := typeInfoTypeForTypeExpr(expr)
-	if !ok {
-		return false
-	}
-	outer, ok := sequenceType(typ)
-	if !ok {
-		return false
-	}
-	ptr, ok := types.Unalias(outer.Elem()).Underlying().(*types.Pointer)
-	if !ok {
-		return false
-	}
-	inner, ok := sequenceType(ptr.Elem())
-	if !ok {
-		return false
-	}
-	_, ok = types.Unalias(inner.Elem()).Underlying().(*types.Pointer)
-	return ok
-}
-
-func arrayFieldNestedPointerInnerIsValue(expr ast.Expr) bool {
-	typ, ok := typeInfoTypeForTypeExpr(expr)
-	if !ok {
-		return false
-	}
-	outer, ok := sequenceType(typ)
-	if !ok {
-		return false
-	}
-	ptr, ok := types.Unalias(outer.Elem()).Underlying().(*types.Pointer)
-	if !ok {
-		return false
-	}
-	inner, ok := sequenceType(ptr.Elem())
-	if !ok {
-		return false
-	}
-	_, innerIsPointer := types.Unalias(inner.Elem()).Underlying().(*types.Pointer)
-	return !innerIsPointer
-}
-
-type goSequenceType interface {
-	Elem() types.Type
-}
-
-func sequenceType(typ types.Type) (goSequenceType, bool) {
-	switch seq := types.Unalias(typ).Underlying().(type) {
-	case *types.Array:
-		return seq, true
-	case *types.Slice:
-		return seq, true
-	default:
-		return nil, false
-	}
-}
-
-func arrayFieldContainsFunction(expr ast.Expr) bool {
-	arrayType, ok := expr.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	return isFunctionSignatureTypeExpr(arrayType.Elt)
-}
-
-func sliceFieldContainsEmptyInterface(expr ast.Expr) bool {
-	typ, ok := typeInfoTypeForTypeExpr(expr)
-	if !ok {
-		return false
-	}
-	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
-	return ok && isEmptyInterfaceType(slice.Elem())
-}
-
-func arrayFieldContainsLocalInterface(expr ast.Expr) bool {
-	arrayType, ok := expr.(*ast.ArrayType)
-	if !ok {
-		return false
-	}
-	_, ok = transpiledNamedInterfaceTypeNameFromExpr(arrayType.Elt)
-	return ok
-}
-
-func structHasTraitField(structType *ast.StructType) bool {
-	for _, field := range structType.Fields.List {
-		if typeHasTraitField(field.Type) {
-			return true
-		}
-	}
-	return false
-}
-
-func structCanDeriveDebug(structType *ast.StructType) bool {
-	return structCanDeriveDebugSeen(structType, make(map[string]bool))
-}
-
-func structCanDeriveDebugSeen(structType *ast.StructType, seen map[string]bool) bool {
-	for _, field := range structType.Fields.List {
-		if !typeCanDeriveDebug(field.Type, seen) {
-			return false
-		}
-	}
-	return true
-}
-
-func structNeedsCustomDefault(structType *ast.StructType) bool {
-	for _, field := range structType.Fields.List {
-		if structFieldNeedsCustomDefault(field.Type) {
-			return true
-		}
-	}
-	return false
-}
-
-func structFieldNeedsCustomDefault(expr ast.Expr) bool {
-	if expr == nil {
-		return false
-	}
-	if isSyncParam(expr) {
-		return true
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
-				return false
-			}
-			return !structFieldHasNilZero(typ)
-		}
-	}
-	switch t := expr.(type) {
-	case *ast.StructType:
-		return true
-	case *ast.Ident:
-		if _, isStruct := structDefs[t.Name]; isStruct {
-			return true
-		}
-		switch t.Name {
-		case "string", "bool", "int", "int8", "int16", "int32", "int64", "rune",
-			"uint", "uint8", "uint16", "uint32", "uint64", "uintptr", "byte",
-			"float32", "float64":
-			return true
-		default:
-			return false
-		}
-	case *ast.ArrayType:
-		return t.Len != nil
-	case *ast.SelectorExpr:
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return (ident.Name == "strings" && t.Sel.Name == "Builder") ||
-				(ident.Name == "bytes" && t.Sel.Name == "Buffer")
-		}
-		return false
-	default:
-		return false
-	}
-}
-
-func structFieldHasNilZero(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	if _, _, isNamedMap := namedMapTypeFromType(typ); isNamedMap {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
-			return false
-		}
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map, *types.Chan:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeWrappedNamedMapZeroValue(out *strings.Builder, typ types.Type) bool {
-	named, _, ok := namedMapTypeFromType(typ)
-	if !ok {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString("::default()")
-	WriteWrapperSuffix(out)
-	return true
-}
-
-func namedTypeHasGoStringMethod(typeName string) bool {
-	if IsStringerImplType(typeName) {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
-		return false
-	}
-	obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
-	if !ok {
-		return false
-	}
-	return typeHasGoStringMethod(obj.Type()) || typeHasGoStringMethod(types.NewPointer(obj.Type()))
-}
-
-func namedTypeGoStringMethodRequiresMutableReceiver(typeName string) bool {
-	for _, fn := range methodsForReceiverType(typeName) {
-		if fn != nil && fn.Name != nil && fn.Name.Name == "String" {
-			return methodRequiresMutableReceiver(fn)
-		}
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
-		return false
-	}
-	obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
-	if !ok {
-		return false
-	}
-	for _, typ := range []types.Type{obj.Type(), types.NewPointer(obj.Type())} {
-		methodSet := types.NewMethodSet(typ)
-		selection := methodSet.Lookup(nil, "String")
-		if selection == nil {
-			continue
-		}
-		fn, ok := selection.Obj().(*types.Func)
-		if !ok {
-			continue
-		}
-		key := methodOverrideKey(fn)
-		if key == "" {
-			continue
-		}
-		if mutable, ok := typeInfo.methodMutableReceiverMap[key]; ok {
-			return mutable
-		}
-	}
-	return false
-}
-
-func writeStringerDisplayBody(out *strings.Builder, typeName string, indent string) {
-	if namedTypeGoStringMethodRequiresMutableReceiver(typeName) {
-		out.WriteString(indent)
-		out.WriteString("let mut __self = self.clone();\n")
-		out.WriteString(indent)
-		out.WriteString("write!(f, \"{}\", (*__self.string()")
-	} else {
-		out.WriteString(indent)
-		out.WriteString("write!(f, \"{}\", (*self.string()")
-	}
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()))\n")
-}
-
-func typeHasGoStringMethod(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	methodSet := types.NewMethodSet(typ)
-	selection := methodSet.Lookup(nil, "String")
-	if selection == nil {
-		return false
-	}
-	sig, ok := selection.Obj().Type().(*types.Signature)
-	if !ok {
-		return false
-	}
-	if sig.Params().Len() != 0 || sig.Results().Len() != 1 {
-		return false
-	}
-	basic, ok := types.Unalias(sig.Results().At(0).Type()).Underlying().(*types.Basic)
-	return ok && basic.Kind() == types.String
-}
-
-func isPointerType(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	_, ok := types.Unalias(typ).(*types.Pointer)
-	return ok
-}
-
-func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType, deriveClone bool) {
-	hasTraitField := structHasTraitField(structType)
-	canDeriveDebug := !hasTraitField && structCanDeriveDebug(structType)
-	needsCustomDefault := structNeedsCustomDefault(structType)
-	needsPartialEq := structName != "" && comparableStructTypes[structName]
-	derivePartialEq := needsPartialEq && !hasTraitField && !structNeedsCustomPartialEq(structName, structType)
-	deriveOrd := derivePartialEq && structNeedsOrd(structName)
-
-	var traits []string
-	if canDeriveDebug {
-		traits = append(traits, "Debug")
-	}
-	if deriveClone {
-		traits = append(traits, "Clone")
-	}
-	if !needsCustomDefault {
-		traits = append(traits, "Default")
-	}
-	if derivePartialEq {
-		traits = append(traits, "PartialEq")
-	}
-	if deriveOrd {
-		traits = append(traits, "Eq", "PartialOrd", "Ord")
-	}
-	if len(traits) == 0 {
-		return
-	}
-	out.WriteString("#[derive(")
-	out.WriteString(strings.Join(traits, ", "))
-	out.WriteString(")]\n")
-}
-
-func structNeedsOrd(structName string) bool {
-	return structName != "" && currentMapKeyStructTypes()[structName]
-}
-
-func currentMapKeyStructTypes() map[string]bool {
-	if currentContext != nil && currentContext.Package != nil {
-		return currentContext.Package.MapKeyStructTypes
-	}
-	return nil
-}
-
-func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && comparableStructTypes[structName] &&
-		(NeedsConcurrentWrapper() || structHasPointerComparableField(structType))
-}
-
-func structHasPointerComparableField(structType *ast.StructType) bool {
-	for _, field := range structComparableFields(structType) {
-		if typ, ok := structComparableFieldType(field); ok && isPointerType(typ) {
-			return true
-		}
-	}
-	return false
-}
-
-func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && structNeedsOrd(structName) && NeedsConcurrentWrapper()
-}
-
-type structComparableField struct {
-	name   string
-	goName string
-	expr   ast.Expr
-}
-
-func structComparableFields(structType *ast.StructType) []structComparableField {
-	var fields []structComparableField
-	if structType == nil {
-		return fields
-	}
-	for fieldIndex, field := range structType.Fields.List {
-		if len(field.Names) > 0 {
-			for nameIndex, name := range field.Names {
-				if name.Name == "_" {
-					continue
-				}
-				fields = append(fields, structComparableField{
-					name:   rustStructFieldName(name, fieldIndex, nameIndex),
-					goName: name.Name,
-					expr:   field.Type,
-				})
-			}
-			continue
-		}
-		goName := getEmbeddedFieldName(field.Type)
-		fields = append(fields, structComparableField{
-			name:   ToSnakeCase(goName),
-			goName: goName,
-			expr:   field.Type,
-		})
-	}
-	return fields
-}
-
-func structComparableFieldNames(structType *ast.StructType) []string {
-	fields := structComparableFields(structType)
-	names := make([]string, 0, len(fields))
-	for _, field := range fields {
-		names = append(names, field.name)
-	}
-	return names
-}
-
-func structComparableFieldType(field structComparableField) (types.Type, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || field.expr == nil {
-		return nil, false
-	}
-	typ := typeInfo.GetType(field.expr)
-	return typ, typ != nil
-}
-
-func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation string, field structComparableField) {
-	out.WriteString("unimplemented!(")
-	out.WriteString(strconv.Quote(fmt.Sprintf("type info required to %s struct field %s", operation, field.name)))
-	out.WriteString(")")
-}
-
-func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField) {
-	outerWrapper := GetOuterWrapperType()
-	out.WriteString("{ let __left_some = self.")
-	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".is_some(); let __right_some = other.")
-	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
-	out.WriteString(outerWrapper)
-	out.WriteString("::ptr_eq(&self.")
-	out.WriteString(field.name)
-	out.WriteString(", &other.")
-	out.WriteString(field.name)
-	out.WriteString(")) }")
-}
-
-func writeStructComparableGoPtrFieldEq(out *strings.Builder, field structComparableField) {
-	out.WriteString("GoPtr::ptr_eq(&self.")
-	out.WriteString(field.name)
-	out.WriteString(", &other.")
-	out.WriteString(field.name)
-	out.WriteString(")")
-}
-
-func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComparableField) {
-	outerWrapper := GetOuterWrapperType()
-	out.WriteString("            let __left_some = self.")
-	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
-	out.WriteString("            let __right_some = other.")
-	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
-	out.WriteString("            let __ord = match (__left_some, __right_some) {\n")
-	out.WriteString("                (false, false) => std::cmp::Ordering::Equal,\n")
-	out.WriteString("                (false, true) => std::cmp::Ordering::Less,\n")
-	out.WriteString("                (true, false) => std::cmp::Ordering::Greater,\n")
-	out.WriteString("                (true, true) => (")
-	out.WriteString(outerWrapper)
-	out.WriteString("::as_ptr(&self.")
-	out.WriteString(field.name)
-	out.WriteString(") as usize).cmp(&(")
-	out.WriteString(outerWrapper)
-	out.WriteString("::as_ptr(&other.")
-	out.WriteString(field.name)
-	out.WriteString(") as usize)),\n")
-	out.WriteString("            };\n")
-	out.WriteString("            match __ord {\n")
-	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
-	out.WriteString("                __ord => return __ord,\n")
-	out.WriteString("            }\n")
-}
-
-func writeStructComparableGoPtrFieldOrd(out *strings.Builder, field structComparableField) {
-	out.WriteString("            match self.")
-	out.WriteString(field.name)
-	out.WriteString(".addr().cmp(&other.")
-	out.WriteString(field.name)
-	out.WriteString(".addr()) {\n")
-	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
-	out.WriteString("                __ord => return __ord,\n")
-	out.WriteString("            }\n")
-}
-
-func structComparableFieldIsGeneratedGoPtr(structName string, field structComparableField) bool {
-	return field.goName != "" && generatedGoPtrFieldForStructNameField(structName, field.goName)
-}
-
-func writeStructComparableFieldEq(out *strings.Builder, structName string, field structComparableField) {
-	typ, ok := structComparableFieldType(field)
-	if !ok {
-		writeStructComparableFieldTypeInfoRequired(out, "compare", field)
-		return
-	}
-	if isPointerType(typ) {
-		if structComparableFieldIsGeneratedGoPtr(structName, field) {
-			writeStructComparableGoPtrFieldEq(out, field)
-			return
-		}
-		writeStructComparablePointerFieldEq(out, field)
-		return
-	}
-	// Each side is read under its own lock, one after the other. Two values
-	// can share a field's cell (an interface value and its copy share the
-	// fields of the struct they hold), and holding both locks at once would
-	// then lock one mutex twice.
-	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		out.WriteString("{ let __left = { self.")
-		out.WriteString(field.name)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".clone() }; let __right = { other.")
-		out.WriteString(field.name)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
-		out.WriteString(traitMethodSuffix(ifaceName))
-		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
-		return
-	}
-	out.WriteString("{ let __left = { self.")
-	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() }; let __right = { other.")
-	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() }; __left == __right }")
-}
-
-func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
-	out.WriteString("        {\n")
-	typ, ok := structComparableFieldType(field)
-	if !ok {
-		out.WriteString("            ")
-		writeStructComparableFieldTypeInfoRequired(out, "order", field)
-		out.WriteString(";\n")
-		out.WriteString("        }\n")
-		return
-	}
-	if isPointerType(typ) {
-		if structComparableFieldIsGeneratedGoPtr(structName, field) {
-			writeStructComparableGoPtrFieldOrd(out, field)
-		} else {
-			writeStructComparablePointerFieldOrd(out, field)
-		}
-		out.WriteString("        }\n")
-		return
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		out.WriteString("            let __left = self.")
-		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
-		out.WriteString("            let __right = other.")
-		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
-		out.WriteString("            let __ord = match (__left.as_ref(), __right.as_ref()) {\n")
-		out.WriteString("                (None, None) => std::cmp::Ordering::Equal,\n")
-		out.WriteString("                (None, Some(_)) => std::cmp::Ordering::Less,\n")
-		out.WriteString("                (Some(_), None) => std::cmp::Ordering::Greater,\n")
-		out.WriteString("                (Some(__left), Some(__right)) => format!(\"{}\", __left.as_ref()).cmp(&format!(\"{}\", __right.as_ref())),\n")
-		out.WriteString("            };\n")
-		out.WriteString("            match __ord {\n")
-		out.WriteString("                std::cmp::Ordering::Equal => {}\n")
-		out.WriteString("                __ord => return __ord,\n")
-		out.WriteString("            }\n")
-		out.WriteString("        }\n")
-		return
-	}
-	out.WriteString("            let __left = { self.")
-	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
-	out.WriteString("            let __right = { other.")
-	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
-	out.WriteString("            match __left.cmp(&__right) {\n")
-	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
-	out.WriteString("                __ord => return __ord,\n")
-	out.WriteString("            }\n")
-	out.WriteString("        }\n")
-}
-
-func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	if !structNeedsCustomPartialEq(structName, structType) {
-		return
-	}
-
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "PartialEq", rustStructName)
-	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
-
-	fields := structComparableFields(structType)
-	if len(fields) == 0 {
-		out.WriteString("        true\n")
-	} else {
-		out.WriteString("        (\n")
-		for i, field := range fields {
-			if i > 0 {
-				out.WriteString("\n                && ")
-			} else {
-				out.WriteString("            ")
-			}
-			writeStructComparableFieldEq(out, structName, field)
-		}
-		out.WriteString("\n        )\n")
-	}
-
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func structNeedsPointerComparableIdentity(structName string) bool {
-	if structName == "" || currentContext == nil || currentContext.Package == nil {
-		return false
-	}
-	return currentContext.Package.PointerComparablePointeeTypes[structName]
-}
-
-func generateStructPointerComparableIdentity(out *strings.Builder, structName string, generics rustTypeGenerics) {
-	if !structNeedsPointerComparableIdentity(structName) {
-		return
-	}
-	NeedGoComparable()
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "GoComparable", rustStructName)
-	out.WriteString("    fn go_eq(&self, other: &Self) -> bool {\n")
-	out.WriteString("        std::ptr::eq(self, other)\n")
-	out.WriteString("    }\n")
-	out.WriteString("    fn go_hash(&self, seed: usize) -> usize {\n")
-	out.WriteString("        let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-	out.WriteString("        std::hash::Hash::hash(&seed, &mut __hasher);\n")
-	out.WriteString("        std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);\n")
-	out.WriteString("        std::hash::Hasher::finish(&__hasher) as usize\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func generateStructOrd(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	if !structNeedsCustomOrd(structName, structType) {
-		return
-	}
-
-	rustStructName := RustTypeNameForUse(structName)
-	out.WriteString("\nimpl")
-	out.WriteString(generics.Decl)
-	out.WriteString(" Eq for ")
-	out.WriteString(rustStructName)
-	out.WriteString(generics.Use)
-	out.WriteString(" {}\n")
-
-	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "Ord", rustStructName)
-	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
-
-	fields := structComparableFields(structType)
-	for _, field := range fields {
-		writeStructComparableFieldOrd(out, structName, field)
-	}
-	out.WriteString("        std::cmp::Ordering::Equal\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func generateStructValueClone(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	if structType == nil {
-		return
-	}
-	type cloneFieldReturn struct {
-		fieldName string
-		localName string
-	}
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustInherentImplHeader(out, generics, rustStructName)
-	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
-	fieldsForReturn := []cloneFieldReturn{}
-	for fieldIndex, field := range structType.Fields.List {
-		fieldNames := field.Names
-		if len(fieldNames) == 0 {
-			fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
-		}
-		for nameIndex, name := range fieldNames {
-			fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
-			localName := fmt.Sprintf("__go_clone_%d_%d", fieldIndex, nameIndex)
-			out.WriteString("        let ")
-			out.WriteString(localName)
-			out.WriteString(" = ")
-			writeStructCloneField(out, fieldName, field.Type)
-			out.WriteString(";\n")
-			fieldsForReturn = append(fieldsForReturn, cloneFieldReturn{
-				fieldName: fieldName,
-				localName: localName,
-			})
-		}
-	}
-	if len(generics.Phantom) > 0 {
-		out.WriteString("        let __go_clone_phantom = std::marker::PhantomData;\n")
-		fieldsForReturn = append(fieldsForReturn, cloneFieldReturn{
-			fieldName: "__go_phantom",
-			localName: "__go_clone_phantom",
-		})
-	}
-	out.WriteString("        Self {\n")
-	for _, field := range fieldsForReturn {
-		out.WriteString("            ")
-		out.WriteString(field.fieldName)
-		out.WriteString(": ")
-		out.WriteString(field.localName)
-		out.WriteString(",\n")
-	}
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-// generateStructClone writes Clone for a struct with type parameters, which
-// does not derive it. It is the Clone every other struct derives: each field
-// cell's handle is cloned, so the clone is the same struct again. Pointer
-// receivers depend on that: "self.clone()" is how a method hands on its
-// receiver. Go's copy of the struct is __go_value_clone.
-func generateStructClone(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "Clone", rustStructName)
-	out.WriteString("    fn clone(&self) -> Self {\n")
-	out.WriteString("        Self {\n")
-	if structType != nil {
-		for fieldIndex, field := range structType.Fields.List {
-			fieldNames := field.Names
-			if len(fieldNames) == 0 {
-				fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
-			}
-			for nameIndex, name := range fieldNames {
-				fieldName := rustStructFieldName(name, fieldIndex, nameIndex)
-				out.WriteString("            ")
-				out.WriteString(fieldName)
-				out.WriteString(": self.")
-				out.WriteString(fieldName)
-				out.WriteString(".clone(),\n")
-			}
-		}
-	}
-	if len(generics.Phantom) > 0 {
-		out.WriteString("            __go_phantom: std::marker::PhantomData,\n")
-	}
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func generateStructGoValueClone(out *strings.Builder, structName string, generics rustTypeGenerics) {
-	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "GoValueClone", rustStructName)
-	out.WriteString("    fn go_value_clone(&self) -> Self {\n")
-	out.WriteString("        self.__go_value_clone()\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-	if helpers := activeHelperTracker(); helpers != nil && helpers.needsGoTypeParamFieldClone {
-		out.WriteString("\n")
-		writeRustTraitImplHeader(out, generics, "GoTypeParamFieldClone", rustStructName)
-		out.WriteString("    const GO_COPY_KEEPS_HANDLE: bool = false;\n")
-		writeGoTypeParamFieldCloneMethod(out, false)
-		out.WriteString("}\n")
-	}
-}
-
-func writeGoTypeParamFieldCloneMethod(out *strings.Builder, keepsHandle bool) {
-	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
-	out.WriteString("    fn go_type_param_field_clone(field: &")
-	out.WriteString(outerWrapper)
-	out.WriteString("<")
-	out.WriteString(innerWrapper)
-	out.WriteString("<Option<Self>>>) -> ")
-	out.WriteString(outerWrapper)
-	out.WriteString("<")
-	out.WriteString(innerWrapper)
-	out.WriteString("<Option<Self>>> {\n        ")
-	if keepsHandle {
-		out.WriteString("field.clone()\n")
-	} else {
-		out.WriteString("let __guard = field")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; ")
-		out.WriteString(outerWrapper)
-		out.WriteString("::new(")
-		out.WriteString(innerWrapper)
-		out.WriteString("::new((*__guard).as_ref().map(|__go_field| __go_field.go_value_clone())))\n")
-	}
-	out.WriteString("    }\n")
-}
-
-func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast.Expr) {
-	if typeParamName, ok := directStructFieldTypeParamName(fieldType); ok {
-		NeedGoTypeParamFieldClone()
-		out.WriteString("<")
-		out.WriteString(typeParamName)
-		out.WriteString(" as GoTypeParamFieldClone>::go_type_param_field_clone(&self.")
-		out.WriteString(fieldName)
-		out.WriteString(")")
-		return
-	}
-	if structCloneFieldKeepsHandle(fieldType) {
-		out.WriteString("self.")
-		out.WriteString(fieldName)
-		out.WriteString(".clone()")
-		return
-	}
-	out.WriteString("{ let __guard = self.")
-	out.WriteString(fieldName)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::new(")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new(")
-	if copyCall, known := goValueCopyCallForExpr(fieldType); !known {
-		out.WriteString(goValueCopyNeedsTypeInfo)
-	} else if copyCall != ".clone()" {
-		// A struct inside the struct, or an array of them, is a value too:
-		// the copy gets its own.
-		out.WriteString("(*__guard).as_ref().map(|__go_field| __go_field")
-		out.WriteString(copyCall)
-		out.WriteString(")")
-	} else {
-		out.WriteString("(*__guard).clone()")
-	}
-	out.WriteString(")) }")
-}
-
-// directStructFieldTypeParamName returns the Rust type parameter for a field
-// whose declared Go type is exactly that parameter. The type checker's
-// underlying type for `T any` is an interface, which is not enough to decide
-// whether an instantiated field is a Go handle (slice, map, pointer, channel)
-// or a value (scalar, array, struct). GoValueClone carries that decision into
-// the Rust instantiation instead of guessing from the syntax.
-func directStructFieldTypeParamName(fieldType ast.Expr) (string, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || fieldType == nil {
-		return "", false
-	}
-	typ := typeInfo.GetType(fieldType)
-	typeParam, ok := types.Unalias(typ).(*types.TypeParam)
-	if !ok || typeParam.Obj() == nil {
-		return "", false
-	}
-	return RustTypeNameForUse(typeParam.Obj().Name()), true
-}
-
-func structCloneFieldKeepsHandle(expr ast.Expr) bool {
-	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) || isGoErrorTypeExpr(expr) {
-		return true
-	}
-	switch t := expr.(type) {
-	case *ast.StarExpr, *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.InterfaceType:
-		return true
-	case *ast.ArrayType:
-		return t.Len == nil
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			switch types.Unalias(typ).Underlying().(type) {
-			case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature, *types.Interface:
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
-	if nestedStruct, ok := fieldType.(*ast.StructType); ok {
-		nestedName := generateAnonymousStructType(nestedStruct)
-		WriteWrapperPrefix(out)
-		out.WriteString(nestedName)
-		out.WriteString("::default()")
-		WriteWrapperSuffix(out)
-		return
-	}
-	if fieldIdent, ok := fieldType.(*ast.Ident); ok {
-		if _, isStruct := structDefs[fieldIdent.Name]; isStruct {
-			WriteWrapperPrefix(out)
-			out.WriteString(RustTypeNameForUse(fieldIdent.Name))
-			out.WriteString("::default()")
-			WriteWrapperSuffix(out)
-			return
-		}
-	}
-	if isSyncParam(fieldType) {
-		if isSourceMappedSyncParam(fieldType) {
-			out.WriteString("Default::default()")
-			return
-		}
-		out.WriteString(goTypeToRustBase(fieldType))
-		out.WriteString("::new()")
-		return
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(fieldType); typ != nil {
-			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
-				out.WriteString("Default::default()")
-				return
-			}
-			if writeWrappedNamedMapZeroValue(out, typ) {
-				return
-			}
-			if structFieldHasNilZero(typ) {
-				WriteWrappedNone(out)
-				return
-			}
-			WriteWrapperPrefix(out)
-			out.WriteString(zeroValueForTypesType(typ))
-			WriteWrapperSuffix(out)
-			return
-		}
-	}
-	out.WriteString("Default::default()")
-}
-
-func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	if !structNeedsCustomDefault(structType) {
-		return
-	}
-	type defaultFieldValue struct {
-		fieldName string
-		localName string
-	}
-	writeDefaultFieldValue := func(field *ast.Field, name *ast.Ident, fieldName string) {
-		if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-			writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
-		} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-			WriteWrappedNone(out)
-		} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
-			NeedSliceElemPtr()
-			out.WriteString("GoPtr::nil()")
-		} else if name != nil && syncAtomicPointerStorageField(typeSpec, field, name) {
-			WriteWrappedNone(out)
-		} else {
-			writeStructDefaultValue(out, field.Type)
-		}
-	}
-	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "Default", RustTypeNameForUse(structName))
-	out.WriteString("    fn default() -> Self {\n")
-	var fieldValues []defaultFieldValue
-	for fieldIndex, field := range structType.Fields.List {
-		if len(field.Names) > 0 {
-			for nameIndex, name := range field.Names {
-				localName := fmt.Sprintf("__go_default_%d_%d", fieldIndex, nameIndex)
-				out.WriteString("        let ")
-				out.WriteString(localName)
-				out.WriteString(" = ")
-				writeDefaultFieldValue(field, name, name.Name)
-				out.WriteString(";\n")
-				fieldValues = append(fieldValues, defaultFieldValue{
-					fieldName: rustStructFieldName(name, fieldIndex, nameIndex),
-					localName: localName,
-				})
-			}
-		} else {
-			fieldName := getEmbeddedFieldName(field.Type)
-			localName := fmt.Sprintf("__go_default_%d_0", fieldIndex)
-			out.WriteString("        let ")
-			out.WriteString(localName)
-			out.WriteString(" = ")
-			writeDefaultFieldValue(field, nil, fieldName)
-			out.WriteString(";\n")
-			fieldValues = append(fieldValues, defaultFieldValue{
-				fieldName: ToSnakeCase(fieldName),
-				localName: localName,
-			})
-		}
-	}
-	if len(generics.Phantom) > 0 {
-		out.WriteString("        let __go_default_phantom = std::marker::PhantomData;\n")
-		fieldValues = append(fieldValues, defaultFieldValue{
-			fieldName: "__go_phantom",
-			localName: "__go_default_phantom",
-		})
-	}
-	out.WriteString("        Self {\n")
-	for _, fieldValue := range fieldValues {
-		out.WriteString("            ")
-		out.WriteString(fieldValue.fieldName)
-		out.WriteString(": ")
-		out.WriteString(fieldValue.localName)
-		out.WriteString(",\n")
-	}
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func shouldGenerateJsonDecodeImpl() bool {
-	return currentContext != nil &&
-		currentContext.UsePackageExternalStubs &&
-		currentContext.Package != nil &&
-		currentContext.Package.JsonDecodeSupportNeeded
-}
-
-func packageNeedsJsonDecodeSupport(files []*ast.File, typeInfo *TypeInfo) bool {
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	for _, file := range files {
-		if file == nil {
-			continue
-		}
-		needed := false
-		ast.Inspect(file, func(node ast.Node) bool {
-			if needed {
-				return false
-			}
-			ident, ok := node.(*ast.Ident)
-			if !ok {
-				return true
-			}
-			obj := typeInfo.info.Uses[ident]
-			if obj == nil || obj.Pkg() == nil || obj.Pkg().Path() != "encoding/json" {
-				return true
-			}
-			switch obj.Name() {
-			case "Decoder", "Decode", "More", "NewDecoder", "Unmarshal":
-				needed = true
-				return false
-			default:
-				return true
-			}
-		})
-		if needed {
-			return true
-		}
-	}
-	return false
-}
-
-func jsonDecodeFieldName(fieldName string, tag *ast.BasicLit) (string, bool) {
-	tagValue := ""
-	if tag != nil && tag.Value != "" {
-		if unquoted, err := strconv.Unquote(tag.Value); err == nil {
-			tagValue = unquoted
-		}
-	}
-	jsonName, include, _ := jsonFieldName(fieldName, tagValue)
-	return jsonName, include
-}
-
-func jsonDecodeTypeSupported(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	typ = types.Unalias(typ)
-	switch t := typ.(type) {
-	case *types.Named:
-		if t.Obj() != nil && t.Obj().Pkg() != nil && isStdlibPackage(t.Obj().Pkg().Path()) {
-			return false
-		}
-		_, ok := types.Unalias(t.Underlying()).(*types.Struct)
-		return ok
-	case *types.Pointer:
-		return jsonDecodeTypeSupported(t.Elem())
-	case *types.Slice:
-		return jsonDecodeTypeSupported(t.Elem())
-	case *types.Array:
-		return jsonDecodeTypeSupported(t.Elem())
-	case *types.Map:
-		key, ok := types.Unalias(t.Key()).Underlying().(*types.Basic)
-		return ok && key.Kind() == types.String && jsonDecodeTypeSupported(t.Elem())
-	case *types.Struct:
-		return true
-	case *types.Basic:
-		switch t.Kind() {
-		case types.Bool,
-			types.Int, types.Int8, types.Int16, types.Int32, types.Int64,
-			types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64, types.Uintptr,
-			types.Float32, types.Float64,
-			types.String:
-			return true
-		default:
-			return false
-		}
-	default:
-		underlying := typ.Underlying()
-		if underlying == typ {
-			return false
-		}
-		return jsonDecodeTypeSupported(underlying)
-	}
-}
-
-func jsonDecodeFieldSupported(fieldType ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return jsonDecodeTypeSupported(typeInfo.GetType(fieldType))
-}
-
-func generateStructJsonDecode(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
-	if !shouldGenerateJsonDecodeImpl() || structType == nil {
-		return
-	}
-	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "GoJsonDecode", RustTypeNameForUse(structName))
-	out.WriteString("    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {\n")
-	out.WriteString("        let object = value.as_object().ok_or_else(|| go_json_expected(value, \"object\"))?;\n")
-	out.WriteString("        let mut out = Self::default();\n")
-	for _, field := range structType.Fields.List {
-		if !jsonDecodeFieldSupported(field.Type) {
-			continue
-		}
-		for _, name := range field.Names {
-			if name == nil || !name.IsExported() {
-				continue
-			}
-			jsonName, include := jsonDecodeFieldName(name.Name, field.Tag)
-			if !include {
-				continue
-			}
-			out.WriteString("        if let Some(field_value) = object.get(")
-			out.WriteString(strconv.Quote(jsonName))
-			out.WriteString(") {\n")
-			out.WriteString("            out.")
-			out.WriteString(ToSnakeCase(name.Name))
-			out.WriteString(" = ")
-			if _, ok := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name); ok {
-				NeedSliceElemPtr()
-				out.WriteString("GoPtr::local(")
-				out.WriteString("<")
-				out.WriteString(GoTypeToRust(field.Type))
-				out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?)")
-			} else {
-				out.WriteString("<")
-				out.WriteString(GoTypeToRust(field.Type))
-				out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?")
-			}
-			out.WriteString(";\n")
-			out.WriteString("        }\n")
-		}
-	}
-	out.WriteString("        Ok(out)\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func typeHasTraitField(expr ast.Expr) bool {
-	return typeHasTraitFieldSeen(expr, make(map[string]bool))
-}
-
-func typeCanDeriveDebug(expr ast.Expr, seen map[string]bool) bool {
-	if isFunctionSignatureTypeExpr(expr) {
-		return false
-	}
-
-	fieldType := goTypeToRustBase(expr)
-	if strings.Contains(fieldType, "dyn ") {
-		return false
-	}
-
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil {
-			if typeReferencesExternalNamedType(typ) {
-				return false
-			}
-			return goTypesTypeCanDeriveDebug(typ, make(map[*types.Named]bool))
-		}
-	}
-
-	switch t := expr.(type) {
-	case *ast.ArrayType:
-		return typeCanDeriveDebug(t.Elt, seen)
-	case *ast.MapType:
-		return typeCanDeriveDebug(t.Key, seen) && typeCanDeriveDebug(t.Value, seen)
-	case *ast.StarExpr:
-		return typeCanDeriveDebug(t.X, seen)
-	case *ast.StructType:
-		return structCanDeriveDebug(t)
-	case *ast.FuncType, *ast.InterfaceType:
-		return false
-	case *ast.Ident:
-		if seen[t.Name] {
-			return true
-		}
-		if def, ok := structDefs[t.Name]; ok && def.ASTType != nil {
-			seen[t.Name] = true
-			return structCanDeriveDebugSeen(def.ASTType, seen)
-		}
-	case *ast.SelectorExpr:
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return goPackageImports[ident.Name] == "" || isStdlibPackage(goPackageImports[ident.Name])
-		}
-	}
-	return true
-}
-
-func typeDefinitionCanDeriveDebug(typeSpec *ast.TypeSpec) bool {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
-	if !ok || obj == nil || obj.Type() == nil {
-		return false
-	}
-	return goTypesTypeCanDeriveDebug(obj.Type(), make(map[*types.Named]bool))
-}
-
-func goTypesTypeCanDeriveDebug(typ types.Type, seen map[*types.Named]bool) bool {
-	if typ == nil {
-		return false
-	}
-	typ = types.Unalias(typ)
-	switch t := typ.(type) {
-	case *types.Named:
-		if !goTypesNamedTypeGeneratedInCurrentPackage(t) {
-			return false
-		}
-		if seen[t] {
-			return true
-		}
-		seen[t] = true
-		return goTypesTypeCanDeriveDebug(t.Underlying(), seen)
-	case *types.Basic:
-		return t.Kind() != types.Invalid
-	case *types.Pointer:
-		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
-	case *types.Slice:
-		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
-	case *types.Array:
-		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
-	case *types.Map:
-		return goTypesMapKeyCanDeriveDebug(t.Key(), seen) && goTypesTypeCanDeriveDebug(t.Elem(), seen)
-	case *types.Struct:
-		for i := 0; i < t.NumFields(); i++ {
-			if !goTypesTypeCanDeriveDebug(t.Field(i).Type(), seen) {
-				return false
-			}
-		}
-		return true
-	case *types.Chan:
-		return true
-	case *types.Interface, *types.Signature, *types.TypeParam:
-		return false
-	default:
-		return false
-	}
-}
-
-func goTypesNamedTypeGeneratedInCurrentPackage(named *types.Named) bool {
-	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg().Path() == typeInfo.pkg.Path()
-}
-
-func goTypesMapKeyCanDeriveDebug(typ types.Type, seen map[*types.Named]bool) bool {
-	if typ == nil {
-		return false
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Pointer, *types.Interface:
-		return true
-	default:
-		return goTypesTypeCanDeriveDebug(typ, seen)
-	}
-}
-
-func typeReferencesExternalNamedType(typ types.Type) bool {
-	return typeReferencesExternalNamedTypeSeen(types.Unalias(typ), make(map[types.Type]bool))
-}
-
-func typeReferencesExternalNamedTypeSeen(typ types.Type, seen map[types.Type]bool) bool {
-	if typ == nil {
-		return false
-	}
-	typ = types.Unalias(typ)
-	if seen[typ] {
-		return false
-	}
-	seen[typ] = true
-
-	switch t := typ.(type) {
-	case *types.Named:
-		if t.Obj() != nil && t.Obj().Pkg() != nil {
-			pkgPath := t.Obj().Pkg().Path()
-			if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.pkg == nil || t.Obj().Pkg() != typeInfo.pkg {
-				if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
-					return true
-				}
-			}
-		}
-		return typeReferencesExternalNamedTypeSeen(t.Underlying(), seen)
-	case *types.Array:
-		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
-	case *types.Slice:
-		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
-	case *types.Map:
-		return typeReferencesExternalNamedTypeSeen(t.Key(), seen) || typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
-	case *types.Pointer:
-		return typeReferencesExternalNamedTypeSeen(t.Elem(), seen)
-	case *types.Struct:
-		for i := 0; i < t.NumFields(); i++ {
-			if typeReferencesExternalNamedTypeSeen(t.Field(i).Type(), seen) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func mapFieldNeedsOpaqueDisplay(expr ast.Expr) bool {
-	mapType, ok := expr.(*ast.MapType)
-	if !ok {
-		return false
-	}
-	return !mapValueCanUseDisplay(mapType.Value)
-}
-
-func mapValueCanUseDisplay(expr ast.Expr) bool {
-	if isEmptyInterfaceExpr(expr) {
-		return false
-	}
-	if isFunctionSignatureTypeExpr(expr) {
-		return false
-	}
-	switch expr.(type) {
-	case *ast.ArrayType, *ast.MapType, *ast.FuncType:
-		return false
-	default:
-		return true
-	}
-}
-
-func typeHasTraitFieldSeen(expr ast.Expr, seen map[string]bool) bool {
-	fieldType := goTypeToRustBase(expr)
-	if strings.Contains(fieldType, "dyn ") {
-		return true
-	}
-
-	switch t := expr.(type) {
-	case *ast.ArrayType:
-		return typeHasTraitFieldSeen(t.Elt, seen)
-	case *ast.MapType:
-		return typeHasTraitFieldSeen(t.Value, seen)
-	case *ast.StructType:
-		return structHasTraitField(t)
-	case *ast.Ident:
-		if seen[t.Name] {
-			return false
-		}
-		if def, ok := structDefs[t.Name]; ok && def.ASTType != nil {
-			seen[t.Name] = true
-			for _, field := range def.ASTType.Fields.List {
-				if typeHasTraitFieldSeen(field.Type, seen) {
-					return true
-				}
-			}
-		}
-	default:
-		return false
-	}
-	return false
-}
-
-// Helper to check if a function body contains defer statements
-func checkHasDefer(stmts []ast.Stmt) bool {
-	for _, stmt := range stmts {
-		if checkStmtHasDefer(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-func checkStmtHasDefer(stmt ast.Stmt) bool {
-	switch s := stmt.(type) {
-	case *ast.DeferStmt:
-		return !isMutexUnlockDefer(s.Call)
-	case *ast.BlockStmt:
-		return checkHasDefer(s.List)
-	case *ast.IfStmt:
-		return checkHasDefer(s.Body.List) || checkStmtHasDefer(s.Else)
-	case *ast.ForStmt:
-		return s.Body != nil && checkHasDefer(s.Body.List)
-	case *ast.RangeStmt:
-		return s.Body != nil && checkHasDefer(s.Body.List)
-	case *ast.SwitchStmt:
-		return checkHasDeferClauses(s.Body)
-	case *ast.TypeSwitchStmt:
-		return checkHasDeferClauses(s.Body)
-	case *ast.SelectStmt:
-		return checkHasDeferClauses(s.Body)
-	case *ast.LabeledStmt:
-		return checkStmtHasDefer(s.Stmt)
-	default:
-		return false
-	}
-}
-
-func checkHasDeferClauses(body *ast.BlockStmt) bool {
-	if body == nil {
-		return false
-	}
-	for _, stmt := range body.List {
-		switch clause := stmt.(type) {
-		case *ast.CaseClause:
-			if checkHasDefer(clause.Body) {
-				return true
-			}
-		case *ast.CommClause:
-			if checkHasDefer(clause.Body) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
-	writeFunctionTypeParamsWithParam(out, fnType, rustFunctionTypeParam)
-}
-
-func writeFunctionDeclTypeParams(out *strings.Builder, fn *ast.FuncDecl) {
-	if fn == nil || fn.Type == nil {
-		return
-	}
-	paramFunc := rustTypeDeclarationParam
-	boundKind := genericFunctionBoundKind(fn)
-	if boundKind&genericMethodBoundGoTypeParamFieldClone != 0 {
-		if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
-			paramFunc = rustCloneGoValueCloneAndGoTypeParamFieldCloneTypeParam
-		} else if boundKind&genericMethodBoundRustClone != 0 {
-			paramFunc = rustCloneAndGoTypeParamFieldCloneTypeParam
-		} else if boundKind&genericMethodBoundGoValueClone != 0 {
-			paramFunc = rustGoValueCloneAndGoTypeParamFieldCloneTypeParam
-		} else {
-			paramFunc = rustGoTypeParamFieldCloneTypeParam
-		}
-	} else if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
-		paramFunc = rustCloneAndGoValueCloneTypeParam
-	} else if boundKind&genericMethodBoundRustClone != 0 {
-		paramFunc = rustFunctionTypeParam
-	} else if boundKind&genericMethodBoundGoValueClone != 0 {
-		paramFunc = rustGoValueCloneTypeParam
-	}
-	writeFunctionTypeParamsWithParam(out, fn.Type, paramFunc)
-}
-
-func genericFunctionBoundKind(fn *ast.FuncDecl) genericMethodBoundKind {
-	boundKind := genericMethodBoundNone
-	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && ctx.Package.FunctionBoundKinds != nil {
-		if cached, ok := ctx.Package.FunctionBoundKinds[fn]; ok {
-			boundKind |= cached
-		}
-	}
-	if genericFunctionUsesDirectTypeParamValue(fn) {
-		boundKind |= genericMethodBoundGoValueClone
-	}
-	if genericFunctionUsesNestedTypeParamFieldClone(fn) {
-		boundKind |= genericMethodBoundGoTypeParamFieldClone
-	}
-	if genericSignatureUsesGoPtrDirectTypeParam(fn) {
-		boundKind |= genericMethodBoundRustClone
-	}
-	return boundKind
-}
-
-func writeFunctionTypeParamsWithParam(out *strings.Builder, fnType *ast.FuncType, paramFunc func(*ast.Ident) string) {
-	if fnType == nil || fnType.TypeParams == nil || len(fnType.TypeParams.List) == 0 {
-		return
-	}
-	var params []string
-	for _, field := range fnType.TypeParams.List {
-		for _, name := range field.Names {
-			params = append(params, paramFunc(name))
-		}
-	}
-	if len(params) == 0 {
-		return
-	}
-	out.WriteString("<")
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(">")
-}
-
-// writeTypeSpecAliasTypeParams declares a generic type alias's parameters
-// (`pub type Seq<V> = ...` for `type Seq[V any] func(yield func(V) bool)`).
-// Bare names only: Rust does not enforce bounds on type aliases
-// (type_alias_bounds), and the alias body already wraps the parameter
-// wherever the underlying signature requires it.
-func writeTypeSpecAliasTypeParams(out *strings.Builder, typeSpec *ast.TypeSpec) {
-	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
-		return
-	}
-	var params []string
-	for _, field := range typeSpec.TypeParams.List {
-		for _, name := range field.Names {
-			params = append(params, RustTypeNameForUse(name.Name))
-		}
-	}
-	if len(params) == 0 {
-		return
-	}
-	out.WriteString("<")
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(">")
-}
-
-func genericFunctionUsesDirectTypeParamValue(fn *ast.FuncDecl) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || fn == nil || fn.Type == nil {
-		return false
-	}
-	if fieldListHasDirectTypeParam(typeInfo, fn.Type.Params) || fieldListHasDirectTypeParam(typeInfo, fn.Type.Results) {
-		return true
-	}
-	return methodBodyUsesDirectTypeParamValue(typeInfo, fn.Body)
-}
-
-func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
-	return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustFunctionTypeParam)
-}
-
-func rustTypeGenericsForDeclarationTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
-	return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustTypeDeclarationParam)
-}
-
-func rustTypeGenericsForTypeSpecWithParam(typeSpec *ast.TypeSpec, paramFunc func(*ast.Ident) string) rustTypeGenerics {
-	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
-		return rustTypeGenerics{}
-	}
-	var declParams []string
-	var useParams []string
-	for _, field := range typeSpec.TypeParams.List {
-		for _, name := range field.Names {
-			declParams = append(declParams, paramFunc(name))
-			useParams = append(useParams, RustTypeNameForUse(name.Name))
-		}
-	}
-	if len(declParams) == 0 {
-		return rustTypeGenerics{}
-	}
-	return rustTypeGenerics{
-		Decl: "<" + strings.Join(declParams, ", ") + ">",
-		Use:  "<" + strings.Join(useParams, ", ") + ">",
-	}
-}
-
-func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
-	generics := rustTypeGenericsForDeclarationTypeSpec(typeSpec)
-	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
-	return generics
-}
-
-func rustTypeGenericsForStructGoValueClone(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
-	fieldCloneParams := make(map[string]bool)
-	if structType != nil {
-		for _, field := range structType.Fields.List {
-			if field == nil {
-				continue
-			}
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
-				collectGoTypeParamFieldCloneParams(typeInfo.GetType(field.Type), fieldCloneParams, make(map[types.Type]bool))
-			}
-		}
-	}
-	generics := rustTypeGenericsForTypeSpecWithParam(typeSpec, func(name *ast.Ident) string {
-		if fieldCloneParams[RustTypeNameForUse(name.Name)] {
-			return rustGoTypeParamFieldCloneTypeParam(name)
-		}
-		return rustTypeDeclarationParam(name)
-	})
-	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
-	return generics
-}
-
-// collectGoTypeParamFieldCloneParams records type parameters whose values are
-// copied by a generated struct copy helper. It follows value-containing
-// structs and arrays, but stops at Go handles such as pointers, slices, maps,
-// channels, functions, and interfaces.
-func collectGoTypeParamFieldCloneParams(typ types.Type, params map[string]bool, visiting map[types.Type]bool) {
-	if typ == nil || visiting[typ] {
-		return
-	}
-	visiting[typ] = true
-	defer delete(visiting, typ)
-
-	switch t := types.Unalias(typ).(type) {
-	case *types.TypeParam:
-		if t.Obj() != nil {
-			params[RustTypeNameForUse(t.Obj().Name())] = true
-		}
-	case *types.Named:
-		switch underlying := t.Underlying().(type) {
-		case *types.Struct:
-			for i := 0; i < underlying.NumFields(); i++ {
-				collectGoTypeParamFieldCloneParams(underlying.Field(i).Type(), params, visiting)
-			}
-		case *types.Array:
-			collectGoTypeParamFieldCloneParams(underlying.Elem(), params, visiting)
-		}
-	case *types.Struct:
-		for i := 0; i < t.NumFields(); i++ {
-			collectGoTypeParamFieldCloneParams(t.Field(i).Type(), params, visiting)
-		}
-	case *types.Array:
-		collectGoTypeParamFieldCloneParams(t.Elem(), params, visiting)
-	}
-}
-
-func rustStructDisplayGenerics(generics rustTypeGenerics, typeSpec *ast.TypeSpec, structType *ast.StructType) (rustTypeGenerics, bool) {
-	displayParams, ok := rustDisplayTypeParamsForStruct(typeSpec, structType)
-	if !ok {
-		return generics, false
-	}
-	if len(displayParams) == 0 {
-		return generics, true
-	}
-	clauses := make([]string, 0, len(displayParams))
-	for _, param := range displayParams {
-		clauses = append(clauses, param+": std::fmt::Display")
-	}
-	generics.Where = " where " + strings.Join(clauses, ", ")
-	return generics, true
-}
-
-func rustDisplayTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) ([]string, bool) {
-	if typeSpec == nil || typeSpec.TypeParams == nil || structType == nil {
-		return nil, true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil, false
-	}
-	used := make(map[string]bool)
-	for _, field := range structType.Fields.List {
-		if field == nil || field.Type == nil || !structDisplayFieldUsesDefaultFormatter(field.Type) {
-			continue
-		}
-		typ := typeInfo.GetType(field.Type)
-		if typ == nil {
-			return nil, false
-		}
-		if !collectRustDisplayTypeParamUses(typ, used, make(map[types.Type]bool)) {
-			return nil, false
-		}
-	}
-	if len(used) == 0 {
-		return nil, true
-	}
-	var params []string
-	for _, field := range typeSpec.TypeParams.List {
-		for _, name := range field.Names {
-			rustName := RustTypeNameForUse(name.Name)
-			if used[rustName] {
-				params = append(params, rustName)
-			}
-		}
-	}
-	return params, true
-}
-
-func structDisplayFieldUsesDefaultFormatter(expr ast.Expr) bool {
-	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) {
-		return false
-	}
-	switch expr.(type) {
-	case *ast.ChanType, *ast.MapType:
-		return false
-	}
-	if arrayFieldContainsFunction(expr) ||
-		sliceFieldContainsEmptyInterface(expr) ||
-		mapFieldNeedsOpaqueDisplay(expr) ||
-		arrayFieldNestedInnerIsPointer(expr) ||
-		arrayFieldNestedPointerInnerIsValue(expr) ||
-		arrayFieldNestedPointerInnerIsPointer(expr) ||
-		arrayFieldContainsSlice(expr) ||
-		pointerFieldContainsPointerSlice(expr) ||
-		pointerFieldContainsSlice(expr) ||
-		arrayFieldContainsPointer(expr) ||
-		arrayFieldContainsLocalInterface(expr) ||
-		structDisplayFieldIsPointer(expr) {
-		return false
-	}
-	if _, ok := expr.(*ast.ArrayType); ok {
-		return false
-	}
-	return true
-}
-
-func collectRustDisplayTypeParamUses(typ types.Type, used map[string]bool, seen map[types.Type]bool) bool {
-	if typ == nil {
-		return true
-	}
-	typ = types.Unalias(typ)
-	if seen[typ] {
-		return true
-	}
-	seen[typ] = true
-
-	switch t := typ.(type) {
-	case *types.TypeParam:
-		if t.Obj() != nil {
-			used[RustTypeNameForUse(t.Obj().Name())] = true
-		}
-	case *types.Named:
-		indexes, ok := rustNamedDisplayTypeArgIndexes(t, seen)
-		if !ok {
-			return false
-		}
-		typeArgs := t.TypeArgs()
-		for _, index := range indexes {
-			if typeArgs == nil || index < 0 || index >= typeArgs.Len() {
-				continue
-			}
-			if !collectRustDisplayTypeParamUses(typeArgs.At(index), used, seen) {
-				return false
-			}
-		}
-	case *types.Pointer, *types.Slice, *types.Array, *types.Map, *types.Chan, *types.Signature, *types.Interface:
-		return true
-	case *types.Tuple:
-		for i := 0; i < t.Len(); i++ {
-			if !collectRustDisplayTypeParamUses(t.At(i).Type(), used, seen) {
-				return false
-			}
-		}
-	case *types.Struct:
-		for i := 0; i < t.NumFields(); i++ {
-			fieldType := t.Field(i).Type()
-			if !structDisplayTypeUsesDefaultFormatter(fieldType) {
-				continue
-			}
-			if !collectRustDisplayTypeParamUses(fieldType, used, seen) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func rustNamedDisplayTypeArgIndexes(named *types.Named, seen map[types.Type]bool) ([]int, bool) {
-	if named == nil || named.TypeArgs() == nil || named.TypeArgs().Len() == 0 {
-		return nil, true
-	}
-	origin := named
-	if named.Origin() != nil {
-		origin = named.Origin()
-	}
-	if namedDisplayIgnoresTypeArgs(origin) {
-		return nil, true
-	}
-	typeParams := origin.TypeParams()
-	if typeParams == nil || typeParams.Len() == 0 {
-		return nil, true
-	}
-	obj := origin.Obj()
-	typeInfo := GetTypeInfo()
-	if obj == nil || obj.Pkg() == nil || typeInfo == nil || typeInfo.pkg == nil || obj.Pkg() != typeInfo.pkg {
-		indexes := make([]int, named.TypeArgs().Len())
-		for i := range indexes {
-			indexes[i] = i
-		}
-		return indexes, true
-	}
-	structType, ok := origin.Underlying().(*types.Struct)
-	if !ok {
-		indexes := make([]int, named.TypeArgs().Len())
-		for i := range indexes {
-			indexes[i] = i
-		}
-		return indexes, true
-	}
-	formalUses := make(map[string]bool)
-	for i := 0; i < structType.NumFields(); i++ {
-		fieldType := structType.Field(i).Type()
-		if !structDisplayTypeUsesDefaultFormatter(fieldType) {
-			continue
-		}
-		if !collectRustDisplayTypeParamUses(fieldType, formalUses, seen) {
-			return nil, false
-		}
-	}
-	var indexes []int
-	for i := 0; i < typeParams.Len(); i++ {
-		typeParam := typeParams.At(i)
-		if typeParam == nil || typeParam.Obj() == nil {
-			continue
-		}
-		if formalUses[RustTypeNameForUse(typeParam.Obj().Name())] {
-			indexes = append(indexes, i)
-		}
-	}
-	return indexes, true
-}
-
-func namedDisplayIgnoresTypeArgs(named *types.Named) bool {
-	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false
-	}
-	obj := named.Obj()
-	return obj.Pkg().Path() == "sync/atomic" && obj.Name() == "Pointer"
-}
-
-func structDisplayTypeUsesDefaultFormatter(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	typ = types.Unalias(typ)
-	if isGoSyncNamedType(typ) || isEmptyInterfaceType(typ) {
-		return false
-	}
-	if _, ok := typ.(*types.TypeParam); ok {
-		return true
-	}
-	switch typ.Underlying().(type) {
-	case *types.Pointer, *types.Slice, *types.Array, *types.Map, *types.Chan, *types.Signature, *types.Interface:
-		return false
-	default:
-		return true
-	}
-}
-
-func rustUnusedTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) []string {
-	if typeSpec == nil || typeSpec.TypeParams == nil || structType == nil {
-		return nil
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil
-	}
-	typeParams := make([]string, 0, len(typeSpec.TypeParams.List))
-	paramSet := make(map[string]bool)
-	for _, field := range typeSpec.TypeParams.List {
-		for _, name := range field.Names {
-			if _, ok := typeInfo.info.Defs[name].(*types.TypeName); !ok {
-				continue
-			}
-			rustName := RustTypeNameForUse(name.Name)
-			typeParams = append(typeParams, rustName)
-			paramSet[rustName] = true
-		}
-	}
-	if len(typeParams) == 0 {
-		return nil
-	}
-	used := make(map[string]bool)
-	for _, field := range structType.Fields.List {
-		if field.Type == nil {
-			continue
-		}
-		collectRustTypeParamUses(typeInfo.GetType(field.Type), used, make(map[types.Type]bool))
-	}
-	var unused []string
-	for _, param := range typeParams {
-		if paramSet[param] && !used[param] {
-			unused = append(unused, param)
-		}
-	}
-	return unused
-}
-
-func collectRustTypeParamUses(typ types.Type, used map[string]bool, seen map[types.Type]bool) {
-	if typ == nil || seen[typ] {
-		return
-	}
-	seen[typ] = true
-	switch t := types.Unalias(typ).(type) {
-	case *types.TypeParam:
-		if t.Obj() != nil {
-			used[RustTypeNameForUse(t.Obj().Name())] = true
-		}
-	case *types.Named:
-		typeArgs := t.TypeArgs()
-		for i := 0; typeArgs != nil && i < typeArgs.Len(); i++ {
-			collectRustTypeParamUses(typeArgs.At(i), used, seen)
-		}
-	case *types.Pointer:
-		collectRustTypeParamUses(t.Elem(), used, seen)
-	case *types.Slice:
-		collectRustTypeParamUses(t.Elem(), used, seen)
-	case *types.Array:
-		collectRustTypeParamUses(t.Elem(), used, seen)
-	case *types.Map:
-		collectRustTypeParamUses(t.Key(), used, seen)
-		collectRustTypeParamUses(t.Elem(), used, seen)
-	case *types.Chan:
-		collectRustTypeParamUses(t.Elem(), used, seen)
-	case *types.Tuple:
-		for i := 0; i < t.Len(); i++ {
-			collectRustTypeParamUses(t.At(i).Type(), used, seen)
-		}
-	case *types.Signature:
-		collectRustTypeParamUses(t.Params(), used, seen)
-		collectRustTypeParamUses(t.Results(), used, seen)
-	case *types.Struct:
-		for i := 0; i < t.NumFields(); i++ {
-			collectRustTypeParamUses(t.Field(i).Type(), used, seen)
-		}
-	}
-}
-
-func writeRustPhantomField(out *strings.Builder, generics rustTypeGenerics) {
-	if len(generics.Phantom) == 0 {
-		return
-	}
-	out.WriteString("    pub __go_phantom: std::marker::PhantomData<")
-	writeRustPhantomType(out, generics.Phantom)
-	out.WriteString(">,\n")
-}
-
-func writeRustPhantomValue(out *strings.Builder, generics rustTypeGenerics, needComma *bool) {
-	if len(generics.Phantom) == 0 {
-		return
-	}
-	if *needComma {
-		out.WriteString(", ")
-	}
-	out.WriteString("__go_phantom: std::marker::PhantomData")
-	*needComma = true
-}
-
-func writeRustPhantomValueForStructDef(out *strings.Builder, structName string, needComma *bool) {
-	def := structDefs[structName]
-	if def == nil || len(def.PhantomTypeParams) == 0 {
-		return
-	}
-	writeRustPhantomValue(out, rustTypeGenerics{Phantom: def.PhantomTypeParams}, needComma)
-}
-
-func writeRustPhantomType(out *strings.Builder, params []string) {
-	if len(params) == 1 {
-		out.WriteString(params[0])
-		return
-	}
-	out.WriteString("(")
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(")")
-}
-
-func rustFunctionTypeParam(name *ast.Ident) string {
-	return rustTypeParam(name, []string{"Clone"})
-}
-
-func rustTypeDeclarationParam(name *ast.Ident) string {
-	return rustTypeParam(name, nil)
-}
-
-func rustGoValueCloneTypeParam(name *ast.Ident) string {
-	return rustTypeParam(name, []string{"GoValueClone"})
-}
-
-func rustGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
-	NeedGoTypeParamFieldClone()
-	return rustTypeParam(name, []string{"GoTypeParamFieldClone"})
-}
-
-func rustCloneAndGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
-	NeedGoTypeParamFieldClone()
-	return rustTypeParam(name, []string{"Clone", "GoTypeParamFieldClone"})
-}
-
-func rustGoValueCloneAndGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
-	NeedGoTypeParamFieldClone()
-	return rustTypeParam(name, []string{"GoValueClone", "GoTypeParamFieldClone"})
-}
-
-func rustCloneGoValueCloneAndGoTypeParamFieldCloneTypeParam(name *ast.Ident) string {
-	NeedGoTypeParamFieldClone()
-	return rustTypeParam(name, []string{"Clone", "GoValueClone", "GoTypeParamFieldClone"})
-}
-
-func rustCloneAndGoValueCloneTypeParam(name *ast.Ident) string {
-	return rustTypeParam(name, []string{"Clone", "GoValueClone"})
-}
-
-func rustTypeParam(name *ast.Ident, cloneBounds []string) string {
-	rustName := RustTypeNameForUse(name.Name)
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return rustName
-	}
-	obj, ok := typeInfo.info.Defs[name].(*types.TypeName)
-	if !ok {
-		return rustName
-	}
-	if goTypeParamHasComparableConstraint(obj.Type()) {
-		TrackImport("Any")
-		NeedGoComparable()
-		bounds := []string{"Any", "GoComparable"}
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if goTypeParamHasAnyConstraint(obj.Type()) {
-		TrackImport("Any")
-		bounds := []string{"Any"}
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if goTypeParamHasStringByteSliceConstraint(obj.Type()) {
-		NeedGoByteSequence()
-		bounds := []string{"GoByteSequence"}
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if goTypeParamHasIntegerConstraint(obj.Type()) {
-		NeedGoInteger()
-		bounds := []string{"GoInteger"}
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if traitName, ok := goTypeParamOrderedTraitConstraintName(obj.Type()); ok {
-		bounds := []string{traitName}
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-		bounds = append(bounds, "PartialOrd")
-		if goTypeParamHasStringConstraint(obj.Type()) {
-			bounds = append(bounds, "ToString")
-		}
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if goTypeParamHasOrderedConstraint(obj.Type()) {
-		var bounds []string
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-		bounds = append(bounds, "PartialOrd")
-		if goTypeParamHasStringConstraint(obj.Type()) {
-			bounds = append(bounds, "ToString")
-		}
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	if goTypeParamHasPointerConstraint(obj.Type()) {
-		var bounds []string
-		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-		if NeedsConcurrentWrapper() {
-			bounds = append(bounds, "Send", "Sync")
-		}
-		bounds = append(bounds, "'static")
-		return rustName + ": " + strings.Join(bounds, " + ")
-	}
-	traitName, ok := goTypeParamTraitConstraintName(obj.Type())
-	if !ok {
-		return rustName
-	}
-	bounds := []string{traitName}
-	bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
-	if NeedsConcurrentWrapper() {
-		bounds = append(bounds, "Send", "Sync")
-	}
-	bounds = append(bounds, "'static")
-	return rustName + ": " + strings.Join(bounds, " + ")
-}
-
-func appendTypeParamCloneBounds(bounds []string, cloneBounds []string, allowGoValueClone bool) []string {
-	for _, bound := range cloneBounds {
-		if bound == "" {
-			continue
-		}
-		if bound == "GoValueClone" && !allowGoValueClone {
-			bound = "Clone"
-		}
-		if bound == "GoValueClone" {
-			NeedGoValueClone()
-		}
-		bounds = append(bounds, bound)
-	}
-	return bounds
-}
-
-// localInterfaceTypesFromTypeSpec returns the go/types representation of the
-// interface declared by typeSpec, or nil if type information is unavailable or
-// the type is not an interface.
-func localInterfaceTypesFromTypeSpec(typeSpec *ast.TypeSpec) *types.Interface {
-	if typeSpec == nil {
-		return nil
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil
-	}
-	obj := typeInfo.info.Defs[typeSpec.Name]
-	if obj == nil {
-		return nil
-	}
-	named, ok := obj.Type().(*types.Named)
-	if !ok {
-		return nil
-	}
-	iface, ok := named.Underlying().(*types.Interface)
-	if !ok {
-		return nil
-	}
-	return iface
-}
-
-// packageLocalInterfaceNames returns the names of every named interface type
-// declared in the current package â€” across all files â€” unioned with the AST
-// interfaces of the file being emitted (a fallback for when type info is
-// unavailable). Trait-impl generation iterates this so a concrete type picks up
-// the interfaces it implements regardless of which file declares them.
-func packageLocalInterfaceNames(fileInterfaces map[string]*ast.InterfaceType) []string {
-	seen := map[string]bool{}
-	var names []string
-	add := func(name string) {
-		if name == "" || seen[name] {
-			return
-		}
-		seen[name] = true
-		names = append(names, name)
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
-		scope := typeInfo.pkg.Scope()
-		for _, name := range scope.Names() {
-			tn, ok := scope.Lookup(name).(*types.TypeName)
-			if !ok {
-				continue
-			}
-			named, ok := tn.Type().(*types.Named)
-			if !ok {
-				continue
-			}
-			if _, ok := named.Underlying().(*types.Interface); ok {
-				add(name)
-			}
-		}
-	}
-	for name := range fileInterfaces {
-		add(name)
-	}
-	return names
-}
-
-// localInterfaceTypesByName looks up the go/types interface for a top-level
-// type name in the current package.
-func localInterfaceTypesByName(name string) *types.Interface {
-	_, iface := localInterfaceNamedTypeByName(name)
-	return iface
-}
-
-func localInterfaceNamedTypeByName(name string) (*types.Named, *types.Interface) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil {
-		return nil, nil
-	}
-	obj := typeInfo.pkg.Scope().Lookup(name)
-	if obj == nil {
-		// An interface declared inside a function body is hoisted to a
-		// top-level trait, so its implementors need the same trait impls as
-		// those of a package-level interface.
-		if named := typeInfo.functionLocalInterfaceNamedByName(name); named != nil {
-			return named, named.Underlying().(*types.Interface)
-		}
-		return nil, nil
-	}
-	typeName, ok := obj.(*types.TypeName)
-	if !ok {
-		return nil, nil
-	}
-	named, ok := typeName.Type().(*types.Named)
-	if !ok {
-		return nil, nil
-	}
-	iface, ok := named.Underlying().(*types.Interface)
-	if !ok {
-		return nil, nil
-	}
-	return named, iface
-}
-
-func localInterfaceCanRustTraitUpcast(sourceName, targetName string) bool {
-	if sourceName == "" || targetName == "" || sourceName == targetName {
-		return false
-	}
-	source := localInterfaceTypesByName(sourceName)
-	return localInterfaceEmbedsNamed(source, targetName)
-}
-
-func localInterfaceEmbedsNamed(iface *types.Interface, targetName string) bool {
-	if iface == nil || targetName == "" {
-		return false
-	}
-	for i := 0; i < iface.NumEmbeddeds(); i++ {
-		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
-		if !ok || named.Obj() == nil {
-			continue
-		}
-		if named.Obj().Name() == targetName {
-			return true
-		}
-		embedded, _ := named.Underlying().(*types.Interface)
-		if localInterfaceEmbedsNamed(embedded, targetName) {
-			return true
-		}
-	}
-	return false
-}
-
-// embeddedLocalInterfaceNames returns the Rust trait names of named local
-// interfaces directly embedded in the given InterfaceType AST. The result is
-// in source order.
-func embeddedLocalInterfaceNames(t *ast.InterfaceType) []string {
-	if t == nil || t.Methods == nil {
-		return nil
-	}
-	var names []string
-	for _, method := range t.Methods.List {
-		if len(method.Names) > 0 {
-			continue
-		}
-		if name, ok := transpiledNamedInterfaceTypeNameFromExpr(method.Type); ok {
-			names = append(names, name)
-		}
-	}
-	return names
-}
-
-// localInterfaceHasEmbeddedInterfaces reports whether the named local
-// interface embeds any other named local interface (i.e., whether its Rust
-// trait has Rust supertraits beyond Display/Any).
-func localInterfaceHasEmbeddedInterfaces(ifaceName string) bool {
-	return interfaceTypeHasNamedEmbedded(localInterfaceTypesByName(ifaceName))
-}
-
-// methodFromEmbeddedInterface reports whether the given method on the named
-// local interface is inherited from an embedded named local interface (rather
-// than declared directly in the interface body).
-func methodFromEmbeddedInterface(ifaceName, methodName string) bool {
-	iface := localInterfaceTypesByName(ifaceName)
-	if iface == nil {
-		return false
-	}
-	for i := 0; i < iface.NumEmbeddeds(); i++ {
-		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
-		if !ok {
-			continue
-		}
-		embedded, ok := named.Underlying().(*types.Interface)
-		if !ok {
-			continue
-		}
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(named); !ok {
-			continue
-		}
-		for j := 0; j < embedded.NumMethods(); j++ {
-			if embedded.Method(j).Name() == methodName {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// writeTraitMethodSigFromTypes writes a Rust trait method signature derived
-// from a go/types signature. Used to emit methods inherited from embedded
-// interfaces whose declarations aren't directly walked by the AST loop.
-func writeTraitMethodSigFromTypes(out *strings.Builder, name string, sig *types.Signature) {
-	out.WriteString("    fn ")
-	out.WriteString(ToSnakeCase(name))
-	out.WriteString("(&self")
-	params := sig.Params()
-	for j := 0; j < params.Len(); j++ {
-		p := params.At(j)
-		pName := p.Name()
-		if pName == "" {
-			pName = fmt.Sprintf("_arg%d", j)
-		}
-		out.WriteString(", ")
-		out.WriteString(RustLocalIdent(pName))
-		out.WriteString(": ")
-		out.WriteString(goTypesParamTypeToRust(p.Type()))
-	}
-	out.WriteString(")")
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
-	out.WriteString(";\n")
-}
-
-func writeEmbeddedTraitObjectAdapters(out *strings.Builder, ifaceName string, embeddedTraits []string) {
-	for _, embeddedName := range embeddedTraits {
-		embeddedIface := localInterfaceTypesByName(embeddedName)
-		if embeddedIface == nil {
-			continue
-		}
-		writeEmbeddedTraitObjectAdapter(out, ifaceName, embeddedName, embeddedIface, true)
-	}
-}
-
-func writeLocalInterfaceGoValueCloneImpl(out *strings.Builder, ifaceName, traitSnake string) {
-	NeedGoValueClone()
-	out.WriteString("\n\nimpl GoValueClone for ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	out.WriteString("    fn go_value_clone(&self) -> Self {\n")
-	out.WriteString("        ")
-	out.WriteString(ifaceName)
-	out.WriteString("::__go_clone_box_")
-	out.WriteString(traitSnake)
-	out.WriteString("(self.as_ref())\n")
-	out.WriteString("    }\n")
-	out.WriteString("}")
-}
-
-func localInterfaceNeedsGoValueCloneImpl(ifaceName string) bool {
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.Package.LocalInterfaceGoValueClone == nil {
-		return false
-	}
-	return ctx.Package.LocalInterfaceGoValueClone[ifaceName]
-}
-
-func writeLocalInterfaceGoComparableImpl(out *strings.Builder, ifaceName, traitSnake string) {
-	NeedGoComparable()
-	out.WriteString("\n\nimpl GoComparable for ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	out.WriteString("    fn go_eq(&self, other: &Self) -> bool {\n")
-	out.WriteString("        self.__go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(other.as_ref())\n")
-	out.WriteString("    }\n")
-	out.WriteString("    fn go_hash(&self, _seed: usize) -> usize {\n")
-	out.WriteString("        panic!(\"interface hash with uncomparable dynamic type\")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}")
-}
-
-func localInterfaceNeedsGoComparableImpl(ifaceName string) bool {
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.Package.LocalInterfaceGoComparable == nil {
-		return false
-	}
-	return ctx.Package.LocalInterfaceGoComparable[ifaceName]
-}
-
-func localInterfaceNeedsMapKeyType(ifaceName string) bool {
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.Package.LocalInterfaceMapKeyTypes == nil {
-		return false
-	}
-	return ctx.Package.LocalInterfaceMapKeyTypes[ifaceName]
-}
-
-func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake string) {
-	keyType := localInterfaceMapKeyTypeName(ifaceName)
-	traitObject := rustLocalInterfaceTraitObject(ifaceName)
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString("\n\n#[derive(Clone)]\n")
-		out.WriteString("pub struct ")
-		out.WriteString(keyType)
-		out.WriteString("(pub Arc<Mutex<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>>);\n\n")
-		out.WriteString("impl ")
-		out.WriteString(keyType)
-		out.WriteString(" {\n")
-		out.WriteString("    pub fn new(value: Arc<Mutex<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>>) -> Self { ")
-		out.WriteString(keyType)
-		out.WriteString("(value) }\n")
-		out.WriteString("    pub fn value(&self) -> Arc<Mutex<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>> { self.0.clone() }\n")
-		out.WriteString("    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }\n")
-		out.WriteString("    fn identity(&self) -> (u64, String) {\n")
-		out.WriteString("        let __guard = self.0.lock().unwrap();\n")
-		out.WriteString("        match __guard.as_ref() {\n")
-		out.WriteString("            None => (0, String::new()),\n")
-		out.WriteString("            Some(__v) => {\n")
-		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&")
-		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
-		out.WriteString(".type_id(), &mut __hasher);\n")
-		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
-		out.WriteString("            }\n")
-		out.WriteString("        }\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
-	} else {
-		TrackImport("Rc")
-		TrackImport("RefCell")
-		out.WriteString("\n\n#[derive(Clone)]\n")
-		out.WriteString("pub struct ")
-		out.WriteString(keyType)
-		out.WriteString("(pub Rc<RefCell<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>>);\n\n")
-		out.WriteString("impl ")
-		out.WriteString(keyType)
-		out.WriteString(" {\n")
-		out.WriteString("    pub fn new(value: Rc<RefCell<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>>) -> Self { ")
-		out.WriteString(keyType)
-		out.WriteString("(value) }\n")
-		out.WriteString("    pub fn value(&self) -> Rc<RefCell<Option<")
-		out.WriteString(traitObject)
-		out.WriteString(">>> { self.0.clone() }\n")
-		out.WriteString("    fn addr(&self) -> usize { Rc::as_ptr(&self.0) as usize }\n")
-		out.WriteString("    fn identity(&self) -> (u64, String) {\n")
-		out.WriteString("        let __guard = self.0.borrow();\n")
-		out.WriteString("        match __guard.as_ref() {\n")
-		out.WriteString("            None => (0, String::new()),\n")
-		out.WriteString("            Some(__v) => {\n")
-		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&")
-		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
-		out.WriteString(".type_id(), &mut __hasher);\n")
-		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
-		out.WriteString("            }\n")
-		out.WriteString("        }\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
-	}
-	out.WriteString("impl PartialEq for ")
-	out.WriteString(keyType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("        let __left_guard = self.0.lock().unwrap();\n")
-		out.WriteString("        let __right_guard = other.0.lock().unwrap();\n")
-	} else {
-		out.WriteString("        let __left_guard = self.0.borrow();\n")
-		out.WriteString("        let __right_guard = other.0.borrow();\n")
-	}
-	out.WriteString("        match (__left_guard.as_ref(), __right_guard.as_ref()) {\n")
-	out.WriteString("            (None, None) => true,\n")
-	out.WriteString("            (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(__right.as_ref()),\n")
-	out.WriteString("            _ => false,\n")
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-	out.WriteString("impl Eq for ")
-	out.WriteString(keyType)
-	out.WriteString(" {}\n")
-	out.WriteString("impl PartialOrd for ")
-	out.WriteString(keyType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(std::cmp::Ord::cmp(self, other)) }\n")
-	out.WriteString("}\n")
-	out.WriteString("impl Ord for ")
-	out.WriteString(keyType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
-	out.WriteString("        if self == other { return std::cmp::Ordering::Equal; }\n")
-	out.WriteString("        match self.identity().cmp(&other.identity()) {\n")
-	out.WriteString("            std::cmp::Ordering::Equal => self.addr().cmp(&other.addr()),\n")
-	out.WriteString("            ordering => ordering,\n")
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-	out.WriteString("impl std::fmt::Debug for ")
-	out.WriteString(keyType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, \"{}\", self.identity().1) }\n")
-	out.WriteString("}\n")
-	out.WriteString("impl std::fmt::Display for ")
-	out.WriteString(keyType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, \"{}\", self.identity().1) }\n")
-	out.WriteString("}")
-}
-
-func writeAssignableInterfaceObjectAdapters(out *strings.Builder, ifaceName string) {
-	sourceNamed, _ := localInterfaceNamedTypeByName(ifaceName)
-	if sourceNamed == nil {
-		return
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
-		return
-	}
-	scope := typeInfo.pkg.Scope()
-	var targetNames []string
-	for _, name := range scope.Names() {
-		if name == ifaceName {
-			continue
-		}
-		targetNamed, targetIface := localInterfaceNamedTypeByName(name)
-		if targetNamed == nil || targetIface == nil || targetIface.NumMethods() == 0 {
-			continue
-		}
-		if !types.AssignableTo(sourceNamed, targetNamed) {
-			continue
-		}
-		if localInterfaceCanRustTraitUpcast(ifaceName, name) {
-			continue
-		}
-		targetNames = append(targetNames, name)
-	}
-	sort.Strings(targetNames)
-	for _, targetName := range targetNames {
-		writeEmbeddedTraitObjectAdapter(out, ifaceName, targetName, localInterfaceTypesByName(targetName), false)
-	}
-}
-
-func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedName string, embeddedIface *types.Interface, delegateEquality bool) {
-	out.WriteString("\n\nimpl ")
-	out.WriteString(embeddedName)
-	out.WriteString(" for ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	writeEmbeddedTraitObjectClone(out, embeddedName)
-	if !interfaceTypeHasNamedEmbedded(embeddedIface) {
-		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        ")
-		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "(**self)", "&**self"))
-		out.WriteString("\n")
-		out.WriteString("    }\n")
-	}
-	writeEmbeddedTraitObjectEq(out, ifaceName, embeddedName, delegateEquality)
-	for i := 0; i < embeddedIface.NumMethods(); i++ {
-		method := embeddedIface.Method(i)
-		writeEmbeddedTraitObjectMethod(out, method)
-	}
-	out.WriteString("}")
-}
-
-func writeEmbeddedTraitObjectClone(out *strings.Builder, embeddedName string) {
-	traitSnake := traitMethodSuffix(embeddedName)
-	out.WriteString("    fn __go_clone_box_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self) -> ")
-	out.WriteString(rustLocalInterfaceTraitObject(embeddedName))
-	out.WriteString(" {\n")
-	out.WriteString("        Box::new((*self).clone()) as ")
-	out.WriteString(rustLocalInterfaceTraitObject(embeddedName))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-}
-
-func writeEmbeddedTraitObjectEq(out *strings.Builder, ifaceName, embeddedName string, delegateEquality bool) {
-	traitSnake := traitMethodSuffix(embeddedName)
-	out.WriteString("    fn __go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self, other: ")
-	out.WriteString(rustLocalInterfaceParamBare(embeddedName))
-	out.WriteString(") -> bool {\n")
-	if !delegateEquality {
-		out.WriteString("        let _ = other;\n")
-		out.WriteString("        panic!(\"interface equality for structurally adapted ")
-		out.WriteString(ifaceName)
-		out.WriteString(" as ")
-		out.WriteString(embeddedName)
-		out.WriteString("\")\n")
-		out.WriteString("    }\n")
-		return
-	}
-	out.WriteString("        (**self).__go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(other)\n")
-	out.WriteString("    }\n")
-}
-
-func writeEmbeddedTraitObjectMethod(out *strings.Builder, method *types.Func) {
-	if method == nil {
-		return
-	}
-	sig, ok := method.Type().(*types.Signature)
-	if !ok {
-		return
-	}
-	out.WriteString("    fn ")
-	out.WriteString(ToSnakeCase(method.Name()))
-	out.WriteString("(")
-	if interfaceMethodRequiresMutableReceiver(method) {
-		out.WriteString("&mut self")
-	} else {
-		out.WriteString("&self")
-	}
-	params := sig.Params()
-	argNames := make([]string, 0, params.Len())
-	for j := 0; j < params.Len(); j++ {
-		p := params.At(j)
-		pName := p.Name()
-		if pName == "" {
-			pName = fmt.Sprintf("_arg%d", j)
-		}
-		pName = RustLocalIdent(pName)
-		argNames = append(argNames, pName)
-		out.WriteString(", ")
-		out.WriteString(pName)
-		out.WriteString(": ")
-		out.WriteString(goTypesParamTypeToRust(p.Type()))
-	}
-	out.WriteString(")")
-	writeInterfaceMethodResultTypesFromFunc(out, method)
-	out.WriteString(" {\n")
-	out.WriteString("        (**self).")
-	out.WriteString(ToSnakeCase(method.Name()))
-	out.WriteString("(")
-	for i, argName := range argNames {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(argName)
-	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-}
-
-func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType string) {
-	if method == nil {
-		return
-	}
-	sig, ok := method.Type().(*types.Signature)
-	if !ok {
-		return
-	}
-	out.WriteString("    fn ")
-	out.WriteString(ToSnakeCase(method.Name()))
-	out.WriteString("(")
-	if interfaceMethodRequiresMutableReceiver(method) {
-		out.WriteString("&mut self")
-	} else {
-		out.WriteString("&self")
-	}
-	params := sig.Params()
-	argNames := make([]string, 0, params.Len())
-	for j := 0; j < params.Len(); j++ {
-		param := params.At(j)
-		paramName := param.Name()
-		if paramName == "" {
-			paramName = fmt.Sprintf("__arg%d", j)
-		}
-		paramName = RustLocalIdent(paramName)
-		argNames = append(argNames, paramName)
-		out.WriteString(", ")
-		out.WriteString(paramName)
-		out.WriteString(": ")
-		out.WriteString(goTypesParamTypeToRust(param.Type()))
-	}
-	out.WriteString(")")
-	writeInterfaceMethodResultTypesFromFunc(out, method)
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	if receiverType != "" {
-		out.WriteString(receiverType)
-		out.WriteString("::")
-		out.WriteString(rustMethodNameForTypesFunc(method))
-		out.WriteString("(self")
-		if len(argNames) > 0 {
-			out.WriteString(", ")
-		}
-	} else {
-		out.WriteString("self.")
-		out.WriteString(rustMethodNameForTypesFunc(method))
-		out.WriteString("(")
-	}
-	for j, argName := range argNames {
-		if j > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(argName)
-	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-}
-
-func writeGoTypesSignatureResultTypes(out *strings.Builder, sig *types.Signature) {
-	if sig == nil || sig.Results() == nil {
-		return
-	}
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
-}
-
-func writeInterfaceMethodResultTypesFromFunc(out *strings.Builder, method *types.Func) bool {
-	if method == nil {
-		return false
-	}
-	sig, ok := method.Type().(*types.Signature)
-	if !ok {
-		return false
-	}
-	if resultInfos, ok := goPtrResultInfosForFuncObject(method); ok {
-		if writeGoPtrFuncResultTypesFromInfos(out, sig, resultInfos) {
-			return true
-		}
-	}
-	writeGoTypesSignatureResultTypes(out, sig)
-	return true
-}
-
-func writeAnonymousStructEmbeddedInterfaceImpls(out *strings.Builder, typeName string, structType *ast.StructType) {
-	if structType == nil || structType.Fields == nil {
-		return
-	}
-	seen := make(map[string]bool)
-	for fieldIndex, field := range structType.Fields.List {
-		if field == nil || len(field.Names) > 0 {
-			continue
-		}
-		ifaceName, ifaceType, ok := embeddedInterfaceTraitForTypeExpr(field.Type)
-		if !ok || seen[ifaceName] {
-			continue
-		}
-		seen[ifaceName] = true
-		fieldName := rustStructFieldName(ast.NewIdent(getEmbeddedFieldName(field.Type)), fieldIndex, 0)
-		out.WriteString("\n\nimpl ")
-		out.WriteString(ifaceName)
-		out.WriteString(" for ")
-		out.WriteString(typeName)
-		out.WriteString(" {\n")
-		for i := 0; i < ifaceType.NumMethods(); i++ {
-			writeEmbeddedInterfaceFieldTraitMethod(out, fieldName, ifaceType.Method(i))
-		}
-		writeLocalInterfaceSupportImpl(out, ifaceName, typeName, ifaceType)
-		out.WriteString("}")
-	}
-}
-
-func embeddedInterfaceTraitForTypeExpr(expr ast.Expr) (string, *types.Interface, bool) {
-	typ, ok := typeInfoTypeForTypeExpr(expr)
-	if !ok {
-		return "", nil, false
-	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok || named.Obj() == nil {
-		return "", nil, false
-	}
-	iface, ok := types.Unalias(named.Underlying()).(*types.Interface)
-	if !ok || iface.NumMethods() == 0 {
-		return "", nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg {
-		return RustTypeNameForUse(named.Obj().Name()), iface, true
-	}
-	if ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(named); ok {
-		return ifaceName, ifaceType, true
-	}
-	return "", nil, false
-}
-
-func writeEmbeddedInterfaceFieldTraitMethod(out *strings.Builder, fieldName string, method *types.Func) {
-	if method == nil {
-		return
-	}
-	sig, ok := method.Type().(*types.Signature)
-	if !ok {
-		return
-	}
-	params := sig.Params()
-	methodName := rustMethodNameForTypesFunc(method)
-	mutableReceiver := interfaceMethodRequiresMutableReceiver(method)
-
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(")
-	if mutableReceiver {
-		out.WriteString("&mut self")
-	} else {
-		out.WriteString("&self")
-	}
-	for i := 0; i < params.Len(); i++ {
-		fmt.Fprintf(out, ", _arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type()))
-	}
-	out.WriteString(")")
-	writeInterfaceMethodResultTypesFromFunc(out, method)
-	out.WriteString(" {\n")
-	out.WriteString("        let embedded = self.")
-	out.WriteString(fieldName)
-	out.WriteString(".clone();\n")
-	if mutableReceiver {
-		out.WriteString("        let mut guard = embedded")
-		WriteBorrowMethod(out, true)
-		out.WriteString(";\n")
-		out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
-	} else {
-		out.WriteString("        let guard = embedded")
-		WriteBorrowMethod(out, false)
-		out.WriteString(";\n")
-		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
-	}
-	out.WriteString("        embedded_ref.")
-	out.WriteString(methodName)
-	out.WriteString("(")
-	for i := 0; i < params.Len(); i++ {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		fmt.Fprintf(out, "_arg%d", i)
-	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-}
-
-func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
-	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
-	if !ok {
-		return nil, false
-	}
-	return &VarInfo{
-		WrapLevel: WrapFull,
-		RustType:  rustLocalInterfaceParam(interfaceName),
-		Source:    SourceParam,
-	}, true
-}
-
-// writeFunctionTypeInterfaceImpls emits per-interface wrapper structs for a
-// named function-type alias. For every locally-declared interface that the
-// function-type implements (via go/types' method set check), it emits a
-// `<FuncType>As<Iface>` struct holding the function value and an `impl Iface`
-// block whose methods forward to the function-type's inherent methods. This
-// works around Rust's orphan rule, which would block `impl Iface for FuncType`
-// directly because `FuncType` is a type alias to entirely foreign types.
-func writeFunctionTypeInterfaceImpls(out *strings.Builder, goName, rustTypeName string) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
-		return
-	}
-	scope := typeInfo.pkg.Scope()
-	funcObj, ok := scope.Lookup(goName).(*types.TypeName)
-	if !ok {
-		return
-	}
-	funcNamed, ok := funcObj.Type().(*types.Named)
-	if !ok {
-		return
-	}
-	for _, ifaceName := range scope.Names() {
-		ifaceObj, ok := scope.Lookup(ifaceName).(*types.TypeName)
-		if !ok {
-			continue
-		}
-		ifaceNamed, ok := ifaceObj.Type().(*types.Named)
-		if !ok {
-			continue
-		}
-		iface, ok := ifaceNamed.Underlying().(*types.Interface)
-		if !ok {
-			continue
-		}
-		iface.Complete()
-		if iface.NumMethods() == 0 {
-			continue
-		}
-		if !types.Implements(funcNamed, iface) {
-			continue
-		}
-		writeFunctionTypeInterfaceImpl(out, rustTypeName, ifaceName, iface)
-	}
-}
-
-// functionTypeInterfaceImplResultRust mirrors the Rust signature emitted for
-// the interface trait method, including bare pointer handles and wrapped
-// named-interface results.
-func functionTypeInterfaceImplResultRust(typ types.Type) string {
-	return goTypesReturnTypeToRust(typ)
-}
-
-func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceName string, iface *types.Interface) {
-	wrapperName := functionTypeInterfaceWrapperName(funcTypeName, ifaceName)
-	out.WriteString("\n#[derive(Clone)]\n")
-	out.WriteString("pub struct ")
-	out.WriteString(wrapperName)
-	out.WriteString("(pub ")
-	out.WriteString(funcTypeName)
-	out.WriteString(");\n\n")
-	out.WriteString("impl std::fmt::Display for ")
-	out.WriteString(wrapperName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        write!(f, \"<")
-	out.WriteString(wrapperName)
-	out.WriteString(">\")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n\n")
-	seen := map[string]bool{ifaceName: true}
-	writeFunctionTypeEmbeddedInterfaceImpls(out, funcTypeName, wrapperName, iface, seen)
-	writeFunctionTypeInterfaceTraitImpl(out, funcTypeName, wrapperName, ifaceName, iface)
-}
-
-type namedInterfaceImpl struct {
-	name  string
-	iface *types.Interface
-}
-
-func functionTypeEmbeddedInterfaces(iface *types.Interface) []namedInterfaceImpl {
-	if iface == nil {
-		return nil
-	}
-	var embedded []namedInterfaceImpl
-	for i := 0; i < iface.NumEmbeddeds(); i++ {
-		embeddedType := iface.EmbeddedType(i)
-		if name, ok := transpiledNamedInterfaceTypeNameFromTypes(embeddedType); ok {
-			if named, ok := types.Unalias(embeddedType).(*types.Named); ok {
-				if embeddedIface, ok := named.Underlying().(*types.Interface); ok {
-					embedded = append(embedded, namedInterfaceImpl{name: name, iface: embeddedIface})
-				}
-			}
-			continue
-		}
-		if name, embeddedIface, ok := importedTranspiledInterfaceFromType(embeddedType); ok {
-			embedded = append(embedded, namedInterfaceImpl{name: name, iface: embeddedIface})
-		}
-	}
-	return embedded
-}
-
-func writeFunctionTypeEmbeddedInterfaceImpls(out *strings.Builder, funcTypeName, wrapperName string, iface *types.Interface, seen map[string]bool) {
-	for _, embedded := range functionTypeEmbeddedInterfaces(iface) {
-		if seen[embedded.name] {
-			continue
-		}
-		seen[embedded.name] = true
-		writeFunctionTypeEmbeddedInterfaceImpls(out, funcTypeName, wrapperName, embedded.iface, seen)
-		writeFunctionTypeInterfaceTraitImpl(out, funcTypeName, wrapperName, embedded.name, embedded.iface)
-	}
-}
-
-func writeFunctionTypeInterfaceTraitImpl(out *strings.Builder, funcTypeName, wrapperName, ifaceName string, iface *types.Interface) {
-	traitSnake := traitMethodSuffix(ifaceName)
-	out.WriteString("impl ")
-	out.WriteString(ifaceName)
-	out.WriteString(" for ")
-	out.WriteString(wrapperName)
-	out.WriteString(" {\n")
-	explicitMethodCount := 0
-	if iface != nil {
-		explicitMethodCount = iface.NumExplicitMethods()
-	}
-	for i := 0; i < explicitMethodCount; i++ {
-		method := iface.ExplicitMethod(i)
-		sig, ok := method.Type().(*types.Signature)
-		if !ok {
-			continue
-		}
-		out.WriteString("    fn ")
-		out.WriteString(ToSnakeCase(method.Name()))
-		out.WriteString("(")
-		if interfaceTraitMethodRequiresMutableReceiver(ifaceName, method.Name(), method) {
-			out.WriteString("&mut self")
-		} else {
-			out.WriteString("&self")
-		}
-		for j := 0; j < sig.Params().Len(); j++ {
-			param := sig.Params().At(j)
-			out.WriteString(", ")
-			paramName := param.Name()
-			if paramName == "" {
-				paramName = fmt.Sprintf("__arg%d", j)
-			}
-			out.WriteString(EscapeRustIdent(paramName))
-			out.WriteString(": ")
-			out.WriteString(goTypesParamTypeToRust(param.Type()))
-		}
-		out.WriteString(")")
-		if sig.Results().Len() > 0 {
-			out.WriteString(" -> ")
-			if sig.Results().Len() == 1 {
-				out.WriteString(functionTypeInterfaceImplResultRust(sig.Results().At(0).Type()))
-			} else {
-				out.WriteString("(")
-				for j := 0; j < sig.Results().Len(); j++ {
-					if j > 0 {
-						out.WriteString(", ")
-					}
-					out.WriteString(functionTypeInterfaceImplResultRust(sig.Results().At(j).Type()))
-				}
-				out.WriteString(")")
-			}
-		}
-		out.WriteString(" {\n")
-		out.WriteString("        ")
-		out.WriteString(funcTypeName)
-		out.WriteString("Methods::")
-		out.WriteString(ToSnakeCase(method.Name()))
-		out.WriteString("(&self.0")
-		for j := 0; j < sig.Params().Len(); j++ {
-			out.WriteString(", ")
-			paramName := sig.Params().At(j).Name()
-			if paramName == "" {
-				paramName = fmt.Sprintf("__arg%d", j)
-			}
-			out.WriteString(EscapeRustIdent(paramName))
-			out.WriteString(".clone()")
-		}
-		out.WriteString(")\n")
-		out.WriteString("    }\n")
-	}
-	out.WriteString("    fn __go_clone_box_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self) -> ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	out.WriteString("        Box::new(self.clone())\n")
-	out.WriteString("    }\n")
-	if len(functionTypeEmbeddedInterfaces(iface)) == 0 {
-		out.WriteString("    fn __go_as_any(&self) -> &dyn std::any::Any {\n")
-		out.WriteString("        &self.0\n")
-		out.WriteString("    }\n")
-	}
-	out.WriteString("    fn __go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self, _other: ")
-	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
-	out.WriteString(") -> bool {\n")
-	out.WriteString("        false\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func functionTypeInterfaceWrapperName(funcTypeName, ifaceName string) string {
-	if !strings.Contains(ifaceName, "::") {
-		return funcTypeName + "As" + ifaceName
-	}
-	parts := strings.Split(ifaceName, "::")
-	for i, part := range parts {
-		parts[i] = strings.TrimPrefix(part, "r#")
-	}
-	return funcTypeName + "As" + strings.Join(parts, "_")
-}
-
-func pointerLocalInterfaceWrapperName(typeName, ifaceName string) string {
-	return strings.TrimPrefix(RustTypeNameForUse(typeName), "r#") + "Ptr"
-}
-
-func pointerLocalInterfaceWrapperNameForUse(typeName, ifaceName string) string {
-	wrapperName := pointerLocalInterfaceWrapperName(typeName, ifaceName)
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
-		return wrapperName
-	}
-	moduleName := ctx.Package.TypeModuleNames[typeName]
-	if moduleName == "" || moduleName == ctx.CurrentModuleName {
-		return wrapperName
-	}
-	return "crate::" + moduleName + "::" + wrapperName
-}
-
-// pointerGoErrorWrapperName allocates a package-stable support name that does
-// not collide with either a source type or another generated pointer-error
-// wrapper. Source identifiers may legally begin with __go_error_ptr_, so a
-// prefix alone is not a sufficient namespace boundary.
-func pointerGoErrorWrapperName(typeName string) string {
-	baseName := func(name string) string {
-		return "__go_error_ptr_" + strings.TrimPrefix(RustTypeNameForUse(name), "r#")
-	}
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil {
-		return baseName(typeName)
-	}
-
-	used := make(map[string]bool, len(ctx.Package.TypeDefinitions)+len(ctx.Package.TypeModuleNames)+len(ctx.Package.PointerErrorImplTypes))
-	for sourceTypeName := range ctx.Package.TypeDefinitions {
-		used[RustTypeNameForUse(sourceTypeName)] = true
-	}
-	for sourceTypeName := range ctx.Package.TypeModuleNames {
-		used[RustTypeNameForUse(sourceTypeName)] = true
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
-		scope := typeInfo.pkg.Scope()
-		for _, sourceName := range scope.Names() {
-			if _, ok := scope.Lookup(sourceName).(*types.TypeName); ok {
-				used[RustTypeNameForUse(sourceName)] = true
-			}
-		}
-	}
-	pointerErrorTypes := make([]string, 0, len(ctx.Package.PointerErrorImplTypes)+1)
-	for pointerErrorType := range ctx.Package.PointerErrorImplTypes {
-		pointerErrorTypes = append(pointerErrorTypes, pointerErrorType)
-	}
-	if !ctx.Package.PointerErrorImplTypes[typeName] {
-		pointerErrorTypes = append(pointerErrorTypes, typeName)
-	}
-	sort.Strings(pointerErrorTypes)
-
-	for _, pointerErrorType := range pointerErrorTypes {
-		candidate := baseName(pointerErrorType)
-		for suffix := 1; used[candidate]; suffix++ {
-			candidate = baseName(pointerErrorType) + "_" + strconv.Itoa(suffix)
-		}
-		if pointerErrorType == typeName {
-			return candidate
-		}
-		used[candidate] = true
-	}
-	return baseName(typeName)
-}
-
-func pointerGoErrorWrapperNameForUse(typeName string) string {
-	wrapperName := pointerGoErrorWrapperName(typeName)
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
-		return wrapperName
-	}
-	moduleName := ctx.Package.TypeModuleNames[typeName]
-	if moduleName == "" || moduleName == ctx.CurrentModuleName {
-		return wrapperName
-	}
-	return "crate::" + moduleName + "::" + wrapperName
-}
-
-func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName string, ifaceType *types.Interface, emitStruct bool) {
-	trackWrapperImports()
-	rustTypeName := RustTypeNameForUse(typeName)
-	wrapperName := pointerLocalInterfaceWrapperName(typeName, ifaceName)
-	pointerType := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustTypeName + ">>>"
-
-	if emitStruct {
-		out.WriteString("#[derive(Clone)]\n")
-		out.WriteString("pub struct ")
-		out.WriteString(wrapperName)
-		out.WriteString("(pub ")
-		out.WriteString(pointerType)
-		out.WriteString(");\n\n")
-
-		out.WriteString("impl std::fmt::Display for ")
-		out.WriteString(wrapperName)
-		out.WriteString(" {\n")
-		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		out.WriteString("        let __guard = self.0")
-		WriteBorrowMethod(out, false)
-		out.WriteString(";\n")
-		out.WriteString("        match __guard.as_ref() { Some(__v) => write!(f, \"{:p}\", __v as *const _), None => write!(f, \"<nil>\") }\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n\n")
-	}
-
-	out.WriteString("impl ")
-	out.WriteString(ifaceName)
-	out.WriteString(" for ")
-	out.WriteString(wrapperName)
-	out.WriteString(" {\n")
-	for _, method := range explicitInterfaceMethods(ifaceType) {
-		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName, ifaceName)
-	}
-	writePointerLocalInterfaceSupportImpl(out, ifaceName, wrapperName, ifaceType)
-	out.WriteString("}")
-}
-
-// writePointerGoErrorWrapper preserves the identity of a Go pointer whose
-// method set implements error. Boxing the pointee itself would copy it and
-// make two conversions of the same pointer unequal (and hide later mutation).
-func writePointerGoErrorWrapper(out *strings.Builder, typeName string) {
-	trackWrapperImports()
-	TrackImport("Error")
-	rustTypeName := RustTypeNameForUse(typeName)
-	wrapperName := pointerGoErrorWrapperName(typeName)
-	pointerType := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustTypeName + ">>>"
-
-	out.WriteString("#[derive(Debug, Clone)]\n")
-	out.WriteString("pub struct ")
-	out.WriteString(wrapperName)
-	out.WriteString("(pub ")
-	out.WriteString(pointerType)
-	out.WriteString(");\n\n")
-	out.WriteString("impl std::fmt::Display for ")
-	out.WriteString(wrapperName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	if helper := pointerErrorNilReceiverHelper(typeName, "Error"); helper != "" {
-		out.WriteString("        let __go_is_nil = self.0")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".is_none();\n")
-		out.WriteString("        if !__go_is_nil {\n")
-		out.WriteString("            let __guard = self.0")
-		WriteBorrowMethod(out, false)
-		out.WriteString(";\n")
-		out.WriteString("            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)\n")
-		out.WriteString("        } else {\n")
-		out.WriteString("            let __go_previous_panic_hook = std::panic::take_hook();\n")
-		out.WriteString("            std::panic::set_hook(Box::new(|_| {}));\n")
-		out.WriteString("            let __go_error_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ")
-		out.WriteString(helper)
-		out.WriteString("(self.0.clone())));\n")
-		out.WriteString("            std::panic::set_hook(__go_previous_panic_hook);\n")
-		out.WriteString("            match __go_error_result { Ok(__text) => { let __guard = __text")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") } }, Err(_) => write!(f, \"<nil>\") }\n")
-		out.WriteString("        }\n")
-	} else {
-		out.WriteString("        let __guard = self.0")
-		WriteBorrowMethod(out, false)
-		out.WriteString(";\n")
-		out.WriteString("        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, \"<nil>\") }\n")
-	}
-	out.WriteString("    }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl StdError for ")
-	out.WriteString(wrapperName)
-	out.WriteString(" {}\n")
-}
-
-func pointerErrorNilReceiverHelper(typeName, methodName string) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
-		return ""
-	}
-	typeObj, _ := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
-	if typeObj == nil {
-		return ""
-	}
-	named, _ := types.Unalias(typeObj.Type()).(*types.Named)
-	if named == nil {
-		return ""
-	}
-	obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, methodName)
-	method, _ := obj.(*types.Func)
-	if method == nil || !pointerErrorMethodNeedsNilDispatch(method) {
-		return ""
-	}
-	return nilPointerReceiverMethodHelperNameForUse(method, false)
-}
-
-func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {
-	if method == nil {
-		return
-	}
-	sig, ok := method.Type().(*types.Signature)
-	if !ok {
-		return
-	}
-	out.WriteString("    fn ")
-	out.WriteString(ToSnakeCase(method.Name()))
-	out.WriteString("(")
-	mutableReceiver := interfaceTraitMethodRequiresMutableReceiver(ifaceName, method.Name(), method)
-	if mutableReceiver {
-		out.WriteString("&mut self")
-	} else {
-		out.WriteString("&self")
-	}
-	params := sig.Params()
-	argNames := make([]string, 0, params.Len())
-	for j := 0; j < params.Len(); j++ {
-		param := params.At(j)
-		paramName := param.Name()
-		if paramName == "" {
-			paramName = fmt.Sprintf("__arg%d", j)
-		}
-		paramName = RustLocalIdent(paramName)
-		argNames = append(argNames, paramName)
-		out.WriteString(", ")
-		out.WriteString(paramName)
-		out.WriteString(": ")
-		out.WriteString(goTypesParamTypeToRust(param.Type()))
-	}
-	out.WriteString(")")
-	writeInterfaceMethodResultTypesFromFunc(out, method)
-	out.WriteString(" {\n")
-	out.WriteString("        let ")
-	if mutableReceiver {
-		out.WriteString("mut ")
-	}
-	out.WriteString("__recv_guard = self.0")
-	WriteBorrowMethod(out, mutableReceiver)
-	out.WriteString(";\n")
-	out.WriteString("        let __recv = __recv_guard.")
-	if mutableReceiver {
-		out.WriteString("as_mut")
-	} else {
-		out.WriteString("as_ref")
-	}
-	out.WriteString("().unwrap();\n")
-	out.WriteString("        ")
-	out.WriteString(receiverType)
-	out.WriteString("::")
-	out.WriteString(rustMethodNameForTypesFunc(method))
-	out.WriteString("(__recv")
-	for _, argName := range argNames {
-		out.WriteString(", ")
-		out.WriteString(argName)
-	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-}
-
-func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrapperName string, ifaceType *types.Interface) {
-	TrackImport("Any")
-	traitSnake := traitMethodSuffix(ifaceName)
-	hasEmbedded := ifaceType != nil && interfaceTypeHasNamedEmbedded(ifaceType)
-	if ifaceType == nil {
-		hasEmbedded = localInterfaceHasEmbeddedInterfaces(ifaceName)
-	}
-	out.WriteString("    fn __go_clone_box_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self) -> ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	out.WriteString("        Box::new(self.clone()) as ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-	if !hasEmbedded {
-		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        self\n")
-		out.WriteString("    }\n")
-	}
-	out.WriteString("    fn __go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self, other: ")
-	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
-	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = ")
-	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
-	out.WriteString(".downcast_ref::<")
-	out.WriteString(wrapperName)
-	out.WriteString(">() {\n")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("            let __go_left_nil = { self.0.lock().unwrap().is_none() };\n")
-		out.WriteString("            let __go_right_nil = { __other.0.lock().unwrap().is_none() };\n")
-		out.WriteString("            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }\n")
-	} else {
-		out.WriteString("            let __go_left_nil = self.0.borrow().is_none();\n")
-		out.WriteString("            let __go_right_nil = __other.0.borrow().is_none();\n")
-		out.WriteString("            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }\n")
-	}
-	out.WriteString("        } else {\n")
-	out.WriteString("            false\n")
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-}
-
-func writeFunctionTypeImportedInterfaceImpls(out *strings.Builder, funcTypeName string, impls map[string]*types.Interface) {
-	if len(impls) == 0 {
-		return
-	}
-	var ifaceNames []string
-	for ifaceName := range impls {
-		ifaceNames = append(ifaceNames, ifaceName)
-	}
-	sort.Strings(ifaceNames)
-	for _, ifaceName := range ifaceNames {
-		writeFunctionTypeInterfaceImpl(out, funcTypeName, ifaceName, impls[ifaceName])
-	}
-}
-
-func assignedInterfaceParamNames(fn *ast.FuncDecl) map[string]bool {
-	assigned := make(map[string]bool)
-	if fn == nil || fn.Body == nil || fn.Type.Params == nil {
-		return assigned
-	}
-	for _, field := range fn.Type.Params.List {
-		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
-			continue
-		}
-		for _, name := range field.Names {
-			if blockIdentAssigned(fn.Body, name.Name) {
-				assigned[name.Name] = true
-			}
-		}
-	}
-	return assigned
-}
-
-func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	if fn == nil || fn.Body == nil || fn.Type.Params == nil {
-		return
-	}
-	for _, field := range fn.Type.Params.List {
-		interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type)
-		if !ok {
-			continue
-		}
-		for _, name := range field.Names {
-			if name.Name == "_" || !blockIdentAssigned(fn.Body, name.Name) {
-				continue
-			}
-			out.WriteString(indent)
-			out.WriteString("let mut ")
-			out.WriteString(RustLocalIdent(name.Name))
-			out.WriteString(": ")
-			out.WriteString(GoTypeToRust(field.Type))
-			out.WriteString(" = ")
-			if NeedsConcurrentWrapper() {
-				out.WriteString("Arc::new(Mutex::new(")
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(".lock().unwrap().as_ref().map(|__v| ")
-			} else {
-				out.WriteString("Rc::new(RefCell::new(")
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(".borrow().as_ref().map(|__v| ")
-			}
-			out.WriteString(interfaceName)
-			out.WriteString("::__go_clone_box_")
-			out.WriteString(traitMethodSuffix(interfaceName))
-			out.WriteString("(__v.as_ref()))")
-			out.WriteString("));\n")
-		}
-	}
-}
-
-func registerFunctionSignatureDecl(fn *ast.FuncDecl) {
-	var params []*ast.Field
-	if fn.Type.Params != nil {
-		params = fn.Type.Params.List
-	}
-	var results []*ast.Field
-	if fn.Type.Results != nil {
-		results = fn.Type.Results.List
-	}
-	RegisterFunctionSignature(fn.Name.Name, &FunctionSignature{
-		Params:  params,
-		Results: results,
-	})
-}
-
-func registerFunctionSignaturesFromFiles(files []*ast.File) {
-	for _, file := range files {
-		registerFunctionSignaturesFromFile(file)
-	}
-}
-
-func registerFunctionSignaturesFromFile(file *ast.File) {
-	for _, decl := range file.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Recv != nil {
-			continue
-		}
-		registerFunctionSignatureDecl(fn)
-	}
-}
-
-func registerPackageTypeFactsFromFiles(files []*ast.File) {
-	for _, file := range files {
-		registerPackageTypeFactsFromFile(file)
-	}
-	registerPackageStructDefsFromFiles(files)
-}
-
-func registerPackageTypeModuleNames(pkgState *PackageState, files []*ast.File, moduleNamesByIndex []string) {
-	if pkgState == nil {
-		return
-	}
-	if pkgState.TypeModuleNames == nil {
-		pkgState.TypeModuleNames = make(map[string]string)
-	}
-	for i, file := range files {
-		if file == nil || i >= len(moduleNamesByIndex) {
-			continue
-		}
-		moduleName := moduleNamesByIndex[i]
-		if moduleName == "" {
-			continue
-		}
-		registerPackageTypeModuleNamesForFile(pkgState, file, moduleName)
-	}
-}
-
-func registerPackageTypeModuleNamesForFile(pkgState *PackageState, file *ast.File, moduleName string) {
-	if pkgState == nil || file == nil || moduleName == "" {
-		return
-	}
-	if pkgState.TypeModuleNames == nil {
-		pkgState.TypeModuleNames = make(map[string]string)
-	}
-	for _, decl := range file.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok || typeSpec.Name == nil {
-				continue
-			}
-			pkgState.TypeModuleNames[typeSpec.Name.Name] = moduleName
-		}
-	}
-}
-
-func rustImplTypeNameForUse(typeName string) string {
-	rustTypeName := RustTypeNameForUse(typeName)
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
-		return rustTypeName
-	}
-	moduleName := ctx.Package.TypeModuleNames[typeName]
-	if moduleName == "" || moduleName == ctx.CurrentModuleName {
-		return rustTypeName
-	}
-	return "crate::" + moduleName + "::" + rustTypeName
-}
-
-// registerPackageStructDefsFromFiles populates structDefs for every struct type
-// declared across the package's files before any file is emitted. Per-file
-// registration (in TranspileWithMapping) only sees types from the current file,
-// so cross-file references like a *T field where T lives in another file would
-// otherwise miss structDefs and bypass field-driven decisions such as Debug
-// derivation.
-func registerPackageStructDefsFromFiles(files []*ast.File) {
-	for _, file := range files {
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok || genDecl.Tok != token.TYPE {
-				continue
-			}
-			for _, spec := range genDecl.Specs {
-				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok {
-					continue
-				}
-				if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-					registerStructTypeSpecDef(typeSpec, structType)
-				}
-			}
-		}
-	}
-}
-
-func registerPackageTypeFactsFromFile(file *ast.File) {
-	for _, decl := range file.Decls {
-		genDecl, ok := decl.(*ast.GenDecl)
-		if !ok || genDecl.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			registerPackageTypeFact(typeSpec)
-		}
-	}
-}
-
-func registerPackageTypeFact(typeSpec *ast.TypeSpec) {
-	if typeSpec == nil {
-		return
-	}
-	isFunctionType := typeSpecHasFunctionSignature(typeSpec)
-	if typeSpec.Assign != 0 || isFunctionType {
-		RegisterTypeAlias(typeSpec.Name.Name)
-		if isFunctionType {
-			RegisterFunctionTypeAlias(typeSpec.Name.Name)
-			if funcType, ok := typeSpec.Type.(*ast.FuncType); ok {
-				RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, funcType))
-			}
-		}
-		return
-	}
-
-	_, isStruct := typeSpec.Type.(*ast.StructType)
-	if _, isInterface := typeSpec.Type.(*ast.InterfaceType); isInterface {
-		RegisterInterfaceType(typeSpec.Name.Name)
-		return
-	}
-	if !isStruct {
-		registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, typeSpec.Type)
-	}
-}
-
-func registerTypeDefinitionForTypeExpr(name string, expr ast.Expr) {
-	if name == "" || expr == nil {
-		return
-	}
-	RegisterTypeDefinition(name, typeDefinitionUnderlyingName(expr))
-	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
-		RegisterTypeDefinitionUnderlyingType(name, typ)
-	}
-}
-
-func typeSpecHasFunctionSignature(typeSpec *ast.TypeSpec) bool {
-	if typeSpec == nil {
-		return false
-	}
-	if _, ok := typeSpec.Type.(*ast.FuncType); ok {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
-		if _, ok := signatureFromType(obj.Type()); ok {
-			return true
-		}
-	}
-	if typ := typeInfo.GetType(typeSpec.Type); typ != nil {
-		if _, ok := signatureFromType(typ); ok {
-			return true
-		}
-	}
-	return false
-}
-
-func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	// Check if this is a method (has receiver)
-	if fn.Recv != nil && len(fn.Recv.List) > 0 {
-		// Methods will be collected and generated in impl blocks
-		// For now, skip them here
-		return
-	}
-
-	// Register the function signature for later use
-	registerFunctionSignatureDecl(fn)
-
-	// Regular function
-	if fn.Name.Name != "main" && fn.Name.Name != "init" {
-		out.WriteString("pub ")
-	}
-	out.WriteString("fn ")
-	out.WriteString(rustFunctionName(fn))
-	writeFunctionDeclTypeParams(out, fn)
-	out.WriteString("(")
-
-	writeFuncDeclParams(out, fn)
-
-	out.WriteString(")")
-
-	writeFuncDeclResultTypes(out, fn)
-
-	out.WriteString(" {\n")
-
-	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
-	defer restoreLocalSyntaxInfo()
-	assignedInterfaceParams := assignedInterfaceParamNames(fn)
-
-	// Register function parameters in VarTable
-	if vt := GetVarTable(); vt != nil {
-		vt.PushScope()
-		defer vt.PopScope()
-		if fn.Type.Params != nil {
-			paramIndex := 0
-			for _, field := range fn.Type.Params.List {
-				for _, name := range field.Names {
-					rustType := goTypeToRustBase(field.Type)
-					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
-						rustType = "Vec<GoPtr<" + elemRustType + ">>"
-					}
-					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
-						rustType = goPtrSlotParamRustType(elemRustType)
-					}
-					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
-						rustType = "GoPtr<" + elemRustType + ">"
-					}
-					if functionRustType, ok := functionValueGoPtrAwareBoxTypeForNamedTypeExpr(name, field.Type); ok {
-						rustType = functionRustType
-					} else if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
-						rustType = functionRustType
-					}
-					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
-						var goType types.Type
-						if typeInfo := GetTypeInfo(); typeInfo != nil {
-							goType = typeInfo.GetType(field.Type)
-						}
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapNone,
-							RustType:    goPtrSlotParamRustType(elemRustType),
-							Source:      SourceParam,
-							PointerKind: PointerGoPtr,
-							GoType:      goType,
-						})
-					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
-						var goType types.Type
-						if typeInfo := GetTypeInfo(); typeInfo != nil {
-							goType = typeInfo.GetType(field.Type)
-						}
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapNone,
-							RustType:    "GoPtr<" + elemRustType + ">",
-							Source:      SourceParam,
-							PointerKind: PointerGoPtr,
-							GoType:      goType,
-						})
-					} else if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
-						if assignedInterfaceParams[name.Name] {
-							vt.Register(name.Name, &VarInfo{
-								WrapLevel: WrapFull,
-								RustType:  rustType,
-								Source:    SourceLocal,
-							})
-						} else {
-							varInfo.RustType = rustType
-							vt.Register(name.Name, varInfo)
-						}
-					} else if _, ok := field.Type.(*ast.ChanType); ok {
-						// Channel parameters are bare (GoChannel<T>)
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if isSyncParam(field.Type) {
-						// sync.WaitGroup / sync.Mutex parameters are bare
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if typeExprIsOrderedTypeParam(field.Type) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapFull,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					}
-					paramIndex++
-				}
-			}
-		}
-	}
-
-	// Call package initialization at the start of main() if present
-	if fn.Name.Name == "main" && hasInitFunction {
-		out.WriteString("    __go_init_all();\n")
-	}
-
-	writeAssignedInterfaceParamShadows(out, fn, "    ")
-
-	if fn.Body != nil && writeRuntimeLinkedFunctionBody(out, fn, "    ") {
-		out.WriteString("}\n")
-		return
-	}
-
-	if fn.Body == nil {
-		if writeRuntimeLinkedFunctionBody(out, fn, "    ") {
-			out.WriteString("}\n")
-			return
-		}
-		out.WriteString("    unimplemented!(\"Go function declaration has no body\");\n")
-		out.WriteString("}\n")
-		return
-	}
-
-	restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
-	defer restoreSliceElemPtrCandidates()
-	restoreFuncLitGoPtrParamInfos := setFuncLitGoPtrParamInfosForFunc(fn)
-	defer restoreFuncLitGoPtrParamInfos()
-	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
-	defer restoreSliceElemPtrReturn()
-	registerArrayElemPtrNamedReturnVars(fn)
-
-	// Check if this function uses defer statements
-	hasDefer := checkHasDefer(fn.Body.List)
-	currentFunctionHasDefer = hasDefer
-	oldActiveMutexGuards := activeMutexGuards
-	activeMutexGuards = make(map[string]string)
-	defer func() { activeMutexGuards = oldActiveMutexGuards }()
-
-	oldFunctionBodyLbrace := currentFunctionBodyLbrace
-	if fn.Body != nil {
-		currentFunctionBodyLbrace = fn.Body.Lbrace
-	} else {
-		currentFunctionBodyLbrace = token.NoPos
-	}
-	defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
-
-	// Initialize defer stack if needed
-	if hasDefer {
-		out.WriteString("    " + deferStackDecl() + "\n")
-		// We'll execute defers before each return statement
-		out.WriteString("\n")
-	}
-	writeGoSliceParamHeaderCopies(out, fn, "    ")
-
-	// Declare named return values as mutable variables
-	hasNamedReturns := false
-	if fn.Type.Results != nil {
-		for _, result := range fn.Type.Results.List {
-			if len(result.Names) > 0 {
-				hasNamedReturns = true
-				for _, name := range result.Names {
-					if name.Name == "_" {
-						out.WriteString("    let ")
-					} else {
-						out.WriteString("    let mut ")
-					}
-					out.WriteString(RustLocalIdent(name.Name))
-					out.WriteString(": ")
-					if info, ok := arrayElemPtrCandidateForDecl(name); ok {
-						out.WriteString(arrayElemPtrOptionRustType(info))
-						out.WriteString(" = None;\n")
-						continue
-					}
-					if info, ok := goPtrCandidateForDecl(name); ok {
-						elemRustType := goPtrResultElemRustType(info)
-						registerGoPtrVar(name.Name, elemRustType, nil)
-						out.WriteString("GoPtr<")
-						out.WriteString(elemRustType)
-						out.WriteString("> = GoPtr::nil();\n")
-						continue
-					}
-					out.WriteString(GoTypeToRust(result.Type))
-					// Initialize with wrapped default values
-					out.WriteString(" = ")
-
-					// Special handling for error type
-					if t, ok := result.Type.(*ast.Ident); ok && t.Name == "error" {
-						// error type is wrapped as Rc<RefCell<Option<Box<dyn Error>>>>
-						// We need to write the wrapper manually without the Some()
-						if NeedsConcurrentWrapper() {
-							TrackImport("Arc")
-							TrackImport("Mutex")
-							out.WriteString("Arc::new(Mutex::new(None))")
-						} else {
-							TrackImport("Rc")
-							TrackImport("RefCell")
-							out.WriteString("Rc::new(RefCell::new(None))")
-						}
-						out.WriteString(";\n")
-						continue
-					}
-
-					if _, ok := functionSignatureFromTypeExpr(result.Type); ok {
-						WriteWrappedNone(out)
-						out.WriteString(";\n")
-						continue
-					}
-
-					if isEmptyInterfaceExpr(result.Type) {
-						WriteWrappedNone(out)
-						out.WriteString(";\n")
-						continue
-					}
-
-					if _, ok := transpiledNamedInterfaceTypeNameFromExpr(result.Type); ok {
-						WriteWrappedNone(out)
-						out.WriteString(";\n")
-						continue
-					}
-
-					if writeDirectTypeParamWrappedZeroValue(out, result.Type, "named return zero value") {
-						out.WriteString(";\n")
-						continue
-					}
-
-					if writeNamedReturnNilZeroValueFromTypeInfo(out, result.Type) {
-						out.WriteString(";\n")
-						continue
-					}
-
-					// For all other types
-					WriteWrapperPrefix(out)
-					switch t := result.Type.(type) {
-					case *ast.Ident:
-						switch t.Name {
-						case "string":
-							out.WriteString("String::new()")
-						case "int", "int64", "int32", "int16", "int8":
-							out.WriteString("0")
-						case "uint", "uint64", "uint32", "uint16", "uint8":
-							out.WriteString("0")
-						case "float64", "float32":
-							out.WriteString("0.0")
-						case "bool":
-							out.WriteString("false")
-						default:
-							out.WriteString("Default::default()")
-						}
-					default:
-						out.WriteString("Default::default()")
-					}
-					out.WriteString(")))")
-					out.WriteString(";\n")
-				}
-			}
-		}
-		// Separator after the named-return declarations, but only when we
-		// actually emitted some. Unnamed returns leave the block empty, so
-		// emitting a newline here would leave a blank line at the top of
-		// every function body for no reason.
-		if hasNamedReturns {
-			out.WriteString("\n")
-		}
-	}
-
-	recoverCatch := shouldWrapDeferPanicRecover(hasDefer)
-	bodyIndent := "    "
-	if recoverCatch {
-		bodyIndent = beginPanicRecoverCatch(out, "    ")
-	}
-
-	// Function body
-	var prevStmt ast.Stmt
-	var lastPos token.Pos = fn.Body.Lbrace
-	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString(bodyIndent)
-			out.WriteString("unreachable!()\n")
-		}
-	} else {
-		for i, stmt := range fn.Body.List {
-			// Add blank line if there was one in the source
-			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
-				out.WriteString("\n")
-			}
-
-			out.WriteString(bodyIndent)
-			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-			}
-			out.WriteString("\n")
-
-			prevStmt = stmt
-		}
-	}
-
-	// Execute defers at the end if needed.
-	// Skip if the last statement already terminates; those paths emitted their own
-	// cleanup and return, so a trailing defer block would become the function's
-	// final Rust expression.
-	lastStmt := lastNonEmptyStmt(fn.Body.List)
-	lastTerminates := lastStmt != nil && stmtTerminates(lastStmt)
-	if hasDefer && !lastTerminates {
-		out.WriteString("\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("// Execute deferred functions\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("}\n")
-	}
-
-	if recoverCatch {
-		finishPanicRecoverCatch(out, fn, "    ")
-	}
-
-	out.WriteString("}")
-}
-
-func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
-	if fn == nil || fn.Name == nil {
-		return false
-	}
-	switch functionPackagePath(fn) {
-	case "sync":
-		switch fn.Name.Name {
-		case "runtime_registerPoolCleanup":
-			out.WriteString(indent)
-			out.WriteString("let _ = ")
-			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "cleanup")))
-			out.WriteString(";\n")
-			return true
-		case "runtime_procPin":
-			out.WriteString(indent)
-			out.WriteString("0\n")
-			return true
-		case "runtime_procUnpin":
-			return true
-		case "runtime_LoadAcquintptr":
-			ptrName := RustLocalIdent(functionParamName(fn, 0, "ptr"))
-			out.WriteString(indent)
-			out.WriteString("let __value = (*")
-			out.WriteString(ptrName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone();\n")
-			out.WriteString(indent)
-			out.WriteString("__value\n")
-			return true
-		case "runtime_StoreReluintptr":
-			ptrName := RustLocalIdent(functionParamName(fn, 0, "ptr"))
-			valName := RustLocalIdent(functionParamName(fn, 1, "val"))
-			out.WriteString(indent)
-			out.WriteString("let __stored = (*")
-			out.WriteString(valName)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone();\n")
-			out.WriteString(indent)
-			out.WriteString("*")
-			out.WriteString(ptrName)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap() = __stored;\n")
-			out.WriteString(indent)
-			out.WriteString("__stored\n")
-			return true
-		case "runtime_randn":
-			out.WriteString(indent)
-			out.WriteString("let _ = ")
-			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "n")))
-			out.WriteString(";\n")
-			out.WriteString(indent)
-			out.WriteString("0\n")
-			return true
-		case "runtime_Semacquire", "runtime_SemacquireWaitGroup", "runtime_SemacquireRWMutexR", "runtime_SemacquireRWMutex":
-			writeSyncRuntimeSemacquireBody(out, fn, indent)
-			return true
-		case "runtime_Semrelease":
-			writeSyncRuntimeSemreleaseBody(out, fn, indent)
-			return true
-		case "runtime_notifyListAdd":
-			out.WriteString(indent)
-			out.WriteString("let _ = ")
-			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "l")))
-			out.WriteString(";\n")
-			out.WriteString(indent)
-			out.WriteString("0\n")
-			return true
-		case "runtime_notifyListWait", "runtime_notifyListNotifyAll", "runtime_notifyListNotifyOne":
-			out.WriteString(indent)
-			out.WriteString("let _ = ")
-			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "l")))
-			out.WriteString(";\n")
-			if fn.Name.Name == "runtime_notifyListWait" {
-				out.WriteString(indent)
-				out.WriteString("let _ = ")
-				out.WriteString(RustLocalIdent(functionParamName(fn, 1, "t")))
-				out.WriteString(";\n")
-			}
-			return true
-		case "runtime_notifyListCheck":
-			out.WriteString(indent)
-			out.WriteString("let _ = ")
-			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "size")))
-			out.WriteString(";\n")
-			return true
-		case "throw", "fatal":
-			paramName := RustLocalIdent(functionParamName(fn, 0, "__arg0"))
-			out.WriteString(indent)
-			out.WriteString("let __message = { let __arg_holder = ")
-			out.WriteString(paramName)
-			out.WriteString(".clone(); let __arg_guard = __arg_holder")
-			WriteBorrowMethod(out, false)
-			out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() };\n")
-			out.WriteString(indent)
-			out.WriteString("panic!(\"{}\", __message);\n")
-			return true
-		}
-	case "sync/atomic":
-		if writeSyncAtomicRuntimeLinkedBody(out, fn, indent) {
-			return true
-		}
-	case "syscall":
-		switch fn.Name.Name {
-		case "runtime_envs":
-			out.WriteString(indent)
-			out.WriteString("let __envs: Vec<String> = std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect();\n")
-			out.WriteString(indent)
-			WriteWrapperPrefix(out)
-			out.WriteString("__envs")
-			WriteWrapperSuffix(out)
-			out.WriteString("\n")
-			return true
-		case "runtimeSetenv":
-			writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
-			writeRuntimeLinkedStringParamClone(out, "v", "__value", indent)
-			out.WriteString(indent)
-			out.WriteString("std::env::set_var(__key, __value);\n")
-			return true
-		case "runtimeUnsetenv":
-			writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
-			out.WriteString(indent)
-			out.WriteString("std::env::remove_var(__key);\n")
-			return true
-		}
-	case "internal/abi":
-		switch fn.Name.Name {
-		case "FuncPCABI0", "FuncPCABIInternal":
-			writeFuncPCIntrinsicBody(out, fn, indent)
-			return true
-		case "TypeOf":
-			writeInternalABITypeOfIntrinsicBody(out, fn, indent)
-			return true
-		}
-	case "internal/sync":
-		switch fn.Name.Name {
-		case "runtime_rand":
-			out.WriteString(indent)
-			out.WriteString("1u64\n")
-			return true
-		}
-	case "internal/bytealg":
-		switch fn.Name.Name {
-		case "Count":
-			writeInternalBytealgCountIntrinsicBody(out, fn, indent, false)
-			return true
-		case "CountString":
-			writeInternalBytealgCountIntrinsicBody(out, fn, indent, true)
-			return true
-		case "MakeNoZero":
-			writeInternalBytealgMakeNoZeroBody(out, fn, indent)
-			return true
-		case "IndexByteString":
-			writeInternalBytealgIndexByteStringBody(out, fn, indent)
-			return true
-		case "IndexString":
-			writeInternalBytealgIndexStringBody(out, fn, indent)
-			return true
-		case "abigen_runtime_cmpstring":
-			writeInternalBytealgCompareStringBody(out, fn, indent)
-			return true
-		}
-	case "internal/buildcfg":
-		switch fn.Name.Name {
-		case "expList":
-			writeInternalBuildcfgExpListIntrinsicBody(out, fn, indent)
-			return true
-		}
-	case "internal/godebug":
-		switch fn.Name.Name {
-		case "setUpdate":
-			writeInternalGodebugSetUpdateBody(out, fn, indent)
-			return true
-		case "setNewIncNonDefault":
-			writeInternalGodebugSetNewIncNonDefaultBody(out, fn, indent)
-			return true
-		case "registerMetric":
-			writeInternalGodebugRegisterMetricBody(out, fn, indent)
-			return true
-		case "write":
-			writeInternalGodebugWriteBody(out, fn, indent)
-			return true
-		}
-	case "internal/syscall/unix":
-		switch fn.Name.Name {
-		case "ARC4Random":
-			writeInternalSyscallUnixARC4RandomBody(out, fn, indent)
-			return true
-		}
-	case "crypto/internal/boring/sig":
-		switch fn.Name.Name {
-		case "BoringCrypto", "FIPSOnly", "StandardCrypto":
-			// The Go stdlib implements these signature markers in assembly as no-ops.
-			return true
-		}
-	case "strings":
-		switch fn.Name.Name {
-		case "copyCheck":
-			if runtimeLinkedReceiverIsNamed(fn, "Builder") {
-				writeStringsBuilderCopyCheckBody(out, indent)
-				return true
-			}
-		case "String":
-			if runtimeLinkedReceiverIsNamed(fn, "Builder") {
-				writeStringsBuilderStringBody(out, indent)
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func writeSyncRuntimeSemacquireBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	semName := RustLocalIdent(functionParamName(fn, 0, "s"))
-	out.WriteString(indent)
-	out.WriteString("loop {\n")
-	out.WriteString(indent)
-	out.WriteString("    let __acquired = {\n")
-	out.WriteString(indent)
-	out.WriteString("        let mut __sem_guard = ")
-	out.WriteString(semName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("        let __sem = __sem_guard.as_mut().unwrap();\n")
-	out.WriteString(indent)
-	out.WriteString("        if *__sem > 0 {\n")
-	out.WriteString(indent)
-	out.WriteString("            *__sem -= 1;\n")
-	out.WriteString(indent)
-	out.WriteString("            true\n")
-	out.WriteString(indent)
-	out.WriteString("        } else {\n")
-	out.WriteString(indent)
-	out.WriteString("            false\n")
-	out.WriteString(indent)
-	out.WriteString("        }\n")
-	out.WriteString(indent)
-	out.WriteString("    };\n")
-	out.WriteString(indent)
-	out.WriteString("    if __acquired {\n")
-	out.WriteString(indent)
-	out.WriteString("        break;\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("    std::thread::yield_now();\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeSyncRuntimeSemreleaseBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	semName := RustLocalIdent(functionParamName(fn, 0, "s"))
-	out.WriteString(indent)
-	out.WriteString("{\n")
-	out.WriteString(indent)
-	out.WriteString("    let mut __sem_guard = ")
-	out.WriteString(semName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    let __sem = __sem_guard.as_mut().unwrap();\n")
-	out.WriteString(indent)
-	out.WriteString("    *__sem = __sem.saturating_add(1);\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-	for i, fallback := range []string{"handoff", "skipframes"} {
-		if fn.Type == nil || fn.Type.Params == nil || len(fn.Type.Params.List) <= i+1 {
-			continue
-		}
-		out.WriteString(indent)
-		out.WriteString("let _ = ")
-		out.WriteString(RustLocalIdent(functionParamName(fn, i+1, fallback)))
-		out.WriteString(";\n")
-	}
-}
-
-func writeInternalSyscallUnixARC4RandomBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	paramName := functionParamName(fn, 0, "p")
-	out.WriteString(indent)
-	out.WriteString("let __arc4_holder = ")
-	out.WriteString(RustLocalIdent(paramName))
-	out.WriteString(".clone();\n")
-	out.WriteString(indent)
-	out.WriteString("let mut __arc4_guard = __arc4_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("if let Some(__arc4_bytes) = __arc4_guard.as_mut() {\n")
-	out.WriteString(indent)
-	out.WriteString("    if !__arc4_bytes.is_empty() {\n")
-	out.WriteString(indent)
-	out.WriteString("        let mut __arc4_file = std::fs::File::open(\"/dev/urandom\").expect(\"internal/syscall/unix.ARC4Random failed to open /dev/urandom\");\n")
-	out.WriteString(indent)
-	out.WriteString("        std::io::Read::read_exact(&mut __arc4_file, __arc4_bytes.as_mut_slice()).expect(\"internal/syscall/unix.ARC4Random failed to read /dev/urandom\");\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeSyncAtomicRuntimeLinkedBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
-	if fn == nil || fn.Name == nil {
-		return false
-	}
-	if writeSyncAtomicPointerMethodBody(out, fn, indent) {
-		return true
-	}
-	switch fn.Name.Name {
-	case "LoadInt32", "LoadInt64", "LoadUint32", "LoadUint64", "LoadUintptr":
-		writeSyncAtomicLoadScalarBody(out, fn, indent)
-		return true
-	case "StoreInt32", "StoreInt64", "StoreUint32", "StoreUint64", "StoreUintptr":
-		writeSyncAtomicStoreScalarBody(out, fn, indent)
-		return true
-	case "SwapInt32", "SwapInt64", "SwapUint32", "SwapUint64", "SwapUintptr":
-		writeSyncAtomicSwapScalarBody(out, fn, indent)
-		return true
-	case "CompareAndSwapInt32", "CompareAndSwapInt64", "CompareAndSwapUint32", "CompareAndSwapUint64", "CompareAndSwapUintptr":
-		writeSyncAtomicCompareAndSwapScalarBody(out, fn, indent)
-		return true
-	case "AddInt32", "AddInt64", "AddUint32", "AddUint64", "AddUintptr":
-		writeSyncAtomicAddScalarBody(out, fn, indent)
-		return true
-	case "AndInt32", "AndInt64", "AndUint32", "AndUint64", "AndUintptr":
-		writeSyncAtomicBitwiseScalarBody(out, fn, indent, "&=")
-		return true
-	case "OrInt32", "OrInt64", "OrUint32", "OrUint64", "OrUintptr":
-		writeSyncAtomicBitwiseScalarBody(out, fn, indent, "|=")
-		return true
-	case "LoadPointer":
-		writeSyncAtomicLoadPointerBody(out, fn, indent)
-		return true
-	case "StorePointer":
-		writeSyncAtomicStorePointerBody(out, fn, indent)
-		return true
-	case "SwapPointer":
-		writeSyncAtomicSwapPointerBody(out, fn, indent)
-		return true
-	case "CompareAndSwapPointer":
-		writeSyncAtomicCompareAndSwapPointerBody(out, fn, indent)
-		return true
-	default:
-		return false
-	}
-}
-
-func writeSyncAtomicPointerMethodBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
-	if !runtimeLinkedReceiverIsNamed(fn, "Pointer") {
-		return false
-	}
-	switch fn.Name.Name {
-	case "Load":
-		writeSyncAtomicPointerLoadMethodBody(out, indent)
-		return true
-	case "Store":
-		valName := RustLocalIdent(functionParamName(fn, 0, "val"))
-		writeSyncAtomicPointerStoredOption(out, valName, "__stored", indent)
-		out.WriteString(indent)
-		out.WriteString("*self.v")
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = __stored;\n")
-		return true
-	case "Swap":
-		newName := RustLocalIdent(functionParamName(fn, 0, "new"))
-		writeSyncAtomicPointerStoredOption(out, newName, "__stored", indent)
-		out.WriteString(indent)
-		out.WriteString("let mut __guard = self.v")
-		WriteBorrowMethod(out, true)
-		out.WriteString(";\n")
-		out.WriteString(indent)
-		out.WriteString("let __old = __guard.as_ref().cloned().unwrap_or_else(|| ")
-		out.WriteString("GoPtr::nil());\n")
-		out.WriteString(indent)
-		out.WriteString("*__guard = __stored;\n")
-		out.WriteString(indent)
-		out.WriteString("__old\n")
-		return true
-	case "CompareAndSwap":
-		oldName := RustLocalIdent(functionParamName(fn, 0, "old"))
-		newName := RustLocalIdent(functionParamName(fn, 1, "new"))
-		writeSyncAtomicPointerCompareAndSwapMethodBody(out, oldName, newName, indent)
-		return true
-	default:
-		return false
-	}
-}
-
-func writeSyncAtomicPointerLoadMethodBody(out *strings.Builder, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let __guard = self.v")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("__guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil())\n")
-}
-
-func writeSyncAtomicPointerStoredOption(out *strings.Builder, paramName string, localName string, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let ")
-	out.WriteString(localName)
-	out.WriteString(" = if ")
-	out.WriteString(paramName)
-	out.WriteString(".is_nil() { None } else { Some(")
-	out.WriteString(paramName)
-	out.WriteString(".clone()) };\n")
-}
-
-func writeSyncAtomicPointerCompareAndSwapMethodBody(out *strings.Builder, oldName string, newName string, indent string) {
-	writeSyncAtomicPointerStoredOption(out, newName, "__new_value", indent)
-	out.WriteString(indent)
-	out.WriteString("let __old_is_nil = ")
-	out.WriteString(oldName)
-	out.WriteString(".is_nil();\n")
-	out.WriteString(indent)
-	out.WriteString("let mut __guard = self.v")
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("let __matches = match __guard.as_ref() {\n")
-	out.WriteString(indent)
-	out.WriteString("    Some(__current) => {\n")
-	out.WriteString(indent)
-	out.WriteString("        if __old_is_nil {\n")
-	out.WriteString(indent)
-	out.WriteString("            __current.is_nil()\n")
-	out.WriteString(indent)
-	out.WriteString("        } else {\n")
-	out.WriteString(indent)
-	out.WriteString("            GoPtr::ptr_eq(__current, &")
-	out.WriteString(oldName)
-	out.WriteString(")\n")
-	out.WriteString(indent)
-	out.WriteString("        }\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("    None => __old_is_nil,\n")
-	out.WriteString(indent)
-	out.WriteString("};\n")
-	out.WriteString(indent)
-	out.WriteString("if __matches {\n")
-	out.WriteString(indent)
-	out.WriteString("    *__guard = __new_value;\n")
-	out.WriteString(indent)
-	out.WriteString("    true\n")
-	out.WriteString(indent)
-	out.WriteString("} else {\n")
-	out.WriteString(indent)
-	out.WriteString("    false\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeSyncAtomicLoadScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	out.WriteString(indent)
-	out.WriteString("(*")
-	out.WriteString(addrName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()\n")
-}
-
-func writeSyncAtomicStoreScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	valueName := functionParamName(fn, 1, "val")
-	writeRuntimeLinkedParamClone(out, valueName, "__val", indent)
-	out.WriteString(indent)
-	out.WriteString("*")
-	out.WriteString(addrName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap() = __val;\n")
-}
-
-func writeSyncAtomicSwapScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	newName := functionParamName(fn, 1, "new")
-	writeRuntimeLinkedParamClone(out, newName, "__new", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("let __old = (*__guard.as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
-	out.WriteString(indent)
-	out.WriteString("__old\n")
-}
-
-func writeSyncAtomicCompareAndSwapScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	oldName := functionParamName(fn, 1, "old")
-	newName := functionParamName(fn, 2, "new")
-	writeRuntimeLinkedParamClone(out, oldName, "__old", indent)
-	writeRuntimeLinkedParamClone(out, newName, "__new", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("if *__guard.as_ref().unwrap() == __old {\n")
-	out.WriteString(indent)
-	out.WriteString("    *__guard.as_mut().unwrap() = __new;\n")
-	out.WriteString(indent)
-	out.WriteString("    true\n")
-	out.WriteString(indent)
-	out.WriteString("} else {\n")
-	out.WriteString(indent)
-	out.WriteString("    false\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeSyncAtomicAddScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	deltaName := functionParamName(fn, 1, "delta")
-	writeRuntimeLinkedParamClone(out, deltaName, "__delta", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("let __current = (*__guard.as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("let __new = __current.wrapping_add(__delta);\n")
-	out.WriteString(indent)
-	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
-	out.WriteString(indent)
-	out.WriteString("__new\n")
-}
-
-func writeSyncAtomicBitwiseScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string, op string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	maskName := functionParamName(fn, 1, "mask")
-	writeRuntimeLinkedParamClone(out, maskName, "__mask", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("let __old = (*__guard.as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("*__guard.as_mut().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" __mask;\n")
-	out.WriteString(indent)
-	out.WriteString("__old\n")
-}
-
-func writeSyncAtomicLoadPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	out.WriteString(indent)
-	out.WriteString("let __value = ")
-	out.WriteString(addrName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().copied().unwrap_or(0);\n")
-	out.WriteString(indent)
-	WriteWrapperPrefix(out)
-	out.WriteString("__value")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-}
-
-func writeSyncAtomicStorePointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	valName := functionParamName(fn, 1, "val")
-	writeSyncAtomicPointerParamValue(out, valName, "__val", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("*__guard.as_mut().unwrap() = __val;\n")
-}
-
-func writeSyncAtomicSwapPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	newName := functionParamName(fn, 1, "new")
-	writeSyncAtomicPointerParamValue(out, newName, "__new", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("let __old = __guard.as_ref().copied().unwrap_or(0);\n")
-	out.WriteString(indent)
-	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
-	out.WriteString(indent)
-	WriteWrapperPrefix(out)
-	out.WriteString("__old")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-}
-
-func writeSyncAtomicCompareAndSwapPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
-	oldName := functionParamName(fn, 1, "old")
-	newName := functionParamName(fn, 2, "new")
-	writeSyncAtomicPointerParamValue(out, oldName, "__old", indent)
-	writeSyncAtomicPointerParamValue(out, newName, "__new", indent)
-	writeSyncAtomicMutableGuard(out, addrName, indent)
-	out.WriteString(indent)
-	out.WriteString("if __guard.as_ref().copied().unwrap_or(0) == __old {\n")
-	out.WriteString(indent)
-	out.WriteString("    *__guard.as_mut().unwrap() = __new;\n")
-	out.WriteString(indent)
-	out.WriteString("    true\n")
-	out.WriteString(indent)
-	out.WriteString("} else {\n")
-	out.WriteString(indent)
-	out.WriteString("    false\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeSyncAtomicMutableGuard(out *strings.Builder, addrName string, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let mut __guard = ")
-	out.WriteString(addrName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-}
-
-func writeSyncAtomicPointerParamValue(out *strings.Builder, paramName string, localName string, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let ")
-	out.WriteString(localName)
-	out.WriteString(" = ")
-	out.WriteString(RustLocalIdent(paramName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().copied().unwrap_or(0);\n")
-}
-
-func functionPackagePath(fn *ast.FuncDecl) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return ""
-	}
-	if obj, ok := typeInfo.GetObject(fn.Name).(*types.Func); ok && obj.Pkg() != nil {
-		return obj.Pkg().Path()
-	}
-	if typeInfo.pkg != nil {
-		return typeInfo.pkg.Path()
-	}
-	return ""
-}
-
-func writeFuncPCIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	paramName := "f"
-	if fn != nil && fn.Type != nil && fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
-		firstParam := fn.Type.Params.List[0]
-		if len(firstParam.Names) > 0 && firstParam.Names[0] != nil {
-			paramName = firstParam.Names[0].Name
-		}
-	}
-	out.WriteString(indent)
-	out.WriteString("let __guard = ")
-	out.WriteString(RustLocalIdent(paramName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("let __value = __guard.as_ref().expect(\"internal/abi.")
-	out.WriteString(fn.Name.Name)
-	out.WriteString(" requires a function value\");\n")
-	out.WriteString(indent)
-	out.WriteString("let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-	out.WriteString(indent)
-	out.WriteString("std::hash::Hash::hash(&std::any::Any::type_id(__value.as_ref()), &mut __hasher);\n")
-	out.WriteString(indent)
-	out.WriteString("std::hash::Hasher::finish(&__hasher) as usize\n")
-}
-
-func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	NeedGoAnyTypeMetadata()
-	NeedEmbeddedOwnerRegistry()
-	paramName := "a"
-	if fn != nil && fn.Type != nil && fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
-		firstParam := fn.Type.Params.List[0]
-		if len(firstParam.Names) > 0 && firstParam.Names[0] != nil {
-			paramName = firstParam.Names[0].Name
-		}
-	}
-
-	sliceHandleType := "Rc<RefCell<Option<Vec<u8>>>>"
-	anyBoxType := rustAnyTraitObject()
-	anyHandleType := "Rc<RefCell<Option<" + anyBoxType + ">>>"
-	anySliceType := "Vec<" + anyBoxType + ">"
-	anySliceHandleType := "Rc<RefCell<Option<" + anySliceType + ">>>"
-	if NeedsConcurrentWrapper() {
-		sliceHandleType = "Arc<Mutex<Option<Vec<u8>>>>"
-		anyHandleType = "Arc<Mutex<Option<" + anyBoxType + ">>>"
-		anySliceHandleType = "Arc<Mutex<Option<" + anySliceType + ">>>"
-	}
-
-	out.WriteString(indent)
-	out.WriteString("let __guard = ")
-	out.WriteString(RustLocalIdent(paramName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("let __value = match __guard.as_ref() { Some(__value) => __value.as_ref(), None => return ")
-	if !writeGoPtrNilReturnValueForFunc(out, fn, 0) {
-		WriteWrappedNone(out)
-	}
-	out.WriteString(" };\n")
-	out.WriteString(indent)
-	out.WriteString("let mut __typ = Type::default();\n")
-	out.WriteString(indent)
-	out.WriteString("let __go_any_metadata = go_any_type_metadata(__value);\n")
-	writeInternalABIKindAssignment(out, indent, sliceHandleType, anySliceType, anySliceHandleType, anyBoxType, anyHandleType)
-	out.WriteString(indent)
-	out.WriteString("*__typ.kind_")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Kind(")
-	WriteWrapperPrefix(out)
-	out.WriteString("__kind")
-	WriteWrapperSuffix(out)
-	out.WriteString("));\n")
-	out.WriteString(indent)
-	out.WriteString("*__typ.size_")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(std::mem::size_of_val(__value));\n")
-	out.WriteString(indent)
-	out.WriteString("if let Some(__go_meta) = __go_any_metadata { if __go_meta.comparable { *__typ.equal")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Box::new(|_, _| false) as ")
-	writeInternalABIEqualFunctionType(out)
-	out.WriteString("); } }\n")
-	writeInternalABIPointerMetadataBranch(out, fn, indent)
-	out.WriteString(indent)
-	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
-		WriteWrapperPrefix(out)
-		out.WriteString("__typ")
-		WriteWrapperSuffix(out)
-	}) {
-		WriteWrapperPrefix(out)
-		out.WriteString("__typ")
-		WriteWrapperSuffix(out)
-	}
-	out.WriteString("\n")
-}
-
-func writeInternalABIKindAssignment(out *strings.Builder, indent string, sliceHandleType string, anySliceType string, anySliceHandleType string, anyBoxType string, anyHandleType string) {
-	out.WriteString(indent)
-	out.WriteString("let __kind: u8 = if let Some(__go_meta) = __go_any_metadata {\n")
-	writeInternalABIKindMetadataMatch(out, indent+"    ", "__go_meta.kind")
-	out.WriteString("\n")
-
-	checks := []struct {
-		rustType string
-		kind     string
-	}{
-		{"bool", "BOOL"},
-		{"i64", "INT"},
-		{"isize", "INT"},
-		{"i8", "INT8"},
-		{"i16", "INT16"},
-		{"i32", "INT32"},
-		{"u8", "UINT8"},
-		{"u16", "UINT16"},
-		{"u32", "UINT32"},
-		{"u64", "UINT64"},
-		{"usize", "UINTPTR"},
-		{"f32", "FLOAT32"},
-		{"f64", "FLOAT64"},
-		{"String", "STRING"},
-		{"&'static str", "STRING"},
-		{"char", "INT32"},
-		{"Vec<u8>", "SLICE"},
-		{"Vec<i32>", "SLICE"},
-		{"Vec<i64>", "SLICE"},
-		{"Vec<f64>", "SLICE"},
-		{"Vec<String>", "SLICE"},
-		{"Vec<bool>", "SLICE"},
-		{sliceHandleType, "SLICE"},
-		{anySliceType, "SLICE"},
-		{anySliceHandleType, "SLICE"},
-		{anyBoxType, "INTERFACE"},
-		{anyHandleType, "INTERFACE"},
-	}
-	for _, check := range checks {
-		out.WriteString(indent)
-		out.WriteString("} else if <dyn std::any::Any>::is::<")
-		out.WriteString(check.rustType)
-		out.WriteString(">(__value) {\n")
-		out.WriteString(indent)
-		out.WriteString("    ")
-		out.WriteString(check.kind)
-		out.WriteString("\n")
-	}
-	out.WriteString(indent)
-	out.WriteString("} else {\n")
-	out.WriteString(indent)
-	out.WriteString("    panic!(\"internal/abi.TypeOf unsupported Rust Any payload: {}\", std::any::type_name_of_val(__value))\n")
-	out.WriteString(indent)
-	out.WriteString("};\n")
-}
-
-func writeInternalABIKindMetadataMatch(out *strings.Builder, indent string, valueExpr string) {
-	out.WriteString(indent)
-	out.WriteString("match ")
-	out.WriteString(valueExpr)
-	out.WriteString(" {\n")
-	for _, arm := range []struct {
-		value string
-		kind  string
-	}{
-		{"struct", "STRUCT"},
-		{"pointer", "POINTER"},
-		{"slice", "SLICE"},
-		{"map", "MAP"},
-		{"interface", "INTERFACE"},
-		{"chan", "CHAN"},
-		{"func", "FUNC"},
-		{"array", "ARRAY"},
-		{"basic", "INVALID"},
-	} {
-		out.WriteString(indent)
-		out.WriteString("    \"")
-		out.WriteString(arm.value)
-		out.WriteString("\" => ")
-		out.WriteString(arm.kind)
-		out.WriteString(",\n")
-	}
-	out.WriteString(indent)
-	out.WriteString("    _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", ")
-	out.WriteString(valueExpr)
-	out.WriteString("),\n")
-	out.WriteString(indent)
-	out.WriteString("}")
-}
-
-func writeInternalABIPointerMetadataBranch(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	out.WriteString(indent)
-	out.WriteString("if let Some(__go_meta) = __go_any_metadata {\n")
-	out.WriteString(indent)
-	out.WriteString("    if __go_meta.kind == \"pointer\" {\n")
-	out.WriteString(indent)
-	out.WriteString("        let mut __ptr_type = PtrType::default();\n")
-	out.WriteString(indent)
-	out.WriteString("        *__ptr_type.r#type")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(__typ);\n")
-	out.WriteString(indent)
-	out.WriteString("        if let Some(__go_elem_kind) = __go_meta.elem_kind {\n")
-	out.WriteString(indent)
-	out.WriteString("            let mut __elem_type = Type::default();\n")
-	out.WriteString(indent)
-	out.WriteString("            let __elem_kind: u8 = ")
-	writeInternalABIKindMetadataMatch(out, indent+"            ", "__go_elem_kind")
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("            *__elem_type.kind_")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Kind(")
-	WriteWrapperPrefix(out)
-	out.WriteString("__elem_kind")
-	WriteWrapperSuffix(out)
-	out.WriteString("));\n")
-	out.WriteString(indent)
-	out.WriteString("            if __go_meta.elem_comparable {\n")
-	out.WriteString(indent)
-	out.WriteString("                *__elem_type.equal")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Box::new(|_, _| false) as ")
-	writeInternalABIEqualFunctionType(out)
-	out.WriteString(");\n")
-	out.WriteString(indent)
-	out.WriteString("            }\n")
-	out.WriteString(indent)
-	out.WriteString("            *__ptr_type.elem")
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(__elem_type);\n")
-	out.WriteString(indent)
-	out.WriteString("        }\n")
-	out.WriteString(indent)
-	out.WriteString("        let __owner = ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__ptr_type")
-	WriteWrapperSuffix(out)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("        let __embedded = { let __owner_guard = __owner")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __owner_guard.as_ref().unwrap().r#type.clone() };\n")
-	out.WriteString(indent)
-	out.WriteString("        let __embedded_key = { let __embedded_guard = __embedded")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };\n")
-	out.WriteString(indent)
-	out.WriteString("        go_register_embedded_owner(__embedded_key, __owner.clone());\n")
-	out.WriteString(indent)
-	out.WriteString("        return ")
-	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
-		out.WriteString("__embedded")
-	}) {
-		out.WriteString("__embedded")
-	}
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeInternalABIEqualFunctionType(out *strings.Builder) {
-	out.WriteString("Box<dyn FnMut(")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("<")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("<Option<usize>>>, ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("<")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("<Option<usize>>>) -> bool")
-	if NeedsConcurrentWrapper() {
-		out.WriteString(" + Send + Sync")
-	}
-	out.WriteString(">")
-}
-
-func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string, stringInput bool) {
-	haystackName := functionParamName(fn, 0, "b")
-	if stringInput {
-		haystackName = functionParamName(fn, 0, "s")
-	}
-	needleName := functionParamName(fn, 1, "c")
-
-	out.WriteString(indent)
-	out.WriteString("let __needle = (*")
-	out.WriteString(RustLocalIdent(needleName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("let __haystack = ")
-	out.WriteString(RustLocalIdent(haystackName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("let __count = __haystack.as_ref().map(|__v| __v")
-	if stringInput {
-		out.WriteString(".as_bytes()")
-	}
-	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as " + rustIntType() + ";\n")
-	out.WriteString(indent)
-	if runtimeLinkedSingleResultReturnsBareScalar(fn) {
-		out.WriteString("__count\n")
-		return
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("__count")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-}
-
-func writeInternalBytealgMakeNoZeroBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	nName := RustLocalIdent(functionParamName(fn, 0, "n"))
-	out.WriteString(indent)
-	out.WriteString("let __n = (*")
-	out.WriteString(nName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("if __n < 0 { panic!(\"internal/bytealg.MakeNoZero: negative length\"); }\n")
-	out.WriteString(indent)
-	out.WriteString("let __len = __n as usize;\n")
-	out.WriteString(indent)
-	WriteWrapperPrefix(out)
-	out.WriteString("vec![0u8; __len]")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-}
-
-func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	sName := functionParamName(fn, 0, "s")
-	cName := RustLocalIdent(functionParamName(fn, 1, "c"))
-	writeRuntimeLinkedStringParamClone(out, sName, "__s", indent)
-	out.WriteString(indent)
-	out.WriteString("let __c = (*")
-	out.WriteString(cName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
-}
-
-func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	aName := functionParamName(fn, 0, "a")
-	bName := functionParamName(fn, 1, "b")
-	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
-	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
-	out.WriteString(indent)
-	out.WriteString("__a.find(&__b).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
-}
-
-func writeInternalBytealgCompareStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	aName := functionParamName(fn, 0, "a")
-	bName := functionParamName(fn, 1, "b")
-	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
-	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
-	out.WriteString(indent)
-	out.WriteString("match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 }\n")
-}
-
-func writeInternalBuildcfgExpListIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	fields, ok := internalBuildcfgExpListBoolFields(fn)
-	if !ok {
-		out.WriteString(indent)
-		out.WriteString("unimplemented!(\"type info required for internal/buildcfg.expList\")\n")
-		return
-	}
-
-	expName := RustLocalIdent(functionParamName(fn, 0, "exp"))
-	baseName := RustLocalIdent(functionParamName(fn, 1, "base"))
-	allName := RustLocalIdent(functionParamName(fn, 2, "all"))
-
-	trackWrapperImports()
-	out.WriteString(indent)
-	out.WriteString("let mut list: ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("<")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("<Option<Vec<String>>>> = ")
-	WriteWrappedNone(out)
-	out.WriteString(";\n")
-
-	out.WriteString(indent)
-	out.WriteString("{\n")
-	out.WriteString(indent)
-	out.WriteString("    let __exp_guard = ")
-	out.WriteString(expName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    let __exp_value = __exp_guard.as_ref().expect(\"internal/buildcfg.expList requires exp flags\");\n")
-	out.WriteString(indent)
-	out.WriteString("    let __base_guard = ")
-	out.WriteString(baseName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    let __base_value = __base_guard.as_ref();\n")
-	out.WriteString(indent)
-	out.WriteString("    let __all = (*")
-	out.WriteString(allName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-
-	for _, field := range fields {
-		rustField := ToSnakeCase(field.Name())
-		enabledName := strings.ToLower(field.Name())
-		disabledName := "no" + enabledName
-
-		out.WriteString(indent)
-		out.WriteString("    let __val = (*__exp_value.")
-		out.WriteString(rustField)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone();\n")
-		out.WriteString(indent)
-		out.WriteString("    let __base_val = __base_value.map(|__base| (*__base.")
-		out.WriteString(rustField)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()).unwrap_or(false);\n")
-		out.WriteString(indent)
-		out.WriteString("    if __all || __val != __base_val {\n")
-		out.WriteString(indent)
-		out.WriteString("        let mut __list_guard = list")
-		WriteBorrowMethod(out, true)
-		out.WriteString(";\n")
-		out.WriteString(indent)
-		out.WriteString("        if __list_guard.is_none() { *__list_guard = Some(Vec::new()); }\n")
-		out.WriteString(indent)
-		out.WriteString("        if __val { __list_guard.as_mut().unwrap().push(\"")
-		out.WriteString(enabledName)
-		out.WriteString("\".to_string()); } else { __list_guard.as_mut().unwrap().push(\"")
-		out.WriteString(disabledName)
-		out.WriteString("\".to_string()); }\n")
-		out.WriteString(indent)
-		out.WriteString("    }\n")
-	}
-
-	out.WriteString(indent)
-	out.WriteString("}\n")
-	out.WriteString(indent)
-	out.WriteString("list.clone()\n")
-}
-
-func internalBuildcfgExpListBoolFields(fn *ast.FuncDecl) ([]*types.Var, bool) {
-	sig, ok := funcDeclSignatureFromTypeInfo(fn)
-	if !ok || sig.Params() == nil || sig.Params().Len() < 1 {
-		return nil, false
-	}
-	ptr, ok := types.Unalias(sig.Params().At(0).Type()).(*types.Pointer)
-	if !ok {
-		return nil, false
-	}
-	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return nil, false
-	}
-	if named.Obj().Pkg().Path() != "internal/goexperiment" || named.Obj().Name() != "Flags" {
-		return nil, false
-	}
-	st, ok := named.Underlying().(*types.Struct)
-	if !ok {
-		return nil, false
-	}
-	fields := make([]*types.Var, 0, st.NumFields())
-	for i := 0; i < st.NumFields(); i++ {
-		field := st.Field(i)
-		if !types.Identical(types.Unalias(field.Type()), types.Typ[types.Bool]) {
-			return nil, false
-		}
-		fields = append(fields, field)
-	}
-	return fields, true
-}
-
-func writeInternalGodebugSetUpdateBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	updateName := RustLocalIdent(functionParamName(fn, 0, "update"))
-	out.WriteString(indent)
-	out.WriteString("let __env = std::env::var(\"GODEBUG\").unwrap_or_default();\n")
-	out.WriteString(indent)
-	out.WriteString("if !__env.is_empty() {\n")
-	out.WriteString(indent)
-	out.WriteString("    let mut __update_guard = ")
-	out.WriteString(updateName)
-	WriteBorrowMethod(out, true)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("    if let Some(__update) = __update_guard.as_mut() {\n")
-	out.WriteString(indent)
-	out.WriteString("        __update(")
-	WriteWrapperPrefix(out)
-	out.WriteString("String::new()")
-	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	WriteWrapperPrefix(out)
-	out.WriteString("__env")
-	WriteWrapperSuffix(out)
-	out.WriteString(");\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeInternalGodebugSetNewIncNonDefaultBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	paramName := RustLocalIdent(functionParamName(fn, 0, "newIncNonDefault"))
-	out.WriteString(indent)
-	out.WriteString("let _ = ")
-	out.WriteString(paramName)
-	out.WriteString(";\n")
-}
-
-func writeInternalGodebugRegisterMetricBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	nameParam := RustLocalIdent(functionParamName(fn, 0, "name"))
-	readParam := RustLocalIdent(functionParamName(fn, 1, "read"))
-	out.WriteString(indent)
-	out.WriteString("let _ = (")
-	out.WriteString(nameParam)
-	out.WriteString(", ")
-	out.WriteString(readParam)
-	out.WriteString(");\n")
-}
-
-func writeInternalGodebugWriteBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	fdName := RustLocalIdent(functionParamName(fn, 0, "fd"))
-	ptrName := RustLocalIdent(functionParamName(fn, 1, "p"))
-	nName := RustLocalIdent(functionParamName(fn, 2, "n"))
-
-	out.WriteString(indent)
-	out.WriteString("let __fd = (*")
-	out.WriteString(fdName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("let __ptr = (*")
-	out.WriteString(ptrName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("let __n = (*")
-	out.WriteString(nName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-	out.WriteString(indent)
-	out.WriteString("if __n <= 0 { return 0; }\n")
-	out.WriteString(indent)
-	out.WriteString("let __bytes = unsafe { std::slice::from_raw_parts(__ptr as *const u8, __n as usize) };\n")
-	out.WriteString(indent)
-	out.WriteString("let __result = match __fd {\n")
-	out.WriteString(indent)
-	out.WriteString("    1 => std::io::Write::write_all(&mut std::io::stdout(), __bytes),\n")
-	out.WriteString(indent)
-	out.WriteString("    2 => std::io::Write::write_all(&mut std::io::stderr(), __bytes),\n")
-	out.WriteString(indent)
-	out.WriteString("    _ => Err(std::io::Error::new(std::io::ErrorKind::Unsupported, \"unsupported runtime.write fd\")),\n")
-	out.WriteString(indent)
-	out.WriteString("};\n")
-	out.WriteString(indent)
-	out.WriteString("if __result.is_ok() { __n } else { -1 }\n")
-}
-
-func runtimeLinkedReceiverIsNamed(fn *ast.FuncDecl, name string) bool {
-	sig, ok := funcDeclSignatureFromTypeInfo(fn)
-	if !ok || sig.Recv() == nil {
-		return false
-	}
-	recvType := types.Unalias(sig.Recv().Type())
-	if ptr, ok := recvType.(*types.Pointer); ok {
-		recvType = types.Unalias(ptr.Elem())
-	}
-	named, ok := recvType.(*types.Named)
-	return ok && named.Obj() != nil && named.Obj().Name() == name
-}
-
-func writeStringsBuilderCopyCheckBody(out *strings.Builder, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let _ = self;\n")
-}
-
-func writeStringsBuilderStringBody(out *strings.Builder, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let __buf_guard = self.buf")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("let __text = __buf_guard.as_ref().map(|__buf| String::from_utf8_lossy(__buf).to_string()).unwrap_or_default();\n")
-	out.WriteString(indent)
-	WriteWrapperPrefix(out)
-	out.WriteString("__text")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-}
-
-func runtimeLinkedSingleResultReturnsBareScalar(fn *ast.FuncDecl) bool {
-	sig, ok := funcDeclSignatureFromTypeInfo(fn)
-	return ok && signatureReturnsBareScalar(sig)
-}
-
-func functionParamName(fn *ast.FuncDecl, index int, fallback string) string {
-	if fn == nil || fn.Type == nil || fn.Type.Params == nil {
-		return fallback
-	}
-	seen := 0
-	for _, field := range fn.Type.Params.List {
-		names := field.Names
-		if len(names) == 0 {
-			if seen == index {
-				return fallback
-			}
-			seen++
-			continue
-		}
-		for _, name := range names {
-			if seen == index && name != nil {
-				return name.Name
-			}
-			seen++
-		}
-	}
-	return fallback
-}
-
-func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
-	writeRuntimeLinkedParamClone(out, paramName, localName, indent)
-}
-
-func writeRuntimeLinkedParamClone(out *strings.Builder, paramName string, localName string, indent string) {
-	out.WriteString(indent)
-	out.WriteString("let ")
-	out.WriteString(localName)
-	out.WriteString(" = (*")
-	out.WriteString(RustLocalIdent(paramName))
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone();\n")
-}
-
-func writeFuncDeclParams(out *strings.Builder, fn *ast.FuncDecl) {
-	if fn == nil || fn.Type == nil || fn.Type.Params == nil {
-		return
-	}
-	paramIndex := 0
-	first := true
-	for _, field := range fn.Type.Params.List {
-		if len(field.Names) == 0 {
-			if !first {
-				out.WriteString(", ")
-			}
-			writeFuncDeclParam(out, fn, paramIndex, fmt.Sprintf("__arg%d", paramIndex), field.Type, false)
-			paramIndex++
-			first = false
-			continue
-		}
-		for _, name := range field.Names {
-			if !first {
-				out.WriteString(", ")
-			}
-			writeFuncDeclParam(out, fn, paramIndex, name.Name, field.Type, blockIdentAssigned(fn.Body, name.Name))
-			paramIndex++
-			first = false
-		}
-	}
-}
-
-func writeFuncDeclParam(out *strings.Builder, fn *ast.FuncDecl, paramIndex int, name string, typ ast.Expr, mutable bool) {
-	if mutable {
-		out.WriteString("mut ")
-	}
-	out.WriteString(RustLocalIdent(name))
-	out.WriteString(": ")
-	if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
-		out.WriteString(sliceElemPtrSliceRustType(elemRustType))
-		return
-	}
-	if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
-		out.WriteString(goPtrSlotParamRustType(elemRustType))
-		return
-	}
-	if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
-		NeedSliceElemPtr()
-		out.WriteString("GoPtr<")
-		out.WriteString(elemRustType)
-		out.WriteString(">")
-		return
-	}
-	if functionRustType, ok := functionValueGoPtrAwareWrappedTypeForFuncDeclParam(fn, paramIndex, typ); ok {
-		out.WriteString(functionRustType)
-		return
-	}
-	out.WriteString(GoTypeToRustParam(typ))
-}
-
-// getEmbeddedFieldName extracts the type name from an embedded field
-func getEmbeddedFieldName(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.StarExpr:
-		// For pointer types, get the underlying type name
-		return getEmbeddedFieldName(t.X)
-	case *ast.IndexExpr:
-		return getEmbeddedFieldName(t.X)
-	case *ast.IndexListExpr:
-		return getEmbeddedFieldName(t.X)
-	case *ast.SelectorExpr:
-		// For qualified types like pkg.Type
-		return t.Sel.Name
-	default:
-		// Fallback to a generic name
-		return "embedded"
-	}
-}
-
-func typeDefinitionUnderlyingName(expr ast.Expr) string {
-	switch t := expr.(type) {
-	case *ast.Ident:
-		return t.Name
-	case *ast.ArrayType:
-		prefix := "[]"
-		if t.Len != nil {
-			prefix = "[_]"
-		}
-		return prefix + typeDefinitionUnderlyingName(t.Elt)
-	case *ast.MapType:
-		return "map[" + typeDefinitionUnderlyingName(t.Key) + "]" + typeDefinitionUnderlyingName(t.Value)
-	case *ast.StarExpr:
-		return "*" + typeDefinitionUnderlyingName(t.X)
-	case *ast.SelectorExpr:
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return ident.Name + "." + t.Sel.Name
-		}
-		return t.Sel.Name
-	case *ast.ChanType:
-		return "chan " + typeDefinitionUnderlyingName(t.Value)
-	case *ast.FuncType:
-		return "func"
-	default:
-		return fmt.Sprintf("%T", expr)
-	}
-}
-
-func functionTypeSpecRustType(typeSpec *ast.TypeSpec, fallback *ast.FuncType) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.info != nil {
-		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
-			if _, ok := signatureFromType(obj.Type()); ok {
-				return goTypesTypeToRustWrapped(obj.Type())
-			}
-		}
-	}
-	return GoTypeToRust(fallback)
-}
-
-func functionTypeSpecRustBoxType(typeSpec *ast.TypeSpec, fallback *ast.FuncType) string {
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.info != nil {
-		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
-			if sig, ok := signatureFromType(obj.Type()); ok {
-				return signatureToBoxDynFn(sig)
-			}
-		}
-	}
-	return generateClosureType(fallback)
-}
-
-// emitStructTypeDeclBody writes the Rust struct definition plus its derived
-// impls (clone, Default, Display, PartialEq, Ord, JSON) for a Go struct type.
-// Shared by a direct `type T struct{...}` and a defined type whose underlying is
-// a named struct (`type Term term`), which must expose the same fields rather
-// than lower to a newtype over a wrapped handle.
-// definedTypeUnderlyingStructAST returns the struct AST for `type A B` when B is
-// a named type whose underlying is a struct, so A can be emitted with B's fields.
-// It confirms the struct shape through go/types and fetches the AST from the
-// struct registry; returns nil (caller falls back to a newtype) when either is
-// unavailable, e.g. the underlying isn't a struct or wasn't registered yet.
-func definedTypeUnderlyingStructAST(t ast.Expr) *ast.StructType {
-	ident, ok := t.(*ast.Ident)
-	if !ok {
-		return nil
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
-		obj := typeInfo.pkg.Scope().Lookup(ident.Name)
-		named, ok := obj.(*types.TypeName)
-		if !ok {
-			return nil
-		}
-		n, ok := named.Type().(*types.Named)
-		if !ok {
-			return nil
-		}
-		if _, ok := n.Underlying().(*types.Struct); !ok {
-			return nil
-		}
-	}
-	if def, ok := structDefs[ident.Name]; ok && def != nil {
-		return def.ASTType
-	}
-	return nil
-}
-
-func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast.StructType) {
-	structName := typeSpec.Name.Name
-	rustTypeName := RustTypeNameForUse(structName)
-	generics := rustTypeGenericsForStructTypeSpec(typeSpec, t)
-	registerStructDef(structName, t)
-	setStructDefPhantomTypeParams(structName, generics.Phantom)
-
-	deriveClone := typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0
-	writeStructDerive(out, structName, t, deriveClone)
-	out.WriteString("pub struct ")
-	out.WriteString(rustTypeName)
-	out.WriteString(generics.Decl)
-	out.WriteString(" {\n")
-
-	for fieldIndex, field := range t.Fields.List {
-		// Add struct tag as comment if present
-		if field.Tag != nil && field.Tag.Value != "" {
-			out.WriteString("    // tags: ")
-			out.WriteString(field.Tag.Value)
-			out.WriteString("\n")
-		}
-
-		if len(field.Names) > 0 {
-			// Handle multiple names on one line (e.g., X, Y int)
-			for nameIndex, name := range field.Names {
-				out.WriteString("    pub ")
-				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
-				out.WriteString(": ")
-				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
-					out.WriteString(goPtrArrayFieldRustType(fieldInfo))
-				} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
-					out.WriteString(sliceElemPtrSliceRustType(sliceElemPtrSliceFieldElemRustType(fieldInfo)))
-				} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
-					recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, name.Name)
-					NeedSliceElemPtr()
-					out.WriteString("GoPtr<")
-					out.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
-					out.WriteString(">")
-				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
-					out.WriteString(syncAtomicPointerStorageRustType(typeSpec))
-				} else if functionRustType, ok := functionValueGoPtrAwareWrappedTypeForNamedTypeExpr(name, field.Type); ok {
-					out.WriteString(functionRustType)
-				} else {
-					out.WriteString(GoTypeToRust(field.Type))
-				}
-				out.WriteString(",\n")
-			}
-		} else {
-			// Embedded field - extract the type name
-			fieldName := getEmbeddedFieldName(field.Type)
-			out.WriteString("    pub ")
-			out.WriteString(ToSnakeCase(fieldName))
-			out.WriteString(": ")
-			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
-				out.WriteString(goPtrArrayFieldRustType(fieldInfo))
-			} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
-				out.WriteString(sliceElemPtrSliceRustType(sliceElemPtrSliceFieldElemRustType(fieldInfo)))
-			} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
-				recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, fieldName)
-				NeedSliceElemPtr()
-				out.WriteString("GoPtr<")
-				out.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
-				out.WriteString(">")
-			} else {
-				out.WriteString(GoTypeToRust(field.Type))
-			}
-			out.WriteString(",\n")
-		}
-	}
-	writeRustPhantomField(out, generics)
-
-	out.WriteString("}\n\n")
-
-	cloneGenerics := rustTypeGenericsForStructGoValueClone(typeSpec, t)
-	generateStructValueClone(out, structName, t, cloneGenerics)
-	if !deriveClone {
-		out.WriteString("\n")
-		generateStructClone(out, structName, t, generics)
-	}
-	out.WriteString("\n")
-
-	generateStructDefault(out, typeSpec, structName, t, generics)
-	if structNeedsCustomDefault(t) {
-		out.WriteString("\n")
-	}
-
-	// Generate Display implementation to match Go's format
-	displayGenerics, hasDisplayTypeInfo := rustStructDisplayGenerics(generics, typeSpec, t)
-	if hasDisplayTypeInfo {
-		generateStructDisplay(out, structName, t, displayGenerics)
-	} else {
-		generateStructDisplayTypeInfoRequired(out, structName, displayGenerics)
-	}
-	if IsErrorImplType(structName) && !structCanDeriveDebug(t) {
-		generateStructDebug(out, structName, generics)
-	}
-	generateStructPartialEq(out, structName, t, generics)
-	generateStructPointerComparableIdentity(out, structName, generics)
-	generateStructOrd(out, structName, t, generics)
-	generateStructJsonDecode(out, structName, t, generics)
-}
-
-func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
-	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
-	switch t := typeSpec.Type.(type) {
-	case *ast.StructType:
-		emitStructTypeDeclBody(out, typeSpec, t)
-
-	case *ast.InterfaceType:
-		// Generate a trait for the interface
-		// Add Display plus Any so trait object equality can downcast.
-		// Embedded named local interfaces become Rust supertraits so that
-		// `&dyn SubTrait` upcasts to `&dyn SuperTrait` automatically.
-		TrackImport("Any")
-		embeddedTraits := embeddedLocalInterfaceNames(t)
-		ifaceTypes := localInterfaceTypesFromTypeSpec(typeSpec)
-		out.WriteString("pub trait ")
-		out.WriteString(rustTypeName)
-		out.WriteString(":")
-		for _, st := range embeddedTraits {
-			out.WriteString(" ")
-			out.WriteString(st)
-			out.WriteString(" +")
-		}
-		out.WriteString(" std::fmt::Display + Any {\n")
-		TrackImport("Display")
-		traitSnake := traitMethodSuffix(rustTypeName)
-		out.WriteString("    fn __go_clone_box_")
-		out.WriteString(traitSnake)
-		out.WriteString("(&self) -> ")
-		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
-		out.WriteString(";\n")
-		if len(embeddedTraits) == 0 {
-			out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
-		}
-		out.WriteString("    fn __go_eq_")
-		out.WriteString(traitSnake)
-		out.WriteString("(&self, other: ")
-		out.WriteString(rustLocalInterfaceParamBare(rustTypeName))
-		out.WriteString(") -> bool;\n")
-
-		// Generate method signatures for directly-declared methods only.
-		// Inherited methods come through supertraits â€” redeclaring them
-		// here would cause method-resolution ambiguity (E0034).
-		for _, method := range t.Methods.List {
-			if len(method.Names) > 0 {
-				// Named method
-				funcType, ok := method.Type.(*ast.FuncType)
-				if !ok {
-					continue
-				}
-
-				out.WriteString("    fn ")
-				out.WriteString(ToSnakeCase(method.Names[0].Name))
-				out.WriteString("(")
-				out.WriteString(interfaceTraitMethodReceiver(typeSpec.Name.Name, method.Names[0].Name))
-
-				// Add other parameters
-				if funcType.Params != nil && len(funcType.Params.List) > 0 {
-					paramIndex := 0
-					for _, param := range funcType.Params.List {
-						if len(param.Names) == 0 {
-							out.WriteString(", ")
-							out.WriteString(RustLocalIdent(fmt.Sprintf("__arg%d", paramIndex)))
-							out.WriteString(": ")
-							out.WriteString(GoTypeToRustParam(param.Type))
-							paramIndex++
-							continue
-						}
-						for _, name := range param.Names {
-							out.WriteString(", ")
-							out.WriteString(RustLocalIdent(name.Name))
-							out.WriteString(": ")
-							out.WriteString(GoTypeToRustParam(param.Type))
-							paramIndex++
-						}
-					}
-				}
-
-				out.WriteString(")")
-
-				if methodObj := interfaceMethodByName(ifaceTypes, method.Names[0].Name); methodObj != nil {
-					writeInterfaceMethodResultTypesFromFunc(out, methodObj)
-				} else {
-					writeFunctionResultTypes(out, funcType)
-				}
-
-				out.WriteString(";\n")
-			}
-		}
-
-		out.WriteString("}")
-		out.WriteString("\n\nimpl Clone for ")
-		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
-		out.WriteString(" {\n")
-		out.WriteString("    fn clone(&self) -> Self {\n")
-		out.WriteString("        ")
-		out.WriteString(rustTypeName)
-		out.WriteString("::__go_clone_box_")
-		out.WriteString(traitSnake)
-		out.WriteString("(self.as_ref())\n")
-		out.WriteString("    }\n")
-		out.WriteString("}")
-		if localInterfaceNeedsGoValueCloneImpl(rustTypeName) {
-			writeLocalInterfaceGoValueCloneImpl(out, rustTypeName, traitSnake)
-		}
-		if localInterfaceNeedsGoComparableImpl(rustTypeName) {
-			writeLocalInterfaceGoComparableImpl(out, rustTypeName, traitSnake)
-		}
-		if localInterfaceNeedsMapKeyType(rustTypeName) {
-			writeLocalInterfaceMapKeyType(out, rustTypeName, traitSnake)
-		}
-		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
-		writeAssignableInterfaceObjectAdapters(out, rustTypeName)
-		if iface := localInterfaceTypesByName(typeSpec.Name.Name); interfaceEmbedsOnlyOrderedTerms(iface) {
-			writeOrderedPrimitiveInterfaceImpls(out, rustTypeName)
-		}
-
-	default:
-		// Handle type aliases and type definitions
-		if typeSpec.Assign != 0 {
-			// Type alias: type A = B
-			out.WriteString("pub type ")
-			out.WriteString(rustTypeName)
-			writeTypeSpecAliasTypeParams(out, typeSpec)
-			out.WriteString(" = ")
-			if funcType, ok := t.(*ast.FuncType); ok {
-				out.WriteString(functionTypeSpecRustType(typeSpec, funcType))
-			} else {
-				out.WriteString(GoTypeToRust(t))
-			}
-			out.WriteString(";\n")
-
-			// Track this as a type alias
-			RegisterTypeAlias(typeSpec.Name.Name)
-			if _, isFuncType := t.(*ast.FuncType); isFuncType {
-				RegisterFunctionTypeAlias(typeSpec.Name.Name)
-				RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, t.(*ast.FuncType)))
-			}
-		} else if _, isFuncType := t.(*ast.FuncType); isFuncType {
-			// Named function type: type BinaryOp func(int, int) int
-			// Emit as a type alias to the callable shape, not a newtype struct
-			out.WriteString("pub type ")
-			out.WriteString(rustTypeName)
-			writeTypeSpecAliasTypeParams(out, typeSpec)
-			out.WriteString(" = ")
-			out.WriteString(functionTypeSpecRustType(typeSpec, t.(*ast.FuncType)))
-			out.WriteString(";\n")
-
-			// Track as a type alias so GoTypeToRust won't double-wrap
-			RegisterTypeAlias(typeSpec.Name.Name)
-			RegisterFunctionTypeAlias(typeSpec.Name.Name)
-			RegisterFunctionTypeAliasBox(typeSpec.Name.Name, functionTypeSpecRustBoxType(typeSpec, t.(*ast.FuncType)))
-
-			// Function types satisfying local interfaces need per-interface
-			// wrapper structs: emitting `impl LocalIface for funcAlias` directly
-			// violates Rust's orphan rule because the alias resolves to entirely
-			// foreign types. The wrapper holds the alias value and forwards
-			// trait methods to the function-type's inherent methods so call
-			// sites can convert via Box::new(<FuncType>As<Iface>(value)).
-			writeFunctionTypeInterfaceImpls(out, typeSpec.Name.Name, rustTypeName)
-		} else if structAST := definedTypeUnderlyingStructAST(t); structAST != nil {
-			// `type Term term` where term is a struct: Term has term's fields (Go
-			// promotes them through the underlying), so emit Term as a struct with
-			// those fields rather than a newtype over a wrapped handle. Otherwise
-			// field access (t.field) resolves to nothing (E0609/E0615) â€” go/types'
-			// union.Term hits this.
-			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
-			emitStructTypeDeclBody(out, typeSpec, structAST)
-			return
-		} else {
-			// Type definition: type A B
-			// Create a newtype wrapper in Rust
-			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
-			canDeriveDebug := typeDefinitionCanDeriveDebug(typeSpec)
-			customDefault, hasCustomDefault := typeDefinitionCustomDefaultValue(typeSpec)
-			// A copy of a number, string or bool is a value of its own: a
-			// pointer method on the copy must not change the original.
-			copiesValue := typeDefinitionCopiesScalarValue(t)
-			derives := []string{}
-			if canDeriveDebug {
-				derives = append(derives, "Debug")
-			}
-			if !copiesValue {
-				derives = append(derives, "Clone")
-			}
-			if !hasCustomDefault {
-				derives = append(derives, "Default")
-			}
-			if len(derives) > 0 {
-				out.WriteString("#[derive(")
-				out.WriteString(strings.Join(derives, ", "))
-				out.WriteString(")]\n")
-			}
-			out.WriteString("pub struct ")
-			out.WriteString(rustTypeName)
-			out.WriteString("(pub ")
-			out.WriteString(GoTypeToRust(t))
-			out.WriteString(");\n")
-			if copiesValue {
-				writeScalarTypeDefinitionValueClone(out, rustTypeName)
-			}
-			if hasCustomDefault {
-				out.WriteString("\nimpl Default for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn default() -> Self {\n")
-				out.WriteString("        ")
-				out.WriteString(customDefault)
-				out.WriteString("\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			}
-			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
-
-			// Add Display implementation for displayable scalar type definitions
-			if IsStringerImplType(typeSpec.Name.Name) {
-				TrackImport("Display")
-				TrackImport("Formatter")
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				writeStringerDisplayBody(out, typeSpec.Name.Name, "        ")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			} else if IsErrorImplType(typeSpec.Name.Name) {
-				TrackImport("Display")
-				TrackImport("Formatter")
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", (*self.error()")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()))\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-				if !canDeriveDebug {
-					generateStructDebug(out, typeSpec.Name.Name, rustTypeGenerics{})
-				}
-			} else if _, ok := typeDefinitionUnderlyingNamedArray(typeSpec); ok {
-				TrackImport("Display")
-				TrackImport("Formatter")
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        let __inner_guard = self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(";\n")
-				out.WriteString("        write!(f, \"{}\", __inner_guard.as_ref().unwrap())\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			} else if typeDefinitionUnderlyingNamedDisplayable(typeSpec) {
-				TrackImport("Display")
-				TrackImport("Formatter")
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			} else if arrayFormatter, ok := typeDefinitionArrayDisplayFormatter(typeSpec); ok {
-				TrackImport("Display")
-				TrackImport("Formatter")
-				if arrayFormatter == "format_slice_wrapped_stringer" {
-					NeedFormatSliceWrappedStringer()
-				} else {
-					NeedFormatSlice()
-				}
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", ")
-				out.WriteString(arrayFormatter)
-				out.WriteString("(&self.0))\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			} else if typeDefinitionMapUnderlyingDisplayable(typeSpec) {
-				TrackImport("Display")
-				TrackImport("Formatter")
-				NeedFormatMap()
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", format_map(&self.0))\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			} else if typeDefinitionScalarUnderlyingDisplayable(typeSpec) {
-				// Track necessary imports
-				TrackImport("Display")
-				TrackImport("Formatter")
-				TrackImport("fmt")
-
-				out.WriteString("\nimpl Display for ")
-				out.WriteString(rustTypeName)
-				out.WriteString(" {\n")
-				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())\n")
-				out.WriteString("    }\n")
-				out.WriteString("}\n")
-			}
-			if ident, ok := t.(*ast.Ident); ok && isEqualityComparableDefinedUnderlying(ident.Name) {
-				writeScalarTypeDefinitionPartialEq(out, typeSpec.Name.Name)
-				if rustType, ok := rustCastTypeForDefinedUnderlying(ident.Name); ok {
-					writeScalarTypeDefinitionNumericOps(out, typeSpec.Name.Name, rustType, ident.Name)
-				}
-				if isBitwiseDefinedUnderlying(ident.Name) {
-					writeScalarTypeDefinitionOrd(out, typeSpec.Name.Name)
-				}
-				if ident.Name == "string" {
-					writeScalarTypeDefinitionStringOps(out, typeSpec.Name.Name)
-				}
-			}
-		}
-	}
-}
-
-func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName string) {
-	traitSnake := traitMethodSuffix(rustTypeName)
-	traitObject := rustLocalInterfaceTraitObject(rustTypeName)
-	paramBare := rustLocalInterfaceParamBare(rustTypeName)
-	for _, primitive := range []string{"i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize", "f32", "f64", "String"} {
-		out.WriteString("\n\nimpl ")
-		out.WriteString(rustTypeName)
-		out.WriteString(" for ")
-		out.WriteString(primitive)
-		out.WriteString(" {\n")
-		out.WriteString("    fn __go_clone_box_")
-		out.WriteString(traitSnake)
-		out.WriteString("(&self) -> ")
-		out.WriteString(traitObject)
-		out.WriteString(" {\n")
-		out.WriteString("        Box::new(self.clone()) as ")
-		out.WriteString(traitObject)
-		out.WriteString("\n")
-		out.WriteString("    }\n")
-		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        self\n")
-		out.WriteString("    }\n")
-		out.WriteString("    fn __go_eq_")
-		out.WriteString(traitSnake)
-		out.WriteString("(&self, other: ")
-		out.WriteString(paramBare)
-		out.WriteString(") -> bool {\n")
-		out.WriteString("        if let Some(__other) = ")
-		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(rustTypeName), "other", "other"))
-		out.WriteString(".downcast_ref::<")
-		out.WriteString(primitive)
-		out.WriteString(">() {\n")
-		out.WriteString("            self == __other\n")
-		out.WriteString("        } else {\n")
-		out.WriteString("            false\n")
-		out.WriteString("        }\n")
-		out.WriteString("    }\n")
-		out.WriteString("}")
-	}
-}
-
-func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.info != nil {
-		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
-			if named, ok := types.Unalias(obj.Type()).(*types.Named); ok {
-				if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
-					return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
-				}
-			}
-		}
-	}
-	return false
-}
-
-func typeDefinitionUnderlyingNamedDisplayable(typeSpec *ast.TypeSpec) bool {
-	named, ok := typeDefinitionUnderlyingNamedType(typeSpec)
-	if !ok {
-		return false
-	}
-	if typeSpec.TypeParams != nil {
-		return false
-	}
-	if typeArgs := named.TypeArgs(); typeArgs != nil && typeArgs.Len() > 0 {
-		return false
-	}
-	if !namedTypeHasGeneratedDisplay(named) {
-		return false
-	}
-	if _, ok := types.Unalias(named.Underlying()).(*types.Array); ok {
-		return false
-	}
-	return true
-}
-
-func typeDefinitionUnderlyingNamedType(typeSpec *ast.TypeSpec) (*types.Named, bool) {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil, false
-	}
-	typ := typeInfo.GetType(typeSpec.Type)
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok || named.Obj() == nil {
-		return nil, false
-	}
-	return named, true
-}
-
-func namedTypeHasGeneratedDisplay(named *types.Named) bool {
-	if named == nil || named.Obj() == nil {
-		return false
-	}
-	if !namedTypeRustDisplayImplAvailable(named) {
-		return false
-	}
-	if typeHasGoStringMethod(named) || typeHasGoStringMethod(types.NewPointer(named)) {
-		return true
-	}
-	switch underlying := types.Unalias(named.Underlying()).(type) {
-	case *types.Basic:
-		return goTypeBasicDisplayable(underlying)
-	case *types.Struct:
-		return true
-	case *types.Slice:
-		_, ok := sequenceDisplayFormatter(underlying.Elem())
-		return ok
-	case *types.Array:
-		_, ok := sequenceDisplayFormatter(underlying.Elem())
-		return ok
-	case *types.Map:
-		return mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem())
-	default:
-		return false
-	}
-}
-
-func namedTypeRustDisplayImplAvailable(named *types.Named) bool {
-	if named == nil || named.Obj() == nil {
-		return false
-	}
-	obj := named.Obj()
-	if obj.Pkg() == nil {
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
-		return true
-	}
-	pkgPath := obj.Pkg().Path()
-	return isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath)
-}
-
-func typeDefinitionUnderlyingNamedArray(typeSpec *ast.TypeSpec) (*types.Named, bool) {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return nil, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil, false
-	}
-	typ := typeInfo.GetType(typeSpec.Type)
-	named, ok := types.Unalias(typ).(*types.Named)
-	if !ok || named.Obj() == nil {
-		return nil, false
-	}
-	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
-		return nil, false
-	}
-	return named, true
-}
-
-func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return "", false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return "", false
-	}
-	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
-	if !ok {
-		return "", false
-	}
-	named, ok := types.Unalias(obj.Type()).(*types.Named)
-	if !ok {
-		return "", false
-	}
-	switch seq := types.Unalias(named.Underlying()).(type) {
-	case *types.Slice:
-		return sequenceDisplayFormatter(seq.Elem())
-	case *types.Array:
-		return sequenceDisplayFormatter(seq.Elem())
-	default:
-		return "", false
-	}
-}
-
-// typeDefinitionWrapsPredeclaredBasic reports whether typeSpec is "type T
-// int64" or the like: a newtype over the wrapped cell of a predeclared
-// number, string or bool.
-func typeDefinitionWrapsPredeclaredBasic(typeSpec *ast.TypeSpec) bool {
-	ident, ok := typeSpec.Type.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	typeName, ok := types.Universe.Lookup(ident.Name).(*types.TypeName)
-	if !ok {
-		return false
-	}
-	basic, ok := typeName.Type().(*types.Basic)
-	if !ok || basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) == 0 {
-		return false
-	}
-	return strings.HasPrefix(GoTypeToRust(typeSpec.Type), GetOuterWrapperType()+"<")
-}
-
-func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return "", false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return "", false
-	}
-	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
-	if !ok {
-		return "", false
-	}
-	named, ok := types.Unalias(obj.Type()).(*types.Named)
-	if !ok {
-		return "", false
-	}
-	if typeDefinitionWrapsPredeclaredBasic(typeSpec) {
-		// The zero value of "type Money int64" holds 0. A derived Default
-		// would hold an empty cell, and reading it panics.
-		var zero strings.Builder
-		zero.WriteString("Self(")
-		WriteWrapperPrefix(&zero)
-		zero.WriteString("Default::default()")
-		WriteWrapperSuffix(&zero)
-		zero.WriteString(")")
-		return zero.String(), true
-	}
-	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
-		return "", false
-	}
-	return zeroValueForTypesType(named), true
-}
-
-func sequenceDisplayFormatter(elem types.Type) (string, bool) {
-	if elem == nil {
-		return "", false
-	}
-	elem = types.Unalias(elem)
-	if ptr, ok := elem.Underlying().(*types.Pointer); ok {
-		if typeHasGoStringMethod(ptr.Elem()) ||
-			typeHasGoStringMethod(types.NewPointer(ptr.Elem())) ||
-			pointerElementHasGeneratedStructDisplay(ptr.Elem()) {
-			return "format_slice_wrapped", true
-		}
-		return "", false
-	}
-	if intf, ok := elem.Underlying().(*types.Interface); ok {
-		// An interface of a bridged stdlib package, such as ast.Expr when
-		// go/ast is not translated from source, is a stand-in struct held
-		// bare in the slice, not a trait object in a cell.
-		if named, isNamed := elem.(*types.Named); isNamed && named.Obj() != nil && named.Obj().Pkg() != nil && isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
-			return "format_slice", true
-		}
-		if intf.NumMethods() > 0 {
-			return "format_slice_wrapped_stringer", true
-		}
-		return "", false
-	}
-	if goTypeBasicDisplayable(elem) || typeHasGoStringMethod(elem) || typeHasGoStringMethod(types.NewPointer(elem)) {
-		return "format_slice", true
-	}
-	return "", false
-}
-
-func pointerElementHasGeneratedStructDisplay(elem types.Type) bool {
-	named, ok := types.Unalias(elem).(*types.Named)
-	if !ok || !namedTypeRustDisplayImplAvailable(named) {
-		return false
-	}
-	_, ok = types.Unalias(named.Underlying()).(*types.Struct)
-	return ok
-}
-
-func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
-	if typeSpec == nil || typeSpec.Name == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
-	if !ok {
-		return false
-	}
-	named, ok := types.Unalias(obj.Type()).(*types.Named)
-	if !ok {
-		return false
-	}
-	mapType, ok := types.Unalias(named.Underlying()).(*types.Map)
-	if !ok {
-		return false
-	}
-	return mapKeyTypeDisplayable(mapType.Key()) && mapValueTypeDisplayable(mapType.Elem())
-}
-
-func mapKeyTypeDisplayable(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
-		return true
-	}
-	if _, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
-		return true
-	}
-	return goTypeBasicDisplayable(typ)
-}
-
-func mapValueTypeDisplayable(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	if intf, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
-		return intf.NumMethods() > 0
-	}
-	return goTypeBasicDisplayable(typ)
-}
-
-func goTypeBasicDisplayable(typ types.Type) bool {
-	if typ == nil {
-		return false
-	}
-	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
-	if !ok {
-		return false
-	}
-	return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
-}
-
-func registerStructDef(name string, structType *ast.StructType) {
-	if name == "" || structType == nil {
-		return
-	}
-	structDef := &StructDef{
-		Fields:        make(map[string]string),
-		FieldTypes:    make(map[string]ast.Expr),
-		FieldTags:     make(map[string]string),
-		FieldOrder:    []string{},
-		EmbeddedTypes: []string{},
-		ASTType:       structType,
-	}
-	for _, field := range structType.Fields.List {
-		if len(field.Names) > 0 {
-			tag := jsonStructTagFromField(field)
-			for _, name := range field.Names {
-				structDef.Fields[name.Name] = "regular"
-				structDef.FieldTypes[name.Name] = field.Type
-				structDef.FieldTags[name.Name] = tag
-				structDef.FieldOrder = append(structDef.FieldOrder, name.Name)
-			}
-		} else {
-			typeName := getEmbeddedFieldName(field.Type)
-			structDef.EmbeddedTypes = append(structDef.EmbeddedTypes, typeName)
-			if structFieldEmbedsGoError(field) {
-				structDef.EmbedsError = true
-				RegisterErrorImplType(name)
-			}
-		}
-	}
-	structDefs[name] = structDef
-}
-
-func registerStructTypeSpecDef(typeSpec *ast.TypeSpec, structType *ast.StructType) {
-	if typeSpec == nil {
-		return
-	}
-	registerStructDef(typeSpec.Name.Name, structType)
-	generics := rustTypeGenericsForStructTypeSpec(typeSpec, structType)
-	setStructDefPhantomTypeParams(typeSpec.Name.Name, generics.Phantom)
-}
-
-func setStructDefPhantomTypeParams(name string, phantomTypeParams []string) {
-	if len(phantomTypeParams) == 0 {
-		return
-	}
-	if def, ok := structDefs[name]; ok && def != nil {
-		def.PhantomTypeParams = append([]string(nil), phantomTypeParams...)
-	}
-}
-
-func structFieldEmbedsGoError(field *ast.Field) bool {
-	if field == nil || len(field.Names) > 0 {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	return isGoErrorType(typeInfo.GetType(field.Type))
-}
-
-func writeScalarTypeDefinitionPartialEq(out *strings.Builder, typeName string) {
-	out.WriteString("\nimpl PartialEq for ")
-	out.WriteString(RustTypeNameForUse(typeName))
-	out.WriteString(" {\n")
-	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
-	out.WriteString("        let __left = { self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        let __right = { other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        __left == __right\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, rustType string, underlying string) {
-	rustTypeName := RustTypeNameForUse(typeName)
-	writeScalarTypeDefinitionPartialOrd(out, rustTypeName, rustType)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", true)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", true)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Mul", "mul", "*", true)
-	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Div", "div", "/", true)
-	if definedUnderlyingSupportsUnaryMinus(underlying) {
-		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Neg", "neg", "-")
-	}
-	if isBitwiseDefinedUnderlying(underlying) {
-		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Rem", "rem", "%", true)
-		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
-		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
-		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
-		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
-		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
-	}
-}
-
-// typeDefinitionCopiesScalarValue reports whether a type definition is
-// over a bool, number or string, "type Counter int".
-func typeDefinitionCopiesScalarValue(t ast.Expr) bool {
-	ident, ok := t.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	basic, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Basic)
-	return ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0
-}
-
-// writeScalarTypeDefinitionValueClone gives a scalar newtype a Clone that
-// copies the value into a handle of its own. The derived Clone shared the
-// handle, so `b := a; b.Inc()` with a pointer method changed a as well.
-func writeScalarTypeDefinitionValueClone(out *strings.Builder, rustTypeName string) {
-	out.WriteString("\nimpl Clone for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn clone(&self) -> Self {\n")
-	out.WriteString("        let __value = (*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(").clone();\n")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("        ")
-		out.WriteString(rustTypeName)
-		out.WriteString("(Arc::new(")
-		out.WriteString(GetInnerWrapperType())
-		out.WriteString("::new(__value)))\n")
-	} else {
-		out.WriteString("        ")
-		out.WriteString(rustTypeName)
-		out.WriteString("(Rc::new(RefCell::new(__value)))\n")
-	}
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-// writeScalarTypeDefinitionStringOps gives a type the package defines as a
-// string, "type Color string", what Go allows on it: ordering, so it can
-// key a map and be sorted, and concatenation with itself and with strings.
-func writeScalarTypeDefinitionStringOps(out *strings.Builder, typeName string) {
-	rustTypeName := RustTypeNameForUse(typeName)
-	borrow := func() string {
-		var b strings.Builder
-		WriteBorrowMethod(&b, false)
-		return b.String()
-	}()
-	wrap := func(value string) string {
-		var b strings.Builder
-		b.WriteString(rustTypeName)
-		b.WriteString("(")
-		WriteWrapperPrefix(&b)
-		b.WriteString(value)
-		WriteWrapperSuffix(&b)
-		b.WriteString(")")
-		return b.String()
-	}
-	inner := func(name string) string {
-		return name + ".0" + borrow + ".as_ref().unwrap()"
-	}
-
-	out.WriteString("\nimpl PartialOrd for " + rustTypeName + " {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-	writeScalarTypeDefinitionOrd(out, typeName)
-
-	out.WriteString("\nimpl PartialEq<String> for " + rustTypeName + " {\n")
-	out.WriteString("    fn eq(&self, other: &String) -> bool {\n")
-	out.WriteString("        *" + inner("self") + " == *other\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl PartialEq<&str> for " + rustTypeName + " {\n")
-	out.WriteString("    fn eq(&self, other: &&str) -> bool {\n")
-	out.WriteString("        " + inner("self") + ".as_str() == *other\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl std::ops::Add for " + rustTypeName + " {\n")
-	out.WriteString("    type Output = " + rustTypeName + ";\n")
-	out.WriteString("    fn add(self, other: Self) -> " + rustTypeName + " {\n")
-	out.WriteString("        let __joined = format!(\"{}{}\", " + inner("self") + ", " + inner("other") + ");\n")
-	out.WriteString("        " + wrap("__joined") + "\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	for _, rhs := range []string{"String", "&str"} {
-		out.WriteString("\nimpl std::ops::Add<" + rhs + "> for " + rustTypeName + " {\n")
-		out.WriteString("    type Output = " + rustTypeName + ";\n")
-		out.WriteString("    fn add(self, other: " + rhs + ") -> " + rustTypeName + " {\n")
-		out.WriteString("        let __joined = format!(\"{}{}\", " + inner("self") + ", other);\n")
-		out.WriteString("        " + wrap("__joined") + "\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
-	}
-}
-
-func definedUnderlyingSupportsUnaryMinus(underlying string) bool {
-	switch underlying {
-	case "int", "int8", "int16", "int32", "int64", "rune", "float32", "float64":
-		return true
-	default:
-		return false
-	}
-}
-
-func writeScalarTypeDefinitionPartialOrd(out *strings.Builder, rustTypeName string, rustType string) {
-	out.WriteString("\nimpl PartialEq<")
-	out.WriteString(rustType)
-	out.WriteString("> for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn eq(&self, other: &")
-	out.WriteString(rustType)
-	out.WriteString(") -> bool {\n")
-	out.WriteString("        *self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == *other\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl PartialOrd for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        let __left = { self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        let __right = { other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        __left.partial_cmp(&__right)\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl PartialOrd<")
-	out.WriteString(rustType)
-	out.WriteString("> for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &")
-	out.WriteString(rustType)
-	out.WriteString(") -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap().partial_cmp(other)\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl PartialEq<")
-	out.WriteString(rustTypeName)
-	out.WriteString("> for ")
-	out.WriteString(rustType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn eq(&self, other: &")
-	out.WriteString(rustTypeName)
-	out.WriteString(") -> bool {\n")
-	out.WriteString("        *self == *other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl PartialOrd<")
-	out.WriteString(rustTypeName)
-	out.WriteString("> for ")
-	out.WriteString(rustType)
-	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &")
-	out.WriteString(rustTypeName)
-	out.WriteString(") -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        self.partial_cmp(other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func writeScalarTypeDefinitionOrd(out *strings.Builder, typeName string) {
-	rustTypeName := RustTypeNameForUse(typeName)
-
-	out.WriteString("\nimpl Eq for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {}\n")
-
-	out.WriteString("\nimpl Ord for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
-	out.WriteString("        let __left = { self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        let __right = { other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().cloned() };\n")
-	out.WriteString("        __left.cmp(&__right)\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func writeScalarTypeDefinitionBinaryOp(out *strings.Builder, rustTypeName string, rustType string, traitName string, methodName string, op string, sameTypeOutput bool) {
-	out.WriteString("\nimpl std::ops::")
-	out.WriteString(traitName)
-	out.WriteString(" for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    type Output = ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(";\n")
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(self, other: Self) -> ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-		out.WriteString("(")
-		WriteWrapperPrefix(out)
-	}
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" *other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	if sameTypeOutput {
-		WriteWrapperSuffix(out)
-		out.WriteString(")")
-	}
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl std::ops::")
-	out.WriteString(traitName)
-	out.WriteString("<")
-	out.WriteString(rustType)
-	out.WriteString("> for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    type Output = ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(";\n")
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(self, other: ")
-	out.WriteString(rustType)
-	out.WriteString(") -> ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-		out.WriteString("(")
-		WriteWrapperPrefix(out)
-	}
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" other")
-	if sameTypeOutput {
-		WriteWrapperSuffix(out)
-		out.WriteString(")")
-	}
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-
-	out.WriteString("\nimpl std::ops::")
-	out.WriteString(traitName)
-	out.WriteString("<")
-	out.WriteString(rustTypeName)
-	out.WriteString("> for ")
-	out.WriteString(rustType)
-	out.WriteString(" {\n")
-	out.WriteString("    type Output = ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(";\n")
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(self, other: ")
-	out.WriteString(rustTypeName)
-	out.WriteString(") -> ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-	} else {
-		out.WriteString(rustType)
-	}
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	if sameTypeOutput {
-		out.WriteString(rustTypeName)
-		out.WriteString("(")
-		WriteWrapperPrefix(out)
-	}
-	out.WriteString("self ")
-	out.WriteString(op)
-	out.WriteString(" *other.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	if sameTypeOutput {
-		WriteWrapperSuffix(out)
-		out.WriteString(")")
-	}
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func writeScalarTypeDefinitionUnaryOp(out *strings.Builder, rustTypeName string, traitName string, methodName string, op string) {
-	out.WriteString("\nimpl std::ops::")
-	out.WriteString(traitName)
-	out.WriteString(" for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    type Output = ")
-	out.WriteString(rustTypeName)
-	out.WriteString(";\n")
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(self) -> ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	out.WriteString(rustTypeName)
-	out.WriteString("(")
-	WriteWrapperPrefix(out)
-	out.WriteString(op)
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()")
-	WriteWrapperSuffix(out)
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func writeScalarTypeDefinitionShiftOps(out *strings.Builder, rustTypeName string) {
-	for _, spec := range []struct {
-		traitName  string
-		methodName string
-		op         string
-	}{
-		{"Shl", "shl", "<<"},
-		{"Shr", "shr", ">>"},
-	} {
-		writeScalarTypeDefinitionShiftOp(out, rustTypeName, rustTypeName, spec.traitName, spec.methodName, spec.op, true)
-		for _, rhsType := range []string{"i32", "i8", "i16", "i64", "u32", "u8", "u16", "u64", "usize"} {
-			writeScalarTypeDefinitionShiftOp(out, rustTypeName, rhsType, spec.traitName, spec.methodName, spec.op, false)
-		}
-	}
-}
-
-func writeScalarTypeDefinitionShiftOp(out *strings.Builder, rustTypeName string, rhsType string, traitName string, methodName string, op string, rhsWrapped bool) {
-	out.WriteString("\nimpl std::ops::")
-	out.WriteString(traitName)
-	if !rhsWrapped {
-		out.WriteString("<")
-		out.WriteString(rhsType)
-		out.WriteString(">")
-	}
-	out.WriteString(" for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("    type Output = ")
-	out.WriteString(rustTypeName)
-	out.WriteString(";\n")
-	out.WriteString("    fn ")
-	out.WriteString(methodName)
-	out.WriteString("(self, other: ")
-	out.WriteString(rhsType)
-	out.WriteString(") -> ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	out.WriteString(rustTypeName)
-	out.WriteString("(")
-	WriteWrapperPrefix(out)
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" ")
-	if rhsWrapped {
-		out.WriteString("*other.0")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()")
-	} else {
-		out.WriteString("other")
-	}
-	WriteWrapperSuffix(out)
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
-}
-
-func localConcreteTypeCanUsePartialEq(typeName string) bool {
-	if comparableStructTypes[typeName] {
-		return true
-	}
-	if underlying, ok := LookupTypeDefinition(typeName); ok {
-		return isEqualityComparableDefinedUnderlying(underlying)
-	}
-	return false
-}
-
-// writeLocalInterfaceSupportImpl emits the auxiliary trait-method bodies
-// (`__go_clone_box_<suffix>`, optional `__go_as_any`, `__go_eq_<suffix>`)
-// inside an `impl <Trait> for <Concrete>` block. `ifaceName` is the Rust
-// trait name as it appears in the impl signature (simple for the current
-// package, qualified for cross-package interfaces); `ifaceType` is the
-// go/types Interface used to decide whether `__go_as_any` must be redeclared
-// here or is already inherited from a supertrait.
-func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName string, ifaceType *types.Interface) {
-	TrackImport("Any")
-	traitSnake := traitMethodSuffix(ifaceName)
-	hasEmbedded := ifaceType != nil && interfaceTypeHasNamedEmbedded(ifaceType)
-	if ifaceType == nil {
-		hasEmbedded = localInterfaceHasEmbeddedInterfaces(ifaceName)
-	}
-	out.WriteString("    fn __go_clone_box_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self) -> ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString(" {\n")
-	out.WriteString("        Box::new(self.clone()) as ")
-	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-	if !hasEmbedded {
-		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        self\n")
-		out.WriteString("    }\n")
-	}
-	out.WriteString("    fn __go_eq_")
-	out.WriteString(traitSnake)
-	out.WriteString("(&self, other: ")
-	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
-	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = ")
-	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
-	out.WriteString(".downcast_ref::<")
-	out.WriteString(RustTypeNameForUse(typeName))
-	out.WriteString(">() {\n")
-	if localConcreteTypeCanUsePartialEq(typeName) {
-		out.WriteString("            self == __other\n")
-	} else if localInterfaceEqualityTypes[ifaceName] {
-		out.WriteString("            panic!(\"interface comparison with uncomparable dynamic type\")\n")
-	} else {
-		out.WriteString("            false\n")
-	}
-	out.WriteString("        } else {\n")
-	out.WriteString("            false\n")
-	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-}
-
-func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
-	transpileConstDeclWithCase(out, genDecl, true)
-}
-
-// floatConstLiteral returns the value of a float constant as a Rust float
-// literal, when the constant's Rust type is a float and its value is known.
-func floatConstLiteral(name *ast.Ident, rustType string) (string, bool) {
-	if rustType != "f64" && rustType != "f32" {
-		return "", false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return "", false
-	}
-	obj, ok := typeInfo.info.Defs[name].(*types.Const)
-	if !ok || obj.Val() == nil {
-		return "", false
-	}
-	value := constant.ToFloat(obj.Val())
-	if value.Kind() != constant.Float {
-		return "", false
-	}
-	f, _ := constant.Float64Val(value)
-	if math.IsInf(f, 0) || math.IsNaN(f) {
-		return "", false
-	}
-	format := byte('f')
-	if math.Abs(f) >= 1e21 || (f != 0 && math.Abs(f) < 1e-6) {
-		format = 'g'
-	}
-	literal := strconv.FormatFloat(f, format, -1, 64)
-	if !strings.ContainsAny(literal, ".eE") {
-		literal += ".0"
-	}
-	return literal, true
-}
-
-func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUpper bool) {
-	// Track iota value and the last expression pattern for each position
-	iotaValue := 0
-	var lastExpressions []ast.Expr
-	var lastType ast.Expr
-
-	for specIndex, spec := range genDecl.Specs {
-		if valueSpec, ok := spec.(*ast.ValueSpec); ok {
-			// Set iota for this spec
-			iotaValue = specIndex
-
-			// Update lastExpressions if this spec has values
-			if len(valueSpec.Values) > 0 {
-				lastExpressions = valueSpec.Values
-			}
-			if valueSpec.Type != nil {
-				lastType = valueSpec.Type
-			}
-
-			for i, name := range valueSpec.Names {
-				// Skip blank identifier
-				if name.Name == "_" {
-					continue
-				}
-				var constExpr ast.Expr
-				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
-					constExpr = valueSpec.Values[i]
-				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
-					constExpr = lastExpressions[i]
-				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
-					constExpr = lastExpressions[0]
-				}
-				if toUpper {
-					if ast.IsExported(name.Name) {
-						out.WriteString("pub ")
-					} else {
-						out.WriteString("pub(crate) ")
-					}
-				}
-				out.WriteString("const ")
-				var constName string
-				var constType string
-				var constTypeName string
-				declaredConstType := false
-				if valueSpec.Type != nil {
-					constType = rustConstTypeForTypeExpr(valueSpec.Type)
-					constTypeName, _ = constDeclaredNamedType(valueSpec.Type)
-					declaredConstType = true
-				} else if len(valueSpec.Values) == 0 && lastType != nil {
-					constType = rustConstTypeForTypeExpr(lastType)
-					constTypeName, _ = constDeclaredNamedType(lastType)
-					declaredConstType = true
-				} else if inferredType, ok := rustConstTypeForConstObject(name, constExpr); ok {
-					constType = inferredType
-				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
-					constType = inferConstType(valueSpec.Values[i])
-				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
-					constType = inferConstType(lastExpressions[i])
-				} else {
-					constType = rustIntType()
-				}
-				if constType == "&'static str" && constExpr != nil && constStringNeedsByteSlice(constExpr) {
-					constType = "&'static [u8]"
-				}
-				if toUpper {
-					constName = rustConstName(name.Name)
-					registerPackageConstant(name.Name, constType)
-					registerPackageConstantTypeName(name.Name, constTypeName)
-				} else {
-					// Keep original name for local constants
-					constName = name.Name
-					// Track local constants with their actual type
-					localConstants[name.Name] = constType
-				}
-				out.WriteString(constName)
-				out.WriteString(": ")
-
-				// Determine type - constants should not be wrapped
-				out.WriteString(constType)
-
-				out.WriteString(" = ")
-
-				// Handle value
-				if literal, ok := floatConstLiteral(name, constType); ok {
-					// "KB Size = 1 << (10 * iota)" is an integer expression
-					// for a float constant; write the value the type
-					// checker computed.
-					out.WriteString(literal)
-				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
-					// Replace iota with actual value
-					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)
-					}
-				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
-					// Use the corresponding expression from lastExpressions for this position
-					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, lastExpressions[i], iotaValue, constType, declaredConstType)
-					}
-				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
-					// If we don't have an expression for this position, use the first one
-					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, lastExpressions[0], iotaValue, constType, declaredConstType)
-					}
-				} else {
-					// No previous expression pattern, just use iota value
-					out.WriteString(fmt.Sprintf("%d", iotaValue))
-				}
-
-				out.WriteString(";\n")
-			}
-		}
-	}
-}
-
-func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string, declaredConstType bool) {
-	if rustType == "&'static [u8]" && writeConstByteSliceLiteralValue(out, expr) {
-		return
-	}
-	if rustType == "&'static str" && writeConstStringLiteralValue(out, expr) {
-		return
-	}
-	if writeOutOfRangeGoIntConstExprForRustType(out, expr, iotaValue, rustType) {
-		return
-	}
-	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
-		return
-	}
-	if writeConstLenCallForRustType(out, expr, iotaValue, rustType) {
-		return
-	}
-	if writeConstSelectorForIntegerRustType(out, expr, iotaValue, rustType) {
-		return
-	}
-	if declaredConstType && writeConstBinaryExprForDeclaredIntegerRustType(out, expr, rustType) {
-		return
-	}
-	if !declaredConstType && writeConstBinaryExprForInferredIntegerRustType(out, expr, rustType) {
-		return
-	}
-	TranspileConstExpr(out, expr, iotaValue)
-}
-
-func writeConstBinaryExprForDeclaredIntegerRustType(out *strings.Builder, expr ast.Expr, rustType string) bool {
-	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok || !isConstantExpression(expr) {
-		return false
-	}
-	if constExprContainsIota(expr) {
-		return false
-	}
-	if _, ok := unwrapParens(expr).(*ast.BinaryExpr); !ok {
-		return false
-	}
-	if !writeDeclaredConstExpressionWithRustIntegerOperands(out, expr, rustType) {
-		return false
-	}
-	return true
-}
-
-func writeConstBinaryExprForInferredIntegerRustType(out *strings.Builder, expr ast.Expr, rustType string) bool {
-	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok || !isConstantExpression(expr) {
-		return false
-	}
-	if constExprContainsIota(expr) {
-		return false
-	}
-	if constExprContainsTypeConversion(expr) {
-		return false
-	}
-	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
-	if !ok || binary.Op == token.SHL || binary.Op == token.SHR {
-		return false
-	}
-	return writeConstExpressionWithRustIntegerOperandsForExpected(out, expr, rustType)
-}
-
-func constExprContainsTypeConversion(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	found := false
-	ast.Inspect(expr, func(node ast.Node) bool {
-		if found {
-			return false
-		}
-		call, ok := node.(*ast.CallExpr)
-		if ok && typeInfo.IsTypeConversion(call) {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func constExprContainsIota(expr ast.Expr) bool {
-	found := false
-	ast.Inspect(expr, func(node ast.Node) bool {
-		if found {
-			return false
-		}
-		ident, ok := node.(*ast.Ident)
-		if ok && ident.Name == "iota" {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func writeOutOfRangeGoIntConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
-	if rustType != rustIntType() || expr == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	basic, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Basic)
-	if !ok || basic.Kind() != types.Int {
-		return false
-	}
-	value, ok := constExpressionValue(expr)
-	if !ok || goIntConstFitsRustInt(value) {
-		return false
-	}
-	if literal, ok := goIntBoundaryLiteralForRustModel(value); ok {
-		out.WriteString(literal)
-		return true
-	}
-	TranspileConstExpr(out, expr, iotaValue)
-	return true
-}
-
-func writeIntegerTypedFloatConstLiteral(out *strings.Builder, expr ast.Expr, rustType string) bool {
-	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok {
-		return false
-	}
-	lit, ok := expr.(*ast.BasicLit)
-	if !ok || lit.Kind != token.FLOAT {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		out.WriteString(`/* ERROR: Type information required for integer const literal */ unimplemented!("type info required for integer const literal")`)
-		return true
-	}
-	tv, ok := typeInfo.info.Types[lit]
-	if !ok || tv.Value == nil {
-		out.WriteString(`/* ERROR: Type information required for integer const literal */ unimplemented!("type info required for integer const literal")`)
-		return true
-	}
-	if value, exact := constant.Int64Val(tv.Value); exact {
-		out.WriteString(strconv.FormatInt(value, 10))
-		return true
-	}
-	if value, exact := constant.Uint64Val(tv.Value); exact {
-		out.WriteString(strconv.FormatUint(value, 10))
-		return true
-	}
-	return false
-}
-
-func writeConstLenCallForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
-	castType, ok := rustIntegerCastTypeFromRustType(rustType)
-	if !ok {
-		return false
-	}
-	call, ok := expr.(*ast.CallExpr)
-	if !ok || !constBuiltinCallName(call, "len") || len(call.Args) != 1 {
-		return false
-	}
-	if length, ok := constArrayLenValue(call); ok {
-		out.WriteString(strconv.FormatInt(length, 10))
-		out.WriteString(" as ")
-		out.WriteString(castType)
-		return true
-	}
-	if !constExprIsStringValue(call.Args[0]) {
-		return false
-	}
-	TranspileConstExpr(out, call.Args[0], iotaValue)
-	out.WriteString(".len() as ")
-	out.WriteString(castType)
-	return true
-}
-
-func constArrayLenValue(call *ast.CallExpr) (int64, bool) {
-	if !constBuiltinCallName(call, "len") || len(call.Args) != 1 {
-		return 0, false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return 0, false
-	}
-	typ := typeInfo.GetType(call.Args[0])
-	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
-		typ = ptr.Elem()
-	}
-	array, ok := types.Unalias(typ).(*types.Array)
-	if !ok {
-		return 0, false
-	}
-	return array.Len(), true
-}
-
-func writeConstArrayLenCall(out *strings.Builder, call *ast.CallExpr) bool {
-	length, ok := constArrayLenValue(call)
-	if !ok {
-		return false
-	}
-	out.WriteString(strconv.FormatInt(length, 10))
-	return true
-}
-
-func writeConstSelectorForIntegerRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
-	castType, ok := rustIntegerCastTypeFromRustType(rustType)
-	if !ok {
-		return false
-	}
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	if hasStdlibSelectorMapping(sel) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		out.WriteString(`/* ERROR: Type information required for const selector */ unimplemented!("type info required for const selector")`)
-		return true
-	}
-	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Const)
-	if !ok || obj.Val() == nil || obj.Val().Kind() != constant.Int {
-		return false
-	}
-	basic, ok := types.Unalias(obj.Type()).(*types.Basic)
-	if !ok || !isIntegerBasicKind(basic.Kind()) {
-		return false
-	}
-	TranspileConstExpr(out, expr, iotaValue)
-	out.WriteString(" as ")
-	out.WriteString(castType)
-	return true
-}
-
-func constBuiltinCallName(call *ast.CallExpr, name string) bool {
-	if call == nil {
-		return false
-	}
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok || ident.Name != name {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	builtin, ok := typeInfo.GetObject(ident).(*types.Builtin)
-	return ok && builtin.Name() == name
-}
-
-func constExprIsStringValue(expr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || expr == nil {
-		return false
-	}
-	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
-		return tv.Value.Kind() == constant.String
-	}
-	switch e := expr.(type) {
-	case *ast.Ident:
-		if obj, ok := typeInfo.GetObject(e).(*types.Const); ok && obj.Val() != nil {
-			return obj.Val().Kind() == constant.String
-		}
-	case *ast.SelectorExpr:
-		if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok && obj.Val() != nil {
-			return obj.Val().Kind() == constant.String
-		}
-	case *ast.ParenExpr:
-		return constExprIsStringValue(e.X)
-	}
-	return false
-}
-
-func constDeclaredNamedType(expr ast.Expr) (string, bool) {
-	ident, ok := expr.(*ast.Ident)
-	if !ok {
-		return "", false
-	}
-	if _, isTypeDef := LookupTypeDefinition(ident.Name); !isTypeDef {
-		return "", false
-	}
-	return ident.Name, true
-}
-
-func rustConstTypeForConstObject(name *ast.Ident, expr ast.Expr) (string, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || name == nil {
-		return "", false
-	}
-	obj, ok := typeInfo.GetObject(name).(*types.Const)
-	if !ok || obj.Type() == nil {
-		return "", false
-	}
-	if constStringValueNeedsByteSlice(obj.Val()) {
-		return "&'static [u8]", true
-	}
-	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedRune {
-		if rustType, ok := rustConstTypeForUntypedRuneValue(expr, obj.Val()); ok {
-			return rustType, true
-		}
-	}
-	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedInt {
-		if rustType, ok := rustConstTypeForUntypedIntegerValue(expr, obj.Val()); ok {
-			return rustType, true
-		}
-	}
-	return rustConstTypeForGoTypesType(obj.Type())
-}
-
-func evalIntConstExpr(expr ast.Expr) (int64, bool) {
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-		if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
-			return constant.Int64Val(tv.Value)
-		}
-	}
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind != token.INT {
-			return 0, false
-		}
-		v, err := strconv.ParseInt(e.Value, 0, 64)
-		if err != nil {
-			return 0, false
-		}
-		return v, true
-	case *ast.BinaryExpr:
-		l, lok := evalIntConstExpr(e.X)
-		r, rok := evalIntConstExpr(e.Y)
-		if !lok || !rok {
-			return 0, false
-		}
-		switch e.Op {
-		case token.ADD:
-			return l + r, true
-		case token.SUB:
-			return l - r, true
-		case token.MUL:
-			return l * r, true
-		case token.QUO:
-			if r == 0 {
-				return 0, false
-			}
-			return l / r, true
-		case token.REM:
-			if r == 0 {
-				return 0, false
-			}
-			return l % r, true
-		case token.SHL:
-			if r < 0 || r >= 63 {
-				return 0, false
-			}
-			return l << uint(r), true
-		case token.SHR:
-			if r < 0 || r >= 63 {
-				return 0, false
-			}
-			return l >> uint(r), true
-		case token.AND:
-			return l & r, true
-		case token.OR:
-			return l | r, true
-		case token.XOR:
-			return l ^ r, true
-		}
-	case *ast.UnaryExpr:
-		v, ok := evalIntConstExpr(e.X)
-		if !ok {
-			return 0, false
-		}
-		switch e.Op {
-		case token.ADD:
-			return v, true
-		case token.SUB:
-			return -v, true
-		case token.XOR:
-			return ^v, true
-		}
-	case *ast.ParenExpr:
-		return evalIntConstExpr(e.X)
-	case *ast.CallExpr:
-		if len(e.Args) != 1 {
-			return 0, false
-		}
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil || !typeInfo.IsTypeConversion(e) {
-			return 0, false
-		}
-		return evalIntConstExpr(e.Args[0])
-	}
-	return 0, false
-}
-
-func inferConstType(expr ast.Expr) string {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		switch e.Kind {
-		case token.INT:
-			// An untyped integer constant's default type is int; one too
-			// big for it is a uint64.
-			if _, err := strconv.ParseInt(e.Value, 0, 64); err != nil {
-				if _, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
-					return "u64"
-				}
-			}
-			return rustIntType()
-		case token.FLOAT:
-			return "f64"
-		case token.STRING:
-			return "&'static str"
-		}
-	case *ast.Ident:
-		if e.Name == "true" || e.Name == "false" {
-			return "bool"
-		}
-		// Check if it's a known constant
-		if constType, exists := localConstants[e.Name]; exists {
-			return constType
-		}
-	case *ast.BinaryExpr:
-		// For binary expressions, check the type of operands
-		leftType := inferConstType(e.X)
-		if leftType == "&'static str" {
-			return "&'static str"
-		}
-		rightType := inferConstType(e.Y)
-		if rightType == "&'static str" {
-			return "&'static str"
-		}
-		// For bit shift operations that might overflow, use i64
-		if e.Op == token.SHL {
-			// If we can constant-fold and the result fits in int, prefer int.
-			if v, ok := evalIntConstExpr(e); ok {
-				if v >= int64(math.MinInt64) && v <= int64(math.MaxInt64) {
-					return rustIntType()
-				}
-			}
-			return "i64"
-		}
-		// If either operand is i64, result is i64
-		if leftType == "i64" || rightType == "i64" {
-			return "i64"
-		}
-		// Default to int for other numeric operations
-		return rustIntType()
-	}
-	return rustIntType() // default
-}
-
-// Helper function to check if an expression is a string constant
-func isStringConstExpr(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		return e.Kind == token.STRING
-	case *ast.Ident:
-		if constType, exists := localConstants[e.Name]; exists {
-			return constType == "&'static str"
-		}
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil {
-			if obj, ok := typeInfo.GetObject(e).(*types.Const); ok {
-				return obj.Val() != nil && obj.Val().Kind() == constant.String
-			}
-		}
-		return false
-	case *ast.SelectorExpr:
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil {
-			if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok {
-				return obj.Val() != nil && obj.Val().Kind() == constant.String
-			}
-		}
-		return false
-	case *ast.BinaryExpr:
-		// String concatenation
-		if e.Op == token.ADD {
-			return isStringConstExpr(e.X) && isStringConstExpr(e.Y)
-		}
-		return false
-	}
-	return false
-}
-
-// Helper function to fully evaluate a const string expression including identifiers
-func evaluateConstStringExpr(expr ast.Expr) string {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind == token.STRING {
-			if value, err := strconv.Unquote(e.Value); err == nil {
-				return value
-			}
-		}
-	case *ast.Ident:
-		// Look up the value of the constant using TypeInfo
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.info != nil {
-			if obj, ok := typeInfo.info.Uses[e]; ok {
-				if constObj, ok := obj.(*types.Const); ok {
-					if constObj.Val() != nil {
-						// Extract the string value from the constant
-						return constant.StringVal(constObj.Val())
-					}
-				}
-			}
-		}
-		// Type info not available or not a constant
-		return ""
-	case *ast.SelectorExpr:
-		typeInfo := GetTypeInfo()
-		if typeInfo != nil {
-			if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok && obj.Val() != nil {
-				return constant.StringVal(obj.Val())
-			}
-		}
-		return ""
-	case *ast.BinaryExpr:
-		if e.Op == token.ADD {
-			left := evaluateConstStringExpr(e.X)
-			right := evaluateConstStringExpr(e.Y)
-			if left != "" || right != "" {
-				return left + right
-			}
-		}
-	}
-	return ""
-}
-
-func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
-	switch e := expr.(type) {
-	case *ast.BasicLit:
-		if e.Kind == token.STRING {
-			// For const strings, use &str instead of String
-			out.WriteString(RustStringLiteral(e.Value))
-		} else if e.Kind == token.CHAR {
-			out.WriteString("(")
-			out.WriteString(RustCharLiteral(e.Value))
-			out.WriteString(" as i32)")
-		} else if e.Kind == token.FLOAT {
-			if value, ok := rustFloatLiteral(e); ok {
-				out.WriteString(value)
-			} else {
-				out.WriteString(e.Value)
-			}
-		} else {
-			out.WriteString(e.Value)
-		}
-	case *ast.Ident:
-		if e.Name == "iota" {
-			out.WriteString(fmt.Sprintf("%d", iotaValue))
-		} else if e.Name == "true" || e.Name == "false" {
-			// Boolean literals
-			out.WriteString(e.Name)
-		} else if _, exists := localConstants[e.Name]; exists {
-			// Local constant - keep original name
-			out.WriteString(e.Name)
-		} else if isConstIdent(e) {
-			out.WriteString(rustConstName(e.Name))
-		} else if e.Name[0] >= 'a' && e.Name[0] <= 'z' {
-			// Package-level constant reference - convert to uppercase
-			out.WriteString(rustConstName(e.Name))
-		} else {
-			out.WriteString(e.Name)
-		}
-	case *ast.BinaryExpr:
-		if writeConstStringEquality(out, e, iotaValue) {
-			return
-		}
-		// Special handling for string concatenation in const context
-		if e.Op == token.ADD && isStringConstExpr(e.X) && isStringConstExpr(e.Y) {
-			// For string concatenation in const context, try to evaluate at compile time
-			result := evaluateConstStringExpr(expr)
-			if result != "" {
-				// Successfully evaluated the entire expression
-				out.WriteString(RustStringLiteral(strconv.Quote(result)))
-			} else {
-				// Fall back - this won't work for const but at least generates something
-				out.WriteString("/* TODO: Complex string concatenation in const */ ")
-				out.WriteString(`""`)
-			}
-		} else {
-			// Handle binary expressions in const context
-			if e.Op == token.SHL || e.Op == token.SHR {
-				writeConstBinaryOperand(out, e.X, e.Op, false, func() {
-					TranspileConstExpr(out, e.X, iotaValue)
-				})
-				out.WriteString(" ")
-				out.WriteString(e.Op.String())
-				out.WriteString(" ")
-				writeConstBinaryOperand(out, e.Y, e.Op, true, func() {
-					if !writeConstShiftCountValue(out, e.Y) {
-						TranspileConstExpr(out, e.Y, iotaValue)
-					}
-				})
-			} else {
-				writeConstBinaryOperand(out, e.X, e.Op, false, func() {
-					if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y, iotaValue) {
-						TranspileConstExpr(out, e.X, iotaValue)
-					}
-				})
-				out.WriteString(" ")
-				out.WriteString(e.Op.String())
-				out.WriteString(" ")
-				writeConstBinaryOperand(out, e.Y, e.Op, true, func() {
-					if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X, iotaValue) {
-						TranspileConstExpr(out, e.Y, iotaValue)
-					}
-				})
-			}
-		}
-	case *ast.ParenExpr:
-		out.WriteString("(")
-		TranspileConstExpr(out, e.X, iotaValue)
-		out.WriteString(")")
-	case *ast.UnaryExpr:
-		writeConstUnaryExpr(out, e, iotaValue)
-	case *ast.CallExpr:
-		if writeConstUnsafeTypeSizeCall(out, e) {
-			return
-		}
-		if writeConstArrayLenCall(out, e) {
-			return
-		}
-		if !writeConstTypeConversion(out, e, iotaValue) {
-			TranspileExpression(out, expr)
-		}
-	default:
-		// Fallback to regular expression transpilation
-		TranspileExpression(out, expr)
-	}
-}
-
-func writeConstStringEquality(out *strings.Builder, expr *ast.BinaryExpr, iotaValue int) bool {
-	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
-		return false
-	}
-	if value, ok := constBoolValueForStubBackedStringSelectorEquality(expr); ok {
-		out.WriteString(strconv.FormatBool(value))
-		return true
-	}
-	leftPattern, leftIsPattern := constStringLiteral(expr.X)
-	rightPattern, rightIsPattern := constStringLiteral(expr.Y)
-	var subject ast.Expr
-	pattern := ""
-	if rightIsPattern && isStringConstExpr(expr.X) {
-		subject = expr.X
-		pattern = rightPattern
-	} else if leftIsPattern && isStringConstExpr(expr.Y) {
-		subject = expr.Y
-		pattern = leftPattern
-	} else {
-		return false
-	}
-	if expr.Op == token.NEQ {
-		out.WriteString("!")
-	}
-	NeedGoConstStrEq()
-	out.WriteString("go_const_str_eq(")
-	TranspileConstExpr(out, subject, iotaValue)
-	out.WriteString(", ")
-	out.WriteString(pattern)
-	out.WriteString(")")
-	return true
-}
-
-func constBoolValueForStubBackedStringSelectorEquality(expr *ast.BinaryExpr) (bool, bool) {
-	if expr == nil || !constStringEqualityHasStubBackedSelector(expr.X) && !constStringEqualityHasStubBackedSelector(expr.Y) {
-		return false, false
-	}
-	value, ok := constExpressionValue(expr)
-	if !ok || value.Kind() != constant.Bool {
-		return false, false
-	}
-	return constant.BoolVal(value), true
-}
-
-func constStringEqualityHasStubBackedSelector(expr ast.Expr) bool {
-	switch e := expr.(type) {
-	case *ast.SelectorExpr:
-		typeInfo := GetTypeInfo()
-		if typeInfo == nil {
-			return false
-		}
-		obj, ok := typeInfo.GetObject(e.Sel).(*types.Const)
-		if !ok || obj.Pkg() == nil || obj.Val() == nil || obj.Val().Kind() != constant.String {
-			return false
-		}
-		return isStubBackedStdlibPackagePath(obj.Pkg().Path())
-	case *ast.ParenExpr:
-		return constStringEqualityHasStubBackedSelector(e.X)
-	default:
-		return false
-	}
-}
-
-func writeConstBinaryOperand(out *strings.Builder, expr ast.Expr, parentOp token.Token, isRight bool, write func()) {
-	if constBinaryOperandNeedsParens(expr, parentOp, isRight) {
-		out.WriteString("(")
-		write()
-		out.WriteString(")")
-		return
-	}
-	write()
-}
-
-func constBinaryOperandNeedsParens(expr ast.Expr, parentOp token.Token, isRight bool) bool {
-	binary, ok := expr.(*ast.BinaryExpr)
-	if !ok {
-		return false
-	}
-	childPrec := rustConstBinaryPrecedence(binary.Op)
-	parentPrec := rustConstBinaryPrecedence(parentOp)
-	if childPrec == 0 || parentPrec == 0 {
-		return false
-	}
-	if childPrec < parentPrec {
-		return true
-	}
-	return isRight && childPrec == parentPrec
-}
-
-func rustConstBinaryPrecedence(op token.Token) int {
-	switch op {
-	case token.LOR:
-		return 1
-	case token.LAND:
-		return 2
-	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
-		return 3
-	case token.OR:
-		return 4
-	case token.XOR:
-		return 5
-	case token.AND, token.AND_NOT:
-		return 6
-	case token.SHL, token.SHR:
-		return 7
-	case token.ADD, token.SUB:
-		return 8
-	case token.MUL, token.QUO, token.REM:
-		return 9
-	default:
-		return 0
-	}
-}
-
-func writeConstUnaryExpr(out *strings.Builder, expr *ast.UnaryExpr, iotaValue int) {
-	switch expr.Op {
-	case token.ADD:
-		TranspileConstExpr(out, expr.X, iotaValue)
-	case token.SUB:
-		out.WriteString("-")
-		TranspileConstExpr(out, expr.X, iotaValue)
-	case token.NOT, token.XOR:
-		out.WriteString("!")
-		TranspileConstExpr(out, expr.X, iotaValue)
-	default:
-		TranspileExpression(out, expr)
-	}
-}
-
-func writeConstUnsafeTypeSizeCall(out *strings.Builder, call *ast.CallExpr) bool {
-	key, ok := stdlibCallKey(call.Fun)
-	if !ok {
-		return false
-	}
-
-	var goFunc string
-	var rustFunc string
-	switch key {
-	case "unsafe.Sizeof":
-		goFunc = "Sizeof"
-		rustFunc = "size_of"
-	case "unsafe.Alignof":
-		goFunc = "Alignof"
-		rustFunc = "align_of"
-	case "unsafe.Offsetof":
-		return writeConstUnsafeOffsetofCall(out, call)
-	default:
-		return false
-	}
-
-	if len(call.Args) == 0 {
-		out.WriteString("/* ERROR: unsafe.")
-		out.WriteString(goFunc)
-		out.WriteString(" requires an argument */ unimplemented!()")
-		return true
-	}
-
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("unimplemented!(\"type info required for unsafe.")
-		out.WriteString(goFunc)
-		out.WriteString("\")")
-		return true
-	}
-
-	argType := typeInfo.GetType(call.Args[0])
-	if argType == nil {
-		out.WriteString("unimplemented!(\"type info required for unsafe.")
-		out.WriteString(goFunc)
-		out.WriteString("\")")
-		return true
-	}
-
-	out.WriteString("std::mem::")
-	out.WriteString(rustFunc)
-	out.WriteString("::<")
-	out.WriteString(goTypesTypeToRust(argType))
-	out.WriteString(">()")
-	return true
-}
-
-func writeConstUnsafeOffsetofCall(out *strings.Builder, call *ast.CallExpr) bool {
-	if len(call.Args) == 0 {
-		out.WriteString("/* ERROR: unsafe.Offsetof requires an argument */ unimplemented!()")
-		return true
-	}
-	sel, ok := call.Args[0].(*ast.SelectorExpr)
-	if !ok {
-		out.WriteString("unimplemented!(\"unsafe.Offsetof requires selector\")")
-		return true
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		out.WriteString("unimplemented!(\"type info required for unsafe.Offsetof\")")
-		return true
-	}
-	containerType := typeInfo.GetType(sel.X)
-	if containerType == nil {
-		out.WriteString("unimplemented!(\"type info required for unsafe.Offsetof\")")
-		return true
-	}
-	if ptr, ok := types.Unalias(containerType).(*types.Pointer); ok {
-		containerType = ptr.Elem()
-	}
-	containerRustType := goTypesTypeToRust(containerType)
-	if containerRustType == "/* unknown struct */" {
-		if rustType, ok := importedPackageGlobalTypePath(sel.X, typeInfo); ok {
-			containerRustType = rustType
-		}
-	}
-	out.WriteString("std::mem::offset_of!(")
-	out.WriteString(containerRustType)
-	out.WriteString(", ")
-	out.WriteString(ToSnakeCase(sel.Sel.Name))
-	out.WriteString(")")
-	return true
-}
-
-func importedPackageGlobalTypePath(expr ast.Expr, typeInfo *TypeInfo) (string, bool) {
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok || typeInfo == nil {
-		return "", false
-	}
-	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
-	if !ok || obj.Pkg() == nil {
-		return "", false
-	}
-	if typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
-		return "", false
-	}
-	return rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name())
-}
-
-func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValue int) bool {
-	if call == nil || len(call.Args) != 1 {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
-		return false
-	}
-	rustType, ok := rustConstTypeForGoTypesType(typeInfo.GetType(call))
-	if !ok {
-		return false
-	}
-	out.WriteString("(")
-	argRustType := constTypeConversionArgumentRustType(typeInfo, call.Args[0], rustType)
-	if writeConstNumericConversionValueForRustType(out, call.Args[0], argRustType) {
-		// Constant operands were emitted in the argument expression's typed integer width.
-	} else if constTypeConversionArgNeedsParens(call.Args[0]) {
-		out.WriteString("(")
-		TranspileConstExpr(out, call.Args[0], iotaValue)
-		out.WriteString(")")
-	} else {
-		TranspileConstExpr(out, call.Args[0], iotaValue)
-	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")")
-	return true
-}
-
-func constTypeConversionArgumentRustType(typeInfo *TypeInfo, arg ast.Expr, conversionRustType string) string {
-	if typeInfo == nil {
-		return conversionRustType
-	}
-	if argRustType, ok := rustIntegerCastTypeForExpected(typeInfo.GetType(arg)); ok && rustIntegerTypeWidth(argRustType) > 0 {
-		return argRustType
-	}
-	return conversionRustType
-}
-
-func constTypeConversionArgNeedsParens(arg ast.Expr) bool {
-	switch arg.(type) {
-	case *ast.BinaryExpr:
-		return true
-	default:
-		return false
-	}
-}
-
-func writeExternalNamedIntegerConstValue(out *strings.Builder, name *ast.Ident) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || name == nil {
-		return false
-	}
-	obj, ok := typeInfo.GetObject(name).(*types.Const)
-	if !ok || obj.Val() == nil {
-		return false
-	}
-	named, ok := types.Unalias(obj.Type()).(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false
-	}
-	rustType, ok := externalIntegerRustTypeForNamed(named)
-	if !ok || isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) {
-		return false
-	}
-
-	var value string
-	if isUnsignedIntegerType(named) {
-		u, exact := constant.Uint64Val(obj.Val())
-		if !exact {
-			return false
-		}
-		value = strconv.FormatUint(u, 10)
-	} else {
-		i, exact := constant.Int64Val(obj.Val())
-		if !exact {
-			return false
-		}
-		value = strconv.FormatInt(i, 10)
-	}
-
-	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString("(")
-	out.WriteString(value)
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")")
-	return true
-}
-
-// TranspileMethodImpl transpiles a method inside an impl block
-func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	transpileMethodImplWithVisibility(out, fn, true, false, false, fileSet, comments)
-}
-
-// TranspileTraitMethodImpl transpiles a method inside a trait impl block.
-// traitReceiverMutable forces a `&mut self` receiver when the implemented
-// interface method lowers to a mutable receiver (see
-// interfaceMethodMutableReceiver); the trait definition and every other impl of
-// that method use the same decision so the signatures stay consistent.
-func TranspileTraitMethodImpl(out *strings.Builder, fn *ast.FuncDecl, traitReceiverMutable bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	transpileMethodImplWithVisibility(out, fn, false, true, traitReceiverMutable, fileSet, comments)
-}
-
-func writeFunctionTypeAliasMethodImpl(out *strings.Builder, rustTypeName string, methods []*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	traitName := rustTypeName + "Methods"
-	out.WriteString("pub trait ")
-	out.WriteString(traitName)
-	out.WriteString(" {\n")
-	for _, method := range methods {
-		writeFunctionTypeAliasMethodSignature(out, method)
-	}
-	out.WriteString("}\n\n")
-	out.WriteString("impl ")
-	out.WriteString(traitName)
-	out.WriteString(" for ")
-	out.WriteString(rustTypeName)
-	out.WriteString(" {\n")
-	for i, method := range methods {
-		if i > 0 {
-			out.WriteString("\n")
-		}
-		TranspileTraitMethodImpl(out, method, false, fileSet, comments)
-	}
-	out.WriteString("}")
-}
-
-func writeFunctionTypeAliasMethodSignature(out *strings.Builder, fn *ast.FuncDecl) {
-	out.WriteString("    fn ")
-	out.WriteString(rustMethodName(fn))
-	out.WriteString("(&self")
-	if fn.Type.Params != nil {
-		for _, field := range fn.Type.Params.List {
-			for _, name := range field.Names {
-				out.WriteString(", ")
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(": ")
-				out.WriteString(GoTypeToRustParam(field.Type))
-			}
-		}
-	}
-	out.WriteString(")")
-	writeFuncDeclResultTypes(out, fn)
-	out.WriteString(";\n")
-}
-
-func namedReturnIdents(fnType *ast.FuncType) []*ast.Ident {
-	if fnType == nil || fnType.Results == nil {
-		return nil
-	}
-	var names []*ast.Ident
-	for _, result := range fnType.Results.List {
-		names = append(names, result.Names...)
-	}
-	return names
-}
-
-func hasNamedReturns(fnType *ast.FuncType) bool {
-	return len(namedReturnIdents(fnType)) > 0
-}
-
-func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
-	if fnType == nil || fnType.Results == nil {
-		return
-	}
-	wrote := false
-	for _, result := range fnType.Results.List {
-		if len(result.Names) == 0 {
-			continue
-		}
-		for _, name := range result.Names {
-			if name.Name == "_" {
-				out.WriteString("    let ")
-			} else {
-				out.WriteString("    let mut ")
-			}
-			out.WriteString(RustLocalIdent(name.Name))
-			out.WriteString(": ")
-			if info, ok := arrayElemPtrCandidateForDecl(name); ok {
-				out.WriteString(arrayElemPtrOptionRustType(info))
-				out.WriteString(" = None;\n")
-				wrote = true
-				continue
-			}
-			if info, ok := goPtrCandidateForDecl(name); ok {
-				elemRustType := goPtrResultElemRustType(info)
-				registerGoPtrVar(name.Name, elemRustType, nil)
-				out.WriteString("GoPtr<")
-				out.WriteString(elemRustType)
-				out.WriteString("> = GoPtr::nil();\n")
-				wrote = true
-				continue
-			}
-			out.WriteString(GoTypeToRust(result.Type))
-			out.WriteString(" = ")
-
-			if t, ok := result.Type.(*ast.Ident); ok && t.Name == "error" {
-				if NeedsConcurrentWrapper() {
-					TrackImport("Arc")
-					TrackImport("Mutex")
-					out.WriteString("Arc::new(Mutex::new(None))")
-				} else {
-					TrackImport("Rc")
-					TrackImport("RefCell")
-					out.WriteString("Rc::new(RefCell::new(None))")
-				}
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			if _, ok := functionSignatureFromTypeExpr(result.Type); ok {
-				WriteWrappedNone(out)
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			if isEmptyInterfaceExpr(result.Type) {
-				WriteWrappedNone(out)
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			if _, ok := transpiledNamedInterfaceTypeNameFromExpr(result.Type); ok {
-				WriteWrappedNone(out)
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			if writeDirectTypeParamWrappedZeroValue(out, result.Type, "named return zero value") {
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			if writeNamedReturnNilZeroValueFromTypeInfo(out, result.Type) {
-				out.WriteString(";\n")
-				wrote = true
-				continue
-			}
-
-			WriteWrapperPrefix(out)
-			switch t := result.Type.(type) {
-			case *ast.Ident:
-				switch t.Name {
-				case "string":
-					out.WriteString("String::new()")
-				case "int", "int64", "int32", "int16", "int8":
-					out.WriteString("0")
-				case "uint", "uint64", "uint32", "uint16", "uint8":
-					out.WriteString("0")
-				case "float64", "float32":
-					out.WriteString("0.0")
-				case "bool":
-					out.WriteString("false")
-				default:
-					out.WriteString("Default::default()")
-				}
-			default:
-				out.WriteString("Default::default()")
-			}
-			out.WriteString(")))")
-			out.WriteString(";\n")
-			wrote = true
-		}
-	}
-	if wrote {
-		out.WriteString("\n")
-	}
-}
-
-func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
-	names := namedReturnIdents(fnType)
-	if len(names) == 0 {
-		return
-	}
-	if len(names) > 1 {
-		out.WriteString("(")
-	}
-	first := true
-	for _, result := range fnType.Results.List {
-		for _, name := range result.Names {
-			if !first {
-				out.WriteString(", ")
-			}
-			first = false
-			if name.Name == "_" {
-				if resultTypeExprIsBareScalar(result.Type) {
-					writeBareScalarZeroValue(out, result.Type)
-				} else {
-					writeNamedReturnZeroValue(out, result.Type)
-				}
-			} else {
-				if _, ok := goPtrCandidateForDecl(name); ok {
-					out.WriteString(RustLocalIdent(name.Name))
-					out.WriteString(".clone()")
-				} else if resultTypeExprIsBareScalar(result.Type) {
-					out.WriteString("(*")
-					out.WriteString(RustLocalIdent(name.Name))
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
-				} else {
-					out.WriteString(RustLocalIdent(name.Name))
-					out.WriteString(".clone()")
-				}
-			}
-		}
-	}
-	if len(names) > 1 {
-		out.WriteString(")")
-	}
-}
-
-func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
-	if resultTypeExprIsBareScalar(typeExpr) {
-		writeBareScalarZeroValue(out, typeExpr)
-		return
-	}
-	if t, ok := typeExpr.(*ast.Ident); ok && t.Name == "error" {
-		WriteWrappedNone(out)
-		return
-	}
-	if _, ok := functionSignatureFromTypeExpr(typeExpr); ok {
-		WriteWrappedNone(out)
-		return
-	}
-	if isEmptyInterfaceExpr(typeExpr) {
-		WriteWrappedNone(out)
-		return
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr); ok {
-		WriteWrappedNone(out)
-		return
-	}
-	if writeDirectTypeParamWrappedZeroValue(out, typeExpr, "named return zero value") {
-		return
-	}
-	if writeNamedReturnNilZeroValueFromTypeInfo(out, typeExpr) {
-		return
-	}
-
-	WriteWrapperPrefix(out)
-	switch t := typeExpr.(type) {
-	case *ast.Ident:
-		switch t.Name {
-		case "string":
-			out.WriteString("String::new()")
-		case "int", "int64", "int32", "int16", "int8":
-			out.WriteString("0")
-		case "uint", "uint64", "uint32", "uint16", "uint8":
-			out.WriteString("0")
-		case "float64", "float32":
-			out.WriteString("0.0")
-		case "bool":
-			out.WriteString("false")
-		default:
-			out.WriteString("Default::default()")
-		}
-	default:
-		out.WriteString("Default::default()")
-	}
-	WriteWrapperSuffix(out)
-}
-
-// shouldWrapDeferPanicRecover reports whether a function with a defer runs
-// its body under catch_unwind, so that a deferred function can recover a
-// panic. With goroutines every such function does. Without them only a
-// program that calls recover() pays for it.
-func shouldWrapDeferPanicRecover(hasDefer bool) bool {
-	if !hasDefer || !(NeedsConcurrentWrapper() || packageCallsRecover()) {
-		return false
-	}
-	NeedPanicRecover()
-	return true
-}
-
-var packageCallsRecoverCache = map[*types.Info]bool{}
-
-// packageCallsRecover reports whether the package being translated calls the
-// recover builtin anywhere.
-func packageCallsRecover() bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	if calls, ok := packageCallsRecoverCache[typeInfo.info]; ok {
-		return calls
-	}
-	calls := false
-	for _, obj := range typeInfo.info.Uses {
-		if builtin, ok := obj.(*types.Builtin); ok && builtin.Name() == "recover" {
-			calls = true
-			break
-		}
-	}
-	packageCallsRecoverCache[typeInfo.info] = calls
-	return calls
-}
-
-func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
-	out.WriteString(indent)
-	out.WriteString("let __go_previous_panic_hook = std::panic::take_hook();\n")
-	out.WriteString(indent)
-	out.WriteString("std::panic::set_hook(Box::new(|_| {}));\n")
-	out.WriteString(indent)
-	out.WriteString("let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
-	return indent + "    "
-}
-
-func finishPanicRecoverCatch(out *strings.Builder, fn *ast.FuncDecl, indent string) {
-	finishPanicRecoverCatchWith(out, indent, func() { writeRecoveredPanicReturnValue(out, fn) })
-}
-
-// finishPanicRecoverCatchWith closes the catch_unwind that
-// beginPanicRecoverCatch opened. On a panic it keeps the payload for
-// recover() and runs the deferred functions that are left. Each runs under
-// a catch_unwind of its own: as in Go, a deferred function that panics
-// replaces the panic and the rest still run. If none recovers, the panic
-// goes on; otherwise the function returns writeZero's value, or its named
-// results.
-func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero func()) {
-	out.WriteString(indent)
-	out.WriteString("}));\n")
-	out.WriteString(indent)
-	out.WriteString("match __go_panic_result {\n")
-	out.WriteString(indent)
-	out.WriteString("    Ok(__go_value) => {\n")
-	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
-	out.WriteString(indent)
-	out.WriteString("        __go_value\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("    Err(__go_panic_payload) => {\n")
-	out.WriteString(indent)
-	out.WriteString("        go_store_panic_payload(__go_panic_payload);\n")
-	out.WriteString(indent)
-	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-	out.WriteString(indent)
-	out.WriteString("            if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {\n")
-	out.WriteString(indent)
-	out.WriteString("                go_store_panic_payload(__go_defer_panic);\n")
-	out.WriteString(indent)
-	out.WriteString("            }\n")
-	out.WriteString(indent)
-	out.WriteString("        }\n")
-	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
-	out.WriteString(indent)
-	out.WriteString("        go_resume_unrecovered_panic();\n")
-	out.WriteString(indent)
-	out.WriteString("        ")
-	writeZero()
-	out.WriteString("\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("}\n")
-}
-
-func writeRecoveredPanicReturnValue(out *strings.Builder, fn *ast.FuncDecl) {
-	if fn == nil {
-		out.WriteString("()")
-		return
-	}
-	if hasNamedReturns(fn.Type) {
-		writeNamedReturnValues(out, fn.Type)
-		return
-	}
-	writeFunctionZeroReturnValues(out, fn)
-}
-
-func writeFunctionZeroReturnValues(out *strings.Builder, fn *ast.FuncDecl) {
-	resultTypes := functionResultTypeExprs(fn.Type)
-	if len(resultTypes) == 0 {
-		out.WriteString("()")
-		return
-	}
-	if len(resultTypes) > 1 {
-		out.WriteString("(")
-	}
-	for i, resultType := range resultTypes {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		if !writeGoPtrNilReturnValueForFunc(out, fn, i) {
-			writeNamedReturnZeroValue(out, resultType)
-		}
-	}
-	if len(resultTypes) > 1 {
-		out.WriteString(")")
-	}
-}
-
-func functionResultTypeExprs(fnType *ast.FuncType) []ast.Expr {
-	if fnType == nil || fnType.Results == nil {
-		return nil
-	}
-	var resultTypes []ast.Expr
-	for _, result := range fnType.Results.List {
-		count := len(result.Names)
-		if count == 0 {
-			count = 1
-		}
-		for i := 0; i < count; i++ {
-			resultTypes = append(resultTypes, result.Type)
-		}
-	}
-	return resultTypes
-}
-
-func writeNamedReturnNilZeroValueFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	typ := typeInfo.GetType(typeExpr)
-	if typ == nil {
-		return false
-	}
-	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
-			return false
-		}
-	}
-	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
-		WriteWrappedNone(out)
-		return true
-	default:
-		return false
-	}
-}
-
-func exprReferencesReceiver(expr ast.Expr, receiverName string) bool {
-	switch e := expr.(type) {
-	case *ast.Ident:
-		return e.Name == receiverName
-	case *ast.SelectorExpr:
-		return exprReferencesReceiver(e.X, receiverName)
-	case *ast.IndexExpr:
-		return exprReferencesReceiver(e.X, receiverName)
-	case *ast.StarExpr:
-		return exprReferencesReceiver(e.X, receiverName)
-	case *ast.UnaryExpr:
-		return exprReferencesReceiver(e.X, receiverName)
-	case *ast.ParenExpr:
-		return exprReferencesReceiver(e.X, receiverName)
-	default:
-		return false
-	}
-}
-
-func receiverNameForMethod(fn *ast.FuncDecl) string {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || len(fn.Recv.List[0].Names) == 0 {
-		return ""
-	}
-	return fn.Recv.List[0].Names[0].Name
-}
-
-func methodMutatesReceiver(fn *ast.FuncDecl, receiverName string) bool {
-	return methodMutatesReceiverWithSeen(fn, receiverName, getMethodReceiverType(fn), make(map[*ast.FuncDecl]bool))
-}
-
-func methodRequiresMutableReceiver(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
-		return false
-	}
-	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
-}
-
-func methodReassignsReceiver(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || fn.Body == nil {
-		return false
-	}
-	found := false
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
-		if found {
-			return false
-		}
-		if _, ok := n.(*ast.FuncLit); ok {
-			return false
-		}
-		assign, ok := n.(*ast.AssignStmt)
-		if !ok {
-			return true
-		}
-		for _, lhs := range assign.Lhs {
-			ident, ok := unwrapParens(lhs).(*ast.Ident)
-			if ok && isCurrentReceiverIdent(ident) {
-				found = true
-				return false
-			}
-		}
-		return true
-	})
-	return found
-}
-
-func methodReceiverComparedToNil(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || fn.Body == nil {
-		return false
-	}
-	receiverName := receiverNameForMethod(fn)
-	if receiverName == "" {
-		return false
-	}
-	found := false
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
-		if found {
-			return false
-		}
-		if _, ok := n.(*ast.FuncLit); ok {
-			return false
-		}
-		binary, ok := n.(*ast.BinaryExpr)
-		if !ok || (binary.Op != token.EQL && binary.Op != token.NEQ) {
-			return true
-		}
-		left, leftIsIdent := unwrapParens(binary.X).(*ast.Ident)
-		right, rightIsIdent := unwrapParens(binary.Y).(*ast.Ident)
-		if leftIsIdent && left.Name == receiverName && rightIsIdent && right.Name == "nil" {
-			found = true
-			return false
-		}
-		if rightIsIdent && right.Name == receiverName && leftIsIdent && left.Name == "nil" {
-			found = true
-			return false
-		}
-		return true
-	})
-	return found
-}
-
-func methodNeedsPointerReceiverHandleAlias(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
-		return false
-	}
-	return methodReassignsReceiver(fn) && methodReceiverComparedToNil(fn)
-}
-
-func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
-		return false
-	}
-	return methodReassignsReceiver(fn)
-}
-
-func methodValueReceiverNeedsLocalAlias(fn *ast.FuncDecl) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
-		return false
-	}
-	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
-}
-
-func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
-	mutableByMethod := make(map[string]bool)
-	if typeInfo == nil || typeInfo.info == nil {
-		return mutableByMethod
-	}
-	methodsByReceiver := make(map[string][]*ast.FuncDecl)
-	for _, file := range files {
-		if file == nil {
-			continue
-		}
-		for _, decl := range file.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || fn.Recv == nil || len(fn.Recv.List) == 0 {
-				continue
-			}
-			receiverKey := methodReceiverGroupKey(fn, typeInfo)
-			if receiverKey == "" {
-				continue
-			}
-			methodsByReceiver[receiverKey] = append(methodsByReceiver[receiverKey], fn)
-		}
-	}
-	for _, methods := range methodsByReceiver {
-		for _, fn := range methods {
-			obj := methodFuncForDecl(fn, typeInfo)
-			if obj == nil {
-				continue
-			}
-			key := methodOverrideKey(obj)
-			if key == "" {
-				continue
-			}
-			mutableByMethod[key] = methodRequiresMutableReceiverFromMap(fn, methodsByReceiver, typeInfo)
-		}
-	}
-	return mutableByMethod
-}
-
-func collectMethodReceiverOriginalReceiver(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
-	originalByMethod := make(map[string]bool)
-	if typeInfo == nil || typeInfo.info == nil {
-		return originalByMethod
-	}
-	methodsByReceiver := make(map[string][]*ast.FuncDecl)
-	for _, file := range files {
-		if file == nil {
-			continue
-		}
-		for _, decl := range file.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || fn.Recv == nil || len(fn.Recv.List) == 0 {
-				continue
-			}
-			receiverKey := methodReceiverGroupKey(fn, typeInfo)
-			if receiverKey == "" {
-				continue
-			}
-			methodsByReceiver[receiverKey] = append(methodsByReceiver[receiverKey], fn)
-		}
-	}
-	for _, methods := range methodsByReceiver {
-		for _, fn := range methods {
-			obj := methodFuncForDecl(fn, typeInfo)
-			if obj == nil {
-				continue
-			}
-			key := methodOverrideKey(obj)
-			if key == "" {
-				continue
-			}
-			originalByMethod[key] = methodRequiresOriginalReceiverFromMap(fn, methodsByReceiver, typeInfo)
-		}
-	}
-	return originalByMethod
-}
-
-var packageMethodReceiverMutability = make(map[string]bool)
-var packageMethodReceiverOriginalReceiver = make(map[string]bool)
-
-func resetPackageMethodReceiverMutability() {
-	packageMethodReceiverMutability = make(map[string]bool)
-	packageMethodReceiverOriginalReceiver = make(map[string]bool)
-}
-
-func registerPackageMethodReceiverMutability(pkgPath string, files []*ast.File) {
-	if pkgPath == "" {
-		pkgPath = "main"
-	}
-	methodsByReceiver := collectPackageMethods(files)
-	for receiverType, methods := range methodsByReceiver {
-		for _, fn := range methods {
-			if fn == nil || fn.Name == nil {
-				continue
-			}
-			key := packageMethodReceiverMutabilityKey(pkgPath, receiverType, fn.Name.Name)
-			packageMethodReceiverMutability[key] = methodRequiresMutableReceiverFromMap(fn, methodsByReceiver, nil)
-		}
-	}
-}
-
-func registerPackageMethodReceiverOriginalReceiver(pkgPath string, files []*ast.File, typeInfo *TypeInfo) {
-	if pkgPath == "" {
-		pkgPath = "main"
-	}
-	methodsByReceiver := collectPackageMethods(files)
-	for receiverType, methods := range methodsByReceiver {
-		for _, fn := range methods {
-			if fn == nil || fn.Name == nil {
-				continue
-			}
-			key := packageMethodReceiverMutabilityKey(pkgPath, receiverType, fn.Name.Name)
-			packageMethodReceiverOriginalReceiver[key] = methodRequiresOriginalReceiverFromMap(fn, methodsByReceiver, typeInfo)
-		}
-	}
-}
-
-func packageMethodReceiverMutabilityKey(pkgPath string, receiverType string, methodName string) string {
-	if pkgPath == "" || receiverType == "" || methodName == "" {
-		return ""
-	}
-	return pkgPath + "\x00" + receiverType + "\x00" + methodName
-}
-
-func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || sel == nil {
-		return false, false
-	}
-	// Dispatching through an interface method mutates the dynamic value when an
-	// implementor does; such methods lower to `&mut self`, so the call site must
-	// borrow mutably (.as_mut()/.borrow_mut()).
-	if interfaceMethodSelectorRequiresMutableReceiver(sel) {
-		return true, true
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	if !ok {
-		return false, false
-	}
-	fn, ok := selection.Obj().(*types.Func)
-	if !ok || fn == nil {
-		return false, false
-	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig.Recv() == nil {
-		return false, false
-	}
-	recv := types.Unalias(sig.Recv().Type())
-	if ptr, ok := recv.(*types.Pointer); ok {
-		recv = types.Unalias(ptr.Elem())
-	}
-	named, ok := recv.(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false, false
-	}
-	key := packageMethodReceiverMutabilityKey(named.Obj().Pkg().Path(), named.Obj().Name(), fn.Name())
-	if key == "" {
-		return false, false
-	}
-	mutable, ok := packageMethodReceiverMutability[key]
-	return mutable, ok
-}
-
-func packageMethodReceiverOriginalReceiverForSelector(sel *ast.SelectorExpr) (bool, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || sel == nil {
-		return false, false
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	if !ok {
-		return false, false
-	}
-	fn, ok := selection.Obj().(*types.Func)
-	if !ok || fn == nil {
-		return false, false
-	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig.Recv() == nil {
-		return false, false
-	}
-	recv := types.Unalias(sig.Recv().Type())
-	if ptr, ok := recv.(*types.Pointer); ok {
-		recv = types.Unalias(ptr.Elem())
-	}
-	named, ok := recv.(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false, false
-	}
-	key := packageMethodReceiverMutabilityKey(named.Obj().Pkg().Path(), named.Obj().Name(), fn.Name())
-	if key == "" {
-		return false, false
-	}
-	original, ok := packageMethodReceiverOriginalReceiver[key]
-	return original, ok
-}
-
-// interfaceMethodMutableReceiver records whether any concrete implementor's
-// corresponding method requires a mutable Rust receiver. A Go interface method
-// carries no receiver mutability of its own, but dispatching through it mutates
-// the dynamic value whenever an implementor does. The interface trait method,
-// every impl of it, and every interface-dispatch call site consult this single
-// map so the three stay consistent: a method that mutates through any
-// implementor lowers to `&mut self` everywhere.
-var interfaceMethodMutableReceiver = make(map[*types.Func]bool)
-var interfaceMethodMutableReceiverByName = make(map[string]bool)
-var interfaceMethodMutableReceiverByTrait = make(map[string]bool)
-
-func resetInterfaceMethodMutableReceiver() {
-	interfaceMethodMutableReceiver = make(map[*types.Func]bool)
-	interfaceMethodMutableReceiverByName = make(map[string]bool)
-	interfaceMethodMutableReceiverByTrait = make(map[string]bool)
-}
-
-// registerInterfaceMethodMutableReceivers walks every interface across all
-// loaded packages and ORs in, per interface method, whether any concrete
-// implementor's matching method requires a mutable receiver. It must run after
-// packageMethodReceiverMutability is fully populated for every package and
-// before any emission (see PackageLoader.TranspileAll).
-func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
-	resetInterfaceMethodMutableReceiver()
-	var ifaceTypes []*types.Named
-	var concreteTypes []*types.Named
-	for _, pkg := range pkgs {
-		if pkg == nil || pkg.Scope() == nil {
-			continue
-		}
-		for _, name := range pkg.Scope().Names() {
-			tn, ok := pkg.Scope().Lookup(name).(*types.TypeName)
-			if !ok {
-				continue
-			}
-			named, ok := types.Unalias(tn.Type()).(*types.Named)
-			if !ok {
-				continue
-			}
-			if _, ok := named.Underlying().(*types.Interface); ok {
-				ifaceTypes = append(ifaceTypes, named)
-			} else {
-				concreteTypes = append(concreteTypes, named)
-			}
-		}
-		// Interfaces declared inside function bodies become top-level traits
-		// too, so their methods need the same receiver mutability.
-		ifaceTypes = append(ifaceTypes, functionLocalInterfaceTypes(pkg)...)
-	}
-	for _, ifaceNamed := range ifaceTypes {
-		iface, _ := ifaceNamed.Underlying().(*types.Interface)
-		if iface == nil || iface.NumMethods() == 0 {
-			continue
-		}
-		ifaceTraitNames := interfaceMethodMutableReceiverTraitNames(ifaceNamed)
-		for _, concrete := range concreteTypes {
-			obj := concrete.Obj()
-			if obj == nil || obj.Pkg() == nil {
-				continue
-			}
-			if !types.Implements(concrete, iface) && !types.Implements(types.NewPointer(concrete), iface) {
-				continue
-			}
-			pkgPath := obj.Pkg().Path()
-			if pkgPath == "" {
-				pkgPath = "main"
-			}
-			for j := 0; j < iface.NumMethods(); j++ {
-				m := iface.Method(j)
-				concreteKey := packageMethodReceiverMutabilityKey(pkgPath, obj.Name(), m.Name())
-				if mutable, ok := packageMethodReceiverMutability[concreteKey]; ok && mutable {
-					interfaceMethodMutableReceiver[m] = true
-					for _, key := range interfaceMethodMutableReceiverKeys(m) {
-						interfaceMethodMutableReceiverByName[key] = true
-					}
-					for _, traitName := range ifaceTraitNames {
-						interfaceMethodMutableReceiverByTrait[interfaceMethodMutableReceiverTraitKey(traitName, m.Name())] = true
-					}
-				}
-			}
-		}
-	}
-}
-
-func interfaceMethodMutableReceiverTraitNames(ifaceNamed *types.Named) []string {
-	if ifaceNamed == nil || ifaceNamed.Obj() == nil {
-		return nil
-	}
-	seen := make(map[string]bool)
-	var names []string
-	add := func(name string) {
-		if name == "" || seen[name] {
-			return
-		}
-		seen[name] = true
-		names = append(names, name)
-	}
-	add(ifaceNamed.Obj().Name())
-	add(goTypesNamedTypeToRust(ifaceNamed))
-	if pkg := ifaceNamed.Obj().Pkg(); pkg != nil && pkg.Path() != "" {
-		add(RustCrateNameForGoImportPath(pkg.Path()) + "::" + RustTypeNameForUse(ifaceNamed.Obj().Name()))
-	}
-	return names
-}
-
-func interfaceMethodMutableReceiverTraitKey(ifaceName string, methodName string) string {
-	if ifaceName == "" || methodName == "" {
-		return ""
-	}
-	return ifaceName + "." + methodName
-}
-
-func interfaceMethodMutableReceiverKeys(method *types.Func) []string {
-	if method == nil {
-		return nil
-	}
-	seen := make(map[string]bool)
-	var keys []string
-	add := func(key string) {
-		if key == "" || seen[key] {
-			return
-		}
-		seen[key] = true
-		keys = append(keys, key)
-	}
-	add(method.FullName())
-	if method.Pkg() != nil {
-		add(method.Pkg().Path() + "." + method.Name())
-	}
-	return keys
-}
-
-// interfaceMethodRequiresMutableReceiver reports whether the given interface
-// method (an interface's *types.Func) lowers to a `&mut self` Rust trait method.
-func interfaceMethodRequiresMutableReceiver(method *types.Func) bool {
-	if method == nil {
-		return false
-	}
-	if interfaceMethodMutableReceiver[method] {
-		return true
-	}
-	keys := interfaceMethodMutableReceiverKeys(method)
-	for _, key := range keys {
-		if interfaceMethodMutableReceiverByName[key] {
-			return true
-		}
-	}
-	for registered, mutable := range interfaceMethodMutableReceiver {
-		if !mutable {
-			continue
-		}
-		for _, registeredKey := range interfaceMethodMutableReceiverKeys(registered) {
-			for _, key := range keys {
-				if registeredKey == key {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func interfaceTraitMethodRequiresMutableReceiver(ifaceName string, methodName string, method *types.Func) bool {
-	if interfaceMethodRequiresMutableReceiver(method) {
-		return true
-	}
-	if methodName == "" && method != nil {
-		methodName = method.Name()
-	}
-	if methodName == "" {
-		return false
-	}
-	key := interfaceMethodMutableReceiverTraitKey(ifaceName, methodName)
-	return key != "" && interfaceMethodMutableReceiverByTrait[key]
-}
-
-// interfaceMethodSelectorRequiresMutableReceiver reports whether a method-call
-// selector dispatches through an interface method that lowers to `&mut self`.
-func interfaceMethodSelectorRequiresMutableReceiver(sel *ast.SelectorExpr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || sel == nil {
-		return false
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	if !ok {
-		return false
-	}
-	fn, ok := selection.Obj().(*types.Func)
-	if !ok {
-		return false
-	}
-	return interfaceMethodRequiresMutableReceiver(fn)
-}
-
-// interfaceMethodByName returns the interface's method with the given Go name,
-// or nil. Only the interface's own method set is considered.
-func interfaceMethodByName(iface *types.Interface, name string) *types.Func {
-	if iface == nil {
-		return nil
-	}
-	for j := 0; j < iface.NumMethods(); j++ {
-		if m := iface.Method(j); m != nil && m.Name() == name {
-			return m
-		}
-	}
-	return nil
-}
-
-// interfaceTraitMethodReceiver returns "&mut self" when the named local
-// interface's method lowers to a mutable receiver, else "&self".
-func interfaceTraitMethodReceiver(ifaceName, methodName string) string {
-	if iface := localInterfaceTypesByName(ifaceName); iface != nil {
-		if m := interfaceMethodByName(iface, methodName); interfaceTraitMethodRequiresMutableReceiver(ifaceName, methodName, m) {
-			return "&mut self"
-		}
-	}
-	return "&self"
-}
-
-func methodReceiverGroupKey(fn *ast.FuncDecl, typeInfo *TypeInfo) string {
-	if obj := methodFuncForDecl(fn, typeInfo); obj != nil {
-		if sig, ok := obj.Type().(*types.Signature); ok && sig.Recv() != nil {
-			return methodReceiverKey(sig.Recv().Type())
-		}
-	}
-	return getMethodReceiverType(fn)
-}
-
-func methodRequiresMutableReceiverFromMap(fn *ast.FuncDecl, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
-		return false
-	}
-	return methodMutatesReceiverWithMethodMap(fn, receiverNameForMethod(fn), methodReceiverGroupKey(fn, typeInfo), methodsByReceiver, typeInfo, make(map[*ast.FuncDecl]bool))
-}
-
-func methodRequiresOriginalReceiverFromMap(fn *ast.FuncDecl, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) bool {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
-		return false
-	}
-	return methodNeedsOriginalReceiverWithMethodMap(fn, receiverNameForMethod(fn), methodReceiverGroupKey(fn, typeInfo), methodsByReceiver, typeInfo, make(map[*ast.FuncDecl]bool))
-}
-
-func getMethodReceiverType(fn *ast.FuncDecl) string {
-	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
-		return ""
-	}
-	return getReceiverType(fn.Recv.List[0].Type)
-}
-
-func methodsForReceiverType(receiverType string) []*ast.FuncDecl {
-	if receiverType != "" {
-		if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.MethodsByType[receiverType]) > 0 {
-			return ctx.Package.MethodsByType[receiverType]
-		}
-	}
-	return currentTypeMethods
-}
-
-func unsafePointerCallArgFromTypeInfo(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
-	call, ok := unwrapParens(expr).(*ast.CallExpr)
-	if !ok || len(call.Args) != 1 || typeInfo == nil || typeInfo.info == nil {
-		return nil, false
-	}
-	sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
-	if !ok || sel.Sel == nil {
-		return nil, false
-	}
-	obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName)
-	if !ok || obj.Pkg() == nil || obj.Pkg().Path() != "unsafe" || obj.Name() != "Pointer" {
-		return nil, false
-	}
-	return call.Args[0], true
-}
-
-func methodNeedsOriginalReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, receiverKey string, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo, seen map[*ast.FuncDecl]bool) bool {
-	if fn == nil || fn.Body == nil || receiverName == "" {
-		return false
-	}
-	if seen[fn] {
-		return false
-	}
-	seen[fn] = true
-	needsOriginal := false
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
-		if needsOriginal {
-			return false
-		}
-		call, ok := n.(*ast.CallExpr)
-		if !ok {
-			return true
-		}
-		if source, ok := unsafePointerCallArgFromTypeInfo(call, typeInfo); ok && exprReferencesReceiver(source, receiverName) {
-			needsOriginal = true
-			return false
-		}
-		sel, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok || !exprReferencesReceiver(sel.X, receiverName) {
-			return true
-		}
-		called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
-		if called == nil {
-			return true
-		}
-		if methodNeedsOriginalReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
-			needsOriginal = true
-			return false
-		}
-		return true
-	})
-	return needsOriginal
-}
-
-func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, receiverKey string, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo, seen map[*ast.FuncDecl]bool) bool {
-	if fn == nil || fn.Body == nil || receiverName == "" {
-		return false
-	}
-	if seen[fn] {
-		return false
-	}
-	seen[fn] = true
-	mutates := false
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
-		if mutates {
-			return false
-		}
-		switch stmt := n.(type) {
-		case *ast.AssignStmt:
-			for _, lhs := range stmt.Lhs {
-				if exprReferencesReceiver(lhs, receiverName) {
-					mutates = true
-					return false
-				}
-			}
-		case *ast.IncDecStmt:
-			if exprReferencesReceiver(stmt.X, receiverName) {
-				mutates = true
-				return false
-			}
-		case *ast.CallExpr:
-			for _, arg := range stmt.Args {
-				if callArgumentMayMutateReceiver(arg, receiverName) {
-					mutates = true
-					return false
-				}
-			}
-			sel, ok := stmt.Fun.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
-			if !exprReferencesReceiver(sel.X, receiverName) {
-				// fmt.Fprintf(receiver, ...) transitively invokes receiver.Write(...)
-				// when receiver implements io.Writer. Treat that as a method call
-				// on the receiver so its mutation propagates here.
-				if callIsFprintfWritingToReceiver(stmt, sel, receiverName) {
-					if called := methodDeclByName(methodsByReceiver[receiverKey], "Write"); called != nil {
-						if methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
-							mutates = true
-							return false
-						}
-					}
-				}
-				return true
-			}
-			called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
-			if called == nil {
-				// A method promoted from an embedded field, s.Deposit with
-				// Deposit declared on Basic, mutates the receiver when it
-				// mutates its own.
-				called = promotedMethodDecl(sel, methodsByReceiver, typeInfo)
-			}
-			if called == nil {
-				return true
-			}
-			if methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
-				mutates = true
-				return false
-			}
-		}
-		return true
-	})
-	return mutates
-}
-
-// promotedMethodDeclInContext is promotedMethodDecl over the methods of the
-// package being transpiled.
-func promotedMethodDeclInContext(sel *ast.SelectorExpr) *ast.FuncDecl {
-	ctx := GetTranspileContext()
-	if ctx == nil || ctx.Package == nil {
-		return nil
-	}
-	return promotedMethodDecl(sel, ctx.Package.MethodsByType, GetTypeInfo())
-}
-
-// promotedMethodDecl returns the declaration of the method sel selects
-// through an embedded field, when the package declares it.
-func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) *ast.FuncDecl {
-	if typeInfo == nil || typeInfo.info == nil {
-		return nil
-	}
-	selection := typeInfo.info.Selections[sel]
-	if selection == nil || selection.Kind() != types.MethodVal || len(selection.Index()) < 2 {
-		return nil
-	}
-	method, ok := selection.Obj().(*types.Func)
-	if !ok {
-		return nil
-	}
-	for _, methods := range methodsByReceiver {
-		for _, decl := range methods {
-			if methodFuncForDecl(decl, typeInfo) == method {
-				return decl
-			}
-		}
-	}
-	return nil
-}
-
-func callArgumentMayMutateReceiver(arg ast.Expr, receiverName string) bool {
-	unary, ok := unwrapParens(arg).(*ast.UnaryExpr)
-	return ok && unary.Op == token.AND && exprReferencesReceiver(unary.X, receiverName)
-}
-
-// callIsFprintfWritingToReceiver reports whether call is `fmt.Fprintf(<recv>,
-// ...)` (or Fprint/Fprintln) where the first argument references the named
-// receiver. The transpiler lowers such calls to <recv>.write(...), so the
-// receiver participates as the write target and inherits its Write method's
-// mutation behavior.
-func callIsFprintfWritingToReceiver(call *ast.CallExpr, sel *ast.SelectorExpr, receiverName string) bool {
-	if len(call.Args) == 0 {
-		return false
-	}
-	pkgIdent, ok := sel.X.(*ast.Ident)
-	if !ok || pkgIdent.Name != "fmt" {
-		return false
-	}
-	switch sel.Sel.Name {
-	case "Fprintf", "Fprint", "Fprintln":
-	default:
-		return false
-	}
-	return exprReferencesReceiver(call.Args[0], receiverName)
-}
-
-func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiverType string, seen map[*ast.FuncDecl]bool) bool {
-	if fn == nil || fn.Body == nil || receiverName == "" {
-		return false
-	}
-	if seen[fn] {
-		return false
-	}
-	seen[fn] = true
-	mutates := false
-	ast.Inspect(fn.Body, func(n ast.Node) bool {
-		if mutates {
-			return false
-		}
-		switch stmt := n.(type) {
-		case *ast.AssignStmt:
-			for _, lhs := range stmt.Lhs {
-				if exprReferencesReceiver(lhs, receiverName) {
-					mutates = true
-					return false
-				}
-			}
-		case *ast.IncDecStmt:
-			if exprReferencesReceiver(stmt.X, receiverName) {
-				mutates = true
-				return false
-			}
-		case *ast.CallExpr:
-			sel, ok := stmt.Fun.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
-			if !exprReferencesReceiver(sel.X, receiverName) {
-				// fmt.Fprintf(receiver, ...) lowers to receiver.write(...);
-				// propagate the Write method's mutation through this indirect call.
-				if callIsFprintfWritingToReceiver(stmt, sel, receiverName) {
-					if called := methodDeclByName(methodsForReceiverType(receiverType), "Write"); called != nil {
-						if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), getMethodReceiverType(called), seen) {
-							mutates = true
-							return false
-						}
-					}
-				}
-				return true
-			}
-			called := methodDeclByName(methodsForReceiverType(receiverType), sel.Sel.Name)
-			if called == nil {
-				// A method promoted from an embedded field.
-				called = promotedMethodDeclInContext(sel)
-			}
-			if called == nil {
-				return true
-			}
-			if methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), getMethodReceiverType(called), seen) {
-				mutates = true
-				return false
-			}
-		}
-		return true
-	})
-	return mutates
-}
-
-func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, forceSharedReceiver bool, traitReceiverMutable bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	// Store the receiver name and type for self translation
-	if fn.Recv != nil && len(fn.Recv.List) > 0 {
-		recv := fn.Recv.List[0]
-		if len(recv.Names) > 0 {
-			setCurrentReceiverFromIdent(recv.Names[0])
-		}
-		// Store the receiver type
-		currentReceiverType = getReceiverType(recv.Type)
-	}
-	prevCurrentReceiverRustAlias := currentReceiverRustAlias
-	prevCurrentReceiverRustAliasIsPointerHandle := currentReceiverRustAliasIsPointerHandle
-	prevCurrentReceiverRustAliasIsGoPtr := currentReceiverRustAliasIsGoPtr
-	prevCurrentReceiverRustAliasGoPtrInfo := currentReceiverRustAliasGoPtrInfo
-	currentReceiverRustAlias = ""
-	currentReceiverRustAliasIsPointerHandle = false
-	currentReceiverRustAliasIsGoPtr = false
-	currentReceiverRustAliasGoPtrInfo = goPtrResultInfo{}
-	if methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn) {
-		currentReceiverRustAlias = "__self"
-		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
-		if info, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
-			currentReceiverRustAliasIsGoPtr = true
-			currentReceiverRustAliasGoPtrInfo = info
-			currentReceiverRustAliasIsPointerHandle = false
-		}
-	}
-	defer func() {
-		currentReceiverRustAlias = prevCurrentReceiverRustAlias
-		currentReceiverRustAliasIsPointerHandle = prevCurrentReceiverRustAliasIsPointerHandle
-		currentReceiverRustAliasIsGoPtr = prevCurrentReceiverRustAliasIsGoPtr
-		currentReceiverRustAliasGoPtrInfo = prevCurrentReceiverRustAliasGoPtrInfo
-	}()
-
-	// Output doc comments if present (with indentation for methods)
-	outputComment(out, fn.Doc, "    ", true)
-
-	out.WriteString("    ")
-	if addPub {
-		out.WriteString("pub ")
-	}
-	out.WriteString("fn ")
-	out.WriteString(rustMethodName(fn))
-	out.WriteString("(")
-
-	// Receiver
-	if fn.Recv != nil && len(fn.Recv.List) > 0 {
-		recv := fn.Recv.List[0]
-		// Store the receiver name for self translation
-		if len(recv.Names) > 0 {
-			setCurrentReceiverFromIdent(recv.Names[0])
-		}
-
-		if forceSharedReceiver {
-			if traitReceiverMutable {
-				out.WriteString("&mut self")
-			} else {
-				out.WriteString("&self")
-			}
-		} else if methodRequiresMutableReceiver(fn) {
-			out.WriteString("&mut self")
-		} else {
-			out.WriteString("&self")
-		}
-
-		// Add comma if there are more parameters
-		if fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
-			out.WriteString(", ")
-		}
-	}
-	// Other parameters
-	writeFuncDeclParams(out, fn)
-
-	out.WriteString(")")
-
-	writeFuncDeclResultTypes(out, fn)
-
-	out.WriteString(" {\n")
-
-	if fn.Body != nil {
-		restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
-		defer restoreSliceElemPtrCandidates()
-		restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
-		defer restoreSliceElemPtrReturn()
-
-		hasDefer := checkHasDefer(fn.Body.List)
-		oldFunctionHasDefer := currentFunctionHasDefer
-		currentFunctionHasDefer = hasDefer
-		defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
-		oldFunctionBodyLbrace := currentFunctionBodyLbrace
-		currentFunctionBodyLbrace = fn.Body.Lbrace
-		defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
-		oldActiveMutexGuards := activeMutexGuards
-		activeMutexGuards = make(map[string]string)
-		defer func() { activeMutexGuards = oldActiveMutexGuards }()
-		if hasDefer {
-			out.WriteString("        " + deferStackDecl() + "\n\n")
-		}
-		writeGoSliceParamHeaderCopies(out, fn, "        ")
-		writeNamedReturnDeclarations(out, fn.Type)
-	}
-
-	restoreLocalSyntaxInfo := pushFunctionLocalSyntaxInfo()
-	defer restoreLocalSyntaxInfo()
-	assignedInterfaceParams := assignedInterfaceParamNames(fn)
-
-	// Register method parameters in VarTable
-	if vt := GetVarTable(); vt != nil {
-		vt.PushScope()
-		defer vt.PopScope()
-		if fn.Type.Params != nil {
-			paramIndex := 0
-			for _, field := range fn.Type.Params.List {
-				for _, name := range field.Names {
-					rustType := goTypeToRustBase(field.Type)
-					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
-						rustType = "Vec<GoPtr<" + elemRustType + ">>"
-					}
-					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
-						rustType = goPtrSlotParamRustType(elemRustType)
-					}
-					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
-						rustType = "GoPtr<" + elemRustType + ">"
-					}
-					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
-						rustType = functionRustType
-					}
-					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
-						var goType types.Type
-						if typeInfo := GetTypeInfo(); typeInfo != nil {
-							goType = typeInfo.GetType(field.Type)
-						}
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapNone,
-							RustType:    goPtrSlotParamRustType(elemRustType),
-							Source:      SourceParam,
-							PointerKind: PointerGoPtr,
-							GoType:      goType,
-						})
-					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
-						var goType types.Type
-						if typeInfo := GetTypeInfo(); typeInfo != nil {
-							goType = typeInfo.GetType(field.Type)
-						}
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapNone,
-							RustType:    "GoPtr<" + elemRustType + ">",
-							Source:      SourceParam,
-							PointerKind: PointerGoPtr,
-							GoType:      goType,
-						})
-					} else if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
-						if assignedInterfaceParams[name.Name] {
-							vt.Register(name.Name, &VarInfo{
-								WrapLevel: WrapFull,
-								RustType:  rustType,
-								Source:    SourceLocal,
-							})
-						} else {
-							varInfo.RustType = rustType
-							vt.Register(name.Name, varInfo)
-						}
-					} else if _, ok := field.Type.(*ast.ChanType); ok {
-						// Channel parameters are bare (GoChannel<T>)
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if isSyncParam(field.Type) {
-						// sync.WaitGroup / sync.Mutex parameters are bare
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else if typeExprIsOrderedTypeParam(field.Type) {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					} else {
-						vt.Register(name.Name, &VarInfo{
-							WrapLevel: WrapFull,
-							RustType:  rustType,
-							Source:    SourceParam,
-						})
-					}
-					paramIndex++
-				}
-			}
-		}
-		registerArrayElemPtrNamedReturnVars(fn)
-	}
-
-	if writeRuntimeLinkedFunctionBody(out, fn, "        ") {
-		out.WriteString("    }\n")
-		currentReceiver = ""
-		currentReceiverObject = nil
-		return
-	}
-
-	// Method body - need to handle self references
-	if fn.Body == nil {
-		out.WriteString("        unimplemented!(\"Go method declaration has no body\");\n")
-		out.WriteString("    }\n")
-		currentReceiver = ""
-		currentReceiverObject = nil
-		return
-	}
-	writeAssignedInterfaceParamShadows(out, fn, "        ")
-	if currentReceiverRustAlias != "" {
-		out.WriteString("        let mut ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = ")
-		if currentReceiverRustAliasIsGoPtr {
-			out.WriteString("GoPtr::local(")
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-			out.WriteString(")")
-		} else if currentReceiverRustAliasIsPointerHandle {
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-		} else if currentReceiverIsStructValue() {
-			// A value receiver is the method's own copy of the struct.
-			out.WriteString("self" + goStructValueCopyCall)
-		} else {
-			out.WriteString("self.clone()")
-		}
-		out.WriteString(";\n")
-	}
-
-	recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
-	bodyIndent := "        "
-	if recoverCatch {
-		bodyIndent = beginPanicRecoverCatch(out, "        ")
-	}
-
-	var prevStmt ast.Stmt
-	var lastPos token.Pos = fn.Body.Lbrace
-	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString(bodyIndent)
-			out.WriteString("unreachable!()\n")
-		}
-	} else {
-		for i, stmt := range fn.Body.List {
-			out.WriteString(bodyIndent)
-			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-			}
-			out.WriteString("\n")
-			prevStmt = stmt
-		}
-	}
-
-	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
-	if currentFunctionHasDefer && !lastTerminates {
-		out.WriteString("\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("// Execute deferred functions\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("}\n")
-	}
-
-	if recoverCatch {
-		finishPanicRecoverCatch(out, fn, "        ")
-	}
-
-	out.WriteString("    }\n")
-
-	// Clear the receiver name
-	currentReceiver = ""
-	currentReceiverObject = nil
-}
-
-func setCurrentReceiverFromIdent(ident *ast.Ident) {
-	currentReceiver = ident.Name
-	currentReceiverObject = nil
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-		currentReceiverObject = typeInfo.info.Defs[ident]
-	}
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×NöóÄèµ©hºÚn¶X§zÍ\XÚØYÙHXZ[‚‚š[\Ü
+‚H™›]‚‚H™ÛËØ\Ý‚‚H™ÛËØÛÛœÝ[‚‚H™ÛËÝÚÙ[ˆ‚‚H™ÛËÝ\\È‚‚H›X]‚‚HœÛÜ‚‚HœÝ˜ÛÛˆ‚‚HœÝš[™ÜÈ‚ŠB‚™[˜È\ÝÝXÝšY[˜[YJ˜[YH
+˜\Ý’Y[šY[[™^[˜[YR[™^[
+HÝš[™ÈÂ‚ZYˆ˜[YHOHš[Â‚B\™]\›ˆˆ‚‚_B‚ZYˆ˜[YK“˜[YHOH—ÈˆÂ‚B\™]\›ˆ›]”Üš[Š—×Ø›[š×ÉYÉY‹šY[[™^˜[YR[™^
+B‚_B‚\™]\›ˆÔÛ˜ZÙPØ\ÙJ˜[YK“˜[YJBŸB‚‹ËÈÙ[™\˜]TÝXÝ\Ü^HÙ[™\˜]\ÈH\Ü^H[\[Y[][Ûˆ›ÜˆHÝXÝÈX]ÚÛÉÜÈÝ]]›Ü›X]\H\Ý\QÙ[™\šXÜÈÝXÝÂ‚QXÛÝš[™Â‚U\ÙHÝš[™Â‚UÚ\™HÝš[™Â‚T[ÛH×\Ýš[™ÂŸB‚˜ÛÛœÝZ[”ÝXÝ\Ü^S][[[™UÜš]QšY[ÈHL‚™[˜ÈÜš]T\Ý[š\™[[\XY\ŠÝ]
+œÝš[™ÜËZ[\‹Ù[™\šXÜÈ\Ý\QÙ[™\šXÜË\Ý\S˜[YHÝš[™ÊHÂ‚[Ý]•Üš]TÝš[™Êš[\ŠB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË‘XÛ
+B‚[Ý]•Üš]TÝš[™ÊˆŠB‚[Ý]•Üš]TÝš[™Ê\Ý\S˜[YJB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË•\ÙJB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË•Ú\™JB‚[Ý]•Üš]TÝš[™Êˆ×ˆŠBŸB‚™[˜ÈÜš]T\Ý˜Z][\XY\ŠÝ]
+œÝš[™ÜËZ[\‹Ù[™\šXÜÈ\Ý\QÙ[™\šXÜË˜Z]˜[YHÝš[™Ë\Ý\S˜[YHÝš[™ÊHÂ‚[Ý]•Üš]TÝš[™Êš[\ŠB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË‘XÛ
+B‚[Ý]•Üš]TÝš[™ÊˆŠB‚[Ý]•Üš]TÝš[™Ê˜Z]˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ÜˆŠB‚[Ý]•Üš]TÝš[™Ê\Ý\S˜[YJB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË•\ÙJB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË•Ú\™JB‚[Ý]•Üš]TÝš[™Êˆ×ˆŠBŸB‚‹ËÈÙ[™\˜]TÝXÝ\Ü^HÙ[™\˜]\ÈH\Ü^H[\[Y[][Ûˆ›ÜˆHÝXÝÈX]ÚÛÉÜÈÝ]]›Ü›X]™[˜ÈÙ[™\˜]TÝXÝ\Ü^JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚U˜XÚÒ[\Ü
+‘\Ü^HŠB‚U˜XÚÒ[\Ü
+‘›Ü›X]\ˆŠB‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚‚KËÈYˆ\È\H[\[Y[ÈH\œ›Üˆ[\™˜XÙK\Ü^HÚÝ[[YØ]HÈ\œ›ÜŠ
+B‚ZYˆ\Ñ\œ›Ü’[\\JÝXÝ˜[YJHÂ‚B]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËœÝŽ™›]Ž‘\Ü^H‹\ÝÝXÝ˜[YJB‚B[Ý]•Üš]TÝš[™Êˆ›ˆ›]
+	œÙ[‹Žˆ	›]]ÝŽ™›]Ž‘›Ü›X]\ŠHOˆÝŽ™›]Ž”™\Ý[×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆÜš]HJ‹žßW‹
+
+œÙ[‹™\œ›ÜŠ
+HŠB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JJWˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B[Ý]•Üš]TÝš[™ÊŸWˆŠB‚B\™]\›‚‚_B‚‚ZYˆ˜[YY\R\ÑÛÔÝš[™ÓY]Ù
+ÝXÝ˜[YJHÂ‚B]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËœÝŽ™›]Ž‘\Ü^H‹\ÝÝXÝ˜[YJB‚B[Ý]•Üš]TÝš[™Êˆ›ˆ›]
+	œÙ[‹Žˆ	›]]ÝŽ™›]Ž‘›Ü›X]\ŠHOˆÝŽ™›]Ž”™\Ý[×ˆŠB‚B]Üš]TÝš[™Ù\‘\Ü^P›ÙJÝ]ÝXÝ˜[YKˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B[Ý]•Üš]TÝš[™ÊŸWˆŠB‚B\™]\›‚‚_B‚‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËœÝŽ™›]Ž‘\Ü^H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆ›]
+	œÙ[‹Žˆ	›]]ÝŽ™›]Ž‘›Ü›X]\ŠHOˆÝŽ™›]Ž”™\Ý[×ˆŠB‚‚KËÈÛÛXÝ[šY[È
+[˜ÛY[™È[X™YY
+B‚]\HšY[[žHÝXÝÂ‚B[˜[YHÝš[™Â‚BYÛÓ˜[YHÝš[™Â‚BZ\Ñ[X™YY›ÛÛ‚BZ\ÔÛXÙH›ÛÛ‚BZ\ÓX\›ÛÛ‚BZ\Ò[\™˜XÙH›ÛÛ‚BZ\Ñ\œ›Üˆ›ÛÛ‚BZ\Ñ[˜Ý[Ûˆ›ÛÛ‚BY[˜ÔÛXÙH›ÛÛ‚BX[žTÛXÙH›ÛÛ‚BZ\Õ˜Z]›ÛÛ‚B[X\Ü\]YH›ÛÛ‚B[™\ÝYÛXÙH›ÛÛ‚B[™\ÝYÛXÙUÜ˜\Y›ÛÛ‚B[™\ÝYÚ[\”ÛXÙH›ÛÛ‚B[™\ÝYÚ[\”ÛXÙUÜ˜\Y›ÛÛ‚B\”ÛXÙH›ÛÛ‚B\•ÔÛXÙH›ÛÛ‚B\•Ô”ÛXÙH›ÛÛ‚BZ\ÔÚ[\ˆ›ÛÛ‚BYÛÔˆ›ÛÛ‚BYÛÔ”ÛXÙH›ÛÛ‚BYÛÔ\œ˜^H›ÛÛ‚BZ[\™˜XÙTÛXÙH›ÛÛ‚B^™\›Ó[\œ˜^H›ÛÛ‚_B‚]˜\ˆšY[È×YšY[[žB‚Y›ÜˆšY[[™^šY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BKËÈÚÚ\Þ[˜È\\È
+]]^ØZ]Ü›Ý\
+H8 %^IÜ™H›Ý]HšY[Â‚BZYˆ\ÔÞ[˜Ô\˜[JšY[•\JHÂ‚BBXÛÛ[YB‚B_B‚BWË\ÔÛXÙHHšY[•\KŠ
+˜\Ý\œ˜^U\JB‚BWË\ÓX\HšY[•\KŠ
+˜\Ý“X\\JB‚BZ\Ò[\™˜XÙHH\Ñ[\R[\™˜XÙQ^ŠšY[•\JB‚BZ\Ñ\œ›ÜˆHÝXÝ\Ü^QšY[\Ñ\œ›ÜŠšY[•\JB‚BZ\Ñ[˜Ý[ÛˆH\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^ŠšY[•\JB‚BY[˜ÔÛXÙHH\œ˜^QšY[ÛÛZ[œÑ[˜Ý[ÛŠšY[•\JB‚BX[žTÛXÙHHÛXÙQšY[ÛÛZ[œÑ[\R[\™˜XÙJšY[•\JB‚BWË\ÐÚ[›™[HšY[•\KŠ
+˜\ÝÚ[•\JB‚BZ\Õ˜Z]H\R\Õ˜Z]šY[
+šY[•\JB‚B[X\Ü\]YHHX\šY[™YYÓÜ\]YQ\Ü^JšY[•\JB‚B[™\ÝYÛXÙHH\œ˜^QšY[ÛÛZ[œÔÛXÙJšY[•\JB‚B[™\ÝYÛXÙUÜ˜\YH\œ˜^QšY[™\ÝY[›™\’\ÔÚ[\ŠšY[•\JB‚B[™\ÝYÚ[\”ÛXÙHH\œ˜^QšY[™\ÝYÚ[\’[›™\’\Õ˜[YJšY[•\JB‚B[™\ÝYÚ[\”ÛXÙUÜ˜\YH\œ˜^QšY[™\ÝYÚ[\’[›™\’\ÔÚ[\ŠšY[•\JB‚B\”ÛXÙHH\œ˜^QšY[ÛÛZ[œÔÚ[\ŠšY[•\JB‚B\•ÔÛXÙHHÚ[\‘šY[ÛÛZ[œÔÛXÙJšY[•\JB‚B\•Ô”ÛXÙHHÚ[\‘šY[ÛÛZ[œÔÚ[\”ÛXÙJšY[•\JB‚BZ\ÔÚ[\ˆHÝXÝ\Ü^QšY[\ÔÚ[\ŠšY[•\JB‚BZ[\™˜XÙTÛXÙHH\œ˜^QšY[ÛÛZ[œÓØØ[[\™˜XÙJšY[•\JB‚B^™\›Ó[\œ˜^HHÝXÝ\Ü^QšY[\Ö™\›Ó[\œ˜^JšY[•\JB‚BZYˆ\ÐÚ[›™[Â‚BBXÛÛ[YB‚B_B‚BZYˆ[ŠšY[“˜[Y\ÊHˆÂ‚BBY›Üˆ˜[YR[™^˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBBWËÛÔ‘šY[HÛXÙQ[[T‘šY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK˜[YK“˜[YJB‚BBBWËÛÔ”ÛXÙQšY[HÛXÙQ[[T”ÛXÙQšY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK˜[YK“˜[YJB‚BBBWËÛÔ\œ˜^QšY[HÛÔ\œ˜^QšY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK˜[YK“˜[YJB‚BBBYšY[ÈH\[™
+šY[ËšY[[ž^Â‚BBBB[˜[YNˆ\ÝÝXÝšY[˜[YJ˜[YKšY[[™^˜[YR[™^
+K‚BBBBYÛÓ˜[YNˆ˜[YK“˜[YK‚BBBBZ\Ñ[X™YYˆ˜[ÙK‚BBBBZ\ÔÛXÙNˆ\ÔÛXÙK‚BBBBZ\ÓX\ˆ\ÓX\‚BBBBZ\Ò[\™˜XÙNˆ\Ò[\™˜XÙK‚BBBBZ\Ñ\œ›ÜŽˆ\Ñ\œ›Ü‹‚BBBBZ\Ñ[˜Ý[ÛŽˆ\Ñ[˜Ý[Û‹‚BBBBY[˜ÔÛXÙNˆ[˜ÔÛXÙK‚BBBBX[žTÛXÙNˆ[žTÛXÙK‚BBBBZ\Õ˜Z]ˆ\Õ˜Z]‚BBBB[X\Ü\]YNˆX\Ü\]YK‚BBBB[™\ÝYÛXÙNˆ™\ÝYÛXÙK‚BBBB[™\ÝYÛXÙUÜ˜\Yˆ™\ÝYÛXÙUÜ˜\Y‚BBBB[™\ÝYÚ[\”ÛXÙNˆ™\ÝYÚ[\”ÛXÙK‚BBBB[™\ÝYÚ[\”ÛXÙUÜ˜\Yˆ™\ÝYÚ[\”ÛXÙUÜ˜\Y‚BBBB\”ÛXÙNˆ”ÛXÙK‚BBBB\•ÔÛXÙNˆ•ÔÛXÙK‚BBBB\•Ô”ÛXÙNˆ•Ô”ÛXÙK‚BBBBZ\ÔÚ[\Žˆ\ÔÚ[\ˆÞ[˜Ð]ÛZXÔÚ[\‘\Ü^QšY[
+ÝXÝ˜[YKšY[˜[YJK‚BBBBYÛÔŽˆÛÔ‘šY[‚BBBBYÛÔ”ÛXÙNˆÛÔ”ÛXÙQšY[‚BBBBYÛÔ\œ˜^NˆÛÔ\œ˜^QšY[‚BBBBZ[\™˜XÙTÛXÙNˆ[\™˜XÙTÛXÙK‚BBBB^™\›Ó[\œ˜^Nˆ™\›Ó[\œ˜^K‚BBB_JB‚BB_B‚B_H[ÙHÂ‚BBKËÈ[X™YYšY[‚BB]\S˜[YHHÙ][X™YYšY[˜[YJšY[•\JB‚BBWËÛÔ‘šY[HÛXÙQ[[T‘šY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK\S˜[YJB‚BBWËÛÔ”ÛXÙQšY[HÛXÙQ[[T”ÛXÙQšY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK\S˜[YJB‚BBWËÛÔ\œ˜^QšY[HÛÔ\œ˜^QšY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK\S˜[YJB‚BBYšY[ÈH\[™
+šY[ËšY[[ž^Â‚BBB[˜[YNˆ\S˜[YK‚BBBYÛÓ˜[YNˆ\S˜[YK‚BBBZ\Ñ[X™YYˆYK‚BBBZ\ÔÛXÙNˆ\ÔÛXÙK‚BBBZ\ÓX\ˆ\ÓX\‚BBBZ\Ò[\™˜XÙNˆ\Ò[\™˜XÙK‚BBBZ\Ñ[˜Ý[ÛŽˆ\Ñ[˜Ý[Û‹‚BBBY[˜ÔÛXÙNˆ[˜ÔÛXÙK‚BBBX[žTÛXÙNˆ[žTÛXÙK‚BBBZ\Õ˜Z]ˆ\Õ˜Z]‚BBB[X\Ü\]YNˆX\Ü\]YK‚BBB[™\ÝYÛXÙNˆ™\ÝYÛXÙK‚BBB[™\ÝYÛXÙUÜ˜\Yˆ™\ÝYÛXÙUÜ˜\Y‚BBB[™\ÝYÚ[\”ÛXÙNˆ™\ÝYÚ[\”ÛXÙK‚BBB[™\ÝYÚ[\”ÛXÙUÜ˜\Yˆ™\ÝYÚ[\”ÛXÙUÜ˜\Y‚BBB\”ÛXÙNˆ”ÛXÙK‚BBB\•ÔÛXÙNˆ•ÔÛXÙK‚BBB\•Ô”ÛXÙNˆ•Ô”ÛXÙK‚BBBZ\ÔÚ[\Žˆ\ÔÚ[\‹‚BBBYÛÔŽˆÛÔ‘šY[‚BBBYÛÔ”ÛXÙNˆÛÔ”ÛXÙQšY[‚BBBYÛÔ\œ˜^NˆÛÔ\œ˜^QšY[‚BBBZ[\™˜XÙTÛXÙNˆ[\™˜XÙTÛXÙK‚BBB^™\›Ó[\œ˜^Nˆ™\›Ó[\œ˜^K‚BB_JB‚B_B‚_B‚‚]Üš]Q\Ü^QšY[˜[YHH[˜ÊˆšY[[žJHÂ‚BZYˆ‹š\Ò[\™˜XÙHÂ‚BBKËÈHš[[\™˜XÙHšY[š[È\Èš[‹ˆH™\›È˜[YHÙˆB‚BBKËÈÝXÝ\ÈÛ™KÛÈ\È\ÈHÛÛ[[ÛˆØ\ÙK›ÝHÛÜ›™\‹‚‚BBKËÈH˜[YH[ˆHšY[\È[œÚYHHÝXÝÚ\™HÛÈš[Â‚BBKËÈHÚ[\ˆ\È]ÈY™\ÜËˆ›Ü›X]Ø[žWÛ™\ÝYÛ›ÝÜÈ]‚‚BBS™YY›Ü›X][žS™\ÝY
+
+B‚BB[Ý]•Üš]TÝš[™Ê›X]ÚÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+HÈÛÛYJ×ÝŠHOˆ›Ü›X]Ø[žWÛ™\ÝY
+×Ý‹˜\×Ü™YŠ
+JK›Û™HOˆš[—‹×ÜÝš[™Ê
+HHŠB‚B_H[ÙHYˆ‹š\Ñ\œ›ÜˆÂ‚BBKËÈHØ[YH›Üˆ[ˆ\œ›ÜˆšY[ˆš[[[ÛÛY][™È˜Z[Ë‚‚BB[Ý]•Üš]TÝš[™Ê›X]ÚÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+HÈÛÛYJ×ÝŠHOˆ›Ü›X]JžßW‹×ÝŠK›Û™HOˆš[—‹×ÜÝš[™Ê
+HHŠB‚B_H[ÙHYˆ‹š\Ñ[˜Ý[ÛˆÂ‚BB[Ý]•Üš]TÝš[™Ê—[˜Ï—ˆŠB‚B_H[ÙHYˆ‹™[˜ÔÛXÙHÂ‚BB[Ý]•Üš]TÝš[™ÊžÈ]×ÙÝX\™HÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™ÊŽÈX]Ú×ÙÝX\™˜\×Ü™YŠ
+HÈÛÛYJ×ÝŠHOˆ›Ü›X]J–ÞßWW‹ÝŽš]\ŽŽœ™\X]
+[˜Ï—ŠKZÙJ×Ý‹›[Š
+JK˜ÛÛXÝŽ™XÏÏŠ
+Kš›Ú[ŠˆŠJK›Û™HOˆ–×W‹×ÜÝš[™Ê
+HHHŠB‚B_H[ÙHYˆ‹š\ÓX\	‰ˆ‹›X\Ü\]YHÂ‚BB[Ý]•Üš]TÝš[™Ê—X\—ˆŠB‚B_H[ÙHYˆ‹š\ÓX\Â‚BBS™YY›Ü›X]X\
+
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÛX\
+	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹ž™\›Ó[\œ˜^HÂ‚BB[Ý]•Üš]TÝš[™Ê—–×WˆŠB‚B_H[ÙHYˆ‹›™\ÝYÛXÙUÜ˜\YÂ‚BBS™YY›Ü›X]™\ÝYÛXÙUÜ˜\Y
+
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]Û™\ÝYÜÛXÙWÝÜ˜\Y
+	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹›™\ÝYÚ[\”ÛXÙHÂ‚BBS™YY›Ü›X]™\ÝYÚ[\”ÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]Û™\ÝYÜÚ[\—ÜÛXÙJ	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹›™\ÝYÚ[\”ÛXÙUÜ˜\YÂ‚BBS™YY›Ü›X]™\ÝYÚ[\”ÛXÙUÜ˜\Y
+
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]Û™\ÝYÜÚ[\—ÜÛXÙWÝÜ˜\Y
+	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹›™\ÝYÛXÙHÂ‚BBS™YY›Ü›X]™\ÝYÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]Û™\ÝYÜÛXÙJ	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹™ÛÔˆÂ‚BB[Ý]•Üš]TÝš[™ÊžÈYˆÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™Ê‹š\×Ûš[
+
+HÈš[—‹×ÜÝš[™Ê
+HH[ÙHÈ—‹×ÜÝš[™Ê
+HHHŠB‚B_H[ÙHYˆ‹™ÛÔ”ÛXÙH‹™ÛÔ\œ˜^HÂ‚BB[Ý]•Üš]TÝš[™ÊžÈ]×ÙÝX\™HÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™ÊŽÈX]Ú×ÙÝX\™˜\×Ü™YŠ
+HÈÛÛYJ×ÝŠHOˆ›Ü›X]J–ÞßWW‹×Ý‹š]\Š
+K›X\
+×ÜYˆ×Üš\×Ûš[
+
+HÈš[—‹×ÜÝš[™Ê
+HH[ÙHÈ—‹×ÜÝš[™Ê
+HJK˜ÛÛXÝŽ™XÏÏŠ
+Kš›Ú[ŠˆŠJK›Û™HOˆ–×W‹×ÜÝš[™Ê
+HHHŠB‚B_H[ÙHYˆ‹œ•Ô”ÛXÙHÂ‚BBS™YY›Ü›X]ÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÜÛXÙWÝÜ˜\Y
+	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹œ•ÔÛXÙHÂ‚BBS™YY›Ü›X]ÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÜÛXÙJ	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹œ”ÛXÙHÂ‚BBS™YY›Ü›X]ÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÜÛXÙWÝÜ˜\Y
+	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹˜[žTÛXÙHÂ‚BBS™YY›Ü›X][žTÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]Ø[žWÜÛXÙJ	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹š[\™˜XÙTÛXÙHÂ‚BBS™YY›Ü›X]ÛXÙUÜ˜\YÝš[™Ù\Š
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÜÛXÙWÝÜ˜\YÜÝš[™Ù\Š	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆ‹š\ÔÚ[\ˆÂ‚BB[Ý]•Üš]TÝš[™ÊžÈ]×ÙÝX\™HÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™ÊŽÈX]Ú×ÙÝX\™˜\×Ü™YŠ
+HÈÛÛYJ×ÝŠHOˆ›Ü›X]JžÎœW‹×Ýˆ\È
+˜ÛÛœÝÊK›Û™HOˆš[—‹×ÜÝš[™Ê
+HHHŠB‚B_H[ÙHYˆ‹š\ÔÛXÙHÂ‚BBS™YY›Ü›X]ÛXÙJ
+B‚BB[Ý]•Üš]TÝš[™Ê™›Ü›X]ÜÛXÙJ	œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™ÊŠ
+œÙ[‹ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ‹›˜[YJJB‚BBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JHŠB‚B_B‚_B‚‚KËÈ	JÝˆ\ÈÜš][ˆ\ÈÎˆßNˆH[\›˜]H›YÈ\ÚÜÈ›ÜˆHšY[˜[Y\Ë‚KËÈ[™HÝXÝ˜[YH[ˆHšY[\ÜÙ\È]Û‹‚‚\\ÕˆHXÚØYÙQ›Ü›X]ÕÚ]\ÕŠ
+H	‰ˆ[ŠšY[ÊHˆ‚\Z[‘šY[H[˜ÊˆšY[[žJH›ÛÛÂ‚B\™]\›ˆY‹š\Ò[\™˜XÙH	‰ˆY‹š\Ñ\œ›Üˆ	‰ˆY‹š\Ñ[˜Ý[Ûˆ	‰ˆY‹™[˜ÔÛXÙH	‰ˆY‹š\ÓX\	‰ˆY‹ž™\›Ó[\œ˜^H	‰‚‚BBHY‹›™\ÝYÛXÙUÜ˜\Y	‰ˆY‹›™\ÝYÚ[\”ÛXÙH	‰ˆY‹›™\ÝYÚ[\”ÛXÙUÜ˜\Y	‰ˆY‹›™\ÝYÛXÙH	‰‚‚BBHY‹™ÛÔˆ	‰ˆY‹™ÛÔ”ÛXÙH	‰ˆY‹™ÛÔ\œ˜^H	‰ˆY‹œ•Ô”ÛXÙH	‰ˆY‹œ•ÔÛXÙH	‰ˆY‹œ”ÛXÙH	‰‚‚BBHY‹˜[žTÛXÙH	‰ˆY‹š[\™˜XÙTÛXÙH	‰ˆY‹š\ÔÚ[\ˆ	‰ˆY‹š\ÔÛXÙB‚_B‚ZYˆ\ÕˆÂ‚B[Ý]•Üš]TÝš[™Êˆ]×ÙÛ×Ü\ÈH‹˜[\›˜]J
+N×ˆŠB‚_B‚Y›ÜˆKˆH˜[™ÙHšY[ÈÂ‚B[Ý]•Üš]TÝš[™Êˆ]×ÙÛ×Ù›]ÈŠB‚B[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹JJB‚BZYˆ\Õˆ	‰ˆZ[‘šY[
+ŠHÂ‚BB[Ý]•Üš]TÝš[™ÊˆHYˆ×ÙÛ×Ü\ÈÈ›Ü›X]JžÎˆßW‹ŠB‚BB]Üš]Q\Ü^QšY[˜[YJŠB‚BB[Ý]•Üš]TÝš[™ÊŠHH[ÙHÈ›Ü›X]JžßW‹ŠB‚BB]Üš]Q\Ü^QšY[˜[YJŠB‚BB[Ý]•Üš]TÝš[™ÊŠHN×ˆŠB‚BBXÛÛ[YB‚B_B‚B[Ý]•Üš]TÝš[™ÊˆH›Ü›X]JžßW‹ŠB‚B]Üš]Q\Ü^QšY[˜[YJŠB‚B[Ý]•Üš]TÝš[™ÊŠN×ˆŠB‚_B‚‚ZYˆ\ÕˆÂ‚B[Ý]•Üš]TÝš[™ÊˆYˆ×ÙÛ×Ü\È×ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ™]\›ˆÜš]HJ‹žÞÈŠB‚BY›ÜˆKˆH˜[™ÙHšY[ÈÂ‚BBZYˆHˆÂ‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BB_B‚BB[Ý]•Üš]TÝš[™Ê‹™ÛÓ˜[YJB‚BB[Ý]•Üš]TÝš[™ÊŽžßHŠB‚B_B‚B[Ý]•Üš]TÝš[™ÊŸ_WˆŠB‚BY›ÜˆHH˜[™ÙHšY[ÈÂ‚BB[Ý]•Üš]TÝš[™Ê‹×ÙÛ×Ù›]ÈŠB‚BB[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹JJB‚B_B‚B[Ý]•Üš]TÝš[™ÊŠN×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚_B‚]Üš]TÝXÝ\Ü^UÜš]PØ[
+Ý][ŠšY[ÊJB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚˜\ˆXÚØYÙQ›Ü›X]ÕÚ]\ÕØXÚHHX\Ê\\Ë’[™›×X›ÛÛßB‚‹ËÈXÚØYÙQ›Ü›X]ÕÚ]\Õˆ™\ÜÈÚ]\ˆHÝš[™ÈÛÛœÝ[ÙˆHXÚØYÙB‹ËÈÛÈH	JÝˆ™\˜‹ˆÛ›H[ˆÈÝXÝ\Ü^H[\ÈX\›ˆHšY[[˜[YB‹ËÈ›Ü›KÛÈ›ÙÜ˜[\È]™]™\ˆ\ÚÈ›Üˆ]Ù]H[\È^HY‚™[˜ÈXÚØYÙQ›Ü›X]ÕÚ]\ÕŠ
+H›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\Ù\ËÚÈHXÚØYÙQ›Ü›X]ÕÚ]\ÕØXÚVÝ\R[™›Ëš[™›×NÈÚÈÂ‚B\™]\›ˆ\Ù\Â‚_B‚]\Ù\ÈH˜[ÙB‚Y›ÜˆËˆH˜[™ÙH\R[™›Ëš[™›Ë•\\ÈÂ‚BZYˆ‹•˜[YHOHš[‹•˜[YK’Ú[™
+
+HOHÛÛœÝ[”Ýš[™ÈÂ‚BBXÛÛ[YB‚B_B‚BZYˆ›Ü›X]\Ô\ÕŠÛÛœÝ[”Ýš[™Õ˜[
+‹•˜[YJJHÂ‚BB]\Ù\ÈHYB‚BBXœ™XZÂ‚B_B‚_B‚\XÚØYÙQ›Ü›X]ÕÚ]\ÕØXÚVÝ\R[™›Ëš[™›×HH\Ù\Â‚\™]\›ˆ\Ù\ÂŸB‚™[˜È›Ü›X]\Ô\ÕŠ›Ü›X]Ýš[™ÊH›ÛÛÂ‚Y›ÜˆHHÈH[Š›Ü›X]
+NÈJÊÈÂ‚BZYˆ›Ü›X]ÚWHOH	ÉIÈÂ‚BBXÛÛ[YB‚B_B‚B\\ÈH˜[ÙB‚BZˆHH
+ÈB‚BY›Üˆˆ[Š›Ü›X]
+H	‰ˆÝš[™ÜË’[™^ž]JŠËHÈLŒÍMÎKŠˆ‹›Ü›X]Ú—JHHÂ‚BBZYˆ›Ü›X]Ú—HOH	ÊÉÈÂ‚BBB\\ÈHYB‚BB_B‚BBZŠÊÂ‚B_B‚BZYˆˆ[Š›Ü›X]
+H	‰ˆ›Ü›X]Ú—HOH	Ý‰È	‰ˆ\ÈÂ‚BB\™]\›ˆYB‚B_B‚BZYˆˆ[Š›Ü›X]
+H	‰ˆ›Ü›X]Ú—HOH	ÉIÈÂ‚BBZHH‚‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚‹ËÈÝXÝ\Ü^QšY[\Ñ\œ›Üˆ™\ÜÈÚ]\ˆHÝXÝšY[	ÜÈXÛ\™Y\H\Â‹ËÈH™YXÛ\™Y\œ›Üˆ[\™˜XÙKÜˆ[ˆ[X\ÈÙˆ]ˆ]\ÚÜÈÛËÝ\\È[™‹ËÈ›Ý[™È[ÙNˆHÜ[[™ÈÙˆH\HØ^\È›Ý[™È™[XX›K™XØ]\ÙHB‹ËÈXÚØYÙHØ[ˆXÛ\™H]ÈÝÛˆ\H˜[YY\œ›Ü‹ˆÚ]Ý]\H[™›Ü›X][ÛˆB‹ËÈ[œÝÙ\ˆ\È›Ë[™HšY[ÙY\ÈH›Ü›X][™È]Y™Y›Ü™K‚™[˜ÈÝXÝ\Ü^QšY[\Ñ\œ›ÜŠ^ˆ\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\Ñ\œ›Ü’[\™˜XÙU\J\R[™›Ë‘Ù]\J^ŠJBŸB‚™[˜ÈÜš]TÝXÝ\Ü^UÜš]PØ[
+Ý]
+œÝš[™ÜËZ[\‹šY[ÛÝ[[
+HÂ‚ZYˆšY[ÛÝ[Z[”ÝXÝ\Ü^S][[[™UÜš]QšY[ÈÂ‚B[Ý]•Üš]TÝš[™ÊˆÜš]HJ‹žÞÈŠB‚B]Üš]TÝXÝ\Ü^Q›Ü›X]XÙZÛ\œÊÝ]šY[ÛÝ[
+B‚B[Ý]•Üš]TÝš[™ÊŸ_WˆŠB‚BY›ÜˆHHÈHšY[ÛÝ[ÈJÊÈÂ‚BB[Ý]•Üš]TÝš[™Ê‹×ÙÛ×Ù›]ÈŠB‚BB[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹JJB‚B_B‚B[Ý]•Üš]TÝš[™ÊŠWˆŠB‚B\™]\›‚‚_B‚‚[Ý]•Üš]TÝš[™ÊˆÜš]HJˆŠB‚[Ý]•Üš]TÝš[™Êˆ‹ˆŠB‚[Ý]•Üš]TÝš[™ÊˆžÞÈŠB‚]Üš]TÝXÝ\Ü^Q›Ü›X]XÙZÛ\œÊÝ]šY[ÛÝ[
+B‚[Ý]•Üš]TÝš[™ÊŸ_WˆŠB‚Y›ÜˆHHÈHšY[ÛÝ[ÈJÊÈÂ‚B[Ý]•Üš]TÝš[™Ê‹ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ×ÙÛ×Ù›]ÈŠB‚B[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹JJB‚_B‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚[Ý]•Üš]TÝš[™Êˆ
+WˆŠBŸB‚™[˜ÈÜš]TÝXÝ\Ü^Q›Ü›X]XÙZÛ\œÊÝ]
+œÝš[™ÜËZ[\‹šY[ÛÝ[[
+HÂ‚Y›ÜˆHHÈHšY[ÛÝ[ÈJÊÈÂ‚BZYˆHˆÂ‚BB[Ý]•Üš]TÝš[™ÊˆŠB‚B_B‚B[Ý]•Üš]TÝš[™ÊžßHŠB‚_BŸB‚™[˜ÈÝXÝ\Ü^QšY[\Ö™\›Ó[\œ˜^J^ˆ\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\J^ŠB‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚X\œ˜^KÚÈH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\Ë\œ˜^JB‚\™]\›ˆÚÈ	‰ˆ\œ˜^K“[Š
+HOHŸB‚™[˜ÈÙ[™\˜]TÝXÝXYÊÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËœÝŽ™›]Ž‘XYÈ‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆ›]
+	œÙ[‹Žˆ	›]]ÝŽ™›]Ž‘›Ü›X]\ŠHOˆÝŽ™›]Ž”™\Ý[×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÜš]HJ‹žßW‹Ù[ŠWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝ\Ü^U\R[™›Ô™\]Z\™Y
+Ý]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚U˜XÚÒ[\Ü
+‘\Ü^HŠB‚U˜XÚÒ[\Ü
+‘›Ü›X]\ˆŠB‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËœÝŽ™›]Ž‘\Ü^H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆ›]
+	œÙ[‹ÙŽˆ	›]]ÝŽ™›]Ž‘›Ü›X]\ŠHOˆÝŽ™›]Ž”™\Ý[×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ[š[\[Y[YJ\H[™›È™\]Z\™Y›ÜˆÙ[™\šXÈÝXÝ\Ü^H›Ý[™×ŠWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜È\œ˜^QšY[ÛÛZ[œÔÛXÙJ^ˆ\Ý‘^ŠH›ÛÛÂ‚X\œ˜^U\KÚÈH^‹Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH\œ˜^U\K‘[Š
+˜\Ý\œ˜^U\JB‚\™]\›ˆÚÂŸB‚™[˜È\œ˜^QšY[ÛÛZ[œÔÚ[\Š^ˆ\Ý‘^ŠH›ÛÛÂ‚X\œ˜^U\KÚÈH^‹Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH\œ˜^U\K‘[Š
+˜\Ý”Ý\‘^ŠB‚\™]\›ˆÚÂŸB‚™[˜ÈÚ[\‘šY[ÛÛZ[œÔÛXÙJ^ˆ\Ý‘^ŠH›ÛÛÂ‚WËÚÈHÚ[\‘šY[ÛXÙQ[[J^ŠB‚\™]\›ˆÚÂŸB‚™[˜ÈÚ[\‘šY[ÛÛZ[œÔÚ[\”ÛXÙJ^ˆ\Ý‘^ŠH›ÛÛÂ‚Y[[KÚÈHÚ[\‘šY[ÛXÙQ[[J^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH[[KŠ
+˜\Ý”Ý\‘^ŠB‚\™]\›ˆÚÂŸB‚™[˜ÈÚ[\‘šY[ÛXÙQ[[J^ˆ\Ý‘^ŠH
+\Ý‘^‹›ÛÛ
+HÂ‚\Ý\‹ÚÈH^‹Š
+˜\Ý”Ý\‘^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆš[˜[ÙB‚_B‚X\œ˜^U\KÚÈHÝ\‹–Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆš[˜[ÙB‚_B‚\™]\›ˆ\œ˜^U\K‘[YBŸB‚™[˜ÈÝXÝ\Ü^QšY[\ÔÚ[\Š^ˆ\Ý‘^ŠH›ÛÛÂ‚]\ÚÈH\R[™›Õ\Q›Ü•\Q^Š^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\Ë”Ú[\ŠB‚\™]\›ˆÚÂŸB‚™[˜È\TÜXÒ\ÔÞ[˜Ð]ÛZXÔÚ[\Š\TÜXÈ
+˜\Ý•\TÜXÊH›ÛÛÂ‚ZYˆ\TÜXÈOHš[\TÜXË“˜[YHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+\TÜXË“˜[YJKŠ
+\\Ë•\S˜[YJB‚\™]\›ˆÚÈ	‰ˆØš‹”ÙÊ
+HOHš[	‰ˆØš‹”ÙÊ
+K”]
+
+HOHœÞ[˜ËØ]ÛZXÈˆ	‰ˆØš‹“˜[YJ
+HOH”Ú[\ˆ‚ŸB‚™[˜ÈÝ\œ™[XÚØYÙR\ÔÞ[˜Ð]ÛZXÊ
+H›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚\™]\›ˆ\R[™›ÈOHš[	‰ˆ\R[™›ËœÙÈOHš[	‰ˆ\R[™›ËœÙË”]
+
+HOHœÞ[˜ËØ]ÛZXÈ‚ŸB‚™[˜ÈšY[\R\Õ[œØY™TÚ[\ŠšY[
+˜\Ý‘šY[
+H›ÛÛÂ‚ZYˆšY[OHš[šY[•\HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\ÚÈH\R[™›Õ\Q›Ü•\Q^ŠšY[•\JB‚\™]\›ˆÚÈ	‰ˆ\Õ[œØY™TÚ[\“ZÙU\J\
+BŸB‚™[˜ÈÞ[˜Ð]ÛZXÔÚ[\”ÝÜ˜YÙQšY[
+\TÜXÈ
+˜\Ý•\TÜXËšY[
+˜\Ý‘šY[˜[YH
+˜\Ý’Y[
+H›ÛÛÂ‚\™]\›ˆ\TÜXÒ\ÔÞ[˜Ð]ÛZXÔÚ[\Š\TÜXÊH	‰‚‚BYšY[OHš[	‰‚‚B[˜[YHOHš[	‰‚‚B[˜[YK“˜[YHOHˆˆ	‰‚‚BYšY[\R\Õ[œØY™TÚ[\ŠšY[
+BŸB‚™[˜ÈÞ[˜Ð]ÛZXÔÚ[\‘\Ü^QšY[
+ÝXÝ˜[YHÝš[™ËšY[
+˜\Ý‘šY[˜[YH
+˜\Ý’Y[
+H›ÛÛÂ‚\™]\›ˆÝ\œ™[XÚØYÙR\ÔÞ[˜Ð]ÛZXÊ
+H	‰‚‚B\ÝXÝ˜[YHOH”Ú[\ˆˆ	‰‚‚BYšY[OHš[	‰‚‚B[˜[YHOHš[	‰‚‚B[˜[YK“˜[YHOHˆˆ	‰‚‚BYšY[\R\Õ[œØY™TÚ[\ŠšY[
+BŸB‚™[˜ÈÞ[˜Ð]ÛZXÔÚ[\”ÝÜ˜YÙT\Ý\J\TÜXÈ
+˜\Ý•\TÜXÊHÝš[™ÈÂ‚]˜XÚÕÜ˜\\’[\ÜÊ
+B‚S™YYÛXÙQ[[TŠ
+B‚]\T\˜[HH•‚‚ZYˆ\TÜXÈOHš[	‰ˆ\TÜXË•\T\˜[\ÈOHš[	‰ˆ[Š\TÜXË•\T\˜[\Ë“\Ý
+HˆÂ‚BY›ÜˆË˜[YHH˜[™ÙH\TÜXË•\T\˜[\Ë“\ÝÌK“˜[Y\ÈÂ‚BBZYˆ˜[YHOHš[	‰ˆ˜[YK“˜[YHOHˆˆÂ‚BBB]\T\˜[HH\Ý\S˜[YQ›Ü•\ÙJ˜[YK“˜[YJB‚BBBXœ™XZÂ‚BB_B‚B_B‚_B‚[Ý]\•Ü˜\\ˆHÙ]Ý]\•Ü˜\\•\J
+B‚Z[›™\•Ü˜\\ˆHÙ][›™\•Ü˜\\•\J
+B‚\™]\›ˆÝ]\•Ü˜\\ˆ
+Èˆ
+È[›™\•Ü˜\\ˆ
+ÈÜ[ÛÛÔˆ
+È\T\˜[H
+Èˆ‚ŸB‚‹ËÈ\œ˜^QšY[™\ÝY[›™\’\ÔÚ[\ˆ™\ÜÈÚ]\ˆ^ˆ\ÈH™\ÝYÛXÙH
+×V×V
+B‹ËÈÚÜÙH[›™\›[ÜÝ[[Y[\ÈHÚ[\ˆ
+K™Ëˆ×V×J•
+KˆÝXÚšY[ÈÝÜ™HB‹ËÈ[›™\›[ÜÝ[[Y[\ÈHÜ˜\Y\˜ËÔ˜È[™KÚXÚ›Ü›X]Û™\ÝYÜÛXÙHØ[››Ý‹ËÈ\Ü^H\™XÝH8 %›Ü›X]Û™\ÝYÜÛXÙWÝÜ˜\Y[Ü˜\ÈH[™K‚™[˜È\œ˜^QšY[™\ÝY[›™\’\ÔÚ[\Š^ˆ\Ý‘^ŠH›ÛÛÂ‚[Ý]\‹ÚÈH^‹Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Z[›™\‹ÚÈHÝ]\‹‘[Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Y[H[›™\‹‘[‚Y›ÜˆÂ‚B[™^ÚÈH[Š
+˜\Ý\œ˜^U\JB‚BZYˆ[ÚÈÂ‚BBXœ™XZÂ‚B_B‚BY[H™^‘[‚_B‚WË\ÔˆH[Š
+˜\Ý”Ý\‘^ŠB‚\™]\›ˆ\Ô‚ŸB‚™[˜È\œ˜^QšY[™\ÝYÚ[\’[›™\’\ÔÚ[\Š^ˆ\Ý‘^ŠH›ÛÛÂ‚]\ÚÈH\R[™›Õ\Q›Ü•\Q^Š^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]\‹ÚÈHÙ\]Y[˜ÙU\J\
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\‹ÚÈH\\Ë•[˜[X\ÊÝ]\‹‘[[J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë”Ú[\ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Z[›™\‹ÚÈHÙ\]Y[˜ÙU\J‹‘[[J
+JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH\\Ë•[˜[X\Ê[›™\‹‘[[J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë”Ú[\ŠB‚\™]\›ˆÚÂŸB‚™[˜È\œ˜^QšY[™\ÝYÚ[\’[›™\’\Õ˜[YJ^ˆ\Ý‘^ŠH›ÛÛÂ‚]\ÚÈH\R[™›Õ\Q›Ü•\Q^Š^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]\‹ÚÈHÙ\]Y[˜ÙU\J\
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\‹ÚÈH\\Ë•[˜[X\ÊÝ]\‹‘[[J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë”Ú[\ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Z[›™\‹ÚÈHÙ\]Y[˜ÙU\J‹‘[[J
+JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WË[›™\’\ÔÚ[\ˆH\\Ë•[˜[X\Ê[›™\‹‘[[J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë”Ú[\ŠB‚\™]\›ˆZ[›™\’\ÔÚ[\‚ŸB‚\HÛÔÙ\]Y[˜ÙU\H[\™˜XÙHÂ‚Q[[J
+H\\Ë•\BŸB‚™[˜ÈÙ\]Y[˜ÙU\J\\\Ë•\JH
+ÛÔÙ\]Y[˜ÙU\K›ÛÛ
+HÂ‚\ÝÚ]ÚÙ\HH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë\œ˜^N‚‚B\™]\›ˆÙ\KYB‚XØ\ÙH
+\\Ë”ÛXÙN‚‚B\™]\›ˆÙ\KYB‚YY˜][‚‚B\™]\›ˆš[˜[ÙB‚_BŸB‚™[˜È\œ˜^QšY[ÛÛZ[œÑ[˜Ý[ÛŠ^ˆ\Ý‘^ŠH›ÛÛÂ‚X\œ˜^U\KÚÈH^‹Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^Š\œ˜^U\K‘[
+BŸB‚™[˜ÈÛXÙQšY[ÛÛZ[œÑ[\R[\™˜XÙJ^ˆ\Ý‘^ŠH›ÛÛÂ‚]\ÚÈH\R[™›Õ\Q›Ü•\Q^Š^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÛXÙKÚÈH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\Ë”ÛXÙJB‚\™]\›ˆÚÈ	‰ˆ\Ñ[\R[\™˜XÙU\JÛXÙK‘[[J
+JBŸB‚™[˜È\œ˜^QšY[ÛÛZ[œÓØØ[[\™˜XÙJ^ˆ\Ý‘^ŠH›ÛÛÂ‚X\œ˜^U\KÚÈH^‹Š
+˜\Ý\œ˜^U\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH˜[œÜ[Y˜[YY[\™˜XÙU\S˜[YQœ›ÛQ^Š\œ˜^U\K‘[
+B‚\™]\›ˆÚÂŸB‚™[˜ÈÝXÝ\Õ˜Z]šY[
+ÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚Y›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆ\R\Õ˜Z]šY[
+šY[•\JHÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÝXÝØ[‘\š]™QXYÊÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚\™]\›ˆÝXÝØ[‘\š]™QXYÔÙY[ŠÝXÝ\KXZÙJX\ÜÝš[™×X›ÛÛ
+JBŸB‚™[˜ÈÝXÝØ[‘\š]™QXYÔÙY[ŠÝXÝ\H
+˜\Ý”ÝXÝ\KÙY[ˆX\ÜÝš[™×X›ÛÛ
+H›ÛÛÂ‚Y›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆ]\PØ[‘\š]™QXYÊšY[•\KÙY[ŠHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚_B‚\™]\›ˆYBŸB‚™[˜ÈÝXÝ™YYÐÝ\ÝÛQY˜][
+ÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚Y›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆÝXÝšY[™YYÐÝ\ÝÛQY˜][
+šY[•\JHÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÝXÝšY[™YYÐÝ\ÝÛQY˜][
+^ˆ\Ý‘^ŠH›ÛÛÂ‚ZYˆ^ˆOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\ÔÞ[˜Ô\˜[J^ŠHÂ‚B\™]\›ˆYB‚_B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BZYˆ\H\R[™›Ë‘Ù]\J^ŠNÈ\OHš[Â‚BBZYˆË\ÐÚ[ˆH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\ËÚ[ŠNÈ\ÐÚ[ˆÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆ\ÝXÝšY[\Óš[™\›Ê\
+B‚B_B‚_B‚\ÝÚ]ÚH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý”ÝXÝ\N‚‚B\™]\›ˆYB‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆË\ÔÝXÝHÝXÝYœÖÝ“˜[YWNÈ\ÔÝXÝÂ‚BB\™]\›ˆYB‚B_B‚B\ÝÚ]Ú“˜[YHÂ‚BXØ\ÙHœÝš[™È‹˜›ÛÛ‹š[‹š[‹š[Mˆ‹š[Ìˆ‹š[‹œ[™H‹‚BBHZ[‹Z[‹Z[Mˆ‹Z[Ìˆ‹Z[‹Z[ˆ‹˜ž]H‹‚BBH™›Ø]Ìˆ‹™›Ø]Ž‚‚BB\™]\›ˆYB‚BYY˜][‚‚BB\™]\›ˆ˜[ÙB‚B_B‚XØ\ÙH
+˜\Ý\œ˜^U\N‚‚B\™]\›ˆ“[ˆOHš[‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚BZYˆY[ÚÈH–Š
+˜\Ý’Y[
+NÈÚÈÂ‚BB\™]\›ˆ
+Y[“˜[YHOHœÝš[™ÜÈˆ	‰ˆ”Ù[“˜[YHOHZ[\ˆŠH‚BBBJY[“˜[YHOH˜ž]\Èˆ	‰ˆ”Ù[“˜[YHOHY™™\ˆŠB‚B_B‚B\™]\›ˆ˜[ÙB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÝXÝšY[\Óš[™\›Ê\\\Ë•\JH›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆËË\Ó˜[YYX\H˜[YYX\\Qœ›ÛU\J\
+NÈ\Ó˜[YYX\Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ˜[YYÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë“˜[YY
+NÈÚÈÂ‚BZYˆË\ÔÛXÙHH\\Ë•[˜[X\Ê˜[YY•[™\›Z[™Ê
+JKŠ
+\\Ë”ÛXÙJNÈ\ÔÛXÙHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚_B‚\ÝÚ]Ú\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë’[\™˜XÙK
+\\Ë”Ú[\‹
+\\Ë”ÚYÛ˜]\™K
+\\Ë”ÛXÙK
+\\Ë“X\
+\\ËÚ[Ž‚‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÜš]UÜ˜\Y˜[YYX\™\›Õ˜[YJÝ]
+œÝš[™ÜËZ[\‹\\\Ë•\JH›ÛÛÂ‚[˜[YYËÚÈH˜[YYX\\Qœ›ÛU\J\
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚UÜš]UÜ˜\\”™Yš^
+Ý]
+B‚[Ý]•Üš]TÝš[™ÊÛÕ\\Ó˜[YY\UÔ\Ý
+˜[YY
+JB‚[Ý]•Üš]TÝš[™ÊŽŽ™Y˜][
+
+HŠB‚UÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚\™]\›ˆYBŸB‚™[˜È˜[YY\R\ÑÛÔÝš[™ÓY]Ù
+\S˜[YHÝš[™ÊH›ÛÛÂ‚ZYˆ\ÔÝš[™Ù\’[\\J\S˜[YJHÂ‚B\™]\›ˆYB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›ËœÙÈOHš[\R[™›ËœÙË”ØÛÜJ
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›ËœÙË”ØÛÜJ
+K“ÛÚÝ\
+\S˜[YJKŠ
+\\Ë•\S˜[YJB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\R\ÑÛÔÝš[™ÓY]Ù
+Øš‹•\J
+JH\R\ÑÛÔÝš[™ÓY]Ù
+\\Ë“™]ÔÚ[\ŠØš‹•\J
+JJBŸB‚™[˜È˜[YY\QÛÔÝš[™ÓY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š\S˜[YHÝš[™ÊH›ÛÛÂ‚Y›ÜˆË›ˆH˜[™ÙHY]ÙÑ›Ü”™XÙZ]™\•\J\S˜[YJHÂ‚BZYˆ›ˆOHš[	‰ˆ›‹“˜[YHOHš[	‰ˆ›‹“˜[YK“˜[YHOH”Ýš[™ÈˆÂ‚BB\™]\›ˆY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š›ŠB‚B_B‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›ËœÙÈOHš[\R[™›ËœÙË”ØÛÜJ
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›ËœÙË”ØÛÜJ
+K“ÛÚÝ\
+\S˜[YJKŠ
+\\Ë•\S˜[YJB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Y›ÜˆË\H˜[™ÙH×]\\Ë•\^ÛØš‹•\J
+K\\Ë“™]ÔÚ[\ŠØš‹•\J
+J_HÂ‚B[Y]ÙÙ]H\\Ë“™]ÓY]ÙÙ]
+\
+B‚B\Ù[XÝ[ÛˆHY]ÙÙ]“ÛÚÝ\
+š[”Ýš[™ÈŠB‚BZYˆÙ[XÝ[ÛˆOHš[Â‚BBXÛÛ[YB‚B_B‚BY›‹ÚÈHÙ[XÝ[Û‹“ØšŠ
+KŠ
+\\Ë‘[˜ÊB‚BZYˆ[ÚÈÂ‚BBXÛÛ[YB‚B_B‚BZÙ^HHY]ÙÝ™\œšYRÙ^J›ŠB‚BZYˆÙ^HOHˆˆÂ‚BBXÛÛ[YB‚B_B‚BZYˆ]]X›KÚÈH\R[™›Ë›Y]Ù]]X›T™XÙZ]™\“X\ÚÙ^WNÈÚÈÂ‚BB\™]\›ˆ]]X›B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÜš]TÝš[™Ù\‘\Ü^P›ÙJÝ]
+œÝš[™ÜËZ[\‹\S˜[YHÝš[™Ë[™[Ýš[™ÊHÂ‚ZYˆ˜[YY\QÛÔÝš[™ÓY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š\S˜[YJHÂ‚B[Ý]•Üš]TÝš[™Ê[™[
+B‚B[Ý]•Üš]TÝš[™Ê›]]]×ÜÙ[ˆHÙ[‹˜ÛÛ™J
+N×ˆŠB‚B[Ý]•Üš]TÝš[™Ê[™[
+B‚B[Ý]•Üš]TÝš[™ÊÜš]HJ‹žßW‹
+
+—×ÜÙ[‹œÝš[™Ê
+HŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™Ê[™[
+B‚B[Ý]•Üš]TÝš[™ÊÜš]HJ‹žßW‹
+
+œÙ[‹œÝš[™Ê
+HŠB‚_B‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JJWˆŠBŸB‚™[˜È\R\ÑÛÔÝš[™ÓY]Ù
+\\\Ë•\JH›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Y]ÙÙ]H\\Ë“™]ÓY]ÙÙ]
+\
+B‚\Ù[XÝ[ÛˆHY]ÙÙ]“ÛÚÝ\
+š[”Ýš[™ÈŠB‚ZYˆÙ[XÝ[ÛˆOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\ÚYËÚÈHÙ[XÝ[Û‹“ØšŠ
+K•\J
+KŠ
+\\Ë”ÚYÛ˜]\™JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÚYË”\˜[\Ê
+K“[Š
+HOHÚYË”™\Ý[Ê
+K“[Š
+HOHHÂ‚B\™]\›ˆ˜[ÙB‚_B‚X˜\ÚXËÚÈH\\Ë•[˜[X\ÊÚYË”™\Ý[Ê
+K]
+
+K•\J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë˜\ÚXÊB‚\™]\›ˆÚÈ	‰ˆ˜\ÚXË’Ú[™
+
+HOH\\Ë”Ýš[™ÂŸB‚™[˜È\ÔÚ[\•\J\\\Ë•\JH›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚WËÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë”Ú[\ŠB‚\™]\›ˆÚÂŸB‚™[˜ÈÜš]TÝXÝ\š]™JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\K\š]™PÛÛ™H›ÛÛ
+HÂ‚Z\Õ˜Z]šY[HÝXÝ\Õ˜Z]šY[
+ÝXÝ\JB‚XØ[‘\š]™QXYÈHZ\Õ˜Z]šY[	‰ˆÝXÝØ[‘\š]™QXYÊÝXÝ\JB‚[™YYÐÝ\ÝÛQY˜][HÝXÝ™YYÐÝ\ÝÛQY˜][
+ÝXÝ\JB‚[™YYÔ\X[\HHÝXÝ˜[YHOHˆˆ	‰ˆÛÛ\\˜X›TÝXÝ\\ÖÜÝXÝ˜[YWB‚Y\š]™T\X[\HH™YYÔ\X[\H	‰ˆZ\Õ˜Z]šY[	‰ˆ\ÝXÝ™YYÐÝ\ÝÛT\X[\JÝXÝ˜[YKÝXÝ\JB‚Y\š]™SÜ™H\š]™T\X[\H	‰ˆÝXÝ™YYÓÜ™
+ÝXÝ˜[YJB‚‚]˜\ˆ˜Z]È×\Ýš[™Â‚ZYˆØ[‘\š]™QXYÈÂ‚B]˜Z]ÈH\[™
+˜Z]Ë‘XYÈŠB‚_B‚ZYˆ\š]™PÛÛ™HÂ‚B]˜Z]ÈH\[™
+˜Z]ËÛÛ™HŠB‚_B‚ZYˆ[™YYÐÝ\ÝÛQY˜][Â‚B]˜Z]ÈH\[™
+˜Z]Ë‘Y˜][ŠB‚_B‚ZYˆ\š]™T\X[\HÂ‚B]˜Z]ÈH\[™
+˜Z]Ë”\X[\HŠB‚_B‚ZYˆ\š]™SÜ™Â‚B]˜Z]ÈH\[™
+˜Z]Ë‘\H‹”\X[Ü™‹“Ü™ŠB‚_B‚ZYˆ[Š˜Z]ÊHOHÂ‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊˆÖÙ\š]™JŠB‚[Ý]•Üš]TÝš[™ÊÝš[™ÜË’›Ú[Š˜Z]Ë‹ŠJB‚[Ý]•Üš]TÝš[™ÊŠWWˆŠBŸB‚™[˜ÈÝXÝ™YYÓÜ™
+ÝXÝ˜[YHÝš[™ÊH›ÛÛÂ‚\™]\›ˆÝXÝ˜[YHOHˆˆ	‰ˆÝ\œ™[X\Ù^TÝXÝ\\Ê
+VÜÝXÝ˜[YWBŸB‚™[˜ÈÝ\œ™[X\Ù^TÝXÝ\\Ê
+HX\ÜÝš[™×X›ÛÛÂ‚ZYˆÝ\œ™[ÛÛ^OHš[	‰ˆÝ\œ™[ÛÛ^”XÚØYÙHOHš[Â‚B\™]\›ˆÝ\œ™[ÛÛ^”XÚØYÙK“X\Ù^TÝXÝ\\Â‚_B‚\™]\›ˆš[ŸB‚™[˜ÈÝXÝ™YYÐÝ\ÝÛT\X[\JÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚\™]\›ˆÝXÝ˜[YHOHˆˆ	‰ˆÝXÝ\HOHš[	‰ˆÛÛ\\˜X›TÝXÝ\\ÖÜÝXÝ˜[YWH	‰‚‚BJ™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HÝXÝ\ÔÚ[\ÛÛ\\˜X›QšY[
+ÝXÝ\JJBŸB‚™[˜ÈÝXÝ\ÔÚ[\ÛÛ\\˜X›QšY[
+ÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚Y›ÜˆËšY[H˜[™ÙHÝXÝÛÛ\\˜X›QšY[ÊÝXÝ\JHÂ‚BZYˆ\ÚÈHÝXÝÛÛ\\˜X›QšY[\JšY[
+NÈÚÈ	‰ˆ\ÔÚ[\•\J\
+HÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÝXÝ™YYÐÝ\ÝÛSÜ™
+ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\JH›ÛÛÂ‚\™]\›ˆÝXÝ˜[YHOHˆˆ	‰ˆÝXÝ\HOHš[	‰ˆÝXÝ™YYÓÜ™
+ÝXÝ˜[YJH	‰‚‚BJ™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HÝXÝ\ÔÚ[\ÛÛ\\˜X›QšY[
+ÝXÝ\JJBŸB‚\HÝXÝÛÛ\\˜X›QšY[ÝXÝÂ‚[˜[YHÝš[™Â‚YÛÓ˜[YHÝš[™Â‚Y^ˆ\Ý‘^‚ŸB‚™[˜ÈÝXÝÛÛ\\˜X›QšY[ÊÝXÝ\H
+˜\Ý”ÝXÝ\JH×\ÝXÝÛÛ\\˜X›QšY[Â‚]˜\ˆšY[È×\ÝXÝÛÛ\\˜X›QšY[‚ZYˆÝXÝ\HOHš[Â‚B\™]\›ˆšY[Â‚_B‚Y›ÜˆšY[[™^šY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆ[ŠšY[“˜[Y\ÊHˆÂ‚BBY›Üˆ˜[YR[™^˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBBZYˆ˜[YK“˜[YHOH—ÈˆÂ‚BBBBXÛÛ[YB‚BBB_B‚BBBYšY[ÈH\[™
+šY[ËÝXÝÛÛ\\˜X›QšY[Â‚BBBB[˜[YNˆ\ÝÝXÝšY[˜[YJ˜[YKšY[[™^˜[YR[™^
+K‚BBBBYÛÓ˜[YNˆ˜[YK“˜[YK‚BBBBY^ŽˆšY[•\K‚BBB_JB‚BB_B‚BBXÛÛ[YB‚B_B‚BYÛÓ˜[YHHÙ][X™YYšY[˜[YJšY[•\JB‚BYšY[ÈH\[™
+šY[ËÝXÝÛÛ\\˜X›QšY[Â‚BB[˜[YNˆÔÛ˜ZÙPØ\ÙJÛÓ˜[YJK‚BBYÛÓ˜[YNˆÛÓ˜[YK‚BBY^ŽˆšY[•\K‚B_JB‚_B‚\™]\›ˆšY[ÂŸB‚™[˜ÈÝXÝÛÛ\\˜X›QšY[˜[Y\ÊÝXÝ\H
+˜\Ý”ÝXÝ\JH×\Ýš[™ÈÂ‚YšY[ÈHÝXÝÛÛ\\˜X›QšY[ÊÝXÝ\JB‚[˜[Y\ÈHXZÙJ×\Ýš[™Ë[ŠšY[ÊJB‚Y›ÜˆËšY[H˜[™ÙHšY[ÈÂ‚B[˜[Y\ÈH\[™
+˜[Y\ËšY[›˜[YJB‚_B‚\™]\›ˆ˜[Y\ÂŸB‚™[˜ÈÝXÝÛÛ\\˜X›QšY[\JšY[ÝXÝÛÛ\\˜X›QšY[
+H
+\\Ë•\K›ÛÛ
+HÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[šY[™^ˆOHš[Â‚B\™]\›ˆš[˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\JšY[™^ŠB‚\™]\›ˆ\\OHš[ŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›QšY[\R[™›Ô™\]Z\™Y
+Ý]
+œÝš[™ÜËZ[\‹Ü\˜][ÛˆÝš[™ËšY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]•Üš]TÝš[™Ê[š[\[Y[YJŠB‚[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹”][ÝJ›]”Üš[Š\H[™›È™\]Z\™YÈ	\ÈÝXÝšY[	\È‹Ü\˜][Û‹šY[›˜[YJJJB‚[Ý]•Üš]TÝš[™ÊŠHŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›TÚ[\‘šY[\JÝ]
+œÝš[™ÜËZ[\‹šY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]\•Ü˜\\ˆHÙ]Ý]\•Ü˜\\•\J
+B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÛYÜÛÛYHHÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹š\×ÜÛÛYJ
+NÈ]×ÜšYÚÜÛÛYHHÝ\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹š\×ÜÛÛYJ
+NÈ
+W×ÛYÜÛÛYH	‰ˆW×ÜšYÚÜÛÛYJH
+×ÛYÜÛÛYH	‰ˆ×ÜšYÚÜÛÛYH	‰ˆŠB‚[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊŽŽœ—Ù\J	œÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™Ê‹	›Ý\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™ÊŠJHHŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›QÛÔ‘šY[\JÝ]
+œÝš[™ÜËZ[\‹šY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]•Üš]TÝš[™Ê‘ÛÔŽŽœ—Ù\J	œÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™Ê‹	›Ý\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™ÊŠHŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›TÚ[\‘šY[Ü™
+Ý]
+œÝš[™ÜËZ[\‹šY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]\•Ü˜\\ˆHÙ]Ý]\•Ü˜\\•\J
+B‚[Ý]•Üš]TÝš[™Êˆ]×ÛYÜÛÛYHHÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹š\×ÜÛÛYJ
+N×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]×ÜšYÚÜÛÛYHHÝ\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹š\×ÜÛÛYJ
+N×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]×ÛÜ™HX]Ú
+×ÛYÜÛÛYK×ÜšYÚÜÛÛYJH×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ
+˜[ÙK˜[ÙJHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[ˆŠB‚[Ý]•Üš]TÝš[™Êˆ
+˜[ÙKYJHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ“\ÜËˆŠB‚[Ý]•Üš]TÝš[™Êˆ
+YK˜[ÙJHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘Ü™X]\‹ˆŠB‚[Ý]•Üš]TÝš[™Êˆ
+YKYJHOˆ
+ŠB‚[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊŽŽ˜\×ÜŠ	œÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™ÊŠH\È\Ú^™JK˜Û\
+	ŠŠB‚[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊŽŽ˜\×ÜŠ	›Ý\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™ÊŠH\È\Ú^™JJKˆŠB‚[Ý]•Üš]TÝš[™ÊˆN×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆX]Ú×ÛÜ™×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[OˆßWˆŠB‚[Ý]•Üš]TÝš[™Êˆ×ÛÜ™Oˆ™]\›ˆ×ÛÜ™ˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›QÛÔ‘šY[Ü™
+Ý]
+œÝš[™ÜËZ[\‹šY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]•Üš]TÝš[™ÊˆX]ÚÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™Ê‹˜YŠ
+K˜Û\
+	›Ý\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚[Ý]•Üš]TÝš[™Ê‹˜YŠ
+JH×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[OˆßWˆŠB‚[Ý]•Üš]TÝš[™Êˆ×ÛÜ™Oˆ™]\›ˆ×ÛÜ™ˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠBŸB‚™[˜ÈÝXÝÛÛ\\˜X›QšY[\ÑÙ[™\˜]YÛÔŠÝXÝ˜[YHÝš[™ËšY[ÝXÝÛÛ\\˜X›QšY[
+H›ÛÛÂ‚\™]\›ˆšY[™ÛÓ˜[YHOHˆˆ	‰ˆÙ[™\˜]YÛÔ‘šY[›Ü”ÝXÝ˜[YQšY[
+ÝXÝ˜[YKšY[™ÛÓ˜[YJBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›QšY[\JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËšY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚]\ÚÈHÝXÝÛÛ\\˜X›QšY[\JšY[
+B‚ZYˆ[ÚÈÂ‚B]Üš]TÝXÝÛÛ\\˜X›QšY[\R[™›Ô™\]Z\™Y
+Ý]˜ÛÛ\\™H‹šY[
+B‚B\™]\›‚‚_B‚ZYˆ\ÔÚ[\•\J\
+HÂ‚BZYˆÝXÝÛÛ\\˜X›QšY[\ÑÙ[™\˜]YÛÔŠÝXÝ˜[YKšY[
+HÂ‚BB]Üš]TÝXÝÛÛ\\˜X›QÛÔ‘šY[\JÝ]šY[
+B‚BB\™]\›‚‚B_B‚B]Üš]TÝXÝÛÛ\\˜X›TÚ[\‘šY[\JÝ]šY[
+B‚B\™]\›‚‚_B‚KËÈXXÚÚYH\È™XY[™\ˆ]ÈÝÛˆØÚËÛ™HY\ˆHÝ\‹ˆÛÈ˜[Y\Â‚KËÈØ[ˆÚ\™HHšY[	ÜÈÙ[
+[ˆ[\™˜XÙH˜[YH[™]ÈÛÜHÚ\™HB‚KËÈšY[ÈÙˆHÝXÝ^HÛ
+K[™Û[™È›ÝØÚÜÈ]Û˜ÙHÛÝ[‚KËÈ[ˆØÚÈÛ™H]]^ÚXÙK‚‚ZYˆY˜XÙS˜[YKÚÈH˜[œÜ[Y˜[YY[\™˜XÙU\S˜[YQœ›ÛU\\Ê\
+NÈÚÈÂ‚B[Ý]•Üš]TÝš[™ÊžÈ]×ÛYHÈÙ[‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HNÈ]×ÜšYÚHÈÝ\‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HNÈX]Ú
+×ÛY˜\×Ü™YŠ
+K×ÜšYÚ˜\×Ü™YŠ
+JHÈ
+ÛÛYJ×ÛY
+KÛÛYJ×ÜšYÚ
+JHOˆ×ÛY˜\×Ü™YŠ
+K—×ÙÛ×Ù\WÈŠB‚B[Ý]•Üš]TÝš[™Ê˜Z]Y]ÙÝY™š^
+Y˜XÙS˜[YJJB‚B[Ý]•Üš]TÝš[™ÊŠ×ÜšYÚ˜\×Ü™YŠ
+JK
+›Û™K›Û™JHOˆYKÈOˆ˜[ÙHHHŠB‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÛYHÈÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K˜ÛÛ™Y
+
+HNÈ]×ÜšYÚHÈÝ\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K˜ÛÛ™Y
+
+HNÈ×ÛYOH×ÜšYÚHŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ\\˜X›QšY[Ü™
+Ý]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËšY[ÝXÝÛÛ\\˜X›QšY[
+HÂ‚[Ý]•Üš]TÝš[™Êˆ×ˆŠB‚]\ÚÈHÝXÝÛÛ\\˜X›QšY[\JšY[
+B‚ZYˆ[ÚÈÂ‚B[Ý]•Üš]TÝš[™ÊˆŠB‚B]Üš]TÝXÝÛÛ\\˜X›QšY[\R[™›Ô™\]Z\™Y
+Ý]›Ü™\ˆ‹šY[
+B‚B[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B\™]\›‚‚_B‚ZYˆ\ÔÚ[\•\J\
+HÂ‚BZYˆÝXÝÛÛ\\˜X›QšY[\ÑÙ[™\˜]YÛÔŠÝXÝ˜[YKšY[
+HÂ‚BB]Üš]TÝXÝÛÛ\\˜X›QÛÔ‘šY[Ü™
+Ý]šY[
+B‚B_H[ÙHÂ‚BB]Üš]TÝXÝÛÛ\\˜X›TÚ[\‘šY[Ü™
+Ý]šY[
+B‚B_B‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B\™]\›‚‚_B‚ZYˆËÚÈH˜[œÜ[Y˜[YY[\™˜XÙU\S˜[YQœ›ÛU\\Ê\
+NÈÚÈÂ‚B[Ý]•Üš]TÝš[™Êˆ]×ÛYHÙ[‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ]×ÜšYÚHÝ\‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ]×ÛÜ™HX]Ú
+×ÛY˜\×Ü™YŠ
+K×ÜšYÚ˜\×Ü™YŠ
+JH×ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ
+›Û™K›Û™JHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ
+›Û™KÛÛYJÊJHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ“\ÜËˆŠB‚B[Ý]•Üš]TÝš[™Êˆ
+ÛÛYJÊK›Û™JHOˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘Ü™X]\‹ˆŠB‚B[Ý]•Üš]TÝš[™Êˆ
+ÛÛYJ×ÛY
+KÛÛYJ×ÜšYÚ
+JHOˆ›Ü›X]JžßW‹×ÛY˜\×Ü™YŠ
+JK˜Û\
+	™›Ü›X]JžßW‹×ÜšYÚ˜\×Ü™YŠ
+JJKˆŠB‚B[Ý]•Üš]TÝš[™ÊˆN×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆX]Ú×ÛÜ™×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[OˆßWˆŠB‚B[Ý]•Üš]TÝš[™Êˆ×ÛÜ™Oˆ™]\›ˆ×ÛÜ™ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™Êˆ]×ÛYHÈÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K˜ÛÛ™Y
+
+HN×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]×ÜšYÚHÈÝ\‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[›˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K˜ÛÛ™Y
+
+HN×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆX]Ú×ÛY˜Û\
+	—×ÜšYÚ
+H×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[OˆßWˆŠB‚[Ý]•Üš]TÝš[™Êˆ×ÛÜ™Oˆ™]\›ˆ×ÛÜ™ˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝ\X[\JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆ\ÝXÝ™YYÐÝ\ÝÛT\X[\JÝXÝ˜[YKÝXÝ\JHÂ‚B\™]\›‚‚_B‚‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË”\X[\H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆ\J	œÙ[‹Ý\Žˆ	”Ù[ŠHOˆ›ÛÛ×ˆŠB‚‚YšY[ÈHÝXÝÛÛ\\˜X›QšY[ÊÝXÝ\JB‚ZYˆ[ŠšY[ÊHOHÂ‚B[Ý]•Üš]TÝš[™ÊˆYWˆŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™Êˆ
+ˆŠB‚BY›ÜˆKšY[H˜[™ÙHšY[ÈÂ‚BBZYˆHˆÂ‚BBB[Ý]•Üš]TÝš[™Ê—ˆ	‰ˆŠB‚BB_H[ÙHÂ‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BB_B‚BB]Üš]TÝXÝÛÛ\\˜X›QšY[\JÝ]ÝXÝ˜[YKšY[
+B‚B_B‚B[Ý]•Üš]TÝš[™Ê—ˆ
+WˆŠB‚_B‚‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÝXÝ™YYÔÚ[\ÛÛ\\˜X›RY[]JÝXÝ˜[YHÝš[™ÊH›ÛÛÂ‚ZYˆÝXÝ˜[YHOHˆˆÝ\œ™[ÛÛ^OHš[Ý\œ™[ÛÛ^”XÚØYÙHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆÝ\œ™[ÛÛ^”XÚØYÙK”Ú[\ÛÛ\\˜X›TÚ[YU\\ÖÜÝXÝ˜[YWBŸB‚™[˜ÈÙ[™\˜]TÝXÝÚ[\ÛÛ\\˜X›RY[]JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆ\ÝXÝ™YYÔÚ[\ÛÛ\\˜X›RY[]JÝXÝ˜[YJHÂ‚B\™]\›‚‚_B‚S™YYÛÐÛÛ\\˜X›J
+B‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË‘ÛÐÛÛ\\˜X›H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ×Ù\J	œÙ[‹Ý\Žˆ	”Ù[ŠHOˆ›ÛÛ×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽœŽŽ™\JÙ[‹Ý\ŠWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ×Ú\Ú
+	œÙ[‹ÙYYˆ\Ú^™JHOˆ\Ú^™H×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]]]×Ú\Ú\ˆHÝŽ˜ÛÛXÝ[ÛœÎŽš\ÚÛX\Ž‘Y˜][\Ú\ŽŽ›™]Ê
+N×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽš\ÚŽ’\ÚŽš\Ú
+	œÙYY	›]]×Ú\Ú\ŠN×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽš\ÚŽ’\ÚŽš\Ú
+	ŠÙ[ˆ\È
+˜ÛÛœÝÙ[ˆ\È\Ú^™JK	›]]×Ú\Ú\ŠN×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÝŽš\ÚŽ’\Ú\ŽŽ™š[š\Ú
+	—×Ú\Ú\ŠH\È\Ú^™WˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝÜ™
+Ý]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆ\ÝXÝ™YYÐÝ\ÝÛSÜ™
+ÝXÝ˜[YKÝXÝ\JHÂ‚B\™]\›‚‚_B‚‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Ê—š[\ŠB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË‘XÛ
+B‚[Ý]•Üš]TÝš[™Êˆ\H›ÜˆŠB‚[Ý]•Üš]TÝš[™Ê\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™ÊÙ[™\šXÜË•\ÙJB‚[Ý]•Üš]TÝš[™ÊˆßWˆŠB‚‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË”\X[Ü™‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆ\X[ØÛ\
+	œÙ[‹Ý\Žˆ	”Ù[ŠHOˆÜ[ÛÝŽ˜Û\Ž“Ü™\š[™Ïˆ×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÛÛYJÝŽ˜Û\Ž“Ü™Ž˜Û\
+Ù[‹Ý\ŠJWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠB‚‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË“Ü™‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ\
+	œÙ[‹Ý\Žˆ	”Ù[ŠHOˆÝŽ˜Û\Ž“Ü™\š[™È×ˆŠB‚‚YšY[ÈHÝXÝÛÛ\\˜X›QšY[ÊÝXÝ\JB‚Y›ÜˆËšY[H˜[™ÙHšY[ÈÂ‚B]Üš]TÝXÝÛÛ\\˜X›QšY[Ü™
+Ý]ÝXÝ˜[YKšY[
+B‚_B‚[Ý]•Üš]TÝš[™ÊˆÝŽ˜Û\Ž“Ü™\š[™ÎŽ‘\]X[ˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝ˜[YPÛÛ™JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆÝXÝ\HOHš[Â‚B\™]\›‚‚_B‚]\HÛÛ™QšY[™]\›ˆÝXÝÂ‚BYšY[˜[YHÝš[™Â‚B[ØØ[˜[YHÝš[™Â‚_B‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý[š\™[[\XY\ŠÝ]Ù[™\šXÜË\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™ÊˆXˆ›ˆ×ÙÛ×Ý˜[YWØÛÛ™J	œÙ[ŠHOˆÙ[ˆ×ˆŠB‚YšY[Ñ›Ü”™]\›ˆH×XÛÛ™QšY[™]\›žßB‚Y›ÜˆšY[[™^šY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BYšY[˜[Y\ÈHšY[“˜[Y\Â‚BZYˆ[ŠšY[˜[Y\ÊHOHÂ‚BBYšY[˜[Y\ÈH×J˜\Ý’Y[Ø\Ý“™]ÒY[
+Ù][X™YYšY[˜[YJšY[•\JJ_B‚B_B‚BY›Üˆ˜[YR[™^˜[YHH˜[™ÙHšY[˜[Y\ÈÂ‚BBYšY[˜[YHH\ÝÝXÝšY[˜[YJ˜[YKšY[[™^˜[YR[™^
+B‚BB[ØØ[˜[YHH›]”Üš[Š—×ÙÛ×ØÛÛ™WÉYÉY‹šY[[™^˜[YR[™^
+B‚BB[Ý]•Üš]TÝš[™Êˆ]ŠB‚BB[Ý]•Üš]TÝš[™ÊØØ[˜[YJB‚BB[Ý]•Üš]TÝš[™ÊˆHŠB‚BB]Üš]TÝXÝÛÛ™QšY[
+Ý]šY[˜[YKšY[•\JB‚BB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBYšY[Ñ›Ü”™]\›ˆH\[™
+šY[Ñ›Ü”™]\›‹ÛÛ™QšY[™]\›žÂ‚BBBYšY[˜[YNˆšY[˜[YK‚BBB[ØØ[˜[YNˆØØ[˜[YK‚BB_JB‚B_B‚_B‚ZYˆ[ŠÙ[™\šXÜË”[ÛJHˆÂ‚B[Ý]•Üš]TÝš[™Êˆ]×ÙÛ×ØÛÛ™WÜ[ÛHHÝŽ›X\šÙ\ŽŽ”[ÛQ]N×ˆŠB‚BYšY[Ñ›Ü”™]\›ˆH\[™
+šY[Ñ›Ü”™]\›‹ÛÛ™QšY[™]\›žÂ‚BBYšY[˜[YNˆ—×ÙÛ×Ü[ÛH‹‚BB[ØØ[˜[YNˆ—×ÙÛ×ØÛÛ™WÜ[ÛH‹‚B_JB‚_B‚[Ý]•Üš]TÝš[™ÊˆÙ[ˆ×ˆŠB‚Y›ÜˆËšY[H˜[™ÙHšY[Ñ›Ü”™]\›ˆÂ‚B[Ý]•Üš]TÝš[™ÊˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[™šY[˜[YJB‚B[Ý]•Üš]TÝš[™ÊŽˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[›ØØ[˜[YJB‚B[Ý]•Üš]TÝš[™Ê‹ˆŠB‚_B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚‹ËÈÙ[™\˜]TÝXÝÛÛ™HÜš]\ÈÛÛ™H›ÜˆHÝXÝÚ]\H\˜[Y]\œËÚXÚ‹ËÈÙ\È›Ý\š]™H]ˆ]\ÈHÛÛ™H]™\žHÝ\ˆÝXÝ\š]™\ÎˆXXÚšY[‹ËÈÙ[	ÜÈ[™H\ÈÛÛ™YÛÈHÛÛ™H\ÈHØ[YHÝXÝYØZ[‹ˆÚ[\‚‹ËÈ™XÙZ]™\œÈ\[™Ûˆ]ˆœÙ[‹˜ÛÛ™J
+Hˆ\ÈÝÈHY]Ù[™ÈÛˆ]Â‹ËÈ™XÙZ]™\‹ˆÛÉÜÈÛÜHÙˆHÝXÝ\È×ÙÛ×Ý˜[YWØÛÛ™K‚™[˜ÈÙ[™\˜]TÝXÝÛÛ™JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜËÛÛ™H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛÛ™J	œÙ[ŠHOˆÙ[ˆ×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÙ[ˆ×ˆŠB‚ZYˆÝXÝ\HOHš[Â‚BY›ÜˆšY[[™^šY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BBYšY[˜[Y\ÈHšY[“˜[Y\Â‚BBZYˆ[ŠšY[˜[Y\ÊHOHÂ‚BBBYšY[˜[Y\ÈH×J˜\Ý’Y[Ø\Ý“™]ÒY[
+Ù][X™YYšY[˜[YJšY[•\JJ_B‚BB_B‚BBY›Üˆ˜[YR[™^˜[YHH˜[™ÙHšY[˜[Y\ÈÂ‚BBBYšY[˜[YHH\ÝÝXÝšY[˜[YJ˜[YKšY[[™^˜[YR[™^
+B‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BBB[Ý]•Üš]TÝš[™ÊšY[˜[YJB‚BBB[Ý]•Üš]TÝš[™ÊŽˆÙ[‹ˆŠB‚BBB[Ý]•Üš]TÝš[™ÊšY[˜[YJB‚BBB[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+KˆŠB‚BB_B‚B_B‚_B‚ZYˆ[ŠÙ[™\šXÜË”[ÛJHˆÂ‚B[Ý]•Üš]TÝš[™Êˆ×ÙÛ×Ü[ÛNˆÝŽ›X\šÙ\ŽŽ”[ÛQ]KˆŠB‚_B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝÛÕ˜[YPÛÛ™JÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚\\ÝÝXÝ˜[YHH\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË‘ÛÕ˜[YPÛÛ™H‹\ÝÝXÝ˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ×Ý˜[YWØÛÛ™J	œÙ[ŠHOˆÙ[ˆ×ˆŠB‚[Ý]•Üš]TÝš[™ÊˆÙ[‹—×ÙÛ×Ý˜[YWØÛÛ™J
+WˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠB‚ZYˆ[\œÈHXÝ]™R[\•˜XÚÙ\Š
+NÈ[\œÈOHš[	‰ˆ[\œË›™YYÑÛÕ\T\˜[QšY[ÛÛ™HÂ‚B[Ý]•Üš]TÝš[™Ê—ˆŠB‚B]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË‘ÛÕ\T\˜[QšY[ÛÛ™H‹\ÝÝXÝ˜[YJB‚B[Ý]•Üš]TÝš[™ÊˆÛÛœÝÓ×ÐÓÔWÒÑQT×ÒS‘Nˆ›ÛÛH˜[ÙN×ˆŠB‚B]Üš]QÛÕ\T\˜[QšY[ÛÛ™SY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™ÊŸWˆŠB‚_BŸB‚™[˜ÈÜš]QÛÕ\T\˜[QšY[ÛÛ™SY]Ù
+Ý]
+œÝš[™ÜËZ[\‹ÙY\Ò[™H›ÛÛ
+HÂ‚[Ý]\•Ü˜\\ˆHÙ]Ý]\•Ü˜\\•\J
+B‚Z[›™\•Ü˜\\ˆHÙ][›™\•Ü˜\\•\J
+B‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ×Ý\WÜ\˜[WÙšY[ØÛÛ™JšY[ˆ	ˆŠB‚[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊŠB‚[Ý]•Üš]TÝš[™Ê[›™\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊÜ[ÛÙ[ŠHOˆŠB‚[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊŠB‚[Ý]•Üš]TÝš[™Ê[›™\•Ü˜\\ŠB‚[Ý]•Üš]TÝš[™ÊÜ[ÛÙ[ˆ×ˆŠB‚ZYˆÙY\Ò[™HÂ‚B[Ý]•Üš]TÝš[™Ê™šY[˜ÛÛ™J
+WˆŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™Ê›]×ÙÝX\™HšY[ŠB‚BUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚B[Ý]•Üš]TÝš[™ÊŽÈŠB‚B[Ý]•Üš]TÝš[™ÊÝ]\•Ü˜\\ŠB‚B[Ý]•Üš]TÝš[™ÊŽŽ›™]ÊŠB‚B[Ý]•Üš]TÝš[™Ê[›™\•Ü˜\\ŠB‚B[Ý]•Üš]TÝš[™ÊŽŽ›™]Ê
+
+—×ÙÝX\™
+K˜\×Ü™YŠ
+K›X\
+×ÙÛ×ÙšY[×ÙÛ×ÙšY[™Û×Ý˜[YWØÛÛ™J
+JJJWˆŠB‚_B‚[Ý]•Üš]TÝš[™ÊˆWˆŠBŸB‚™[˜ÈÜš]TÝXÝÛÛ™QšY[
+Ý]
+œÝš[™ÜËZ[\‹šY[˜[YHÝš[™ËšY[\H\Ý‘^ŠHÂ‚ZYˆ\T\˜[S˜[YKÚÈH\™XÝÝXÝšY[\T\˜[S˜[YJšY[\JNÈÚÈÂ‚BS™YYÛÕ\T\˜[QšY[ÛÛ™J
+B‚B[Ý]•Üš]TÝš[™ÊŠB‚B[Ý]•Üš]TÝš[™Ê\T\˜[S˜[YJB‚B[Ý]•Üš]TÝš[™Êˆ\ÈÛÕ\T\˜[QšY[ÛÛ™OŽŽ™Û×Ý\WÜ\˜[WÙšY[ØÛÛ™J	œÙ[‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[˜[YJB‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚B\™]\›‚‚_B‚ZYˆÝXÝÛÛ™QšY[ÙY\Ò[™JšY[\JHÂ‚B[Ý]•Üš]TÝš[™ÊœÙ[‹ˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[˜[YJB‚B[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HŠB‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊžÈ]×ÙÝX\™HÙ[‹ˆŠB‚[Ý]•Üš]TÝš[™ÊšY[˜[YJB‚UÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚[Ý]•Üš]TÝš[™ÊŽÈŠB‚[Ý]•Üš]TÝš[™ÊÙ]Ý]\•Ü˜\\•\J
+JB‚[Ý]•Üš]TÝš[™ÊŽŽ›™]ÊŠB‚[Ý]•Üš]TÝš[™ÊÙ][›™\•Ü˜\\•\J
+JB‚[Ý]•Üš]TÝš[™ÊŽŽ›™]ÊŠB‚ZYˆÛÜPØ[Û›ÝÛˆHÛÕ˜[YPÛÜPØ[›Ü‘^ŠšY[\JNÈZÛ›ÝÛˆÂ‚B[Ý]•Üš]TÝš[™ÊÛÕ˜[YPÛÜS™YYÕ\R[™›ÊB‚_H[ÙHYˆÛÜPØ[OH‹˜ÛÛ™J
+HˆÂ‚BKËÈHÝXÝ[œÚYHHÝXÝÜˆ[ˆ\œ˜^HÙˆ[K\ÈH˜[YHÛÎ‚‚BKËÈHÛÜHÙ]È]ÈÝÛ‹‚‚B[Ý]•Üš]TÝš[™ÊŠ
+—×ÙÝX\™
+K˜\×Ü™YŠ
+K›X\
+×ÙÛ×ÙšY[×ÙÛ×ÙšY[ŠB‚B[Ý]•Üš]TÝš[™ÊÛÜPØ[
+B‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚_H[ÙHÂ‚B[Ý]•Üš]TÝš[™ÊŠ
+—×ÙÝX\™
+K˜ÛÛ™J
+HŠB‚_B‚[Ý]•Üš]TÝš[™ÊŠJHHŠBŸB‚‹ËÈ\™XÝÝXÝšY[\T\˜[S˜[YH™]\›œÈH\Ý\H\˜[Y]\ˆ›ÜˆHšY[‹ËÈÚÜÙHXÛ\™YÛÈ\H\È^XÝH]\˜[Y]\‹ˆH\HÚXÚÙ\‰ÜÂ‹ËÈ[™\›Z[™È\H›Üˆ[žX\È[ˆ[\™˜XÙKÚXÚ\È›Ý[›ÝYÚÈXÚYB‹ËÈÚ]\ˆ[ˆ[œÝ[X]YšY[\ÈHÛÈ[™H
+ÛXÙKX\Ú[\‹Ú[›™[
+B‹ËÈÜˆH˜[YH
+ØØ[\‹\œ˜^KÝXÝ
+KˆÛÕ˜[YPÛÛ™HØ\œšY\È]XÚ\Ú[Ûˆ[Â‹ËÈH\Ý[œÝ[X][Ûˆ[œÝXYÙˆÝY\ÜÚ[™Èœ›ÛHHÞ[^‚™[˜È\™XÝÝXÝšY[\T\˜[S˜[YJšY[\H\Ý‘^ŠH
+Ýš[™Ë›ÛÛ
+HÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[šY[\HOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\JšY[\JB‚]\T\˜[KÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë•\T\˜[JB‚ZYˆ[ÚÈ\T\˜[K“ØšŠ
+HOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚\™]\›ˆ\Ý\S˜[YQ›Ü•\ÙJ\T\˜[K“ØšŠ
+K“˜[YJ
+JKYBŸB‚™[˜ÈÝXÝÛÛ™QšY[ÙY\Ò[™J^ˆ\Ý‘^ŠH›ÛÛÂ‚ZYˆ^ˆOHš[\ÔÞ[˜Ô\˜[J^ŠH\Ñ[\R[\™˜XÙQ^Š^ŠH\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^Š^ŠH\ÑÛÑ\œ›Ü•\Q^Š^ŠHÂ‚B\™]\›ˆYB‚_B‚\ÝÚ]ÚH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý”Ý\‘^‹
+˜\Ý“X\\K
+˜\ÝÚ[•\K
+˜\Ý‘[˜Õ\K
+˜\Ý’[\™˜XÙU\N‚‚B\™]\›ˆYB‚XØ\ÙH
+˜\Ý\œ˜^U\N‚‚B\™]\›ˆ“[ˆOHš[‚_B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BZYˆ\H\R[™›Ë‘Ù]\J^ŠNÈ\OHš[Â‚BB\ÝÚ]Ú\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚BBXØ\ÙH
+\\Ë”Ú[\‹
+\\Ë”ÛXÙK
+\\Ë“X\
+\\ËÚ[‹
+\\Ë”ÚYÛ˜]\™K
+\\Ë’[\™˜XÙN‚‚BBB\™]\›ˆYB‚BB_B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÜš]TÝXÝY˜][˜[YJÝ]
+œÝš[™ÜËZ[\‹šY[\H\Ý‘^ŠHÂ‚ZYˆ™\ÝYÝXÝÚÈHšY[\KŠ
+˜\Ý”ÝXÝ\JNÈÚÈÂ‚B[™\ÝY˜[YHHÙ[™\˜]P[›Ûž[[Ý\ÔÝXÝ\J™\ÝYÝXÝ
+B‚BUÜš]UÜ˜\\”™Yš^
+Ý]
+B‚B[Ý]•Üš]TÝš[™Ê™\ÝY˜[YJB‚B[Ý]•Üš]TÝš[™ÊŽŽ™Y˜][
+
+HŠB‚BUÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚B\™]\›‚‚_B‚ZYˆšY[Y[ÚÈHšY[\KŠ
+˜\Ý’Y[
+NÈÚÈÂ‚BZYˆË\ÔÝXÝHÝXÝYœÖÙšY[Y[“˜[YWNÈ\ÔÝXÝÂ‚BBUÜš]UÜ˜\\”™Yš^
+Ý]
+B‚BB[Ý]•Üš]TÝš[™Ê\Ý\S˜[YQ›Ü•\ÙJšY[Y[“˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŽŽ™Y˜][
+
+HŠB‚BBUÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚BB\™]\›‚‚B_B‚_B‚ZYˆ\ÔÞ[˜Ô\˜[JšY[\JHÂ‚BZYˆ\ÔÛÝ\˜ÙSX\YÞ[˜Ô\˜[JšY[\JHÂ‚BB[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚BB\™]\›‚‚B_B‚B[Ý]•Üš]TÝš[™ÊÛÕ\UÔ\Ý˜\ÙJšY[\JJB‚B[Ý]•Üš]TÝš[™ÊŽŽ›™]Ê
+HŠB‚B\™]\›‚‚_B‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BZYˆ\H\R[™›Ë‘Ù]\JšY[\JNÈ\OHš[Â‚BBZYˆË\ÐÚ[ˆH\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ
+\\ËÚ[ŠNÈ\ÐÚ[ˆÂ‚BBB[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚BBB\™]\›‚‚BB_B‚BBZYˆÜš]UÜ˜\Y˜[YYX\™\›Õ˜[YJÝ]\
+HÂ‚BBB\™]\›‚‚BB_B‚BBZYˆÝXÝšY[\Óš[™\›Ê\
+HÂ‚BBBUÜš]UÜ˜\Y›Û™JÝ]
+B‚BBB\™]\›‚‚BB_B‚BBUÜš]UÜ˜\\”™Yš^
+Ý]
+B‚BB[Ý]•Üš]TÝš[™Ê™\›Õ˜[YQ›Ü•\\Õ\J\
+JB‚BBUÜš]UÜ˜\\”ÝY™š^
+Ý]
+B‚BB\™]\›‚‚B_B‚_B‚[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠBŸB‚™[˜ÈÙ[™\˜]TÝXÝY˜][
+Ý]
+œÝš[™ÜËZ[\‹\TÜXÈ
+˜\Ý•\TÜXËÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆ\ÝXÝ™YYÐÝ\ÝÛQY˜][
+ÝXÝ\JHÂ‚B\™]\›‚‚_B‚]\HY˜][šY[˜[YHÝXÝÂ‚BYšY[˜[YHÝš[™Â‚B[ØØ[˜[YHÝš[™Â‚_B‚]Üš]QY˜][šY[˜[YHH[˜ÊšY[
+˜\Ý‘šY[˜[YH
+˜\Ý’Y[šY[˜[YHÝš[™ÊHÂ‚BZYˆšY[[™›ËÚÈHÛÔ\œ˜^QšY[[™›Ñ›Ü”ÝXÝšY[
+\TÜXËÝXÝ\KÝXÝ˜[YKšY[˜[YJNÈÚÈÂ‚BB]Üš]QÛÔ\œ˜^QšY[Y˜][˜[YJÝ]šY[[™›ÊB‚B_H[ÙHYˆËÚÈHÛXÙQ[[T”ÛXÙQšY[[™›Ñ›Ü”ÝXÝšY[
+\TÜXËÝXÝ\KÝXÝ˜[YKšY[˜[YJNÈÚÈÂ‚BBUÜš]UÜ˜\Y›Û™JÝ]
+B‚B_H[ÙHYˆËÚÈHÛXÙQ[[T‘šY[[™›Ñ›Ü”ÝXÝšY[
+\TÜXËÝXÝ\KÝXÝ˜[YKšY[˜[YJNÈÚÈÂ‚BBS™YYÛXÙQ[[TŠ
+B‚BB[Ý]•Üš]TÝš[™Ê‘ÛÔŽŽ›š[
+
+HŠB‚B_H[ÙHYˆ˜[YHOHš[	‰ˆÞ[˜Ð]ÛZXÔÚ[\”ÝÜ˜YÙQšY[
+\TÜXËšY[˜[YJHÂ‚BBUÜš]UÜ˜\Y›Û™JÝ]
+B‚B_H[ÙHÂ‚BB]Üš]TÝXÝY˜][˜[YJÝ]šY[•\JB‚B_B‚_B‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË‘Y˜][‹\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJJB‚[Ý]•Üš]TÝš[™Êˆ›ˆY˜][
+
+HOˆÙ[ˆ×ˆŠB‚]˜\ˆšY[˜[Y\È×YY˜][šY[˜[YB‚Y›ÜˆšY[[™^šY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆ[ŠšY[“˜[Y\ÊHˆÂ‚BBY›Üˆ˜[YR[™^˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBB[ØØ[˜[YHH›]”Üš[Š—×ÙÛ×ÙY˜][ÉYÉY‹šY[[™^˜[YR[™^
+B‚BBB[Ý]•Üš]TÝš[™Êˆ]ŠB‚BBB[Ý]•Üš]TÝš[™ÊØØ[˜[YJB‚BBB[Ý]•Üš]TÝš[™ÊˆHŠB‚BBB]Üš]QY˜][šY[˜[YJšY[˜[YK˜[YK“˜[YJB‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBBYšY[˜[Y\ÈH\[™
+šY[˜[Y\ËY˜][šY[˜[Y^Â‚BBBBYšY[˜[YNˆ\ÝÝXÝšY[˜[YJ˜[YKšY[[™^˜[YR[™^
+K‚BBBB[ØØ[˜[YNˆØØ[˜[YK‚BBB_JB‚BB_B‚B_H[ÙHÂ‚BBYšY[˜[YHHÙ][X™YYšY[˜[YJšY[•\JB‚BB[ØØ[˜[YHH›]”Üš[Š—×ÙÛ×ÙY˜][ÉYÌ‹šY[[™^
+B‚BB[Ý]•Üš]TÝš[™Êˆ]ŠB‚BB[Ý]•Üš]TÝš[™ÊØØ[˜[YJB‚BB[Ý]•Üš]TÝš[™ÊˆHŠB‚BB]Üš]QY˜][šY[˜[YJšY[š[šY[˜[YJB‚BB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBYšY[˜[Y\ÈH\[™
+šY[˜[Y\ËY˜][šY[˜[Y^Â‚BBBYšY[˜[YNˆÔÛ˜ZÙPØ\ÙJšY[˜[YJK‚BBB[ØØ[˜[YNˆØØ[˜[YK‚BB_JB‚B_B‚_B‚ZYˆ[ŠÙ[™\šXÜË”[ÛJHˆÂ‚B[Ý]•Üš]TÝš[™Êˆ]×ÙÛ×ÙY˜][Ü[ÛHHÝŽ›X\šÙ\ŽŽ”[ÛQ]N×ˆŠB‚BYšY[˜[Y\ÈH\[™
+šY[˜[Y\ËY˜][šY[˜[Y^Â‚BBYšY[˜[YNˆ—×ÙÛ×Ü[ÛH‹‚BB[ØØ[˜[YNˆ—×ÙÛ×ÙY˜][Ü[ÛH‹‚B_JB‚_B‚[Ý]•Üš]TÝš[™ÊˆÙ[ˆ×ˆŠB‚Y›ÜˆËšY[˜[YHH˜[™ÙHšY[˜[Y\ÈÂ‚B[Ý]•Üš]TÝš[™ÊˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[˜[YK™šY[˜[YJB‚B[Ý]•Üš]TÝš[™ÊŽˆŠB‚B[Ý]•Üš]TÝš[™ÊšY[˜[YK›ØØ[˜[YJB‚B[Ý]•Üš]TÝš[™Ê‹ˆŠB‚_B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÚÝ[Ù[™\˜]RœÛÛ‘XÛÙR[\
+
+H›ÛÛÂ‚\™]\›ˆÝ\œ™[ÛÛ^OHš[	‰‚‚BXÝ\œ™[ÛÛ^•\ÙTXÚØYÙQ^\›˜[ÝXœÈ	‰‚‚BXÝ\œ™[ÛÛ^”XÚØYÙHOHš[	‰‚‚BXÝ\œ™[ÛÛ^”XÚØYÙK’œÛÛ‘XÛÙTÝ\Ü™YYYŸB‚™[˜ÈXÚØYÙS™YYÒœÛÛ‘XÛÙTÝ\Ü
+š[\È×J˜\Ý‘š[K\R[™›È
+•\R[™›ÊH›ÛÛÂ‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚Y›ÜˆËš[HH˜[™ÙHš[\ÈÂ‚BZYˆš[HOHš[Â‚BBXÛÛ[YB‚B_B‚B[™YYYH˜[ÙB‚BX\Ý’[œÜXÝ
+š[K[˜Ê›ÙH\Ý“›ÙJH›ÛÛÂ‚BBZYˆ™YYYÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BBZY[ÚÈH›ÙKŠ
+˜\Ý’Y[
+B‚BBZYˆ[ÚÈÂ‚BBB\™]\›ˆYB‚BB_B‚BB[ØšˆH\R[™›Ëš[™›Ë•\Ù\ÖÚY[B‚BBZYˆØšˆOHš[Øš‹”ÙÊ
+HOHš[Øš‹”ÙÊ
+K”]
+
+HOH™[˜ÛÙ[™ËÚœÛÛˆˆÂ‚BBB\™]\›ˆYB‚BB_B‚BB\ÝÚ]ÚØš‹“˜[YJ
+HÂ‚BBXØ\ÙH‘XÛÙ\ˆ‹‘XÛÙH‹“[Ü™H‹“™]ÑXÛÙ\ˆ‹•[›X\œÚ[Ž‚‚BBB[™YYYHYB‚BBB\™]\›ˆ˜[ÙB‚BBYY˜][‚‚BBB\™]\›ˆYB‚BB_B‚B_JB‚BZYˆ™YYYÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈœÛÛ‘XÛÙQšY[˜[YJšY[˜[YHÝš[™ËYÈ
+˜\Ý˜\ÚXÓ]
+H
+Ýš[™Ë›ÛÛ
+HÂ‚]YÕ˜[YHHˆ‚‚ZYˆYÈOHš[	‰ˆYË•˜[YHOHˆˆÂ‚BZYˆ[œ][ÝY\œˆHÝ˜ÛÛ‹•[œ][ÝJYË•˜[YJNÈ\œˆOHš[Â‚BB]YÕ˜[YHH[œ][ÝY‚B_B‚_B‚ZœÛÛ“˜[YK[˜ÛYKÈHœÛÛ‘šY[˜[YJšY[˜[YKYÕ˜[YJB‚\™]\›ˆœÛÛ“˜[YK[˜ÛYBŸB‚™[˜ÈœÛÛ‘XÛÙU\TÝ\ÜY
+\\\Ë•\JH›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\\Ë•[˜[X\Ê\
+B‚\ÝÚ]ÚH\Š\JHÂ‚XØ\ÙH
+\\Ë“˜[YY‚‚BZYˆ“ØšŠ
+HOHš[	‰ˆ“ØšŠ
+K”ÙÊ
+HOHš[	‰ˆ\ÔÝX”XÚØYÙJ“ØšŠ
+K”ÙÊ
+K”]
+
+JHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚BWËÚÈH\\Ë•[˜[X\Ê•[™\›Z[™Ê
+JKŠ
+\\Ë”ÝXÝ
+B‚B\™]\›ˆÚÂ‚XØ\ÙH
+\\Ë”Ú[\Ž‚‚B\™]\›ˆœÛÛ‘XÛÙU\TÝ\ÜY
+‘[[J
+JB‚XØ\ÙH
+\\Ë”ÛXÙN‚‚B\™]\›ˆœÛÛ‘XÛÙU\TÝ\ÜY
+‘[[J
+JB‚XØ\ÙH
+\\Ë\œ˜^N‚‚B\™]\›ˆœÛÛ‘XÛÙU\TÝ\ÜY
+‘[[J
+JB‚XØ\ÙH
+\\Ë“X\‚‚BZÙ^KÚÈH\\Ë•[˜[X\Ê’Ù^J
+JK•[™\›Z[™Ê
+KŠ
+\\Ë˜\ÚXÊB‚B\™]\›ˆÚÈ	‰ˆÙ^K’Ú[™
+
+HOH\\Ë”Ýš[™È	‰ˆœÛÛ‘XÛÙU\TÝ\ÜY
+‘[[J
+JB‚XØ\ÙH
+\\Ë”ÝXÝ‚‚B\™]\›ˆYB‚XØ\ÙH
+\\Ë˜\ÚXÎ‚‚B\ÝÚ]Ú’Ú[™
+
+HÂ‚BXØ\ÙH\\Ë›ÛÛ‚BB]\\Ë’[\\Ë’[\\Ë’[M‹\\Ë’[Ì‹\\Ë’[‚BB]\\Ë•Z[\\Ë•Z[\\Ë•Z[M‹\\Ë•Z[Ì‹\\Ë•Z[\\Ë•Z[‹‚BB]\\Ë‘›Ø]Ì‹\\Ë‘›Ø]‚BB]\\Ë”Ýš[™Î‚‚BB\™]\›ˆYB‚BYY˜][‚‚BB\™]\›ˆ˜[ÙB‚B_B‚YY˜][‚‚B][™\›Z[™ÈH\•[™\›Z[™Ê
+B‚BZYˆ[™\›Z[™ÈOH\Â‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆœÛÛ‘XÛÙU\TÝ\ÜY
+[™\›Z[™ÊB‚_BŸB‚™[˜ÈœÛÛ‘XÛÙQšY[Ý\ÜY
+šY[\H\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆœÛÛ‘XÛÙU\TÝ\ÜY
+\R[™›Ë‘Ù]\JšY[\JJBŸB‚™[˜ÈÙ[™\˜]TÝXÝœÛÛ‘XÛÙJÝ]
+œÝš[™ÜËZ[\‹ÝXÝ˜[YHÝš[™ËÝXÝ\H
+˜\Ý”ÝXÝ\KÙ[™\šXÜÈ\Ý\QÙ[™\šXÜÊHÂ‚ZYˆ\ÚÝ[Ù[™\˜]RœÛÛ‘XÛÙR[\
+
+HÝXÝ\HOHš[Â‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚]Üš]T\Ý˜Z][\XY\ŠÝ]Ù[™\šXÜË‘ÛÒœÛÛ‘XÛÙH‹\Ý\S˜[YQ›Ü•\ÙJÝXÝ˜[YJJB‚[Ý]•Üš]TÝš[™Êˆ›ˆÛ×ÚœÛÛ—ÙXÛÙJ˜[YNˆ	œÙ\™WÚœÛÛŽŽ•˜[YJHOˆ™\Ý[Ù[‹Ýš[™Ïˆ×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]Øš™XÝH˜[YK˜\×ÛØš™XÝ
+
+K›Ú×ÛÜ—Ù[ÙJÛ×ÚœÛÛ—Ù^XÝY
+˜[YK›Øš™XÝŠJOÎ×ˆŠB‚[Ý]•Üš]TÝš[™Êˆ]]]Ý]HÙ[ŽŽ™Y˜][
+
+N×ˆŠB‚Y›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆZœÛÛ‘XÛÙQšY[Ý\ÜY
+šY[•\JHÂ‚BBXÛÛ[YB‚B_B‚BY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBZYˆ˜[YHOHš[[˜[YK’\Ñ^ÜY
+
+HÂ‚BBBXÛÛ[YB‚BB_B‚BBZœÛÛ“˜[YK[˜ÛYHHœÛÛ‘XÛÙQšY[˜[YJ˜[YK“˜[YKšY[•YÊB‚BBZYˆZ[˜ÛYHÂ‚BBBXÛÛ[YB‚BB_B‚BB[Ý]•Üš]TÝš[™ÊˆYˆ]ÛÛYJšY[Ý˜[YJHHØš™XÝ™Ù]
+ŠB‚BB[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹”][ÝJœÛÛ“˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŠH×ˆŠB‚BB[Ý]•Üš]TÝš[™ÊˆÝ]ˆŠB‚BB[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJ˜[YK“˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊˆHŠB‚BBZYˆËÚÈHÛXÙQ[[T‘šY[[™›Ñ›Ü”ÝXÝšY[
+š[ÝXÝ\KÝXÝ˜[YK˜[YK“˜[YJNÈÚÈÂ‚BBBS™YYÛXÙQ[[TŠ
+B‚BBB[Ý]•Üš]TÝš[™Ê‘ÛÔŽŽ›ØØ[
+ŠB‚BBB[Ý]•Üš]TÝš[™ÊŠB‚BBB[Ý]•Üš]TÝš[™ÊÛÕ\UÔ\Ý
+šY[•\JJB‚BBB[Ý]•Üš]TÝš[™Êˆ\ÈÛÒœÛÛ‘XÛÙOŽŽ™Û×ÚœÛÛ—ÙXÛÙJšY[Ý˜[YJOÊHŠB‚BB_H[ÙHÂ‚BBB[Ý]•Üš]TÝš[™ÊŠB‚BBB[Ý]•Üš]TÝš[™ÊÛÕ\UÔ\Ý
+šY[•\JJB‚BBB[Ý]•Üš]TÝš[™Êˆ\ÈÛÒœÛÛ‘XÛÙOŽŽ™Û×ÚœÛÛ—ÙXÛÙJšY[Ý˜[YJOÈŠB‚BB_B‚BB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BB[Ý]•Üš]TÝš[™ÊˆWˆŠB‚B_B‚_B‚[Ý]•Üš]TÝš[™ÊˆÚÊÝ]
+WˆŠB‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜È\R\Õ˜Z]šY[
+^ˆ\Ý‘^ŠH›ÛÛÂ‚\™]\›ˆ\R\Õ˜Z]šY[ÙY[Š^‹XZÙJX\ÜÝš[™×X›ÛÛ
+JBŸB‚™[˜È\PØ[‘\š]™QXYÊ^ˆ\Ý‘^‹ÙY[ˆX\ÜÝš[™×X›ÛÛ
+H›ÛÛÂ‚ZYˆ\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^Š^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚‚YšY[\HHÛÕ\UÔ\Ý˜\ÙJ^ŠB‚ZYˆÝš[™ÜËÛÛZ[œÊšY[\K™[ˆŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BZYˆ\H\R[™›Ë‘Ù]\J^ŠNÈ\OHš[Â‚BBZYˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\J\
+HÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ\XZÙJX\Ê\\Ë“˜[YYX›ÛÛ
+JB‚B_B‚_B‚‚\ÝÚ]ÚH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý\œ˜^U\N‚‚B\™]\›ˆ\PØ[‘\š]™QXYÊ‘[ÙY[ŠB‚XØ\ÙH
+˜\Ý“X\\N‚‚B\™]\›ˆ\PØ[‘\š]™QXYÊ’Ù^KÙY[ŠH	‰ˆ\PØ[‘\š]™QXYÊ•˜[YKÙY[ŠB‚XØ\ÙH
+˜\Ý”Ý\‘^Ž‚‚B\™]\›ˆ\PØ[‘\š]™QXYÊ–ÙY[ŠB‚XØ\ÙH
+˜\Ý”ÝXÝ\N‚‚B\™]\›ˆÝXÝØ[‘\š]™QXYÊ
+B‚XØ\ÙH
+˜\Ý‘[˜Õ\K
+˜\Ý’[\™˜XÙU\N‚‚B\™]\›ˆ˜[ÙB‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆÙY[–Ý“˜[YWHÂ‚BB\™]\›ˆYB‚B_B‚BZYˆY‹ÚÈHÝXÝYœÖÝ“˜[YWNÈÚÈ	‰ˆY‹TÕ\HOHš[Â‚BB\ÙY[–Ý“˜[YWHHYB‚BB\™]\›ˆÝXÝØ[‘\š]™QXYÔÙY[ŠY‹TÕ\KÙY[ŠB‚B_B‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚BZYˆY[ÚÈH–Š
+˜\Ý’Y[
+NÈÚÈÂ‚BB\™]\›ˆÛÔXÚØYÙR[\ÜÖÚY[“˜[YWHOHˆˆ\ÔÝX”XÚØYÙJÛÔXÚØYÙR[\ÜÖÚY[“˜[YWJB‚B_B‚_B‚\™]\›ˆYBŸB‚™[˜È\QYš[š][ÛØ[‘\š]™QXYÊ\TÜXÈ
+˜\Ý•\TÜXÊH›ÛÛÂ‚ZYˆ\TÜXÈOHš[\TÜXË“˜[YHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ëš[™›Ë‘YœÖÝ\TÜXË“˜[YWKŠ
+\\Ë•\S˜[YJB‚ZYˆ[ÚÈØšˆOHš[Øš‹•\J
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊØš‹•\J
+KXZÙJX\Ê\\Ë“˜[YYX›ÛÛ
+JBŸB‚™[˜ÈÛÕ\\Õ\PØ[‘\š]™QXYÊ\\\Ë•\KÙY[ˆX\Ê\\Ë“˜[YYX›ÛÛ
+H›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\\Ë•[˜[X\Ê\
+B‚\ÝÚ]ÚH\Š\JHÂ‚XØ\ÙH
+\\Ë“˜[YY‚‚BZYˆYÛÕ\\Ó˜[YY\QÙ[™\˜]Y[Ý\œ™[XÚØYÙJ
+HÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆÙY[–ÝHÂ‚BB\™]\›ˆYB‚B_B‚B\ÙY[–ÝHHYB‚B\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ•[™\›Z[™Ê
+KÙY[ŠB‚XØ\ÙH
+\\Ë˜\ÚXÎ‚‚B\™]\›ˆ’Ú[™
+
+HOH\\Ë’[˜[Y‚XØ\ÙH
+\\Ë”Ú[\Ž‚‚B\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë”ÛXÙN‚‚B\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë\œ˜^N‚‚B\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë“X\‚‚B\™]\›ˆÛÕ\\ÓX\Ù^PØ[‘\š]™QXYÊ’Ù^J
+KÙY[ŠH	‰ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë”ÝXÝ‚‚BY›ÜˆHHÈH“[QšY[Ê
+NÈJÊÈÂ‚BBZYˆYÛÕ\\Õ\PØ[‘\š]™QXYÊ‘šY[
+JK•\J
+KÙY[ŠHÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚B_B‚B\™]\›ˆYB‚XØ\ÙH
+\\ËÚ[Ž‚‚B\™]\›ˆYB‚XØ\ÙH
+\\Ë’[\™˜XÙK
+\\Ë”ÚYÛ˜]\™K
+\\Ë•\T\˜[N‚‚B\™]\›ˆ˜[ÙB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÛÕ\\Ó˜[YY\QÙ[™\˜]Y[Ý\œ™[XÚØYÙJ˜[YY
+\\Ë“˜[YY
+H›ÛÛÂ‚ZYˆ˜[YYOHš[˜[YY“ØšŠ
+HOHš[˜[YY“ØšŠ
+K”ÙÊ
+HOHš[Â‚B\™]\›ˆYB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚\™]\›ˆ\R[™›ÈOHš[	‰ˆ\R[™›ËœÙÈOHš[	‰ˆ˜[YY“ØšŠ
+K”ÙÊ
+K”]
+
+HOH\R[™›ËœÙË”]
+
+BŸB‚™[˜ÈÛÕ\\ÓX\Ù^PØ[‘\š]™QXYÊ\\\Ë•\KÙY[ˆX\Ê\\Ë“˜[YYX›ÛÛ
+H›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]Ú\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë”Ú[\‹
+\\Ë’[\™˜XÙN‚‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆÛÕ\\Õ\PØ[‘\š]™QXYÊ\ÙY[ŠB‚_BŸB‚™[˜È\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\J\\\Ë•\JH›ÛÛÂ‚\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š\\Ë•[˜[X\Ê\
+KXZÙJX\Ý\\Ë•\WX›ÛÛ
+JBŸB‚™[˜È\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š\\\Ë•\KÙY[ˆX\Ý\\Ë•\WX›ÛÛ
+H›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\\Ë•[˜[X\Ê\
+B‚ZYˆÙY[–Ý\HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÙY[–Ý\HHYB‚‚\ÝÚ]ÚH\Š\JHÂ‚XØ\ÙH
+\\Ë“˜[YY‚‚BZYˆ“ØšŠ
+HOHš[	‰ˆ“ØšŠ
+K”ÙÊ
+HOHš[Â‚BB\ÙÔ]H“ØšŠ
+K”ÙÊ
+K”]
+
+B‚BBZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[\R[™›ËœÙÈOHš[“ØšŠ
+K”ÙÊ
+HOH\R[™›ËœÙÈÂ‚BBBZYˆZ\ÔÝX”XÚØYÙJÙÔ]
+H\ÔÛÝ\˜ÙSX\YXÚØYÙT]
+ÙÔ]
+HÂ‚BBBB\™]\›ˆYB‚BBB_B‚BB_B‚B_B‚B\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š•[™\›Z[™Ê
+KÙY[ŠB‚XØ\ÙH
+\\Ë\œ˜^N‚‚B\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë”ÛXÙN‚‚B\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë“X\‚‚B\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š’Ù^J
+KÙY[ŠH\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë”Ú[\Ž‚‚B\™]\›ˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š‘[[J
+KÙY[ŠB‚XØ\ÙH
+\\Ë”ÝXÝ‚‚BY›ÜˆHHÈH“[QšY[Ê
+NÈJÊÈÂ‚BBZYˆ\T™Y™\™[˜Ù\Ñ^\›˜[˜[YY\TÙY[Š‘šY[
+JK•\J
+KÙY[ŠHÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈX\šY[™YYÓÜ\]YQ\Ü^J^ˆ\Ý‘^ŠH›ÛÛÂ‚[X\\KÚÈH^‹Š
+˜\Ý“X\\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ[X\˜[YPØ[•\ÙQ\Ü^JX\\K•˜[YJBŸB‚™[˜ÈX\˜[YPØ[•\ÙQ\Ü^J^ˆ\Ý‘^ŠH›ÛÛÂ‚ZYˆ\Ñ[\R[\™˜XÙQ^Š^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^Š^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]Ú^‹Š\JHÂ‚XØ\ÙH
+˜\Ý\œ˜^U\K
+˜\Ý“X\\K
+˜\Ý‘[˜Õ\N‚‚B\™]\›ˆ˜[ÙB‚YY˜][‚‚B\™]\›ˆYB‚_BŸB‚™[˜È\R\Õ˜Z]šY[ÙY[Š^ˆ\Ý‘^‹ÙY[ˆX\ÜÝš[™×X›ÛÛ
+H›ÛÛÂ‚YšY[\HHÛÕ\UÔ\Ý˜\ÙJ^ŠB‚ZYˆÝš[™ÜËÛÛZ[œÊšY[\K™[ˆŠHÂ‚B\™]\›ˆYB‚_B‚‚\ÝÚ]ÚH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý\œ˜^U\N‚‚B\™]\›ˆ\R\Õ˜Z]šY[ÙY[Š‘[ÙY[ŠB‚XØ\ÙH
+˜\Ý“X\\N‚‚B\™]\›ˆ\R\Õ˜Z]šY[ÙY[Š•˜[YKÙY[ŠB‚XØ\ÙH
+˜\Ý”ÝXÝ\N‚‚B\™]\›ˆÝXÝ\Õ˜Z]šY[
+
+B‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆÙY[–Ý“˜[YWHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆY‹ÚÈHÝXÝYœÖÝ“˜[YWNÈÚÈ	‰ˆY‹TÕ\HOHš[Â‚BB\ÙY[–Ý“˜[YWHHYB‚BBY›ÜˆËšY[H˜[™ÙHY‹TÕ\K‘šY[Ë“\ÝÂ‚BBBZYˆ\R\Õ˜Z]šY[ÙY[ŠšY[•\KÙY[ŠHÂ‚BBBB\™]\›ˆYB‚BBB_B‚BB_B‚B_B‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ˜[ÙBŸB‚‹ËÈ[\ˆÈÚXÚÈYˆH[˜Ý[Ûˆ›ÙHÛÛZ[œÈY™\ˆÝ][Y[Â™[˜ÈÚXÚÒ\ÑY™\ŠÝ]È×X\Ý”Ý]
+H›ÛÛÂ‚Y›ÜˆËÝ]H˜[™ÙHÝ]ÈÂ‚BZYˆÚXÚÔÝ]\ÑY™\ŠÝ]
+HÂ‚BB\™]\›ˆYB‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÚXÚÔÝ]\ÑY™\ŠÝ]\Ý”Ý]
+H›ÛÛÂ‚\ÝÚ]ÚÈHÝ]Š\JHÂ‚XØ\ÙH
+˜\Ý‘Y™\”Ý]‚‚B\™]\›ˆZ\Ó]]^[›ØÚÑY™\ŠËØ[
+B‚XØ\ÙH
+˜\Ý›ØÚÔÝ]‚‚B\™]\›ˆÚXÚÒ\ÑY™\ŠË“\Ý
+B‚XØ\ÙH
+˜\Ý’Y”Ý]‚‚B\™]\›ˆÚXÚÒ\ÑY™\ŠË›ÙK“\Ý
+HÚXÚÔÝ]\ÑY™\ŠË‘[ÙJB‚XØ\ÙH
+˜\Ý‘›Ü”Ý]‚‚B\™]\›ˆË›ÙHOHš[	‰ˆÚXÚÒ\ÑY™\ŠË›ÙK“\Ý
+B‚XØ\ÙH
+˜\Ý”˜[™ÙTÝ]‚‚B\™]\›ˆË›ÙHOHš[	‰ˆÚXÚÒ\ÑY™\ŠË›ÙK“\Ý
+B‚XØ\ÙH
+˜\Ý”ÝÚ]ÚÝ]‚‚B\™]\›ˆÚXÚÒ\ÑY™\Û]\Ù\ÊË›ÙJB‚XØ\ÙH
+˜\Ý•\TÝÚ]ÚÝ]‚‚B\™]\›ˆÚXÚÒ\ÑY™\Û]\Ù\ÊË›ÙJB‚XØ\ÙH
+˜\Ý”Ù[XÝÝ]‚‚B\™]\›ˆÚXÚÒ\ÑY™\Û]\Ù\ÊË›ÙJB‚XØ\ÙH
+˜\Ý“X™[YÝ]‚‚B\™]\›ˆÚXÚÔÝ]\ÑY™\ŠË”Ý]
+B‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÚXÚÒ\ÑY™\Û]\Ù\Ê›ÙH
+˜\Ý›ØÚÔÝ]
+H›ÛÛÂ‚ZYˆ›ÙHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚Y›ÜˆËÝ]H˜[™ÙH›ÙK“\ÝÂ‚B\ÝÚ]ÚÛ]\ÙHHÝ]Š\JHÂ‚BXØ\ÙH
+˜\ÝØ\ÙPÛ]\ÙN‚‚BBZYˆÚXÚÒ\ÑY™\ŠÛ]\ÙK›ÙJHÂ‚BBB\™]\›ˆYB‚BB_B‚BXØ\ÙH
+˜\ÝÛÛ[PÛ]\ÙN‚‚BBZYˆÚXÚÒ\ÑY™\ŠÛ]\ÙK›ÙJHÂ‚BBB\™]\›ˆYB‚BB_B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÜš]Q[˜Ý[Û•\T\˜[\ÊÝ]
+œÝš[™ÜËZ[\‹›•\H
+˜\Ý‘[˜Õ\JHÂ‚]Üš]Q[˜Ý[Û•\T\˜[\ÕÚ]\˜[JÝ]›•\K\Ý[˜Ý[Û•\T\˜[JBŸB‚™[˜ÈÜš]Q[˜Ý[Û‘XÛ\T\˜[\ÊÝ]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ
+HÂ‚ZYˆ›ˆOHš[›‹•\HOHš[Â‚B\™]\›‚‚_B‚\\˜[Q[˜ÈH\Ý\QXÛ\˜][Û”\˜[B‚X›Ý[™Ú[™HÙ[™\šXÑ[˜Ý[Û›Ý[™Ú[™
+›ŠB‚ZYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™ÛÕ\T\˜[QšY[ÛÛ™HOHÂ‚BZYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™\ÝÛÛ™HOH	‰ˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™ÛÕ˜[YPÛÛ™HOHÂ‚BB\\˜[Q[˜ÈH\ÝÛÛ™QÛÕ˜[YPÛÛ™P[™ÛÕ\T\˜[QšY[ÛÛ™U\T\˜[B‚B_H[ÙHYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™\ÝÛÛ™HOHÂ‚BB\\˜[Q[˜ÈH\ÝÛÛ™P[™ÛÕ\T\˜[QšY[ÛÛ™U\T\˜[B‚B_H[ÙHYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™ÛÕ˜[YPÛÛ™HOHÂ‚BB\\˜[Q[˜ÈH\ÝÛÕ˜[YPÛÛ™P[™ÛÕ\T\˜[QšY[ÛÛ™U\T\˜[B‚B_H[ÙHÂ‚BB\\˜[Q[˜ÈH\ÝÛÕ\T\˜[QšY[ÛÛ™U\T\˜[B‚B_B‚_H[ÙHYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™\ÝÛÛ™HOH	‰ˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™ÛÕ˜[YPÛÛ™HOHÂ‚B\\˜[Q[˜ÈH\ÝÛÛ™P[™ÛÕ˜[YPÛÛ™U\T\˜[B‚_H[ÙHYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™\ÝÛÛ™HOHÂ‚B\\˜[Q[˜ÈH\Ý[˜Ý[Û•\T\˜[B‚_H[ÙHYˆ›Ý[™Ú[™	™Ù[™\šXÓY]Ù›Ý[™ÛÕ˜[YPÛÛ™HOHÂ‚B\\˜[Q[˜ÈH\ÝÛÕ˜[YPÛÛ™U\T\˜[B‚_B‚]Üš]Q[˜Ý[Û•\T\˜[\ÕÚ]\˜[JÝ]›‹•\K\˜[Q[˜ÊBŸB‚™[˜ÈÙ[™\šXÑ[˜Ý[Û›Ý[™Ú[™
+›ˆ
+˜\Ý‘[˜ÑXÛ
+HÙ[™\šXÓY]Ù›Ý[™Ú[™Â‚X›Ý[™Ú[™HÙ[™\šXÓY]Ù›Ý[™›Û™B‚ZYˆÝHÙ]˜[œÜ[PÛÛ^
+
+NÈÝOHš[	‰ˆÝ”XÚØYÙHOHš[	‰ˆÝ”XÚØYÙK‘[˜Ý[Û›Ý[™Ú[™ÈOHš[Â‚BZYˆØXÚYÚÈHÝ”XÚØYÙK‘[˜Ý[Û›Ý[™Ú[™ÖÙ›—NÈÚÈÂ‚BBX›Ý[™Ú[™HØXÚY‚B_B‚_B‚ZYˆÙ[™\šXÑ[˜Ý[Û•\Ù\Ñ\™XÝ\T\˜[U˜[YJ›ŠHÂ‚BX›Ý[™Ú[™HÙ[™\šXÓY]Ù›Ý[™ÛÕ˜[YPÛÛ™B‚_B‚ZYˆÙ[™\šXÑ[˜Ý[Û•\Ù\Ó™\ÝY\T\˜[QšY[ÛÛ™J›ŠHÂ‚BX›Ý[™Ú[™HÙ[™\šXÓY]Ù›Ý[™ÛÕ\T\˜[QšY[ÛÛ™B‚_B‚ZYˆÙ[™\šXÔÚYÛ˜]\™U\Ù\ÑÛÔ‘\™XÝ\T\˜[J›ŠHÂ‚BX›Ý[™Ú[™HÙ[™\šXÓY]Ù›Ý[™\ÝÛÛ™B‚_B‚\™]\›ˆ›Ý[™Ú[™ŸB‚™[˜ÈÜš]Q[˜Ý[Û•\T\˜[\ÕÚ]\˜[JÝ]
+œÝš[™ÜËZ[\‹›•\H
+˜\Ý‘[˜Õ\K\˜[Q[˜È[˜Ê
+˜\Ý’Y[
+HÝš[™ÊHÂ‚ZYˆ›•\HOHš[›•\K•\T\˜[\ÈOHš[[Š›•\K•\T\˜[\Ë“\Ý
+HOHÂ‚B\™]\›‚‚_B‚]˜\ˆ\˜[\È×\Ýš[™Â‚Y›ÜˆËšY[H˜[™ÙH›•\K•\T\˜[\Ë“\ÝÂ‚BY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BB\\˜[\ÈH\[™
+\˜[\Ë\˜[Q[˜Ê˜[YJJB‚B_B‚_B‚ZYˆ[Š\˜[\ÊHOHÂ‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊŠB‚[Ý]•Üš]TÝš[™ÊÝš[™ÜË’›Ú[Š\˜[\Ë‹ŠJB‚[Ý]•Üš]TÝš[™ÊˆŠBŸB‚‹ËÈÜš]U\TÜXÐ[X\Õ\T\˜[\ÈXÛ\™\ÈHÙ[™\šXÈ\H[X\ÉÜÈ\˜[Y]\œÂ‹ËÈ
+Xˆ\HÙ\OˆH‹‹˜›Üˆ\HÙ\VÕˆ[žWH[˜ÊZY[[˜ÊŠH›ÛÛ
+X
+K‚‹ËÈ˜\™H˜[Y\ÈÛ›Nˆ\ÝÙ\È›Ý[™›Ü˜ÙH›Ý[™ÈÛˆ\H[X\Ù\Â‹ËÈ
+\WØ[X\×Ø›Ý[™ÊK[™H[X\È›ÙH[™XYHÜ˜\ÈH\˜[Y]\‚‹ËÈÚ\™]™\ˆH[™\›Z[™ÈÚYÛ˜]\™H™\]Z\™\È]‚™[˜ÈÜš]U\TÜXÐ[X\Õ\T\˜[\ÊÝ]
+œÝš[™ÜËZ[\‹\TÜXÈ
+˜\Ý•\TÜXÊHÂ‚ZYˆ\TÜXÈOHš[\TÜXË•\T\˜[\ÈOHš[[Š\TÜXË•\T\˜[\Ë“\Ý
+HOHÂ‚B\™]\›‚‚_B‚]˜\ˆ\˜[\È×\Ýš[™Â‚Y›ÜˆËšY[H˜[™ÙH\TÜXË•\T\˜[\Ë“\ÝÂ‚BY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BB\\˜[\ÈH\[™
+\˜[\Ë\Ý\S˜[YQ›Ü•\ÙJ˜[YK“˜[YJJB‚B_B‚_B‚ZYˆ[Š\˜[\ÊHOHÂ‚B\™]\›‚‚_B‚[Ý]•Üš]TÝš[™ÊŠB‚[Ý]•Üš]TÝš[™ÊÝš[™ÜË’›Ú[Š\˜[\Ë‹ŠJB‚[Ý]•Üš]TÝš[™ÊˆŠBŸB‚™[˜ÈÙ[™\šXÑ[˜Ý[Û•\Ù\Ñ\™XÝ\T\˜[U˜[YJ›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[›ˆOHš[›‹•\HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆšY[\Ý\Ñ\™XÝ\T\˜[J\R[™›Ë›‹•\K”\˜[\ÊHšY[\Ý\Ñ\™XÝ\T\˜[J\R[™›Ë›‹•\K”™\Ý[ÊHÂ‚B\™]\›ˆYB‚_B‚\™]\›ˆY]Ù›ÙU\Ù\Ñ\™XÝ\T\˜[U˜[YJ\R[™›Ë›‹›ÙJBŸB‚™[˜È\Ý\QÙ[™\šXÜÑ›Ü•\TÜXÊ\TÜXÈ
+˜\Ý•\TÜXÊH\Ý\QÙ[™\šXÜÈÂ‚\™]\›ˆ\Ý\QÙ[™\šXÜÑ›Ü•\TÜXÕÚ]\˜[J\TÜXË\Ý[˜Ý[Û•\T\˜[JBŸB‚™[˜È\Ý\QÙ[™\šXÜÑ›Ü‘XÛ\˜][Û•\TÜXÊ\TÜXÈ
+˜\Ý•\TÜXÊH\Ý\QÙ[™\šXÜÈÂ‚\™]\›ˆ\Ý\QÙ[™\šXÜÑ›Ü•\TÜXÕÚ]\˜[J\TÜXË\Ý\QXÛ\˜][Û”\˜[JBŸB‚™[˜È\Ý\QÙ[™\šXÜÑ›Ü•\TÜXÕÚ]\˜[J\TÜXÈ
+˜\Ý•\TÜXË\˜[Q[˜È[˜Ê
+˜\Ý’Y[
+HÝš[™ÊH\Ý\QÙ[™\šXÜÈÂ‚ZYˆ\TÜXÈOHš[\TÜXË•\T\˜[\ÈOHš[[Š\TÜXË•\T\˜[\Ë“\Ý
+HOHÂ‚B\™]\›ˆ\Ý\QÙ[™\šXÜÞßB‚_B‚]˜\ˆXÛ\˜[\È×\Ýš[™Â‚]˜\ˆ\ÙT\˜[\È×\Ýš[™Â‚Y›ÜˆËšY[H˜[™ÙH\TÜXË•\T\˜[\Ë“\ÝÂ‚BY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBYXÛ\˜[\ÈH\[™
+XÛ\˜[\Ë\˜[Q[˜Ê˜[YJJB‚BB]\ÙT\˜[\ÈH\[™
+\ÙT\˜[\Ë\Ý\S˜[YQ›Ü•\ÙJ˜[YK“˜[YJJB‚B_B‚_B‚ZYˆ[ŠXÛ\˜[\ÊHOHÂ‚B\™]\›ˆ\Ý\QÙ[™\šXÜÞßB‚_B‚\™]\›ˆ\Ý\QÙ[™\šXÜÞÂ‚BQXÛˆˆ
+ÈÝš[™ÜË’›Ú[ŠXÛ\˜[\Ë‹ŠH
+Èˆ‹‚BU\ÙNˆˆ
+ÈÝš[™ÜË’›Ú[Š\ÙT\˜[\Ë‹ŠH
+Èˆ‹‚_BŸB‚™[˜È\Ý\QÙ[™\šXÜÑ›Ü”ÝXÝ\TÜXÊ\TÜXÈ
+˜\Ý•\TÜXËÝXÝ\H
+˜\Ý”ÝXÝ\JH\Ý\QÙ[™\šXÜÈÂ‚YÙ[™\šXÜÈH\Ý\QÙ[™\šXÜÑ›Ü‘XÛ\˜][Û•\TÜXÊ\TÜXÊB‚YÙ[™\šXÜË”[ÛHH\Ý[\ÙY\T\˜[\Ñ›Ü”ÝXÝ
+\TÜXËÝXÝ\JB‚\™]\›ˆÙ[™\šXÜÂŸB‚™[˜È\Ý\QÙ[™\šXÜÑ›Ü”ÝXÝÛÕ˜[YPÛÛ™J\TÜXÈ
+˜\Ý•\TÜXËÝXÝ\H
+˜\Ý”ÝXÝ\JH\Ý\QÙ[™\šXÜÈÂ‚YšY[ÛÛ™T\˜[\ÈHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚ZYˆÝXÝ\HOHš[Â‚BY›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BBZYˆšY[OHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BBBXÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê\R[™›Ë‘Ù]\JšY[•\JKšY[ÛÛ™T\˜[\ËXZÙJX\Ý\\Ë•\WX›ÛÛ
+JB‚BB_B‚B_B‚_B‚YÙ[™\šXÜÈH\Ý\QÙ[™\šXÜÑ›Ü•\TÜXÕÚ]\˜[J\TÜXË[˜Ê˜[YH
+˜\Ý’Y[
+HÝš[™ÈÂ‚BZYˆšY[ÛÛ™T\˜[\ÖÔ\Ý\S˜[YQ›Ü•\ÙJ˜[YK“˜[YJWHÂ‚BB\™]\›ˆ\ÝÛÕ\T\˜[QšY[ÛÛ™U\T\˜[J˜[YJB‚B_B‚B\™]\›ˆ\Ý\QXÛ\˜][Û”\˜[J˜[YJB‚_JB‚YÙ[™\šXÜË”[ÛHH\Ý[\ÙY\T\˜[\Ñ›Ü”ÝXÝ
+\TÜXËÝXÝ\JB‚\™]\›ˆÙ[™\šXÜÂŸB‚‹ËÈÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\È™XÛÜ™È\H\˜[Y]\œÈÚÜÙH˜[Y\È\™B‹ËÈÛÜYYžHHÙ[™\˜]YÝXÝÛÜH[\‹ˆ]›ÛÝÜÈ˜[YKXÛÛZ[š[™Â‹ËÈÝXÝÈ[™\œ˜^\Ë]ÝÜÈ]ÛÈ[™\ÈÝXÚ\ÈÚ[\œËÛXÙ\ËX\Ë‹ËÈÚ[›™[Ë[˜Ý[ÛœË[™[\™˜XÙ\Ë‚™[˜ÈÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê\\\Ë•\K\˜[\ÈX\ÜÝš[™×X›ÛÛš\Ú][™ÈX\Ý\\Ë•\WX›ÛÛ
+HÂ‚ZYˆ\OHš[š\Ú][™ÖÝ\HÂ‚B\™]\›‚‚_B‚]š\Ú][™ÖÝ\HHYB‚YY™\ˆ[]Jš\Ú][™Ë\
+B‚‚\ÝÚ]ÚH\\Ë•[˜[X\Ê\
+KŠ\JHÂ‚XØ\ÙH
+\\Ë•\T\˜[N‚‚BZYˆ“ØšŠ
+HOHš[Â‚BB\\˜[\ÖÔ\Ý\S˜[YQ›Ü•\ÙJ“ØšŠ
+K“˜[YJ
+JWHHYB‚B_B‚XØ\ÙH
+\\Ë“˜[YY‚‚B\ÝÚ]Ú[™\›Z[™ÈH•[™\›Z[™Ê
+KŠ\JHÂ‚BXØ\ÙH
+\\Ë”ÝXÝ‚‚BBY›ÜˆHHÈH[™\›Z[™Ë“[QšY[Ê
+NÈJÊÈÂ‚BBBXÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê[™\›Z[™Ë‘šY[
+JK•\J
+K\˜[\Ëš\Ú][™ÊB‚BB_B‚BXØ\ÙH
+\\Ë\œ˜^N‚‚BBXÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê[™\›Z[™Ë‘[[J
+K\˜[\Ëš\Ú][™ÊB‚B_B‚XØ\ÙH
+\\Ë”ÝXÝ‚‚BY›ÜˆHHÈH“[QšY[Ê
+NÈJÊÈÂ‚BBXÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê‘šY[
+JK•\J
+K\˜[\Ëš\Ú][™ÊB‚B_B‚XØ\ÙH
+\\Ë\œ˜^N‚‚BXÛÛXÝÛÕ\T\˜[QšY[ÛÛ™T\˜[\Ê‘[[J
+K\˜[\Ëš\Ú][™ÊB‚_BŸB‚™[˜È\ÝÝXÝ\Ü^QÙ[™\šXÜÊÙ[™\šXÜÈ\Ý\QÙ[™\šXÜË\TÜXÈ
+˜\Ý•\TÜXËÝXÝ\H
+˜\Ý”ÝXÝ\JH
+\Ý\QÙ[™\šXÜË›ÛÛ
+HÂ‚Y\Ü^T\˜[\ËÚÈH\Ý\Ü^U\T\˜[\Ñ›Ü”ÝXÝ
+\TÜXËÝXÝ\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆÙ[™\šXÜË˜[ÙB‚_B‚ZYˆ[Š\Ü^T\˜[\ÊHOHÂ‚B\™]\›ˆÙ[™\šXÜËYB‚_B‚XÛ]\Ù\ÈHXZÙJ×\Ýš[™Ë[Š\Ü^T\˜[\ÊJB‚Y›ÜˆË\˜[HH˜[™ÙH\Ü^T\˜[\ÈÂ‚BXÛ]\Ù\ÈH\[™
+Û]\Ù\Ë\˜[JÈŽˆÝŽ™›]Ž‘\Ü^HŠB‚_B‚YÙ[™\šXÜË•Ú\™HHˆÚ\™Hˆ
+ÈÝš[™ÜË’›Ú[ŠÛ]\Ù\Ë‹ŠB‚\™]\›ˆÙ[™\šXÜËYBŸB‚™[˜È\Ý\Ü^U\T\˜[\Ñ›Ü”ÝXÝ
+\TÜXÈ
+˜\Ý•\TÜXËÝXÝ\H
+˜\Ý”ÝXÝ\JH
+×\Ýš[™Ë›ÛÛ
+HÂ‚ZYˆ\TÜXÈOHš[\TÜXË•\T\˜[\ÈOHš[ÝXÝ\HOHš[Â‚B\™]\›ˆš[YB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆš[˜[ÙB‚_B‚]\ÙYHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚Y›ÜˆËšY[H˜[™ÙHÝXÝ\K‘šY[Ë“\ÝÂ‚BZYˆšY[OHš[šY[•\HOHš[\ÝXÝ\Ü^QšY[\Ù\ÑY˜][›Ü›X]\ŠšY[•\JHÂ‚BBXÛÛ[YB‚B_B‚B]\H\R[™›Ë‘Ù]\JšY[•\JB‚BZYˆ\OHš[Â‚BB\™]\›ˆš[˜[ÙB‚B_B‚BZYˆXÛÛXÝ\Ý\Ü^U\T\˜[U\Ù\Ê\\ÙYXZÙJX\Ý\\Ë•\WX›ÛÛ
+JHÂ‚BB\™]\›ˆš[˜[ÙB‚B_B‚_B‚ZYˆ[Š\ÙY
+HOHÂ‚B\™]\›ˆš[YB‚_B‚]˜\ˆ\˜[\È×\Ýš[™Â‚Y›ÜˆËšY[H˜[™ÙH\TÜXË•\T\˜[\Ë“\ÝÂ‚BY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BB\\Ý˜[YHH\Ý\S˜[YQ›Ü•\ÙJ˜[YK“˜[YJB‚BBZYˆ\ÙYÜ\Ý˜[YWHÂ‚BBB\\˜[\ÈH\[™
+\˜[\Ë\Ý˜[YJB‚BB_B‚B_B‚_B‚\™]\›ˆ\˜[\ËYBŸB‚™[˜ÈÝXÝ\Ü^QšY[\Ù\ÑY˜][›Ü›X]\Š^ˆ\Ý‘^ŠH›ÛÛÂ‚ZYˆ^ˆOHš[\ÔÞ[˜Ô\˜[J^ŠH\Ñ[\R[\™˜XÙQ^Š^ŠH\Ñ[˜Ý[Û”ÚYÛ˜]\™U\Q^Š^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]Ú^‹Š\JHÂ‚XØ\ÙH
+˜\ÝÚ[•\K
+˜\Ý“X\\N‚‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\œ˜^QšY[ÛÛZ[œÑ[˜Ý[ÛŠ^ŠH‚B\ÛXÙQšY[ÛÛZ[œÑ[\R[\™˜XÙJ^ŠH‚B[X\šY[™YYÓÜ\]YQ\Ü^J^ŠH‚BX\œ˜^QšY[™\ÝY[›™\’\ÔÚ[\Š^ŠH‚BX\œ˜^QšY[™\ÝYÚ[\’[›™\’\Õ˜[YJ^ŠH‚BX\œ˜^QšY[™\ÝYÚ[\’[›™\’\ÔÚ[\Š^ŠH‚BX\œ˜^QšY[ÛÛZ[œÔÛXÙJ^ŠH‚B\Ú[\‘šY[ÛÛZ[œÔÚ[\”ÛXÙJ^ŠH‚B\Ú[\‘šY[ÛÛZ[œÔÛXÙJ^ŠH‚BX\œ˜^QšY[ÛÛZ[œÔÚ[\Š^ŠH‚BX\œ˜^QšY[ÛÛZ[œÓØØ[[\™˜XÙJ^ŠH‚B\ÝXÝ\Ü^QšY[\ÔÚ[\Š^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆËÚÈH^‹Š
+˜\Ý\œ˜^U\JNÈÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆYBŸB‚™[˜ÈÛÛXÝ\Ý\Ü^U\T\˜[U\Ù\Ê\\\Ë•\K\ÙYX\ÜÝš[™×X›ÛÛÙY[ˆX\Ý\\Ë•\WX›ÛÛ
+H›ÛÛÂ‚ZYˆ\OHš[Â‚B\™]\›ˆYB‚_B‚]\H\\Ë•[˜[X\Ê\
+B‚ZYˆÙY[–Ý\HÂ‚B\™]\›ˆYB‚_B‚\ÙY[–Ý\HHYB‚‚\ÝÚ]ÚH\Š\JHÂ‚XØ\ÙH
+\\Ë•\T\˜[N‚‚BZYˆ“ØšŠ
+HOHš[Â‚BB]\ÙYÔ\Ý\S˜[YQ›Ü•\ÙJ“ØšŠ
+K“˜[YJ
+JWHHYB‚B_B‚XØ\ÙH
+\\Ë“˜[YY‚‚BZ[™^\ËÚÈH\Ý˜[YY\Ü^U\P\™Ò[™^\ÊÙY[ŠB‚BZYˆ[ÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B]\P\™ÜÈH•\P\™ÜÊ
+B‚BY›ÜˆË[™^H˜[™ÙH[™^\ÈÂ‚BBZYˆ\P\™ÜÈOHš[[™^[™^H\P\™ÜË“[Š
+HÂ‚BBBXÛÛ[YB‚BB_B‚BBZYˆXÛÛXÝ\Ý\Ü^U\T\˜[U\Ù\Ê\P\™ÜË]
+[™^
+K\ÙYÙY[ŠHÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚B_B‚XØ\ÙH
+\\Ë”Ú[\‹
+\\Ë”ÛXÙK
+\\Ë\œ˜^K
+\\Ë“X\
+\\ËÚ[‹
+\\Ë”ÚYÛ˜]\™K
+\\Ë’[\™˜XÙN‚‚B\™]\›ˆYB‚XØ\ÙH
+\\Ë•\N‚‚BY›ÜˆHHÈH“[Š
+NÈJÊÈÂ‚BBZYˆXÛÛXÝ\Ý\Ü^U\T\˜[U\Ù\Ê]
+JK•\J
+K\ÙYÙY[ŠHÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B¹ïo<¶‰žËkºwµçHÛ™B‚BBBBZYˆ]Üš]Q^\›˜[˜[YY[YÙ\ÛÛœÝ˜[YJÝ]˜[YJHÂ‚BBBBB]Üš]PÛÛœÝ^‘›Ü”\Ý\JÝ]\Ý^™\ÜÚ[ÛœÖÌK[ÝU˜[YKÛÛœÝ\KXÛ\™YÛÛœÝ\JB‚BBBB_B‚BBB_H[ÙHÂ‚BBBBKËÈ›È™]š[Ý\È^™\ÜÚ[Ûˆ]\›‹\Ý\ÙH[ÝH˜[YB‚BBBB[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹[ÝU˜[YJJB‚BBB_B‚‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BB_B‚B_B‚_BŸB‚™[˜ÈÜš]PÛÛœÝ^‘›Ü”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹[ÝU˜[YH[\Ý\HÝš[™ËXÛ\™YÛÛœÝ\H›ÛÛ
+HÂ‚ZYˆ\Ý\HOH‰‰ÜÝ]XÈÝNHˆ	‰ˆÜš]PÛÛœÝž]TÛXÙS]\˜[˜[YJÝ]^ŠHÂ‚B\™]\›‚‚_B‚ZYˆ\Ý\HOH‰‰ÜÝ]XÈÝˆˆ	‰ˆÜš]PÛÛœÝÝš[™Ó]\˜[˜[YJÝ]^ŠHÂ‚B\™]\›‚‚_B‚ZYˆÜš]SÝ]Ù”˜[™ÙQÛÒ[ÛÛœÝ^‘›Ü”\Ý\JÝ]^‹[ÝU˜[YK\Ý\JHÂ‚B\™]\›‚‚_B‚ZYˆÜš]R[YÙ\•\Y›Ø]ÛÛœÝ]\˜[
+Ý]^‹\Ý\JHÂ‚B\™]\›‚‚_B‚ZYˆÜš]PÛÛœÝ[Ø[›Ü”\Ý\JÝ]^‹[ÝU˜[YK\Ý\JHÂ‚B\™]\›‚‚_B‚ZYˆÜš]PÛÛœÝÙ[XÝÜ‘›Ü’[YÙ\”\Ý\JÝ]^‹[ÝU˜[YK\Ý\JHÂ‚B\™]\›‚‚_B‚ZYˆXÛ\™YÛÛœÝ\H	‰ˆÜš]PÛÛœÝš[˜\žQ^‘›Ü‘XÛ\™Y[YÙ\”\Ý\JÝ]^‹\Ý\JHÂ‚B\™]\›‚‚_B‚ZYˆYXÛ\™YÛÛœÝ\H	‰ˆÜš]PÛÛœÝš[˜\žQ^‘›Ü’[™™\œ™Y[YÙ\”\Ý\JÝ]^‹\Ý\JHÂ‚B\™]\›‚‚_B‚U˜[œÜ[PÛÛœÝ^ŠÝ]^‹[ÝU˜[YJBŸB‚™[˜ÈÜš]PÛÛœÝš[˜\žQ^‘›Ü‘XÛ\™Y[YÙ\”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹\Ý\HÝš[™ÊH›ÛÛÂ‚ZYˆËÚÈH\Ý[YÙ\Ø\Ý\Qœ›ÛT\Ý\J\Ý\JNÈ[ÚÈZ\ÐÛÛœÝ[^™\ÜÚ[ÛŠ^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÛÛœÝ^ÛÛZ[œÒ[ÝJ^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆËÚÈH[Ü˜\\™[œÊ^ŠKŠ
+˜\Ýš[˜\žQ^ŠNÈ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ]Üš]QXÛ\™YÛÛœÝ^™\ÜÚ[Û•Ú]\Ý[YÙ\“Ü\˜[™ÊÝ]^‹\Ý\JHÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆYBŸB‚™[˜ÈÜš]PÛÛœÝš[˜\žQ^‘›Ü’[™™\œ™Y[YÙ\”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹\Ý\HÝš[™ÊH›ÛÛÂ‚ZYˆËÚÈH\Ý[YÙ\Ø\Ý\Qœ›ÛT\Ý\J\Ý\JNÈ[ÚÈZ\ÐÛÛœÝ[^™\ÜÚ[ÛŠ^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÛÛœÝ^ÛÛZ[œÒ[ÝJ^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÛÛœÝ^ÛÛZ[œÕ\PÛÛ™\œÚ[ÛŠ^ŠHÂ‚B\™]\›ˆ˜[ÙB‚_B‚Xš[˜\žKÚÈH[Ü˜\\™[œÊ^ŠKŠ
+˜\Ýš[˜\žQ^ŠB‚ZYˆ[ÚÈš[˜\žK“ÜOHÚÙ[‹”Òš[˜\žK“ÜOHÚÙ[‹”ÒˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆÜš]PÛÛœÝ^™\ÜÚ[Û•Ú]\Ý[YÙ\“Ü\˜[™Ñ›Ü‘^XÝY
+Ý]^‹\Ý\JBŸB‚™[˜ÈÛÛœÝ^ÛÛZ[œÕ\PÛÛ™\œÚ[ÛŠ^ˆ\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+^‹[˜Ê›ÙH\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BXØ[ÚÈH›ÙKŠ
+˜\ÝØ[^ŠB‚BZYˆÚÈ	‰ˆ\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠØ[
+HÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚™[˜ÈÛÛœÝ^ÛÛZ[œÒ[ÝJ^ˆ\Ý‘^ŠH›ÛÛÂ‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+^‹[˜Ê›ÙH\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BZY[ÚÈH›ÙKŠ
+˜\Ý’Y[
+B‚BZYˆÚÈ	‰ˆY[“˜[YHOHš[ÝHˆÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚™[˜ÈÜš]SÝ]Ù”˜[™ÙQÛÒ[ÛÛœÝ^‘›Ü”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹[ÝU˜[YH[\Ý\HÝš[™ÊH›ÛÛÂ‚ZYˆ\Ý\HOH\Ý[\J
+H^ˆOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚X˜\ÚXËÚÈH\\Ë•[˜[X\Ê\R[™›Ë‘Ù]\J^ŠJKŠ
+\\Ë˜\ÚXÊB‚ZYˆ[ÚÈ˜\ÚXË’Ú[™
+
+HOH\\Ë’[Â‚B\™]\›ˆ˜[ÙB‚_B‚]˜[YKÚÈHÛÛœÝ^™\ÜÚ[Û•˜[YJ^ŠB‚ZYˆ[ÚÈÛÒ[ÛÛœÝš]Ô\Ý[
+˜[YJHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ]\˜[ÚÈHÛÒ[›Ý[™\žS]\˜[›Ü”\Ý[Ù[
+˜[YJNÈÚÈÂ‚B[Ý]•Üš]TÝš[™Ê]\˜[
+B‚B\™]\›ˆYB‚_B‚U˜[œÜ[PÛÛœÝ^ŠÝ]^‹[ÝU˜[YJB‚\™]\›ˆYBŸB‚™[˜ÈÜš]R[YÙ\•\Y›Ø]ÛÛœÝ]\˜[
+Ý]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹\Ý\HÝš[™ÊH›ÛÛÂ‚ZYˆËÚÈH\Ý[YÙ\Ø\Ý\Qœ›ÛT\Ý\J\Ý\JNÈ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[]ÚÈH^‹Š
+˜\Ý˜\ÚXÓ]
+B‚ZYˆ[ÚÈ]’Ú[™OHÚÙ[‹‘“ÐUÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B[Ý]•Üš]TÝš[™ÊÊˆT”“ÔŽˆ\H[™›Ü›X][Ûˆ™\]Z\™Y›Üˆ[YÙ\ˆÛÛœÝ]\˜[
+‹È[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[YÙ\ˆÛÛœÝ]\˜[ŠX
+B‚B\™]\›ˆYB‚_B‚]‹ÚÈH\R[™›Ëš[™›Ë•\\ÖÛ]B‚ZYˆ[ÚÈ‹•˜[YHOHš[Â‚B[Ý]•Üš]TÝš[™ÊÊˆT”“ÔŽˆ\H[™›Ü›X][Ûˆ™\]Z\™Y›Üˆ[YÙ\ˆÛÛœÝ]\˜[
+‹È[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[YÙ\ˆÛÛœÝ]\˜[ŠX
+B‚B\™]\›ˆYB‚_B‚ZYˆ˜[YK^XÝHÛÛœÝ[’[˜[
+‹•˜[YJNÈ^XÝÂ‚B[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹‘›Ü›X][
+˜[YKL
+JB‚B\™]\›ˆYB‚_B‚ZYˆ˜[YK^XÝHÛÛœÝ[•Z[˜[
+‹•˜[YJNÈ^XÝÂ‚B[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹‘›Ü›X]Z[
+˜[YKL
+JB‚B\™]\›ˆYB‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÜš]PÛÛœÝ[Ø[›Ü”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹[ÝU˜[YH[\Ý\HÝš[™ÊH›ÛÛÂ‚XØ\Ý\KÚÈH\Ý[YÙ\Ø\Ý\Qœ›ÛT\Ý\J\Ý\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚XØ[ÚÈH^‹Š
+˜\ÝØ[^ŠB‚ZYˆ[ÚÈXÛÛœÝZ[[Ø[˜[YJØ[›[ˆŠH[ŠØ[\™ÜÊHOHHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ[™ÝÚÈHÛÛœÝ\œ˜^S[•˜[YJØ[
+NÈÚÈÂ‚B[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹‘›Ü›X][
+[™ÝL
+JB‚B[Ý]•Üš]TÝš[™Êˆ\ÈŠB‚B[Ý]•Üš]TÝš[™ÊØ\Ý\JB‚B\™]\›ˆYB‚_B‚ZYˆXÛÛœÝ^’\ÔÝš[™Õ˜[YJØ[\™ÜÖÌJHÂ‚B\™]\›ˆ˜[ÙB‚_B‚U˜[œÜ[PÛÛœÝ^ŠÝ]Ø[\™ÜÖÌK[ÝU˜[YJB‚[Ý]•Üš]TÝš[™Ê‹›[Š
+H\ÈŠB‚[Ý]•Üš]TÝš[™ÊØ\Ý\JB‚\™]\›ˆYBŸB‚™[˜ÈÛÛœÝ\œ˜^S[•˜[YJØ[
+˜\ÝØ[^ŠH
+[›ÛÛ
+HÂ‚ZYˆXÛÛœÝZ[[Ø[˜[YJØ[›[ˆŠH[ŠØ[\™ÜÊHOHHÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\JØ[\™ÜÖÌJB‚ZYˆ‹ÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë”Ú[\ŠNÈÚÈÂ‚B]\H‹‘[[J
+B‚_B‚X\œ˜^KÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë\œ˜^JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ\œ˜^K“[Š
+KYBŸB‚™[˜ÈÜš]PÛÛœÝ\œ˜^S[Ø[
+Ý]
+œÝš[™ÜËZ[\‹Ø[
+˜\ÝØ[^ŠH›ÛÛÂ‚[[™ÝÚÈHÛÛœÝ\œ˜^S[•˜[YJØ[
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹‘›Ü›X][
+[™ÝL
+JB‚\™]\›ˆYBŸB‚™[˜ÈÜš]PÛÛœÝÙ[XÝÜ‘›Ü’[YÙ\”\Ý\JÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹[ÝU˜[YH[\Ý\HÝš[™ÊH›ÛÛÂ‚XØ\Ý\KÚÈH\Ý[YÙ\Ø\Ý\Qœ›ÛT\Ý\J\Ý\JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\Ù[ÚÈH^‹Š
+˜\Ý”Ù[XÝÜ‘^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ\ÔÝX”Ù[XÝÜ“X\[™ÊÙ[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B[Ý]•Üš]TÝš[™ÊÊˆT”“ÔŽˆ\H[™›Ü›X][Ûˆ™\]Z\™Y›ÜˆÛÛœÝÙ[XÝÜˆ
+‹È[š[\[Y[YJ\H[™›È™\]Z\™Y›ÜˆÛÛœÝÙ[XÝÜˆŠX
+B‚B\™]\›ˆYB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+Ù[”Ù[
+KŠ
+\\ËÛÛœÝ
+B‚ZYˆ[ÚÈØš‹•˜[
+
+HOHš[Øš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[’[Â‚B\™]\›ˆ˜[ÙB‚_B‚X˜\ÚXËÚÈH\\Ë•[˜[X\ÊØš‹•\J
+JKŠ
+\\Ë˜\ÚXÊB‚ZYˆ[ÚÈZ\Ò[YÙ\˜\ÚXÒÚ[™
+˜\ÚXË’Ú[™
+
+JHÂ‚B\™]\›ˆ˜[ÙB‚_B‚U˜[œÜ[PÛÛœÝ^ŠÝ]^‹[ÝU˜[YJB‚[Ý]•Üš]TÝš[™Êˆ\ÈŠB‚[Ý]•Üš]TÝš[™ÊØ\Ý\JB‚\™]\›ˆYBŸB‚™[˜ÈÛÛœÝZ[[Ø[˜[YJØ[
+˜\ÝØ[^‹˜[YHÝš[™ÊH›ÛÛÂ‚ZYˆØ[OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZY[ÚÈHØ[‘[‹Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈY[“˜[YHOH˜[YHÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚XZ[[‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+Y[
+KŠ
+\\ËZ[[ŠB‚\™]\›ˆÚÈ	‰ˆZ[[‹“˜[YJ
+HOH˜[YBŸB‚™[˜ÈÛÛœÝ^’\ÔÝš[™Õ˜[YJ^ˆ\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[^ˆOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ‹ÚÈH\R[™›Ëš[™›Ë•\\ÖÙ^—NÈÚÈ	‰ˆ‹•˜[YHOHš[Â‚B\™]\›ˆ‹•˜[YK’Ú[™
+
+HOHÛÛœÝ[”Ýš[™Â‚_B‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆØš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+JKŠ
+\\ËÛÛœÝ
+NÈÚÈ	‰ˆØš‹•˜[
+
+HOHš[Â‚BB\™]\›ˆØš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[”Ýš[™Â‚B_B‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚BZYˆØš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+K”Ù[
+KŠ
+\\ËÛÛœÝ
+NÈÚÈ	‰ˆØš‹•˜[
+
+HOHš[Â‚BB\™]\›ˆØš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[”Ýš[™Â‚B_B‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B\™]\›ˆÛÛœÝ^’\ÔÝš[™Õ˜[YJK–
+B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜ÈÛÛœÝXÛ\™Y˜[YY\J^ˆ\Ý‘^ŠH
+Ýš[™Ë›ÛÛ
+HÂ‚ZY[ÚÈH^‹Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈÂ‚B\™]\›ˆˆ‹˜[ÙB‚_B‚ZYˆË\Õ\QYˆHÛÚÝ\\QYš[š][ÛŠY[“˜[YJNÈZ\Õ\QYˆÂ‚B\™]\›ˆˆ‹˜[ÙB‚_B‚\™]\›ˆY[“˜[YKYBŸB‚™[˜È\ÝÛÛœÝ\Q›ÜÛÛœÝØš™XÝ
+˜[YH
+˜\Ý’Y[^ˆ\Ý‘^ŠH
+Ýš[™Ë›ÛÛ
+HÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[˜[YHOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+˜[YJKŠ
+\\ËÛÛœÝ
+B‚ZYˆ[ÚÈØš‹•\J
+HOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚ZYˆÛÛœÝÝš[™Õ˜[YS™YYÐž]TÛXÙJØš‹•˜[
+
+JHÂ‚B\™]\›ˆ‰‰ÜÝ]XÈÝNH‹YB‚_B‚ZYˆ˜\ÚXËÚÈH\\Ë•[˜[X\ÊØš‹•\J
+JKŠ
+\\Ë˜\ÚXÊNÈÚÈ	‰ˆ˜\ÚXË’Ú[™
+
+HOH\\Ë•[\Y[™HÂ‚BZYˆ\Ý\KÚÈH\ÝÛÛœÝ\Q›Ü•[\Y[™U˜[YJ^‹Øš‹•˜[
+
+JNÈÚÈÂ‚BB\™]\›ˆ\Ý\KYB‚B_B‚_B‚ZYˆ˜\ÚXËÚÈH\\Ë•[˜[X\ÊØš‹•\J
+JKŠ
+\\Ë˜\ÚXÊNÈÚÈ	‰ˆ˜\ÚXË’Ú[™
+
+HOH\\Ë•[\Y[Â‚BZYˆ\Ý\KÚÈH\ÝÛÛœÝ\Q›Ü•[\Y[YÙ\•˜[YJ^‹Øš‹•˜[
+
+JNÈÚÈÂ‚BB\™]\›ˆ\Ý\KYB‚B_B‚_B‚\™]\›ˆ\ÝÛÛœÝ\Q›Ü‘ÛÕ\\Õ\JØš‹•\J
+JBŸB‚™[˜È]˜[[ÛÛœÝ^Š^ˆ\Ý‘^ŠH
+[›ÛÛ
+HÂ‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[	‰ˆ\R[™›Ëš[™›ÈOHš[Â‚BZYˆ‹ÚÈH\R[™›Ëš[™›Ë•\\ÖÙ^—NÈÚÈ	‰ˆ‹•˜[YHOHš[Â‚BB\™]\›ˆÛÛœÝ[’[˜[
+‹•˜[YJB‚B_B‚_B‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý˜\ÚXÓ]‚‚BZYˆK’Ú[™OHÚÙ[‹’S•Â‚BB\™]\›ˆ˜[ÙB‚B_B‚B]‹\œˆHÝ˜ÛÛ‹”\œÙR[
+K•˜[YK
+B‚BZYˆ\œˆOHš[Â‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆ‹YB‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚B[ÚÈH]˜[[ÛÛœÝ^ŠK–
+B‚B\‹›ÚÈH]˜[[ÛÛœÝ^ŠK–JB‚BZYˆ[ÚÈ\›ÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\ÝÚ]ÚK“ÜÂ‚BXØ\ÙHÚÙ[‹Q‚‚BB\™]\›ˆ
+È‹YB‚BXØ\ÙHÚÙ[‹”ÕPŽ‚‚BB\™]\›ˆH‹YB‚BXØ\ÙHÚÙ[‹“US‚‚BB\™]\›ˆ
+ˆ‹YB‚BXØ\ÙHÚÙ[‹”USÎ‚‚BBZYˆˆOHÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆÈ‹YB‚BXØ\ÙHÚÙ[‹”‘SN‚‚BBZYˆˆOHÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆ	H‹YB‚BXØ\ÙHÚÙ[‹”Ò‚‚BBZYˆˆˆHŒÈÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆZ[
+ŠKYB‚BXØ\ÙHÚÙ[‹”ÒŽ‚‚BBZYˆˆˆHŒÈÂ‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BB\™]\›ˆˆZ[
+ŠKYB‚BXØ\ÙHÚÙ[‹S‘‚‚BB\™]\›ˆ	ˆ‹YB‚BXØ\ÙHÚÙ[‹“ÔŽ‚‚BB\™]\›ˆ‹YB‚BXØ\ÙHÚÙ[‹–ÔŽ‚‚BB\™]\›ˆˆ‹YB‚B_B‚XØ\ÙH
+˜\Ý•[˜\žQ^Ž‚‚B]‹ÚÈH]˜[[ÛÛœÝ^ŠK–
+B‚BZYˆ[ÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\ÝÚ]ÚK“ÜÂ‚BXØ\ÙHÚÙ[‹Q‚‚BB\™]\›ˆ‹YB‚BXØ\ÙHÚÙ[‹”ÕPŽ‚‚BB\™]\›ˆ]‹YB‚BXØ\ÙHÚÙ[‹–ÔŽ‚‚BB\™]\›ˆ‹YB‚B_B‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B\™]\›ˆ]˜[[ÛÛœÝ^ŠK–
+B‚XØ\ÙH
+˜\ÝØ[^Ž‚‚BZYˆ[ŠK\™ÜÊHOHHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[]\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠJHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆ]˜[[ÛÛœÝ^ŠK\™ÜÖÌJB‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜È[™™\ÛÛœÝ\J^ˆ\Ý‘^ŠHÝš[™ÈÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý˜\ÚXÓ]‚‚B\ÝÚ]ÚK’Ú[™Â‚BXØ\ÙHÚÙ[‹’S•‚‚BBKËÈ[ˆ[\Y[YÙ\ˆÛÛœÝ[	ÜÈY˜][\H\È[ÈÛ™HÛÂ‚BBKËÈšYÈ›Üˆ]\ÈHZ[‚‚BBZYˆË\œˆHÝ˜ÛÛ‹”\œÙR[
+K•˜[YK
+NÈ\œˆOHš[Â‚BBBZYˆË\œˆHÝ˜ÛÛ‹”\œÙUZ[
+K•˜[YK
+NÈ\œˆOHš[Â‚BBBB\™]\›ˆM‚‚BBB_B‚BB_B‚BB\™]\›ˆ\Ý[\J
+B‚BXØ\ÙHÚÙ[‹‘“ÐU‚‚BB\™]\›ˆ™‚‚BXØ\ÙHÚÙ[‹”Õ’S‘Î‚‚BB\™]\›ˆ‰‰ÜÝ]XÈÝˆ‚‚B_B‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆK“˜[YHOHYHˆK“˜[YHOH™˜[ÙHˆÂ‚BB\™]\›ˆ˜›ÛÛ‚‚B_B‚BKËÈÚXÚÈYˆ]	ÜÈHÛ›ÝÛˆÛÛœÝ[‚BZYˆÛÛœÝ\K^\ÝÈHØØ[ÛÛœÝ[ÖÙK“˜[YWNÈ^\ÝÈÂ‚BB\™]\›ˆÛÛœÝ\B‚B_B‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚BKËÈ›Üˆš[˜\žH^™\ÜÚ[ÛœËÚXÚÈH\HÙˆÜ\˜[™Â‚B[Y\HH[™™\ÛÛœÝ\JK–
+B‚BZYˆY\HOH‰‰ÜÝ]XÈÝˆˆÂ‚BB\™]\›ˆ‰‰ÜÝ]XÈÝˆ‚‚B_B‚B\šYÚ\HH[™™\ÛÛœÝ\JK–JB‚BZYˆšYÚ\HOH‰‰ÜÝ]XÈÝˆˆÂ‚BB\™]\›ˆ‰‰ÜÝ]XÈÝˆ‚‚B_B‚BKËÈ›Üˆš]ÚYÜ\˜][ÛœÈ]ZYÚÝ™\™›ÝË\ÙHM‚BZYˆK“ÜOHÚÙ[‹”ÒÂ‚BBKËÈYˆÙHØ[ˆÛÛœÝ[Y›Û[™H™\Ý[š]È[ˆ[™Y™\ˆ[‚‚BBZYˆ‹ÚÈH]˜[[ÛÛœÝ^ŠJNÈÚÈÂ‚BBBZYˆˆH[
+X]“Z[’[
+H	‰ˆˆH[
+X]“X^[
+HÂ‚BBBB\™]\›ˆ\Ý[\J
+B‚BBB_B‚BB_B‚BB\™]\›ˆšM‚‚B_B‚BKËÈYˆZ]\ˆÜ\˜[™\ÈM™\Ý[\ÈM‚BZYˆY\HOHšMˆšYÚ\HOHšMˆÂ‚BB\™]\›ˆšM‚‚B_B‚BKËÈY˜][È[›ÜˆÝ\ˆ[Y\šXÈÜ\˜][ÛœÂ‚B\™]\›ˆ\Ý[\J
+B‚_B‚\™]\›ˆ\Ý[\J
+HËÈY˜][ŸB‚‹ËÈ[\ˆ[˜Ý[ÛˆÈÚXÚÈYˆ[ˆ^™\ÜÚ[Ûˆ\ÈHÝš[™ÈÛÛœÝ[™[˜È\ÔÝš[™ÐÛÛœÝ^Š^ˆ\Ý‘^ŠH›ÛÛÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý˜\ÚXÓ]‚‚B\™]\›ˆK’Ú[™OHÚÙ[‹”Õ’S‘Â‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆÛÛœÝ\K^\ÝÈHØØ[ÛÛœÝ[ÖÙK“˜[YWNÈ^\ÝÈÂ‚BB\™]\›ˆÛÛœÝ\HOH‰‰ÜÝ]XÈÝˆ‚‚B_B‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[Â‚BBZYˆØš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+JKŠ
+\\ËÛÛœÝ
+NÈÚÈÂ‚BBB\™]\›ˆØš‹•˜[
+
+HOHš[	‰ˆØš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[”Ýš[™Â‚BB_B‚B_B‚B\™]\›ˆ˜[ÙB‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[Â‚BBZYˆØš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+K”Ù[
+KŠ
+\\ËÛÛœÝ
+NÈÚÈÂ‚BBB\™]\›ˆØš‹•˜[
+
+HOHš[	‰ˆØš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[”Ýš[™Â‚BB_B‚B_B‚B\™]\›ˆ˜[ÙB‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚BKËÈÝš[™ÈÛÛ˜Ø][˜][Û‚‚BZYˆK“ÜOHÚÙ[‹QÂ‚BB\™]\›ˆ\ÔÝš[™ÐÛÛœÝ^ŠK–
+H	‰ˆ\ÔÝš[™ÐÛÛœÝ^ŠK–JB‚B_B‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ˜[ÙBŸB‚‹ËÈ[\ˆ[˜Ý[ÛˆÈ[H]˜[X]HHÛÛœÝÝš[™È^™\ÜÚ[Ûˆ[˜ÛY[™ÈY[YšY\œÂ™[˜È]˜[X]PÛÛœÝÝš[™Ñ^Š^ˆ\Ý‘^ŠHÝš[™ÈÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý˜\ÚXÓ]‚‚BZYˆK’Ú[™OHÚÙ[‹”Õ’S‘ÈÂ‚BBZYˆ˜[YK\œˆHÝ˜ÛÛ‹•[œ][ÝJK•˜[YJNÈ\œˆOHš[Â‚BBB\™]\›ˆ˜[YB‚BB_B‚B_B‚XØ\ÙH
+˜\Ý’Y[‚‚BKËÈÛÚÈ\H˜[YHÙˆHÛÛœÝ[\Ú[™È\R[™›Â‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[	‰ˆ\R[™›Ëš[™›ÈOHš[Â‚BBZYˆØš‹ÚÈH\R[™›Ëš[™›Ë•\Ù\ÖÙWNÈÚÈÂ‚BBBZYˆÛÛœÝØš‹ÚÈHØš‹Š
+\\ËÛÛœÝ
+NÈÚÈÂ‚BBBBZYˆÛÛœÝØš‹•˜[
+
+HOHš[Â‚BBBBBKËÈ^˜XÝHÝš[™È˜[YHœ›ÛHHÛÛœÝ[‚BBBBB\™]\›ˆÛÛœÝ[”Ýš[™Õ˜[
+ÛÛœÝØš‹•˜[
+
+JB‚BBBB_B‚BBB_B‚BB_B‚B_B‚BKËÈ\H[™›È›Ý]˜Z[X›HÜˆ›ÝHÛÛœÝ[‚B\™]\›ˆˆ‚‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[Â‚BBZYˆØš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+K”Ù[
+KŠ
+\\ËÛÛœÝ
+NÈÚÈ	‰ˆØš‹•˜[
+
+HOHš[Â‚BBB\™]\›ˆÛÛœÝ[”Ýš[™Õ˜[
+Øš‹•˜[
+
+JB‚BB_B‚B_B‚B\™]\›ˆˆ‚‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚BZYˆK“ÜOHÚÙ[‹QÂ‚BB[YH]˜[X]PÛÛœÝÝš[™Ñ^ŠK–
+B‚BB\šYÚH]˜[X]PÛÛœÝÝš[™Ñ^ŠK–JB‚BBZYˆYOHˆˆšYÚOHˆˆÂ‚BBB\™]\›ˆY
+ÈšYÚ‚BB_B‚B_B‚_B‚\™]\›ˆˆ‚ŸB‚™[˜È˜[œÜ[PÛÛœÝ^ŠÝ]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹[ÝU˜[YH[
+HÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý˜\ÚXÓ]‚‚BZYˆK’Ú[™OHÚÙ[‹”Õ’S‘ÈÂ‚BBKËÈ›ÜˆÛÛœÝÝš[™ÜË\ÙH	œÝˆ[œÝXYÙˆÝš[™Â‚BB[Ý]•Üš]TÝš[™Ê\ÝÝš[™Ó]\˜[
+K•˜[YJJB‚B_H[ÙHYˆK’Ú[™OHÚÙ[‹ÒTˆÂ‚BB[Ý]•Üš]TÝš[™ÊŠŠB‚BB[Ý]•Üš]TÝš[™Ê\ÝÚ\“]\˜[
+K•˜[YJJB‚BB[Ý]•Üš]TÝš[™Êˆ\ÈLÌŠHŠB‚B_H[ÙHYˆK’Ú[™OHÚÙ[‹‘“ÐUÂ‚BBZYˆ˜[YKÚÈH\Ý›Ø]]\˜[
+JNÈÚÈÂ‚BBB[Ý]•Üš]TÝš[™Ê˜[YJB‚BB_H[ÙHÂ‚BBB[Ý]•Üš]TÝš[™ÊK•˜[YJB‚BB_B‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™ÊK•˜[YJB‚B_B‚XØ\ÙH
+˜\Ý’Y[‚‚BZYˆK“˜[YHOHš[ÝHˆÂ‚BB[Ý]•Üš]TÝš[™Ê›]”Üš[Š‰Y‹[ÝU˜[YJJB‚B_H[ÙHYˆK“˜[YHOHYHˆK“˜[YHOH™˜[ÙHˆÂ‚BBKËÈ›ÛÛX[ˆ]\˜[Â‚BB[Ý]•Üš]TÝš[™ÊK“˜[YJB‚B_H[ÙHYˆË^\ÝÈHØØ[ÛÛœÝ[ÖÙK“˜[YWNÈ^\ÝÈÂ‚BBKËÈØØ[ÛÛœÝ[HÙY\ÜšYÚ[˜[˜[YB‚BB[Ý]•Üš]TÝš[™ÊK“˜[YJB‚B_H[ÙHYˆ\ÐÛÛœÝY[
+JHÂ‚BB[Ý]•Üš]TÝš[™Ê\ÝÛÛœÝ˜[YJK“˜[YJJB‚B_H[ÙHYˆK“˜[YVÌHH	ØIÈ	‰ˆK“˜[YVÌHH	Þ‰ÈÂ‚BBKËÈXÚØYÙK[]™[ÛÛœÝ[™Y™\™[˜ÙHHÛÛ™\È\\˜Ø\ÙB‚BB[Ý]•Üš]TÝš[™Ê\ÝÛÛœÝ˜[YJK“˜[YJJB‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™ÊK“˜[YJB‚B_B‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚BZYˆÜš]PÛÛœÝÝš[™Ñ\]X[]JÝ]K[ÝU˜[YJHÂ‚BB\™]\›‚‚B_B‚BKËÈÜXÚX[[™[™È›ÜˆÝš[™ÈÛÛ˜Ø][˜][Ûˆ[ˆÛÛœÝÛÛ^‚BZYˆK“ÜOHÚÙ[‹Q	‰ˆ\ÔÝš[™ÐÛÛœÝ^ŠK–
+H	‰ˆ\ÔÝš[™ÐÛÛœÝ^ŠK–JHÂ‚BBKËÈ›ÜˆÝš[™ÈÛÛ˜Ø][˜][Ûˆ[ˆÛÛœÝÛÛ^žHÈ]˜[X]H]ÛÛ\[H[YB‚BB\™\Ý[H]˜[X]PÛÛœÝÝš[™Ñ^Š^ŠB‚BBZYˆ™\Ý[OHˆˆÂ‚BBBKËÈÝXØÙ\ÜÙ[H]˜[X]YH[\™H^™\ÜÚ[Û‚‚BBB[Ý]•Üš]TÝš[™Ê\ÝÝš[™Ó]\˜[
+Ý˜ÛÛ‹”][ÝJ™\Ý[
+JJB‚BB_H[ÙHÂ‚BBBKËÈ˜[˜XÚÈH\ÈÛÛ‰ÝÛÜšÈ›ÜˆÛÛœÝ]]X\ÝÙ[™\˜]\ÈÛÛY][™Â‚BBB[Ý]•Üš]TÝš[™Ê‹ÊˆÑÎˆÛÛ\^Ýš[™ÈÛÛ˜Ø][˜][Ûˆ[ˆÛÛœÝ
+‹ÈŠB‚BBB[Ý]•Üš]TÝš[™Êˆ˜
+B‚BB_B‚B_H[ÙHÂ‚BBKËÈ[™Hš[˜\žH^™\ÜÚ[ÛœÈ[ˆÛÛœÝÛÛ^‚BBZYˆK“ÜOHÚÙ[‹”ÒK“ÜOHÚÙ[‹”ÒˆÂ‚BBB]Üš]PÛÛœÝš[˜\žSÜ\˜[™
+Ý]K–K“Ü˜[ÙK[˜Ê
+HÂ‚BBBBU˜[œÜ[PÛÛœÝ^ŠÝ]K–[ÝU˜[YJB‚BBB_JB‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BBB[Ý]•Üš]TÝš[™ÊK“Ü”Ýš[™Ê
+JB‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BBB]Üš]PÛÛœÝš[˜\žSÜ\˜[™
+Ý]K–KK“ÜYK[˜Ê
+HÂ‚BBBBZYˆ]Üš]PÛÛœÝÚYÛÝ[˜[YJÝ]K–JHÂ‚BBBBBU˜[œÜ[PÛÛœÝ^ŠÝ]K–K[ÝU˜[YJB‚BBBB_B‚BBB_JB‚BB_H[ÙHÂ‚BBB]Üš]PÛÛœÝš[˜\žSÜ\˜[™
+Ý]K–K“Ü˜[ÙK[˜Ê
+HÂ‚BBBBZYˆË\ÐØ[HK–Š
+˜\ÝØ[^ŠNÈ\ÐØ[]Üš]Tš[Z]]™PÛÛœÝ^™\ÜÚ[Û‘›Üš[˜\žTY\ŠÝ]K–K–K[ÝU˜[YJHÂ‚BBBBBU˜[œÜ[PÛÛœÝ^ŠÝ]K–[ÝU˜[YJB‚BBBB_B‚BBB_JB‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BBB[Ý]•Üš]TÝš[™ÊK“Ü”Ýš[™Ê
+JB‚BBB[Ý]•Üš]TÝš[™ÊˆŠB‚BBB]Üš]PÛÛœÝš[˜\žSÜ\˜[™
+Ý]K–KK“ÜYK[˜Ê
+HÂ‚BBBBZYˆË\ÐØ[HK–KŠ
+˜\ÝØ[^ŠNÈ\ÐØ[]Üš]Tš[Z]]™PÛÛœÝ^™\ÜÚ[Û‘›Üš[˜\žTY\ŠÝ]K–KK–[ÝU˜[YJHÂ‚BBBBBU˜[œÜ[PÛÛœÝ^ŠÝ]K–K[ÝU˜[YJB‚BBBB_B‚BBB_JB‚BB_B‚B_B‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B[Ý]•Üš]TÝš[™ÊŠŠB‚BU˜[œÜ[PÛÛœÝ^ŠÝ]K–[ÝU˜[YJB‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚XØ\ÙH
+˜\Ý•[˜\žQ^Ž‚‚B]Üš]PÛÛœÝ[˜\žQ^ŠÝ]K[ÝU˜[YJB‚XØ\ÙH
+˜\ÝØ[^Ž‚‚BZYˆÜš]PÛÛœÝ[œØY™U\TÚ^™PØ[
+Ý]JHÂ‚BB\™]\›‚‚B_B‚BZYˆÜš]PÛÛœÝ\œ˜^S[Ø[
+Ý]JHÂ‚BB\™]\›‚‚B_B‚BZYˆ]Üš]PÛÛœÝ\PÛÛ™\œÚ[ÛŠÝ]K[ÝU˜[YJHÂ‚BBU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]^ŠB‚B_B‚YY˜][‚‚BKËÈ˜[˜XÚÈÈ™YÝ[\ˆ^™\ÜÚ[Ûˆ˜[œÜ[][Û‚‚BU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]^ŠB‚_BŸB‚™[˜ÈÜš]PÛÛœÝÝš[™Ñ\]X[]JÝ]
+œÝš[™ÜËZ[\‹^ˆ
+˜\Ýš[˜\žQ^‹[ÝU˜[YH[
+H›ÛÛÂ‚ZYˆ^ˆOHš[^‹“ÜOHÚÙ[‹‘TS	‰ˆ^‹“ÜOHÚÙ[‹“‘THÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ˜[YKÚÈHÛÛœÝ›ÛÛ˜[YQ›Ü”ÝX˜XÚÙYÝš[™ÔÙ[XÝÜ‘\]X[]J^ŠNÈÚÈÂ‚B[Ý]•Üš]TÝš[™ÊÝ˜ÛÛ‹‘›Ü›X]›ÛÛ
+˜[YJJB‚B\™]\›ˆYB‚_B‚[Y]\›‹Y\Ô]\›ˆHÛÛœÝÝš[™Ó]\˜[
+^‹–
+B‚\šYÚ]\›‹šYÚ\Ô]\›ˆHÛÛœÝÝš[™Ó]\˜[
+^‹–JB‚]˜\ˆÝXš™XÝ\Ý‘^‚‚\]\›ˆHˆ‚‚ZYˆšYÚ\Ô]\›ˆ	‰ˆ\ÔÝš[™ÐÛÛœÝ^Š^‹–
+HÂ‚B\ÝXš™XÝH^‹–‚B\]\›ˆHšYÚ]\›‚‚_H[ÙHYˆY\Ô]\›ˆ	‰ˆ\ÔÝš[™ÐÛÛœÝ^Š^‹–JHÂ‚B\ÝXš™XÝH^‹–B‚B\]\›ˆHY]\›‚‚_H[ÙHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ^‹“ÜOHÚÙ[‹“‘THÂ‚B[Ý]•Üš]TÝš[™ÊˆHŠB‚_B‚S™YYÛÐÛÛœÝÝ‘\J
+B‚[Ý]•Üš]TÝš[™Ê™Û×ØÛÛœÝÜÝ—Ù\JŠB‚U˜[œÜ[PÛÛœÝ^ŠÝ]ÝXš™XÝ[ÝU˜[YJB‚[Ý]•Üš]TÝš[™Ê‹ŠB‚[Ý]•Üš]TÝš[™Ê]\›ŠB‚[Ý]•Üš]TÝš[™ÊŠHŠB‚\™]\›ˆYBŸB‚™[˜ÈÛÛœÝ›ÛÛ˜[YQ›Ü”ÝX˜XÚÙYÝš[™ÔÙ[XÝÜ‘\]X[]J^ˆ
+˜\Ýš[˜\žQ^ŠH
+›ÛÛ›ÛÛ
+HÂ‚ZYˆ^ˆOHš[XÛÛœÝÝš[™Ñ\]X[]R\ÔÝX˜XÚÙYÙ[XÝÜŠ^‹–
+H	‰ˆXÛÛœÝÝš[™Ñ\]X[]R\ÔÝX˜XÚÙYÙ[XÝÜŠ^‹–JHÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚]˜[YKÚÈHÛÛœÝ^™\ÜÚ[Û•˜[YJ^ŠB‚ZYˆ[ÚÈ˜[YK’Ú[™
+
+HOHÛÛœÝ[›ÛÛÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\™]\›ˆÛÛœÝ[›ÛÛ˜[
+˜[YJKYBŸB‚™[˜ÈÛÛœÝÝš[™Ñ\]X[]R\ÔÝX˜XÚÙYÙ[XÝÜŠ^ˆ\Ý‘^ŠH›ÛÛÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚B]\R[™›ÈHÙ]\R[™›Ê
+B‚BZYˆ\R[™›ÈOHš[Â‚BB\™]\›ˆ˜[ÙB‚B_B‚B[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+K”Ù[
+KŠ
+\\ËÛÛœÝ
+B‚BZYˆ[ÚÈØš‹”ÙÊ
+HOHš[Øš‹•˜[
+
+HOHš[Øš‹•˜[
+
+K’Ú[™
+
+HOHÛÛœÝ[”Ýš[™ÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆ\ÔÝX˜XÚÙYÝX”XÚØYÙT]
+Øš‹”ÙÊ
+K”]
+
+JB‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B\™]\›ˆÛÛœÝÝš[™Ñ\]X[]R\ÔÝX˜XÚÙYÙ[XÝÜŠK–
+B‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÜš]PÛÛœÝš[˜\žSÜ\˜[™
+Ý]
+œÝš[™ÜËZ[\‹^ˆ\Ý‘^‹\™[ÜÚÙ[‹•ÚÙ[‹\ÔšYÚ›ÛÛÜš]H[˜Ê
+JHÂ‚ZYˆÛÛœÝš[˜\žSÜ\˜[™™YYÔ\™[œÊ^‹\™[Ü\ÔšYÚ
+HÂ‚B[Ý]•Üš]TÝš[™ÊŠŠB‚B]Üš]J
+B‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚B\™]\›‚‚_B‚]Üš]J
+BŸB‚™[˜ÈÛÛœÝš[˜\žSÜ\˜[™™YYÔ\™[œÊ^ˆ\Ý‘^‹\™[ÜÚÙ[‹•ÚÙ[‹\ÔšYÚ›ÛÛ
+H›ÛÛÂ‚Xš[˜\žKÚÈH^‹Š
+˜\Ýš[˜\žQ^ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚XÚ[™XÈH\ÝÛÛœÝš[˜\žT™XÙY[˜ÙJš[˜\žK“Ü
+B‚\\™[™XÈH\ÝÛÛœÝš[˜\žT™XÙY[˜ÙJ\™[Ü
+B‚ZYˆÚ[™XÈOH\™[™XÈOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÚ[™XÈ\™[™XÈÂ‚B\™]\›ˆYB‚_B‚\™]\›ˆ\ÔšYÚ	‰ˆÚ[™XÈOH\™[™XÂŸB‚™[˜È\ÝÛÛœÝš[˜\žT™XÙY[˜ÙJÜÚÙ[‹•ÚÙ[ŠH[Â‚\ÝÚ]ÚÜÂ‚XØ\ÙHÚÙ[‹“ÔŽ‚‚B\™]\›ˆB‚XØ\ÙHÚÙ[‹“S‘‚‚B\™]\›ˆ‚‚XØ\ÙHÚÙ[‹‘TSÚÙ[‹“‘TKÚÙ[‹“ÔËÚÙ[‹“TKÚÙ[‹‘Õ‹ÚÙ[‹‘ÑTN‚‚B\™]\›ˆÂ‚XØ\ÙHÚÙ[‹“ÔŽ‚‚B\™]\›ˆ‚XØ\ÙHÚÙ[‹–ÔŽ‚‚B\™]\›ˆB‚XØ\ÙHÚÙ[‹S‘ÚÙ[‹S‘Ó“Õ‚‚B\™]\›ˆ‚‚XØ\ÙHÚÙ[‹”ÒÚÙ[‹”ÒŽ‚‚B\™]\›ˆÂ‚XØ\ÙHÚÙ[‹QÚÙ[‹”ÕPŽ‚‚B\™]\›ˆ‚XØ\ÙHÚÙ[‹“USÚÙ[‹”USËÚÙ[‹”‘SN‚‚B\™]\›ˆB‚YY˜][‚‚B\™]\›ˆ‚_BŸB‚™[˜ÈÜš]PÛÛœÝ[˜\žQ^ŠÝ]
+œÝš[™ÜËZ[\‹^ˆ
+˜\Ý•[˜\žQ^‹[ÝU˜[YH[
+HÂ‚\ÝÚ]Ú^‹“ÜÂ‚XØ\ÙHÚÙ[‹Q‚‚BU˜[œÜ[PÛÛœÝ^ŠÝ]^‹–[ÝU˜[YJB‚XØ\ÙHÚÙ[‹”ÕPŽ‚‚B[Ý]•Üš]TÝš[™Ê‹HŠB‚BU˜[œÜ[PÛÛœÝ^ŠÝ]^‹–[ÝU˜[YJB‚XØ\ÙHÚÙ[‹““ÕÚÙ[‹–ÔŽ‚‚B[Ý]•Üš]TÝš[™ÊˆHŠB‚BU˜[œÜ[PÛÛœÝ^ŠÝ]^‹–[ÝU˜[YJB‚YY˜][‚‚BU˜[œÜ[Q^™\ÜÚ[ÛŠÝ]^ŠB‚_BŸB‚™[˜ÈÜš]PÛÛœÝ[œØY™U\TÚ^™PØ[
+Ý]
+œÝš[™ÜËZ[\‹Ø[
+˜\ÝØ[^ŠH›ÛÛÂ‚ZÙ^KÚÈHÝXØ[Ù^JØ[‘[ŠB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚‚]˜\ˆÛÑ[˜ÈÝš[™Â‚]˜\ˆ\Ý[˜ÈÝš[™Â‚\ÝÚ]ÚÙ^HÂ‚XØ\ÙH[œØY™K”Ú^™[ÙˆŽ‚‚BYÛÑ[˜ÈH”Ú^™[Ùˆ‚‚B\\Ý[˜ÈHœÚ^™WÛÙˆ‚‚XØ\ÙH[œØY™K[YÛ›ÙˆŽ‚‚BYÛÑ[˜ÈH[YÛ›Ùˆ‚‚B\\Ý[˜ÈH˜[YÛ—ÛÙˆ‚‚XØ\ÙH[œØY™K“Ù™œÙ]ÙˆŽ‚‚B\™]\›ˆÜš]PÛÛœÝ[œØY™SÙ™œÙ]ÙØ[
+Ý]Ø[
+B‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_B‚‚ZYˆ[ŠØ[\™ÜÊHOHÂ‚B[Ý]•Üš]TÝš[™Ê‹ÊˆT”“ÔŽˆ[œØY™KˆŠB‚B[Ý]•Üš]TÝš[™ÊÛÑ[˜ÊB‚B[Ý]•Üš]TÝš[™Êˆ™\]Z\™\È[ˆ\™Ý[Y[
+‹È[š[\[Y[YJ
+HŠB‚B\™]\›ˆYB‚_B‚‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B[Ý]•Üš]TÝš[™Ê[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[œØY™KˆŠB‚B[Ý]•Üš]TÝš[™ÊÛÑ[˜ÊB‚B[Ý]•Üš]TÝš[™Ê—ŠHŠB‚B\™]\›ˆYB‚_B‚‚X\™Õ\HH\R[™›Ë‘Ù]\JØ[\™ÜÖÌJB‚ZYˆ\™Õ\HOHš[Â‚B[Ý]•Üš]TÝš[™Ê[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[œØY™KˆŠB‚B[Ý]•Üš]TÝš[™ÊÛÑ[˜ÊB‚B[Ý]•Üš]TÝš[™Ê—ŠHŠB‚B\™]\›ˆYB‚_B‚‚[Ý]•Üš]TÝš[™ÊœÝŽ›Y[NŽˆŠB‚[Ý]•Üš]TÝš[™Ê\Ý[˜ÊB‚[Ý]•Üš]TÝš[™ÊŽŽŠB‚[Ý]•Üš]TÝš[™ÊÛÕ\\Õ\UÔ\Ý
+\™Õ\JJB‚[Ý]•Üš]TÝš[™ÊŠ
+HŠB‚\™]\›ˆYBŸB‚™[˜ÈÜš]PÛÛœÝ[œØY™SÙ™œÙ]ÙØ[
+Ý]
+œÝš[™ÜËZ[\‹Ø[
+˜\ÝØ[^ŠH›ÛÛÂ‚ZYˆ[ŠØ[\™ÜÊHOHÂ‚B[Ý]•Üš]TÝš[™Ê‹ÊˆT”“ÔŽˆ[œØY™K“Ù™œÙ]Ùˆ™\]Z\™\È[ˆ\™Ý[Y[
+‹È[š[\[Y[YJ
+HŠB‚B\™]\›ˆYB‚_B‚\Ù[ÚÈHØ[\™ÜÖÌKŠ
+˜\Ý”Ù[XÝÜ‘^ŠB‚ZYˆ[ÚÈÂ‚B[Ý]•Üš]TÝš[™Ê[š[\[Y[YJ[œØY™K“Ù™œÙ]Ùˆ™\]Z\™\ÈÙ[XÝÜ—ŠHŠB‚B\™]\›ˆYB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B[Ý]•Üš]TÝš[™Ê[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[œØY™K“Ù™œÙ]Ù—ŠHŠB‚B\™]\›ˆYB‚_B‚XÛÛZ[™\•\HH\R[™›Ë‘Ù]\JÙ[–
+B‚ZYˆÛÛZ[™\•\HOHš[Â‚B[Ý]•Üš]TÝš[™Ê[š[\[Y[YJ\H[™›È™\]Z\™Y›Üˆ[œØY™K“Ù™œÙ]Ù—ŠHŠB‚B\™]\›ˆYB‚_B‚ZYˆ‹ÚÈH\\Ë•[˜[X\ÊÛÛZ[™\•\JKŠ
+\\Ë”Ú[\ŠNÈÚÈÂ‚BXÛÛZ[™\•\HH‹‘[[J
+B‚_B‚XÛÛZ[™\”\Ý\HHÛÕ\\Õ\UÔ\Ý
+ÛÛZ[™\•\JB‚ZYˆÛÛZ[™\”\Ý\HOH‹Êˆ[šÛ›ÝÛˆÝXÝ
+‹ÈˆÂ‚BZYˆ\Ý\KÚÈH[\ÜYXÚØYÙQÛØ˜[\T]
+Ù[–\R[™›ÊNÈÚÈÂ‚BBXÛÛZ[™\”\Ý\HH\Ý\B‚B_B‚_B‚[Ý]•Üš]TÝš[™ÊœÝŽ›Y[NŽ›Ù™œÙ]ÛÙˆJŠB‚[Ý]•Üš]TÝš[™ÊÛÛZ[™\”\Ý\JB‚[Ý]•Üš]TÝš[™Ê‹ŠB‚[Ý]•Üš]TÝš[™ÊÔÛ˜ZÙPØ\ÙJÙ[”Ù[“˜[YJJB‚[Ý]•Üš]TÝš[™ÊŠHŠB‚\™]\›ˆYBŸB‚™[˜È[\ÜYXÚØYÙQÛØ˜[\T]
+^ˆ\Ý‘^‹\R[™›È
+•\R[™›ÊH
+Ýš[™Ë›ÛÛ
+HÂ‚\Ù[ÚÈH^‹Š
+˜\Ý”Ù[XÝÜ‘^ŠB‚ZYˆ[ÚÈ\R[™›ÈOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+Ù[”Ù[
+KŠ
+\\Ë•˜\ŠB‚ZYˆ[ÚÈØš‹”ÙÊ
+HOHš[Â‚B\™]\›ˆˆ‹˜[ÙB‚_B‚ZYˆ\R[™›ËœÙÈOHš[	‰ˆØš‹”ÙÊ
+HOH\R[™›ËœÙÈÂ‚B\™]\›ˆˆ‹˜[ÙB‚_B‚\™]\›ˆ\Ý\S˜[YQ›Ü’[\ÜYXÚØYÙT]
+Øš‹”ÙÊ
+K”]
+
+KØš‹“˜[YJ
+JBŸB‚™[˜ÈÜš]PÛÛœÝ\PÛÛ™\œÚ[ÛŠÝ]
+œÝš[™ÜËZ[\‹Ø[
+˜\ÝØ[^‹[ÝU˜[YH[
+H›ÛÛÂ‚ZYˆØ[OHš[[ŠØ[\™ÜÊHOHHÂ‚B\™]\›ˆ˜[ÙB‚_B‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[]\R[™›Ë’\Õ\PÛÛ™\œÚ[ÛŠØ[
+HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\\Ý\KÚÈH\ÝÛÛœÝ\Q›Ü‘ÛÕ\\Õ\J\R[™›Ë‘Ù]\JØ[
+JB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚[Ý]•Üš]TÝš[™ÊŠŠB‚X\™Ô\Ý\HHÛÛœÝ\PÛÛ™\œÚ[Û\™Ý[Y[\Ý\J\R[™›ËØ[\™ÜÖÌK\Ý\JB‚ZYˆÜš]PÛÛœÝ[Y\šXÐÛÛ™\œÚ[Û•˜[YQ›Ü”\Ý\JÝ]Ø[\™ÜÖÌK\™Ô\Ý\JHÂ‚BKËÈÛÛœÝ[Ü\˜[™ÈÙ\™H[Z]Y[ˆH\™Ý[Y[^™\ÜÚ[Û‰ÜÈ\Y[YÙ\ˆÚY‚‚_H[ÙHYˆÛÛœÝ\PÛÛ™\œÚ[Û\™Ó™YYÔ\™[œÊØ[\™ÜÖÌJHÂ‚B[Ý]•Üš]TÝš[™ÊŠŠB‚BU˜[œÜ[PÛÛœÝ^ŠÝ]Ø[\™ÜÖÌK[ÝU˜[YJB‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚_H[ÙHÂ‚BU˜[œÜ[PÛÛœÝ^ŠÝ]Ø[\™ÜÖÌK[ÝU˜[YJB‚_B‚[Ý]•Üš]TÝš[™Êˆ\ÈŠB‚[Ý]•Üš]TÝš[™Ê\Ý\JB‚[Ý]•Üš]TÝš[™ÊŠHŠB‚\™]\›ˆYBŸB‚™[˜ÈÛÛœÝ\PÛÛ™\œÚ[Û\™Ý[Y[\Ý\J\R[™›È
+•\R[™›Ë\™È\Ý‘^‹ÛÛ™\œÚ[Û”\Ý\HÝš[™ÊHÝš[™ÈÂ‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆÛÛ™\œÚ[Û”\Ý\B‚_B‚ZYˆ\™Ô\Ý\KÚÈH\Ý[YÙ\Ø\Ý\Q›Ü‘^XÝY
+\R[™›Ë‘Ù]\J\™ÊJNÈÚÈ	‰ˆ\Ý[YÙ\•\UÚY
+\™Ô\Ý\JHˆÂ‚B\™]\›ˆ\™Ô\Ý\B‚_B‚\™]\›ˆÛÛ™\œÚ[Û”\Ý\BŸB‚™[˜ÈÛÛœÝ\PÛÛ™\œÚ[Û\™Ó™YYÔ\™[œÊ\™È\Ý‘^ŠH›ÛÛÂ‚\ÝÚ]Ú\™ËŠ\JHÂ‚XØ\ÙH
+˜\Ýš[˜\žQ^Ž‚‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜ÈÜš]Q^\›˜[˜[YY[YÙ\ÛÛœÝ˜[YJÝ]
+œÝš[™ÜËZ[\‹˜[YH
+˜\Ý’Y[
+H›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[˜[YHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+˜[YJKŠ
+\\ËÛÛœÝ
+B‚ZYˆ[ÚÈØš‹•˜[
+
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚[˜[YYÚÈH\\Ë•[˜[X\ÊØš‹•\J
+JKŠ
+\\Ë“˜[YY
+B‚ZYˆ[ÚÈ˜[YY“ØšŠ
+HOHš[˜[YY“ØšŠ
+K”ÙÊ
+HOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\\Ý\KÚÈH^\›˜[[YÙ\”\Ý\Q›Ü“˜[YY
+˜[YY
+B‚ZYˆ[ÚÈ\ÒÛ›ÝÛ”ÝX’[\•\J˜[YY“ØšŠ
+K”ÙÊ
+K”]
+
+K˜[YY“ØšŠ
+K“˜[YJ
+JHÂ‚B\™]\›ˆ˜[ÙB‚_B‚‚]˜\ˆ˜[YHÝš[™Â‚ZYˆ\Õ[œÚYÛ™Y[YÙ\•\J˜[YY
+HÂ‚B]K^XÝHÛÛœÝ[•Z[˜[
+Øš‹•˜[
+
+JB‚BZYˆY^XÝÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B]˜[YHHÝ˜ÛÛ‹‘›Ü›X]Z[
+KL
+B‚_H[ÙHÂ‚BZK^XÝHÛÛœÝ[’[˜[
+Øš‹•˜[
+
+JB‚BZYˆY^XÝÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B]˜[YHHÝ˜ÛÛ‹‘›Ü›X][
+KL
+B‚_B‚‚[Ý]•Üš]TÝš[™ÊÛÕ\\Ó˜[YY\UÔ\Ý
+˜[YY
+JB‚[Ý]•Üš]TÝš[™ÊŠŠB‚[Ý]•Üš]TÝš[™Ê˜[YJB‚[Ý]•Üš]TÝš[™Êˆ\ÈŠB‚[Ý]•Üš]TÝš[™Ê\Ý\JB‚[Ý]•Üš]TÝš[™ÊŠHŠB‚\™]\›ˆYBŸB‚‹ËÈ˜[œÜ[SY]Ù[\˜[œÜ[\ÈHY]Ù[œÚYH[ˆ[\›ØÚÂ™[˜È˜[œÜ[SY]Ù[\
+Ý]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛš[TÙ]
+ÚÙ[‹‘š[TÙ]ÛÛ[Y[È×J˜\ÝÛÛ[Y[Ü›Ý\
+HÂ‚]˜[œÜ[SY]Ù[\Ú]š\ÚXš[]JÝ]›‹YK˜[ÙK˜[ÙKš[TÙ]ÛÛ[Y[ÊBŸB‚‹ËÈ˜[œÜ[U˜Z]Y]Ù[\˜[œÜ[\ÈHY]Ù[œÚYHH˜Z][\›ØÚË‚‹ËÈ˜Z]™XÙZ]™\“]]X›H›Ü˜Ù\ÈH	›]]Ù[˜™XÙZ]™\ˆÚ[ˆH[\[Y[Y‹ËÈ[\™˜XÙHY]ÙÝÙ\œÈÈH]]X›H™XÙZ]™\ˆ
+ÙYB‹ËÈ[\™˜XÙSY]Ù]]X›T™XÙZ]™\ŠNÈH˜Z]Yš[š][Ûˆ[™]™\žHÝ\ˆ[\Ù‚‹ËÈ]Y]Ù\ÙHHØ[YHXÚ\Ú[ÛˆÛÈHÚYÛ˜]\™\ÈÝ^HÛÛœÚ\Ý[‚™[˜È˜[œÜ[U˜Z]Y]Ù[\
+Ý]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ˜Z]™XÙZ]™\“]]X›H›ÛÛš[TÙ]
+ÚÙ[‹‘š[TÙ]ÛÛ[Y[È×J˜\ÝÛÛ[Y[Ü›Ý\
+HÂ‚]˜[œÜ[SY]Ù[\Ú]š\ÚXš[]JÝ]›‹˜[ÙKYK˜Z]™XÙZ]™\“]]X›Kš[TÙ]ÛÛ[Y[ÊBŸB‚™[˜ÈÜš]Q[˜Ý[Û•\P[X\ÓY]Ù[\
+Ý]
+œÝš[™ÜËZ[\‹\Ý\S˜[YHÝš[™ËY]ÙÈ×J˜\Ý‘[˜ÑXÛš[TÙ]
+ÚÙ[‹‘š[TÙ]ÛÛ[Y[È×J˜\ÝÛÛ[Y[Ü›Ý\
+HÂ‚]˜Z]˜[YHH\Ý\S˜[YH
+È“Y]ÙÈ‚‚[Ý]•Üš]TÝš[™ÊœXˆ˜Z]ŠB‚[Ý]•Üš]TÝš[™Ê˜Z]˜[YJB‚[Ý]•Üš]TÝš[™Êˆ×ˆŠB‚Y›ÜˆËY]ÙH˜[™ÙHY]ÙÈÂ‚B]Üš]Q[˜Ý[Û•\P[X\ÓY]ÙÚYÛ˜]\™JÝ]Y]Ù
+B‚_B‚[Ý]•Üš]TÝš[™ÊŸW—ˆŠB‚[Ý]•Üš]TÝš[™Êš[\ŠB‚[Ý]•Üš]TÝš[™Ê˜Z]˜[YJB‚[Ý]•Üš]TÝš[™Êˆ›ÜˆŠB‚[Ý]•Üš]TÝš[™Ê\Ý\S˜[YJB‚[Ý]•Üš]TÝš[™Êˆ×ˆŠB‚Y›ÜˆKY]ÙH˜[™ÙHY]ÙÈÂ‚BZYˆHˆÂ‚BB[Ý]•Üš]TÝš[™Ê—ˆŠB‚B_B‚BU˜[œÜ[U˜Z]Y]Ù[\
+Ý]Y]Ù˜[ÙKš[TÙ]ÛÛ[Y[ÊB‚_B‚[Ý]•Üš]TÝš[™ÊŸHŠBŸB‚™[˜ÈÜš]Q[˜Ý[Û•\P[X\ÓY]ÙÚYÛ˜]\™JÝ]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ
+HÂ‚[Ý]•Üš]TÝš[™Êˆ›ˆŠB‚[Ý]•Üš]TÝš[™Ê\ÝY]Ù˜[YJ›ŠJB‚[Ý]•Üš]TÝš[™ÊŠ	œÙ[ˆŠB‚ZYˆ›‹•\K”\˜[\ÈOHš[Â‚BY›ÜˆËšY[H˜[™ÙH›‹•\K”\˜[\Ë“\ÝÂ‚BBY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBB[Ý]•Üš]TÝš[™Ê‹ŠB‚BBB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+˜[YK“˜[YJJB‚BBB[Ý]•Üš]TÝš[™ÊŽˆŠB‚BBB[Ý]•Üš]TÝš[™ÊÛÕ\UÔ\Ý\˜[JšY[•\JJB‚BB_B‚B_B‚_B‚[Ý]•Üš]TÝš[™ÊŠHŠB‚]Üš]Q[˜ÑXÛ™\Ý[\\ÊÝ]›ŠB‚[Ý]•Üš]TÝš[™ÊŽ×ˆŠBŸB‚™[˜È˜[YY™]\›’Y[Ê›•\H
+˜\Ý‘[˜Õ\JH×J˜\Ý’Y[Â‚ZYˆ›•\HOHš[›•\K”™\Ý[ÈOHš[Â‚B\™]\›ˆš[‚_B‚]˜\ˆ˜[Y\È×J˜\Ý’Y[‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚B[˜[Y\ÈH\[™
+˜[Y\Ë™\Ý[“˜[Y\Ë‹‹ŠB‚_B‚\™]\›ˆ˜[Y\ÂŸB‚™[˜È\Ó˜[YY™]\›œÊ›•\H
+˜\Ý‘[˜Õ\JH›ÛÛÂ‚\™]\›ˆ[Š˜[YY™]\›’Y[Ê›•\JJHˆŸB‚™[˜ÈÜš]S˜[YY™]\›‘XÛ\˜][ÛœÊÝ]
+œÝš[™ÜËZ[\‹›•\H
+˜\Ý‘[˜Õ\JHÂ‚ZYˆ›•\HOHš[›•\K”™\Ý[ÈOHš[Â‚B\™]\›‚‚_B‚]Ü›ÝHH˜[ÙB‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚BZYˆ[Š™\Ý[“˜[Y\ÊHOHÂ‚BBXÛÛ[YB‚B_B‚BY›ÜˆË˜[YHH˜[™ÙH™\Ý[“˜[Y\ÈÂ‚BBZYˆ˜[YK“˜[YHOH—ÈˆÂ‚BBB[Ý]•Üš]TÝš[™Êˆ]ŠB‚BB_H[ÙHÂ‚BBB[Ý]•Üš]TÝš[™Êˆ]]]ŠB‚BB_B‚BB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+˜[YK“˜[YJJB‚BB[Ý]•Üš]TÝš[™ÊŽˆŠB‚BBZYˆ[™›ËÚÈH\œ˜^Q[[TØ[™Y]Q›Ü‘XÛ
+˜[YJNÈÚÈÂ‚BBB[Ý]•Üš]TÝš[™Ê\œ˜^Q[[T“Ü[Û”\Ý\J[™›ÊJB‚BBB[Ý]•Üš]TÝš[™ÊˆH›Û™N×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚BBZYˆ[™›ËÚÈHÛÔØ[™Y]Q›Ü‘XÛ
+˜[YJNÈÚÈÂ‚BBBY[[T\Ý\HHÛÔ”™\Ý[[[T\Ý\J[™›ÊB‚BBB\™YÚ\Ý\‘ÛÔ•˜\Š˜[YK“˜[YK[[T\Ý\Kš[
+B‚BBB[Ý]•Üš]TÝš[™Ê‘ÛÔŠB‚BBB[Ý]•Üš]TÝš[™Ê[[T\Ý\JB‚BBB[Ý]•Üš]TÝš[™ÊˆHÛÔŽŽ›š[
+
+N×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚BB[Ý]•Üš]TÝš[™ÊÛÕ\UÔ\Ý
+™\Ý[•\JJB‚BB[Ý]•Üš]TÝš[™ÊˆHŠB‚‚BBZYˆÚÈH™\Ý[•\KŠ
+˜\Ý’Y[
+NÈÚÈ	‰ˆ“˜[YHOH™\œ›ÜˆˆÂ‚BBBZYˆ™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HÂ‚BBBBU˜XÚÒ[\Ü
+\˜ÈŠB‚BBBBU˜XÚÒ[\Ü
+“]]^ŠB‚BBBB[Ý]•Üš]TÝš[™Ê\˜ÎŽ›™]Ê]]^Ž›™]Ê›Û™JJHŠB‚BBB_H[ÙHÂ‚BBBBU˜XÚÒ[\Ü
+”˜ÈŠB‚BBBBU˜XÚÒ[\Ü
+”™YÙ[ŠB‚BBBB[Ý]•Üš]TÝš[™Ê”˜ÎŽ›™]Ê™YÙ[Ž›™]Ê›Û™JJHŠB‚BBB_B‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBZYˆËÚÈH[˜Ý[Û”ÚYÛ˜]\™Qœ›ÛU\Q^Š™\Ý[•\JNÈÚÈÂ‚BBBUÜš]UÜ˜\Y›Û™JÝ]
+B‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBZYˆ\Ñ[\R[\™˜XÙQ^Š™\Ý[•\JHÂ‚BBBUÜš]UÜ˜\Y›Û™JÝ]
+B‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBZYˆËÚÈH˜[œÜ[Y˜[YY[\™˜XÙU\S˜[YQœ›ÛQ^Š™\Ý[•\JNÈÚÈÂ‚BBBUÜš]UÜ˜\Y›Û™JÝ]
+B‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBZYˆÜš]Q\™XÝ\T\˜[UÜ˜\Y™\›Õ˜[YJÝ]™\Ý[•\K›˜[YY™]\›ˆ™\›È˜[YHŠHÂ‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBZYˆÜš]S˜[YY™]\›“š[™\›Õ˜[YQœ›ÛU\R[™›ÊÝ]™\Ý[•\JHÂ‚BBB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BBB]Ü›ÝHHYB‚BBBXÛÛ[YB‚BB_B‚‚BBUÜš]UÜ˜\\”™Yš^
+Ý]
+B‚BB\ÝÚ]ÚH™\Ý[•\KŠ\JHÂ‚BBXØ\ÙH
+˜\Ý’Y[‚‚BBB\ÝÚ]Ú“˜[YHÂ‚BBBXØ\ÙHœÝš[™ÈŽ‚‚BBBB[Ý]•Üš]TÝš[™Ê”Ýš[™ÎŽ›™]Ê
+HŠB‚BBBXØ\ÙHš[‹š[‹š[Ìˆ‹š[Mˆ‹š[Ž‚‚BBBB[Ý]•Üš]TÝš[™ÊŒŠB‚BBBXØ\ÙHZ[‹Z[‹Z[Ìˆ‹Z[Mˆ‹Z[Ž‚‚BBBB[Ý]•Üš]TÝš[™ÊŒŠB‚BBBXØ\ÙH™›Ø]‹™›Ø]ÌˆŽ‚‚BBBB[Ý]•Üš]TÝš[™ÊŒŒŠB‚BBBXØ\ÙH˜›ÛÛŽ‚‚BBBB[Ý]•Üš]TÝš[™Ê™˜[ÙHŠB‚BBBYY˜][‚‚BBBB[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚BBB_B‚BBYY˜][‚‚BBB[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚BB_B‚BB[Ý]•Üš]TÝš[™ÊŠJJHŠB‚BB[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚BB]Ü›ÝHHYB‚B_B‚_B‚ZYˆÜ›ÝHÂ‚B[Ý]•Üš]TÝš[™Ê—ˆŠB‚_BŸB‚™[˜ÈÜš]S˜[YY™]\›•˜[Y\ÊÝ]
+œÝš[™ÜËZ[\‹›•\H
+˜\Ý‘[˜Õ\JHÂ‚[˜[Y\ÈH˜[YY™]\›’Y[Ê›•\JB‚ZYˆ[Š˜[Y\ÊHOHÂ‚B\™]\›‚‚_B‚ZYˆ[Š˜[Y\ÊHˆHÂ‚B[Ý]•Üš]TÝš[™ÊŠŠB‚_B‚Yš\œÝHYB‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚BY›ÜˆË˜[YHH˜[™ÙH™\Ý[“˜[Y\ÈÂ‚BBZYˆYš\œÝÂ‚BBB[Ý]•Üš]TÝš[™Ê‹ŠB‚BB_B‚BBYš\œÝH˜[ÙB‚BBZYˆ˜[YK“˜[YHOH—ÈˆÂ‚BBBZYˆ™\Ý[\Q^’\Ð˜\™TØØ[\Š™\Ý[•\JHÂ‚BBBB]Üš]P˜\™TØØ[\–™\›Õ˜[YJÝ]™\Ý[•\JB‚BBB_H[ÙHÂ‚BBBB]Üš]S˜[YY™]\›–™\›Õ˜[YJÝ]™\Ý[•\JB‚BBB_B‚BB_H[ÙHÂ‚BBBZYˆËÚÈHÛÔØ[™Y]Q›Ü‘XÛ
+˜[YJNÈÚÈÂ‚BBBB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+˜[YK“˜[YJJB‚BBBB[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HŠB‚BBB_H[ÙHYˆ™\Ý[\Q^’\Ð˜\™TØØ[\Š™\Ý[•\JHÂ‚BBBB[Ý]•Üš]TÝš[™ÊŠ
+ˆŠB‚BBBB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+˜[YK“˜[YJJB‚BBBBUÜš]P›Üœ›ÝÓY]Ù
+Ý]˜[ÙJB‚BBBB[Ý]•Üš]TÝš[™Ê‹˜\×Ü™YŠ
+K[Ü˜\
+
+JHŠB‚BBB_H[ÙHÂ‚BBBB[Ý]•Üš]TÝš[™Ê\ÝØØ[Y[
+˜[YK“˜[YJJB‚BBBB[Ý]•Üš]TÝš[™Ê‹˜ÛÛ™J
+HŠB‚BBB_B‚BB_B‚B_B‚_B‚ZYˆ[Š˜[Y\ÊHˆHÂ‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚_BŸB‚™[˜ÈÜš]S˜[YY™]\›–™\›Õ˜[YJÝ]
+œÝš[™ÜËZ[\‹\Q^ˆ\Ý‘^ŠHÂ‚ZYˆ™\Ý[\Q^’\Ð˜\™TØØ[\Š\Q^ŠHÂ‚B]Üš]P˜\™TØØ[\–™\›Õ˜[YJÝ]\Q^ŠB‚B\™]\›‚‚_B‚ZYˆÚÈH\Q^‹Š
+˜\Ý’Y[
+NÈÚÈ	‰ˆ“˜[YHOH™\œ›ÜˆˆÂ‚BUÜš]UÜ˜\Y›Û™JÝ]
+B‚B\™]\›‚‚_B‚ZYˆËÚÈH[˜Ý[Û”ÚYÛ˜]\™Qœ›ÛU\Q^Š\Q^ŠNÈÚÈÂ‚BUÜš]UÜ˜\Y›Û™JÝ]
+B‚B\™]\›‚‚_B‚ZYˆ\Ñ[\R[\™˜XÙQ^Š\Q^ŠHÂ‚BUÜš]UÜ˜\Y›Û™JÝ]
+B‚B\™]\›‚‚_B‚ZYˆËÚÈH˜[œÜ[Y˜[YY[\™˜XÙU\S˜[YQœ›ÛQ^Š\Q^ŠNÈÚÈÂ‚BUÜš]UÜ˜\Y›Û™JÝ]
+B‚B\™]\›‚‚_B‚ZYˆÜš]Q\™XÝ\T\˜[UÜ˜\Y™\›Õ˜[YJÝ]\Q^‹›˜[YY™]\›ˆ™\›È˜[YHŠHÂ‚B\™]\›‚‚_B‚ZYˆÜš]S˜[YY™]\›“š[™\›Õ˜[YQœ›ÛU\R[™›ÊÝ]\Q^ŠHÂ‚B\™]\›‚‚_B‚‚UÜš]UÜ˜\\”™Yš^
+Ý]
+B‚\ÝÚ]ÚH\Q^‹Š\JHÂ‚XØ\ÙH
+˜\Ý’Y[‚‚B\ÝÚ]Ú“˜[YHÂ‚BXØ\ÙHœÝš[™ÈŽ‚‚BB[Ý]•Üš]TÝš[™Ê”Ýš[™ÎŽ›™]Ê
+HŠB‚BXØ\ÙHš[‹š[‹š[Ìˆ‹š[Mˆ‹š[Ž‚‚BB[Ý]•Üš]TÝš[™ÊŒŠB‚BXØ\ÙHZ[‹Z[‹Z[Ìˆ‹Z[Mˆ‹Z[Ž‚‚BB[Ý]•Üš]TÝš[™ÊŒŠB‚BXØ\ÙH™›Ø]‹™›Ø]ÌˆŽ‚‚BB[Ý]•Üš]TÝš[™ÊŒŒŠB‚BXØ\ÙH˜›ÛÛŽ‚‚BB[Ý]•Üš]TÝš[™Ê™˜[ÙHŠB‚BYY˜][‚‚BB[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚B_B‚YY˜][‚‚B[Ý]•Üš]TÝš[™Ê‘Y˜][Ž™Y˜][
+
+HŠB‚_B‚UÜš]UÜ˜\\”ÝY™š^
+Ý]
+BŸB‚‹ËÈÚÝ[Ü˜\Y™\”[šXÔ™XÛÝ™\ˆ™\ÜÈÚ]\ˆH[˜Ý[ÛˆÚ]HY™\ˆ[œÂ‹ËÈ]È›ÙH[™\ˆØ]ÚÝ[Ú[™ÛÈ]HY™\œ™Y[˜Ý[ÛˆØ[ˆ™XÛÝ™\ˆB‹ËÈ[šXËˆÚ]ÛÜ›Ý][™\È]™\žHÝXÚ[˜Ý[ÛˆÙ\ËˆÚ]Ý][HÛ›HB‹ËÈ›ÙÜ˜[H]Ø[È™XÛÝ™\Š
+H^\È›Üˆ]‚™[˜ÈÚÝ[Ü˜\Y™\”[šXÔ™XÛÝ™\Š\ÑY™\ˆ›ÛÛ
+H›ÛÛÂ‚ZYˆZ\ÑY™\ˆJ™YYÐÛÛ˜Ý\œ™[Ü˜\\Š
+HXÚØYÙPØ[Ô™XÛÝ™\Š
+JHÂ‚B\™]\›ˆ˜[ÙB‚_B‚S™YY[šXÔ™XÛÝ™\Š
+B‚\™]\›ˆYBŸB‚˜\ˆXÚØYÙPØ[Ô™XÛÝ™\ØXÚHHX\Ê\\Ë’[™›×X›ÛÛßB‚‹ËÈXÚØYÙPØ[Ô™XÛÝ™\ˆ™\ÜÈÚ]\ˆHXÚØYÙH™Z[™È˜[œÛ]YØ[ÈB‹ËÈ™XÛÝ™\ˆZ[[ˆ[ž]Ú\™K‚™[˜ÈXÚØYÙPØ[Ô™XÛÝ™\Š
+H›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆØ[ËÚÈHXÚØYÙPØ[Ô™XÛÝ™\ØXÚVÝ\R[™›Ëš[™›×NÈÚÈÂ‚B\™]\›ˆØ[Â‚_B‚XØ[ÈH˜[ÙB‚Y›ÜˆËØšˆH˜[™ÙH\R[™›Ëš[™›Ë•\Ù\ÈÂ‚BZYˆZ[[‹ÚÈHØš‹Š
+\\ËZ[[ŠNÈÚÈ	‰ˆZ[[‹“˜[YJ
+HOHœ™XÛÝ™\ˆˆÂ‚BBXØ[ÈHYB‚BBXœ™XZÂ‚B_B‚_B‚\XÚØYÙPØ[Ô™XÛÝ™\ØXÚVÝ\R[™›Ëš[™›×HHØ[Â‚\™]\›ˆØ[ÂŸB‚™[˜È™YÚ[”[šXÔ™XÛÝ™\Ø]Ú
+Ý]
+œÝš[™ÜËZ[\‹[™[Ýš[™ÊHÝš[™ÈÂ‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Ê›]×ÙÛ×Ü™]š[Ý\×Ü[šX×ÚÛÚÈHÝŽœ[šXÎŽZÙWÚÛÚÊ
+N×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊœÝŽœ[šXÎŽœÙ]ÚÛÚÊ›ÞŽ›™]ÊßßJJN×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Ê›]×ÙÛ×Ü[šX×Ü™\Ý[HÝŽœ[šXÎŽ˜Ø]ÚÝ[Ú[™
+ÝŽœ[šXÎŽ\ÜÙ\[Ú[™ØY™J×ˆŠB‚\™]\›ˆ[™[
+Èˆ‚ŸB‚™[˜Èš[š\Ú[šXÔ™XÛÝ™\Ø]Ú
+Ý]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ[™[Ýš[™ÊHÂ‚Yš[š\Ú[šXÔ™XÛÝ™\Ø]ÚÚ]
+Ý][™[[˜Ê
+HÈÜš]T™XÛÝ™\™Y[šXÔ™]\›•˜[YJÝ]›ŠHJBŸB‚‹ËÈš[š\Ú[šXÔ™XÛÝ™\Ø]ÚÚ]ÛÜÙ\ÈHØ]ÚÝ[Ú[™]‹ËÈ™YÚ[”[šXÔ™XÛÝ™\Ø]ÚÜ[™YˆÛˆH[šXÈ]ÙY\ÈH^[ØY›Ü‚‹ËÈ™XÛÝ™\Š
+H[™[œÈHY™\œ™Y[˜Ý[ÛœÈ]\™HYˆXXÚ[œÈ[™\‚‹ËÈHØ]ÚÝ[Ú[™Ùˆ]ÈÝÛŽˆ\È[ˆÛËHY™\œ™Y[˜Ý[Ûˆ][šXÜÂ‹ËÈ™\XÙ\ÈH[šXÈ[™H™\ÝÝ[[‹ˆYˆ›Û™H™XÛÝ™\œËH[šXÂ‹ËÈÛÙ\ÈÛŽÈÝ\Ú\ÙHH[˜Ý[Ûˆ™]\›œÈÜš]V™\›ÉÜÈ˜[YKÜˆ]È˜[YY‹ËÈ™\Ý[Ë‚™[˜Èš[š\Ú[šXÔ™XÛÝ™\Ø]ÚÚ]
+Ý]
+œÝš[™ÜËZ[\‹[™[Ýš[™ËÜš]V™\›È[˜Ê
+JHÂ‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊŸJJN×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Ê›X]Ú×ÙÛ×Ü[šX×Ü™\Ý[×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÚÊ×ÙÛ×Ý˜[YJHOˆ×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÝŽœ[šXÎŽœÙ]ÚÛÚÊ×ÙÛ×Ü™]š[Ý\×Ü[šX×ÚÛÚÊN×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Êˆ×ÙÛ×Ý˜[YWˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™Êˆ\œŠ×ÙÛ×Ü[šX×Ü^[ØY
+HOˆ×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÛ×ÜÝÜ™WÜ[šX×Ü^[ØY
+×ÙÛ×Ü[šX×Ü^[ØY
+N×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÚ[H]ÛÛYJŠHH×ÙY™\—ÜÝXÚËœÜ
+
+H×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆYˆ]\œŠ×ÙÛ×ÙY™\—Ü[šXÊHHÝŽœ[šXÎŽ˜Ø]ÚÝ[Ú[™
+ÝŽœ[šXÎŽ\ÜÙ\[Ú[™ØY™JŠJH×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÛ×ÜÝÜ™WÜ[šX×Ü^[ØY
+×ÙÛ×ÙY™\—Ü[šXÊN×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÝŽœ[šXÎŽœÙ]ÚÛÚÊ×ÙÛ×Ü™]š[Ý\×Ü[šX×ÚÛÚÊN×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆÛ×Ü™\Ý[YWÝ[œ™XÛÝ™\™YÜ[šXÊ
+N×ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆŠB‚]Üš]V™\›Ê
+B‚[Ý]•Üš]TÝš[™Ê—ˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚[Ý]•Üš]TÝš[™Ê[™[
+B‚[Ý]•Üš]TÝš[™ÊŸWˆŠBŸB‚™[˜ÈÜš]T™XÛÝ™\™Y[šXÔ™]\›•˜[YJÝ]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ
+HÂ‚ZYˆ›ˆOHš[Â‚B[Ý]•Üš]TÝš[™ÊŠ
+HŠB‚B\™]\›‚‚_B‚ZYˆ\Ó˜[YY™]\›œÊ›‹•\JHÂ‚B]Üš]S˜[YY™]\›•˜[Y\ÊÝ]›‹•\JB‚B\™]\›‚‚_B‚]Üš]Q[˜Ý[Û–™\›Ô™]\›•˜[Y\ÊÝ]›ŠBŸB‚™[˜ÈÜš]Q[˜Ý[Û–™\›Ô™]\›•˜[Y\ÊÝ]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛ
+HÂ‚\™\Ý[\\ÈH[˜Ý[Û”™\Ý[\Q^œÊ›‹•\JB‚ZYˆ[Š™\Ý[\\ÊHOHÂ‚B[Ý]•Üš]TÝš[™ÊŠ
+HŠB‚B\™]\›‚‚_B‚ZYˆ[Š™\Ý[\\ÊHˆHÂ‚B[Ý]•Üš]TÝš[™ÊŠŠB‚_B‚Y›ÜˆK™\Ý[\HH˜[™ÙH™\Ý[\\ÈÂ‚BZYˆHˆÂ‚BB[Ý]•Üš]TÝš[™Ê‹ŠB‚B_B‚BZYˆ]Üš]QÛÔ“š[™]\›•˜[YQ›Ü‘[˜ÊÝ]›‹JHÂ‚BB]Üš]S˜[YY™]\›–™\›Õ˜[YJÝ]™\Ý[\JB‚B_B‚_B‚ZYˆ[Š™\Ý[\\ÊHˆHÂ‚B[Ý]•Üš]TÝš[™ÊŠHŠB‚_BŸB‚™[˜È[˜Ý[Û”™\Ý[\Q^œÊ›•\H
+˜\Ý‘[˜Õ\JH×X\Ý‘^ˆÂ‚ZYˆ›•\HOHš[›•\K”™\Ý[ÈOHš[Â‚B\™]\›ˆš[‚_B‚]˜\ˆ™\Ý[\\È×X\Ý‘^‚‚Y›ÜˆË™\Ý[H˜[™ÙH›•\K”™\Ý[Ë“\ÝÂ‚BXÛÝ[H[Š™\Ý[“˜[Y\ÊB‚BZYˆÛÝ[OHÂ‚BBXÛÝ[HB‚B_B‚BY›ÜˆHHÈHÛÝ[ÈJÊÈÂ‚BB\™\Ý[\\ÈH\[™
+™\Ý[\\Ë™\Ý[•\JB‚B_B‚_B‚\™]\›ˆ™\Ý[\\ÂŸB‚™[˜ÈÜš]S˜[YY™]\›“š[™\›Õ˜[YQœ›ÛU\R[™›ÊÝ]
+œÝš[™ÜËZ[\‹\Q^ˆ\Ý‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚]\H\R[™›Ë‘Ù]\J\Q^ŠB‚ZYˆ\OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ˜[YYÚÈH\\Ë•[˜[X\Ê\
+KŠ
+\\Ë“˜[YY
+NÈÚÈÂ‚BZYˆË\ÔÛXÙHH\\Ë•[˜[X\Ê˜[YY•[™\›Z[™Ê
+JKŠ
+\\Ë”ÛXÙJNÈ\ÔÛXÙHÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚_B‚\ÝÚ]Ú\\Ë•[˜[X\Ê\
+K•[™\›Z[™Ê
+KŠ\JHÂ‚XØ\ÙH
+\\Ë’[\™˜XÙK
+\\Ë”Ú[\‹
+\\Ë”ÚYÛ˜]\™K
+\\Ë”ÛXÙN‚‚BUÜš]UÜ˜\Y›Û™JÝ]
+B‚B\™]\›ˆYB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜È^”™Y™\™[˜Ù\Ô™XÙZ]™\Š^ˆ\Ý‘^‹™XÙZ]™\“˜[YHÝš[™ÊH›ÛÛÂ‚\ÝÚ]ÚHH^‹Š\JHÂ‚XØ\ÙH
+˜\Ý’Y[‚‚B\™]\›ˆK“˜[YHOH™XÙZ]™\“˜[YB‚XØ\ÙH
+˜\Ý”Ù[XÝÜ‘^Ž‚‚B\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠK–™XÙZ]™\“˜[YJB‚XØ\ÙH
+˜\Ý’[™^^Ž‚‚B\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠK–™XÙZ]™\“˜[YJB‚XØ\ÙH
+˜\Ý”Ý\‘^Ž‚‚B\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠK–™XÙZ]™\“˜[YJB‚XØ\ÙH
+˜\Ý•[˜\žQ^Ž‚‚B\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠK–™XÙZ]™\“˜[YJB‚XØ\ÙH
+˜\Ý”\™[‘^Ž‚‚B\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠK–™XÙZ]™\“˜[YJB‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_BŸB‚™[˜È™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ˆ
+˜\Ý‘[˜ÑXÛ
+HÝš[™ÈÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOH[Š›‹”™XÝ‹“\ÝÌK“˜[Y\ÊHOHÂ‚B\™]\›ˆˆ‚‚_B‚\™]\›ˆ›‹”™XÝ‹“\ÝÌK“˜[Y\ÖÌK“˜[YBŸB‚™[˜ÈY]Ù]]]\Ô™XÙZ]™\Š›ˆ
+˜\Ý‘[˜ÑXÛ™XÙZ]™\“˜[YHÝš[™ÊH›ÛÛÂ‚\™]\›ˆY]Ù]]]\Ô™XÙZ]™\•Ú]ÙY[Š›‹™XÙZ]™\“˜[YKÙ]Y]Ù™XÙZ]™\•\J›ŠKXZÙJX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+JBŸB‚™[˜ÈY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈZ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù]]]\Ô™XÙZ]™\Š›‹™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ŠJBŸB‚™[˜ÈY]Ù™X\ÜÚYÛœÔ™XÙZ]™\Š›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOH›‹›ÙHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+›‹›ÙK[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆËÚÈH‹Š
+˜\Ý‘[˜Ó]
+NÈÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚BX\ÜÚYÛ‹ÚÈH‹Š
+˜\Ý\ÜÚYÛ”Ý]
+B‚BZYˆ[ÚÈÂ‚BB\™]\›ˆYB‚B_B‚BY›ÜˆËÈH˜[™ÙH\ÜÚYÛ‹“ÈÂ‚BBZY[ÚÈH[Ü˜\\™[œÊÊKŠ
+˜\Ý’Y[
+B‚BBZYˆÚÈ	‰ˆ\ÐÝ\œ™[™XÙZ]™\’Y[
+Y[
+HÂ‚BBBY›Ý[™HYB‚BBB\™]\›ˆ˜[ÙB‚BB_B‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚™[˜ÈY]Ù™XÙZ]™\ÛÛ\\™YÓš[
+›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOH›‹›ÙHOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\™XÙZ]™\“˜[YHH™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ŠB‚ZYˆ™XÙZ]™\“˜[YHOHˆˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚Y›Ý[™H˜[ÙB‚X\Ý’[œÜXÝ
+›‹›ÙK[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ›Ý[™Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆËÚÈH‹Š
+˜\Ý‘[˜Ó]
+NÈÚÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚BXš[˜\žKÚÈH‹Š
+˜\Ýš[˜\žQ^ŠB‚BZYˆ[ÚÈ
+š[˜\žK“ÜOHÚÙ[‹‘TS	‰ˆš[˜\žK“ÜOHÚÙ[‹“‘TJHÂ‚BB\™]\›ˆYB‚B_B‚B[YY\ÒY[H[Ü˜\\™[œÊš[˜\žK–
+KŠ
+˜\Ý’Y[
+B‚B\šYÚšYÚ\ÒY[H[Ü˜\\™[œÊš[˜\žK–JKŠ
+˜\Ý’Y[
+B‚BZYˆY\ÒY[	‰ˆY“˜[YHOH™XÙZ]™\“˜[YH	‰ˆšYÚ\ÒY[	‰ˆšYÚ“˜[YHOH›š[ˆÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚BZYˆšYÚ\ÒY[	‰ˆšYÚ“˜[YHOH™XÙZ]™\“˜[YH	‰ˆY\ÒY[	‰ˆY“˜[YHOH›š[ˆÂ‚BBY›Ý[™HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ›Ý[™ŸB‚™[˜ÈY]Ù™YYÔÚ[\”™XÙZ]™\’[™P[X\Ê›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈZ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù™X\ÜÚYÛœÔ™XÙZ]™\Š›ŠH	‰ˆY]Ù™XÙZ]™\ÛÛ\\™YÓš[
+›ŠBŸB‚™[˜ÈY]Ù™X\ÜÚYÛœÕ˜[YT™XÙZ]™\Š›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù™X\ÜÚYÛœÔ™XÙZ]™\Š›ŠBŸB‚™[˜ÈY]Ù˜[YT™XÙZ]™\“™YYÓØØ[[X\Ê›ˆ
+˜\Ý‘[˜ÑXÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù]]]\Ô™XÙZ]™\Š›‹™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ŠJBŸB‚™[˜ÈÛÛXÝY]Ù™XÙZ]™\“]]Xš[]Jš[\È×J˜\Ý‘š[K\R[™›È
+•\R[™›ÊHX\ÜÝš[™×X›ÛÛÂ‚[]]X›PžSY]ÙHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆ]]X›PžSY]Ù‚_B‚[Y]ÙÐžT™XÙZ]™\ˆHXZÙJX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ
+B‚Y›ÜˆËš[HH˜[™ÙHš[\ÈÂ‚BZYˆš[HOHš[Â‚BBXÛÛ[YB‚B_B‚BY›ÜˆËXÛH˜[™ÙHš[K‘XÛÈÂ‚BBY›‹ÚÈHXÛŠ
+˜\Ý‘[˜ÑXÛ
+B‚BBZYˆ[ÚÈ›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚BBBXÛÛ[YB‚BB_B‚BB\™XÙZ]™\’Ù^HHY]Ù™XÙZ]™\‘Ü›Ý\Ù^J›‹\R[™›ÊB‚BBZYˆ™XÙZ]™\’Ù^HOHˆˆÂ‚BBBXÛÛ[YB‚BB_B‚BB[Y]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WHH\[™
+Y]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WK›ŠB‚B_B‚_B‚Y›ÜˆËY]ÙÈH˜[™ÙHY]ÙÐžT™XÙZ]™\ˆÂ‚BY›ÜˆË›ˆH˜[™ÙHY]ÙÈÂ‚BB[ØšˆHY]Ù[˜Ñ›Ü‘XÛ
+›‹\R[™›ÊB‚BBZYˆØšˆOHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZÙ^HHY]ÙÝ™\œšYRÙ^JØšŠB‚BBZYˆÙ^HOHˆˆÂ‚BBBXÛÛ[YB‚BB_B‚BB[]]X›PžSY]ÙÚÙ^WHHY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\‘œ›ÛSX\
+›‹Y]ÙÐžT™XÙZ]™\‹\R[™›ÊB‚B_B‚_B‚\™]\›ˆ]]X›PžSY]ÙŸB‚™[˜ÈÛÛXÝY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\Šš[\È×J˜\Ý‘š[K\R[™›È
+•\R[™›ÊHX\ÜÝš[™×X›ÛÛÂ‚[ÜšYÚ[˜[žSY]ÙHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆÜšYÚ[˜[žSY]Ù‚_B‚[Y]ÙÐžT™XÙZ]™\ˆHXZÙJX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ
+B‚Y›ÜˆËš[HH˜[™ÙHš[\ÈÂ‚BZYˆš[HOHš[Â‚BBXÛÛ[YB‚B_B‚BY›ÜˆËXÛH˜[™ÙHš[K‘XÛÈÂ‚BBY›‹ÚÈHXÛŠ
+˜\Ý‘[˜ÑXÛ
+B‚BBZYˆ[ÚÈ›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚BBBXÛÛ[YB‚BB_B‚BB\™XÙZ]™\’Ù^HHY]Ù™XÙZ]™\‘Ü›Ý\Ù^J›‹\R[™›ÊB‚BBZYˆ™XÙZ]™\’Ù^HOHˆˆÂ‚BBBXÛÛ[YB‚BB_B‚BB[Y]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WHH\[™
+Y]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WK›ŠB‚B_B‚_B‚Y›ÜˆËY]ÙÈH˜[™ÙHY]ÙÐžT™XÙZ]™\ˆÂ‚BY›ÜˆË›ˆH˜[™ÙHY]ÙÈÂ‚BB[ØšˆHY]Ù[˜Ñ›Ü‘XÛ
+›‹\R[™›ÊB‚BBZYˆØšˆOHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZÙ^HHY]ÙÝ™\œšYRÙ^JØšŠB‚BBZYˆÙ^HOHˆˆÂ‚BBBXÛÛ[YB‚BB_B‚BB[ÜšYÚ[˜[žSY]ÙÚÙ^WHHY]Ù™\]Z\™\ÓÜšYÚ[˜[™XÙZ]™\‘œ›ÛSX\
+›‹Y]ÙÐžT™XÙZ]™\‹\R[™›ÊB‚B_B‚_B‚\™]\›ˆÜšYÚ[˜[žSY]ÙŸB‚˜\ˆXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]HHXZÙJX\ÜÝš[™×X›ÛÛ
+B˜\ˆXÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\ˆHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚™[˜È™\Ù]XÚØYÙSY]Ù™XÙZ]™\“]]Xš[]J
+HÂ‚\XÚØYÙSY]Ù™XÙZ]™\“]]Xš[]HHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚\XÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\ˆHXZÙJX\ÜÝš[™×X›ÛÛ
+BŸB‚™[˜È™YÚ\Ý\”XÚØYÙSY]Ù™XÙZ]™\“]]Xš[]JÙÔ]Ýš[™Ëš[\È×J˜\Ý‘š[JHÂ‚ZYˆÙÔ]OHˆˆÂ‚B\ÙÔ]H›XZ[ˆ‚‚_B‚[Y]ÙÐžT™XÙZ]™\ˆHÛÛXÝXÚØYÙSY]ÙÊš[\ÊB‚Y›Üˆ™XÙZ]™\•\KY]ÙÈH˜[™ÙHY]ÙÐžT™XÙZ]™\ˆÂ‚BY›ÜˆË›ˆH˜[™ÙHY]ÙÈÂ‚BBZYˆ›ˆOHš[›‹“˜[YHOHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZÙ^HHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^JÙÔ]™XÙZ]™\•\K›‹“˜[YK“˜[YJB‚BB\XÚØYÙSY]Ù™XÙZ]™\“]]Xš[]VÚÙ^WHHY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\‘œ›ÛSX\
+›‹Y]ÙÐžT™XÙZ]™\‹š[
+B‚B_B‚_BŸB‚™[˜È™YÚ\Ý\”XÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\ŠÙÔ]Ýš[™Ëš[\È×J˜\Ý‘š[K\R[™›È
+•\R[™›ÊHÂ‚ZYˆÙÔ]OHˆˆÂ‚B\ÙÔ]H›XZ[ˆ‚‚_B‚[Y]ÙÐžT™XÙZ]™\ˆHÛÛXÝXÚØYÙSY]ÙÊš[\ÊB‚Y›Üˆ™XÙZ]™\•\KY]ÙÈH˜[™ÙHY]ÙÐžT™XÙZ]™\ˆÂ‚BY›ÜˆË›ˆH˜[™ÙHY]ÙÈÂ‚BBZYˆ›ˆOHš[›‹“˜[YHOHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZÙ^HHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^JÙÔ]™XÙZ]™\•\K›‹“˜[YK“˜[YJB‚BB\XÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\–ÚÙ^WHHY]Ù™\]Z\™\ÓÜšYÚ[˜[™XÙZ]™\‘œ›ÛSX\
+›‹Y]ÙÐžT™XÙZ]™\‹\R[™›ÊB‚B_B‚_BŸB‚™[˜ÈXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^JÙÔ]Ýš[™Ë™XÙZ]™\•\HÝš[™ËY]Ù˜[YHÝš[™ÊHÝš[™ÈÂ‚ZYˆÙÔ]OHˆˆ™XÙZ]™\•\HOHˆˆY]Ù˜[YHOHˆˆÂ‚B\™]\›ˆˆ‚‚_B‚\™]\›ˆÙÔ]
+È—ˆ
+È™XÙZ]™\•\H
+È—ˆ
+ÈY]Ù˜[YBŸB‚™[˜ÈXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]Q›Ü”Ù[XÝÜŠÙ[
+˜\Ý”Ù[XÝÜ‘^ŠH
+›ÛÛ›ÛÛ
+HÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Ù[OHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚KËÈ\Ü]Ú[™È›ÝYÚ[ˆ[\™˜XÙHY]Ù]]]\ÈH[˜[ZXÈ˜[YHÚ[ˆ[‚‚KËÈ[\[Y[ÜˆÙ\ÎÈÝXÚY]ÙÈÝÙ\ˆÈ	›]]Ù[˜ÛÈHØ[Ú]H]\Ý‚KËÈ›Üœ›ÝÈ]]X›H
+˜\×Û]]
+
+KË˜›Üœ›Ý×Û]]
+
+JK‚‚ZYˆ[\™˜XÙSY]ÙÙ[XÝÜ”™\]Z\™\Ó]]X›T™XÙZ]™\ŠÙ[
+HÂ‚B\™]\›ˆYKYB‚_B‚\Ù[XÝ[Û‹ÚÈH\R[™›Ëš[™›Ë”Ù[XÝ[ÛœÖÜÙ[B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚Y›‹ÚÈHÙ[XÝ[Û‹“ØšŠ
+KŠ
+\\Ë‘[˜ÊB‚ZYˆ[ÚÈ›ˆOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\ÚYËÚÈH›‹•\J
+KŠ
+\\Ë”ÚYÛ˜]\™JB‚ZYˆ[ÚÈÚYË”™XÝŠ
+HOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\™XÝˆH\\Ë•[˜[X\ÊÚYË”™XÝŠ
+K•\J
+JB‚ZYˆ‹ÚÈH™XÝ‹Š
+\\Ë”Ú[\ŠNÈÚÈÂ‚B\™XÝˆH\\Ë•[˜[X\Ê‹‘[[J
+JB‚_B‚[˜[YYÚÈH™XÝ‹Š
+\\Ë“˜[YY
+B‚ZYˆ[ÚÈ˜[YY“ØšŠ
+HOHš[˜[YY“ØšŠ
+K”ÙÊ
+HOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚ZÙ^HHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^J˜[YY“ØšŠ
+K”ÙÊ
+K”]
+
+K˜[YY“ØšŠ
+K“˜[YJ
+K›‹“˜[YJ
+JB‚ZYˆÙ^HOHˆˆÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚[]]X›KÚÈHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]VÚÙ^WB‚\™]\›ˆ]]X›KÚÂŸB‚™[˜ÈXÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\‘›Ü”Ù[XÝÜŠÙ[
+˜\Ý”Ù[XÝÜ‘^ŠH
+›ÛÛ›ÛÛ
+HÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Ù[OHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\Ù[XÝ[Û‹ÚÈH\R[™›Ëš[™›Ë”Ù[XÝ[ÛœÖÜÙ[B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚Y›‹ÚÈHÙ[XÝ[Û‹“ØšŠ
+KŠ
+\\Ë‘[˜ÊB‚ZYˆ[ÚÈ›ˆOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\ÚYËÚÈH›‹•\J
+KŠ
+\\Ë”ÚYÛ˜]\™JB‚ZYˆ[ÚÈÚYË”™XÝŠ
+HOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚\™XÝˆH\\Ë•[˜[X\ÊÚYË”™XÝŠ
+K•\J
+JB‚ZYˆ‹ÚÈH™XÝ‹Š
+\\Ë”Ú[\ŠNÈÚÈÂ‚B\™XÝˆH\\Ë•[˜[X\Ê‹‘[[J
+JB‚_B‚[˜[YYÚÈH™XÝ‹Š
+\\Ë“˜[YY
+B‚ZYˆ[ÚÈ˜[YY“ØšŠ
+HOHš[˜[YY“ØšŠ
+K”ÙÊ
+HOHš[Â‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚ZÙ^HHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^J˜[YY“ØšŠ
+K”ÙÊ
+K”]
+
+K˜[YY“ØšŠ
+K“˜[YJ
+K›‹“˜[YJ
+JB‚ZYˆÙ^HOHˆˆÂ‚B\™]\›ˆ˜[ÙK˜[ÙB‚_B‚[ÜšYÚ[˜[ÚÈHXÚØYÙSY]Ù™XÙZ]™\“ÜšYÚ[˜[™XÙZ]™\–ÚÙ^WB‚\™]\›ˆÜšYÚ[˜[ÚÂŸB‚‹ËÈ[\™˜XÙSY]Ù]]X›T™XÙZ]™\ˆ™XÛÜ™ÈÚ]\ˆ[žHÛÛ˜Ü™]H[\[Y[Ü‰ÜÂ‹ËÈÛÜœ™\ÜÛ™[™ÈY]Ù™\]Z\™\ÈH]]X›H\Ý™XÙZ]™\‹ˆHÛÈ[\™˜XÙHY]Ù‹ËÈØ\œšY\È›È™XÙZ]™\ˆ]]Xš[]HÙˆ]ÈÝÛ‹]\Ü]Ú[™È›ÝYÚ]]]]\Â‹ËÈH[˜[ZXÈ˜[YHÚ[™]™\ˆ[ˆ[\[Y[ÜˆÙ\ËˆH[\™˜XÙH˜Z]Y]Ù‹ËÈ]™\žH[\Ùˆ][™]™\žH[\™˜XÙKY\Ü]ÚØ[Ú]HÛÛœÝ[\ÈÚ[™ÛB‹ËÈX\ÛÈH™YHÝ^HÛÛœÚ\Ý[ˆHY]Ù]]]]\È›ÝYÚ[žB‹ËÈ[\[Y[ÜˆÝÙ\œÈÈ	›]]Ù[˜]™\ž]Ú\™K‚˜\ˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\ˆHXZÙJX\Ê\\Ë‘[˜×X›ÛÛ
+B˜\ˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žS˜[YHHXZÙJX\ÜÝš[™×X›ÛÛ
+B˜\ˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žU˜Z]HXZÙJX\ÜÝš[™×X›ÛÛ
+B‚™[˜È™\Ù][\™˜XÙSY]Ù]]X›T™XÙZ]™\Š
+HÂ‚Z[\™˜XÙSY]Ù]]X›T™XÙZ]™\ˆHXZÙJX\Ê\\Ë‘[˜×X›ÛÛ
+B‚Z[\™˜XÙSY]Ù]]X›T™XÙZ]™\žS˜[YHHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚Z[\™˜XÙSY]Ù]]X›T™XÙZ]™\žU˜Z]HXZÙJX\ÜÝš[™×X›ÛÛ
+BŸB‚‹ËÈ™YÚ\Ý\’[\™˜XÙSY]Ù]]X›T™XÙZ]™\œÈØ[ÜÈ]™\žH[\™˜XÙHXÜ›ÜÜÈ[‹ËÈØYYXÚØYÙ\È[™ÔœÈ[‹\ˆ[\™˜XÙHY]ÙÚ]\ˆ[žHÛÛ˜Ü™]B‹ËÈ[\[Y[Ü‰ÜÈX]Ú[™ÈY]Ù™\]Z\™\ÈH]]X›H™XÙZ]™\‹ˆ]]\Ý[ˆY\‚‹ËÈXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]H\È[HÜ[]Y›Üˆ]™\žHXÚØYÙH[™‹ËÈ™Y›Ü™H[žH[Z\ÜÚ[Ûˆ
+ÙYHXÚØYÙSØY\‹•˜[œÜ[P[
+K‚™[˜È™YÚ\Ý\’[\™˜XÙSY]Ù]]X›T™XÙZ]™\œÊÙÜÈ×J\\Ë”XÚØYÙJHÂ‚\™\Ù][\™˜XÙSY]Ù]]X›T™XÙZ]™\Š
+B‚]˜\ˆY˜XÙU\\È×J\\Ë“˜[YY‚]˜\ˆÛÛ˜Ü™]U\\È×J\\Ë“˜[YY‚Y›ÜˆËÙÈH˜[™ÙHÙÜÈÂ‚BZYˆÙÈOHš[ÙË”ØÛÜJ
+HOHš[Â‚BBXÛÛ[YB‚B_B‚BY›ÜˆË˜[YHH˜[™ÙHÙË”ØÛÜJ
+K“˜[Y\Ê
+HÂ‚BB]‹ÚÈHÙË”ØÛÜJ
+K“ÛÚÝ\
+˜[YJKŠ
+\\Ë•\S˜[YJB‚BBZYˆ[ÚÈÂ‚BBBXÛÛ[YB‚BB_B‚BB[˜[YYÚÈH\\Ë•[˜[X\Ê‹•\J
+JKŠ
+\\Ë“˜[YY
+B‚BBZYˆ[ÚÈÂ‚BBBXÛÛ[YB‚BB_B‚BBZYˆËÚÈH˜[YY•[™\›Z[™Ê
+KŠ
+\\Ë’[\™˜XÙJNÈÚÈÂ‚BBBZY˜XÙU\\ÈH\[™
+Y˜XÙU\\Ë˜[YY
+B‚BB_H[ÙHÂ‚BBBXÛÛ˜Ü™]U\\ÈH\[™
+ÛÛ˜Ü™]U\\Ë˜[YY
+B‚BB_B‚B_B‚BKËÈ[\™˜XÙ\ÈXÛ\™Y[œÚYH[˜Ý[Ûˆ›ÙY\È™XÛÛYHÜ[]™[˜Z]Â‚BKËÈÛËÛÈZ\ˆY]ÙÈ™YYHØ[YH™XÙZ]™\ˆ]]Xš[]K‚‚BZY˜XÙU\\ÈH\[™
+Y˜XÙU\\Ë[˜Ý[Û“ØØ[[\™˜XÙU\\ÊÙÊK‹‹ŠB‚_B‚Y›ÜˆËY˜XÙS˜[YYH˜[™ÙHY˜XÙU\\ÈÂ‚BZY˜XÙKÈHY˜XÙS˜[YY•[™\›Z[™Ê
+KŠ
+\\Ë’[\™˜XÙJB‚BZYˆY˜XÙHOHš[Y˜XÙK“[SY]ÙÊ
+HOHÂ‚BBXÛÛ[YB‚B_B‚BZY˜XÙU˜Z]˜[Y\ÈH[\™˜XÙSY]Ù]]X›T™XÙZ]™\•˜Z]˜[Y\ÊY˜XÙS˜[YY
+B‚BY›ÜˆËÛÛ˜Ü™]HH˜[™ÙHÛÛ˜Ü™]U\\ÈÂ‚BB[ØšˆHÛÛ˜Ü™]K“ØšŠ
+B‚BBZYˆØšˆOHš[Øš‹”ÙÊ
+HOHš[Â‚BBBXÛÛ[YB‚BB_B‚BBZYˆ]\\Ë’[\[Y[ÊÛÛ˜Ü™]KY˜XÙJH	‰ˆ]\\Ë’[\[Y[Ê\\Ë“™]ÔÚ[\ŠÛÛ˜Ü™]JKY˜XÙJHÂ‚BBBXÛÛ[YB‚BB_B‚BB\ÙÔ]HØš‹”ÙÊ
+K”]
+
+B‚BBZYˆÙÔ]OHˆˆÂ‚BBB\ÙÔ]H›XZ[ˆ‚‚BB_B‚BBY›ÜˆˆHÈˆY˜XÙK“[SY]ÙÊ
+NÈŠÊÈÂ‚BBB[HHY˜XÙK“Y]Ù
+ŠB‚BBBXÛÛ˜Ü™]RÙ^HHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]RÙ^JÙÔ]Øš‹“˜[YJ
+KK“˜[YJ
+JB‚BBBZYˆ]]X›KÚÈHXÚØYÙSY]Ù™XÙZ]™\“]]Xš[]VØÛÛ˜Ü™]RÙ^WNÈÚÈ	‰ˆ]]X›HÂ‚BBBBZ[\™˜XÙSY]Ù]]X›T™XÙZ]™\–ÛWHHYB‚BBBBY›ÜˆËÙ^HH˜[™ÙH[\™˜XÙSY]Ù]]X›T™XÙZ]™\’Ù^\ÊJHÂ‚BBBBBZ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žS˜[YVÚÙ^WHHYB‚BBBB_B‚BBBBY›ÜˆË˜Z]˜[YHH˜[™ÙHY˜XÙU˜Z]˜[Y\ÈÂ‚BBBBBZ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žU˜Z]Ú[\™˜XÙSY]Ù]]X›T™XÙZ]™\•˜Z]Ù^J˜Z]˜[YKK“˜[YJ
+JWHHYB‚BBBB_B‚BBB_B‚BB_B‚B_B‚_BŸB‚™[˜È[\™˜XÙSY]Ù]]X›T™XÙZ]™\•˜Z]˜[Y\ÊY˜XÙS˜[YY
+\\Ë“˜[YY
+H×\Ýš[™ÈÂ‚ZYˆY˜XÙS˜[YYOHš[Y˜XÙS˜[YY“ØšŠ
+HOHš[Â‚B\™]\›ˆš[‚_B‚\ÙY[ˆHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚]˜\ˆ˜[Y\È×\Ýš[™Â‚XYH[˜Ê˜[YHÝš[™ÊHÂ‚BZYˆ˜[YHOHˆˆÙY[–Û˜[YWHÂ‚BB\™]\›‚‚B_B‚B\ÙY[–Û˜[YWHHYB‚B[˜[Y\ÈH\[™
+˜[Y\Ë˜[YJB‚_B‚XY
+Y˜XÙS˜[YY“ØšŠ
+K“˜[YJ
+JB‚XY
+ÛÕ\\Ó˜[YY\UÔ\Ý
+Y˜XÙS˜[YY
+JB‚ZYˆÙÈHY˜XÙS˜[YY“ØšŠ
+K”ÙÊ
+NÈÙÈOHš[	‰ˆÙË”]
+
+HOHˆˆÂ‚BXY
+\ÝÜ˜]S˜[YQ›Ü‘ÛÒ[\Ü]
+ÙË”]
+
+JH
+ÈŽŽˆˆ
+È\Ý\S˜[YQ›Ü•\ÙJY˜XÙS˜[YY“ØšŠ
+K“˜[YJ
+JJB‚_B‚\™]\›ˆ˜[Y\ÂŸB‚™[˜È[\™˜XÙSY]Ù]]X›T™XÙZ]™\•˜Z]Ù^JY˜XÙS˜[YHÝš[™ËY]Ù˜[YHÝš[™ÊHÝš[™ÈÂ‚ZYˆY˜XÙS˜[YHOHˆˆY]Ù˜[YHOHˆˆÂ‚B\™]\›ˆˆ‚‚_B‚\™]\›ˆY˜XÙS˜[YH
+È‹ˆˆ
+ÈY]Ù˜[YBŸB‚™[˜È[\™˜XÙSY]Ù]]X›T™XÙZ]™\’Ù^\ÊY]Ù
+\\Ë‘[˜ÊH×\Ýš[™ÈÂ‚ZYˆY]ÙOHš[Â‚B\™]\›ˆš[‚_B‚\ÙY[ˆHXZÙJX\ÜÝš[™×X›ÛÛ
+B‚]˜\ˆÙ^\È×\Ýš[™Â‚XYH[˜ÊÙ^HÝš[™ÊHÂ‚BZYˆÙ^HOHˆˆÙY[–ÚÙ^WHÂ‚BB\™]\›‚‚B_B‚B\ÙY[–ÚÙ^WHHYB‚BZÙ^\ÈH\[™
+Ù^\ËÙ^JB‚_B‚XY
+Y]Ù‘[˜[YJ
+JB‚ZYˆY]Ù”ÙÊ
+HOHš[Â‚BXY
+Y]Ù”ÙÊ
+K”]
+
+H
+È‹ˆˆ
+ÈY]Ù“˜[YJ
+JB‚_B‚\™]\›ˆÙ^\ÂŸB‚‹ËÈ[\™˜XÙSY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\ˆ™\ÜÈÚ]\ˆHÚ]™[ˆ[\™˜XÙB‹ËÈY]Ù
+[ˆ[\™˜XÙIÜÈ
+\\Ë‘[˜ÊHÝÙ\œÈÈH	›]]Ù[˜\Ý˜Z]Y]Ù‚™[˜È[\™˜XÙSY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\ŠY]Ù
+\\Ë‘[˜ÊH›ÛÛÂ‚ZYˆY]ÙOHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\–ÛY]ÙHÂ‚B\™]\›ˆYB‚_B‚ZÙ^\ÈH[\™˜XÙSY]Ù]]X›T™XÙZ]™\’Ù^\ÊY]Ù
+B‚Y›ÜˆËÙ^HH˜[™ÙHÙ^\ÈÂ‚BZYˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žS˜[YVÚÙ^WHÂ‚BB\™]\›ˆYB‚B_B‚_B‚Y›Üˆ™YÚ\Ý\™Y]]X›HH˜[™ÙH[\™˜XÙSY]Ù]]X›T™XÙZ]™\ˆÂ‚BZYˆ[]]X›HÂ‚BBXÛÛ[YB‚B_B‚BY›ÜˆË™YÚ\Ý\™YÙ^HH˜[™ÙH[\™˜XÙSY]Ù]]X›T™XÙZ]™\’Ù^\Ê™YÚ\Ý\™Y
+HÂ‚BBY›ÜˆËÙ^HH˜[™ÙHÙ^\ÈÂ‚BBBZYˆ™YÚ\Ý\™YÙ^HOHÙ^HÂ‚BBBB\™]\›ˆYB‚BBB_B‚BB_B‚B_B‚_B‚\™]\›ˆ˜[ÙBŸB‚™[˜È[\™˜XÙU˜Z]Y]Ù™\]Z\™\Ó]]X›T™XÙZ]™\ŠY˜XÙS˜[YHÝš[™ËY]Ù˜[YHÝš[™ËY]Ù
+\\Ë‘[˜ÊH›ÛÛÂ‚ZYˆ[\™˜XÙSY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\ŠY]Ù
+HÂ‚B\™]\›ˆYB‚_B‚ZYˆY]Ù˜[YHOHˆˆ	‰ˆY]ÙOHš[Â‚B[Y]Ù˜[YHHY]Ù“˜[YJ
+B‚_B‚ZYˆY]Ù˜[YHOHˆˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZÙ^HH[\™˜XÙSY]Ù]]X›T™XÙZ]™\•˜Z]Ù^JY˜XÙS˜[YKY]Ù˜[YJB‚\™]\›ˆÙ^HOHˆˆ	‰ˆ[\™˜XÙSY]Ù]]X›T™XÙZ]™\žU˜Z]ÚÙ^WBŸB‚‹ËÈ[\™˜XÙSY]ÙÙ[XÝÜ”™\]Z\™\Ó]]X›T™XÙZ]™\ˆ™\ÜÈÚ]\ˆHY]ÙXØ[‹ËÈÙ[XÝÜˆ\Ü]Ú\È›ÝYÚ[ˆ[\™˜XÙHY]Ù]ÝÙ\œÈÈ	›]]Ù[˜‚™[˜È[\™˜XÙSY]ÙÙ[XÝÜ”™\]Z\™\Ó]]X›T™XÙZ]™\ŠÙ[
+˜\Ý”Ù[XÝÜ‘^ŠH›ÛÛÂ‚]\R[™›ÈHÙ]\R[™›Ê
+B‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Ù[OHš[Â‚B\™]\›ˆ˜[ÙB‚_B‚\Ù[XÝ[Û‹ÚÈH\R[™›Ëš[™›Ë”Ù[XÝ[ÛœÖÜÙ[B‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚Y›‹ÚÈHÙ[XÝ[Û‹“ØšŠ
+KŠ
+\\Ë‘[˜ÊB‚ZYˆ[ÚÈÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ[\™˜XÙSY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š›ŠBŸB‚‹ËÈ[\™˜XÙSY]ÙžS˜[YH™]\›œÈH[\™˜XÙIÜÈY]ÙÚ]HÚ]™[ˆÛÈ˜[YK‹ËÈÜˆš[ˆÛ›HH[\™˜XÙIÜÈÝÛˆY]ÙÙ]\ÈÛÛœÚY\™Y‚™[˜È[\™˜XÙSY]ÙžS˜[YJY˜XÙH
+\\Ë’[\™˜XÙK˜[YHÝš[™ÊH
+\\Ë‘[˜ÈÂ‚ZYˆY˜XÙHOHš[Â‚B\™]\›ˆš[‚_B‚Y›ÜˆˆHÈˆY˜XÙK“[SY]ÙÊ
+NÈŠÊÈÂ‚BZYˆHHY˜XÙK“Y]Ù
+ŠNÈHOHš[	‰ˆK“˜[YJ
+HOH˜[YHÂ‚BB\™]\›ˆB‚B_B‚_B‚\™]\›ˆš[ŸB‚‹ËÈ[\™˜XÙU˜Z]Y]Ù™XÙZ]™\ˆ™]\›œÈ‰›]]Ù[ˆˆÚ[ˆH˜[YYØØ[‹ËÈ[\™˜XÙIÜÈY]ÙÝÙ\œÈÈH]]X›H™XÙZ]™\‹[ÙH‰œÙ[ˆ‹‚™[˜È[\™˜XÙU˜Z]Y]Ù™XÙZ]™\ŠY˜XÙS˜[YKY]Ù˜[YHÝš[™ÊHÝš[™ÈÂ‚ZYˆY˜XÙHHØØ[[\™˜XÙU\\ÐžS˜[YJY˜XÙS˜[YJNÈY˜XÙHOHš[Â‚BZYˆHH[\™˜XÙSY]ÙžS˜[YJY˜XÙKY]Ù˜[YJNÈ[\™˜XÙU˜Z]Y]Ù™\]Z\™\Ó]]X›T™XÙZ]™\ŠY˜XÙS˜[YKY]Ù˜[YKJHÂ‚BB\™]\›ˆ‰›]]Ù[ˆ‚‚B_B‚_B‚\™]\›ˆ‰œÙ[ˆ‚ŸB‚™[˜ÈY]Ù™XÙZ]™\‘Ü›Ý\Ù^J›ˆ
+˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ÊHÝš[™ÈÂ‚ZYˆØšˆHY]Ù[˜Ñ›Ü‘XÛ
+›‹\R[™›ÊNÈØšˆOHš[Â‚BZYˆÚYËÚÈHØš‹•\J
+KŠ
+\\Ë”ÚYÛ˜]\™JNÈÚÈ	‰ˆÚYË”™XÝŠ
+HOHš[Â‚BB\™]\›ˆY]Ù™XÙZ]™\’Ù^JÚYË”™XÝŠ
+K•\J
+JB‚B_B‚_B‚\™]\›ˆÙ]Y]Ù™XÙZ]™\•\J›ŠBŸB‚™[˜ÈY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\‘œ›ÛSX\
+›ˆ
+˜\Ý‘[˜ÑXÛY]ÙÐžT™XÙZ]™\ˆX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ÊH›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈZ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù]]]\Ô™XÙZ]™\•Ú]Y]ÙX\
+›‹™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ŠKY]Ù™XÙZ]™\‘Ü›Ý\Ù^J›‹\R[™›ÊKY]ÙÐžT™XÙZ]™\‹\R[™›ËXZÙJX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+JBŸB‚™[˜ÈY]Ù™\]Z\™\ÓÜšYÚ[˜[™XÙZ]™\‘œ›ÛSX\
+›ˆ
+˜\Ý‘[˜ÑXÛY]ÙÐžT™XÙZ]™\ˆX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ÊH›ÛÛÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆË\ÔÚ[\ˆH›‹”™XÝ‹“\ÝÌK•\KŠ
+˜\Ý”Ý\‘^ŠNÈZ\ÔÚ[\ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆY]Ù™YYÓÜšYÚ[˜[™XÙZ]™\•Ú]Y]ÙX\
+›‹™XÙZ]™\“˜[YQ›Ü“Y]Ù
+›ŠKY]Ù™XÙZ]™\‘Ü›Ý\Ù^J›‹\R[™›ÊKY]ÙÐžT™XÙZ]™\‹\R[™›ËXZÙJX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+JBŸB‚™[˜ÈÙ]Y]Ù™XÙZ]™\•\J›ˆ
+˜\Ý‘[˜ÑXÛ
+HÝš[™ÈÂ‚ZYˆ›ˆOHš[›‹”™XÝˆOHš[[Š›‹”™XÝ‹“\Ý
+HOHÂ‚B\™]\›ˆˆ‚‚_B‚\™]\›ˆÙ]™XÙZ]™\•\J›‹”™XÝ‹“\ÝÌK•\JBŸB‚™[˜ÈY]ÙÑ›Ü”™XÙZ]™\•\J™XÙZ]™\•\HÝš[™ÊH×J˜\Ý‘[˜ÑXÛÂ‚ZYˆ™XÙZ]™\•\HOHˆˆÂ‚BZYˆÝHÙ]˜[œÜ[PÛÛ^
+
+NÈÝOHš[	‰ˆÝ”XÚØYÙHOHš[	‰ˆ[ŠÝ”XÚØYÙK“Y]ÙÐžU\VÜ™XÙZ]™\•\WJHˆÂ‚BB\™]\›ˆÝ”XÚØYÙK“Y]ÙÐžU\VÜ™XÙZ]™\•\WB‚B_B‚_B‚\™]\›ˆÝ\œ™[\SY]ÙÂŸB‚™[˜È[œØY™TÚ[\Ø[\™Ñœ›ÛU\R[™›Ê^ˆ\Ý‘^‹\R[™›È
+•\R[™›ÊH
+\Ý‘^‹›ÛÛ
+HÂ‚XØ[ÚÈH[Ü˜\\™[œÊ^ŠKŠ
+˜\ÝØ[^ŠB‚ZYˆ[ÚÈ[ŠØ[\™ÜÊHOHH\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆš[˜[ÙB‚_B‚\Ù[ÚÈH[Ü˜\\™[œÊØ[‘[ŠKŠ
+˜\Ý”Ù[XÝÜ‘^ŠB‚ZYˆ[ÚÈÙ[”Ù[OHš[Â‚B\™]\›ˆš[˜[ÙB‚_B‚[Øš‹ÚÈH\R[™›Ë‘Ù]Øš™XÝ
+Ù[”Ù[
+KŠ
+\\Ë•\S˜[YJB‚ZYˆ[ÚÈØš‹”ÙÊ
+HOHš[Øš‹”ÙÊ
+K”]
+
+HOH[œØY™HˆØš‹“˜[YJ
+HOH”Ú[\ˆˆÂ‚B\™]\›ˆš[˜[ÙB‚_B‚\™]\›ˆØ[\™ÜÖÌKYBŸB‚™[˜ÈY]Ù™YYÓÜšYÚ[˜[™XÙZ]™\•Ú]Y]ÙX\
+›ˆ
+˜\Ý‘[˜ÑXÛ™XÙZ]™\“˜[YHÝš[™Ë™XÙZ]™\’Ù^HÝš[™ËY]ÙÐžT™XÙZ]™\ˆX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ËÙY[ˆX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹›ÙHOHš[™XÙZ]™\“˜[YHOHˆˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÙY[–Ù›—HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÙY[–Ù›—HHYB‚[™YYÓÜšYÚ[˜[H˜[ÙB‚X\Ý’[œÜXÝ
+›‹›ÙK[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ™YYÓÜšYÚ[˜[Â‚BB\™]\›ˆ˜[ÙB‚B_B‚BXØ[ÚÈH‹Š
+˜\ÝØ[^ŠB‚BZYˆ[ÚÈÂ‚BB\™]\›ˆYB‚B_B‚BZYˆÛÝ\˜ÙKÚÈH[œØY™TÚ[\Ø[\™Ñœ›ÛU\R[™›ÊØ[\R[™›ÊNÈÚÈ	‰ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÛÝ\˜ÙK™XÙZ]™\“˜[YJHÂ‚BB[™YYÓÜšYÚ[˜[HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\Ù[ÚÈHØ[‘[‹Š
+˜\Ý”Ù[XÝÜ‘^ŠB‚BZYˆ[ÚÈY^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÙ[–™XÙZ]™\“˜[YJHÂ‚BB\™]\›ˆYB‚B_B‚BXØ[YHY]ÙXÛžS˜[YJY]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WKÙ[”Ù[“˜[YJB‚BZYˆØ[YOHš[Â‚BB\™]\›ˆYB‚B_B‚BZYˆY]Ù™YYÓÜšYÚ[˜[™XÙZ]™\•Ú]Y]ÙX\
+Ø[Y™XÙZ]™\“˜[YQ›Ü“Y]Ù
+Ø[Y
+KY]Ù™XÙZ]™\‘Ü›Ý\Ù^JØ[Y\R[™›ÊKY]ÙÐžT™XÙZ]™\‹\R[™›ËÙY[ŠHÂ‚BB[™YYÓÜšYÚ[˜[HYB‚BB\™]\›ˆ˜[ÙB‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ™YYÓÜšYÚ[˜[ŸB‚™[˜ÈY]Ù]]]\Ô™XÙZ]™\•Ú]Y]ÙX\
+›ˆ
+˜\Ý‘[˜ÑXÛ™XÙZ]™\“˜[YHÝš[™Ë™XÙZ]™\’Ù^HÝš[™ËY]ÙÐžT™XÙZ]™\ˆX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ËÙY[ˆX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹›ÙHOHš[™XÙZ]™\“˜[YHOHˆˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÙY[–Ù›—HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÙY[–Ù›—HHYB‚[]]]\ÈH˜[ÙB‚X\Ý’[œÜXÝ
+›‹›ÙK[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ]]]\ÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\ÝÚ]ÚÝ]H‹Š\JHÂ‚BXØ\ÙH
+˜\Ý\ÜÚYÛ”Ý]‚‚BBY›ÜˆËÈH˜[™ÙHÝ]“ÈÂ‚BBBZYˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠË™XÙZ]™\“˜[YJHÂ‚BBBB[]]]\ÈHYB‚BBBB\™]\›ˆ˜[ÙB‚BBB_B‚BB_B‚BXØ\ÙH
+˜\Ý’[˜ÑXÔÝ]‚‚BBZYˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÝ]–™XÙZ]™\“˜[YJHÂ‚BBB[]]]\ÈHYB‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BXØ\ÙH
+˜\ÝØ[^Ž‚‚BBY›ÜˆË\™ÈH˜[™ÙHÝ]\™ÜÈÂ‚BBBZYˆØ[\™Ý[Y[X^S]]]T™XÙZ]™\Š\™Ë™XÙZ]™\“˜[YJHÂ‚BBBB[]]]\ÈHYB‚BBBB\™]\›ˆ˜[ÙB‚BBB_B‚BB_B‚BB\Ù[ÚÈHÝ]‘[‹Š
+˜\Ý”Ù[XÝÜ‘^ŠB‚BBZYˆ[ÚÈÂ‚BBB\™]\›ˆYB‚BB_B‚BBZYˆY^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÙ[–™XÙZ]™\“˜[YJHÂ‚BBBKËÈ›]‘œš[Š™XÙZ]™\‹‹‹ŠH˜[œÚ]]™[H[›ÚÙ\È™XÙZ]™\‹•Üš]J‹‹ŠB‚BBBKËÈÚ[ˆ™XÙZ]™\ˆ[\[Y[È[Ë•Üš]\‹ˆ™X]]\ÈHY]ÙØ[‚BBBKËÈÛˆH™XÙZ]™\ˆÛÈ]È]]][Ûˆ›ÜYØ]\È\™K‚‚BBBZYˆØ[\Ñœš[•Üš][™ÕÔ™XÙZ]™\ŠÝ]Ù[™XÙZ]™\“˜[YJHÂ‚BBBBZYˆØ[YHY]ÙXÛžS˜[YJY]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WK•Üš]HŠNÈØ[YOHš[Â‚BBBBBZYˆY]Ù]]]\Ô™XÙZ]™\•Ú]Y]ÙX\
+Ø[Y™XÙZ]™\“˜[YQ›Ü“Y]Ù
+Ø[Y
+KY]Ù™XÙZ]™\‘Ü›Ý\Ù^JØ[Y\R[™›ÊKY]ÙÐžT™XÙZ]™\‹\R[™›ËÙY[ŠHÂ‚BBBBBB[]]]\ÈHYB‚BBBBBB\™]\›ˆ˜[ÙB‚BBBBB_B‚BBBB_B‚BBB_B‚BBB\™]\›ˆYB‚BB_B‚BBXØ[YHY]ÙXÛžS˜[YJY]ÙÐžT™XÙZ]™\–Ü™XÙZ]™\’Ù^WKÙ[”Ù[“˜[YJB‚BBZYˆØ[YOHš[Â‚BBBKËÈHY]Ù›Û[ÝYœ›ÛH[ˆ[X™YYšY[Ë‘\ÜÚ]Ú]‚BBBKËÈ\ÜÚ]XÛ\™YÛˆ˜\ÚXË]]]\ÈH™XÙZ]™\ˆÚ[ˆ]‚BBBKËÈ]]]\È]ÈÝÛ‹‚‚BBBXØ[YH›Û[ÝYY]ÙXÛ
+Ù[Y]ÙÐžT™XÙZ]™\‹\R[™›ÊB‚BB_B‚BBZYˆØ[YOHš[Â‚BBB\™]\›ˆYB‚BB_B‚BBZYˆY]Ù]]]\Ô™XÙZ]™\•Ú]Y]ÙX\
+Ø[Y™XÙZ]™\“˜[YQ›Ü“Y]Ù
+Ø[Y
+KY]Ù™XÙZ]™\‘Ü›Ý\Ù^JØ[Y\R[™›ÊKY]ÙÐžT™XÙZ]™\‹\R[™›ËÙY[ŠHÂ‚BBB[]]]\ÈHYB‚BBB\™]\›ˆ˜[ÙB‚BB_B‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ]]]\ÂŸB‚‹ËÈ›Û[ÝYY]ÙXÛ[ÛÛ^\È›Û[ÝYY]ÙXÛÝ™\ˆHY]ÙÈÙˆB‹ËÈXÚØYÙH™Z[™È˜[œÜ[Y‚™[˜È›Û[ÝYY]ÙXÛ[ÛÛ^
+Ù[
+˜\Ý”Ù[XÝÜ‘^ŠH
+˜\Ý‘[˜ÑXÛÂ‚XÝHÙ]˜[œÜ[PÛÛ^
+
+B‚ZYˆÝOHš[Ý”XÚØYÙHOHš[Â‚B\™]\›ˆš[‚_B‚\™]\›ˆ›Û[ÝYY]ÙXÛ
+Ù[Ý”XÚØYÙK“Y]ÙÐžU\KÙ]\R[™›Ê
+JBŸB‚‹ËÈ›Û[ÝYY]ÙXÛ™]\›œÈHXÛ\˜][ÛˆÙˆHY]ÙÙ[Ù[XÝÂ‹ËÈ›ÝYÚ[ˆ[X™YYšY[Ú[ˆHXÚØYÙHXÛ\™\È]‚™[˜È›Û[ÝYY]ÙXÛ
+Ù[
+˜\Ý”Ù[XÝÜ‘^‹Y]ÙÐžT™XÙZ]™\ˆX\ÜÝš[™×V×J˜\Ý‘[˜ÑXÛ\R[™›È
+•\R[™›ÊH
+˜\Ý‘[˜ÑXÛÂ‚ZYˆ\R[™›ÈOHš[\R[™›Ëš[™›ÈOHš[Â‚B\™]\›ˆš[‚_B‚\Ù[XÝ[ÛˆH\R[™›Ëš[™›Ë”Ù[XÝ[ÛœÖÜÙ[B‚ZYˆÙ[XÝ[ÛˆOHš[Ù[XÝ[Û‹’Ú[™
+
+HOH\\Ë“Y]Ù˜[[ŠÙ[XÝ[Û‹’[™^
+
+JHˆÂ‚B\™]\›ˆš[‚_B‚[Y]ÙÚÈHÙ[XÝ[Û‹“ØšŠ
+KŠ
+\\Ë‘[˜ÊB‚ZYˆ[ÚÈÂ‚B\™]\›ˆš[‚_B‚Y›ÜˆËY]ÙÈH˜[™ÙHY]ÙÐžT™XÙZ]™\ˆÂ‚BY›ÜˆËXÛH˜[™ÙHY]ÙÈÂ‚BBZYˆY]Ù[˜Ñ›Ü‘XÛ
+XÛ\R[™›ÊHOHY]ÙÂ‚BBB\™]\›ˆXÛ‚BB_B‚B_B‚_B‚\™]\›ˆš[ŸB‚™[˜ÈØ[\™Ý[Y[X^S]]]T™XÙZ]™\Š\™È\Ý‘^‹™XÙZ]™\“˜[YHÝš[™ÊH›ÛÛÂ‚][˜\žKÚÈH[Ü˜\\™[œÊ\™ÊKŠ
+˜\Ý•[˜\žQ^ŠB‚\™]\›ˆÚÈ	‰ˆ[˜\žK“ÜOHÚÙ[‹S‘	‰ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\Š[˜\žK–™XÙZ]™\“˜[YJBŸB‚‹ËÈØ[\Ñœš[•Üš][™ÕÔ™XÙZ]™\ˆ™\ÜÈÚ]\ˆØ[\È›]‘œš[Š™XÝ‹‹ËÈ‹‹ŠX
+Üˆœš[Ñœš[ŠHÚ\™HHš\œÝ\™Ý[Y[™Y™\™[˜Ù\ÈH˜[YY‹ËÈ™XÙZ]™\‹ˆH˜[œÜ[\ˆÝÙ\œÈÝXÚØ[ÈÈ™XÝ‹Üš]J‹‹ŠKÛÈB‹ËÈ™XÙZ]™\ˆ\XÚ\]\È\ÈHÜš]H\™Ù][™[š\š]È]ÈÜš]HY]Ù	ÜÂ‹ËÈ]]][Ûˆ™Z]š[Ü‹‚™[˜ÈØ[\Ñœš[•Üš][™ÕÔ™XÙZ]™\ŠØ[
+˜\ÝØ[^‹Ù[
+˜\Ý”Ù[XÝÜ‘^‹™XÙZ]™\“˜[YHÝš[™ÊH›ÛÛÂ‚ZYˆ[ŠØ[\™ÜÊHOHÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÙÒY[ÚÈHÙ[–Š
+˜\Ý’Y[
+B‚ZYˆ[ÚÈÙÒY[“˜[YHOH™›]ˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÝÚ]ÚÙ[”Ù[“˜[YHÂ‚XØ\ÙH‘œš[ˆ‹‘œš[‹‘œš[ˆŽ‚‚YY˜][‚‚B\™]\›ˆ˜[ÙB‚_B‚\™]\›ˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠØ[\™ÜÖÌK™XÙZ]™\“˜[YJBŸB‚™[˜ÈY]Ù]]]\Ô™XÙZ]™\•Ú]ÙY[Š›ˆ
+˜\Ý‘[˜ÑXÛ™XÙZ]™\“˜[YHÝš[™Ë™XÙZ]™\•\HÝš[™ËÙY[ˆX\Ê˜\Ý‘[˜ÑXÛX›ÛÛ
+H›ÛÛÂ‚ZYˆ›ˆOHš[›‹›ÙHOHš[™XÙZ]™\“˜[YHOHˆˆÂ‚B\™]\›ˆ˜[ÙB‚_B‚ZYˆÙY[–Ù›—HÂ‚B\™]\›ˆ˜[ÙB‚_B‚\ÙY[–Ù›—HHYB‚[]]]\ÈH˜[ÙB‚X\Ý’[œÜXÝ
+›‹›ÙK[˜Êˆ\Ý“›ÙJH›ÛÛÂ‚BZYˆ]]]\ÈÂ‚BB\™]\›ˆ˜[ÙB‚B_B‚B\ÝÚ]ÚÝ]H‹Š\JHÂ‚BXØ\ÙH
+˜\Ý\ÜÚYÛ”Ý]‚‚BBY›ÜˆËÈH˜[™ÙHÝ]“ÈÂ‚BBBZYˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠË™XÙZ]™\“˜[YJHÂ‚BBBB[]]]\ÈHYB‚BBBB\™]\›ˆ˜[ÙB‚BBB_B‚BB_B‚BXØ\ÙH
+˜\Ý’[˜ÑXÔÝ]‚‚BBZYˆ^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÝ]–™XÙZ]™\“˜[YJHÂ‚BBB[]]]\ÈHYB‚BBB\™]\›ˆ˜[ÙB‚BB_B‚BXØ\ÙH
+˜\ÝØ[^Ž‚‚BB\Ù[ÚÈHÝ]‘[‹Š
+˜\Ý”Ù[XÝÜ‘^ŠB‚BBZYˆ[ÚÈÂ‚BBB\™]\›ˆYB‚BB_B‚BBZYˆY^”™Y™\™[˜Ù\Ô™XÙZ]™\ŠÙ[–™XÙZ]™\“˜[YJHÂ‚BBBKËÈ›]‘œš[Š™XÙZ]™\‹‹‹ŠHÝÙ\œÈÈ™XÙZ]™\‹Üš]J‹‹ŠNÂ‚BBBKËÈ›ÜYØ]HHÜš]HY]Ù	ÜÈ]]][Ûˆ›ÝYÚ\È[™\™XÝØ[‚‚BBBZYˆØ[\Ñœš[•Üš][™ÕÔ™XÙZ]™\ŠÝ]Ù[™XÙZ]™\“˜[YJHÂ‚BBBBZYˆØ[YHY]ÙXÛžS˜[YJY]ÙÑ›Ü”™XÙZ]™\•\J™XÙZ]™\•\JK•Üš]HŠNÈØ[YOHš[Â‚BBBBBZYˆY]Ù]]]\Ô™XÙZ]™\•Ú]ÙY[ŠØ[Y™XÙZ]™\“˜[YQ›Ü“Y]Ù
+Ø[Y
+KÙ]Y]Ù™XÙZ]™\•\JØ[Y
+KÙY[ŠHÂ‚BBBBBB[]]]\ÈHYB‚BBBBBB\™]\›ˆ˜[ÙB‚BBBBB_B‚BBBB_B‚BBB_B‚BBB\™]\›ˆYB‚BB_B‚BBXØ[YHY]ÙXÛžS˜[YJY]ÙÑ›Ü”™XÙZ]™\•\J™XÙZ]™\•\JKÙ[”Ù[“˜[YJB‚BBZYˆØ[YOHš[Â‚BBBKËÈHY]Ù›Û[ÝYœ›ÛH[ˆ[X™YYšY[‚‚BBBXØ[YH›Û[ÝYY]ÙXÛ[ÛÛ^
+Ù[
+B‚BB_B‚BBZYˆØ[YOHš[Â‚BBB\™]\›ˆYB‚BB_B‚BBZYˆY]Ù]]]\Ô™XÙZ]™\•Ú]ÙY[ŠØ[Y™XÙZ]™\“˜[YQ›Ü“Y]Ù
+Ø[Y
+KÙ]Y]Ù™XÙZ]™\•\JØ[Y
+KÙY[ŠHÂ‚BBB[]]]\ÈHYB‚BBB\™]\›ˆ˜[ÙB‚BB_B‚B_B‚B\™]\›ˆYB‚_JB‚\™]\›ˆ]]]\ÂŸB‚™[˜È˜[œÜ[SY]Ù[\Ú]š\ÚXš[]JÝ]
+œÝš[™ÜËZ[\‹›ˆ
+˜\Ý‘[˜ÑXÛYXˆ›ÛÛ›Ü˜ÙTÚ\™Y™XÙZ]™\ˆ›ÛÛ˜Z]™XÙZ]™\“]]X›H›ÛÛš[TÙ]
+ÚÙ[‹‘š[TÙ]ÛÛ[Y[È×J˜\ÝÛÛ[Y[Ü›Ý\
+HÂ‚KËÈÝÜ™HH™XÙZ]™\ˆ˜[YH[™\H›ÜˆÙ[ˆ˜[œÛ][Û‚‚ZYˆ›‹”™XÝˆOHš[	‰ˆ[Š›‹”™XÝ‹“\Ý
+HˆÂ‚B\™XÝˆH›‹”™XÝ‹“\ÝÌB‚BZYˆ[Š™XÝ‹“˜[Y\ÊHˆÂ‚BB\Ù]Ý\œ™[™XÙZ]™\‘œ›ÛRY[
+™XÝ‹“˜[Y\ÖÌJB‚B_B‚BKËÈÝÜ™HH™XÙZ]™\ˆ\B‚BXÝ\œ™[™XÙZ]™\•\HHÙ]™XÙZ]™\•\J™XÝ‹•\JB‚_B‚\™]Ý\œ™[™XÙZ]™\”\Ý[X\ÈHÝ\œ™[™XÙZ]™\”\Ý[X\Â‚\™]Ý\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HHÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™B‚\™]Ý\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔˆHÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔ‚‚\™]Ý\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›ÈHÝ\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›Â‚XÝ\œ™[™XÙZ]™\”\Ý[X\ÈHˆ‚‚XÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HH˜[ÙB‚XÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔˆH˜[ÙB‚XÝ\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›ÈHÛÔ”™\Ý[[™›ÞßB‚ZYˆY]Ù™X\ÜÚYÛœÔ™XÙZ]™\Š›ŠHY]Ù˜[YT™XÙZ]™\“™YYÓØØ[[X\Ê›ŠHÂ‚BXÝ\œ™[™XÙZ]™\”\Ý[X\ÈH—×ÜÙ[ˆ‚‚BXÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HHY]Ù™YYÔÚ[\”™XÙZ]™\’[™P[X\Ê›ŠB‚BZYˆ[™›ËÚÈHY]Ù™YYÑÛÔ”™XÙZ]™\[X\Ê›ŠNÈÚÈÂ‚BBXÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔˆHYB‚BBXÝ\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›ÈH[™›Â‚BBXÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HH˜[ÙB‚B_B‚_B‚YY™\ˆ[˜Ê
+HÂ‚BXÝ\œ™[™XÙZ]™\”\Ý[X\ÈH™]Ý\œ™[™XÙZ]™\”\Ý[X\Â‚BXÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HH™]Ý\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™B‚BXÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔˆH™]Ý\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔ‚‚BXÝ\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›ÈH™]Ý\œ™[™XÙZ]™\”\Ý[X\ÑÛÔ’[™›Â‚_J
+B‚‚KËÈÝ]]ØÈÛÛ[Y[ÈYˆ™\Ù[
+Ú][™[][Ûˆ›ÜˆY]ÙÊB‚[Ý]]ÛÛ[Y[
+Ý]›‹‘ØËˆ‹YJB‚‚[Ý]•Üš]TÝš[™ÊˆŠB‚ZYˆYXˆÂ‚B[Ý]•Üš]TÝš[™ÊœXˆŠB‚_B‚[Ý]•Üš]TÝš[™Ê™›ˆŠB‚[Ý]•Üš]TÝš[™Ê\ÝY]Ù˜[YJ›ŠJB‚[Ý]•Üš]TÝš[™ÊŠŠB‚‚KËÈ™XÙZ]™\‚‚ZYˆ›‹”™XÝˆOHš[	‰ˆ[Š›‹”™XÝ‹“\Ý
+HˆÂ‚B\™XÝˆH›‹”™XÝ‹“\ÝÌB‚BKËÈÝÜ™HH™XÙZ]™\ˆ˜[YH›ÜˆÙ[ˆ˜[œÛ][Û‚‚BZYˆ[Š™XÝ‹“˜[Y\ÊHˆÂ‚BB\Ù]Ý\œ™[™XÙZ]™\‘œ›ÛRY[
+™XÝ‹“˜[Y\ÖÌJB‚B_B‚‚BZYˆ›Ü˜ÙTÚ\™Y™XÙZ]™\ˆÂ‚BBZYˆ˜Z]™XÙZ]™\“]]X›HÂ‚BBB[Ý]•Üš]TÝš[™Ê‰›]]Ù[ˆŠB‚BB_H[ÙHÂ‚BBB[Ý]•Üš]TÝš[™Ê‰œÙ[ˆŠB‚BB_B‚B_H[ÙHYˆY]Ù™\]Z\™\Ó]]X›T™XÙZ]™\Š›ŠHÂ‚BB[Ý]•Üš]TÝš[™Ê‰›]]Ù[ˆŠB‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™Ê‰œÙ[ˆŠB‚B_B‚‚BKËÈYÛÛ[XHYˆ\™H\™H[Ü™H\˜[Y]\œÂ‚BZYˆ›‹•\K”\˜[\ÈOHš[	‰ˆ[Š›‹•\K”\˜[\Ë“\Ý
+HˆÂ‚BB[Ý]•Üš]TÝš[™Ê‹ŠB‚B_B‚_B‚KËÈÝ\ˆ\˜[Y]\œÂ‚]Üš]Q[˜ÑXÛ\˜[\ÊÝ]›ŠB‚‚[Ý]•Üš]TÝš[™ÊŠHŠB‚‚]Üš]Q[˜ÑXÛ™\Ý[\\ÊÝ]›ŠB‚‚[Ý]•Üš]TÝš[™Êˆ×ˆŠB‚‚ZYˆ›‹›ÙHOHš[Â‚B\™\ÝÜ™TÛXÙQ[[TØ[™Y]\ÈHÙ]ÛXÙQ[[TØ[™Y]\Ñ›Ü‘[˜Ê›ŠB‚BYY™\ˆ™\ÝÜ™TÛXÙQ[[TØ[™Y]\Ê
+B‚B\™\ÝÜ™TÛXÙQ[[T”™]\›ˆH\ÚÝ\œ™[ÛXÙQ[[T”™]\›Š›ŠB‚BYY™\ˆ™\ÝÜ™TÛXÙQ[[T”™]\›Š
+B‚‚BZ\ÑY™\ˆHÚXÚÒ\ÑY™\Š›‹›ÙK“\Ý
+B‚B[Û[˜Ý[Û’\ÑY™\ˆHÝ\œ™[[˜Ý[Û’\ÑY™\‚‚BXÝ\œ™[[˜Ý[Û’\ÑY™\ˆH\ÑY™\‚‚BYY™\ˆ[˜Ê
+HÈÝ\œ™[[˜Ý[Û’\ÑY™\ˆHÛ[˜Ý[Û’\ÑY™\ˆJ
+B‚B[Û[˜Ý[Û›ÙSœ˜XÙHHÝ\œ™[[˜Ý[Û›ÙSœ˜XÙB‚BXÝ\œ™[[˜Ý[Û›ÙSœ˜XÙHH›‹›ÙK“œ˜XÙB‚BYY™\ˆ[˜Ê
+HÈÝ\œ™[[˜Ý[Û›ÙSœ˜XÙHHÛ[˜Ý[Û›ÙSœ˜XÙHJ
+B‚B[ÛXÝ]™S]]^ÝX\™ÈHXÝ]™S]]^ÝX\™Â‚BXXÝ]™S]]^ÝX\™ÈHXZÙJX\ÜÝš[™×\Ýš[™ÊB‚BYY™\ˆ[˜Ê
+HÈXÝ]™S]]^ÝX\™ÈHÛXÝ]™S]]^ÝX\™ÈJ
+B‚BZYˆ\ÑY™\ˆÂ‚BB[Ý]•Üš]TÝš[™Êˆˆ
+ÈY™\”ÝXÚÑXÛ
+
+H
+È——ˆŠB‚B_B‚B]Üš]QÛÔÛXÙT\˜[RXY\ÛÜY\ÊÝ]›‹ˆŠB‚B]Üš]S˜[YY™]\›‘XÛ\˜][ÛœÊÝ]›‹•\JB‚_B‚‚\™\ÝÜ™SØØ[Þ[^[™›ÈH\Ú[˜Ý[Û“ØØ[Þ[^[™›Ê
+B‚YY™\ˆ™\ÝÜ™SØØ[Þ[^[™›Ê
+B‚X\ÜÚYÛ™Y[\™˜XÙT\˜[\ÈH\ÜÚYÛ™Y[\™˜XÙT\˜[S˜[Y\Ê›ŠB‚‚KËÈ™YÚ\Ý\ˆY]Ù\˜[Y]\œÈ[ˆ˜\•X›B‚ZYˆHÙ]˜\•X›J
+NÈOHš[Â‚B]”\ÚØÛÜJ
+B‚BYY™\ˆ”ÜØÛÜJ
+B‚BZYˆ›‹•\K”\˜[\ÈOHš[Â‚BB\\˜[R[™^H‚BBY›ÜˆËšY[H˜[™ÙH›‹•\K”\˜[\Ë“\ÝÂ‚BBBY›ÜˆË˜[YHH˜[™ÙHšY[“˜[Y\ÈÂ‚BBBB\\Ý\HHÛÕ\UÔ\Ý˜\ÙJšY[•\JB‚BBBBZYˆ[[T\Ý\KÚÈHÛXÙQ[[T”ÛXÙT\˜[R[™›Ñ›Ü‘XÛØš™XÝ
+›‹\˜[R[™^
+NÈÚÈÂ‚BBBBB\\Ý\HH•™XÏÛÔˆ
+È[[T\Ý\H
+Èˆ‚‚BBBB_B‚BBBBZYˆ[[T\Ý\KÚÈHÛÔ”ÛÝ\˜[QXÛ[[T\Ý\J›‹\˜[R[™^
+NÈÚÈÂ‚BBBBB\\Ý\HHÛÔ”ÛÝ\˜[T\Ý\J[[T\Ý\JB‚BBBB_B‚BBBBZYˆ[[T\Ý\KÚÈHÛÔ”\˜[QXÛ[[T\Ý\J›‹\˜[R[™^
+NÈÚÈÂ‚BBBBB\\Ý\HH‘ÛÔˆ
+È[[T\Ý\H
+Èˆ‚‚BBBB_B‚BBBBZYˆ[˜Ý[Û”\Ý\KÚÈH[˜Ý[Û•\T\Ý˜[YQœ›ÛU\Q^ŠšY[•\JNÈÚÈÂ‚BBBBB\\Ý\HH[˜Ý[Û”\Ý\B‚BBBB_B‚BBBB\™YÚ\Ý\•\Q^ÛÛXÝ[Û’[™›Ê˜[YK“˜[YKšY[•\JB‚BBBBZYˆ[[T\Ý\KÚÈHÛÔ”ÛÝ\˜[QXÛ[[T\Ý\J›‹\˜[R[™^
+NÈÚÈÂ‚BBBBB]˜\ˆÛÕ\H\\Ë•\B‚BBBBBZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BBBBBBYÛÕ\HH\R[™›Ë‘Ù]\JšY[•\JB‚BBBBB_B‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\NˆÛÔ”ÛÝ\˜[T\Ý\J[[T\Ý\JK‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBBBTÚ[\’Ú[™ˆÚ[\‘ÛÔ‹‚BBBBBBQÛÕ\NˆÛÕ\K‚BBBBB_JB‚BBBB_H[ÙHYˆ[[T\Ý\KÚÈHÛÔ”\˜[QXÛ[[T\Ý\J›‹\˜[R[™^
+NÈÚÈÂ‚BBBBB]˜\ˆÛÕ\H\\Ë•\B‚BBBBBZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[Â‚BBBBBBYÛÕ\HH\R[™›Ë‘Ù]\JšY[•\JB‚BBBBB_B‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\Nˆ‘ÛÔˆ
+È[[T\Ý\H
+Èˆ‹‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBBBTÚ[\’Ú[™ˆÚ[\‘ÛÔ‹‚BBBBBBQÛÕ\NˆÛÕ\K‚BBBBB_JB‚BBBB_H[ÙHYˆ˜\’[™›ËÚÈH[\™˜XÙT\˜[U˜\’[™›ÊšY[•\JNÈÚÈÂ‚BBBBBZYˆ\ÜÚYÛ™Y[\™˜XÙT\˜[\ÖÛ˜[YK“˜[YWHÂ‚BBBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBBUÜ˜\]™[ˆÜ˜\[‚BBBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙSØØ[‚BBBBBB_JB‚BBBBB_H[ÙHÂ‚BBBBBB]˜\’[™›Ë”\Ý\HH\Ý\B‚BBBBBB]”™YÚ\Ý\Š˜[YK“˜[YK˜\’[™›ÊB‚BBBBB_B‚BBBB_H[ÙHYˆËÚÈHšY[•\KŠ
+˜\ÝÚ[•\JNÈÚÈÂ‚BBBBBKËÈÚ[›™[\˜[Y]\œÈ\™H˜\™H
+ÛÐÚ[›™[ŠB‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBB_JB‚BBBB_H[ÙHYˆ\ÔÞ[˜Ô\˜[JšY[•\JHÂ‚BBBBBKËÈÞ[˜Ë•ØZ]Ü›Ý\ÈÞ[˜Ë“]]^\˜[Y]\œÈ\™H˜\™B‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBB_JB‚BBBB_H[ÙHYˆ\Q^’\Ô™YÚ\Ý\™Y˜\™TÝXÝ[X\ÊšY[•\JHÂ‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBB_JB‚BBBB_H[ÙHYˆ\Q^’\ÓÜ™\™Y\T\˜[JšY[•\JHÂ‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\›Û™K‚BBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBB_JB‚BBBB_H[ÙHÂ‚BBBBB]”™YÚ\Ý\Š˜[YK“˜[YK	•˜\’[™›ÞÂ‚BBBBBBUÜ˜\]™[ˆÜ˜\[‚BBBBBBT\Ý\Nˆ\Ý\K‚BBBBBBTÛÝ\˜ÙNˆÛÝ\˜ÙT\˜[K‚BBBBB_JB‚BBBB_B‚BBBB\\˜[R[™^
+ÊÂ‚BBB_B‚BB_B‚B_B‚B\™YÚ\Ý\\œ˜^Q[[T“˜[YY™]\›•˜\œÊ›ŠB‚_B‚‚ZYˆÜš]T[[YS[šÙY[˜Ý[Û›ÙJÝ]›‹ˆŠHÂ‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚BXÝ\œ™[™XÙZ]™\ˆHˆ‚‚BXÝ\œ™[™XÙZ]™\“Øš™XÝHš[‚B\™]\›‚‚_B‚‚KËÈY]Ù›ÙHH™YYÈ[™HÙ[ˆ™Y™\™[˜Ù\Â‚ZYˆ›‹›ÙHOHš[Â‚B[Ý]•Üš]TÝš[™Êˆ[š[\[Y[YJ‘ÛÈY]ÙXÛ\˜][Ûˆ\È›È›ÙWŠN×ˆŠB‚B[Ý]•Üš]TÝš[™ÊˆWˆŠB‚BXÝ\œ™[™XÙZ]™\ˆHˆ‚‚BXÝ\œ™[™XÙZ]™\“Øš™XÝHš[‚B\™]\›‚‚_B‚]Üš]P\ÜÚYÛ™Y[\™˜XÙT\˜[TÚYÝÜÊÝ]›‹ˆŠB‚ZYˆÝ\œ™[™XÙZ]™\”\Ý[X\ÈOHˆˆÂ‚B[Ý]•Üš]TÝš[™Êˆ]]]ŠB‚B[Ý]•Üš]TÝš[™ÊÝ\œ™[™XÙZ]™\”\Ý[X\ÊB‚B[Ý]•Üš]TÝš[™ÊˆHŠB‚BZYˆÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÑÛÔˆÂ‚BB[Ý]•Üš]TÝš[™Ê‘ÛÔŽŽ›ØØ[
+ŠB‚BBUÜš]UÜ˜\\“Ü[Û”™Yš^
+Ý]
+B‚BB[Ý]•Üš]TÝš[™Ê”ÛÛYJÙ[‹˜ÛÛ™J
+JHŠB‚BBUÜš]UÜ˜\\“Ü[Û”ÝY™š^
+Ý]
+B‚BB[Ý]•Üš]TÝš[™ÊŠHŠB‚B_H[ÙHYˆÝ\œ™[™XÙZ]™\”\Ý[X\Ò\ÔÚ[\’[™HÂ‚BBUÜš]UÜ˜\\“Ü[Û”™Yš^
+Ý]
+B‚BB[Ý]•Üš]TÝš[™Ê”ÛÛYJÙ[‹˜ÛÛ™J
+JHŠB‚BBUÜš]UÜ˜\\“Ü[Û”ÝY™š^
+Ý]
+B‚B_H[ÙHYˆÝ\œ™[™XÙZ]™\’\ÔÝXÝ˜[YJ
+HÂ‚BBKËÈH˜[YH™XÙZ]™\ˆ\ÈHY]Ù	ÜÈÝÛˆÛÜHÙˆHÝXÝ‚‚BB[Ý]•Üš]TÝš[™ÊœÙ[ˆˆ
+ÈÛÔÝXÝ˜[YPÛÜPØ[
+B‚B_H[ÙHÂ‚BB[Ý]•Üš]TÝš[™ÊœÙ[‹˜ÛÛ™J
+HŠB‚B_B‚B[Ý]•Üš]TÝš[™ÊŽ×ˆŠB‚_B‚‚\™XÛÝ™\Ø]ÚHÚÝ[Ü˜\Y™\”[šXÔ™XÛÝ™\ŠÝ\œ™[[˜Ý[Û’\ÑY™\ŠB‚X›ÙR[™[Hˆ‚‚ZYˆ™XÛÝ™\Ø]ÚÂ‚BX›ÙR[™[H™YÚ[”[šXÔ™XÛÝ™\Ø]Ú
+Ý]ˆŠB‚_B‚‚]˜\ˆ™]”Ý]\Ý”Ý]‚]˜\ˆ\ÝÜÈÚÙ[‹”ÜÈH›‹›ÙK“œ˜XÙB‚ZYˆ[˜Ý[Û’\ÑÛÝÊ›ŠHÂ‚B\™]”Ý]H˜[œÜ[QÛÝÔÝ][Y[\Ý
+Ý]›‹›ÙK“\Ý›‹•\Kš[TÙ]ÛÛ[Y[Ë	›\ÝÜË›ÙR[™[
+B‚BZYˆ\ÝÝ]H\Ý›Û‘[\TÝ]
+›‹›ÙK“\Ý
+NÈ\ÝÝ]OHš[	‰ˆÝ]\›Z[˜]\Ê\ÝÝ]
+HÂ‚BB[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚BB[Ý]•Üš]TÝš[™Ê[œ™XXÚX›HJ
+WˆŠB‚B_B‚_H[ÙHÂ‚BY›ÜˆKÝ]H˜[™ÙH›‹›ÙK“\ÝÂ‚BB[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚BBZYˆHOH[Š›‹›ÙK“\Ý
+KLHÂ‚BBBU˜[œÜ[UZ[Ý][Y[
+Ý]Ý]›‹•\Kš[TÙ]ÛÛ[Y[Ë	›\ÝÜË›ÙR[™[
+B‚BB_H[ÙHÂ‚BBBU˜[œÜ[TÝ][Y[
+Ý]Ý]›‹•\Kš[TÙ]ÛÛ[Y[Ë	›\ÝÜË›ÙR[™[
+B‚BB_B‚BB[Ý]•Üš]TÝš[™Ê—ˆŠB‚BB\™]”Ý]HÝ]‚B_B‚_B‚‚[\Ý\›Z[˜]\ÈH™]”Ý]OHš[	‰ˆÝ]\›Z[˜]\Ê™]”Ý]
+B‚ZYˆÝ\œ™[[˜Ý[Û’\ÑY™\ˆ	‰ˆ[\Ý\›Z[˜]\ÈÂ‚B[Ý]•Üš]TÝš[™Ê—ˆŠB‚B[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚B[Ý]•Üš]TÝš[™Ê‹ËÈ^XÝ]HY™\œ™Y[˜Ý[Ûœ×ˆŠB‚B[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚B[Ý]•Üš]TÝš[™ÊÚ[H]ÛÛYJŠHH×ÙY™\—ÜÝXÚËœÜ
+
+H×ˆŠB‚B[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚B[Ý]•Üš]TÝš[™ÊˆŠ
+N×ˆŠB‚B[Ý]•Üš]TÝš[™Ê›ÙR[™[
+B‚B[Ý]•Üš]TÝš[™ÊŸWˆŠB‚_B‚‚ZYˆ™XÛÝ™\Ø]ÚÂ‚BYš[š\Ú[šXÔ™XÛÝ™\Ø]Ú
+Ý]›‹ˆŠB‚_B‚‚[Ý]•Üš]TÝš[™ÊˆWˆŠB‚‚KËÈÛX\ˆH™XÙZ]™\ˆ˜[YB‚XÝ\œ™[™XÙZ]™\ˆHˆ‚‚XÝ\œ™[™XÙZ]™\“Øš™XÝHš[ŸB‚™[˜ÈÙ]Ý\œ™[™XÙZ]™\‘œ›ÛRY[
+Y[
+˜\Ý’Y[
+HÂ‚XÝ\œ™[™XÙZ]™\ˆHY[“˜[YB‚XÝ\œ™[™XÙZ]™\“Øš™XÝHš[‚ZYˆ\R[™›ÈHÙ]\R[™›Ê
+NÈ\R[™›ÈOHš[	‰ˆ\R[™›Ëš[™›ÈOHš[Â‚BXÝ\œ™[™XÙZ]™\“Øš™XÝH\R[™›Ëš[™›Ë‘YœÖÚY[B‚_BŸB

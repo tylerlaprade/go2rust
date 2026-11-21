@@ -939,6 +939,10 @@ run_xfail_test() {
     run_test "tests/cross_file_named_uint_const_peers"
 }
 
+@test "cross_file_nil_receiver_helper_qualification" {
+    run_test "tests/cross_file_nil_receiver_helper_qualification"
+}
+
 @test "cross_file_types" {
     run_test "tests/cross_file_types"
 }
@@ -1861,6 +1865,10 @@ run_xfail_test() {
 
 @test "map_slice_range_value_assignment" {
     run_test "tests/map_slice_range_value_assignment"
+}
+
+@test "map_struct_pointer_key_identity" {
+    run_test "tests/map_struct_pointer_key_identity"
 }
 
 @test "map_value_copy_semantics" {

@@ -237,32 +237,41 @@ func nilPointerReceiverMethodHelperName(method *types.Func) string {
 
 func nilPointerReceiverMethodHelperNameForUse(method *types.Func, fromCrateRoot bool) string {
 	name := nilPointerReceiverMethodHelperName(method)
-	module := nilPointerReceiverMethodModuleName(method)
+	module, known := nilPointerReceiverMethodModuleName(method)
+	if !known {
+		return name
+	}
 	ctx := GetTranspileContext()
-	if module == "" || (!fromCrateRoot && ctx != nil && module == ctx.CurrentModuleName) {
+	if module == "" {
+		if fromCrateRoot || ctx == nil || ctx.CurrentModuleName == "" {
+			return name
+		}
+		return "crate::" + name
+	}
+	if !fromCrateRoot && ctx != nil && module == ctx.CurrentModuleName {
 		return name
 	}
 	return "crate::" + module + "::" + name
 }
 
-func nilPointerReceiverMethodModuleName(method *types.Func) string {
+func nilPointerReceiverMethodModuleName(method *types.Func) (string, bool) {
 	ctx := GetTranspileContext()
 	if method == nil || ctx == nil || ctx.File == nil || ctx.File.FileSet == nil {
-		return ""
+		return "", false
 	}
 	filename := ctx.File.FileSet.Position(method.Pos()).Filename
 	if filename == "" {
-		return ""
+		return "", false
 	}
 	base := strings.TrimSuffix(filepath.Base(filename), ".go")
 	typeInfo := GetTypeInfo()
 	if base == "main" && typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" {
-		return ""
+		return "", true
 	}
 	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" && strings.HasPrefix(base, "lib") && strings.TrimLeft(base[3:], "_") == "" {
 		base += "_"
 	}
-	return SanitizeRustModuleName(base)
+	return SanitizeRustModuleName(base), true
 }
 
 func rustIdentFragment(name string) string {
@@ -292,10 +301,11 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 	}
 	method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 	key := methodOverrideKey(method)
-	helperName, ok := currentNilPointerReceiverMethodHelpers[key]
+	_, ok := currentNilPointerReceiverMethodHelpers[key]
 	if !ok {
 		return false
 	}
+	helperName := nilPointerReceiverMethodHelperNameForUse(method, false)
 	typedNil := isTypedNilPointerReceiverMethodCall(typeInfo, sel, method)
 	if !typedNil && !isPointerReceiverExprMethodCall(typeInfo, sel, method) {
 		return false
