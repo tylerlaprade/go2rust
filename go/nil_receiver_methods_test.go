@@ -41,6 +41,34 @@ func main() {
 	}
 }
 
+func TestTranspileSourceNilReceiverHelperStaysAtCrateRoot(t *testing.T) {
+	rust, err := TranspileSource(`package main
+
+type E struct{}
+
+func (e *E) Error() string {
+	if e == nil {
+		return "nil"
+	}
+	return "e"
+}
+
+func main() {
+	var e *E
+	_ = e.Error()
+}
+`)
+	if err != nil {
+		t.Fatalf("TranspileSource() error = %v", err)
+	}
+	if strings.Contains(rust, "crate::input::__go_nil_recv_e_error") {
+		t.Fatalf("standalone output should call its crate-root helper without an input module:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_nil_recv_e_error(e.clone())") {
+		t.Fatalf("standalone output should call its emitted nil-receiver helper:\n%s", rust)
+	}
+}
+
 func TestNilReceiverHelperReturnsWhatItsMethodReturns(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

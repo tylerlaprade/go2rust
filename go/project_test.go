@@ -199,6 +199,46 @@ func main() { _ = call(nil) }
 	}
 }
 
+func TestCrossFileNilReceiverHelperUsesPhysicalFileDespiteLineDirective(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+type E struct{}
+
+//line virtual.go:1
+func (e *E) Error() string {
+	if e == nil { return "nil" }
+	return "e"
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "call.go"), `package main
+
+func call(p *E) string { return p.Error() }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() { _ = call(nil) }
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "call.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	callRS := mustReadFile(t, filepath.Join(tempDir, "call.rs"))
+	if strings.Contains(callRS, "crate::virtual::__go_nil_recv_e_error") {
+		t.Fatalf("line directives must not redirect helpers to a nonexistent Rust module:\n%s", callRS)
+	}
+	if !strings.Contains(callRS, "crate::methods::__go_nil_recv_e_error(p.clone())") {
+		t.Fatalf("helper call should use the physical defining file's module:\n%s", callRS)
+	}
+}
+
 func TestCrossFileNilReceiverHelperCallUsesCrateRoot(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/mainmod\n\ngo 1.22\n")

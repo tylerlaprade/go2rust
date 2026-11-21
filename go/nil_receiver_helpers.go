@@ -259,7 +259,13 @@ func nilPointerReceiverMethodModuleName(method *types.Func) (string, bool) {
 	if method == nil || ctx == nil || ctx.File == nil || ctx.File.FileSet == nil {
 		return "", false
 	}
-	filename := ctx.File.FileSet.Position(method.Pos()).Filename
+	// Standalone and single-file output emits the helper beside every caller at
+	// the crate root. Its parser filename (for example TranspileSource's
+	// input.go) is not a generated Rust module.
+	if !ctx.UsePackageHelpers {
+		return "", true
+	}
+	filename := ctx.File.FileSet.PositionFor(method.Pos(), false).Filename
 	if filename == "" {
 		return "", false
 	}
