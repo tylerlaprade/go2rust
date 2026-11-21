@@ -6459,6 +6459,20 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 }
 
 func writeWrappedHandleNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) {
+	// A function that returns a pointer into a slice ("return &xs[i]")
+	// gives an Option of the element pointer, not a cell.
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok {
+		if _, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			out.WriteString("(")
+			TranspileExpression(out, call)
+			if op == token.EQL {
+				out.WriteString(").is_none()")
+			} else {
+				out.WriteString(").is_some()")
+			}
+			return
+		}
+	}
 	out.WriteString("{ let __nil_result = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
@@ -15338,6 +15352,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						structTypeName := typesStructLiteralName(typ, structUnder)
 						if structTypeName != "" {
 							writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, e.Elts)
+							return
+						}
+					}
+					// d{-32, 0, -32} with "type d [3]rune": the newtype over
+					// the array's cell. It was written as a struct literal
+					// with no fields, so every element read as zero.
+					if _, isArray := typ.Underlying().(*types.Array); isArray && !IsTypeAlias(ident.Name) {
+						if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+							out.WriteString(RustTypeNameForUse(ident.Name))
+							out.WriteString("(")
+							WriteWrapperPrefix(out)
+							writeBareFixedArrayCompositeLiteral(out, e, typ)
+							WriteWrapperSuffix(out)
+							out.WriteString(")")
 							return
 						}
 					}

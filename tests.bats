@@ -639,6 +639,14 @@ run_xfail_test() {
     run_test "tests/cap_struct_slice_field"
 }
 
+@test "case_table_lookup_with_named_arrays" {
+    run_test "tests/case_table_lookup_with_named_arrays"
+}
+
+@test "case_table_lookup_with_named_arrays_goroutines" {
+    run_test "tests/case_table_lookup_with_named_arrays_goroutines"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
@@ -1997,6 +2005,14 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "named_array_literals_and_equality" {
+    run_test "tests/named_array_literals_and_equality"
+}
+
+@test "named_array_literals_and_equality_goroutines" {
+    run_test "tests/named_array_literals_and_equality_goroutines"
 }
 
 @test "named_array_value_copy" {
