@@ -14880,7 +14880,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
-				isGoSlice := goSliceModeEnabled() && isSlice
+				isGoSlice := goSliceModeEnabled() && (isSlice || isSliceBackedArrayExpr(e.X))
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
 					// Don't add borrow/unwrap. GoSlice reads clone while its backing
@@ -14949,6 +14949,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperPrefix(out)
 			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
+		} else if writeSliceBackedArraySliceExpression(out, e) {
+			// A slice of a local fixed array shares that array's GoSlice backing.
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
@@ -15222,8 +15224,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			multilineSliceLiteral := arrayType.Len == nil && len(values) > 0 && sliceLiteralShouldUseMultiline(values)
 			multilineCollectionLiteral := multilineArrayLiteral || multilineSliceLiteral
 			collectionLiteralIndent := ""
+			sliceBackedFixedArray := arrayType.Len != nil && emitFixedArrayAsGoSlice
 			if arrayType.Len != nil {
 				// Fixed-size array
+				if sliceBackedFixedArray {
+					out.WriteString("Vec::from(")
+				}
 				if multilineCollectionLiteral {
 					collectionLiteralIndent = currentLineIndent(out)
 					out.WriteString("[\n")
@@ -15354,6 +15360,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(collectionLiteralIndent)
 				}
 				out.WriteString("]")
+				if sliceBackedFixedArray {
+					out.WriteString(")")
+				}
 			} else if len(e.Elts) == 0 {
 				out.WriteString(")")
 			} else if explicitVecElemType {
@@ -17082,6 +17091,8 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	if funcLit.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(funcLit.Body)
 		defer restoreSliceElemPtrCandidates()
+		restoreSliceBackedArrayCandidates := setSliceBackedArrayCandidates(funcLit.Body)
+		defer restoreSliceBackedArrayCandidates()
 	}
 	if len(resultOverrides) > 0 {
 		forced := make(map[int]bool)

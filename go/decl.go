@@ -4568,6 +4568,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
 	defer restoreSliceElemPtrCandidates()
+	restoreSliceBackedArrayCandidates := setSliceBackedArrayCandidatesForFunc(fn)
+	defer restoreSliceBackedArrayCandidates()
 	restoreFuncLitGoPtrParamInfos := setFuncLitGoPtrParamInfosForFunc(fn)
 	defer restoreFuncLitGoPtrParamInfos()
 	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
@@ -10015,6 +10017,8 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	if fn.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
 		defer restoreSliceElemPtrCandidates()
+		restoreSliceBackedArrayCandidates := setSliceBackedArrayCandidatesForFunc(fn)
+		defer restoreSliceBackedArrayCandidates()
 		restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
 		defer restoreSliceElemPtrReturn()
 
