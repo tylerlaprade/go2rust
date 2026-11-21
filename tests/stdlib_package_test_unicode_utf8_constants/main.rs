@@ -362,8 +362,6 @@ pub fn run(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>, name: Arc<Mutex<Opti
 
 fn main() {
     ::bytes::__go_init_all();
-    ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::oracle_testing::__go_init_all();
     ::unicode_utf8::__go_init_all();
 

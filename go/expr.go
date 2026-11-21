@@ -846,8 +846,9 @@ func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -858,8 +859,9 @@ func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	writeConstExpressionCastValue(out, expr)
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
