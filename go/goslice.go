@@ -1235,6 +1235,9 @@ func writeGoSliceElementHeaderFromVariable(out *strings.Builder, rhs ast.Expr, e
 // program use it, so that the fixed runtime text does not match their
 // patterns.
 func stripGoSliceRuntime(code string) string {
-	code = strings.Replace(code, goSliceRuntime, "", -1)
+	for _, boxedImpl := range []string{"", goSliceBoxedImpl, goSliceBoxedConcurrentImpl} {
+		runtime := strings.Replace(goSliceRuntime, "__GO_SLICE_BOXED_IMPLS__", boxedImpl, 1)
+		code = strings.Replace(code, runtime, "", -1)
+	}
 	return strings.Replace(code, goSliceVecMacro, "", -1)
 }
