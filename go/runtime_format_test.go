@@ -165,6 +165,8 @@ func main() {
 		"fn go_format_complex(",
 		"fn go_format_float_base(",
 		"fn go_format_float_sharp(",
+		`if val.is::<num::Complex<f64>>() { return "complex128" }`,
+		`if val.is::<num::Complex<f32>>() { return "complex64" }`,
 		"value.downcast_ref::<num::Complex<f64>>()",
 		"value.downcast_ref::<num::Complex<f32>>()",
 		`Some(format!("({}{}i)", real, imaginary))`,

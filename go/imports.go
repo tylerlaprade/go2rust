@@ -440,7 +440,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result, anyTypeNames)
+		generateGoTypeNameHelper(&result, anyTypeNames, ht.needsGoSprintfComplex)
 	}
 
 	if ht.needsGoErrorChain {
@@ -3006,7 +3006,7 @@ func isRustIdentPart(c byte) bool {
 	return isRustIdentStart(c) || (c >= '0' && c <= '9')
 }
 
-func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {
+func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string, needsComplex bool) {
 	TrackImport("Any")
 	out.WriteString(`
 fn `)
@@ -3022,7 +3022,13 @@ fn `)
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
-    if val.is::<bool>() { return "bool" }
+`)
+	if needsComplex {
+		out.WriteString(`    if val.is::<num::Complex<f64>>() { return "complex128" }
+    if val.is::<num::Complex<f32>>() { return "complex64" }
+`)
+	}
+	out.WriteString(`    if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
     if val.is::<Vec<i64>>() { return "[]int" }
     if val.is::<Vec<i32>>() { return "[]int32" }
