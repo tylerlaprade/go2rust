@@ -906,7 +906,7 @@ fn main() {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = funcs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
-        return { let __bin_i = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i };
+        return { let __bin_i = ({ let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i };
     }) as Box<dyn FnMut() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *funcs.lock().unwrap() = __slice_header; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

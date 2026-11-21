@@ -2474,7 +2474,7 @@ fn main() {
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i64))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i64))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
 
     let mut n = Arc::new(Mutex::new(Some(4i64)));
-    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(({ let __tmp_x = -((*n.lock().unwrap().as_ref().unwrap())); let __tmp_y = 1; __tmp_x + __tmp_y }) as i64))))));
+    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v })) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(({ let __tmp_x = -(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v })); let __tmp_y = 1; __tmp_x + __tmp_y }) as i64))))));
 
     print!("{} {} {}\n", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "main.I8"));
     let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
@@ -2485,7 +2485,7 @@ fn main() {
     println!();
 
     if {
-        let __tmp_x = (*b.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_x = ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v });
         let __tmp_y = Level(Arc::new(Mutex::new(Some(-2 as i64))));
         __tmp_x < __tmp_y
     } {

@@ -1386,11 +1386,11 @@ fn main() {
         while { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result } {
         let mut line = { let __recv = scanner.clone(); let __recv_ptr: *mut bufio_Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio_Scanner }; let __result = unsafe { &mut *__recv_ptr }.text(); __result };
         { let mut guard = lineCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        { let __rhs = (*line.lock().unwrap().as_ref().unwrap()).len() as i64; let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = ({ let __len = (*line.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64; let mut guard = charCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         let mut words = Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() })));
         let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Arc::new(Mutex::new(__slice_header)) };
-        { let __rhs = (*words.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = ({ let __len = (*words.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut guard = wordCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
                 // Process lines containing numbers
         if (*Arc::new(Mutex::new(Some({ let __s = (*line.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "123".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
@@ -1451,7 +1451,7 @@ fn main() {
                 // Check if files exist
         println!("{}", format!("{}", "\n--- Checking file existence ---".to_string()));
 
-        let mut files = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone(), "nonexistent.txt".to_string()])));
+        let mut files = Arc::new(Mutex::new(Some(vec![({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v }), "nonexistent.txt".to_string()])));
 
         { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         {
@@ -1469,7 +1469,7 @@ fn main() {
                 // Clean up - remove test files
         println!("{}", format!("{}", "\n--- Cleaning up ---".to_string()));
 
-        let mut filesToRemove = Arc::new(Mutex::new(Some(vec![(*filename.lock().unwrap().as_ref().unwrap()).clone(), (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(), (*dataFile.lock().unwrap().as_ref().unwrap()).clone()])));
+        let mut filesToRemove = Arc::new(Mutex::new(Some(vec![({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v })])));
 
         { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         let mut err = { let __path = (*f).clone(); match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e))))) } };

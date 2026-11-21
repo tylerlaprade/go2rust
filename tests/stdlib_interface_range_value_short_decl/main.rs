@@ -880,7 +880,7 @@ pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Ve
             { let new_val = { let __selector_holder = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *value.lock().unwrap() = Some(new_val); };;
         }
     }
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = (*value.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<ast_Expr> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *values.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = ({ let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<ast_Expr> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *values.lock().unwrap() = __slice_header; };
     } }
     return values.clone();
 }

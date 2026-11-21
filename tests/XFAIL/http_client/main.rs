@@ -958,7 +958,7 @@ fn main() {
         let (mut body, _) = io::read_all({ let __go_arg = { let __selector_holder = (*resp.lock().unwrap().as_ref().unwrap()).body.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg });
         let mut body = { let __slice_header = GoSliceHeader::go_slice_header(&body); Arc::new(Mutex::new(__slice_header)) };
         let mut text = Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*body.lock().unwrap().as_ref().unwrap()).clone())).unwrap())));
-        if { let __tmp_x = ((*text.lock().unwrap().as_ref().unwrap()).len() as i64); let __tmp_y = 100; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len = (*text.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 100; __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*text.lock().unwrap().as_ref().unwrap()).clone()); let __high = (100) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *text.lock().unwrap() = __moved_val; };
     }
         println!("{} {}", format!("{}", "Response:".to_string()), format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));

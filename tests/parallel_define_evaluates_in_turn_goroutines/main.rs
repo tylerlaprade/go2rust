@@ -847,7 +847,7 @@ pub struct Matrix(pub Arc<Mutex<Option<Vec<Vec<f64>>>>>);
 
 impl Stack {
     pub fn push(&mut self, v: Arc<Mutex<Option<i64>>>) {
-        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push((*v.lock().unwrap().as_ref().unwrap()).clone()); Arc::new(Mutex::new(Some(Stack(Arc::new(Mutex::new(Some(__values))))))) }; *self = new_val.lock().unwrap().take().unwrap_or_default(); };
+        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })); Arc::new(Mutex::new(Some(Stack(Arc::new(Mutex::new(Some(__values))))))) }; *self = new_val.lock().unwrap().take().unwrap_or_default(); };
     }
 
     pub fn pop(&mut self) -> i64 {

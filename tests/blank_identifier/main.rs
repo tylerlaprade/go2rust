@@ -765,7 +765,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i64>>>>) -> (i64, i64) {
     let mut count: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
-    { let new_val = (*slice.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; *count.lock().unwrap() = Some(new_val); };
+    { let new_val = ({ let __len = (*slice.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; *count.lock().unwrap() = Some(new_val); };
     { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for val in __range_values.iter().copied() {
         { let __rhs = val; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }

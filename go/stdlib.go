@@ -5674,11 +5674,23 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
-		// len() returns the length of arrays, slices, maps, strings, or channels
+		// len() returns the length of arrays, slices, maps, strings, or channels.
+		// With goroutines, reading the length locks the value; the block
+		// ends the lock with the length, so another argument of the same
+		// call can lock it again.
+		if NeedsConcurrentWrapper() && !isExpressionResultBare(call.Args[0]) {
+			out.WriteString("({ let __len = ")
+			defer out.WriteString("; __len })")
+		}
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".len()")
+		} else if binary, ok := unwrapParens(call.Args[0]).(*ast.BinaryExpr); ok && binary.Op == token.ADD && typeInfo != nil && typeInfo.IsString(binary) {
+			// len(a + b): the concatenation is a String of its own.
+			out.WriteString("(")
+			TranspileExpression(out, binary)
+			out.WriteString(").len()")
 		} else if typeInfo != nil && (typeInfo.IsSlice(call.Args[0]) || typeInfo.IsMap(call.Args[0])) {
 			if sel, ok := call.Args[0].(*ast.SelectorExpr); ok {
 				out.WriteString("({ let __len_target = ")

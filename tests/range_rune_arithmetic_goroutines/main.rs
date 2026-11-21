@@ -767,9 +767,9 @@ pub fn caesar(s: Arc<Mutex<Option<String>>>, k: Arc<Mutex<Option<i64>>>) -> Arc<
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (_, c) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
         if { let __tmp_x = c; let __tmp_y = 'a'; __tmp_x >= __tmp_y } && { let __tmp_x = c; let __tmp_y = 'z'; __tmp_x <= __tmp_y } {
-            (*b.lock().unwrap().as_mut().unwrap()).push(std::char::from_u32((('a' as i32) + ((c as i32) - ('a' as i32) + ((*Arc::new(Mutex::new(Some((*k.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
+            (*b.lock().unwrap().as_mut().unwrap()).push(std::char::from_u32((('a' as i32) + ((c as i32) - ('a' as i32) + ((*Arc::new(Mutex::new(Some(({ let __v = (*k.lock().unwrap().as_ref().unwrap()); __v }) as i32))).lock().unwrap().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
         } else if { let __tmp_x = c; let __tmp_y = 'A'; __tmp_x >= __tmp_y } && { let __tmp_x = c; let __tmp_y = 'Z'; __tmp_x <= __tmp_y } {
-            (*b.lock().unwrap().as_mut().unwrap()).push(std::char::from_u32((('A' as i32) + ((c as i32) - ('A' as i32) + ((*Arc::new(Mutex::new(Some((*k.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
+            (*b.lock().unwrap().as_mut().unwrap()).push(std::char::from_u32((('A' as i32) + ((c as i32) - ('A' as i32) + ((*Arc::new(Mutex::new(Some(({ let __v = (*k.lock().unwrap().as_ref().unwrap()); __v }) as i32))).lock().unwrap().as_ref().unwrap()))) % (26 as i32)) as u32).unwrap_or('\u{FFFD}'));
         } else {
             (*b.lock().unwrap().as_mut().unwrap()).push(c);
         }
@@ -794,6 +794,6 @@ fn main() {
     for (i, c) in "az".to_string().char_indices() {
         let mut up = Arc::new(Mutex::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Arc::new(Mutex::new(Some((c as i32) + (1 as i32))));
-        println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32(((*up.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32(((*next.lock().unwrap().as_ref().unwrap())) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));
+        println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*up.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*next.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));
     }
 }

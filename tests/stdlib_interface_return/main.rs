@@ -49,7 +49,7 @@ pub fn make_expr_slice_len() -> i64 {
         sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(),
         ..Default::default()
     }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *exprs.lock().unwrap() = __slice_header; };
-    return (*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;
+    return ({ let __len = (*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;
 }
 
 pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {

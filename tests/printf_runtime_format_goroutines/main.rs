@@ -1822,7 +1822,7 @@ pub fn later(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<
 
         )
     }.lock().unwrap().as_ref().unwrap())));
-    println!("{} {}", format!("{}", (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", "arguments".to_string()));
+    println!("{} {}", format!("{}", ({ let __len = (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", "arguments".to_string()));
 }
 
 pub fn pick(named: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {

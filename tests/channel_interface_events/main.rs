@@ -1179,14 +1179,14 @@ impl Bus {
         let __mutex_guard_source_540 = self.mu.clone(); let __mutex_guard_540 = __mutex_guard_source_540.guard();
         // mu.Unlock() handled by RAII guard
         let mut ch = GoChannel::<Option<Box<dyn Event + Send + Sync>>>::new_buffered(4 as usize);
-        { let __map_key = (*topic.lock().unwrap().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&(*topic.lock().unwrap().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = ch.clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*self.handlers.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = ({ let __v = (*topic.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = { let __slice = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&({ let __v = (*topic.lock().unwrap().as_ref().unwrap()).clone(); __v })).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = ch.clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*self.handlers.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         ch.clone()
     }
 
     pub fn publish(&self, topic: Arc<Mutex<Option<String>>>, e: Arc<Mutex<Option<Box<dyn Event + Send + Sync>>>>) {
         let __mutex_guard_source_713 = self.mu.clone(); let __mutex_guard_713 = __mutex_guard_source_713.guard();
         // mu.Unlock() handled by RAII guard
-        { let __range_holder = { let __map = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*topic.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for ch in __range_values.iter() {
+        { let __range_holder = { let __map = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*topic.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for ch in __range_values.iter() {
         ch.send({ let __iface_handle = { let __iface_value = e.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }; let __iface_value = (*__iface_handle.lock().unwrap()).clone(); __iface_value });
     } }
     }

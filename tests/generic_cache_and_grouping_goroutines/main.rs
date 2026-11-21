@@ -1340,12 +1340,12 @@ impl Cache__int__slice_string {
         {
         let (_, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v })) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if !ok {
-            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.order.clone(); let __append_value = (*k.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.order.lock().unwrap() = __slice_header; };;
+            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.order.clone(); let __append_value = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.order.lock().unwrap() = __slice_header; };;
         }
     }
         { let __map_key = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __map_value = { let __slice_header = GoSliceHeader::go_slice_header(&v); Arc::new(Mutex::new(__slice_header)) }; (*self.data.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if {
-            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64);
+            let __tmp_x = (({ let __len = ({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64);
             let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i64);
             __tmp_x > __tmp_y
         } {
@@ -1382,14 +1382,14 @@ impl Cache__int__slice_string {
 impl Cache__string__User {
     pub fn put(&mut self, k: Arc<Mutex<Option<String>>>, v: Arc<Mutex<Option<User>>>) {
         {
-        let (_, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*k.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
+        let (_, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
         if !ok {
-            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.order.clone(); let __append_value = (*k.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.order.lock().unwrap() = __slice_header; };;
+            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.order.clone(); let __append_value = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.order.lock().unwrap() = __slice_header; };;
         }
     }
-        { let __map_key = (*k.lock().unwrap().as_ref().unwrap()).clone(); let __map_value = { let __owned = v.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) }; (*self.data.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = { let __owned = v.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) }; (*self.data.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if {
-            let __tmp_x = (({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64);
+            let __tmp_x = (({ let __len = ({ let __len_target = { let __field = self.order.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64);
             let __tmp_y = ((*self.limit.clone().lock().unwrap().as_ref().unwrap()) as i64);
             __tmp_x > __tmp_y
         } {
@@ -1405,12 +1405,12 @@ impl Cache__string__User {
             let __max = __source_cap;
             __seq.reslice3(__low, __high, __max)
         }))); self.order = new_val; };
-        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&(*oldest.lock().unwrap().as_ref().unwrap()).clone()); };
+        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&({ let __v = (*oldest.lock().unwrap().as_ref().unwrap()).clone(); __v })); };
     }
     }
 
     pub fn get(&self, k: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<User>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let (mut v, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*k.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().__go_value_clone()))), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };
+        let (mut v, mut ok) = { let __map = { let __map_holder = self.data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().__go_value_clone()))), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };
         if !ok {
         let mut zero: Arc<Mutex<Option<User>>> = Arc::new(Mutex::new(Some(Default::default())));
         return (
@@ -1545,7 +1545,7 @@ fn main() {
     ); __result };
     let (_, mut err) = { let __recv = c.clone(); let __recv_ptr: *const Cache__string__User = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Cache__string__User }; let __result = unsafe { &*__recv_ptr }.get(Arc::new(Mutex::new(Some("a".to_string())))); __result };
     let (mut u, mut err2) = { let __recv = c.clone(); let __recv_ptr: *const Cache__string__User = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Cache__string__User }; let __result = unsafe { &*__recv_ptr }.get(Arc::new(Mutex::new(Some("c".to_string())))); __result };
-    println!("{} {} {} {} {}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*u.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __text = match err2.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", ({ let __len_target = { let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).order.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
+    println!("{} {} {} {} {}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*u.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __text = match err2.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).order.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
     let mut users = Arc::new(Mutex::new(Some(vec![
         User { name: Arc::new(Mutex::new(Some("Ann".to_string()))), age: Arc::new(Mutex::new(Some(30))), ..Default::default() },
@@ -1573,7 +1573,7 @@ fn main() {
     let mut groups = group_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i64 {
         return (*(*u.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
     }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>))));
-    let mut ages = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..((*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
+    let mut ages = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..(({ let __len = (*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
     for (age, _) in { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ages.clone(); let __append_value = age; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *ages.lock().unwrap() = __slice_header; };
     }
@@ -1593,5 +1593,5 @@ fn main() {
     ); __result };
     let (mut got, _) = { let __recv = ic.clone(); let __recv_ptr: *const Cache__int__slice_string = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Cache__int__slice_string }; let __result = unsafe { &*__recv_ptr }.get(Arc::new(Mutex::new(Some(1)))); __result };
     let mut got = { let __slice_header = GoSliceHeader::go_slice_header(&got); Arc::new(Mutex::new(__slice_header)) };
-    println!("{} {}", format!("{}", format_slice(&got)), format!("{}", (*got.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", format_slice(&got)), format!("{}", ({ let __len = (*got.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

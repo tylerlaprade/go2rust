@@ -825,18 +825,18 @@ impl SafeCounter__string {
     pub fn inc(&mut self, k: Arc<Mutex<Option<String>>>) {
         let __mutex_guard_source_285 = self.mu.clone(); let __mutex_guard_285 = __mutex_guard_source_285.guard();
         // mu.Unlock() handled by RAII guard
-        { let __map_holder = self.m.clone(); let __key = (*k.lock().unwrap().as_ref().unwrap()).clone(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+        { let __map_holder = self.m.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
     }
 
     pub fn value(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         let __mutex_guard_source_374 = self.mu.clone(); let __mutex_guard_374 = __mutex_guard_source_374.guard();
         // mu.Unlock() handled by RAII guard
-        { let __map = { let __map_holder = self.m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*k.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }
+        { let __map = { let __map_holder = self.m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }
     }
 }
 
 pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; ((*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().copied().enumerate() {
         wg.add(1);
@@ -868,7 +868,7 @@ pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Opt
 }
 
 pub fn parallel_map__string__int(xs: Arc<Mutex<Option<Vec<String>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; ((*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().enumerate() {
         wg.add(1);
@@ -929,7 +929,7 @@ fn main() {
     let mut sq = parallel_map__int__int(
         Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64, 4i64]))),
         Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
-        return { let __bin_n = (*n.lock().unwrap().as_ref().unwrap()).clone(); __bin_n * __bin_n };
+        return { let __bin_n = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_n * __bin_n };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)))
     );
     let mut sq = { let __slice_header = GoSliceHeader::go_slice_header(&sq); Arc::new(Mutex::new(__slice_header)) };
@@ -937,7 +937,7 @@ fn main() {
     let mut lens = parallel_map__string__int(
         Arc::new(Mutex::new(Some(vec!["a".to_string(), "bb".to_string(), "ccc".to_string()]))),
         Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> i64 {
-        (*s.lock().unwrap().as_ref().unwrap()).len() as i64
+        ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>)))
     );
     let mut lens = { let __slice_header = GoSliceHeader::go_slice_header(&lens); Arc::new(Mutex::new(__slice_header)) };

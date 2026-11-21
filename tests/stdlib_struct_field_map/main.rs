@@ -47,7 +47,7 @@ impl<T> std::fmt::Display for GoLocalPtrKey<T> {
 pub fn version(info: Arc<Mutex<Option<go_types::api::Info>>>, file: Arc<Mutex<Option<go_ast::r#mod::File>>>) -> Arc<Mutex<Option<String>>> {
     {
         let mut v = Arc::new(Mutex::new(Some({ let __map = { let __map_holder = (*info.lock().unwrap().as_ref().unwrap()).file_versions.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&go_types::GoLocalPtrKey::new(file.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })));;
-        if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
+        if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
             return { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
         }
     }

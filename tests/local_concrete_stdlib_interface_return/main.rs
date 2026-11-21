@@ -139,7 +139,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut typesList = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(localType {  }) as Box<dyn go_types::r#type::Type + Send + Sync>))), make_type().clone()])));
-    println!("{}", format!("{}", (*typesList.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*typesList.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }
 
 impl GoValueClone for localType {
