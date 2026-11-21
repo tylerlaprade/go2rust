@@ -1739,6 +1739,10 @@ run_xfail_test() {
     run_test "tests/local_large_fixed_array_zero"
 }
 
+@test "local_named_basic_conversions" {
+    run_test "tests/local_named_basic_conversions"
+}
+
 @test "local_sync_mutex_forms" {
     run_test "tests/local_sync_mutex_forms"
 }

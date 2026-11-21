@@ -9193,6 +9193,17 @@ func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bo
 	if !ok || !isNamedIntegerType(named) {
 		return false
 	}
+	if named.Obj() != nil && IsTypeAlias(named.Obj().Name()) {
+		if !isConstantExpression(expr) {
+			return false
+		}
+		WriteWrapperPrefix(out)
+		if !writeConstExpressionForExpectedInteger(out, expr, named.Underlying()) {
+			TranspileExpression(out, expr)
+		}
+		WriteWrapperSuffix(out)
+		return true
+	}
 	WriteWrapperPrefix(out)
 	if !writeNamedIntegerValueForExpected(out, expr, named) {
 		TranspileExpression(out, expr)

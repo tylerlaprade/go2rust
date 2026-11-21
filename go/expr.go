@@ -65,6 +65,17 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if !ok || !isNamedIntegerType(named) {
 		return false
 	}
+	if named.Obj() != nil && IsTypeAlias(named.Obj().Name()) {
+		if typeInfo.ReturnsWrappedValue(expr) {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, expr, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		} else {
+			TranspileExpression(out, expr)
+		}
+		return true
+	}
 	if call, ok := expr.(*ast.CallExpr); ok {
 		if _, rustType, ok := namedIntegerConversionTarget(call); ok && len(call.Args) == 1 {
 			writeNumericConversionValue(out, call.Args[0])
@@ -608,7 +619,27 @@ func isNamedIntegerType(typ types.Type) bool {
 // holds the value in a handle, so a value of it is cloned, never copied,
 // and its basic value is read through `.0`.
 func isNamedScalarNewtype(typ types.Type) bool {
-	return isNamedIntegerType(typ) || anyFormatTypeIsLocalNamedBasic(typ)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || IsTypeAlias(named.Obj().Name()) {
+		return false
+	}
+	return isNamedIntegerType(named) || anyFormatTypeIsLocalNamedBasic(named)
+}
+
+// isLocalDefinedTypeRustAlias reports a Go type definition declared inside a
+// function. Rust cannot attach the generated module-level newtype impls to a
+// local definition, so these definitions use a local type alias. A real Go
+// alias (type A = B) retains B's representation and must not take this path.
+func isLocalDefinedTypeRustAlias(ident *ast.Ident) bool {
+	if ident == nil || !IsTypeAlias(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typeName, ok := typeInfo.GetObject(ident).(*types.TypeName)
+	return ok && !typeName.IsAlias()
 }
 
 func namedBoolType(typ types.Type) (*types.Named, bool) {
@@ -17597,6 +17628,30 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		targetType = sel.Sel.Name
 	}
+	if ident, ok := targetExpr.(*ast.Ident); ok && isLocalDefinedTypeRustAlias(ident) {
+		if named, ok := types.Unalias(GetTypeInfo().GetType(call)).(*types.Named); ok {
+			if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
+				switch {
+				case basic.Kind() == types.String:
+					WriteWrapperPrefix(out)
+					if !writeStringTypeDefinitionInnerValue(out, call.Args[0]) {
+						TranspileExpression(out, call.Args[0])
+					}
+					WriteWrapperSuffix(out)
+					return
+				case basic.Info()&types.IsNumeric != 0:
+					if rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name()); ok {
+						WriteWrapperPrefix(out)
+						writeNumericConversionValueForRustType(out, call.Args[0], rustType)
+						out.WriteString(" as ")
+						out.WriteString(rustType)
+						WriteWrapperSuffix(out)
+						return
+					}
+				}
+			}
+		}
+	}
 
 	if named, rustType, ok := externalIntegerConversionTarget(call); ok {
 		if writeExternalIntegerConversionFromStoredNamedValue(out, call.Args[0], named) {
@@ -17635,7 +17690,13 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	// A local or imported alias denotes the same basic type as its target.
-	if basic, ok := types.Unalias(GetTypeInfo().GetType(call.Fun)).(*types.Basic); ok {
+	aliasType := types.Unalias(GetTypeInfo().GetType(call.Fun))
+	if ident, ok := targetExpr.(*ast.Ident); ok && isLocalDefinedTypeRustAlias(ident) {
+		if named, ok := aliasType.(*types.Named); ok {
+			aliasType = types.Unalias(named.Underlying())
+		}
+	}
+	if basic, ok := aliasType.(*types.Basic); ok {
 		targetType = basic.Name()
 	}
 	// Map Go types to Rust types and handle the conversion
@@ -18792,7 +18853,13 @@ func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 		return false
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && call != nil && typeInfo.IsTypeConversion(call) {
-		if basic, ok := types.Unalias(typeInfo.GetType(call.Fun)).(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
+		target := types.Unalias(typeInfo.GetType(call.Fun))
+		if ident, ok := unwrapParens(call.Fun).(*ast.Ident); ok && isLocalDefinedTypeRustAlias(ident) {
+			if named, ok := target.(*types.Named); ok {
+				target = types.Unalias(named.Underlying())
+			}
+		}
+		if basic, ok := target.(*types.Basic); ok && basic.Info()&(types.IsBoolean|types.IsNumeric|types.IsString) != 0 {
 			return true
 		}
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(call)); ok {
@@ -18897,6 +18964,9 @@ func namedIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, boo
 		return nil, "", false
 	}
 	if !typeInfo.IsTypeConversion(call) {
+		return nil, "", false
+	}
+	if ident, ok := unwrapParens(call.Fun).(*ast.Ident); ok && isLocalDefinedTypeRustAlias(ident) {
 		return nil, "", false
 	}
 	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
@@ -19048,6 +19118,19 @@ func writeNamedStringConversionValue(out *strings.Builder, arg ast.Expr, argType
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
 	if !ok || basic.Kind() != types.String {
 		return false
+	}
+	if named.Obj() != nil && IsTypeAlias(named.Obj().Name()) {
+		WriteWrapperPrefix(out)
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString("(*")
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+		} else {
+			TranspileExpression(out, arg)
+		}
+		WriteWrapperSuffix(out)
+		return true
 	}
 	WriteWrapperPrefix(out)
 	writeNamedStringUnderlyingClone(out, arg, named)

@@ -930,17 +930,17 @@ fn main() {
     type MyInt = Rc<RefCell<Option<i64>>>;
     type MyString = Rc<RefCell<Option<String>>>;
 
-    let mut mi: MyInt = Rc::new(RefCell::new(Some(MyInt(Rc::new(RefCell::new(Some(42 as i64)))))));
-    let mut regularInt: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some((*(*mi.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64)));
-    let mut backToMyInt: MyInt = Rc::new(RefCell::new(Some(MyInt(Rc::new(RefCell::new(Some((*regularInt.borrow().as_ref().unwrap()) as i64)))))));
+    let mut mi: MyInt = Rc::new(RefCell::new(Some(42)));
+    let mut regularInt: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some((*mi.borrow().as_ref().unwrap()) as i64)));
+    let mut backToMyInt: MyInt = Rc::new(RefCell::new(Some((*regularInt.borrow().as_ref().unwrap()) as i64)));
 
     print!("MyInt: {}\n", { let __v = (*mi.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular int: {}\n", { let __v = (*regularInt.borrow().as_ref().unwrap()).clone(); __v });
     print!("back to MyInt: {}\n", { let __v = (*backToMyInt.borrow().as_ref().unwrap()).clone(); __v });
 
     let mut ms: MyString = Rc::new(RefCell::new(Some("hello".to_string())));
-    let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*(*ms.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone())));
-    let mut backToMyString: MyString = Rc::new(RefCell::new(Some(MyString(Rc::new(RefCell::new(Some((*regularString.borrow().as_ref().unwrap()).clone())))))));
+    let mut regularString: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some((*ms.borrow().as_ref().unwrap()).clone())));
+    let mut backToMyString: MyString = Rc::new(RefCell::new(Some((*regularString.borrow().as_ref().unwrap()).clone())));
 
     print!("MyString: {}\n", { let __v = (*ms.borrow().as_ref().unwrap()).clone(); __v });
     print!("regular string: {}\n", { let __v = (*regularString.borrow().as_ref().unwrap()).clone(); __v });

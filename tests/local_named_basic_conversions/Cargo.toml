@@ -1,0 +1,11 @@
+[package]
+name = "local_named_basic_conversions"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_named_basic_conversions"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
