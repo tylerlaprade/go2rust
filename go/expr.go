@@ -19788,11 +19788,10 @@ func typedStringConcatOperands(expr ast.Expr) []ast.Expr {
 }
 
 func writePairStringConcat(out *strings.Builder, left ast.Expr, right ast.Expr) {
-	out.WriteString("format!(\"{}{}\"")
-	out.WriteString(", ")
-	writeUnwrappedForFormat(out, left)
-	out.WriteString(", ")
-	writeUnwrappedForFormat(out, right)
+	out.WriteString("__go_string_concat(&")
+	writeStringAppendExpression(out, left)
+	out.WriteString(", &")
+	writeStringAppendExpression(out, right)
 	out.WriteString(")")
 }
 
@@ -19803,9 +19802,9 @@ func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {
 	out.WriteString("    let mut __s = String::new();\n")
 	for _, operand := range operands {
 		out.WriteString(indent)
-		out.WriteString("    __s.push_str(&format!(\"{}\", ")
-		writeUnwrappedForFormat(out, operand)
-		out.WriteString("));\n")
+		out.WriteString("    __s = __go_string_concat(&__s, &")
+		writeStringAppendExpression(out, operand)
+		out.WriteString(");\n")
 	}
 	out.WriteString(indent)
 	out.WriteString("    __s\n")

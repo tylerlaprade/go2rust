@@ -5,6 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::cell::{RefCell};
+use std::collections::BTreeMap;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
@@ -44,6 +45,12 @@ pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
         .step_by(2)
         .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
         .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
 }
 
 pub fn __go_string_len(__text: &str) -> usize {
@@ -723,9 +730,40 @@ where
 fn main() {
     check(Rc::new(RefCell::new(Some(vec![66 as u8, 250 as u8, 67 as u8]))));
     check(Rc::new(RefCell::new(Some(vec![0xef as u8, 0xb7 as u8, 0x90 as u8, 0xef as u8, 0xb7 as u8, 0x91 as u8, 65 as u8]))));
+    check_concat();
 }
 
 pub fn check(b: Rc<RefCell<Option<Vec<u8>>>>) {
     let mut s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*b.borrow().as_ref().unwrap()).clone())))));
     println!("{} {}", format!("{}", { let __s = (*s.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*s.borrow().as_ref().unwrap()))))))))));
+}
+
+pub fn check_concat() {
+    let mut invalid = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8]))).borrow().as_ref().unwrap()).clone())))));
+    let mut left = Rc::new(RefCell::new(Some(__go_string_concat(&(*invalid.borrow().as_ref().unwrap()), &"X".to_string()))));
+    let mut right = Rc::new(RefCell::new(Some(__go_string_concat(&"Y".to_string(), &(*invalid.borrow().as_ref().unwrap())))));
+    let mut both = Rc::new(RefCell::new(Some(__go_string_concat(&(*invalid.borrow().as_ref().unwrap()), &{ let __s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![251 as u8]))).borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }))));
+    let mut many = Rc::new(RefCell::new(Some({
+        let mut __s = String::new();
+        __s = __go_string_concat(&__s, &(*invalid.borrow().as_ref().unwrap()));
+        __s = __go_string_concat(&__s, &"Q".to_string());
+        __s = __go_string_concat(&__s, &{ let __s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![252 as u8]))).borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value });
+        __s
+    })));
+    let mut assigned = { let __owned = invalid.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+    { let __rhs = __go_string_from_bytes(__go_string_bytes(&"Z".to_string())); let mut __guard = assigned.borrow_mut(); let __next = __go_string_concat(__guard.as_ref().unwrap(), &__rhs); *__guard = Some(__next); };
+    let mut assignedRight = Rc::new(RefCell::new(Some("W".to_string())));
+    { let __rhs = __go_string_from_bytes(__go_string_bytes(&(*invalid.borrow().as_ref().unwrap()))); let mut __guard = assignedRight.borrow_mut(); let __next = __go_string_concat(__guard.as_ref().unwrap(), &__rhs); *__guard = Some(__next); };
+    let mut items = Rc::new(RefCell::new(Some(vec![(*invalid.borrow().as_ref().unwrap()).clone()])));
+    { let __idx = (0) as usize; let __rhs = "S".to_string(); let __seq = { let __go_slice_guard = items.borrow(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __go_string_concat(&__current, &__rhs)); };
+    let mut values = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8]))).borrow().as_ref().unwrap()).clone()))))))]))));
+    { let __map_holder = values.clone(); let __key = "k".to_string(); let __rhs = __go_string_from_bytes(__go_string_bytes(&"M".to_string())); let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(String::new())))); let mut __value = __entry.borrow_mut(); let __next = __go_string_concat(__value.as_ref().unwrap(), &__rhs); *__value = Some(__next); };
+    println!("{} {} {}", format!("{}", { let __s = (*left.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*left.borrow().as_ref().unwrap()))))))))), format!("{}", (*left.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, ('X' as u8)]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = (*right.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*right.borrow().as_ref().unwrap()))))))))), format!("{}", (*right.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![('Y' as u8), 250 as u8]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = (*both.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*both.borrow().as_ref().unwrap()))))))))), format!("{}", (*both.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, 251 as u8]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = (*many.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*many.borrow().as_ref().unwrap()))))))))), format!("{}", (*many.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, ('Q' as u8), 252 as u8]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = (*assigned.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*assigned.borrow().as_ref().unwrap()))))))))), format!("{}", (*assigned.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, ('Z' as u8)]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = (*assignedRight.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&((*assignedRight.borrow().as_ref().unwrap()))))))))), format!("{}", (*assignedRight.borrow().as_ref().unwrap()).clone() == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![('W' as u8), 250 as u8]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = items.borrow().as_ref().unwrap().get_cloned((0) as usize); __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(items.borrow().as_ref().unwrap().get_cloned((0) as usize))))))))), format!("{}", items.borrow().as_ref().unwrap().get_cloned((0) as usize) == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, ('S' as u8)]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", { let __s = { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }; __go_string_len(&__s) }), format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&({ let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })))))))), format!("{}", { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) } == (*Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![250 as u8, ('M' as u8)]))).borrow().as_ref().unwrap()).clone()))))).borrow().as_ref().unwrap()).clone()));
 }

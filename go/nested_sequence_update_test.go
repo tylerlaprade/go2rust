@@ -135,8 +135,8 @@ func tag(m map[string]string, score map[string]float64) {
 }
 `)
 
-	if !strings.Contains(rust, "Some((*__value.as_ref().unwrap()).clone() + &__rhs)") {
-		t.Fatalf("string map value += should append a &str:\n%s", rust)
+	if !strings.Contains(rust, "let __next = __go_string_concat(__value.as_ref().unwrap(), &__rhs); *__value = Some(__next)") {
+		t.Fatalf("string map value += should preserve arbitrary Go string bytes:\n%s", rust)
 	}
 	if !strings.Contains(rust, "Some((*__value.as_ref().unwrap()).clone() + 1.0)") {
 		t.Fatalf("float map value ++ should add 1.0:\n%s", rust)

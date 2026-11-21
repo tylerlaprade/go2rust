@@ -8639,10 +8639,13 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
 	var keyType types.Type
+	var valueType types.Type
 	if typeInfo != nil {
 		keyType, _ = typeInfo.GetMapTypes(indexExpr.X)
-		defaultValue = zeroValueForTypesType(typeInfo.GetMapValueType(indexExpr.X))
+		valueType = typeInfo.GetMapValueType(indexExpr.X)
+		defaultValue = zeroValueForTypesType(valueType)
 	}
+	stringAppend := op == token.ADD_ASSIGN && valueType != nil && isStringTypesType(valueType)
 
 	// The key and the operand are evaluated before the map is locked for
 	// writing. Either may read the map ("m[a] += m[b]"), and a read under the
@@ -8663,9 +8666,15 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	out.WriteString("; ")
 	operandIsRHS := op != token.INC && op != token.DEC && rhs != nil
 	if operandIsRHS {
-		out.WriteString("let __rhs = ")
-		TranspileExpression(out, rhs)
-		out.WriteString("; ")
+		if stringAppend {
+			out.WriteString("let __rhs = __go_string_from_bytes(__go_string_bytes(&")
+			writeStringAppendExpression(out, rhs)
+			out.WriteString(")); ")
+		} else {
+			out.WriteString("let __rhs = ")
+			TranspileExpression(out, rhs)
+			out.WriteString("; ")
+		}
 	}
 	out.WriteString("let mut __map_guard = ")
 	if holdsMapHandle {
@@ -8681,6 +8690,10 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	WriteWrapperSuffix(out)
 	out.WriteString("); let mut __value = __entry")
 	WriteBorrowMethod(out, true)
+	if stringAppend {
+		out.WriteString("; let __next = __go_string_concat(__value.as_ref().unwrap(), &__rhs); *__value = Some(__next); }")
+		return
+	}
 	out.WriteString("; * __value = Some((*__value.as_ref().unwrap()).clone() ")
 	switch op {
 	case token.INC, token.ADD_ASSIGN:
@@ -8709,10 +8722,6 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		out.WriteString("+")
 	}
 	out.WriteString(" ")
-	var valueType types.Type
-	if typeInfo != nil {
-		valueType = typeInfo.GetMapValueType(indexExpr.X)
-	}
 	if op == token.INC || op == token.DEC {
 		if valueType != nil {
 			out.WriteString(incDecStepForType(valueType))
@@ -8720,10 +8729,6 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 			out.WriteString("1")
 		}
 	} else if operandIsRHS {
-		// String + &str: m[k] += "x" appends.
-		if op == token.ADD_ASSIGN && valueType != nil && isStringTypesType(valueType) {
-			out.WriteString("&")
-		}
 		out.WriteString("__rhs")
 	} else {
 		out.WriteString("0")
@@ -9319,11 +9324,11 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 		writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
 		out.WriteString("; ")
 	}) {
-		out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
-		writeCompoundAssignOperator(out, op)
 		if op == token.ADD_ASSIGN && elemType != nil && isStringTypesType(elemType) {
-			out.WriteString(" &__rhs); }")
+			out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __go_string_concat(&__current, &__rhs)); }")
 		} else {
+			out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
+			writeCompoundAssignOperator(out, op)
 			out.WriteString(" __rhs); }")
 		}
 		return true
@@ -9335,14 +9340,15 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 		writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
 		out.WriteString("; ")
 	})
-	out.WriteString(" __seq[__idx] = ")
-	writeIndexedCurrentElementValue(out, elemType)
-	out.WriteString(" ")
-	writeCompoundAssignOperator(out, op)
-	// String + &str: s[i] += "x" appends.
 	if op == token.ADD_ASSIGN && elemType != nil && isStringTypesType(elemType) {
-		out.WriteString(" &__rhs; }")
+		out.WriteString(" __seq[__idx] = __go_string_concat(&")
+		writeIndexedCurrentElementValue(out, elemType)
+		out.WriteString(", &__rhs); }")
 	} else {
+		out.WriteString(" __seq[__idx] = ")
+		writeIndexedCurrentElementValue(out, elemType)
+		out.WriteString(" ")
+		writeCompoundAssignOperator(out, op)
 		out.WriteString(" __rhs; }")
 	}
 	return true
@@ -12735,14 +12741,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				if isString {
-					// For string +=, we need mutable access to the LHS
+					// Decode and re-encode arbitrary Go string bytes while appending.
+					// Evaluate the RHS before borrowing the LHS cell so expressions
+					// such as s += f(s) cannot conflict with the mutation borrow.
 					out.WriteString("{ ")
 					writeWrappedMutationTargetPrelude(out, s.Lhs[0])
-					out.WriteString("(*")
-					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
-					out.WriteString(".as_mut().unwrap()).push_str(&")
+					out.WriteString("let __rhs = __go_string_from_bytes(__go_string_bytes(&")
 					writeStringAppendExpression(out, s.Rhs[0])
-					out.WriteString("); }")
+					out.WriteString(")); let mut __guard = ")
+					writeWrappedMutationTargetRef(out, s.Lhs[0], true)
+					out.WriteString("; let __next = __go_string_concat(__guard.as_ref().unwrap(), &__rhs); *__guard = Some(__next); }")
 				} else {
 					// Numeric compound assignment for wrapped values.
 					// Evaluate RHS before taking the LHS borrow so RHS expressions

@@ -1117,9 +1117,9 @@ func appendName(name string) []byte {
 		strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()).clone().as_bytes()") {
 		t.Fatalf("append string expansion should not treat string concatenation as wrapped:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}{}\", \" \".to_string(),") ||
+	if !strings.Contains(rust, "__go_string_concat(&\" \".to_string(),") ||
 		!strings.Contains(rust, ".as_bytes().iter().cloned()") {
-		t.Fatalf("append string expansion should extend from the bare formatted string:\n%s", rust)
+		t.Fatalf("append string expansion should extend from the bare concatenated string:\n%s", rust)
 	}
 }
 
@@ -1135,11 +1135,11 @@ func render(name string) string {
 		t.Fatalf("long string concatenation should not lower to nested format macros:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut __s = String::new()") ||
-		!strings.Contains(rust, `__s.push_str(&format!("{}",`) {
+		!strings.Contains(rust, `__s = __go_string_concat(&__s, &`) {
 		t.Fatalf("long string concatenation should use a linear string builder shape:\n%s", rust)
 	}
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "let mut __s = String::new()") && strings.Contains(line, "__s.push_str") {
+		if strings.Contains(line, "let mut __s = String::new()") && strings.Contains(line, "__go_string_concat") {
 			t.Fatalf("long string concatenation builder should split pushes across lines:\n%s", rust)
 		}
 	}
@@ -1158,7 +1158,7 @@ func substrings(s string, beg int, end int) []string {
 	if strings.Contains(rust, "let __append_value = Rc::new(") || strings.Contains(rust, "let __append_value = Arc::new(") {
 		t.Fatalf("append string slice to []string should not push a wrapped String handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __append_value = { let __s = &(") || !strings.Contains(rust, "].to_string() }") {
+	if !strings.Contains(rust, "let __append_value = { let __s = &(") || !strings.Contains(rust, "__go_string_slice(__s, __low, __high) }") {
 		t.Fatalf("append string slice to []string should push the bare String value:\n%s", rust)
 	}
 }
@@ -4323,7 +4323,7 @@ func trimParens(s string) string {
 	return s[len("(") : len(s)-len(")")]
 }`)
 
-	if !strings.Contains(rust, "].to_string()") {
+	if !strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string slice should produce a String under syntax fallback:\n%s", rust)
 	}
 	if strings.Contains(rust, "].to_vec()") {
@@ -4506,8 +4506,8 @@ func upper(s string) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, &TypeInfo{})
-	if !strings.Contains(rust, "push_str") {
-		t.Fatalf("partial type info should still use string append syntax fallback:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_concat") {
+		t.Fatalf("partial type info should still use string concatenation syntax fallback:\n%s", rust)
 	}
 	if strings.Contains(rust, "guard.as_ref().unwrap() +") {
 		t.Fatalf("partial type info should not force numeric compound assignment:\n%s", rust)
@@ -4527,8 +4527,8 @@ func add(path string, start int, end int) string {
 }
 `)
 
-	if strings.Contains(rust, "push_str(&Rc::new") || strings.Contains(rust, "push_str(&Arc::new") {
-		t.Fatalf("string += string slice should pass a bare String to push_str:\n%s", rust)
+	if strings.Contains(rust, "__go_string_concat(&Rc::new") || strings.Contains(rust, "__go_string_concat(&Arc::new") {
+		t.Fatalf("string += string slice should pass a bare String to the concatenation helper:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string += string slice should use the raw string-slice helper:\n%s", rust)
@@ -4552,7 +4552,7 @@ func join(prefix string, s string) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, nil)
-	if !strings.Contains(rust, "format!(\"{}{}\"") {
+	if !strings.Contains(rust, "__go_string_concat") {
 		t.Fatalf("string parameter concatenation should use syntax-derived string types:\n%s", rust)
 	}
 	if strings.Contains(rust, "__tmp_x + __tmp_y") {

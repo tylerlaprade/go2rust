@@ -216,6 +216,9 @@ func roundTrip(b []byte) []byte {
 	if !strings.Contains(goSliceRuntime, "const __GO_STRING_BYTES_PREFIX") {
 		t.Fatal("GoSlice runtime is missing the reversible arbitrary-byte string encoding")
 	}
+	if !strings.Contains(goSliceRuntime, "pub fn __go_string_concat") {
+		t.Fatal("GoSlice runtime is missing byte-preserving string concatenation")
+	}
 }
 
 // withoutGoSliceUses rewrites every `use crate::{...};` in code without the
