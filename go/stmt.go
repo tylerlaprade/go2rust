@@ -1584,7 +1584,15 @@ func writeGoErrorPointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr)
 
 func writeWrappedConstVarInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	if _, ok := rhs.(*ast.BasicLit); ok {
-		return false
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return false
+		}
+		expected := assignmentTargetType(typeInfo, lhs)
+		basic, ok := types.Unalias(expected).(*types.Basic)
+		if !ok || (basic.Kind() != types.Complex64 && basic.Kind() != types.Complex128) {
+			return false
+		}
 	}
 	var raw strings.Builder
 	if !writeConstAssignmentValue(&raw, lhs, rhs) {

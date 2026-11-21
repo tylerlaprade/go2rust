@@ -759,6 +759,10 @@ run_xfail_test() {
     run_test "tests/comment_preservation"
 }
 
+@test "complex_constant_literals" {
+    run_test "tests/complex_constant_literals"
+}
+
 @test "complex_expressions" {
     run_test "tests/complex_expressions"
 }

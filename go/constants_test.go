@@ -60,6 +60,34 @@ func main() {
 	}
 }
 
+func TestTypedComplexConstantExpressionsUseComplexConstructor(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func values() (complex64, complex128, complex128, complex64) {
+	var z64 complex64 = 3 + 4i
+	var z128 complex128 = -2.5 + 0.25i
+	var pureReal complex128 = 7
+	var pureImag complex64 = -8i
+	return z64, z128, pureReal, pureImag
+}
+`)
+
+	wants := []string{
+		"num::Complex::<f32>::new(3.0, 4.0)",
+		"num::Complex::<f64>::new(-2.5, 0.25)",
+		"num::Complex::<f64>::new(7.0, 0.0)",
+		"num::Complex::<f32>::new(0.0, -8.0)",
+	}
+	for _, want := range wants {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("typed complex constant should contain %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "4i") || strings.Contains(rust, "8i") {
+		t.Fatalf("Go imaginary-literal suffix leaked into Rust:\n%s", rust)
+	}
+}
+
 func TestConstExpressionForNamedBytePeerUsesNamedConversion(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
