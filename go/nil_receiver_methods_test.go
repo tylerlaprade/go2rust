@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -95,6 +96,30 @@ func main() {
 	}
 	if strings.Contains(rust, "__go_nil_recv_inner_error(outer.clone())") {
 		t.Fatalf("promoted nil-receiver call must not pass the outer pointer handle to its helper:\n%s", rust)
+	}
+}
+
+func TestNilReceiverHelpersDisambiguateCaseDistinctReceivers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type E struct{}
+type e struct{}
+
+func (*E) Error() string { return "E" }
+func (*e) Error() string { return "e" }
+
+func main() {
+	var upper *E
+	var lower *e
+	_, _ = upper.Error(), lower.Error()
+}
+`)
+	names := regexp.MustCompile(`pub fn (__go_nil_recv_[^(]+)`).FindAllStringSubmatch(rust, -1)
+	if len(names) != 2 {
+		t.Fatalf("got %d nil-receiver helpers, want 2:\n%s", len(names), rust)
+	}
+	if names[0][1] == names[1][1] {
+		t.Fatalf("case-distinct receiver types must use distinct helper names, both used %q:\n%s", names[0][1], rust)
 	}
 }
 

@@ -15,6 +15,12 @@ type outerError struct {
 	*innerError
 }
 
+type E struct{}
+type e struct{}
+
+func (*E) Error() string { return "E" }
+func (*e) Error() string { return "e" }
+
 func main() {
 	go func() {}()
 
@@ -26,4 +32,7 @@ func main() {
 	var nilInnerError error = outerWithNilInner
 	fmt.Println(nilInnerError)
 	fmt.Println(outerWithNilInner.Error())
+	var upper *E
+	var lower *e
+	fmt.Println(upper.Error(), lower.Error())
 }

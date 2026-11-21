@@ -686,6 +686,42 @@ impl PartialEq for outerError {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct E {
+}
+
+impl E {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for E {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct e {
+}
+
+impl e {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for e {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
 impl innerError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
         if false {
@@ -714,6 +750,60 @@ impl std::fmt::Display for __go_error_ptr_innerError {
 }
 
 impl StdError for __go_error_ptr_innerError {}
+
+
+impl E {
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some("E".to_string())))
+    }
+}
+
+impl StdError for E {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_E(pub Arc<Mutex<Option<E>>>);
+
+impl std::fmt::Display for __go_error_ptr_E {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.lock().unwrap().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.lock().unwrap();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_e_45_error(Arc::new(Mutex::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_E {}
+
+
+impl e {
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some("e".to_string())))
+    }
+}
+
+impl StdError for e {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_e(pub Arc<Mutex<Option<e>>>);
+
+impl std::fmt::Display for __go_error_ptr_e {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.lock().unwrap().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.lock().unwrap();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_e_65_error(Arc::new(Mutex::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_e {}
 
 
 impl outerError {
@@ -761,6 +851,17 @@ fn main() {
     let mut nilInnerError: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_outerError(outerWithNilInner.clone())) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match nilInnerError.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", (*{ let __go_promoted_root = outerWithNilInner.clone(); let __go_promoted_0_option = { let __go_guard = __go_promoted_root.lock().unwrap(); __go_guard.as_ref().map(|__value| __value.inner_error.clone()) }; let __go_promoted_0 = __go_promoted_0_option.expect("nil pointer dereference"); __go_nil_recv_inner_error_error(__go_promoted_0) }.lock().unwrap().as_ref().unwrap())));
+    let mut upper: Arc<Mutex<Option<E>>> = Arc::new(Mutex::new(None));
+    let mut lower: Arc<Mutex<Option<e>>> = Arc::new(Mutex::new(None));
+    println!("{} {}", format!("{}", (*__go_nil_recv_e_45_error(upper.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", (*__go_nil_recv_e_65_error(lower.clone()).lock().unwrap().as_ref().unwrap())));
+}
+
+pub fn __go_nil_recv_e_45_error(__recv: Arc<Mutex<Option<E>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some("E".to_string())))
+}
+
+pub fn __go_nil_recv_e_65_error(__recv: Arc<Mutex<Option<e>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some("e".to_string())))
 }
 
 pub fn __go_nil_recv_inner_error_error(err: Arc<Mutex<Option<innerError>>>) -> Arc<Mutex<Option<String>>> {

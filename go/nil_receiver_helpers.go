@@ -222,18 +222,63 @@ func methodHasPointerReceiver(method *types.Func) bool {
 
 func nilPointerReceiverMethodHelperName(method *types.Func) string {
 	receiverName := "receiver"
+	var receiverNamed *types.Named
 	if sig, ok := method.Type().(*types.Signature); ok && sig.Recv() != nil {
 		receiverType := types.Unalias(sig.Recv().Type())
 		if pointer, ok := receiverType.(*types.Pointer); ok {
 			receiverType = types.Unalias(pointer.Elem())
 		}
 		if named, ok := receiverType.(*types.Named); ok && named.Obj() != nil {
+			receiverNamed = named
 			receiverName = RustTypeNameForUse(named.Obj().Name())
 		} else {
 			receiverName = goTypesTypeToRust(receiverType)
 		}
 	}
-	return "__go_nil_recv_" + rustIdentFragment(receiverName) + "_" + rustIdentFragment(rustMethodNameForTypesFunc(method))
+	receiverFragment := rustIdentFragment(receiverName)
+	if nilReceiverTypeNameNeedsDisambiguation(receiverNamed, receiverFragment) {
+		receiverFragment += "_" + fmt.Sprintf("%x", receiverNamed.Obj().Name())
+	}
+	methodFragment := rustIdentFragment(rustMethodNameForTypesFunc(method))
+	if nilReceiverMethodNameNeedsDisambiguation(receiverNamed, method, methodFragment) {
+		methodFragment += "_" + fmt.Sprintf("%x", method.Name())
+	}
+	return "__go_nil_recv_" + receiverFragment + "_" + methodFragment
+}
+
+func nilReceiverTypeNameNeedsDisambiguation(named *types.Named, fragment string) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	for _, name := range named.Obj().Pkg().Scope().Names() {
+		if name == named.Obj().Name() {
+			continue
+		}
+		obj, ok := named.Obj().Pkg().Scope().Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		if rustIdentFragment(RustTypeNameForUse(obj.Name())) == fragment {
+			return true
+		}
+	}
+	return false
+}
+
+func nilReceiverMethodNameNeedsDisambiguation(named *types.Named, method *types.Func, fragment string) bool {
+	if named == nil || method == nil {
+		return false
+	}
+	for i := 0; i < named.NumMethods(); i++ {
+		other := named.Method(i)
+		if other == nil || other == method {
+			continue
+		}
+		if rustIdentFragment(rustMethodNameForTypesFunc(other)) == fragment {
+			return true
+		}
+	}
+	return false
 }
 
 func nilPointerReceiverMethodHelperNameForUse(method *types.Func, fromCrateRoot bool) string {
