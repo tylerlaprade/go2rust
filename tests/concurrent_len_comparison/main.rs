@@ -756,10 +756,10 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn consumed_all(v: Arc<Mutex<Option<String>>>) -> bool {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i64); __tmp_x < __tmp_y } {
+    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = (({ let __len = (*v.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); __tmp_x < __tmp_y } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    return { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i64); __tmp_x == __tmp_y };
+    return { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = (({ let __len = (*v.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); __tmp_x == __tmp_y };
 }
 
 fn main() {

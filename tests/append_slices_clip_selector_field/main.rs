@@ -114,7 +114,7 @@ fn main() {
     let mut cfg = Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=1".to_string()]))), dir: Arc::new(Mutex::new(Some("/tmp/work".to_string()))), ..Default::default() })));
     let mut env = build_env(cfg.clone());
     let mut env = { let __slice_header = GoSliceHeader::go_slice_header(&env); Arc::new(Mutex::new(__slice_header)) };
-    println!("{} {} {}", format!("{}", (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+    println!("{} {} {}", format!("{}", ({ let __len = (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
 }
 
 impl GoValueClone for Config {

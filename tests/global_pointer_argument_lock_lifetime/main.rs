@@ -849,7 +849,7 @@ fn __go_init_globals() {
 impl scope {
     pub fn lookup(&self, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<entry>>> {
         if {
-            let __left = { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+            let __left = { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
             let __right = (*global.lock().unwrap().as_ref().unwrap()).clone();
             let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
             let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
@@ -857,7 +857,7 @@ impl scope {
         } {
         return Arc::new(Mutex::new(None));
     }
-        { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }
+        { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }
     }
 
     pub fn insert(&mut self, obj: Arc<Mutex<Option<entry>>>) -> Arc<Mutex<Option<entry>>> {

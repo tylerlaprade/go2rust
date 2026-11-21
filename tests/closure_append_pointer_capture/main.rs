@@ -642,5 +642,5 @@ fn main() {
             items.clone()
         )
     };
-    println!("{}", format!("{}", (*result.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*result.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

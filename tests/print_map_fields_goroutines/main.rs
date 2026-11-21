@@ -960,7 +960,7 @@ impl Inventory {
     pub fn add(&mut self, name: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i64>>>) {
         let __mutex_guard_source_339 = self.mu.clone(); let __mutex_guard_339 = __mutex_guard_source_339.guard();
         // mu.Unlock() handled by RAII guard
-        { let __map_holder = self.items.clone(); let __key = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __rhs = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
+        { let __map_holder = self.items.clone(); let __key = ({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __rhs = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
     }
 }
 
@@ -980,7 +980,7 @@ fn main() {
     println!("{}", format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).items)));
     println!("{} {}", format!("{}", format_map(&(*(*inv.lock().unwrap().as_mut().unwrap()).counts.lock().unwrap().as_mut().unwrap()).by_name)), format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).tags)));
     println!("{}", format!("{}", format_map(&(*(*inv.lock().unwrap().as_ref().unwrap()).inner.lock().unwrap().as_ref().unwrap()).m)));
-    print!("{} {}\n", format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).items)), format!("{}", ({ let __len_target = { let __field = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
+    print!("{} {}\n", format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).items)), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
     let mut v = Arc::new(Mutex::new(Some(counts { by_name: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64)))), ("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));
     println!("{}", format!("{}", format_map(&(*v.lock().unwrap().as_ref().unwrap()).by_name)));
     let mut empty: Arc<Mutex<Option<Inventory>>> = Arc::new(Mutex::new(Some(Default::default())));

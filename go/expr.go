@@ -7250,7 +7250,24 @@ func writeNamedStringComparisonValue(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+// writeIdentValueClone writes a copy of the value a variable holds. With
+// goroutines the read is a lock, and a lock taken by a temporary lasts until
+// the statement ends, so a statement that reads the variable again, as
+// []int{-x, x} or P{x, f(x)} does, would wait on itself. The copy is then made
+// in a block that ends the lock.
 func writeIdentValueClone(out *strings.Builder, ident *ast.Ident) {
+	var value strings.Builder
+	writeIdentValueCloneUnscoped(&value, ident)
+	if NeedsConcurrentWrapper() && strings.Contains(value.String(), ".lock()") {
+		out.WriteString("({ let __v = ")
+		out.WriteString(value.String())
+		out.WriteString("; __v })")
+		return
+	}
+	out.WriteString(value.String())
+}
+
+func writeIdentValueCloneUnscoped(out *strings.Builder, ident *ast.Ident) {
 	if writeCurrentReceiverValueClone(out, ident) {
 		return
 	}
@@ -7680,7 +7697,7 @@ func isCloneableNonPointerIdent(ident *ast.Ident) bool {
 
 func writeIdentValueCloneBlock(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("{ let __v = ")
-	writeIdentValueClone(out, ident)
+	writeIdentValueCloneUnscoped(out, ident)
 	out.WriteString("; __v }")
 }
 
@@ -19046,11 +19063,20 @@ func writeNumericConversionValueInner(out *strings.Builder, arg ast.Expr) {
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
+		// With goroutines the read is a lock, and a lock taken by a
+		// temporary lasts until the statement ends: in f(uint64(i), i < 0)
+		// the second argument would wait on the first. The block ends it.
+		if NeedsConcurrentWrapper() {
+			out.WriteString("({ let __v = ")
+		}
 		out.WriteString("(*")
 		out.WriteString(argName)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
 		writeExternalIntegerTupleField(out, argType)
+		if NeedsConcurrentWrapper() {
+			out.WriteString("; __v })")
+		}
 		return
 	}
 	if sel, ok := arg.(*ast.SelectorExpr); ok && isPackageConstSelector(sel) {

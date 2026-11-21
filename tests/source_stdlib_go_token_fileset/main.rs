@@ -28,7 +28,7 @@ fn main() {
     let mut file = { let __recv = fset.clone(); let __recv_ptr: *mut go_token::position::FileSet = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_token::position::FileSet }; let __result = unsafe { &mut *__recv_ptr }.add_file(
         Arc::new(Mutex::new(Some("p.go".to_string()))),
         Arc::new(Mutex::new(Some(-1))),
-        Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()).len() as i64))),
+        Arc::new(Mutex::new(Some(({ let __len = (*src.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64))),
     ); __result };
     { let __recv = file.clone(); let __recv_ptr: *mut go_token::position::File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_token::position::File }; let __result = unsafe { &mut *__recv_ptr }.set_lines_for_content(Arc::new(Mutex::new(Some(({ let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_go_slice())))); __result };
     let mut pos = { let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.pos(Arc::new(Mutex::new(Some(11)))); __result };

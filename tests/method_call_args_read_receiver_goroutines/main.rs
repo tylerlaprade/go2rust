@@ -1667,11 +1667,11 @@ impl Logger {
 
 impl Stack {
     pub fn push(&mut self, v: Arc<Mutex<Option<i64>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.items.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.items.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.items.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.items.lock().unwrap() = __slice_header; };
     }
 
     pub fn len(&self) -> i64 {
-        ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64
+        ({ let __len = ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64
     }
 }
 
@@ -1730,7 +1730,7 @@ fn main() {
     { let __method_args = (
     Arc::new(Mutex::new(Some("%d lines so far".to_string()))),
     Arc::new(Mutex::new(Some(vec![
-        Box::new(({ let __len_target = { let __field = (*(*s.lock().unwrap().as_mut().unwrap()).logger.lock().unwrap().as_mut().unwrap()).lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as Box<dyn Any + Send + Sync>,
+        Box::new(({ let __len = ({ let __len_target = { let __field = (*(*s.lock().unwrap().as_mut().unwrap()).logger.lock().unwrap().as_mut().unwrap()).lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })) as Box<dyn Any + Send + Sync>,
     ]))),); (*(*s.lock().unwrap().as_ref().unwrap()).logger.lock().unwrap().as_mut().unwrap()).log(__method_args.0, __method_args.1) };
     { let __range_holder = (*(*s.lock().unwrap().as_mut().unwrap()).logger.lock().unwrap().as_mut().unwrap()).lines.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for line in __range_values.iter() {
         println!("{}", format!("{}", line));

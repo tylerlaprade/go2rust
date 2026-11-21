@@ -789,5 +789,5 @@ fn main() {
 
     let mut values = Arc::new(Mutex::new(Some(vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()])));
     let mut e: Arc<Mutex<Option<Encoder>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*e.lock().unwrap().as_ref().unwrap()).len(Arc::new(Mutex::new(Some((*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64))));
+    (*e.lock().unwrap().as_ref().unwrap()).len(Arc::new(Mutex::new(Some(({ let __len = (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))));
 }

@@ -1043,7 +1043,7 @@ fn main() {
     { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
         println!("{}", format!("{}", format_any(item.as_ref())));
     } }
-    println!("{}", format!("{}", (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     let mut others = Arc::new(Mutex::new(Some(vec![Box::new("a".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>])));
     { let __range_holder = others.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for other in __range_values.iter() {

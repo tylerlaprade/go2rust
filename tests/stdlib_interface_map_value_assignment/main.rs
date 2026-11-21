@@ -61,5 +61,5 @@ fn main() {
 
     let mut values = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + Sync>>>>>::new())));
     remember(values.clone());
-    println!("{} {}", format!("{}", (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*literal().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", ({ let __len = (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = (*literal().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

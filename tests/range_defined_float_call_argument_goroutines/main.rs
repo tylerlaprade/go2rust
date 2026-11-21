@@ -938,7 +938,7 @@ fn main() {
         temps.clone(),
         Arc::new(Mutex::new(Some(Box::new(move |c: Arc<Mutex<Option<Celsius>>>| -> Arc<Mutex<Option<Celsius>>> {
         return {
-            let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_x = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v });
             let __tmp_y = Celsius(Arc::new(Mutex::new(Some(2.0))));
             Arc::new(Mutex::new(Some(__tmp_x * __tmp_y)))
         };

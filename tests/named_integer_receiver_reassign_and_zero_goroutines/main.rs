@@ -2352,11 +2352,11 @@ impl Money {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         let mut __self = self.clone();
         let mut sign = Arc::new(Mutex::new(Some("".to_string())));
-        if { let __tmp_x = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Money(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } {
+        if { let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } {
         { let new_val = "-".to_string(); *sign.lock().unwrap() = Some(new_val); };
         { let new_val = Money(Arc::new(Mutex::new(Some(-(*__self.0.lock().unwrap().as_ref().unwrap()))))); __self = new_val; };
     }
-        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%s$%d.%02d".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x / __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x % __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));
+        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%s$%d.%02d".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x / __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x % __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));
     }
 }
 
@@ -2396,7 +2396,7 @@ impl StdError for StockError {}
 impl Inventory {
     pub fn add(&mut self, name: Arc<Mutex<Option<String>>>, price: Arc<Mutex<Option<Money>>>, qty: Arc<Mutex<Option<i64>>>, tags: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<Item>>> {
         {
-        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
+        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {
             { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
             { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "restock ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };;
@@ -2418,13 +2418,13 @@ impl Inventory {
             __owner
         };
         { let __target = self.next_i_d.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        { let __map_key = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __map_value = it.clone(); (*self.items.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = ({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = it.clone(); (*self.items.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "add ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
         return it.clone();
     }
 
     pub fn take(&mut self, name: Arc<Mutex<Option<String>>>, qty: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<Money>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
+        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if !ok {
         return (
             Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(0 as i64))))))),
@@ -2439,17 +2439,17 @@ impl Inventory {
     }
         { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         if { let __tmp_x = (*{ let __field = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __map_handle = self.items.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&(*name.lock().unwrap().as_ref().unwrap()).clone()); };
+        { let __map_handle = self.items.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); };
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "sold out ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
     }
         return (
-            Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*(*it.lock().unwrap().as_ref().unwrap()).price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * (*qty.lock().unwrap().as_ref().unwrap()) as i64)))))))),
+            Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*(*it.lock().unwrap().as_ref().unwrap()).price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * ({ let __v = (*qty.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))),
             Arc::new(Mutex::new(None))
         );
     }
 
     pub fn names(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let mut names = Arc::new(Mutex::new(Some({ let mut v: Vec<String> = (0..(({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
+        let mut names = Arc::new(Mutex::new(Some({ let mut v: Vec<String> = (0..(({ let __len = ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
         for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = n.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *names.lock().unwrap() = __slice_header; };
     }

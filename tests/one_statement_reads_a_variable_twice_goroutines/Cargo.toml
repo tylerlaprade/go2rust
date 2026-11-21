@@ -1,0 +1,11 @@
+[package]
+name = "one_statement_reads_a_variable_twice_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "one_statement_reads_a_variable_twice_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -765,7 +765,7 @@ pub mod math {
 pub fn fnv32(s: Arc<Mutex<Option<String>>>) -> u32 {
     let mut h = Arc::new(Mutex::new(Some(2166136261 as u32)));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i64); __tmp_x < __tmp_y } {
+    while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = (({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); __tmp_x < __tmp_y } {
         { let __rhs = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let mut guard = h.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() ^ __rhs); };
         { let __rhs = 16777619 as u32; let mut guard = h.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

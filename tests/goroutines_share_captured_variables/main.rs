@@ -976,7 +976,7 @@ impl tally {
             let mut t_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         t_defer_captured.mu.unlock();
     }));
-            { let __map_holder = self.count.clone(); let __key = (*key.lock().unwrap().as_ref().unwrap()).clone(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+            { let __map_holder = self.count.clone(); let __key = ({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
 
             // Execute deferred functions
             while let Some(f) = __defer_stack.pop() {
@@ -1017,7 +1017,7 @@ impl tally {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*key.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+        return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
     }
         }));
         match __go_panic_result {
@@ -1049,7 +1049,7 @@ pub fn square(i: Arc<Mutex<Option<i64>>>, results: Arc<Mutex<Option<Vec<i64>>>>,
         let wg_defer_captured = wg.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));
-        { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __bin_i = (*i.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i }; (*results.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }; (*results.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         let __mutex_guard_source_663 = mu.clone(); let __mutex_guard_663 = __mutex_guard_source_663.guard();
         { let __rhs = (*i.lock().unwrap().as_ref().unwrap()); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         drop(__mutex_guard_663);

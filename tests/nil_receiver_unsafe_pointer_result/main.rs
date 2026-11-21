@@ -1305,7 +1305,7 @@ impl pool {
 pub fn index_local(l: Arc<Mutex<Option<usize>>>, i: Arc<Mutex<Option<i64>>>) -> GoPtr<local> {
     GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(({
         let __tmp_x = (*Arc::new(Mutex::new(Some((*l.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<local>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y };
+        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __v = (*i.lock().unwrap().as_ref().unwrap()); __v }) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<local>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y };
         __tmp_x + __tmp_y
     })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
 }

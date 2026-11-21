@@ -1603,6 +1603,14 @@ run_xfail_test() {
     run_test "tests/len_call_argument"
 }
 
+@test "len_of_computed_values" {
+    run_test "tests/len_of_computed_values"
+}
+
+@test "len_of_computed_values_goroutines" {
+    run_test "tests/len_of_computed_values_goroutines"
+}
+
 @test "len_short_decl" {
     run_test "tests/len_short_decl"
 }
@@ -2177,6 +2185,14 @@ run_xfail_test() {
 
 @test "numeric_conversion_literals" {
     run_test "tests/numeric_conversion_literals"
+}
+
+@test "one_statement_reads_a_variable_twice" {
+    run_test "tests/one_statement_reads_a_variable_twice"
+}
+
+@test "one_statement_reads_a_variable_twice_goroutines" {
+    run_test "tests/one_statement_reads_a_variable_twice_goroutines"
 }
 
 @test "os_args" {

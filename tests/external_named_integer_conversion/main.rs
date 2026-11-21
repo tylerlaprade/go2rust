@@ -26,7 +26,7 @@ pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
 }
 
 pub fn pos_from_int(n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-    Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i64)))))))
+    Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))
 }
 
 pub fn int_value() -> i64 {

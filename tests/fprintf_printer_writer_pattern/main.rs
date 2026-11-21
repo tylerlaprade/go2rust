@@ -89,7 +89,7 @@ impl printer {
     }
     }
     } }
-        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); __tmp_x > __tmp_y } {
         {
             let (__tmp_0, __tmp_1) = (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
                 let __seq_holder = data.clone();

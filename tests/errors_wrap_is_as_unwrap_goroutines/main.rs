@@ -2128,7 +2128,7 @@ impl StdError for QueryError {}
 
 
 pub fn find(key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
-    if { let __tmp_x = (*key.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
+    if { let __tmp_x = ({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::new(NotFound { key: Arc::new(Mutex::new(Some("empty".to_string()))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
     }
     Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"find %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = {

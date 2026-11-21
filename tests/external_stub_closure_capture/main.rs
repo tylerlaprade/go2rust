@@ -23,7 +23,7 @@ fn main() {
 
     let mut out = io::multi_writer(Arc::new(Mutex::new(Some(vec![{ let __field = io::Discard.clone(); __field }]))));
     let out_closure_clone = out.clone(); let mut write = Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<u32>>>| {
-        { let (__tmp_0, __tmp_1) = (*out_closure_clone.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(vec![{ let __v = Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as u8))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }])))); };
+        { let (__tmp_0, __tmp_1) = (*out_closure_clone.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(vec![{ let __v = Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as u8))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }])))); };
     }) as Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> () + Send + Sync>)));
     {
         let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<u32>>>) -> () + Send + Sync> = {
