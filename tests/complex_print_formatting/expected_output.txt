@@ -1,0 +1,6 @@
+print:(3+4i)
+println: (3-4i)
+printf: (3+4i) (3+0i)
+sprint: (3+4i)
+sprintf: (3-4i)
+pure: (0+4i)
