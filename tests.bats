@@ -2603,6 +2603,10 @@ run_xfail_test() {
     run_test "tests/printf_width_decimal"
 }
 
+@test "promoted_nil_receiver_error_goroutines" {
+    run_test "tests/promoted_nil_receiver_error_goroutines"
+}
+
 @test "promoted_pointer_index_field_assign" {
     run_test "tests/promoted_pointer_index_field_assign"
 }
