@@ -13,8 +13,10 @@ base precision: (0x1.p+00+0x1.p+00i) (0x1.ec00p+06+0x1.0000p+00i) (0X1.EC0P+06+0
 binary flags: (12582912p-22+8388608p-21i) (6755399441055744p-51-4503599627370496p-50i)
 sharp decimal: (1.00000+2.00000i) (1.+1.i) (1.2300e+02+1.0000e+00i) (123.0+1.230i) (0.000+0.000i)
 sharp value: (3+4i)
+special: (+Inf+NaNi) (+Inf+NaNi) (+Inf+NaNi) (-0.00000-0.00000i)
 types: complex64 complex128
 spread: (3.0+4.0i) (3-4i)
 spread bases: (12582912p-22+8388608p-21i) (0x1.8p+01-0x1p+02i) (0X1.8P+01+0X1P+02i)
 spread types: complex64 complex128
 spread sharp value: (3+4i)
+spread special: (+Inf+NaNi) (+Inf+NaNi) (+Inf+NaNi) (-0.00000-0.00000i)

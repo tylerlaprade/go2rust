@@ -15,6 +15,9 @@ func main() {
 	var negative complex128 = 3 - 4i
 	zero := complex(3, 0)
 	pureImaginary := complex(0, 4)
+	floatingZero := 0.0
+	special := complex(1.0/floatingZero, floatingZero/floatingZero)
+	signedZero := complex(-floatingZero, -floatingZero)
 
 	fmt.Print("print:", positive, "\n")
 	fmt.Println("println:", negative)
@@ -31,9 +34,11 @@ func main() {
 	fmt.Printf("binary flags: %#b %.4b\n", positive, negative)
 	fmt.Printf("sharp decimal: %#g %#.0f %#.4e %#.4g %#.4g\n", complex(1, 2), complex(1.23, 1), complex(123, 1), complex(123, 1.23), complex(0, 0))
 	fmt.Printf("sharp value: %#v\n", positive)
+	fmt.Printf("special: %v %g %x %#g\n", special, special, special, signedZero)
 	fmt.Printf("types: %T %T\n", positive, negative)
 	printDynamic("spread: %.1f %g\n", positive, negative)
 	printDynamic("spread bases: %b %x %X\n", positive, negative, positive)
 	printDynamic("spread types: %T %T\n", positive, negative)
 	printDynamic("spread sharp value: %#v\n", positive)
+	printDynamic("spread special: %v %g %x %#g\n", special, special, special, signedZero)
 }
