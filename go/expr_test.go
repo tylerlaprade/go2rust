@@ -6240,7 +6240,7 @@ func text(b []byte) string {
 	if !strings.Contains(rust, `let __len = __bytes.len()`) {
 		t.Fatalf("unsafe.String byte-slice path should reuse the borrowed slice length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `String::from_utf8(__bytes[__start..__end].to_vec()).unwrap()`) {
+	if !strings.Contains(rust, `let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[__start..__end].to_vec()).unwrap()`) {
 		t.Fatalf("unsafe.String byte-slice path should build a String from the selected bytes:\n%s", rust)
 	}
 }
@@ -6269,7 +6269,7 @@ func text(b []byte) string {
 	if !strings.Contains(rust, `let __len = __bytes.len()`) {
 		t.Fatalf("unsafe.String slice-data path should reuse the borrowed slice length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `String::from_utf8(__bytes[..__len].to_vec()).unwrap()`) {
+	if !strings.Contains(rust, `let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[..__len].to_vec()).unwrap()`) {
 		t.Fatalf("unsafe.String slice-data path should build a String from the borrowed bytes:\n%s", rust)
 	}
 }

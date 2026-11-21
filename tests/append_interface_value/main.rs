@@ -39,6 +39,12 @@ impl<T> std::ops::Deref for GoSliceReadGuard<'_, T> {
     }
 }
 
+impl<T> AsRef<[T]> for GoSliceReadGuard<'_, T> {
+    fn as_ref(&self) -> &[T] {
+        self
+    }
+}
+
 pub struct GoSliceWriteGuard<'a, T> {
     guard: std::sync::RwLockWriteGuard<'a, std::vec::Vec<T>>,
     off: usize,
@@ -55,6 +61,42 @@ impl<T> std::ops::Deref for GoSliceWriteGuard<'_, T> {
 impl<T> std::ops::DerefMut for GoSliceWriteGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut [T] {
         &mut self.guard[self.off..self.off + self.len]
+    }
+}
+
+pub trait GoSliceView<T> {
+    type Guard<'a>: std::ops::Deref<Target = [T]> + AsRef<[T]>
+    where
+        Self: 'a,
+        T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_>;
+}
+
+impl<T> GoSliceView<T> for GoSlice<T> {
+    type Guard<'a> = GoSliceReadGuard<'a, T> where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T> GoSliceView<T> for std::vec::Vec<T> {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T, const N: usize> GoSliceView<T> for [T; N] {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self.as_slice()
+    }
+}
+
+impl<T> GoSliceView<T> for [T] {
+    type Guard<'a> = &'a [T] where T: 'a;
+    fn go_slice_view(&self) -> Self::Guard<'_> {
+        self
     }
 }
 
@@ -75,7 +117,7 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::new(std::sync::RwLock::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
     }
 
     pub fn len(&self) -> usize {
@@ -84,6 +126,46 @@ impl<T> GoSlice<T> {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+
+    pub fn get_cloned(&self, __index: usize) -> T
+    where
+        T: Clone,
+    {
+        self.as_slice()[__index].clone()
+    }
+
+    pub fn set(&self, __index: usize, __value: T) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard[self.off + __index] = __value;
+    }
+
+    pub fn with_mut<R>(&self, __index: usize, __f: impl FnOnce(&mut T) -> R) -> R {
+        let mut __guard = self.backing.write().unwrap();
+        __f(&mut __guard[self.off + __index])
+    }
+
+    pub fn swap(&self, __left: usize, __right: usize) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard.swap(self.off + __left, self.off + __right);
+    }
+
+    pub fn reverse(&mut self) {
+        self.as_mut_slice().reverse();
+    }
+
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.as_mut_slice().sort();
+    }
+
+    pub fn sort_by<F>(&mut self, __compare: F)
+    where
+        F: FnMut(&T, &T) -> std::cmp::Ordering,
+    {
+        self.as_mut_slice().sort_by(__compare);
     }
 
     pub fn as_slice(&self) -> GoSliceReadGuard<'_, T> {
@@ -192,7 +274,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::new(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -230,6 +312,10 @@ impl<T> GoSlice<T> {
 }
 
 impl<T: Clone> GoSlice<T> {
+    pub fn to_vec(&self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
     pub fn push(&mut self, __value: T) {
@@ -454,7 +540,7 @@ impl<T> Default for GoSlice<T> {
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::new(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __len }
     }
 }
 
@@ -529,6 +615,12 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
             write!(__f, "{}", __value)?;
         }
         __f.write_str("]")
+    }
+}
+
+impl GoSlice<String> {
+    pub fn join(&self, __separator: &str) -> String {
+        self.as_slice().join(__separator)
     }
 }
 

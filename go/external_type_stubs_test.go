@@ -878,7 +878,7 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	for _, want := range []string{
 		"pub fn environ(&self) -> ",
 		"std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect()",
-		"env.extend(cmd_env.iter().cloned())",
+		"env.extend(cmd_env.as_slice().iter().cloned())",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd Environ shim should include %q:\n%s", want, got)

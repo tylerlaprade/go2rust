@@ -50,12 +50,12 @@ fn main() {
     {
         let __recv = {
             let __seq = { let __seq_holder = terms.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
-            __seq[(0) as usize].clone()
+            __seq.get_cloned((0) as usize)
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type();
         __result
     };
-    { let __range_holder = terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for term in __range_values.iter() {
+    { let __range_holder = terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for term in __range_values.iter() {
         { let __recv = term.clone(); let __recv_ptr: *const go_types::union::Term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::union::Term }; let __result = unsafe { &*__recv_ptr }.r#type(); __result };
     } }
     println!("{}", format!("{}", "ok".to_string()));

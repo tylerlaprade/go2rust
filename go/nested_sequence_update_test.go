@@ -17,8 +17,8 @@ func update(a [][]int, words []string) {
 `)
 
 	for _, want := range []string{
-		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs);",
-		"let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1);",
+		"let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs);",
+		"let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1);",
 		"__go_lhs_sequence_0.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_0_0).set(__go_lhs_index_0, __tmp_0);",
 		"let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + &__rhs);",
 	} {

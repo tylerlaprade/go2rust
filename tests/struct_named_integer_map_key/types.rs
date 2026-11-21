@@ -1,4 +1,4 @@
-use crate::{GoChannel, GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+use crate::{GoChannel, GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, GoSliceView, Vec};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};

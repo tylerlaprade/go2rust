@@ -3438,7 +3438,7 @@ fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
     if matches.is_empty() {
         Vec::new()
     } else {
-        vec![matches[0].clone()]
+        vec![matches.as_slice()[0].clone()]
     }
 }
 
@@ -3605,7 +3605,7 @@ fn go_regexp_find_string_submatch(pattern: &str, text: &str) -> Vec<String> {
     if matches.is_empty() {
         Vec::new()
     } else {
-        vec![matches[0].clone()]
+        vec![matches.as_slice()[0].clone()]
     }
 }
 
@@ -5532,7 +5532,7 @@ impl GoReflectType {
 
     fn field(&self, index: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<GoReflectField>>> {
         let index = *index.lock().unwrap().as_ref().unwrap() as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().as_slice()[index].clone())))
     }
 }
 
@@ -5573,7 +5573,7 @@ impl GoReflectValue {
     fn field(&self, index: i64) -> Arc<Mutex<Option<GoReflectValue>>> {
         self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
-        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap().as_slice()[index].clone())))
     }
 
     fn set<T>(&self, _value: T) {

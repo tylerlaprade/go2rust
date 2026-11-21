@@ -95,6 +95,13 @@ func goSliceHelperText(text string) string {
 		return text
 	}
 	return strings.NewReplacer(
+		"fn go_base64_encode(data: &[u8]) -> String {", "fn go_base64_encode<S: GoSliceView<u8> + ?Sized>(source: &S) -> String {\n    let data = source.go_slice_view();",
+		"fn go_sha256_sum256(data: &[u8]) -> Vec<u8> {", "fn go_sha256_sum256<S: GoSliceView<u8> + ?Sized>(source: &S) -> Vec<u8> {\n    let data = source.go_slice_view();",
+		"fn go_format_hex_bytes(data: &[u8], upper: bool) -> String {", "fn go_format_hex_bytes<S: GoSliceView<u8> + ?Sized>(source: &S, upper: bool) -> String {\n    let data = source.go_slice_view();",
+		"    for b in data {", "    for b in data.iter() {",
+		"        self[index]", "        self.get_cloned(index)",
+		"        String::from_utf8(self[start..end].to_vec()).unwrap()", "        let data = self.as_slice();\n        String::from_utf8(data[start..end].to_vec()).unwrap()",
+		"        String::from_utf8(self.clone()).unwrap()", "        let data = self.as_slice();\n        String::from_utf8(data.as_ref().to_vec()).unwrap()",
 		"fn format_slice_values<T>(slice: &[T]) -> String\nwhere\n    T: Display,\n{\n    let formatted: Vec<String> = slice.iter()", "fn format_slice_values<T, C>(slice: &C) -> String\nwhere\n    C: GoSliceView<T> + ?Sized,\n    T: Display,\n{\n    let __view = slice.go_slice_view();\n    let formatted: std::vec::Vec<String> = __view.iter()",
 		"fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String\nwhere\n    Inner: AsRef<[T]>,\n    T: Display,\n{\n    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();", "fn format_nested_slice_values<T, Inner, C>(slice: &C) -> String\nwhere\n    C: GoSliceView<Inner> + ?Sized,\n    Inner: GoSliceView<T>,\n    T: Display,\n{\n    let __view = slice.go_slice_view();\n    let formatted: std::vec::Vec<String> = __view.iter().map(|inner| { let __inner_view = inner.go_slice_view(); format_slice_values(__inner_view.as_ref()) }).collect();",
 		"String::from_utf8(self.clone())", "String::from_utf8(self.to_vec())",

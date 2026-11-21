@@ -1,4 +1,13 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec, format_any, format_any_nested};
+use crate::{
+    GoSlice,
+    GoSliceAppendBoxed,
+    GoSliceFromSlice,
+    GoSliceHeader,
+    GoSliceView,
+    Vec,
+    format_any,
+    format_any_nested,
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

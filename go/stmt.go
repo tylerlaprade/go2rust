@@ -1803,7 +1803,7 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
 	out.WriteString("; ")
-	if goSliceModeEnabled() && nestedSequenceChainUsesOnlySlices(indexExpr.X) {
+	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
 		if holdsSequence {
 			out.WriteString("__seq")
 		} else {
@@ -1811,10 +1811,16 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 		}
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()")
-		for i := range outer {
-			out.WriteString(".get_cloned(")
-			out.WriteString(outerIndexTempName(i))
-			out.WriteString(")")
+		for i, sliceContainer := range nestedSequenceContainerKinds(indexExpr.X) {
+			if sliceContainer {
+				out.WriteString(".get_cloned(")
+				out.WriteString(outerIndexTempName(i))
+				out.WriteString(")")
+			} else {
+				out.WriteString("[")
+				out.WriteString(outerIndexTempName(i))
+				out.WriteString("].clone()")
+			}
 		}
 		out.WriteString(".set(__idx, __rhs); }")
 		return true
@@ -1856,6 +1862,31 @@ func nestedSequenceChainUsesOnlySlices(seq ast.Expr) bool {
 		}
 		cur = unwrapParens(index.X)
 	}
+}
+
+// nestedSequenceContainerKinds reports whether each container traversed from
+// the root of seq to its innermost value is a slice. Its order matches the
+// index list returned by nestedSequenceIndexChain.
+func nestedSequenceContainerKinds(seq ast.Expr) []bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil
+	}
+	var reversed []*ast.IndexExpr
+	cur := unwrapParens(seq)
+	for {
+		index, ok := cur.(*ast.IndexExpr)
+		if !ok {
+			break
+		}
+		reversed = append(reversed, index)
+		cur = unwrapParens(index.X)
+	}
+	kinds := make([]bool, 0, len(reversed))
+	for i := len(reversed) - 1; i >= 0; i-- {
+		kinds = append(kinds, typeInfo.IsSlice(reversed[i].X))
+	}
+	return kinds
 }
 
 func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
@@ -8128,9 +8159,11 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		// Go copies an array before it ranges over it, so the loop does not
 		// see writes made to the array while it runs. Cloning the array
 		// would clone each struct's handles and let those writes through.
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e")
 		out.WriteString(copyCall)
-		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString(").collect::<")
+		out.WriteString(stdVecPath())
+		out.WriteString("<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
 	}
 	if goSliceModeEnabled() {
@@ -9328,11 +9361,7 @@ func writeGoSliceIndexedMutationSequence(out *strings.Builder, seq ast.Expr, idx
 		return false
 	}
 	root, outer, nested := nestedSequenceIndexChain(seq)
-	if nested {
-		if !nestedSequenceChainUsesOnlySlices(seq) {
-			return false
-		}
-	} else {
+	if !nested {
 		root = seq
 		outer = nil
 	}
@@ -9362,12 +9391,19 @@ func writeGoSliceIndexedMutationSequence(out *strings.Builder, seq ast.Expr, idx
 		TranspileExpressionContext(out, root, LValue)
 	}
 	WriteBorrowMethod(out, false)
-	out.WriteString("; __go_slice_guard.as_ref().unwrap().clone() }")
-	for i := range outer {
-		out.WriteString(".get_cloned(")
-		out.WriteString(outerIndexTempName(i))
-		out.WriteString(")")
+	out.WriteString("; __go_slice_guard.as_ref().unwrap()")
+	for i, sliceContainer := range nestedSequenceContainerKinds(seq) {
+		if sliceContainer {
+			out.WriteString(".get_cloned(")
+			out.WriteString(outerIndexTempName(i))
+			out.WriteString(")")
+		} else {
+			out.WriteString("[")
+			out.WriteString(outerIndexTempName(i))
+			out.WriteString("].clone()")
+		}
 	}
+	out.WriteString(".clone() }")
 	out.WriteString("; ")
 	return true
 }

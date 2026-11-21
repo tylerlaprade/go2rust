@@ -9646,7 +9646,7 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
@@ -12680,7 +12680,7 @@ func writeClonedValueFromGuard(out *strings.Builder, expr ast.Expr, guardName st
 		} else if rangeSliceElementIsEmptyInterface(expr) {
 			NeedAnyClone()
 			out.WriteString(guardName)
-			out.WriteString(".as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
+			out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
 		} else {
 			out.WriteString(guardName)
 			out.WriteString(".as_ref().cloned().unwrap_or_default()")
@@ -17759,7 +17759,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+				out.WriteString(".as_ref().unwrap())")
+				writeRuneSliceIteratorToString(out)
 				WriteWrapperSuffix(out)
 				return
 			case "u8":
@@ -18983,6 +18984,9 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {
+	if goSliceModeEnabled() {
+		out.WriteString(".as_slice()")
+	}
 	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
 }
 
@@ -20445,7 +20449,8 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
 	out.WriteString("        ")
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
@@ -20824,7 +20829,8 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
 	out.WriteString("        ")
 	withTypeAssertionFailure(e, "any_val", func() {
 		writePointerHandleAssertionExpectValue(out, "any_val", handleType)
@@ -20853,7 +20859,8 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<")
+	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
+	out.WriteString("        match __slice_guard[__idx].downcast_ref::<")
 	out.WriteString(handleType)
 	out.WriteString(">() {\n")
 	out.WriteString("            Some(typed_val) => (typed_val.clone(), true),\n")
@@ -24819,7 +24826,7 @@ func writeTypeParamSliceHandleFromConcreteHolder(out *strings.Builder, holderNam
 	out.WriteString(GetInnerWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(guardName)
-	out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
+	out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__elem")
 	WriteWrapperSuffix(out)
@@ -24896,7 +24903,7 @@ func writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out *strings.Builder,
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __converted_guard_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+		out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()) }; *__slice_holder_")
 		out.WriteString(index)
@@ -24949,7 +24956,7 @@ func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *as
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }")
 	return true

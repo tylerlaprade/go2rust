@@ -1,4 +1,4 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec, go_silent_catch_unwind};
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, GoSliceView, Vec, go_silent_catch_unwind};
 
 use std::cell::{RefCell};
 use std::error::Error as StdError;

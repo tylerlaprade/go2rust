@@ -232,7 +232,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<")
+			out.WriteString(stdVecPath())
+			out.WriteString("<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.isMap && f.mapOpaque {
 			out.WriteString("\"<map>\"")
 		} else if f.isMap {
@@ -270,7 +272,13 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v.iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v")
+			if f.goPtrSlice && goSliceModeEnabled() {
+				out.WriteString(".as_slice()")
+			}
+			out.WriteString(".iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<")
+			out.WriteString(stdVecPath())
+			out.WriteString("<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.ptrToPtrSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice_wrapped(&self.")
@@ -5683,6 +5691,8 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	out.WriteString("let __count = __haystack.as_ref().map(|__v| __v")
 	if stringInput {
 		out.WriteString(".as_bytes()")
+	} else if goSliceModeEnabled() {
+		out.WriteString(".as_slice()")
 	}
 	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as " + rustIntType() + ";\n")
 	out.WriteString(indent)

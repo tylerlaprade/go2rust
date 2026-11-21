@@ -140,6 +140,34 @@ impl<T> GoSlice<T> {
         __guard[self.off + __index] = __value;
     }
 
+    pub fn with_mut<R>(&self, __index: usize, __f: impl FnOnce(&mut T) -> R) -> R {
+        let mut __guard = self.backing.write().unwrap();
+        __f(&mut __guard[self.off + __index])
+    }
+
+    pub fn swap(&self, __left: usize, __right: usize) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard.swap(self.off + __left, self.off + __right);
+    }
+
+    pub fn reverse(&mut self) {
+        self.as_mut_slice().reverse();
+    }
+
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.as_mut_slice().sort();
+    }
+
+    pub fn sort_by<F>(&mut self, __compare: F)
+    where
+        F: FnMut(&T, &T) -> std::cmp::Ordering,
+    {
+        self.as_mut_slice().sort_by(__compare);
+    }
+
     pub fn as_slice(&self) -> GoSliceReadGuard<'_, T> {
         GoSliceReadGuard { guard: self.backing.read().unwrap(), off: self.off, len: self.len }
     }
@@ -284,6 +312,10 @@ impl<T> GoSlice<T> {
 }
 
 impl<T: Clone> GoSlice<T> {
+    pub fn to_vec(&self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
     pub fn push(&mut self, __value: T) {
@@ -548,6 +580,12 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
     }
 }
 
+impl GoSlice<String> {
+    pub fn join(&self, __separator: &str) -> String {
+        self.as_slice().join(__separator)
+    }
+}
+
 impl<T: PartialEq> PartialEq for GoSlice<T> {
     fn eq(&self, __other: &Self) -> bool {
         self.with_pair(__other, |__left, __right| __left == __right)
@@ -724,14 +762,14 @@ impl std::fmt::Display for Sheet {
 
 impl Sheet {
     pub fn bump(&mut self, i: Rc<RefCell<Option<i64>>>) {
-        { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = 0.5; let __seq = { let __go_slice_guard = self.cells.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
+        { let __outer_idx = ((*i.borrow().as_ref().unwrap())) as usize; let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = 0.5; let __seq = { let __go_slice_guard = self.cells.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
         { let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let __rhs = "!".to_string(); let __seq = { let __go_slice_guard = self.names.borrow(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + &__rhs); };
     }
 }
 
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
+    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 10; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
     {
         let __go_lhs_sequence_0 = a.clone();
         let __go_lhs_outer_index_0_0 = (1) as usize;
@@ -744,10 +782,10 @@ fn main() {
         __go_lhs_sequence_0.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_0_0).set(__go_lhs_index_0, __tmp_0);
         __go_lhs_sequence_1.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_1_0).set(__go_lhs_index_1, __tmp_1);
     };
-    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1); }
-    { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - __rhs); };
+    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1); }
+    { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = 2; let __seq = { let __go_slice_guard = a.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - __rhs); };
     let mut g = Rc::new(RefCell::new(Some(Grid(Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])))))));
-    { let __go_slice_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __seq = { let __go_slice_guard = __go_slice_holder.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current * __rhs); };
+    { let __go_slice_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 7; let __seq = { let __go_slice_guard = __go_slice_holder.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current * __rhs); };
     {
         let __go_lhs_sequence_0 = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }.clone();
         let __go_lhs_outer_index_0_0 = (1) as usize;
@@ -760,13 +798,13 @@ fn main() {
         __go_lhs_sequence_0.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_0_0).set(__go_lhs_index_0, __tmp_0);
         __go_lhs_sequence_1.borrow_mut().as_mut().unwrap().get_cloned(__go_lhs_outer_index_1_0).set(__go_lhs_index_1, __tmp_1);
     };
-    { let __go_slice_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq = { let __go_slice_guard = __go_slice_holder.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - 1); }
+    { let __go_slice_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (0) as usize; let __idx = (0) as usize; let __seq = { let __go_slice_guard = __go_slice_holder.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - 1); }
     println!("{} {}", format!("{}", format_nested_slice(&a)), format!("{}", format_nested_slice(&{ let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice })));
 
     let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1i64, 2i64], vec![3i64]], vec![vec![4i64]]])));
     { let __outer_idx = (0) as usize; let __outer_idx_1 = (1) as usize; let __idx = (0) as usize; let __rhs = 30; cube.borrow().as_ref().unwrap().get_cloned(__outer_idx).get_cloned(__outer_idx_1).set(__idx, __rhs); };
-    { let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let __seq = { let __go_slice_guard = cube.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx).get_cloned(__outer_idx_1); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current * __rhs); };
-    { let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let __seq = { let __go_slice_guard = cube.borrow(); __go_slice_guard.as_ref().unwrap().clone() }.get_cloned(__outer_idx).get_cloned(__outer_idx_1); let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - 1); }
+    { let __outer_idx = (1) as usize; let __outer_idx_1 = (0) as usize; let __idx = (0) as usize; let __rhs = 5; let __seq = { let __go_slice_guard = cube.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).get_cloned(__outer_idx_1).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current * __rhs); };
+    { let __outer_idx = (0) as usize; let __outer_idx_1 = (0) as usize; let __idx = (1) as usize; let __seq = { let __go_slice_guard = cube.borrow(); __go_slice_guard.as_ref().unwrap().get_cloned(__outer_idx).get_cloned(__outer_idx_1).clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current - 1); }
     println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&cube.borrow().as_ref().unwrap().get_cloned((0) as usize)); __formatted }), format!("{}", cube.borrow().as_ref().unwrap().get_cloned((1) as usize).get_cloned((0) as usize).get_cloned((0) as usize)));
 
     let mut board: Rc<RefCell<Option<[[String; 3]; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 3, _>(|_| std::array::from_fn::<_, 3, _>(|_| String::new())))));

@@ -671,7 +671,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					writeCollectionFormatHandleIdent(out, ident)
 					out.WriteString(".clone(); let __plus_guard = __plus_holder")
 					WriteBorrowMethod(out, false)
-					out.WriteString("; match __plus_guard.as_ref() { Some(__s) => format!(\"[{}]\", __s.iter().map(|__v| format!(\"{:#}\", __v)).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+					out.WriteString("; match __plus_guard.as_ref() { Some(__s) => format!(\"[{}]\", __s.as_slice().iter().map(|__v| format!(\"{:#}\", __v)).collect::<")
+					out.WriteString(stdVecPath())
+					out.WriteString("<_>>().join(\" \")), None => \"[]\".to_string() } }")
 					return
 				}
 				out.WriteString("format_slice(&")
@@ -1991,12 +1993,15 @@ func writeNestedBasicSlicePrintArg(out *strings.Builder, arg ast.Expr, argType t
 		out.WriteString("{ let __rows = ")
 		TranspileExpressionContext(out, arg, LValue)
 		WriteBorrowMethod(out, false)
-		out.WriteString("; match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows.as_slice()), None => \"[]\".to_string() } }")
+		out.WriteString("; match __rows.as_ref() { Some(rows) => format_nested_slice_values(rows), None => \"[]\".to_string() } }")
 		return true
 	}
 	bare := formatSliceArgumentIsBareValue(arg)
 	if bare {
-		out.WriteString("{ let __formatted = format_nested_slice_values(&")
+		out.WriteString("{ let __formatted = format_nested_slice_values(")
+		if ident, ok := arg.(*ast.Ident); !ok || !strings.HasPrefix(rangeLoopVars[ident.Name], "&") {
+			out.WriteString("&")
+		}
 	} else {
 		out.WriteString("format_nested_slice(&")
 	}
@@ -4339,7 +4344,9 @@ func writeJsonStringMapFieldPush(out *strings.Builder, field jsonMarshalField) {
 	}
 	out.WriteString("let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("; format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_json_escape(__v_guard.as_ref().unwrap())) }).collect::<")
+	out.WriteString(stdVecPath())
+	out.WriteString("<_>>().join(\",\"); ")
 	out.WriteString("__json_fields.push(format!(")
 	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{{{}}}"))
 	out.WriteString(", __map_entries));")
@@ -4363,7 +4370,13 @@ func writeJsonStringSliceFieldPush(out *strings.Builder, field jsonMarshalField)
 	} else {
 		out.WriteString("if let Some(__slice) = __slice_guard.as_ref() { ")
 	}
-	out.WriteString("let __slice_entries = __slice.iter().map(|__v| format!(\"\\\"{}\\\"\", go_json_escape(__v))).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("let __slice_entries = __slice")
+	if goSliceModeEnabled() {
+		out.WriteString(".as_slice()")
+	}
+	out.WriteString(".iter().map(|__v| format!(\"\\\"{}\\\"\", go_json_escape(__v))).collect::<")
+	out.WriteString(stdVecPath())
+	out.WriteString("<_>>().join(\",\"); ")
 	out.WriteString("__json_fields.push(format!(")
 	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":[{}]"))
 	out.WriteString(", __slice_entries));")
@@ -4389,7 +4402,9 @@ func writeJsonByteSliceMapFieldPush(out *strings.Builder, field jsonMarshalField
 	}
 	out.WriteString("let __map_entries = __map.iter().map(|(__k, __v)| { let __v_guard = __v")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; if let Some(__bytes) = __v_guard.as_ref() { format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_base64_encode(__bytes)) } else { format!(\"\\\"{}\\\":null\", go_json_escape(__k)) } }).collect::<Vec<_>>().join(\",\"); ")
+	out.WriteString("; if let Some(__bytes) = __v_guard.as_ref() { format!(\"\\\"{}\\\":\\\"{}\\\"\", go_json_escape(__k), go_base64_encode(__bytes)) } else { format!(\"\\\"{}\\\":null\", go_json_escape(__k)) } }).collect::<")
+	out.WriteString(stdVecPath())
+	out.WriteString("<_>>().join(\",\"); ")
 	out.WriteString("__json_fields.push(format!(")
 	out.WriteString(strconv.Quote(strconv.Quote(field.jsonName) + ":{{{}}}"))
 	out.WriteString(", __map_entries));")
@@ -4764,7 +4779,7 @@ func writeUnsafeStringFromByteSliceAddress(out *strings.Builder, call *ast.CallE
 	} else {
 		writeExpressionAsUsize(out, call.Args[1])
 	}
-	out.WriteString("; let __end = __start + __len; String::from_utf8(__bytes[__start..__end].to_vec()).unwrap() }")
+	out.WriteString("; let __end = __start + __len; let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[__start..__end].to_vec()).unwrap() }")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -4821,7 +4836,7 @@ func writeUnsafeStringFromSliceData(out *strings.Builder, call *ast.CallExpr) bo
 	} else {
 		writeExpressionAsUsize(out, call.Args[1])
 	}
-	out.WriteString("; String::from_utf8(__bytes[..__len].to_vec()).unwrap() }")
+	out.WriteString("; let __bytes_view = __bytes.as_slice(); String::from_utf8(__bytes_view[..__len].to_vec()).unwrap() }")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -5502,7 +5517,13 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("let mut __appended = ")
 				TranspileExpressionContext(out, indexExpr.X, LValue)
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap().get_cloned(__append_idx); __appended")
+				out.WriteString(".as_ref().unwrap()")
+				if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(indexExpr.X) {
+					out.WriteString(".get_cloned(__append_idx)")
+				} else {
+					out.WriteString("[__append_idx].clone()")
+				}
+				out.WriteString("; __appended")
 				out.WriteString(store)
 				out.WriteString("; __appended }")
 				return true
@@ -5667,12 +5688,12 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("; let __src_guard = __src")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values")
-			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString(goElementCopyIterFromGoSlice(call.Args[1]))
 			out.WriteString("); }; ")
 		} else {
 			out.WriteString("__values.extend(")
 			TranspileExpression(out, call.Args[1])
-			out.WriteString(goElementCopyIter(call.Args[1]))
+			out.WriteString(goElementCopyIterFromGoSlice(call.Args[1]))
 			out.WriteString("); ")
 		}
 	} else if len(call.Args) == 2 {
@@ -6348,7 +6369,7 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(";\n")
 			writeCopyCountLine(out, innerIndent, "_dst_len")
 			writeCopyLoop(out, innerIndent, copySourceElementCopy(call.Args[1], srcIsString), srcIsString, func(writeValue func()) {
-				if goSliceModeEnabled() {
+				if goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(dstSlice.X) {
 					TranspileExpressionContext(out, dstSlice.X, LValue)
 					WriteBorrowMethod(out, true)
 					out.WriteString(".as_mut().unwrap().set(_dst_start + _i, ")

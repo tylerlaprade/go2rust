@@ -579,6 +579,12 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
     }
 }
 
+impl GoSlice<String> {
+    pub fn join(&self, __separator: &str) -> String {
+        self.as_slice().join(__separator)
+    }
+}
+
 impl<T: PartialEq> PartialEq for GoSlice<T> {
     fn eq(&self, __other: &Self) -> bool {
         self.with_pair(__other, |__left, __right| __left == __right)

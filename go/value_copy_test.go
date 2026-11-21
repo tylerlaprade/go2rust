@@ -62,7 +62,7 @@ func TestGoCopyOfAStructUsesTheCopyHelper(t *testing.T) {
 		"use(a)":                   "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }",
 		"e := points[0]":           ".get_cloned((0) as usize).__go_value_clone()",
 		"range over a slice":       "for p in __range_values.iter() {\n        let p = &p.__go_value_clone();",
-		"range over an array":      "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default();",
+		"range over an array":      "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e.__go_value_clone()).collect::<std::vec::Vec<_>>()).unwrap_or_default();",
 		"arr2 := arr":              "arr.borrow().as_ref().unwrap().each_ref().map(|__go_elem| __go_elem.__go_value_clone())",
 		"a struct inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone())",
 		"an array inside a struct": "(*__guard).as_ref().map(|__go_field| __go_field.each_ref().map(|__go_elem| __go_elem.__go_value_clone()))",
@@ -697,7 +697,7 @@ func main() {
 		"if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                (typed_val.clone(), true)",
 		"{ let new_val = ({ let val = x.clone();",
 		"any_val.downcast_ref::<" + handle + ">().expect(\"type assertion failed\").clone()",
-		"match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<" + handle + ">() {",
+		"let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n        match __slice_guard[__idx].downcast_ref::<" + handle + ">() {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)

@@ -139,6 +139,34 @@ impl<T> GoSlice<T> {
         __guard[self.off + __index] = __value;
     }
 
+    pub fn with_mut<R>(&self, __index: usize, __f: impl FnOnce(&mut T) -> R) -> R {
+        let mut __guard = self.backing.write().unwrap();
+        __f(&mut __guard[self.off + __index])
+    }
+
+    pub fn swap(&self, __left: usize, __right: usize) {
+        let mut __guard = self.backing.write().unwrap();
+        __guard.swap(self.off + __left, self.off + __right);
+    }
+
+    pub fn reverse(&mut self) {
+        self.as_mut_slice().reverse();
+    }
+
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
+        self.as_mut_slice().sort();
+    }
+
+    pub fn sort_by<F>(&mut self, __compare: F)
+    where
+        F: FnMut(&T, &T) -> std::cmp::Ordering,
+    {
+        self.as_mut_slice().sort_by(__compare);
+    }
+
     pub fn as_slice(&self) -> GoSliceReadGuard<'_, T> {
         GoSliceReadGuard { guard: self.backing.read().unwrap(), off: self.off, len: self.len }
     }
@@ -283,6 +311,10 @@ impl<T> GoSlice<T> {
 }
 
 impl<T: Clone> GoSlice<T> {
+    pub fn to_vec(&self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
     pub fn push(&mut self, __value: T) {
@@ -544,6 +576,12 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
             write!(__f, "{}", __value)?;
         }
         __f.write_str("]")
+    }
+}
+
+impl GoSlice<String> {
+    pub fn join(&self, __separator: &str) -> String {
+        self.as_slice().join(__separator)
     }
 }
 

@@ -30,13 +30,14 @@ fn main() {
 
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let (mut f, mut err) = os::open((*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone());
+    let (mut f, mut err) = os::open(go_os_args().borrow().as_ref().unwrap().get_cloned((0) as usize));
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
     let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         (*f_defer_captured.borrow_mut().as_mut().unwrap()).close();
     }));
+
     println!("{}", format!("{}", (*example_com_package_stdlib_interface_argument_helper::r#use({ let __arg = f.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: Option<io_Reader> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Rc::new(RefCell::new(__converted)) }).borrow().as_ref().unwrap())));
 
     // Execute deferred functions
