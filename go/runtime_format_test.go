@@ -33,7 +33,7 @@ func main() {
 	if strings.Contains(rust, "go_sprintf_spread") {
 		t.Fatalf("no call spreads a slice, so the spread form is not needed:\n%s", rust)
 	}
-	if strings.Contains(rust, "go_format_complex") || strings.Contains(rust, "num::Complex") {
+	if strings.Contains(rust, "go_format_complex") || strings.Contains(rust, "go_format_float_base") || strings.Contains(rust, "num::Complex") {
 		t.Fatalf("an integer-only run-time format must not emit complex formatting support:\n%s", rust)
 	}
 }
@@ -156,13 +156,14 @@ func TestRuntimeFormatHandlesComplexNumericVerbs(t *testing.T) {
 import "fmt"
 
 func main() {
-	format := "%f %.2f %e %g\n"
-	fmt.Printf(format, complex64(3+4i), complex128(3-4i), complex64(3+4i), complex128(3-4i))
+	format := "%f %.2f %e %g %b %x %X\n"
+	fmt.Printf(format, complex64(3+4i), complex128(3-4i), complex64(3+4i), complex128(3-4i), complex64(3+4i), complex128(3-4i), complex64(3+4i))
 }
 `)
 
 	for _, want := range []string{
 		"fn go_format_complex(",
+		"fn go_format_float_base(",
 		"value.downcast_ref::<num::Complex<f64>>()",
 		"value.downcast_ref::<num::Complex<f32>>()",
 		`Some(format!("({}{}i)", real, imaginary))`,
@@ -170,6 +171,21 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("complex run-time formatting is missing %q:\n%s", want, rust)
 		}
+	}
+}
+
+func TestLiteralComplexBaseVerbUsesRuntimeFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	fmt.Printf("%x\n", complex64(3+4i))
+}
+`)
+
+	if !strings.Contains(rust, `go_sprintf(&"%x\n".to_string()`) {
+		t.Fatalf("literal complex hex formatting did not use the Go formatter:\n%s", rust)
 	}
 }
 
@@ -182,7 +198,7 @@ func TestRuntimeFormatterFailsLoudlyOnWhatItDoesNotSupport(t *testing.T) {
 		`panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);`,
 		`panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time"`,
 	} {
-		if !strings.Contains(goSprintfFormatting+goSprintfEntry, want) {
+		if !strings.Contains(goSprintfFormatting+goSprintfEntry+goSprintfFloatBaseUnsupported, want) {
 			t.Fatalf("the run-time formatter lost a loud failure: %s", want)
 		}
 	}

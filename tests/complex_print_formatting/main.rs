@@ -938,15 +938,10 @@ fn go_format_float_magnitude(verb: char, precision: Option<usize>, shortest: &st
 }
 
 fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> Option<String> {
-    // fmt also writes a float in binary (%b) and in hex (%x). Neither is
-    // done here.
-    if matches!(verb, 'b' | 'x' | 'X') {
-        panic!("go2rust: %{} of a float is not supported in a format that is only known at run time", verb);
-    }
-    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
+    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G' | 'b' | 'x' | 'X') {
         return None;
     }
-    if spec.sharp {
+    if spec.sharp && !matches!(verb, 'b' | 'x' | 'X') {
         panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);
     }
     if value.is_nan() {
@@ -960,6 +955,11 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
         return Some(go_format_pad(spec, format!("{}Inf", sign), 0, false));
     }
     let magnitude = value.abs();
+    if matches!(verb, 'b' | 'x' | 'X') {
+        let digits = go_format_float_base(spec, verb, magnitude, single);
+        let sign = go_format_sign(spec, negative);
+        return Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true));
+    }
     // A float32 keeps the digits of the float32, not of the float64 it was
     // widened to.
     let narrow = magnitude as f32;
@@ -972,8 +972,98 @@ fn go_format_float(spec: &GoFormatSpec, verb: char, value: f64, single: bool) ->
     Some(go_format_pad(spec, format!("{}{}", sign, digits), sign.len(), true))
 }
 
+// Formats the finite magnitude of a float using strconv.FormatFloat's binary
+// and hexadecimal forms. Keeping the IEEE mantissa is important: %b prints
+// that integer directly, and %x rounds its normalized hexadecimal fraction.
+fn go_format_float_base(spec: &GoFormatSpec, verb: char, value: f64, single: bool) -> String {
+    let (bits, mantissa_bits, exponent_bits, bias) = if single {
+        ((value as f32).to_bits() as u64, 23_u32, 8_u32, -127_i32)
+    } else {
+        (value.to_bits(), 52_u32, 11_u32, -1023_i32)
+    };
+    let exponent_mask = (1_u64 << exponent_bits) - 1;
+    let mut exponent = ((bits >> mantissa_bits) & exponent_mask) as i32;
+    let mut mantissa = bits & ((1_u64 << mantissa_bits) - 1);
+    if exponent == 0 {
+        exponent += 1;
+    } else {
+        mantissa |= 1_u64 << mantissa_bits;
+    }
+    exponent += bias;
+
+    if verb == 'b' {
+        return format!("{}p{:+}", mantissa, exponent - mantissa_bits as i32);
+    }
+
+    if mantissa == 0 {
+        exponent = 0;
+    }
+    mantissa <<= 60 - mantissa_bits;
+    while mantissa != 0 && mantissa & (1_u64 << 60) == 0 {
+        mantissa <<= 1;
+        exponent -= 1;
+    }
+
+    if let Some(precision) = spec.precision.filter(|precision| *precision < 15) {
+        let shift = (precision * 4) as u32;
+        let extra = (mantissa << shift) & ((1_u64 << 60) - 1);
+        mantissa >>= 60 - shift;
+        if extra | (mantissa & 1) > 1_u64 << 59 {
+            mantissa += 1;
+        }
+        mantissa <<= 60 - shift;
+        if mantissa & (1_u64 << 61) != 0 {
+            mantissa >>= 1;
+            exponent += 1;
+        }
+    }
+
+    let upper = verb == 'X';
+    let alphabet = if upper { b"0123456789ABCDEF" } else { b"0123456789abcdef" };
+    let mut out = format!("0{}{}", verb, (b'0' + ((mantissa >> 60) & 1) as u8) as char);
+    mantissa <<= 4;
+    match spec.precision {
+        None if mantissa != 0 => {
+            out.push('.');
+            while mantissa != 0 {
+                out.push(alphabet[((mantissa >> 60) & 15) as usize] as char);
+                mantissa <<= 4;
+            }
+        }
+        Some(precision) if precision > 0 => {
+            out.push('.');
+            for _ in 0..precision {
+                out.push(alphabet[((mantissa >> 60) & 15) as usize] as char);
+                mantissa <<= 4;
+            }
+        }
+        _ => {}
+    }
+
+    if spec.sharp {
+        if !out.contains('.') {
+            out.push('.');
+        }
+        // fmt's %#x with no explicit precision retains six significant
+        // digits. %#X only forces the point, matching Go's implementation.
+        if verb == 'x' && spec.precision.is_none() {
+            // Go's sharp-padding loop counts the x in 0x as the first
+            // significant character, but not the leading zero or point.
+            let digits = out.bytes().skip(1).filter(|byte| *byte != b'.').count();
+            if digits < 6 {
+                out.push_str(&"0".repeat(6 - digits));
+            }
+        }
+    }
+
+    out.push(if upper { 'P' } else { 'p' });
+    out.push_str(&format!("{:+03}", exponent));
+    out
+}
+
+
 fn go_format_complex(spec: &GoFormatSpec, verb: char, real: f64, imaginary: f64, single: bool) -> Option<String> {
-    if !matches!(verb, 'v' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G') {
+    if !matches!(verb, 'v' | 'b' | 'e' | 'E' | 'f' | 'F' | 'g' | 'G' | 'x' | 'X') {
         return None;
     }
     let real = go_format_float(spec, verb, real, single)?;
@@ -1354,5 +1444,10 @@ fn main() {
     print!("{}", go_sprintf(&"numeric: %f %.2f %e %g\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     print!("{}", go_sprintf(&"flags: %+v % v |%20.2f| |%020.2f| |%-20.2f|\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     print!("{}", go_sprintf(&"signs: %+f % f %+f\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"bases: %b %x %X\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"base flags: %#x %#X\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"base precision: %#.0x %#.4x %.3X\n".to_string(), &[Box::new({ let __v = Rc::new(RefCell::new(Some(num::Complex::new(1.23 as f64, 1 as f64)))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(num::Complex::new(123 as f64, 1 as f64)))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(num::Complex::new(123 as f64, 1 as f64)))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"binary flags: %#b %.4b\n".to_string(), &[Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     print_dynamic(Rc::new(RefCell::new(Some("spread: %.1f %g\n".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>]))));
+    print_dynamic(Rc::new(RefCell::new(Some("spread bases: %b %x %X\n".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = positive.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>]))));
 }
