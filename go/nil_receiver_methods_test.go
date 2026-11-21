@@ -69,6 +69,35 @@ func main() {
 	}
 }
 
+func TestPromotedNilReceiverHelperUsesEmbeddedPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Inner struct{}
+
+func (inner *Inner) Error() string {
+	if inner == nil {
+		return "nil"
+	}
+	return "inner"
+}
+
+type Outer struct{ *Inner }
+
+func main() {
+	outer := &Outer{}
+	_ = outer.Error()
+}
+`)
+	if !strings.Contains(rust, "let __go_promoted_root = outer.clone()") ||
+		!strings.Contains(rust, "__value.inner.clone()") ||
+		!strings.Contains(rust, "__go_nil_recv_inner_error(__go_promoted_0)") {
+		t.Fatalf("promoted nil-receiver call should pass the embedded pointer handle to its helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "__go_nil_recv_inner_error(outer.clone())") {
+		t.Fatalf("promoted nil-receiver call must not pass the outer pointer handle to its helper:\n%s", rust)
+	}
+}
+
 func TestNilReceiverHelperReturnsWhatItsMethodReturns(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

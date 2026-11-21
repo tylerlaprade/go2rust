@@ -25,4 +25,5 @@ func main() {
 	outerWithNilInner := &outerError{}
 	var nilInnerError error = outerWithNilInner
 	fmt.Println(nilInnerError)
+	fmt.Println(outerWithNilInner.Error())
 }

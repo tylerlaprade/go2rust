@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -317,11 +318,6 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 		return false
 	}
 
-	out.WriteString(helperName)
-	out.WriteString("(")
-	if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
-		TranspileExpression(out, sel.X)
-	}
 	var args strings.Builder
 	if !writeMethodCallArguments(&args, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
 		for i, arg := range call.Args {
@@ -330,6 +326,47 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 			}
 			writeRegularMethodCallArgument(&args, sel, call, arg, i)
 		}
+	}
+
+	if fields, promotedMethod, promoted := promotedMethodCallInfo(sel); promoted && methodOverrideKey(promotedMethod) == key {
+		out.WriteString("{ let __go_promoted_root = ")
+		if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
+			TranspileExpression(out, sel.X)
+		}
+		out.WriteString("; ")
+		handle := "__go_promoted_root"
+		for i, field := range fields {
+			optionName := fmt.Sprintf("__go_promoted_%d_option", i)
+			handleName := fmt.Sprintf("__go_promoted_%d", i)
+			out.WriteString("let ")
+			out.WriteString(optionName)
+			out.WriteString(" = { let __go_guard = ")
+			out.WriteString(handle)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; __go_guard.as_ref().map(|__value| __value.")
+			out.WriteString(field)
+			out.WriteString(".clone()) }; let ")
+			out.WriteString(handleName)
+			out.WriteString(" = ")
+			out.WriteString(optionName)
+			out.WriteString(".expect(\"nil pointer dereference\"); ")
+			handle = handleName
+		}
+		out.WriteString(helperName)
+		out.WriteString("(")
+		out.WriteString(handle)
+		if args.Len() > 0 {
+			out.WriteString(", ")
+			out.WriteString(args.String())
+		}
+		out.WriteString(") }")
+		return true
+	}
+
+	out.WriteString(helperName)
+	out.WriteString("(")
+	if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
+		TranspileExpression(out, sel.X)
 	}
 	if args.Len() > 0 {
 		out.WriteString(", ")

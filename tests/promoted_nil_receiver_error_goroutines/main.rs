@@ -760,6 +760,7 @@ fn main() {
     };
     let mut nilInnerError: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_outerError(outerWithNilInner.clone())) as Arc<dyn StdError + Send + Sync>)));
     println!("{}", format!("{}", { let __text = match nilInnerError.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", (*{ let __go_promoted_root = outerWithNilInner.clone(); let __go_promoted_0_option = { let __go_guard = __go_promoted_root.lock().unwrap(); __go_guard.as_ref().map(|__value| __value.inner_error.clone()) }; let __go_promoted_0 = __go_promoted_0_option.expect("nil pointer dereference"); __go_nil_recv_inner_error_error(__go_promoted_0) }.lock().unwrap().as_ref().unwrap())));
 }
 
 pub fn __go_nil_recv_inner_error_error(err: Arc<Mutex<Option<innerError>>>) -> Arc<Mutex<Option<String>>> {
