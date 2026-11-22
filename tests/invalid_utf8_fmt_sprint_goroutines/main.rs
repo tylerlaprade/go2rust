@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -762,6 +763,46 @@ where
     }
 }
 
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<boxedError>() {
+        format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<boxedStringer>() {
+        format!("{}", v)
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -1138,6 +1179,47 @@ impl PartialEq for valueError {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct boxedStringer {
+}
+
+impl boxedStringer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for boxedStringer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct boxedError {
+}
+
+impl boxedError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for boxedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+impl PartialEq for boxedError {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
+
+
 impl stringerText {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(__go_string_concat(&"string-method".to_string(), &{ let __s = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xfb as u8]))).lock().unwrap().as_ref().unwrap()).clone()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
@@ -1192,6 +1274,33 @@ impl std::fmt::Display for __go_error_ptr_valueError {
 impl StdError for __go_error_ptr_valueError {}
 
 
+impl boxedStringer {
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(__go_string_concat(&"boxed-stringer".to_string(), &{ let __s = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xf8 as u8]))).lock().unwrap().as_ref().unwrap()).clone()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
+    }
+}
+
+impl boxedError {
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(__go_string_concat(&"boxed-error".to_string(), &{ let __s = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xf9 as u8]))).lock().unwrap().as_ref().unwrap()).clone()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
+    }
+}
+
+impl StdError for boxedError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_boxedError(pub Arc<Mutex<Option<boxedError>>>);
+
+impl std::fmt::Display for __go_error_ptr_boxedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_boxedError {}
+
+
 fn main() {
     let mut done = GoChannel::<AnonymousStruct1>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
@@ -1228,6 +1337,23 @@ fn main() {
     println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = { let __go_string_method_receiver = valueStringer {  }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = { let __go_string_method_receiver = valueError {  }; let __go_string_method_result = __go_string_method_receiver.error(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
+    let mut boxedText: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(boxedStringer {  }) as Box<dyn Any + Send + Sync>)));
+    let mut boxedProblem: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(boxedError {  }) as Box<dyn Any + Send + Sync>)));
+    let mut boxedValues = Arc::new(Mutex::new(Some(vec![Box::new(boxedStringer {  }) as Box<dyn Any + Send + Sync>, Box::new(boxedError {  }) as Box<dyn Any + Send + Sync>])));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedText.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedProblem.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedText.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedProblem.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stderr(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedText.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __text = format_any(boxedProblem.lock().unwrap().as_ref().unwrap().as_ref()); __text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let __sprint_values = boxedValues.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __go_string_from_bytes(__sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let __sprint_values = boxedValues.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __sprint_bytes.push(b'\n'); __go_string_from_bytes(__sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
 
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "x".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }))).lock().unwrap().as_ref().unwrap())))))))));

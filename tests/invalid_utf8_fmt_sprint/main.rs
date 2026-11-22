@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
@@ -762,6 +763,46 @@ where
     }
 }
 
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<boxedError>() {
+        format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<boxedStringer>() {
+        format!("{}", v)
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
 #[derive(Debug)]
 pub struct stringerText(pub Rc<RefCell<Option<String>>>);
 
@@ -964,6 +1005,42 @@ impl std::fmt::Display for valueError {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct boxedStringer {
+}
+
+impl boxedStringer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for boxedStringer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct boxedError {
+}
+
+impl boxedError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for boxedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
+    }
+}
+
+
 impl stringerText {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(__go_string_concat(&"string-method".to_string(), &{ let __s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xfb as u8]))).borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }))))
@@ -1018,6 +1095,33 @@ impl std::fmt::Display for __go_error_ptr_valueError {
 impl StdError for __go_error_ptr_valueError {}
 
 
+impl boxedStringer {
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(__go_string_concat(&"boxed-stringer".to_string(), &{ let __s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xf8 as u8]))).borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }))))
+    }
+}
+
+impl boxedError {
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some(__go_string_concat(&"boxed-error".to_string(), &{ let __s = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xf9 as u8]))).borrow().as_ref().unwrap()).clone()))))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }))))
+    }
+}
+
+impl StdError for boxedError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_boxedError(pub Rc<RefCell<Option<boxedError>>>);
+
+impl std::fmt::Display for __go_error_ptr_boxedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_boxedError {}
+
+
 fn main() {
     let mut invalid = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xfa as u8]))).borrow().as_ref().unwrap()).clone())))));
     let (mut n, mut err) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "print<".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); let __go_sprint_arg_2 = ">\n".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
@@ -1048,6 +1152,23 @@ fn main() {
     println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = { let __go_string_method_receiver = valueStringer {  }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.borrow(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }))).borrow().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = { let __go_string_method_receiver = valueError {  }; let __go_string_method_result = __go_string_method_receiver.error(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.borrow(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }))).borrow().as_ref().unwrap())))))))));
+    let mut boxedText: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(boxedStringer {  }) as Box<dyn Any>)));
+    let mut boxedProblem: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(boxedError {  }) as Box<dyn Any>)));
+    let mut boxedValues = Rc::new(RefCell::new(Some(vec![Box::new(boxedStringer {  }) as Box<dyn Any>, Box::new(boxedError {  }) as Box<dyn Any>])));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedText.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedProblem.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedText.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedProblem.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stderr(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedText.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format_any(boxedProblem.borrow().as_ref().unwrap().as_ref()); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let __sprint_values = boxedValues.clone(); let __sprint_guard = __sprint_values.borrow(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __go_string_from_bytes(__sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let __sprint_values = boxedValues.clone(); let __sprint_guard = __sprint_values.borrow(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __sprint_bytes.push(b'\n'); __go_string_from_bytes(__sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
 
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "x".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));

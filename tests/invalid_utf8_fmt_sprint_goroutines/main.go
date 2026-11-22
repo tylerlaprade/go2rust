@@ -21,6 +21,14 @@ type valueError struct{}
 
 func (valueError) Error() string { return "value-error" + string([]byte{0xfe}) }
 
+type boxedStringer struct{}
+
+func (boxedStringer) String() string { return "boxed-stringer" + string([]byte{0xf8}) }
+
+type boxedError struct{}
+
+func (boxedError) Error() string { return "boxed-error" + string([]byte{0xf9}) }
+
 func main() {
 	done := make(chan struct{})
 	go func() { close(done) }()
@@ -55,6 +63,23 @@ func main() {
 	fmt.Println(n, err == nil)
 	fmt.Println([]byte(fmt.Sprintf("<%s>", valueStringer{})))
 	fmt.Println([]byte(fmt.Sprintf("<%s>", valueError{})))
+	var boxedText any = boxedStringer{}
+	var boxedProblem any = boxedError{}
+	boxedValues := []any{boxedStringer{}, boxedError{}}
+	n, err = fmt.Print(boxedText)
+	fmt.Print("\n")
+	fmt.Println(n, err == nil)
+	n, err = fmt.Println(boxedProblem)
+	fmt.Println(n, err == nil)
+	n, err = fmt.Fprint(os.Stdout, boxedText)
+	fmt.Fprint(os.Stdout, "\n")
+	fmt.Println(n, err == nil)
+	n, err = fmt.Fprintln(os.Stderr, boxedProblem)
+	fmt.Println(n, err == nil)
+	fmt.Println([]byte(fmt.Sprint(boxedText)))
+	fmt.Println([]byte(fmt.Sprintln(boxedProblem)))
+	fmt.Println([]byte(fmt.Sprint(boxedValues...)))
+	fmt.Println([]byte(fmt.Sprintln(boxedValues...)))
 
 	fmt.Println([]byte(fmt.Sprint("x", invalid)))
 	fmt.Println([]byte(fmt.Sprintln(invalid)))

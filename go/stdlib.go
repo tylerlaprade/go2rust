@@ -290,6 +290,11 @@ func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool
 			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
 			out.WriteString(strconv.Itoa(i))
 			out.WriteString(")); ")
+		} else if isEmptyInterfaceValueExpr(arg) {
+			writeFormatAnyPrintArg(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
 		} else {
 			transpilePrintArgString(out, arg)
 			out.WriteString("; __go_sprint_bytes.extend(__go_sprint_arg_")
@@ -307,7 +312,7 @@ func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool
 func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
-		writeSprintVariadicAny(out, call.Args[0])
+		writeSprintVariadicAny(out, call.Args[0], false)
 	} else {
 		writeSprintBytesExpression(out, call.Args, false)
 	}
@@ -318,11 +323,7 @@ func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
-		NeedFormatAnySlice()
-		TrackImport("Any")
-		out.WriteString("format!(\"{}\\n\", format_any_variadic(&")
-		writeSprintVariadicSlice(out, call.Args[0])
-		out.WriteString("))")
+		writeSprintVariadicAny(out, call.Args[0], true)
 	} else {
 		writeSprintBytesExpression(out, call.Args, true)
 	}
@@ -339,20 +340,23 @@ func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
 
 // writeSprintVariadicAny writes fmt.Sprint(values...) for a []any: a space
 // goes between two operands when neither holds a string.
-func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
+func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr, line bool) {
 	NeedFormatAny()
 	TrackImport("Any")
 	out.WriteString("{ let __sprint_values = ")
 	writeSprintVariadicSlice(out, arg)
 	out.WriteString(".clone(); let __sprint_guard = __sprint_values")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let mut __sprint_text = String::new(); let mut __sprint_after_string = true; ")
+	out.WriteString("; let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; ")
 	out.WriteString("if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); ")
 	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { ")
 	out.WriteString("let __sprint_is_string = __sprint_value.is::<String>(); ")
-	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
-	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } } ")
-	out.WriteString("__sprint_text }")
+	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } ")
+	out.WriteString("let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } ")
+	if line {
+		out.WriteString("__sprint_bytes.push(b'\\n'); ")
+	}
+	out.WriteString("__go_string_from_bytes(__sprint_bytes) }")
 }
 
 // printOperandIsString reports whether a fmt.Print operand is a string, of
@@ -423,6 +427,9 @@ func writeConcreteStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
 // printOperandProvidesCanonicalStringBytes reports whether an operand can be
 // appended without routing its Go string through Rust's UTF-8-only formatter.
 func printOperandProvidesCanonicalStringBytes(arg ast.Expr) bool {
+	if isEmptyInterfaceValueExpr(arg) {
+		return true
+	}
 	if printOperandIsString(arg) {
 		return true
 	}

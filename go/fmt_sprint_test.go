@@ -200,6 +200,8 @@ func render(values ...any) string { return fmt.Sprint(values...) }
 		"if let Some(__sprint_values) = __sprint_guard.as_ref()",
 		"let __sprint_slice = __sprint_values.as_slice()",
 		"__sprint_slice.iter().enumerate()",
+		"__sprint_bytes.extend(__go_string_bytes(&__sprint_text))",
+		"__go_string_from_bytes(__sprint_bytes)",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("fmt.Sprint variadic slice must iterate inside its guard; missing %q:\n%s", want, rust)
@@ -207,6 +209,42 @@ func render(values ...any) string { return fmt.Sprint(values...) }
 	}
 	if strings.Contains(rust, "__sprint_guard.iter().flatten()") {
 		t.Fatalf("fmt.Sprint cannot require borrowed IntoIterator for GoSlice:\n%s", rust)
+	}
+}
+
+func TestFmtSprintPreservesBytesReturnedThroughAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type textValue struct{}
+func (textValue) String() string { return string([]byte{0xfa}) }
+
+type errorValue struct{}
+func (errorValue) Error() string { return string([]byte{0xfb}) }
+
+func main() {
+	var text any = textValue{}
+	var problem any = errorValue{}
+	values := []any{text, problem}
+	fmt.Print(text)
+	fmt.Println(problem)
+	_ = fmt.Sprint(text)
+	_ = fmt.Sprintln(problem)
+	_ = fmt.Sprint(values...)
+	_ = fmt.Sprintln(values...)
+}
+`)
+
+	for _, want := range []string{
+		"let __go_sprint_arg_0 = format_any(",
+		"__go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0))",
+		"__sprint_bytes.extend(__go_string_bytes(&__sprint_text))",
+		"__go_string_from_bytes(__sprint_bytes)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("interface-held String/Error bytes must stay canonical; missing %q:\n%s", want, rust)
+		}
 	}
 }
 
