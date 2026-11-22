@@ -111,6 +111,31 @@ func trim(s, part string) (string, string) {
 	}
 }
 
+func TestStringsRepeatUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func repeat(s string, n int) string {
+	return strings.Repeat(s, n)
+}
+`)
+
+	for _, want := range []string{
+		"let __bytes = __go_string_bytes(&__s)",
+		"__go_string_from_bytes(__out)",
+		`panic!("strings: negative Repeat count")`,
+		`expect("strings: Repeat output length overflow")`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Repeat byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.repeat(") {
+		t.Fatalf("strings.Repeat must not repeat the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

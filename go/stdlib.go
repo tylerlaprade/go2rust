@@ -3980,7 +3980,7 @@ func transpileStringsRepeat(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __count = ")
 	writeNumericConversionValue(out, call.Args[1])
-	out.WriteString("; __s.repeat(__count as usize) }")
+	out.WriteString("; if __count < 0 { panic!(\"strings: negative Repeat count\"); } let __count = __count as usize; let __bytes = __go_string_bytes(&__s); let __capacity = __bytes.len().checked_mul(__count).expect(\"strings: Repeat output length overflow\"); let mut __out = Vec::with_capacity(__capacity); for _ in 0..__count { __out.extend_from_slice(&__bytes); } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 
