@@ -2513,6 +2513,14 @@ run_xfail_test() {
     run_test "tests/os_readdir_filepath"
 }
 
+@test "os_readdir_non_utf8" {
+    run_test "tests/os_readdir_non_utf8"
+}
+
+@test "os_readdir_non_utf8_goroutines" {
+    run_test "tests/os_readdir_non_utf8_goroutines"
+}
+
 @test "os_setenv_unsetenv" {
     run_test "tests/os_setenv_unsetenv"
 }

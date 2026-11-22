@@ -1107,6 +1107,28 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	}
 }
 
+func TestOsReadDirStubPreservesAndSortsUnixNameBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsReadDirFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("Vec<fs_DirEntry>"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"std::os::unix::ffi::OsStringExt",
+		"__go_string_from_bytes(entry.file_name().into_vec())",
+		"entry.file_name().to_string_lossy().into_owned()",
+		"__go_string_bytes(&left.name).cmp(&__go_string_bytes(&right.name))",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.ReadDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{

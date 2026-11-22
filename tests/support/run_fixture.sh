@@ -82,6 +82,33 @@ if [[ -n "$raw_cwd_hex" ]]; then
     mkdir -- "$GO2RUST_TEST_RAW_CWD"
 fi
 
+# A read-only filesystem fixture can request one raw-byte file name inside the
+# private working directory. The same entry remains present for the Go and
+# generated Rust executions, so directory enumeration observes identical
+# external state.
+raw_cwd_entry_hex=$(fixture_config_value "$test_dir" "raw_cwd_entry_hex")
+if [[ -n "$raw_cwd_entry_hex" ]]; then
+    raw_cwd_entry_spec=$raw_cwd_entry_hex
+    if [[ -z "${GO2RUST_TEST_RAW_CWD:-}" ]] ||
+       [[ "$raw_cwd_entry_hex" =~ [^0-9A-Fa-f] ]] ||
+       (( ${#raw_cwd_entry_hex} % 2 != 0 )); then
+        echo "Invalid raw_cwd_entry_hex fixture config: $raw_cwd_entry_spec"
+        exit 1
+    fi
+    raw_cwd_entry=""
+    while [[ -n "$raw_cwd_entry_hex" ]]; do
+        raw_cwd_entry_pair=${raw_cwd_entry_hex:0:2}
+        if [[ "${raw_cwd_entry_pair,,}" == "00" || "${raw_cwd_entry_pair,,}" == "2f" ]]; then
+            echo "Invalid raw_cwd_entry_hex fixture config: $raw_cwd_entry_spec"
+            exit 1
+        fi
+        printf -v raw_cwd_entry_byte '%b' "\\x$raw_cwd_entry_pair"
+        raw_cwd_entry+="$raw_cwd_entry_byte"
+        raw_cwd_entry_hex=${raw_cwd_entry_hex:2}
+    done
+    touch -- "$GO2RUST_TEST_RAW_CWD/$raw_cwd_entry"
+fi
+
 if [[ -f "$test_dir/go.mod" ]]; then
     note_fixture_phase "go mod download"
     if ! mod_download_output=$(cd "$test_dir" && go mod download 2>&1); then
