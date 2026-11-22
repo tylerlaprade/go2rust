@@ -2454,6 +2454,14 @@ run_xfail_test() {
     run_test "tests/os_readdir_filepath"
 }
 
+@test "os_setenv_unsetenv" {
+    run_test "tests/os_setenv_unsetenv"
+}
+
+@test "os_setenv_unsetenv_goroutines" {
+    run_test "tests/os_setenv_unsetenv_goroutines"
+}
+
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
 }

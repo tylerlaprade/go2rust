@@ -3121,12 +3121,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsSetenv := pkg.Functions["setenv"]
+	_, needsUnsetenv := pkg.Functions["unsetenv"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
 		if _, ok := pkg.Functions["write_file"]; ok {
 			writeGoBytesArgTrait(out)
 		}
+	}
+	if needsFilesystemHelpers || needsSetenv || needsUnsetenv {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3173,6 +3177,10 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "setenv" {
+			writeOsSetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "unsetenv" {
+			writeOsUnsetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
@@ -3194,6 +3202,28 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	out.WriteString("}\n")
+}
+
+func writeOsStringValue(out *strings.Builder, argName, label string) {
+	stringType := wrappedExternalStubType("String")
+	stringBorrow := externalStubBorrowExpr("v")
+	out.WriteString("        let ")
+	out.WriteString(label)
+	out.WriteString(" = if let Some(v) = (&")
+	out.WriteString(argName)
+	out.WriteString(" as &dyn Any).downcast_ref::<String>() {\n")
+	out.WriteString("            v.clone()\n")
+	out.WriteString("        } else if let Some(v) = (&")
+	out.WriteString(argName)
+	out.WriteString(" as &dyn Any).downcast_ref::<")
+	out.WriteString(stringType)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(stringBorrow)
+	out.WriteString(".as_ref().cloned().unwrap_or_default()\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os environment bridge: expected string argument\")\n")
+	out.WriteString("        };\n")
 }
 
 func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
@@ -3264,6 +3294,52 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        ")
 	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Setenv maps to the host process environment.
+func writeOsSetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn setenv<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	writeOsStringValue(out, "_arg1", "value")
+	out.WriteString("        let key_bytes = __go_string_bytes(&key);\n")
+	out.WriteString("        let value_bytes = __go_string_bytes(&value);\n")
+	out.WriteString("        if key_bytes.is_empty() || key_bytes.contains(&b'=') || key_bytes.contains(&0) || value_bytes.contains(&0) {\n")
+	out.WriteString("            return io_error(std::io::Error::new(std::io::ErrorKind::InvalidInput, \"invalid environment variable\"));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::set_var(std::ffi::OsString::from_vec(key_bytes), std::ffi::OsString::from_vec(value_bytes));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        std::env::set_var(key, value);\n")
+	out.WriteString("        no_error()\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Unsetenv maps to the host process environment.
+func writeOsUnsetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn unsetenv<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	out.WriteString("        let key_bytes = __go_string_bytes(&key);\n")
+	out.WriteString("        if key_bytes.is_empty() || key_bytes.contains(&b'=') || key_bytes.contains(&0) {\n")
+	// Go's os.Unsetenv treats invalid keys as an already-absent variable and
+	// returns nil. Rust's remove_var panics for the same keys, so stop here.
+	out.WriteString("            return no_error();\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::remove_var(std::ffi::OsString::from_vec(key_bytes));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        std::env::remove_var(key);\n")
+	out.WriteString("        no_error()\n")
 	out.WriteString("    }\n")
 }
 

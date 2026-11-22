@@ -974,6 +974,40 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 }
 
+func TestOsSetenvAndUnsetenvStubsUseCanonicalHostEnv(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"setenv": {
+				ParamCount:  2,
+				ReturnTypes: []string{wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+			"unsetenv": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Setenv/Unsetenv should not use generic panic stubs:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn setenv<T0: 'static, T1: 'static>",
+		"pub fn unsetenv<T0: 'static>",
+		"let key_bytes = __go_string_bytes(&key)",
+		"let value_bytes = __go_string_bytes(&value)",
+		"std::env::set_var(std::ffi::OsString::from_vec(key_bytes), std::ffi::OsString::from_vec(value_bytes))",
+		"std::env::remove_var(std::ffi::OsString::from_vec(key_bytes))",
+		"std::io::ErrorKind::InvalidInput",
+		"no_error()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Setenv/Unsetenv shims should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
