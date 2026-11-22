@@ -50,6 +50,36 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestStringsByteSearchUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func search(s string) (bool, int, int, int, int, bool, bool) {
+	return strings.Contains(s, "a"), strings.Index(s, "A"),
+		strings.LastIndex(s, "A"), strings.Count(s, "A"), strings.Compare(s, "A"),
+		strings.HasPrefix(s, "A"), strings.HasSuffix(s, "A")
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_bytes(&__s)",
+		"__go_string_bytes(&__arg)",
+		"__go_string_bytes(&__substr)",
+		"__go_string_cmp(&__a, &__b)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings byte search lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.find(&__substr)") ||
+		strings.Contains(rust, "__s.rfind(&__substr)") ||
+		strings.Contains(rust, "__s.matches(&__substr)") ||
+		strings.Contains(rust, "__s.cmp(&__b)") {
+		t.Fatalf("strings byte search must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -1663,6 +1663,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_string_range_goroutines"
 }
 
+@test "invalid_utf8_strings_search" {
+    run_test "tests/invalid_utf8_strings_search"
+}
+
+@test "invalid_utf8_strings_search_goroutines" {
+    run_test "tests/invalid_utf8_strings_search_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }

@@ -3717,9 +3717,15 @@ func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method st
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __arg = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.")
-	out.WriteString(method)
-	out.WriteString("(&__arg) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); ")
+	if method == "contains" {
+		out.WriteString("__arg_bytes.is_empty() || __s_bytes.windows(__arg_bytes.len()).any(|__window| __window == __arg_bytes.as_slice())")
+	} else {
+		out.WriteString("__s_bytes.")
+		out.WriteString(method)
+		out.WriteString("(&__arg_bytes)")
+	}
+	out.WriteString(" }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3777,7 +3783,7 @@ func transpileStringsIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.find(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { 0 } else { __s_bytes.windows(__substr_bytes.len()).position(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3790,7 +3796,7 @@ func transpileStringsLastIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.rfind(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __s_bytes.len() as " + rustIntType() + " } else { __s_bytes.windows(__substr_bytes.len()).rposition(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3803,7 +3809,7 @@ func transpileStringsCount(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; if __substr.is_empty() { __s.chars().count() as " + rustIntType() + " + 1 } else { __s.matches(&__substr).count() as " + rustIntType() + " } }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __go_string_range(&__s).len() as " + rustIntType() + " + 1 } else { let mut __count = 0; let mut __i = 0usize; while __i + __substr_bytes.len() <= __s_bytes.len() { if &__s_bytes[__i..__i + __substr_bytes.len()] == __substr_bytes.as_slice() { __count += 1; __i += __substr_bytes.len(); } else { __i += 1; } } __count } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3816,7 +3822,7 @@ func transpileStringsCompare(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __b = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }")
+	out.WriteString("; match __go_string_cmp(&__a, &__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }")
 	WriteWrapperSuffix(out)
 }
 
