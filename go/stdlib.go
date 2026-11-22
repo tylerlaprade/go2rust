@@ -280,6 +280,10 @@ func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool
 			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
 			out.WriteString(strconv.Itoa(i))
 			out.WriteString(")); ")
+		} else if writeNamedStringMethodResult(out, arg) {
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
 		} else {
 			transpilePrintArgString(out, arg)
 			out.WriteString("; __go_sprint_bytes.extend(__go_sprint_arg_")
@@ -374,6 +378,40 @@ func printOperandUsesDirectStringBytes(arg ast.Expr) bool {
 	}
 	typ := typeInfo.GetType(arg)
 	return !typeHasGoStringMethod(typ) && !isConcreteGoErrorValue(typ)
+}
+
+// writeNamedStringMethodResult writes the Go string returned by a named
+// string operand's Error or String method. Rust Display cannot carry invalid
+// UTF-8, so routing these methods through format! would expose the internal
+// reversible encoding instead of the bytes returned by the Go method.
+// Error takes precedence over String, matching fmt's method selection.
+func writeNamedStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
+	if !printOperandIsString(arg) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	method := ""
+	if isConcreteGoErrorValue(typ) {
+		method = "error"
+	} else if typeHasGoStringMethod(typ) {
+		method = "string"
+	}
+	if method == "" {
+		return false
+	}
+
+	out.WriteString("{ let __go_sprint_method_receiver = ")
+	transpilePrintArg(out, arg)
+	out.WriteString("; let __go_sprint_method_result = __go_sprint_method_receiver.")
+	out.WriteString(method)
+	out.WriteString("(); let __go_sprint_method_text = { let __go_sprint_method_guard = __go_sprint_method_result")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__go_sprint_method_guard.as_ref().unwrap()).clone() }; __go_sprint_method_text }")
+	return true
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {

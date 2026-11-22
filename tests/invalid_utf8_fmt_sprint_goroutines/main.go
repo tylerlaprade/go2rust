@@ -4,11 +4,11 @@ import "fmt"
 
 type stringerText string
 
-func (stringerText) String() string { return "string-method" }
+func (stringerText) String() string { return "string-method" + string([]byte{0xfb}) }
 
 type errorText string
 
-func (errorText) Error() string { return "error-method" }
+func (errorText) Error() string { return "error-method" + string([]byte{0xfc}) }
 
 func main() {
 	invalid := string([]byte{0xfa})
