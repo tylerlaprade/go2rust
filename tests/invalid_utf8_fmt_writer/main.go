@@ -83,4 +83,18 @@ func main() {
 	var richBuilder strings.Builder
 	n, err = fmt.Fprintf(&richBuilder, "<%q|%x>", invalid, invalid)
 	fmt.Println(n, err == nil, []byte(richBuilder.String()))
+
+	c.data = nil
+	n, err = fmt.Fprintf(c, "<%s|%d>", invalid, 7)
+	fmt.Println(n, err == nil, c.data)
+
+	buffer.Reset()
+	n, err = fmt.Fprintf(&buffer, "<%s|%d>", invalid, 7)
+	fmt.Println(n, err == nil, buffer.Bytes())
+
+	var mixedBuilder strings.Builder
+	n, err = fmt.Fprintf(&mixedBuilder, "<%s|%d>", invalid, 7)
+	fmt.Println(n, err == nil, []byte(mixedBuilder.String()))
+
+	fmt.Println([]byte(fmt.Sprintf("<%s|%d>", invalid, 7)))
 }

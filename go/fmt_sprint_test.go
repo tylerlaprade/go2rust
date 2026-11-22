@@ -653,6 +653,11 @@ func main() {
 	n, err = fmt.Fprintf(&builder, "<%q|%x>", s, s)
 	fmt.Printf("<%q|%x>", s, s)
 	_ = fmt.Sprintf("<%q|%x>", s, s)
+	n, err = fmt.Fprintf(&c, "<%s|%d>", s, 7)
+	n, err = fmt.Fprintf(&b, "<%s|%d>", s, 7)
+	n, err = fmt.Fprintf(&builder, "<%s|%d>", s, 7)
+	fmt.Printf("<%s|%d>", s, 7)
+	_ = fmt.Sprintf("<%s|%d>", s, 7)
 	fmt.Println(n, err == nil)
 }
 `)
@@ -667,7 +672,8 @@ func main() {
 			t.Fatalf("dynamic Fprintf writers must consume the canonical runtime string; missing %q:\n%s", want, rust)
 		}
 	}
-	if strings.Count(rust, "go_sprintf(") < 8 {
+	if strings.Count(rust, "go_sprintf(") < 13 ||
+		strings.Count(rust, `go_sprintf(&"<%s|%d>".to_string(),`) < 5 {
 		t.Fatalf("dynamic and richer literal string formats must use the byte-aware runtime formatter:\n%s", rust)
 	}
 	if strings.Contains(rust, "push_str(&format!(\"{}\", go_sprintf(") ||

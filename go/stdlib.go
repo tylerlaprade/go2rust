@@ -2657,9 +2657,10 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 // writeLiteralStringRuntimeFormatExpression handles a translation-time format
-// made only of the byte-sensitive string verbs supported by go_sprintf. The
-// ordinary Rust formatter cannot carry malformed Go string bytes through %v
-// or %q, while go_sprintf returns the canonical reversible Go string.
+// that contains a byte-sensitive string operand and otherwise stays within a
+// conservative subset supported by go_sprintf. The ordinary Rust formatter
+// cannot carry malformed Go string bytes through %v or %q, while go_sprintf
+// returns the canonical reversible Go string.
 func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.CallExpr, formatIndex int) bool {
 	if call == nil || call.Ellipsis.IsValid() || len(call.Args) <= formatIndex {
 		return false
@@ -2673,7 +2674,7 @@ func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.C
 		return false
 	}
 
-	argCount := 0
+	var verbs []byte
 	for i := 0; i < len(format); {
 		if format[i] != '%' {
 			i++
@@ -2700,22 +2701,36 @@ func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.C
 				j++
 			}
 		}
-		if j >= len(format) || strings.IndexByte("svqxX", format[j]) < 0 {
+		if j >= len(format) || strings.IndexByte("svqxXd", format[j]) < 0 {
 			return false
 		}
-		argCount++
+		verbs = append(verbs, format[j])
 		i = j + 1
 	}
-	if len(call.Args)-formatIndex-1 != argCount {
+	if len(call.Args)-formatIndex-1 != len(verbs) {
 		return false
 	}
-	for _, arg := range call.Args[formatIndex+1:] {
-		// Keep this path to statically known strings. Interface and Stringer
-		// operands can carry other dynamic types whose richer verbs need the
-		// normal static formatter's complete type-specific lowering.
-		if !printOperandIsString(arg) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	hasString := false
+	for index, arg := range call.Args[formatIndex+1:] {
+		if printOperandIsString(arg) && strings.IndexByte("svqxX", verbs[index]) >= 0 {
+			hasString = true
+			continue
+		}
+		typ := typeInfo.GetType(arg)
+		if typ == nil {
 			return false
 		}
+		basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+		if !ok || verbs[index] != 'd' || basic.Info()&types.IsInteger == 0 {
+			return false
+		}
+	}
+	if !hasString {
+		return false
 	}
 
 	writeRuntimeFormatCall(out, call.Args[formatIndex], call.Args[formatIndex+1:], false, false)
