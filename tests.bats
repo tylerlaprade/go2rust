@@ -259,13 +259,20 @@ run_transpile_and_compare() {
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
     local -a cargo_run_args=("${cargo_offline_args[@]}" run --quiet)
+    local cargo_run_dir="$test_dir"
+    if [[ -n "${GO2RUST_TEST_RAW_CWD:-}" ]]; then
+        local test_manifest
+        test_manifest=$(cd "$test_dir" && pwd)/Cargo.toml
+        cargo_run_args+=(--manifest-path "$test_manifest")
+        cargo_run_dir="$GO2RUST_TEST_RAW_CWD"
+    fi
     if [[ -n "${GO2RUST_TEST_RAW_ARG+x}" ]]; then
         cargo_run_args+=(-- "$GO2RUST_TEST_RAW_ARG")
     fi
     if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
-        (cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1)
+        (cd "$cargo_run_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1)
         rust_exit_code=$?
-    elif (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1); then
+    elif (cd "$cargo_run_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
@@ -2484,6 +2491,14 @@ run_xfail_test() {
 
 @test "os_getenv_non_utf8_goroutines" {
     run_test "tests/os_getenv_non_utf8_goroutines"
+}
+
+@test "os_getwd_non_utf8" {
+    run_test "tests/os_getwd_non_utf8"
+}
+
+@test "os_getwd_non_utf8_goroutines" {
+    run_test "tests/os_getwd_non_utf8_goroutines"
 }
 
 @test "os_lookup_env_non_utf8" {

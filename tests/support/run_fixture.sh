@@ -55,6 +55,33 @@ if [[ -n "$raw_argv_hex" ]]; then
     done
 fi
 
+# Some filesystem-boundary fixtures need a working-directory basename that is
+# not valid UTF-8. Encode the suffix as HEX; the runner creates a private
+# directory named "cwd-<suffix>" and launches both executables from it. NUL
+# and slash are rejected because neither can occur inside a Unix path segment.
+raw_cwd_hex=$(fixture_config_value "$test_dir" "raw_cwd_hex")
+if [[ -n "$raw_cwd_hex" ]]; then
+    raw_cwd_spec=$raw_cwd_hex
+    if [[ "$raw_cwd_hex" =~ [^0-9A-Fa-f] ]] ||
+       (( ${#raw_cwd_hex} % 2 != 0 )); then
+        echo "Invalid raw_cwd_hex fixture config: $raw_cwd_hex"
+        exit 1
+    fi
+    raw_cwd_suffix=""
+    while [[ -n "$raw_cwd_hex" ]]; do
+        raw_cwd_pair=${raw_cwd_hex:0:2}
+        if [[ "${raw_cwd_pair,,}" == "00" || "${raw_cwd_pair,,}" == "2f" ]]; then
+            echo "Invalid raw_cwd_hex fixture config: $raw_cwd_spec"
+            exit 1
+        fi
+        printf -v raw_cwd_byte '%b' "\\x$raw_cwd_pair"
+        raw_cwd_suffix+="$raw_cwd_byte"
+        raw_cwd_hex=${raw_cwd_hex:2}
+    done
+    export GO2RUST_TEST_RAW_CWD="$test_tmp_root/cwd-$raw_cwd_suffix"
+    mkdir -- "$GO2RUST_TEST_RAW_CWD"
+fi
+
 if [[ -f "$test_dir/go.mod" ]]; then
     note_fixture_phase "go mod download"
     if ! mod_download_output=$(cd "$test_dir" && go mod download 2>&1); then
@@ -67,14 +94,24 @@ fi
 # Run Go version
 note_fixture_phase "go run"
 go_run=(go run .)
+if [[ -n "${GO2RUST_TEST_RAW_CWD:-}" ]]; then
+    note_fixture_phase "go build"
+    if ! go_build_output=$(cd "$test_dir" && go build -o "$test_tmp_root/go-fixture" . 2>&1); then
+        echo "Go compilation failed:"
+        echo "$go_build_output"
+        exit 1
+    fi
+    go_run=("$test_tmp_root/go-fixture")
+fi
 if [[ -n "${GO2RUST_TEST_RAW_ARG+x}" ]]; then
     go_run+=("$GO2RUST_TEST_RAW_ARG")
 fi
+go_run_dir=${GO2RUST_TEST_RAW_CWD:-$test_dir}
 if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
-    go_output=$(cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" "${go_run[@]}" 2>&1)
+    go_output=$(cd "$go_run_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" "${go_run[@]}" 2>&1)
     go_exit_code=$?
 else
-    go_output=$(cd "$test_dir" && "${go_run[@]}" 2>&1)
+    go_output=$(cd "$go_run_dir" && "${go_run[@]}" 2>&1)
     go_exit_code=$?
 fi
 if [[ "$go_exit_code" -ne 0 ]]; then

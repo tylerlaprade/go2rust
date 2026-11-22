@@ -1095,6 +1095,8 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::env::current_dir()",
+		"std::os::unix::ffi::OsStringExt",
+		"__go_string_from_bytes(path.into_os_string().into_vec())",
 		"path.to_string_lossy().into_owned()",
 		"String::new()",
 		"io_error(err)",

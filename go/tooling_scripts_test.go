@@ -981,7 +981,7 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 		`note_fixture_phase "cargo build"`,
 		`cargo "${cargo_offline_args[@]}" build >"$cargo_output_file" 2>&1`,
 		`note_fixture_phase "cargo run"`,
-		`cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1`,
+		`cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1`,
 		`Rust compilation failed:`,
 		`Rust execution failed:`,
 		`report_fixture_timeout "$timeout" "$phase_file" "$phase_detail_file"`,
