@@ -184,19 +184,25 @@ func main() {
 	}
 }
 
-func TestFmtSprintfPercentSZeroPaddingUsesGeneralFormatting(t *testing.T) {
+func TestFmtSprintfPercentSZeroPaddingPreservesArbitraryStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
 
 func main() {
-	s := "xy"
+	s := string([]byte{0xfa, 'A'})
 	_ = fmt.Sprintf("[%04s]", s)
 }
 `)
 
-	if strings.Contains(rust, "__go_sprintf_arg_piece_") {
-		t.Fatalf("fmt.Sprintf %%0s must not use the space-padding byte path:\n%s", rust)
+	for _, want := range []string{
+		"__go_string_bytes(&__go_sprintf_arg_0)",
+		"__go_string_range(&__go_sprintf_arg_piece_0).len()",
+		"std::iter::repeat(b'0').take(__go_sprintf_arg_padding_0)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprintf %%0s must zero-pad canonical Go bytes; missing %q:\n%s", want, rust)
+		}
 	}
 }
 
