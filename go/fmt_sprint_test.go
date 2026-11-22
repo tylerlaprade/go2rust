@@ -71,8 +71,8 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"let __go_sprint_method_result = __go_sprint_method_receiver.string()",
-		"let __go_sprint_method_result = __go_sprint_method_receiver.error()",
+		"let __go_string_method_result = __go_string_method_receiver.string()",
+		"let __go_string_method_result = __go_string_method_receiver.error()",
 		"__go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0))",
 	} {
 		if !strings.Contains(rust, want) {
@@ -99,12 +99,40 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"let __go_sprint_method_result = __go_sprint_method_receiver.string()",
-		"let __go_sprint_method_result = __go_sprint_method_receiver.error()",
+		"let __go_string_method_result = __go_string_method_receiver.string()",
+		"let __go_string_method_result = __go_string_method_receiver.error()",
 		"__go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0))",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("Sprint-family formatting must preserve bytes returned by String/Error; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestFmtSprintfPreservesBytesReturnedByNamedStringMethods(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type stringerText string
+func (stringerText) String() string { return string([]byte{0xfb}) }
+
+type errorText string
+func (errorText) Error() string { return string([]byte{0xfc}) }
+
+func main() {
+	fmt.Sprintf("<%s>", stringerText("x"))
+	fmt.Sprintf("<%s>", errorText("x"))
+}
+`)
+
+	for _, want := range []string{
+		"let __go_string_method_result = __go_string_method_receiver.string()",
+		"let __go_string_method_result = __go_string_method_receiver.error()",
+		"__go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("Sprintf %%s must preserve bytes returned by String/Error; missing %q:\n%s", want, rust)
 		}
 	}
 }
@@ -149,8 +177,14 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "__go_sprintf_bytes") {
-		t.Fatalf("fmt.Sprintf %%s must still invoke String/Error methods on named strings:\n%s", rust)
+	for _, want := range []string{
+		"let __go_string_method_result = __go_string_method_receiver.string()",
+		"let __go_string_method_result = __go_string_method_receiver.error()",
+		"__go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprintf %%s named-string method path missing %q:\n%s", want, rust)
+		}
 	}
 }
 

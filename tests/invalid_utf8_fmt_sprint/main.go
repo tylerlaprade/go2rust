@@ -20,4 +20,6 @@ func main() {
 	fmt.Println([]byte(fmt.Sprintf("%s%%:%s", invalid, "z")))
 	fmt.Println([]byte(fmt.Sprint(stringerText(invalid))))
 	fmt.Println([]byte(fmt.Sprintln(errorText(invalid))))
+	fmt.Println([]byte(fmt.Sprintf("<%s>", stringerText(invalid))))
+	fmt.Println([]byte(fmt.Sprintf("<%s>", errorText(invalid))))
 }

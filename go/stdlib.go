@@ -404,13 +404,13 @@ func writeNamedStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 
-	out.WriteString("{ let __go_sprint_method_receiver = ")
+	out.WriteString("{ let __go_string_method_receiver = ")
 	transpilePrintArg(out, arg)
-	out.WriteString("; let __go_sprint_method_result = __go_sprint_method_receiver.")
+	out.WriteString("; let __go_string_method_result = __go_string_method_receiver.")
 	out.WriteString(method)
-	out.WriteString("(); let __go_sprint_method_text = { let __go_sprint_method_guard = __go_sprint_method_result")
+	out.WriteString("(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; (*__go_sprint_method_guard.as_ref().unwrap()).clone() }; __go_sprint_method_text }")
+	out.WriteString("; (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }")
 	return true
 }
 
@@ -2532,8 +2532,7 @@ func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr,
 		return false
 	}
 	for _, arg := range call.Args[formatIndex+1:] {
-		typ := typeInfo.GetType(arg)
-		if !printOperandIsString(arg) || typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ) {
+		if !printOperandIsString(arg) {
 			return false
 		}
 	}
@@ -2557,7 +2556,9 @@ func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr,
 		out.WriteString("let __go_sprintf_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
-		writeStringSequenceOwnedValue(out, call.Args[formatIndex+i+1])
+		if !writeNamedStringMethodResult(out, call.Args[formatIndex+i+1]) {
+			writeStringSequenceOwnedValue(out, call.Args[formatIndex+i+1])
+		}
 		out.WriteString("; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(")); ")
