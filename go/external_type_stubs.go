@@ -3561,7 +3561,7 @@ func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("    pub fn mkdir_all<T0: GoStringArg, T1>(_arg0: T0, _arg1: T1) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        match std::fs::create_dir_all(&path) {\n")
 	out.WriteString("            Ok(()) => no_error(),\n")
 	out.WriteString("            Err(err) => io_error(err),\n")
