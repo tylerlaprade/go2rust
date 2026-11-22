@@ -103,4 +103,13 @@ func main() {
 	c.data = nil
 	n, err = fmt.Fprintf(c, indexedFormat+"\n", invalid, "ok")
 	fmt.Println(n, err == nil, c.data)
+
+	indexedWidthPrecision := "%[3]*.[2]*[1]s"
+	fmt.Println([]byte(fmt.Sprintf(indexedWidthPrecision, invalid+"A", 1, 4)))
+	c.data = nil
+	n, err = fmt.Fprintf(c, indexedWidthPrecision, invalid+"A", 1, 4)
+	fmt.Println(n, err == nil, c.data)
+
+	indexedContinue := "%[2]s|%s"
+	fmt.Println(fmt.Sprintf(indexedContinue, "one", "two", "three"))
 }

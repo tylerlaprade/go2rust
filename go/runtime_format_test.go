@@ -174,6 +174,10 @@ func main() {
 	format := "%[1]s|%[2]q|%[1]x"
 	invalid := string([]byte{0xfa})
 	_ = fmt.Sprintf(format, invalid, "ok")
+	widthPrecision := "%[3]*.[2]*[1]s"
+	_ = fmt.Sprintf(widthPrecision, invalid+"A", 1, 4)
+	continueAfterIndex := "%[2]s|%s"
+	_ = fmt.Sprintf(continueAfterIndex, "one", "two", "three")
 }
 `)
 
@@ -186,6 +190,10 @@ func main() {
 		`go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[`,
 		`Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>`,
 		`Box::new("ok".to_string()) as Box<dyn Any>`,
+		`go_sprintf(&(*widthPrecision.borrow().as_ref().unwrap()).clone(), &[`,
+		`Box::new(1i64) as Box<dyn Any>`,
+		`Box::new(4i64) as Box<dyn Any>`,
+		`go_sprintf(&(*continueAfterIndex.borrow().as_ref().unwrap()).clone(), &[`,
 	} {
 		if !strings.Contains(goSprintfEntry+rust, want) {
 			t.Fatalf("the run-time formatter lost indexed-argument support: %s", want)
