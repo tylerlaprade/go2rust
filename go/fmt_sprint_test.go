@@ -19,11 +19,37 @@ func main() {
 	if strings.Contains(rust, "sprint bridge") || strings.Contains(rust, "sprintln bridge") {
 		t.Fatalf("fmt.Sprint went to the panicking stub:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{}{} {}{}"`) {
+	if !strings.Contains(rust, `__go_sprint_bytes.push(b' ');`) {
 		t.Fatalf("expected Print spacing for Sprint:\n%s", rust)
 	}
-	if !strings.Contains(rust, `format!("{} {}\n"`) {
+	if !strings.Contains(rust, `__go_sprint_bytes.push(b'\n');`) {
 		t.Fatalf("expected Println spacing and a newline for Sprintln:\n%s", rust)
+	}
+}
+
+func TestFmtSprintPreservesArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	s := string([]byte{0xfa})
+	_ = fmt.Sprint("x", s)
+	_ = fmt.Sprintln(s)
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_bytes(&__go_sprint_arg_0)",
+		"__go_string_bytes(&__go_sprint_arg_1)",
+		"__go_string_from_bytes(__go_sprint_bytes)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprint must preserve Go string bytes; missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, `format!("{}{}", format!("{}", "x".to_string())`) {
+		t.Fatalf("fmt.Sprint must not display the internal Rust string encoding:\n%s", rust)
 	}
 }
 

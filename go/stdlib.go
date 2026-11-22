@@ -260,15 +260,46 @@ func writePrintOperandsFormat(out *strings.Builder, args []ast.Expr, line bool) 
 	}
 }
 
+// writeSprintBytesExpression writes a Rust expression that formats ordinary
+// (non-variadic) fmt.Sprint or fmt.Sprintln operands into Go string bytes.
+// Rust's format! cannot be used for string operands here: an arbitrary Go
+// string may use the internal reversible encoding for invalid UTF-8, and
+// displaying that Rust String would expose the encoding instead of the Go
+// bytes. Each operand is evaluated once and in source order.
+func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool) {
+	out.WriteString("{ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); ")
+	for i, arg := range args {
+		if i > 0 && (line || (!printOperandIsString(args[i-1]) && !printOperandIsString(arg))) {
+			out.WriteString("__go_sprint_bytes.push(b' '); ")
+		}
+		out.WriteString("let __go_sprint_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		if printOperandIsString(arg) {
+			writeStringSequenceOwnedValue(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
+		} else {
+			transpilePrintArgString(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(".into_bytes()); ")
+		}
+	}
+	if line {
+		out.WriteString("__go_sprint_bytes.push(b'\\n'); ")
+	}
+	out.WriteString("__go_string_from_bytes(__go_sprint_bytes) }")
+}
+
 // fmt.Sprint formats its operands as fmt.Print prints them.
 func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
 		writeSprintVariadicAny(out, call.Args[0])
 	} else {
-		out.WriteString("format!(")
-		writePrintOperandsFormat(out, call.Args, false)
-		out.WriteString(")")
+		writeSprintBytesExpression(out, call.Args, false)
 	}
 	WriteWrapperSuffix(out)
 }
@@ -283,9 +314,7 @@ func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
 		writeSprintVariadicSlice(out, call.Args[0])
 		out.WriteString("))")
 	} else {
-		out.WriteString("format!(")
-		writePrintOperandsFormat(out, call.Args, true)
-		out.WriteString(")")
+		writeSprintBytesExpression(out, call.Args, true)
 	}
 	WriteWrapperSuffix(out)
 }
