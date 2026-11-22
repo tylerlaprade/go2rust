@@ -908,6 +908,7 @@ func TestExecLookPathStubSearchesHostPath(t *testing.T) {
 		"let relative = !dir.is_absolute()",
 		"std::fs::metadata(&candidate)",
 		"faccessat(-100, path.as_ptr(), 1, 0x200)",
+		"if errno != 1 && errno != 38",
 		"std::os::unix::fs::PermissionsExt",
 		"mode() & 0o111",
 		"let Some(candidate_text) = candidate.to_str()",

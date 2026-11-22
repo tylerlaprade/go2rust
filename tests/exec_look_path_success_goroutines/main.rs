@@ -879,14 +879,22 @@ pub mod exec {
         for (candidate, from_relative_path) in candidates {
             let Ok(metadata) = std::fs::metadata(&candidate) else { continue; };
             if !metadata.is_file() { continue; }
-            #[cfg(any(target_os = "linux", target_os = "android"))]
+            #[cfg(target_os = "linux")]
             {
                 use std::os::unix::ffi::OsStrExt;
                 let Ok(path) = std::ffi::CString::new(candidate.as_os_str().as_bytes()) else { continue; };
-                unsafe extern "C" { fn faccessat(dirfd: i32, path: *const std::os::raw::c_char, mode: i32, flags: i32) -> i32; }
-                if unsafe { faccessat(-100, path.as_ptr(), 1, 0x200) } != 0 { continue; }
+                unsafe extern "C" {
+                    fn faccessat(dirfd: i32, path: *const std::os::raw::c_char, mode: i32, flags: i32) -> i32;
+                    fn __errno_location() -> *mut i32;
+                }
+                if unsafe { faccessat(-100, path.as_ptr(), 1, 0x200) } != 0 {
+                    let errno = unsafe { *__errno_location() };
+                    if errno != 1 && errno != 38 { continue; }
+                    use std::os::unix::fs::PermissionsExt;
+                    if metadata.permissions().mode() & 0o111 == 0 { continue; }
+                }
             }
-            #[cfg(all(unix, not(any(target_os = "linux", target_os = "android"))))]
+            #[cfg(all(unix, not(target_os = "linux")))]
             {
                 use std::os::unix::fs::PermissionsExt;
                 if metadata.permissions().mode() & 0o111 == 0 { continue; }
