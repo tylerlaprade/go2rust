@@ -295,6 +295,36 @@ func main() {
 	}
 }
 
+func TestFmtVariadicAnyStringsBuilderReturnsCountAndError(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+type textValue struct{}
+func (textValue) String() string { return string([]byte{0xfa}) }
+
+func main() {
+	values := []any{textValue{}, 1}
+	var b strings.Builder
+	n, err := fmt.Fprint(&b, values...)
+	fmt.Println(n, err == nil)
+}
+`)
+
+	for _, want := range []string{
+		"let (mut n, mut err) = { let __go_builder_part =",
+		"let __go_builder_n = __go_string_len(&__go_builder_part)",
+		"(__go_builder_n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("variadic strings.Builder write must return fmt's byte count and nil error; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestFmtFprintWritesPrintOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

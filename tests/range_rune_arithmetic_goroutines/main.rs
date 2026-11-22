@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -916,7 +917,7 @@ fn main() {
     started.recv().unwrap_or_default();
 
     println!("{}", format!("{}", { let __tmp_x = atoi(Arc::new(Mutex::new(Some("4096".to_string())))); let __tmp_y = 1; __tmp_x + __tmp_y }));
-    println!("{} {}", format!("{}", (*caesar(Arc::new(Mutex::new(Some("Hello, World!".to_string()))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*caesar(Arc::new(Mutex::new(Some("xyz".to_string()))), Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*caesar(Arc::new(Mutex::new(Some("Hello, World!".to_string()))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*caesar(Arc::new(Mutex::new(Some("xyz".to_string()))), Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut counts = Arc::new(Mutex::new(Some([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])));
     for (_, c) in __go_string_range(&"banana".to_string()) {
         { let __idx = ((c as i32) - ('a' as i32)) as usize; let mut __seq_guard = counts.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
@@ -925,6 +926,6 @@ fn main() {
     for (i, c) in __go_string_range(&"az".to_string()) {
         let mut up = Arc::new(Mutex::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Arc::new(Mutex::new(Some((c as i32) + (1 as i32))));
-        println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*up.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*next.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", i); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*up.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*Arc::new(Mutex::new(Some(char::from_u32((({ let __v = (*next.lock().unwrap().as_ref().unwrap()); __v })) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = format!("{}", (c as i32) * (2 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_3.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_4 = format!("{}", (c as i32) | (0x20 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_4.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_5 = format!("{}", (c as i32) & ! (0x20 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_5.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     }
 }

@@ -59,6 +59,7 @@ func main() {
 	fmt.Fprint(&builder, "C", invalid)
 	fmt.Fprintf(&builder, "[%s]", invalid)
 	fmt.Fprintln(&builder, invalid, "D")
-	fmt.Fprint(&builder, values...)
+	n, err = fmt.Fprint(&builder, values...)
+	fmt.Println(n, err == nil)
 	fmt.Println([]byte(builder.String()))
 }

@@ -5,6 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 #[allow(unused_macros)]
@@ -741,7 +742,7 @@ pub fn caesar(s: Rc<RefCell<Option<String>>>, k: Rc<RefCell<Option<i64>>>) -> Rc
 
 fn main() {
     println!("{}", format!("{}", atoi(Rc::new(RefCell::new(Some("4096".to_string())))) + 1));
-    println!("{} {}", format!("{}", (*caesar(Rc::new(RefCell::new(Some("Hello, World!".to_string()))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap())), format!("{}", (*caesar(Rc::new(RefCell::new(Some("xyz".to_string()))), Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*caesar(Rc::new(RefCell::new(Some("Hello, World!".to_string()))), Rc::new(RefCell::new(Some(3)))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*caesar(Rc::new(RefCell::new(Some("xyz".to_string()))), Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut counts = Rc::new(RefCell::new(Some([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])));
     for (_, c) in __go_string_range(&"banana".to_string()) {
         { let __idx = ((c as i32) - ('a' as i32)) as usize; let mut __seq_guard = counts.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
@@ -750,6 +751,6 @@ fn main() {
     for (i, c) in __go_string_range(&"az".to_string()) {
         let mut up = Rc::new(RefCell::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Rc::new(RefCell::new(Some((c as i32) + (1 as i32))));
-        println!("{} {} {} {} {} {}", format!("{}", i), format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((*up.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((*next.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())), format!("{}", (c as i32) * (2 as i32)), format!("{}", (c as i32) | (0x20 as i32)), format!("{}", (c as i32) & ! (0x20 as i32)));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", i); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*Rc::new(RefCell::new(Some(char::from_u32(((*up.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*Rc::new(RefCell::new(Some(char::from_u32(((*next.borrow().as_ref().unwrap())) as u32).unwrap().to_string()))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = format!("{}", (c as i32) * (2 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_3.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_4 = format!("{}", (c as i32) | (0x20 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_4.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_5 = format!("{}", (c as i32) & ! (0x20 as i32)); __go_sprint_bytes.extend(__go_sprint_arg_5.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }
 }

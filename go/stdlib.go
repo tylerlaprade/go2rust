@@ -2015,9 +2015,11 @@ func writeStringsBuilderGoStringWrite(out *strings.Builder, target ast.Expr, wri
 		writeStringsBuilderFormattedWrite(out, target, writeFormatted)
 		return
 	}
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
 	out.WriteString("{ let __go_builder_part = ")
 	writeFormatted()
-	out.WriteString("; ")
+	out.WriteString("; let __go_builder_n = __go_string_len(&__go_builder_part) as " + rustIntType() + "; ")
 	if isStringsBuilderReceiverBare(target) {
 		out.WriteString("let __go_builder = ")
 		writeStringsBuilderRawReceiver(out, target)
@@ -2029,7 +2031,9 @@ func writeStringsBuilderGoStringWrite(out *strings.Builder, target ast.Expr, wri
 		WriteBorrowMethod(out, true)
 		out.WriteString("; let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); ")
 	}
-	out.WriteString("}")
+	out.WriteString("(__go_builder_n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString(") }")
 }
 
 func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {
