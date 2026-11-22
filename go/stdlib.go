@@ -3898,7 +3898,7 @@ func transpileStringsIndexAny(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __chars = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __runes = __go_string_range(&__s); let __chars = __go_string_range(&__chars); __runes.iter().find(|__rune| __chars.iter().any(|__candidate| __candidate.1 == __rune.1)).map(|__rune| __rune.0 as " + rustIntType() + ").unwrap_or(-1) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3935,7 +3935,7 @@ func transpileStringsFields(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let __s = ")
 	writeOwnedStringStdlibArg(out, call.Args[0])
-	out.WriteString("; __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __fields = Vec::new(); let mut __start = None; for __rune in __runes.iter() { if __rune.1.is_whitespace() { if let Some(__field_start) = __start.take() { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..__rune.0].to_vec())); } } else if __start.is_none() { __start = Some(__rune.0); } } if let Some(__field_start) = __start { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..].to_vec())); } __fields }")
 	WriteWrapperSuffix(out)
 }
 

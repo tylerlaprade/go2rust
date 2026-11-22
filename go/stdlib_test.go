@@ -212,6 +212,31 @@ func replace(s, old, new string, n int) (string, string) {
 	}
 }
 
+func TestStringsRuneSearchAndFieldsUseCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func inspect(s, chars string) ([]string, int) {
+	return strings.Fields(s), strings.IndexAny(s, chars)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"let __chars = __go_string_range(&__chars)",
+		"__go_string_from_bytes(__s_bytes[",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings rune/field byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.split_whitespace()") || strings.Contains(rust, "__s.char_indices()") {
+		t.Fatalf("strings rune/field operations must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

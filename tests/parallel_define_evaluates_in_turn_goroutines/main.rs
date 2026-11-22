@@ -16,6 +16,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -924,11 +1006,11 @@ impl Matrix {
 
 pub fn eval_r_p_n(expr: Arc<Mutex<Option<String>>>) -> i64 {
     let mut st: Arc<Mutex<Option<Stack>>> = Arc::new(Mutex::new(Some(Default::default())));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = (*expr.lock().unwrap().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = (*expr.lock().unwrap().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __fields = Vec::new(); let mut __start = None; for __rune in __runes.iter() { if __rune.1.is_whitespace() { if let Some(__field_start) = __start.take() { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..__rune.0].to_vec())); } } else if __start.is_none() { __start = Some(__rune.0); } } if let Some(__field_start) = __start { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..].to_vec())); } __fields }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
         { let _switch_val = (*t).clone();
     if _switch_val == ("+".to_string()) || _switch_val == ("*".to_string()) {
             let (mut b, mut a) = ({ let __tuple_value = (*st.lock().unwrap().as_mut().unwrap()).pop(); __tuple_value }, { let __tuple_value = (*st.lock().unwrap().as_mut().unwrap()).pop(); __tuple_value });
-            if { let __tmp_x = (*t).clone(); let __tmp_y = "+".to_string(); __tmp_x == __tmp_y } {
+            if { let __left = __go_string_from_bytes(__go_string_bytes(&t)); let __right = __go_string_from_bytes(__go_string_bytes(&"+".to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal } {
         (*st.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some({ let __tmp_x = a; let __tmp_y = b; __tmp_x + __tmp_y }))));
     } else {
         (*st.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some({ let __tmp_x = a; let __tmp_y = b; __tmp_x * __tmp_y }))));
@@ -957,8 +1039,8 @@ fn main() {
     let (mut p, mut q) = ({ let __tuple_value = { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }; __tuple_value }, { let __tuple_value = { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }; __tuple_value });
     println!("{} {}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut byLen = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "go is fun to use".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for w in __range_values.iter() {
-        { let __map_key = w.len() as i64; let __map_value = { let __slice = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&(w.len() as i64)).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*w).clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byLen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "go is fun to use".to_string(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __fields = Vec::new(); let mut __start = None; for __rune in __runes.iter() { if __rune.1.is_whitespace() { if let Some(__field_start) = __start.take() { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..__rune.0].to_vec())); } } else if __start.is_none() { __start = Some(__rune.0); } } if let Some(__field_start) = __start { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..].to_vec())); } __fields }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for w in __range_values.iter() {
+        { let __map_key = { let __s = w; __go_string_len(&__s) } as i64; let __map_value = { let __slice = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&({ let __s = w; __go_string_len(&__s) } as i64)).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*w).clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byLen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     println!("{} {}", format!("{}", format_slice(&{ let __map = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&{ let __map = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&3)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
     println!("{}", format!("{}", {
