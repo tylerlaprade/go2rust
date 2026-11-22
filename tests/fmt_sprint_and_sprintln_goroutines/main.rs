@@ -1787,7 +1787,7 @@ pub fn fprint() {
     (*sb.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{} {}{}{}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3)));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __builder = sb.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())));
     let mut u = Arc::new(Mutex::new(Some(upper { data: Default::default() })));
-    { let __s = format!("{}{}", format!("{}", "hi ".to_string()), format!("{}", 7)); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "hi ".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = format!("{}", 7); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) };
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from({ let __slice_holder = (*u.lock().unwrap().as_ref().unwrap()).data.clone(); let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard.as_ref().unwrap()).clone() }))))).lock().unwrap().as_ref().unwrap())));
 }
 

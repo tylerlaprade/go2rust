@@ -674,7 +674,7 @@ func build(s string) string {
 	if strings.Contains(rust, "__go_write_bytes") {
 		t.Fatalf("source-mapped fmt.Fprintf should not call the bytes bridge helper:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".write(") || !strings.Contains(rust, "__s.into_bytes()") {
+	if !strings.Contains(rust, ".write(") || !strings.Contains(rust, "__go_string_bytes(&__s)") {
 		t.Fatalf("source-mapped fmt.Fprintf should call generated Buffer.write with formatted bytes:\n%s", rust)
 	}
 }

@@ -143,3 +143,53 @@ func main() {
 		t.Fatalf("expected Print spacing for Fprint to stdout:\n%s", rust)
 	}
 }
+
+func TestFmtWriterPathsPreserveArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type writer struct { data []byte }
+func (w *writer) Write(p []byte) (int, error) {
+	w.data = append(w.data, p...)
+	return len(p), nil
+}
+
+func main() {
+	w := &writer{}
+	s := string([]byte{0xfa})
+	fmt.Fprint(w, "x", s)
+	fmt.Fprintf(w, "<%s>", s)
+}
+`)
+
+	if strings.Count(rust, "let __bytes = __go_string_bytes(&__s)") < 2 {
+		t.Fatalf("Fprint and simple %%s Fprintf must write canonical Go bytes:\n%s", rust)
+	}
+}
+
+func TestFmtFprintOsFileUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	f, _ := os.Create("out.bin")
+	s := string([]byte{0xfa})
+	fmt.Fprint(f, s)
+}
+`)
+
+	for _, want := range []string{
+		"let __bytes = __go_string_bytes(&__s)",
+		".write(",
+		"Vec::from(__bytes)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Fprint to *os.File must write canonical Go bytes; missing %q:\n%s", want, rust)
+		}
+	}
+}

@@ -1737,10 +1737,20 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+			return
+		}
 		writeFprintfByteWriterTuple(out, call)
 		return
 	}
 	if fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+			return
+		}
 		writeFprintfUserWriteTuple(out, call)
 		return
 	}
@@ -1775,9 +1785,21 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
 		writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
 	case fmtFprintfTargetIsByteWriter(call.Args[0]):
-		writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			var formatted strings.Builder
+			writeSprintBytesExpression(&formatted, call.Args[1:], false)
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+		} else {
+			writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+		}
 	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
-		writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			var formatted strings.Builder
+			writeSprintBytesExpression(&formatted, call.Args[1:], false)
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+		} else {
+			writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+		}
 	case isOsStderr(call.Args[0]):
 		writeOperands("eprint!")()
 	default:
@@ -1881,6 +1903,21 @@ func writeFprintByteWriterTuple(out *strings.Builder, call *ast.CallExpr, writeF
 	out.WriteString(") }")
 }
 
+// writeFprintByteWriterGoStringTuple writes a canonical Go string result to
+// an external byte writer without exposing its reversible Rust encoding.
+func writeFprintByteWriterGoStringTuple(out *strings.Builder, call *ast.CallExpr, formatted string) {
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as " + rustIntType() + "; (*")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).__go_write_bytes(&__bytes); (__n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString(") }")
+}
+
 // writeFprintfUserWriteTuple emits a block expression that formats the args
 // and calls the target's user-defined `write` method with the formatted bytes.
 // The user's write returns the Go (int, error) shape directly, so the block
@@ -1908,6 +1945,28 @@ func writeFprintUserWriteTuple(out *strings.Builder, call *ast.CallExpr, writeFo
 	}
 	out.WriteString(".write(")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__s.into_bytes()"))
+	out.WriteString(") }")
+}
+
+// writeFprintUserWriteGoStringTuple calls a source/user writer with the Go
+// bytes of a canonical formatting result rather than the internal Rust text.
+func writeFprintUserWriteGoStringTuple(out *strings.Builder, call *ast.CallExpr, formatted string) {
+	TrackImport("Error")
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); ")
+	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		out.WriteString(")")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
+	}
+	out.WriteString(".write(")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__bytes"))
 	out.WriteString(") }")
 }
 
@@ -2241,7 +2300,7 @@ func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	// fmt.Sprintf returns a string, which needs to be wrapped
 	WriteWrapperPrefix(out)
-	if writeSimpleStringSprintfExpression(out, call) {
+	if writeSimpleStringFormatExpression(out, call, 0) {
 		WriteWrapperSuffix(out)
 		return
 	}
@@ -2323,15 +2382,15 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("))))")
 }
 
-// writeSimpleStringSprintfExpression handles the byte-sensitive common case
+// writeSimpleStringFormatExpression handles the byte-sensitive common case
 // where a translation-time format contains only literal bytes, %% and
 // unadorned %s verbs whose operands have string type. Rust formatting cannot
 // represent an invalid UTF-8 result, so this case assembles Go bytes directly.
-func writeSimpleStringSprintfExpression(out *strings.Builder, call *ast.CallExpr) bool {
-	if call == nil || call.Ellipsis.IsValid() || len(call.Args) == 0 {
+func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr, formatIndex int) bool {
+	if call == nil || call.Ellipsis.IsValid() || len(call.Args) <= formatIndex {
 		return false
 	}
-	quoted, ok := translationTimeFormat(call.Args[0])
+	quoted, ok := translationTimeFormat(call.Args[formatIndex])
 	if !ok {
 		return false
 	}
@@ -2361,14 +2420,14 @@ func writeSimpleStringSprintfExpression(out *strings.Builder, call *ast.CallExpr
 			return false
 		}
 	}
-	if len(call.Args) != len(parts) {
+	if len(call.Args)-formatIndex != len(parts) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
-	for _, arg := range call.Args[1:] {
+	for _, arg := range call.Args[formatIndex+1:] {
 		typ := typeInfo.GetType(arg)
 		if !printOperandIsString(arg) || typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ) {
 			return false
@@ -2388,13 +2447,13 @@ func writeSimpleStringSprintfExpression(out *strings.Builder, call *ast.CallExpr
 			}
 			out.WriteString("]); ")
 		}
-		if i >= len(call.Args)-1 {
+		if i >= len(parts)-1 {
 			continue
 		}
 		out.WriteString("let __go_sprintf_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
-		writeStringSequenceOwnedValue(out, call.Args[i+1])
+		writeStringSequenceOwnedValue(out, call.Args[formatIndex+i+1])
 		out.WriteString("; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(")); ")

@@ -1607,6 +1607,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_fmt_sprint_goroutines"
 }
 
+@test "invalid_utf8_fmt_writer" {
+    run_test "tests/invalid_utf8_fmt_writer"
+}
+
+@test "invalid_utf8_fmt_writer_goroutines" {
+    run_test "tests/invalid_utf8_fmt_writer_goroutines"
+}
+
 @test "invalid_utf8_string_bytes" {
     run_test "tests/invalid_utf8_string_bytes"
 }
