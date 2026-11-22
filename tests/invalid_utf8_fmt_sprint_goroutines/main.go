@@ -11,6 +11,10 @@ type errorText string
 func (errorText) Error() string { return "error-method" + string([]byte{0xfc}) }
 
 func main() {
+	done := make(chan struct{})
+	go func() { close(done) }()
+	<-done
+
 	invalid := string([]byte{0xfa})
 
 	fmt.Println([]byte(fmt.Sprint("x", invalid)))
