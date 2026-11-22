@@ -501,6 +501,49 @@ func order(names []string) {
 	}
 }
 
+func TestSortStringsUsesCanonicalGoByteOrder(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sort"
+
+func order(values []string) {
+	sort.Strings(values)
+}
+`)
+
+	for _, want := range []string{
+		"__sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b))",
+		"let __sort_target = ",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Strings canonical byte ordering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__sort_values.sort();") {
+		t.Fatalf("sort.Strings must not order the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestSlicesSortStringsUsesCanonicalGoByteOrder(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "slices"
+
+type names []string
+
+func order(values names) {
+	slices.Sort(values)
+}
+`)
+
+	if !strings.Contains(rust, "__sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b))") {
+		t.Fatalf("slices.Sort over strings must use canonical Go byte ordering:\n%s", rust)
+	}
+	if strings.Contains(rust, "__sort_values.sort();") {
+		t.Fatalf("slices.Sort over strings must not order the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestSlicesSortOfWrappedStructFieldKeepsFieldHandleAlive(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

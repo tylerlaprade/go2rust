@@ -4032,7 +4032,7 @@ func transpileStringsTrimCutset(out *strings.Builder, call *ast.CallExpr, method
 
 func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		transpileNilSafeSort(out, call.Args[0])
+		transpileNilSafeStringSort(out, call.Args[0])
 	}
 }
 
@@ -4044,7 +4044,11 @@ func transpileSortInts(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		transpileNilSafeSort(out, call.Args[0])
+		if sortSliceElementIsString(call.Args[0]) {
+			transpileNilSafeStringSort(out, call.Args[0])
+		} else {
+			transpileNilSafeSort(out, call.Args[0])
+		}
 	}
 }
 
@@ -4232,6 +4236,31 @@ func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".clone(); let mut __sort_guard = __sort_target")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
+}
+
+func transpileNilSafeStringSort(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("{ let __sort_target = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let mut __sort_guard = __sort_target")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b)); } }")
+}
+
+func sortSliceElementIsString(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(slice.Elem()).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
 }
 
 func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface, elemHasInherentWrapper bool) {
