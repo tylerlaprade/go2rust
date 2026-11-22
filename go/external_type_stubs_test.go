@@ -1162,6 +1162,26 @@ func TestOsReadWriteFileStubsUseCanonicalUnixPathBytes(t *testing.T) {
 	}
 }
 
+func TestOsMkdirAllStubUsesCanonicalUnixPathBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsErrorHelpers(&out)
+	writeOsMkdirAllFunction(&out, externalPackageStubFunction{
+		ParamCount:  2,
+		ReturnTypes: []string{wrappedExternalStubType(externalStubErrorInnerType())},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"fn go_path(path: String) -> std::path::PathBuf",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&path))",
+		"let path = go_path(_arg0.into_go_string());",
+		"std::fs::create_dir_all(&path)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.MkdirAll shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
