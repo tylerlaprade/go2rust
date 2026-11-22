@@ -873,12 +873,21 @@ func TestFsFileModeStubImplementsIsDirMethod(t *testing.T) {
 
 func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	var out strings.Builder
-	writeExecCmdTypeStub(&out, nil, nil)
+	writeExecCmdTypeStub(&out, map[string]string{
+		"dir": wrappedExternalStubType("String"),
+	}, nil)
 	got := out.String()
 	for _, want := range []string{
 		"pub fn environ(&self) -> ",
-		"std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect()",
-		"env.extend(cmd_env.as_slice().iter().cloned())",
+		"let __use_host = __cmd_env.is_none()",
+		"std::env::vars_os().map(|(key, value)|",
+		"cmd_env",
+		"std::path::absolute(__dir_path)",
+		"__pwd.extend(__absolute.into_os_string().into_vec())",
+		"for __entry in env.into_iter().rev()",
+		"let mut __key = __bytes[..__separator].to_vec()",
+		"if !__seen.insert(__key)",
+		"__dedup.reverse()",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd Environ shim should include %q:\n%s", want, got)

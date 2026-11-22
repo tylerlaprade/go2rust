@@ -1178,6 +1178,14 @@ run_xfail_test() {
     run_test "tests/evaluation_order_of_element_writes_goroutines"
 }
 
+@test "exec_cmd_environ_non_utf8" {
+    run_test "tests/exec_cmd_environ_non_utf8"
+}
+
+@test "exec_cmd_environ_non_utf8_goroutines" {
+    run_test "tests/exec_cmd_environ_non_utf8_goroutines"
+}
+
 @test "exec_command_args_stub" {
     run_test "tests/exec_command_args_stub"
 }

@@ -2357,15 +2357,7 @@ impl exec_Cmd {
 	    }
 
 	`)
-	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
-        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
-        if let Some(cmd_env) = %s.as_ref() {
-            env.extend(cmd_env.as_slice().iter().cloned());
-        }
-        %s
-    }
-
-`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"), wrappedExternalStubExpr("Vec<String>", "env"))
+	writeExecCmdEnvironMethod(out, fields)
 	if method, ok := methods["stderr_pipe"]; ok && len(method.ReturnTypes) == 2 {
 		fmt.Fprintf(out, `    pub fn stderr_pipe(&mut self) -> (%s, %s) {
         let file = os_File::default();
@@ -2463,6 +2455,82 @@ impl exec_Cmd {
     }
 }
 `, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
+}
+
+func writeExecCmdEnvironMethod(out *strings.Builder, fields map[string]string) {
+	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
+        let __cmd_env = %s.as_ref().cloned();
+        let __use_host = __cmd_env.is_none();
+        let mut env: Vec<String> = if let Some(cmd_env) = __cmd_env {
+            cmd_env
+        } else {
+            #[cfg(unix)]
+            {
+                use std::os::unix::ffi::OsStringExt;
+                std::env::vars_os().map(|(key, value)| {
+                    let mut bytes = key.into_vec();
+                    bytes.push(b'=');
+                    bytes.extend(value.into_vec());
+                    __go_string_from_bytes(bytes)
+                }).collect()
+            }
+            #[cfg(not(unix))]
+            {
+                std::env::vars().map(|(key, value)| format!("{}={}", key, value)).collect()
+            }
+        };
+`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"))
+	if _, ok := fields["dir"]; ok {
+		fmt.Fprintf(out, `        if __use_host {
+            let __dir = %s.as_ref().cloned().unwrap_or_default();
+            if !__dir.is_empty() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::ffi::OsStringExt;
+                    let __dir_path = std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&__dir)));
+                    if let Ok(__absolute) = std::path::absolute(__dir_path) {
+                        let mut __pwd = b"PWD=".to_vec();
+                        __pwd.extend(__absolute.into_os_string().into_vec());
+                        env.push(__go_string_from_bytes(__pwd));
+                    }
+                }
+            }
+        }
+`, externalStubBorrowExpr("self.dir"))
+	}
+	out.WriteString(`        let mut __seen = std::collections::HashSet::<Vec<u8>>::new();
+        let mut __dedup = Vec::<String>::new();
+        for __entry in env.into_iter().rev() {
+            let __bytes = __go_string_bytes(&__entry);
+            if __bytes.contains(&0) {
+                continue;
+            }
+            let __separator = if cfg!(windows) && __bytes.first() == Some(&b'=') {
+                __bytes[1..].iter().position(|byte| *byte == b'=').map(|index| index + 1)
+            } else {
+                __bytes.iter().position(|byte| *byte == b'=')
+            };
+            if let Some(__separator) = __separator {
+                let mut __key = __bytes[..__separator].to_vec();
+                if cfg!(windows) {
+                    __key.make_ascii_lowercase();
+                }
+                if !__seen.insert(__key) {
+                    continue;
+                }
+                __dedup.push(__entry);
+            } else if !__bytes.is_empty() {
+                __dedup.push(__entry);
+            }
+        }
+        __dedup.reverse();
+        env = __dedup;
+        `)
+	out.WriteString(wrappedExternalStubExpr("Vec<String>", "env"))
+	out.WriteString(`
+    }
+
+`)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
