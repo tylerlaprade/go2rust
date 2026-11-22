@@ -262,6 +262,31 @@ func trim(s, cutset string) (string, string, string) {
 	}
 }
 
+func TestStringsCaseMappingUsesCanonicalGoRunes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func change(s string) (string, string) {
+	return strings.ToUpper(s), strings.ToLower(s)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"std::str::from_utf8(&__s_bytes[__start..__end])",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings case mapping missing canonical-rune step %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.to_uppercase()") || strings.Contains(rust, "__s.to_lowercase()") {
+		t.Fatalf("strings case mapping must not transform the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

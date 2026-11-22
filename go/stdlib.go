@@ -3730,23 +3730,24 @@ func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method st
 }
 
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) > 0 {
-		WriteWrapperPrefix(out)
-		out.WriteString("{ let __s = ")
-		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.to_uppercase() }")
-		WriteWrapperSuffix(out)
-	}
+	transpileStringsCaseMapping(out, call, "to_uppercase")
 }
 
 func transpileStringsToLower(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) > 0 {
-		WriteWrapperPrefix(out)
-		out.WriteString("{ let __s = ")
-		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.to_lowercase() }")
-		WriteWrapperSuffix(out)
+	transpileStringsCaseMapping(out, call, "to_lowercase")
+}
+
+func transpileStringsCaseMapping(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) == 0 {
+		return
 	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __out = Vec::new(); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; if let Ok(__valid) = std::str::from_utf8(&__s_bytes[__start..__end]) { let __mapped = __valid.")
+	out.WriteString(method)
+	out.WriteString("(); __out.extend_from_slice(__mapped.as_bytes()); } else { __out.extend_from_slice(\"\\u{fffd}\".as_bytes()); } } __go_string_from_bytes(__out) }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {

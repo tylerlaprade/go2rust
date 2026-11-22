@@ -1671,6 +1671,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_string_range_goroutines"
 }
 
+@test "invalid_utf8_strings_case" {
+    run_test "tests/invalid_utf8_strings_case"
+}
+
+@test "invalid_utf8_strings_case_goroutines" {
+    run_test "tests/invalid_utf8_strings_case_goroutines"
+}
+
 @test "invalid_utf8_strings_join" {
     run_test "tests/invalid_utf8_strings_join"
 }
