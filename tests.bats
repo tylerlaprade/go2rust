@@ -2434,6 +2434,14 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_environ_non_utf8" {
+    run_test "tests/os_environ_non_utf8"
+}
+
+@test "os_environ_non_utf8_goroutines" {
+    run_test "tests/os_environ_non_utf8_goroutines"
+}
+
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
 }

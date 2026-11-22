@@ -146,7 +146,15 @@ func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	if strings.Contains(got, "Go function declaration has no body") {
 		t.Fatalf("syscall runtime-linked declarations should not use the generic bodyless fallback:\n%s", got)
 	}
-	for _, want := range []string{"std::env::vars()", "std::env::set_var(__key, __value)", "std::env::remove_var(__key)"} {
+	for _, want := range []string{
+		"std::env::vars_os()",
+		"use std::os::unix::ffi::OsStringExt",
+		"__bytes.push(b'=')",
+		"__go_string_from_bytes(__bytes)",
+		"std::env::vars()",
+		"std::env::set_var(__key, __value)",
+		"std::env::remove_var(__key)",
+	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
 		}

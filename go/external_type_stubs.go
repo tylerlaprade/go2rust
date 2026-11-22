@@ -3173,6 +3173,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "environ" {
+			writeOsEnvironFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getwd" {
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
@@ -3261,6 +3263,29 @@ func writeOsErrorHelpers(out *strings.Builder) {
 func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    pub fn exit<T0: Into<i64>>(_arg0: T0) {\n")
 	out.WriteString("        std::process::exit(_arg0.into() as i32);\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Environ maps to the host process environment.
+func writeOsEnvironFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn environ() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value: Vec<String> = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::vars_os().map(|(key, value)| {\n")
+	out.WriteString("                let mut bytes = key.into_vec();\n")
+	out.WriteString("                bytes.push(b'=');\n")
+	out.WriteString("                bytes.extend(value.into_vec());\n")
+	out.WriteString("                __go_string_from_bytes(bytes)\n")
+	out.WriteString("            }).collect()\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value: Vec<String> = std::env::vars().map(|(key, value)| format!(\"{}={}\", key, value)).collect();\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("Vec<String>", "value"))
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
 

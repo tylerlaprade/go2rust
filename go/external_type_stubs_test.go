@@ -974,6 +974,33 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 }
 
+func TestOsEnvironStubUsesCanonicalHostEnv(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"environ": {
+				ReturnTypes: []string{wrappedExternalStubType("Vec<String>")},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Environ should not use a generic panic stub:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn environ() -> ",
+		"std::env::vars_os()",
+		"use std::os::unix::ffi::OsStringExt",
+		"bytes.push(b'=')",
+		"__go_string_from_bytes(bytes)",
+		"std::env::vars()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Environ shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsSetenvAndUnsetenvStubsUseCanonicalHostEnv(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
