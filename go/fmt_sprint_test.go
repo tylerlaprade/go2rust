@@ -633,6 +633,7 @@ func TestFmtRuntimeFprintfWritersPreserveCanonicalGoBytes(t *testing.T) {
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -658,6 +659,12 @@ func main() {
 	n, err = fmt.Fprintf(&builder, "<%s|%d>", s, 7)
 	fmt.Printf("<%s|%d>", s, 7)
 	_ = fmt.Sprintf("<%s|%d>", s, 7)
+	n, err = fmt.Fprintf(&c, "<%s|%t>", s, true)
+	n, err = fmt.Fprintf(&b, "<%s|%t>", s, true)
+	n, err = fmt.Fprintf(&builder, "<%s|%t>", s, true)
+	fmt.Printf("<%s|%t>", s, true)
+	_ = fmt.Sprintf("<%s|%t>", s, true)
+	n, err = fmt.Fprintf(os.Stdout, "<%s|%t>", s, true)
 	fmt.Println(n, err == nil)
 }
 `)
@@ -672,9 +679,13 @@ func main() {
 			t.Fatalf("dynamic Fprintf writers must consume the canonical runtime string; missing %q:\n%s", want, rust)
 		}
 	}
-	if strings.Count(rust, "go_sprintf(") < 13 ||
-		strings.Count(rust, `go_sprintf(&"<%s|%d>".to_string(),`) < 5 {
+	if strings.Count(rust, "go_sprintf(") < 19 ||
+		strings.Count(rust, `go_sprintf(&"<%s|%d>".to_string(),`) < 5 ||
+		strings.Count(rust, `go_sprintf(&"<%s|%t>".to_string(),`) < 6 {
 		t.Fatalf("dynamic and richer literal string formats must use the byte-aware runtime formatter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::io::Write::write_all(&mut std::io::stdout(), &__bytes)") {
+		t.Fatalf("mixed bool stdout formatting must use the canonical concrete writer path:\n%s", rust)
 	}
 	if strings.Contains(rust, "push_str(&format!(\"{}\", go_sprintf(") ||
 		strings.Contains(rust, "Vec::from(__s.into_bytes())") ||

@@ -2701,7 +2701,7 @@ func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.C
 				j++
 			}
 		}
-		if j >= len(format) || strings.IndexByte("svqxXd", format[j]) < 0 {
+		if j >= len(format) || strings.IndexByte("svqxXdt", format[j]) < 0 {
 			return false
 		}
 		verbs = append(verbs, format[j])
@@ -2725,7 +2725,12 @@ func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.C
 			return false
 		}
 		basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
-		if !ok || verbs[index] != 'd' || basic.Info()&types.IsInteger == 0 {
+		if !ok {
+			return false
+		}
+		integerDecimal := verbs[index] == 'd' && basic.Info()&types.IsInteger != 0
+		booleanText := verbs[index] == 't' && basic.Info()&types.IsBoolean != 0
+		if !integerDecimal && !booleanText {
 			return false
 		}
 	}
