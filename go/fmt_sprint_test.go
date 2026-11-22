@@ -215,7 +215,10 @@ func render(values ...any) string { return fmt.Sprint(values...) }
 func TestFmtSprintPreservesBytesReturnedThroughAny(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 type textValue struct{}
 func (textValue) String() string { return string([]byte{0xfa}) }
@@ -229,6 +232,10 @@ func main() {
 	values := []any{text, problem}
 	fmt.Print(text)
 	fmt.Println(problem)
+	fmt.Print(values...)
+	fmt.Println(values...)
+	fmt.Fprint(os.Stdout, values...)
+	fmt.Fprintln(os.Stderr, values...)
 	_ = fmt.Sprint(text)
 	_ = fmt.Sprintln(problem)
 	_ = fmt.Sprint(values...)
@@ -241,6 +248,8 @@ func main() {
 		"__go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0))",
 		"__sprint_bytes.extend(__go_string_bytes(&__sprint_text))",
 		"__go_string_from_bytes(__sprint_bytes)",
+		"std::io::Write::write_all(&mut std::io::stdout()",
+		"std::io::Write::write_all(&mut std::io::stderr()",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("interface-held String/Error bytes must stay canonical; missing %q:\n%s", want, rust)

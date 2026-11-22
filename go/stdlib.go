@@ -214,6 +214,9 @@ func init() {
 }
 
 func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
+	if writeFmtStdStreamVariadicAny(out, call, 0, false, false) {
+		return
+	}
 	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
 		var formatted strings.Builder
 		writeSprintBytesExpression(&formatted, call.Args, false)
@@ -443,7 +446,7 @@ func printOperandProvidesCanonicalStringBytes(arg ast.Expr) bool {
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
-	if writeFmtPrintlnVariadicAny(out, call) {
+	if writeFmtStdStreamVariadicAny(out, call, 0, true, false) {
 		return
 	}
 	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
@@ -475,22 +478,16 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(")")
 }
 
-func writeFmtPrintlnVariadicAny(out *strings.Builder, call *ast.CallExpr) bool {
-	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 1 {
+func writeFmtStdStreamVariadicAny(out *strings.Builder, call *ast.CallExpr, argIndex int, line bool, stderr bool) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != argIndex+1 {
 		return false
 	}
-	if !isEmptyInterfaceSliceArgument(call.Args[0]) {
+	if !isEmptyInterfaceSliceArgument(call.Args[argIndex]) {
 		return false
 	}
-	NeedFormatAnySlice()
-	TrackImport("Any")
-	out.WriteString("println!(\"{}\", format_any_variadic(&")
-	if ident, ok := call.Args[0].(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
-	} else {
-		TranspileExpression(out, call.Args[0])
-	}
-	out.WriteString("))")
+	var formatted strings.Builder
+	writeSprintVariadicAny(&formatted, call.Args[argIndex], line)
+	writeFmtStdStreamGoStringTuple(out, formatted.String(), stderr)
 	return true
 }
 
@@ -1748,6 +1745,9 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: fmt.Fprintln requires at least 1 argument */")
 		return
 	}
+	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, true, isOsStderr(call.Args[0])) {
+		return
+	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
 		if !call.Ellipsis.IsValid() {
 			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
@@ -1900,6 +1900,9 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) < 1 {
 		out.WriteString("/* ERROR: fmt.Fprint requires at least 1 argument */")
+		return
+	}
+	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, false, isOsStderr(call.Args[0])) {
 		return
 	}
 	writeOperands := func(macro string) func() {
