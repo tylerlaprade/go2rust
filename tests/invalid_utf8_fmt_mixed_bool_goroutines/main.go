@@ -22,4 +22,9 @@ func main() {
 	var c capture
 	n, err := fmt.Fprintf(&c, "<%s|%t>", invalid, true)
 	fmt.Println(n, err == nil, c.data)
+
+	formatted := fmt.Sprintf("<%s|%v>", invalid, true)
+	fmt.Println([]byte(formatted))
+	n, err = fmt.Fprintf(&c, "<%s|%v>", invalid, true)
+	fmt.Println(n, err == nil, c.data)
 }

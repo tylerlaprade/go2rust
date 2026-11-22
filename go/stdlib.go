@@ -2729,7 +2729,7 @@ func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.C
 			return false
 		}
 		integerText := strings.IndexByte("vdboOxXcqU", verbs[index]) >= 0 && basic.Info()&types.IsInteger != 0
-		booleanText := verbs[index] == 't' && basic.Info()&types.IsBoolean != 0
+		booleanText := strings.IndexByte("tv", verbs[index]) >= 0 && basic.Info()&types.IsBoolean != 0
 		if !integerText && !booleanText {
 			return false
 		}

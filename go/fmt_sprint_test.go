@@ -665,6 +665,9 @@ func main() {
 	fmt.Printf("<%s|%t>", s, true)
 	_ = fmt.Sprintf("<%s|%t>", s, true)
 	n, err = fmt.Fprintf(os.Stdout, "<%s|%t>", s, true)
+	n, err = fmt.Fprintf(&c, "<%s|%v>", s, true)
+	_ = fmt.Sprintf("<%s|%v>", s, true)
+	n, err = fmt.Fprintf(os.Stdout, "<%s|%v>", s, true)
 	n, err = fmt.Fprintf(&c, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
 	n, err = fmt.Fprintf(&b, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
 	n, err = fmt.Fprintf(&builder, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
@@ -688,6 +691,7 @@ func main() {
 	if strings.Count(rust, "go_sprintf(") < 19 ||
 		strings.Count(rust, `go_sprintf(&"<%s|%d>".to_string(),`) < 5 ||
 		strings.Count(rust, `go_sprintf(&"<%s|%t>".to_string(),`) < 6 ||
+		strings.Count(rust, `go_sprintf(&"<%s|%v>".to_string(),`) < 3 ||
 		strings.Count(rust, `go_sprintf(&"<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>".to_string(),`) < 6 {
 		t.Fatalf("dynamic and richer literal string formats must use the byte-aware runtime formatter:\n%s", rust)
 	}
