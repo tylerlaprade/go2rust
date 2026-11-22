@@ -53,6 +53,51 @@ func main() {
 	}
 }
 
+func TestFmtSprintfPercentSPreservesArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	s := string([]byte{0xfa})
+	_ = fmt.Sprintf("pre%%:%s:%s", "x", s)
+}
+`)
+
+	for _, want := range []string{
+		"__go_sprintf_bytes.extend_from_slice(&[112u8, 114u8, 101u8, 37u8, 58u8]",
+		"__go_string_bytes(&__go_sprintf_arg_0)",
+		"__go_string_bytes(&__go_sprintf_arg_1)",
+		"__go_string_from_bytes(__go_sprintf_bytes)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprintf %%s must preserve Go string bytes; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestFmtSprintfPercentSUsesNamedStringMethods(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type StringerText string
+func (StringerText) String() string { return "string method" }
+
+type ErrorText string
+func (ErrorText) Error() string { return "error method" }
+
+func main() {
+	_ = fmt.Sprintf("%s", StringerText("raw"))
+	_ = fmt.Sprintf("%s", ErrorText("raw"))
+}
+`)
+
+	if strings.Contains(rust, "__go_sprintf_bytes") {
+		t.Fatalf("fmt.Sprintf %%s must still invoke String/Error methods on named strings:\n%s", rust)
+	}
+}
+
 func TestFmtSprintVariadicAnyIteratesInsideSliceGuard(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

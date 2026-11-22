@@ -2241,6 +2241,10 @@ func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	// fmt.Sprintf returns a string, which needs to be wrapped
 	WriteWrapperPrefix(out)
+	if writeSimpleStringSprintfExpression(out, call) {
+		WriteWrapperSuffix(out)
+		return
+	}
 	out.WriteString("format!")
 	out.WriteString("(")
 
@@ -2317,6 +2321,86 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString("))))")
+}
+
+// writeSimpleStringSprintfExpression handles the byte-sensitive common case
+// where a translation-time format contains only literal bytes, %% and
+// unadorned %s verbs whose operands have string type. Rust formatting cannot
+// represent an invalid UTF-8 result, so this case assembles Go bytes directly.
+func writeSimpleStringSprintfExpression(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || call.Ellipsis.IsValid() || len(call.Args) == 0 {
+		return false
+	}
+	quoted, ok := translationTimeFormat(call.Args[0])
+	if !ok {
+		return false
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+
+	parts := make([][]byte, 1)
+	for i := 0; i < len(format); {
+		if format[i] != '%' {
+			parts[len(parts)-1] = append(parts[len(parts)-1], format[i])
+			i++
+			continue
+		}
+		if i+1 >= len(format) {
+			return false
+		}
+		switch format[i+1] {
+		case '%':
+			parts[len(parts)-1] = append(parts[len(parts)-1], '%')
+			i += 2
+		case 's':
+			parts = append(parts, nil)
+			i += 2
+		default:
+			return false
+		}
+	}
+	if len(call.Args) != len(parts) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	for _, arg := range call.Args[1:] {
+		typ := typeInfo.GetType(arg)
+		if !printOperandIsString(arg) || typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ) {
+			return false
+		}
+	}
+
+	out.WriteString("{ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); ")
+	for i, part := range parts {
+		if len(part) > 0 {
+			out.WriteString("__go_sprintf_bytes.extend_from_slice(&[")
+			for j, b := range part {
+				if j > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(strconv.Itoa(int(b)))
+				out.WriteString("u8")
+			}
+			out.WriteString("]); ")
+		}
+		if i >= len(call.Args)-1 {
+			continue
+		}
+		out.WriteString("let __go_sprintf_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		writeStringSequenceOwnedValue(out, call.Args[i+1])
+		out.WriteString("; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(")); ")
+	}
+	out.WriteString("__go_string_from_bytes(__go_sprintf_bytes) }")
+	return true
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
