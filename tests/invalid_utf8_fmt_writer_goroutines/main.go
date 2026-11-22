@@ -38,6 +38,11 @@ func main() {
 	n, err = fmt.Fprintf(c, "<%s>", invalid)
 	fmt.Println(n, err == nil, c.data)
 
+	runtimeFormat := "<%s|%v>"
+	c.data = nil
+	n, err = fmt.Fprintf(c, runtimeFormat, invalid, invalid)
+	fmt.Println(n, err == nil, c.data)
+
 	c.data = nil
 	n, err = fmt.Fprintln(c, invalid, "B")
 	fmt.Println(n, err == nil, c.data)
@@ -55,6 +60,10 @@ func main() {
 	n, err = fmt.Fprint(&buffer, values...)
 	fmt.Println(n, err == nil, buffer.Bytes())
 
+	buffer.Reset()
+	n, err = fmt.Fprintf(&buffer, runtimeFormat, invalid, invalid)
+	fmt.Println(n, err == nil, buffer.Bytes())
+
 	var builder strings.Builder
 	fmt.Fprint(&builder, "C", invalid)
 	fmt.Fprintf(&builder, "[%s]", invalid)
@@ -62,4 +71,8 @@ func main() {
 	n, err = fmt.Fprint(&builder, values...)
 	fmt.Println(n, err == nil)
 	fmt.Println([]byte(builder.String()))
+
+	var dynamicBuilder strings.Builder
+	n, err = fmt.Fprintf(&dynamicBuilder, runtimeFormat, invalid, invalid)
+	fmt.Println(n, err == nil, []byte(dynamicBuilder.String()))
 }

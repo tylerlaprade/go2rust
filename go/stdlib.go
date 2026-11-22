@@ -1884,6 +1884,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
 				out.WriteString(formatted.String())
 			})
+		} else if _, ok := expandedFormat(call, 1); !ok {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeRuntimeFormatCall(out, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			})
 		} else {
 			writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
 				writeFmtMacroCall(out, "format!", call, 1)
@@ -1897,6 +1901,12 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
 			return
 		}
+		if _, ok := expandedFormat(call, 1); !ok {
+			var runtimeFormatted strings.Builder
+			writeRuntimeFormatCall(&runtimeFormatted, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			writeFprintByteWriterGoStringTuple(out, call, runtimeFormatted.String())
+			return
+		}
 		writeFprintfByteWriterTuple(out, call)
 		return
 	}
@@ -1904,6 +1914,12 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		var formatted strings.Builder
 		if writeSimpleStringFormatExpression(&formatted, call, 1) {
 			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if _, ok := expandedFormat(call, 1); !ok {
+			var runtimeFormatted strings.Builder
+			writeRuntimeFormatCall(&runtimeFormatted, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			writeFprintUserWriteGoStringTuple(out, call, runtimeFormatted.String())
 			return
 		}
 		writeFprintfUserWriteTuple(out, call)

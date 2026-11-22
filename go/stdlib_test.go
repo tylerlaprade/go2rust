@@ -622,9 +622,9 @@ import (
 	"strings"
 )
 
-func build(s string) string {
+func build(format, s string) string {
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "%s", s)
+	fmt.Fprintf(&buf, format, s)
 	return buf.String()
 }
 `, 0)
@@ -638,11 +638,14 @@ func build(s string) string {
 
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
 
-	if strings.Contains(rust, ".push_str(") {
+	if strings.Contains(rust, "buf.clone().borrow_mut().as_mut().unwrap()).push_str(") {
 		t.Fatalf("source-mapped fmt.Fprintf should not use native String::push_str:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".write_string(") {
 		t.Fatalf("source-mapped fmt.Fprintf should call generated Builder.write_string:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_sprintf(") {
+		t.Fatalf("source-mapped dynamic fmt.Fprintf should pass the canonical runtime result to Builder.write_string:\n%s", rust)
 	}
 }
 
@@ -655,9 +658,9 @@ import (
 	"fmt"
 )
 
-func build(s string) string {
+func build(format, s string) string {
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "%s", s)
+	fmt.Fprintf(&buf, format, s)
 	return buf.String()
 }
 `, 0)

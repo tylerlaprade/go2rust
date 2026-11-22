@@ -627,6 +627,48 @@ func main() {
 	}
 }
 
+func TestFmtRuntimeFprintfWritersPreserveCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+)
+
+type capture struct{ data []byte }
+func (c *capture) Write(p []byte) (int, error) { c.data = append(c.data, p...); return len(p), nil }
+
+func main() {
+	format := "<%s|%v>"
+	s := string([]byte{0xfa})
+	var c capture
+	var b bytes.Buffer
+	var builder strings.Builder
+	n, err := fmt.Fprintf(&c, format, s, s)
+	n, err = fmt.Fprintf(&b, format, s, s)
+	n, err = fmt.Fprintf(&builder, format, s, s)
+	fmt.Println(n, err == nil)
+}
+`)
+
+	for _, want := range []string{
+		"let __go_builder_part = go_sprintf(",
+		"__go_string_concat(__go_builder, &__go_builder_part)",
+		"let __bytes = __go_string_bytes(&__s)",
+		".write(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("dynamic Fprintf writers must consume the canonical runtime string; missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "push_str(&format!(\"{}\", go_sprintf(") ||
+		strings.Contains(rust, "Vec::from(__s.into_bytes())") ||
+		strings.Contains(rust, "__go_write_bytes(__s.as_bytes())") {
+		t.Fatalf("dynamic Fprintf must not expose the runtime string encoding through Rust text bytes:\n%s", rust)
+	}
+}
+
 func TestFmtHexStringUsesCanonicalGoBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
