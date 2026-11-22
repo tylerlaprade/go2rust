@@ -7258,8 +7258,9 @@ func writeCopyDestination(out *strings.Builder, dst ast.Expr, mutable bool) {
 
 func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 	if isString {
+		out.WriteString("__go_string_bytes(&")
 		writeStringSequenceValue(out, expr)
-		out.WriteString(".as_bytes().to_vec()")
+		out.WriteString(")")
 		return
 	}
 	if writeNamedSliceCopySourceValue(out, expr) {

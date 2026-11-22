@@ -1599,6 +1599,14 @@ run_xfail_test() {
     run_test "tests/interfaces_simple"
 }
 
+@test "invalid_utf8_copy_string" {
+    run_test "tests/invalid_utf8_copy_string"
+}
+
+@test "invalid_utf8_copy_string_goroutines" {
+    run_test "tests/invalid_utf8_copy_string_goroutines"
+}
+
 @test "invalid_utf8_fmt_hex" {
     run_test "tests/invalid_utf8_fmt_hex"
 }

@@ -1510,6 +1510,22 @@ func fill(v any, src []int) int {
 	}
 }
 
+func TestBuiltinCopyStringSourceUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func fill(dst []byte, src string) int {
+	return copy(dst[1:], src)
+}
+`)
+
+	if strings.Contains(rust, ".as_bytes().to_vec()") {
+		t.Fatalf("copy from string must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _src = __go_string_bytes(&") {
+		t.Fatalf("copy from string should decode canonical Go bytes:\n%s", rust)
+	}
+}
+
 func TestBuiltinCopyNamedSliceUsesInnerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
