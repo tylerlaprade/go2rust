@@ -1607,6 +1607,22 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_fmt_hex_goroutines"
 }
 
+@test "invalid_utf8_fmt_mixed_bool" {
+    run_test "tests/invalid_utf8_fmt_mixed_bool"
+}
+
+@test "invalid_utf8_fmt_mixed_bool_goroutines" {
+    run_test "tests/invalid_utf8_fmt_mixed_bool_goroutines"
+}
+
+@test "invalid_utf8_fmt_mixed_integer_verbs" {
+    run_test "tests/invalid_utf8_fmt_mixed_integer_verbs"
+}
+
+@test "invalid_utf8_fmt_mixed_integer_verbs_goroutines" {
+    run_test "tests/invalid_utf8_fmt_mixed_integer_verbs_goroutines"
+}
+
 @test "invalid_utf8_fmt_sprint" {
     run_test "tests/invalid_utf8_fmt_sprint"
 }

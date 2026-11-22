@@ -665,6 +665,12 @@ func main() {
 	fmt.Printf("<%s|%t>", s, true)
 	_ = fmt.Sprintf("<%s|%t>", s, true)
 	n, err = fmt.Fprintf(os.Stdout, "<%s|%t>", s, true)
+	n, err = fmt.Fprintf(&c, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
+	n, err = fmt.Fprintf(&b, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
+	n, err = fmt.Fprintf(&builder, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
+	fmt.Printf("<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
+	_ = fmt.Sprintf("<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
+	n, err = fmt.Fprintf(os.Stdout, "<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>", s, 9, 10, 10, 10, 42, 42, 65, 65, 65)
 	fmt.Println(n, err == nil)
 }
 `)
@@ -681,7 +687,8 @@ func main() {
 	}
 	if strings.Count(rust, "go_sprintf(") < 19 ||
 		strings.Count(rust, `go_sprintf(&"<%s|%d>".to_string(),`) < 5 ||
-		strings.Count(rust, `go_sprintf(&"<%s|%t>".to_string(),`) < 6 {
+		strings.Count(rust, `go_sprintf(&"<%s|%t>".to_string(),`) < 6 ||
+		strings.Count(rust, `go_sprintf(&"<%s|%v|%b|%o|%O|%#x|%X|%c|%q|%U>".to_string(),`) < 6 {
 		t.Fatalf("dynamic and richer literal string formats must use the byte-aware runtime formatter:\n%s", rust)
 	}
 	if !strings.Contains(rust, "std::io::Write::write_all(&mut std::io::stdout(), &__bytes)") {
