@@ -102,6 +102,16 @@ func main() {
 	fmt.Println([]byte(fmt.Sprintf(quotedFormat, invalidMixed, invalidMixed, invalidMixed, invalidMixed)))
 	n, err = fmt.Fprintf(os.Stdout, quotedFormat+"\n", invalidMixed, invalidMixed, invalidMixed, invalidMixed)
 	fmt.Println(n, err == nil)
+	textFormat := "%s|%v|%4s|%.1s|%04s"
+	fmt.Println([]byte(fmt.Sprintf(textFormat, invalidMixed, invalidMixed, invalidMixed, invalidMixed, invalidMixed)))
+	n, err = fmt.Fprintf(os.Stdout, textFormat+"\n", invalidMixed, invalidMixed, invalidMixed, invalidMixed, invalidMixed)
+	fmt.Println(n, err == nil)
+	n, err = fmt.Printf(textFormat+"\n", invalidMixed, invalidMixed, invalidMixed, invalidMixed, invalidMixed)
+	fmt.Println(n, err == nil)
+	methodFormat := "%s|%v"
+	fmt.Println([]byte(fmt.Sprintf(methodFormat, stringerText(""), errorText(""))))
+	collisionFormat := "%s"
+	fmt.Println([]byte(fmt.Sprintf(collisionFormat, "\ufdd0\ufdd1fa")))
 	fmt.Println([]byte(fmt.Sprint(stringerText(invalid))))
 	fmt.Println([]byte(fmt.Sprintln(errorText(invalid))))
 	fmt.Println([]byte(fmt.Sprintf("<%s>", stringerText(invalid))))

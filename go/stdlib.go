@@ -1666,7 +1666,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 		return
 	}
-	writeFmtMacroCall(out, "print!", call, 0)
+	writeFmtMacroCall(&formatted, "format!", call, 0)
+	writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 }
 
 func fmtPrintOperandsNeedCanonicalBytes(args []ast.Expr) bool {
