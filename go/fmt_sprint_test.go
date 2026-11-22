@@ -53,6 +53,33 @@ func main() {
 	}
 }
 
+func TestFmtSprintUsesNamedStringMethods(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type StringerText string
+func (StringerText) String() string { return "string method" }
+
+type ErrorText string
+func (ErrorText) Error() string { return "error method" }
+
+func main() {
+	_ = fmt.Sprint(StringerText("raw"))
+	_ = fmt.Sprintln(ErrorText("raw"))
+}
+`)
+
+	if strings.Contains(rust, "__go_string_bytes(&__go_sprint_arg_0)") {
+		t.Fatalf("fmt.Sprint/Sprintln must invoke String/Error methods on named strings:\n%s", rust)
+	}
+	for _, want := range []string{"format!(\"{}\",", "StringerText", "ErrorText"} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprint/Sprintln named-string method path missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestFmtSprintfPercentSPreservesArbitraryStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

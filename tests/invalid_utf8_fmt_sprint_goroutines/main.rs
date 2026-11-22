@@ -5,7 +5,8 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::cell::{RefCell};
-use std::fmt::{Display};
+use std::error::Error as StdError;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 #[allow(unused_macros)]
@@ -761,6 +762,199 @@ where
     }
 }
 
+#[derive(Debug)]
+pub struct stringerText(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for stringerText {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        stringerText(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for stringerText {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
+    }
+}
+
+impl Display for stringerText {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+    }
+}
+
+impl PartialEq for stringerText {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialOrd for stringerText {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(std::cmp::Ord::cmp(self, other))
+    }
+}
+
+impl Eq for stringerText {}
+
+impl Ord for stringerText {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for stringerText {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for stringerText {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for stringerText {
+    type Output = stringerText;
+    fn add(self, other: Self) -> stringerText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        stringerText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for stringerText {
+    type Output = stringerText;
+    fn add(self, other: String) -> stringerText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        stringerText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for stringerText {
+    type Output = stringerText;
+    fn add(self, other: &str) -> stringerText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        stringerText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+
+#[derive(Debug)]
+pub struct errorText(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for errorText {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        errorText(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for errorText {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
+    }
+}
+
+impl Display for errorText {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
+    }
+}
+
+impl PartialEq for errorText {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialOrd for errorText {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(std::cmp::Ord::cmp(self, other))
+    }
+}
+
+impl Eq for errorText {}
+
+impl Ord for errorText {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for errorText {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for errorText {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for errorText {
+    type Output = errorText;
+    fn add(self, other: Self) -> errorText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        errorText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for errorText {
+    type Output = errorText;
+    fn add(self, other: String) -> errorText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        errorText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for errorText {
+    type Output = errorText;
+    fn add(self, other: &str) -> errorText {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        errorText(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+
+impl stringerText {
+    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some("string-method".to_string())))
+    }
+}
+
+impl errorText {
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some("error-method".to_string())))
+    }
+}
+
+impl StdError for errorText {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_errorText(pub Rc<RefCell<Option<errorText>>>);
+
+impl std::fmt::Display for __go_error_ptr_errorText {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_errorText {}
+
+
 fn main() {
     let mut invalid = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xfa as u8]))).borrow().as_ref().unwrap()).clone())))));
 
@@ -769,4 +963,6 @@ fn main() {
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", 1); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", 2); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); let __go_sprint_arg_2 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }))).borrow().as_ref().unwrap())))))))));
     println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); let __go_sprintf_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[37u8, 58u8]); let __go_sprintf_arg_1 = "z".to_string(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_1)); __go_string_from_bytes(__go_sprintf_bytes) }))).borrow().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", stringerText(Rc::new(RefCell::new(Some((*invalid.borrow().as_ref().unwrap()).clone()))))); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
+    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", errorText(Rc::new(RefCell::new(Some((*invalid.borrow().as_ref().unwrap()).clone()))))); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }))).borrow().as_ref().unwrap())))))))));
 }

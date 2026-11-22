@@ -275,7 +275,7 @@ func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool
 		out.WriteString("let __go_sprint_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
-		if printOperandIsString(arg) {
+		if printOperandUsesDirectStringBytes(arg) {
 			writeStringSequenceOwnedValue(out, arg)
 			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
 			out.WriteString(strconv.Itoa(i))
@@ -358,6 +358,22 @@ func printOperandIsString(arg ast.Expr) bool {
 	}
 	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
 	return ok && basic.Info()&types.IsString != 0
+}
+
+// printOperandUsesDirectStringBytes reports whether a Print-family operand
+// should contribute its underlying string bytes directly. Named strings that
+// implement String or error must stay on the formatter path so Go's method
+// precedence is preserved instead of printing the stored string value.
+func printOperandUsesDirectStringBytes(arg ast.Expr) bool {
+	if !printOperandIsString(arg) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	return !typeHasGoStringMethod(typ) && !isConcreteGoErrorValue(typ)
 }
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
