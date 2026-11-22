@@ -988,6 +988,34 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 }
 
+func TestOsLookupEnvStubPreservesPresenceAndRawBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"lookup_env": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType("String"), "bool"},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.LookupEnv should not use a generic panic stub:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn lookup_env<T0: 'static>",
+		"std::env::var_os(os_key)",
+		"__go_string_from_bytes(value.into_vec())",
+		"Some(value) => (",
+		", true)",
+		", false)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.LookupEnv shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsEnvironStubUsesCanonicalHostEnv(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{

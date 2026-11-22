@@ -3267,6 +3267,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "lookup_env" {
+			writeOsLookupEnvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "setenv" {
 			writeOsSetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "unsetenv" {
@@ -3407,6 +3409,31 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        ")
 	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.LookupEnv maps to the host process environment.
+func writeOsLookupEnvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn lookup_env<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            let os_key = std::ffi::OsString::from_vec(__go_string_bytes(&key));\n")
+	out.WriteString("            std::env::var_os(os_key).map(|value| __go_string_from_bytes(value.into_vec()))\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value = std::env::var(key).ok();\n")
+	out.WriteString("        match value {\n")
+	out.WriteString("            Some(value) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(", true),\n")
+	out.WriteString("            None => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", false),\n")
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
 
