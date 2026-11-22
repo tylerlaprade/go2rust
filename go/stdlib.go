@@ -491,6 +491,31 @@ func writeFmtStdStreamVariadicAny(out *strings.Builder, call *ast.CallExpr, argI
 	return true
 }
 
+// writeFmtWriterVariadicAny writes a spread []any through a concrete writer
+// from the canonical bytes produced by the same operand loop as Sprint. The
+// target-specific helpers preserve the existing behavior for each writer class.
+func writeFmtWriterVariadicAny(out *strings.Builder, call *ast.CallExpr, line bool) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 2 ||
+		!isEmptyInterfaceSliceArgument(call.Args[1]) {
+		return false
+	}
+	var formatted strings.Builder
+	writeSprintVariadicAny(&formatted, call.Args[1], line)
+	switch {
+	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
+		writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+			out.WriteString(formatted.String())
+		})
+	case fmtFprintfTargetIsByteWriter(call.Args[0]):
+		writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
+		writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+	default:
+		return false
+	}
+	return true
+}
+
 func isEmptyInterfaceSliceArgument(arg ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -1748,6 +1773,9 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, true, isOsStderr(call.Args[0])) {
 		return
 	}
+	if writeFmtWriterVariadicAny(out, call, true) {
+		return
+	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
 		if !call.Ellipsis.IsValid() {
 			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
@@ -1903,6 +1931,9 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, false, isOsStderr(call.Args[0])) {
+		return
+	}
+	if writeFmtWriterVariadicAny(out, call, false) {
 		return
 	}
 	writeOperands := func(macro string) func() {

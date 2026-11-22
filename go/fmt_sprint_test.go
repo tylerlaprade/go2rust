@@ -257,6 +257,44 @@ func main() {
 	}
 }
 
+func TestFmtVariadicAnyWritersUseCanonicalBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+)
+
+type capture struct{ data []byte }
+func (c *capture) Write(p []byte) (int, error) { c.data = append(c.data, p...); return len(p), nil }
+
+type textValue struct{}
+func (textValue) String() string { return string([]byte{0xfa}) }
+
+func main() {
+	values := []any{textValue{}, 1}
+	var c capture
+	var b bytes.Buffer
+	var s strings.Builder
+	fmt.Fprint(&c, values...)
+	fmt.Fprintln(&b, values...)
+	fmt.Fprint(&s, values...)
+}
+`)
+
+	for _, want := range []string{
+		"__sprint_bytes.extend(__go_string_bytes(&__sprint_text))",
+		".write(",
+		"__go_write_bytes(&__bytes)",
+		"__go_string_concat(__go_builder, &__go_builder_part)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("variadic []any writer formatting must use canonical bytes; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestFmtFprintWritesPrintOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -4,10 +4,11 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::cell::{RefCell};
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 #[allow(unused_macros)]
 macro_rules! vec {
@@ -718,12 +719,12 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: GoSliceView<T>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
@@ -742,15 +743,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: GoSliceView<Rc<RefCell<Option<T>>>>,
+    C: GoSliceView<Arc<Mutex<Option<T>>>>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -762,9 +763,238 @@ where
     }
 }
 
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<writerError>() {
+        format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<writerStringer>() {
+        format!("{}", v)
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    capacity: usize,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: cap,
+        }
+    }
+
+    fn send(&self, val: T) {
+        if self.is_nil() {
+            return;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.send(val).is_ok() && self.capacity > 0 {
+                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.try_send(val).is_ok() {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().try_recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+
+    fn is_nil(&self) -> bool {
+        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn len(&self) -> usize {
+        self.len.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+            is_nil: self.is_nil.clone(),
+            len: self.len.clone(),
+            capacity: self.capacity,
+        }
+    }
+}
+
+impl<T> Default for GoChannel<T> {
+    fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for GoChannel<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoChannel")
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct bytes_Buffer;
+
+impl std::fmt::Display for bytes_Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<bytes_Buffer>")
+    }
+}
+
+
+impl bytes_Buffer {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn bytes(&self) -> Arc<Mutex<Option<Vec<u8>>>> {
+        panic!("bytes_Buffer.bytes bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 pub struct capture {
-    pub data: Rc<RefCell<Option<Vec<u8>>>>,
+    pub data: Arc<Mutex<Option<Vec<u8>>>>,
 }
 
 impl capture {
@@ -784,31 +1014,139 @@ impl std::fmt::Display for capture {
 }
 
 
-impl capture {
-    pub fn write(&mut self, p: Rc<RefCell<Option<Vec<u8>>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.data.clone(); let __append_values: Vec<_> = { let __slice_holder = p.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.as_slice().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *self.data.borrow_mut() = __slice_header; };
-        ((*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64, Rc::new(RefCell::new(None)))
+#[derive(Debug, Clone, Default)]
+pub struct writerStringer {
+}
+
+impl writerStringer {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
     }
 }
 
+impl std::fmt::Display for writerStringer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct writerError {
+}
+
+impl writerError {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+impl std::fmt::Display for writerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+impl PartialEq for writerError {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
+
+
+impl capture {
+    pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.data.clone(); let __append_values: Vec<_> = { let __slice_holder = p.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.as_slice().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *self.data.lock().unwrap() = __slice_header; };
+        (
+            ({ let __len = (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64,
+            Arc::new(Mutex::new(None))
+        )
+    }
+}
+
+impl writerStringer {
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(__go_string_concat(&"writer-stringer".to_string(), &{ let __s = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xf6 as u8]))).lock().unwrap().as_ref().unwrap()).clone()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
+    }
+}
+
+impl writerError {
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        return Arc::new(Mutex::new(Some(__go_string_concat(&"writer-error".to_string(), &{ let __s = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xf7 as u8]))).lock().unwrap().as_ref().unwrap()).clone()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
+    }
+}
+
+impl StdError for writerError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_writerError(pub Arc<Mutex<Option<writerError>>>);
+
+impl std::fmt::Display for __go_error_ptr_writerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_writerError {}
+
+
 fn main() {
-    let mut invalid = Rc::new(RefCell::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Rc::new(RefCell::new(Some(vec![0xfa as u8]))).borrow().as_ref().unwrap()).clone())))));
-    let mut c = Rc::new(RefCell::new(Some(capture { data: Default::default() })));
+    let mut done = GoChannel::<AnonymousStruct1>::new();
+    let done_thread = done.clone(); std::thread::spawn(move || {
+        done_thread.close();;;
+    });
+    done.recv().unwrap_or_default();
 
-    let (mut n, mut err) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "A".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(__bytes))))) };
-    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*(*c.borrow().as_ref().unwrap()).data.borrow().as_ref().unwrap()).clone())));
+    let mut invalid = Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*Arc::new(Mutex::new(Some(vec![0xfa as u8]))).lock().unwrap().as_ref().unwrap()).clone())))));
+    let mut c = Arc::new(Mutex::new(Some(capture { data: Default::default() })));
 
-    *(*c.borrow().as_ref().unwrap()).data.borrow_mut() = None;
-    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*(*c.borrow().as_ref().unwrap()).data.borrow().as_ref().unwrap()).clone())));
+    let (mut n, mut err) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "A".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
-    *(*c.borrow().as_ref().unwrap()).data.borrow_mut() = None;
-    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "B".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*(*c.borrow().as_ref().unwrap()).data.borrow().as_ref().unwrap()).clone())));
+    *(*c.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = None;
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[60u8]); let __go_sprintf_arg_0 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[62u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
-    let mut builder: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let __go_builder_part = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "C".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.borrow_mut(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
-    { let __go_builder_part = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[91u8]); let __go_sprintf_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[93u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.borrow_mut(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
-    { let __go_builder_part = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "D".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.borrow_mut(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
-    println!("{}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&(*Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).borrow().as_ref().unwrap())))))))));
+    *(*c.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = None;
+    { let (__tmp_0, __tmp_1) = { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "B".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
+
+    let mut values = Arc::new(Mutex::new(Some(vec![Box::new(writerStringer {  }) as Box<dyn Any + Send + Sync>, Box::new(writerError {  }) as Box<dyn Any + Send + Sync>])));
+    *(*c.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = None;
+    { let (__tmp_0, __tmp_1) = { let __s = { let __sprint_values = values.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __go_string_from_bytes(__sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
+
+    *(*c.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = None;
+    { let (__tmp_0, __tmp_1) = { let __s = { let __sprint_values = values.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __sprint_bytes.push(b'\n'); __go_string_from_bytes(__sprint_bytes) }; let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
+
+    let mut buffer: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    { let (__tmp_0, __tmp_1) = { let __s = { let __sprint_values = values.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __go_string_from_bytes(__sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; (*buffer.clone().lock().unwrap().as_ref().unwrap()).__go_write_bytes(&__bytes); (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&(*buffer.lock().unwrap().as_mut().unwrap()).bytes())));
+
+    let mut builder: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+    { let __go_builder_part = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "C".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.lock().unwrap(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
+    { let __go_builder_part = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[91u8]); let __go_sprintf_arg_0 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[93u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.lock().unwrap(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
+    { let __go_builder_part = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*invalid.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "D".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.lock().unwrap(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
+    { let __go_builder_part = { let __sprint_values = values.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } __go_string_from_bytes(__sprint_bytes) }; let __go_builder_handle = builder.clone(); let mut __go_builder_guard = __go_builder_handle.lock().unwrap(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); };
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let __builder = builder.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())))))))));
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AnonymousStruct1 {
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {
+        }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
+    }
 }
