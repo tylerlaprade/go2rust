@@ -3755,7 +3755,7 @@ func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperPrefix(out)
 		out.WriteString("{ let __s = ")
 		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.trim().to_string() }")
+		out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __first = 0usize; while __first < __runes.len() && __runes[__first].1.is_whitespace() { __first += 1; } let __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; let mut __last = __runes.len(); while __last > __first && __runes[__last - 1].1.is_whitespace() { __last -= 1; } let __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }")
 		WriteWrapperSuffix(out)
 	}
 }

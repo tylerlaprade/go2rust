@@ -1743,6 +1743,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_strings_trim_cutset_goroutines"
 }
 
+@test "invalid_utf8_strings_trim_space" {
+    run_test "tests/invalid_utf8_strings_trim_space"
+}
+
+@test "invalid_utf8_strings_trim_space_goroutines" {
+    run_test "tests/invalid_utf8_strings_trim_space_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }
