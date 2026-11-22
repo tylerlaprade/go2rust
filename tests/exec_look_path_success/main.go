@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
+	runner "os/exec"
 )
 
 func main() {
-	goPath, goErr := exec.LookPath("go")
+	goPath, goErr := runner.LookPath("go")
 	fmt.Println(goErr == nil, goPath != "")
 
-	shPath, shErr := exec.LookPath("/bin/sh")
+	shPath, shErr := runner.LookPath("/bin/sh")
 	fmt.Println(shErr == nil, shPath == "/bin/sh")
 
-	nonExecutable, nonExecutableErr := exec.LookPath("/etc/passwd")
+	nonExecutable, nonExecutableErr := runner.LookPath("./main.go")
 	fmt.Println(nonExecutable == "", nonExecutableErr != nil)
 
-	missing, missingErr := exec.LookPath("__go2rust_missing_executable__")
+	missing, missingErr := runner.LookPath("__go2rust_missing_executable__")
 	fmt.Println(missing == "", missingErr != nil)
 }

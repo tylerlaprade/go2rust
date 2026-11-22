@@ -900,18 +900,39 @@ func TestExecLookPathStubSearchesHostPath(t *testing.T) {
 		"pub fn look_path<T0: GoStringArg>",
 		"std::env::var_os(\"PATH\")",
 		"file.as_bytes().contains(&b'/')",
-		"std::vec::Vec<std::path::PathBuf>",
+		"std::vec::Vec<(std::path::PathBuf, bool)>",
+		"if path.is_empty() { return vec![]; }",
 		"std::env::split_paths(&path)",
-		"dir.join(&file)",
+		"clean_path(dir.join(&file))",
+		"std::path::Component::ParentDir",
+		"let relative = !dir.is_absolute()",
 		"std::fs::metadata(&candidate)",
+		"faccessat(-100, path.as_ptr(), 1, 0x200)",
 		"std::os::unix::fs::PermissionsExt",
 		"mode() & 0o111",
-		"candidate.to_string_lossy().into_owned()",
+		"let Some(candidate_text) = candidate.to_str()",
+		"cannot run executable found relative to current directory",
 		"executable file not found",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.LookPath stub should include %q:\n%s", want, got)
 		}
+	}
+}
+
+func TestAliasedExecLookPathStubIncludesStringCoercion(t *testing.T) {
+	got := generateExternalStubs(
+		nil, nil, nil, nil, nil, nil, nil,
+		map[string]*externalPackageStub{
+			"runner": {
+				Functions: map[string]externalPackageStubFunction{
+					"look_path": {ParamCount: 1, ReturnTypes: []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustErrorPayloadType())}},
+				},
+			},
+		},
+	)
+	if !strings.Contains(got, "pub mod runner") || !strings.Contains(got, "pub trait GoStringArg") || !strings.Contains(got, "pub fn look_path<T0: GoStringArg>") {
+		t.Fatalf("aliased os/exec LookPath stub must include its string coercion trait:\n%s", got)
 	}
 }
 

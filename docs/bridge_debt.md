@@ -251,9 +251,12 @@ in the first place.
   generic panic, and its relative-path `ErrDot` path reaches untranslated
   `internal/godebug.Setting` methods. Until those native/runtime boundaries
   are implemented, non-source-mapped callers need the host PATH search.
-- Fixture: `tests/exec_look_path_success/` and
+- Gap fixture: `tests/XFAIL/source_stdlib_exec_look_path/` source-maps
+  `os/exec+deps` and reaches the native/runtime boundary above.
+- Bridge regression fixtures: `tests/exec_look_path_success/` and
   `tests/exec_look_path_success_goroutines/` cover PATH success, direct-path
-  success, a non-executable regular file, and a missing executable.
+  success, a fixture-owned non-executable regular file, and a missing
+  executable.
 - Removal trigger: implement the native `Eaccess` hook and the source-tier
   `internal/godebug` path, make the source-mapped `os/exec` LookPath fixture
   compile and match Go (including `ErrDot`), then delete this emitter.

@@ -14,7 +14,7 @@ func main() {
 		shPath, shErr := exec.LookPath("/bin/sh")
 		fmt.Println(shErr == nil, shPath == "/bin/sh")
 
-		nonExecutable, nonExecutableErr := exec.LookPath("/etc/passwd")
+		nonExecutable, nonExecutableErr := exec.LookPath("./main.go")
 		fmt.Println(nonExecutable == "", nonExecutableErr != nil)
 
 		missing, missingErr := exec.LookPath("__go2rust_missing_executable__")

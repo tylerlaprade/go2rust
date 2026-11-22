@@ -846,26 +846,58 @@ pub mod exec {
             #[cfg(unix)]
             { file.as_bytes().contains(&b'/') }
             #[cfg(windows)]
-            { file.contains('\\') || file.contains('/') }
+            { file.contains('\\') || file.contains('/') || file.as_bytes().get(1) == Some(&b':') }
             #[cfg(not(any(unix, windows)))]
             { file_path.components().count() > 1 }
         };
-        let candidates: std::vec::Vec<std::path::PathBuf> = if has_separator {
-            vec![file_path]
+        let candidates: std::vec::Vec<(std::path::PathBuf, bool)> = if has_separator {
+            vec![(file_path, false)]
         } else {
+            let clean_path = |path: std::path::PathBuf| {
+                let mut cleaned = std::path::PathBuf::new();
+                for component in path.components() {
+                    match component {
+                        std::path::Component::CurDir => {}
+                        std::path::Component::ParentDir => match cleaned.components().next_back() {
+                            Some(std::path::Component::Normal(_)) => { cleaned.pop(); }
+                            Some(std::path::Component::ParentDir) | None => cleaned.push(".."),
+                            _ => {}
+                        },
+                        other => cleaned.push(other.as_os_str()),
+                    }
+                }
+                cleaned
+            };
             std::env::var_os("PATH").map(|path| {
-                std::env::split_paths(&path).map(|dir| dir.join(&file)).collect()
+                if path.is_empty() { return vec![]; }
+                std::env::split_paths(&path).map(|dir| {
+                    let relative = !dir.is_absolute();
+                    (clean_path(dir.join(&file)), relative)
+                }).collect()
             }).unwrap_or_default()
         };
-        for candidate in candidates {
+        for (candidate, from_relative_path) in candidates {
             let Ok(metadata) = std::fs::metadata(&candidate) else { continue; };
             if !metadata.is_file() { continue; }
-            #[cfg(unix)]
+            #[cfg(any(target_os = "linux", target_os = "android"))]
+            {
+                use std::os::unix::ffi::OsStrExt;
+                let Ok(path) = std::ffi::CString::new(candidate.as_os_str().as_bytes()) else { continue; };
+                unsafe extern "C" { fn faccessat(dirfd: i32, path: *const std::os::raw::c_char, mode: i32, flags: i32) -> i32; }
+                if unsafe { faccessat(-100, path.as_ptr(), 1, 0x200) } != 0 { continue; }
+            }
+            #[cfg(all(unix, not(any(target_os = "linux", target_os = "android"))))]
             {
                 use std::os::unix::fs::PermissionsExt;
                 if metadata.permissions().mode() & 0o111 == 0 { continue; }
             }
-            return (Arc::new(Mutex::new(Some::<String>(candidate.to_string_lossy().into_owned()))), Arc::new(Mutex::new(None::<std::sync::Arc<dyn std::error::Error + Send + Sync>>)));
+            let Some(candidate_text) = candidate.to_str() else {
+                return (Arc::new(Mutex::new(Some::<String>(String::new()))), Arc::new(Mutex::new(Some::<std::sync::Arc<dyn std::error::Error + Send + Sync>>(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("executable path is not valid UTF-8"))))));
+            };
+            if from_relative_path {
+                return (Arc::new(Mutex::new(Some::<String>(candidate_text.to_owned()))), Arc::new(Mutex::new(Some::<std::sync::Arc<dyn std::error::Error + Send + Sync>>(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("cannot run executable found relative to current directory"))))));
+            }
+            return (Arc::new(Mutex::new(Some::<String>(candidate_text.to_owned()))), Arc::new(Mutex::new(None::<std::sync::Arc<dyn std::error::Error + Send + Sync>>)));
         }
         (Arc::new(Mutex::new(Some::<String>(Default::default()))), Arc::new(Mutex::new(Some::<std::sync::Arc<dyn std::error::Error + Send + Sync>>(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from("executable file not found"))))))
     }
@@ -879,7 +911,7 @@ fn main() {
         println!("{} {}", format!("{}", { let __nil_result = (*goErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*goPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x != __tmp_y }));;
         let (mut shPath, mut shErr) = exec::look_path("/bin/sh".to_string());;
         println!("{} {}", format!("{}", { let __nil_result = (*shErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*shPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "/bin/sh".to_string(); __tmp_x == __tmp_y }));;
-        let (mut nonExecutable, mut nonExecutableErr) = exec::look_path("/etc/passwd".to_string());;
+        let (mut nonExecutable, mut nonExecutableErr) = exec::look_path("./main.go".to_string());;
         println!("{} {}", format!("{}", { let __tmp_x = ({ let __v = (*nonExecutable.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x == __tmp_y }), format!("{}", { let __nil_result = (*nonExecutableErr.lock().unwrap()).is_some(); __nil_result }));;
         let (mut missing, mut missingErr) = exec::look_path("__go2rust_missing_executable__".to_string());;
         println!("{} {}", format!("{}", { let __tmp_x = ({ let __v = (*missing.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x == __tmp_y }), format!("{}", { let __nil_result = (*missingErr.lock().unwrap()).is_some(); __nil_result }));;
