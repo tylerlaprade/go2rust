@@ -424,7 +424,8 @@ func main() {
 	fmt.Print(1, 2, "a", 3, Name("b"), "c", 4.5)
 }
 `)
-	if !strings.Contains(rust, `print!("{} {}{}{}{}{}{}"`) {
+	if strings.Count(rust, `__go_sprint_bytes.push(b' ');`) != 1 ||
+		!strings.Contains(rust, `std::io::Write::write_all(&mut std::io::stdout(), &__bytes)`) {
 		t.Fatalf("expected spaces only between the two integers:\n%s", rust)
 	}
 }

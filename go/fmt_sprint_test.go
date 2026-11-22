@@ -229,8 +229,9 @@ func main() {
 	if strings.Contains(rust, "fprint bridge") {
 		t.Fatalf("fmt.Fprint went to the panicking stub:\n%s", rust)
 	}
-	if !strings.Contains(rust, `print!("{}{} {}"`) {
-		t.Fatalf("expected Print spacing for Fprint to stdout:\n%s", rust)
+	if !strings.Contains(rust, `__go_sprint_bytes.push(b' ');`) ||
+		!strings.Contains(rust, `std::io::Write::write_all(&mut std::io::stdout(), &__bytes)`) {
+		t.Fatalf("expected byte-preserving Print spacing for Fprint to stdout:\n%s", rust)
 	}
 }
 
@@ -286,6 +287,40 @@ func main() {
 	}
 	if strings.Count(rust, "Vec::from(__bytes)") < 2 {
 		t.Fatalf("fmt.Fprint/Fprintln to *os.File must both pass canonical bytes:\n%s", rust)
+	}
+}
+
+func TestFmtStdStreamsPreserveArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	s := string([]byte{0xfa})
+	fmt.Print("<", s, ">")
+	fmt.Println(s)
+	fmt.Printf("[%s]", s)
+	fmt.Fprint(os.Stdout, "{", s, "}")
+	fmt.Fprintln(os.Stderr, s)
+	fmt.Fprintf(os.Stdout, "(%s)", s)
+}
+`)
+
+	if strings.Count(rust, "let __bytes = __go_string_bytes(&__s)") < 6 {
+		t.Fatalf("fmt stdout/stderr paths must write canonical Go bytes:\n%s", rust)
+	}
+	for _, want := range []string{
+		"std::io::Write::write_all(&mut std::io::stdout(), &__bytes)",
+		"std::io::Write::write_all(&mut std::io::stderr(), &__bytes)",
+		"Err(e) => (0,",
+		"Box::<dyn StdError>::from(e)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt stdout/stderr byte path missing %q:\n%s", want, rust)
+		}
 	}
 }
 

@@ -214,6 +214,12 @@ func init() {
 }
 
 func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
+	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args, false)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
 	out.WriteString("print!")
 	out.WriteString("(")
 
@@ -416,6 +422,12 @@ func writeNamedStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
 
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 	if writeFmtPrintlnVariadicAny(out, call) {
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args, true)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 		return
 	}
 
@@ -1605,7 +1617,21 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
+	var formatted strings.Builder
+	if writeSimpleStringFormatExpression(&formatted, call, 0) {
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
 	writeFmtMacroCall(out, "print!", call, 0)
+}
+
+func fmtPrintOperandsNeedCanonicalBytes(args []ast.Expr) bool {
+	for _, arg := range args {
+		if printOperandIsString(arg) {
+			return true
+		}
+	}
+	return false
 }
 
 func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int) {
@@ -1724,6 +1750,12 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		writeFprintUserWriteGoStringTuple(out, call, formatted.String())
 		return
 	}
+	if !call.Ellipsis.IsValid() && isOsStdoutOrStderr(call.Args[0]) && fmtPrintOperandsNeedCanonicalBytes(call.Args[1:]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+		return
+	}
 	// Check if writing to stderr
 	if isOsStderr(call.Args[0]) {
 		out.WriteString("eprintln!")
@@ -1826,6 +1858,13 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		writeFprintfUserWriteTuple(out, call)
 		return
 	}
+	if isOsStdoutOrStderr(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+			return
+		}
+	}
 	// Check if writing to stderr
 	macro := "print!"
 	if isOsStderr(call.Args[0]) {
@@ -1878,6 +1917,10 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			writeFprintUserWriteTuple(out, call, writeOperands("format!"))
 		}
+	case !call.Ellipsis.IsValid() && isOsStdoutOrStderr(call.Args[0]) && fmtPrintOperandsNeedCanonicalBytes(call.Args[1:]):
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], false)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 	case isOsStderr(call.Args[0]):
 		writeOperands("eprint!")()
 	default:
@@ -2020,6 +2063,29 @@ func writeFprintByteWriterGoStringTuple(out *strings.Builder, call *ast.CallExpr
 	out.WriteString(".as_ref().unwrap()).__go_write_bytes(&__bytes); (__n, ")
 	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
 	out.WriteString(") }")
+}
+
+// writeFmtStdStreamGoStringTuple writes a canonical Go string directly to
+// stdout or stderr. Rust's print macros require UTF-8 text and would expose
+// the reversible internal representation for a Go string containing arbitrary
+// bytes. The result keeps fmt's (int, error) shape and maps concrete I/O
+// failures back into the generated Go error representation.
+func writeFmtStdStreamGoStringTuple(out *strings.Builder, formatted string, stderr bool) {
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as " + rustIntType() + "; match std::io::Write::write_all(&mut std::io::")
+	if stderr {
+		out.WriteString("stderr()")
+	} else {
+		out.WriteString("stdout()")
+	}
+	out.WriteString(", &__bytes) { Ok(()) => (__n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString("), Err(e) => (0, ")
+	out.WriteString(wrappedExternalStubSomeExpr(errorInner, rustErrorFromText("e")))
+	out.WriteString(") } }")
 }
 
 // writeFprintfUserWriteTuple emits a block expression that formats the args
