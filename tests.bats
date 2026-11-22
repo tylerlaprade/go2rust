@@ -2481,6 +2481,14 @@ run_xfail_test() {
     run_test "tests/os_file_direct_close"
 }
 
+@test "os_file_path_non_utf8" {
+    run_test "tests/os_file_path_non_utf8"
+}
+
+@test "os_file_path_non_utf8_goroutines" {
+    run_test "tests/os_file_path_non_utf8_goroutines"
+}
+
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
 }

@@ -3346,6 +3346,18 @@ func writeOsErrorHelpers(out *strings.Builder) {
         %s::new(%s::new(Some(%s)))
     }
 
+    fn go_path(path: String) -> std::path::PathBuf {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&path)))
+        }
+        #[cfg(not(unix))]
+        {
+            std::path::PathBuf::from(path)
+        }
+    }
+
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
@@ -3622,7 +3634,7 @@ func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => (")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "data"))
@@ -3639,7 +3651,7 @@ func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        let data = _arg1.into_go_bytes();\n")
 	out.WriteString("        match std::fs::write(&path, data) {\n")
 	out.WriteString("            Ok(()) => no_error(),\n")

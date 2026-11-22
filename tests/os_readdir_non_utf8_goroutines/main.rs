@@ -1089,6 +1089,18 @@ pub mod os {
         Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
+    fn go_path(path: String) -> std::path::PathBuf {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&path)))
+        }
+        #[cfg(not(unix))]
+        {
+            std::path::PathBuf::from(path)
+        }
+    }
+
     pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<fs_DirEntry>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         let entries = match std::fs::read_dir(&path) {
@@ -1117,7 +1129,7 @@ pub mod os {
     }
 
     pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
-        let path = _arg0.into_go_string();
+        let path = go_path(_arg0.into_go_string());
         let data = _arg1.into_go_bytes();
         match std::fs::write(&path, data) {
             Ok(()) => no_error(),

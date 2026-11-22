@@ -1129,6 +1129,39 @@ func TestOsReadDirStubPreservesAndSortsUnixNameBytes(t *testing.T) {
 	}
 }
 
+func TestOsReadWriteFileStubsUseCanonicalUnixPathBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsErrorHelpers(&out)
+	writeOsReadFileFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("Vec<u8>"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	writeOsWriteFileFunction(&out, externalPackageStubFunction{
+		ParamCount: 3,
+		ReturnTypes: []string{
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	got := out.String()
+	if count := strings.Count(got, "let path = go_path(_arg0.into_go_string());"); count != 2 {
+		t.Fatalf("os.ReadFile/WriteFile should both decode canonical path bytes; got %d uses:\n%s", count, got)
+	}
+	for _, want := range []string{
+		"fn go_path(path: String) -> std::path::PathBuf",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&path))",
+		"std::path::PathBuf::from(path)",
+		"std::fs::read(&path)",
+		"std::fs::write(&path, data)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.ReadFile/WriteFile shims should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
