@@ -156,12 +156,39 @@ func main() {
 func TestRuntimeFormatterFailsLoudlyOnWhatItDoesNotSupport(t *testing.T) {
 	for _, want := range []string{
 		`panic!("go2rust: %p is not supported in a format that is only known at run time");`,
-		`panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");`,
 		`panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);`,
 		`panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time"`,
 	} {
 		if !strings.Contains(goSprintfFormatting+goSprintfEntry, want) {
 			t.Fatalf("the run-time formatter lost a loud failure: %s", want)
+		}
+	}
+}
+
+func TestRuntimeFormatterSupportsExplicitArgumentIndexes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	format := "%[1]s|%[2]q|%[1]x"
+	invalid := string([]byte{0xfa})
+	_ = fmt.Sprintf(format, invalid, "ok")
+}
+`)
+
+	for _, want := range []string{
+		"fn go_format_index(",
+		"*next = index - 1;",
+		"let mut reordered = false;",
+		`out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());`,
+		"if !reordered && next < args.len() {",
+		`go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[`,
+		`Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>`,
+		`Box::new("ok".to_string()) as Box<dyn Any>`,
+	} {
+		if !strings.Contains(goSprintfEntry+rust, want) {
+			t.Fatalf("the run-time formatter lost indexed-argument support: %s", want)
 		}
 	}
 }

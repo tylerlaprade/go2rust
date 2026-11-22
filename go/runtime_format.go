@@ -824,6 +824,36 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
 `
 
 const goSprintfEntry = `
+// Read an explicit one-based argument index. Go applies the selected argument
+// to the next * or verb, and subsequent unindexed operands continue after it.
+// An invalid or out-of-range index is reported at the eventual verb.
+fn go_format_index(chars: &mut std::iter::Peekable<std::str::Chars>, args_len: usize, next: &mut usize) -> Result<bool, ()> {
+    if chars.peek() != Some(&'[') {
+        return Ok(false);
+    }
+    chars.next();
+    let mut index: Option<usize> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        index = Some(index.unwrap_or(0).saturating_mul(10).saturating_add(digit as usize));
+        chars.next();
+    }
+    if chars.next() != Some(']') {
+        while let Some(c) = chars.next() {
+            if c == ']' {
+                break;
+            }
+        }
+        return Err(());
+    }
+    match index {
+        Some(index) if index > 0 && index <= args_len => {
+            *next = index - 1;
+            Ok(true)
+        }
+        _ => Err(()),
+    }
+}
+
 // The number after % or after the dot: digits, or * for the next argument.
 // Ok(None) is no number. Err is a * whose argument is not a usable integer.
 fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[GO_ANY_BOX], next: &mut usize) -> Result<Option<i64>, ()> {
@@ -901,6 +931,7 @@ fn go_format_plain_verb(value: &GO_ANY_VALUE) -> char {
 fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
     let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
+    let mut reordered = false;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
@@ -920,8 +951,23 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
             }
             chars.next();
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        let mut bad_index = false;
+        let mut after_index = false;
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => {
+                reordered |= found;
+                after_index = found;
+            }
+            Err(()) => {
+                reordered = true;
+                after_index = true;
+                bad_index = true;
+            }
+        }
+        // A literal width cannot follow an index at this position. An indexed
+        // * is valid and consumes the selected argument as the width.
+        if after_index && (chars.peek() == Some(&'.') || chars.peek().and_then(|c| c.to_digit(10)).is_some()) {
+            bad_index = true;
         }
         match go_format_number(&mut chars, args, &mut next) {
             // A negative width from an argument means left alignment.
@@ -934,14 +980,33 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
         }
         if chars.peek() == Some(&'.') {
             chars.next();
+            let mut after_precision_index = false;
+            match go_format_index(&mut chars, args.len(), &mut next) {
+                Ok(found) => {
+                    reordered |= found;
+                    after_precision_index = found;
+                }
+                Err(()) => {
+                    reordered = true;
+                    after_precision_index = true;
+                    bad_index = true;
+                }
+            }
+            if after_precision_index && chars.peek().and_then(|c| c.to_digit(10)).is_some() {
+                bad_index = true;
+            }
             match go_format_number(&mut chars, args, &mut next) {
                 Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
                 Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => reordered |= found,
+            Err(()) => {
+                reordered = true;
+                bad_index = true;
+            }
         }
         let verb = match chars.next() {
             Some(verb) => verb,
@@ -952,6 +1017,10 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
         };
         if verb == '%' {
             out.push(b'%');
+            continue;
+        }
+        if bad_index {
+            out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());
             continue;
         }
         let arg = match args.get(next) {
@@ -975,7 +1044,7 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
             }
         }
     }
-    if next < args.len() {
+    if !reordered && next < args.len() {
         out.extend_from_slice(b"%!(EXTRA ");
         for (index, arg) in args[next..].iter().enumerate() {
             if index > 0 {

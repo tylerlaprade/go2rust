@@ -1485,6 +1485,36 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
 }
 
+// Read an explicit one-based argument index. Go applies the selected argument
+// to the next * or verb, and subsequent unindexed operands continue after it.
+// An invalid or out-of-range index is reported at the eventual verb.
+fn go_format_index(chars: &mut std::iter::Peekable<std::str::Chars>, args_len: usize, next: &mut usize) -> Result<bool, ()> {
+    if chars.peek() != Some(&'[') {
+        return Ok(false);
+    }
+    chars.next();
+    let mut index: Option<usize> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        index = Some(index.unwrap_or(0).saturating_mul(10).saturating_add(digit as usize));
+        chars.next();
+    }
+    if chars.next() != Some(']') {
+        while let Some(c) = chars.next() {
+            if c == ']' {
+                break;
+            }
+        }
+        return Err(());
+    }
+    match index {
+        Some(index) if index > 0 && index <= args_len => {
+            *next = index - 1;
+            Ok(true)
+        }
+        _ => Err(()),
+    }
+}
+
 // The number after % or after the dot: digits, or * for the next argument.
 // Ok(None) is no number. Err is a * whose argument is not a usable integer.
 fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any + Send + Sync>], next: &mut usize) -> Result<Option<i64>, ()> {
@@ -1562,6 +1592,7 @@ fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
     let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
+    let mut reordered = false;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
@@ -1581,8 +1612,23 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
             }
             chars.next();
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        let mut bad_index = false;
+        let mut after_index = false;
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => {
+                reordered |= found;
+                after_index = found;
+            }
+            Err(()) => {
+                reordered = true;
+                after_index = true;
+                bad_index = true;
+            }
+        }
+        // A literal width cannot follow an index at this position. An indexed
+        // * is valid and consumes the selected argument as the width.
+        if after_index && (chars.peek() == Some(&'.') || chars.peek().and_then(|c| c.to_digit(10)).is_some()) {
+            bad_index = true;
         }
         match go_format_number(&mut chars, args, &mut next) {
             // A negative width from an argument means left alignment.
@@ -1595,14 +1641,33 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         }
         if chars.peek() == Some(&'.') {
             chars.next();
+            let mut after_precision_index = false;
+            match go_format_index(&mut chars, args.len(), &mut next) {
+                Ok(found) => {
+                    reordered |= found;
+                    after_precision_index = found;
+                }
+                Err(()) => {
+                    reordered = true;
+                    after_precision_index = true;
+                    bad_index = true;
+                }
+            }
+            if after_precision_index && chars.peek().and_then(|c| c.to_digit(10)).is_some() {
+                bad_index = true;
+            }
             match go_format_number(&mut chars, args, &mut next) {
                 Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
                 Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => reordered |= found,
+            Err(()) => {
+                reordered = true;
+                bad_index = true;
+            }
         }
         let verb = match chars.next() {
             Some(verb) => verb,
@@ -1613,6 +1678,10 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         };
         if verb == '%' {
             out.push(b'%');
+            continue;
+        }
+        if bad_index {
+            out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());
             continue;
         }
         let arg = match args.get(next) {
@@ -1636,7 +1705,7 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
             }
         }
     }
-    if next < args.len() {
+    if !reordered && next < args.len() {
         out.extend_from_slice(b"%!(EXTRA ");
         for (index, arg) in args[next..].iter().enumerate() {
             if index > 0 {
@@ -1854,6 +1923,12 @@ fn main() {
     println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some({ let __builder = mixedBuilder.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())))))))));
 
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some(go_sprintf(&"<%s|%d>".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(7i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))).lock().unwrap().as_ref().unwrap())))))))));
+
+    let mut indexedFormat = Arc::new(Mutex::new(Some("%[1]s|%[2]q|%[1]x".to_string())));
+    println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&(*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*indexedFormat.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("ok".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())))))))));
+    *(*c.lock().unwrap().as_ref().unwrap()).data.lock().unwrap() = None;
+    { let (__tmp_0, __tmp_1) = { let __s = go_sprintf(&__go_string_concat(&{ let __v = (*indexedFormat.lock().unwrap().as_ref().unwrap()).clone(); __v }, &"\n".to_string()), &[{ let __go_format_arg = Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("ok".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false); let __bytes = __go_string_bytes(&__s); (*c.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__bytes))))) }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{} {} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice_values(&(*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 }
 
 #[derive(Debug, Clone, Default)]

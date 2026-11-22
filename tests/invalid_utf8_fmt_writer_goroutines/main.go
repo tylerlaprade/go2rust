@@ -101,4 +101,10 @@ func main() {
 	fmt.Println(n, err == nil, []byte(mixedBuilder.String()))
 
 	fmt.Println([]byte(fmt.Sprintf("<%s|%d>", invalid, 7)))
+
+	indexedFormat := "%[1]s|%[2]q|%[1]x"
+	fmt.Println([]byte(fmt.Sprintf(indexedFormat, invalid, "ok")))
+	c.data = nil
+	n, err = fmt.Fprintf(c, indexedFormat+"\n", invalid, "ok")
+	fmt.Println(n, err == nil, c.data)
 }
