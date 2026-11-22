@@ -10,6 +10,14 @@ fprintln< ú >
 14 true
 fprintf<ú>
 11 true
+value-stringerý
+15 true
+value-errorþ
+13 true
+value-stringerý
+15 true
+value-errorþ
+13 true
 [120 250]
 [250 10]
 [49 32 50 250]

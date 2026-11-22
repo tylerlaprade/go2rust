@@ -286,7 +286,7 @@ func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool
 			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
 			out.WriteString(strconv.Itoa(i))
 			out.WriteString(")); ")
-		} else if writeNamedStringMethodResult(out, arg) {
+		} else if writeConcreteStringMethodResult(out, arg) {
 			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
 			out.WriteString(strconv.Itoa(i))
 			out.WriteString(")); ")
@@ -386,20 +386,20 @@ func printOperandUsesDirectStringBytes(arg ast.Expr) bool {
 	return !typeHasGoStringMethod(typ) && !isConcreteGoErrorValue(typ)
 }
 
-// writeNamedStringMethodResult writes the Go string returned by a named
-// string operand's Error or String method. Rust Display cannot carry invalid
-// UTF-8, so routing these methods through format! would expose the internal
-// reversible encoding instead of the bytes returned by the Go method.
+// writeConcreteStringMethodResult writes the Go string returned by a concrete
+// operand's Error or String method. Rust Display cannot carry invalid UTF-8,
+// so routing these methods through format! would expose the internal reversible
+// encoding instead of the bytes returned by the Go method.
 // Error takes precedence over String, matching fmt's method selection.
-func writeNamedStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
-	if !printOperandIsString(arg) {
-		return false
-	}
+func writeConcreteStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
 	typ := typeInfo.GetType(arg)
+	if typ == nil || types.IsInterface(typ) {
+		return false
+	}
 	method := ""
 	if isConcreteGoErrorValue(typ) {
 		method = "error"
@@ -1626,8 +1626,17 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func fmtPrintOperandsNeedCanonicalBytes(args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
 	for _, arg := range args {
 		if printOperandIsString(arg) {
+			return true
+		}
+		if typeInfo == nil {
+			continue
+		}
+		typ := typeInfo.GetType(arg)
+		if typ != nil && !types.IsInterface(typ) &&
+			(typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ)) {
 			return true
 		}
 	}
@@ -2622,7 +2631,7 @@ func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr,
 		out.WriteString("let __go_sprintf_arg_")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
-		if !writeNamedStringMethodResult(out, call.Args[formatIndex+i+1]) {
+		if !writeConcreteStringMethodResult(out, call.Args[formatIndex+i+1]) {
 			writeStringSequenceOwnedValue(out, call.Args[formatIndex+i+1])
 		}
 		out.WriteString("; __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_")

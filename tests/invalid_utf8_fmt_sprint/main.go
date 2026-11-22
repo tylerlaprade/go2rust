@@ -13,6 +13,14 @@ type errorText string
 
 func (errorText) Error() string { return "error-method" + string([]byte{0xfc}) }
 
+type valueStringer struct{}
+
+func (valueStringer) String() string { return "value-stringer" + string([]byte{0xfd}) }
+
+type valueError struct{}
+
+func (valueError) Error() string { return "value-error" + string([]byte{0xfe}) }
+
 func main() {
 	invalid := string([]byte{0xfa})
 	n, err := fmt.Print("print<", invalid, ">\n")
@@ -26,6 +34,16 @@ func main() {
 	n, err = fmt.Fprintln(os.Stdout, "fprintln<", invalid, ">")
 	fmt.Println(n, err == nil)
 	n, err = fmt.Fprintf(os.Stderr, "fprintf<%s>\n", invalid)
+	fmt.Println(n, err == nil)
+	n, err = fmt.Print(valueStringer{})
+	fmt.Print("\n")
+	fmt.Println(n, err == nil)
+	n, err = fmt.Println(valueError{})
+	fmt.Println(n, err == nil)
+	n, err = fmt.Fprint(os.Stdout, valueStringer{})
+	fmt.Fprint(os.Stdout, "\n")
+	fmt.Println(n, err == nil)
+	n, err = fmt.Fprintln(os.Stderr, valueError{})
 	fmt.Println(n, err == nil)
 
 	fmt.Println([]byte(fmt.Sprint("x", invalid)))

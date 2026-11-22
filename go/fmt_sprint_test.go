@@ -354,6 +354,34 @@ func main() {
 	}
 }
 
+func TestFmtStdStreamsPreserveNonStringMethodBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+type stringer struct{}
+func (stringer) String() string { return string([]byte{0xfa}) }
+
+type failure struct{}
+func (failure) Error() string { return string([]byte{0xfb}) }
+
+func main() {
+	fmt.Print(stringer{})
+	fmt.Println(failure{})
+	fmt.Fprint(os.Stdout, stringer{})
+	fmt.Fprintln(os.Stderr, failure{})
+}
+`)
+
+	if strings.Count(rust, "__go_string_method_result") < 4 ||
+		strings.Count(rust, "__go_string_bytes(&__go_sprint_arg_0)") < 4 {
+		t.Fatalf("non-string Stringer/error output must write canonical method-result bytes:\n%s", rust)
+	}
+}
+
 func TestFmtStringsBuilderPathsPreserveArbitraryStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
