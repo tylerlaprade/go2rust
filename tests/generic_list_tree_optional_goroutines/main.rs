@@ -2144,7 +2144,7 @@ pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));;
+        return Arc::new(Mutex::new(Some(go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -2173,7 +2173,7 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));;
+        return Arc::new(Mutex::new(Some(go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -2202,7 +2202,7 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));;
+        return Arc::new(Mutex::new(Some(go_sprintf(&"string %q".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);

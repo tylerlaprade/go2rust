@@ -1666,6 +1666,10 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 		return
 	}
+	if writeLiteralStringRuntimeFormatExpression(&formatted, call, 0) {
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
 	writeFmtMacroCall(&formatted, "format!", call, 0)
 	writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 }
@@ -1884,6 +1888,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
 				out.WriteString(formatted.String())
 			})
+		} else if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				out.WriteString(formatted.String())
+			})
 		} else if _, ok := expandedFormat(call, 1); !ok {
 			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
 				writeRuntimeFormatCall(out, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
@@ -1898,6 +1906,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
 		var formatted strings.Builder
 		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
 			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
 			return
 		}
@@ -1916,6 +1928,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
 			return
 		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+			return
+		}
 		if _, ok := expandedFormat(call, 1); !ok {
 			var runtimeFormatted strings.Builder
 			writeRuntimeFormatCall(&runtimeFormatted, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
@@ -1928,6 +1944,10 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	if isOsStdoutOrStderr(call.Args[0]) {
 		var formatted strings.Builder
 		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+			return
+		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
 			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 			return
 		}
@@ -2554,6 +2574,10 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperSuffix(out)
 		return
 	}
+	if writeLiteralStringRuntimeFormatExpression(out, call, 0) {
+		WriteWrapperSuffix(out)
+		return
+	}
 	out.WriteString("format!")
 	out.WriteString("(")
 
@@ -2630,6 +2654,72 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString("))))")
+}
+
+// writeLiteralStringRuntimeFormatExpression handles a translation-time format
+// made only of the byte-sensitive string verbs supported by go_sprintf. The
+// ordinary Rust formatter cannot carry malformed Go string bytes through %v
+// or %q, while go_sprintf returns the canonical reversible Go string.
+func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.CallExpr, formatIndex int) bool {
+	if call == nil || call.Ellipsis.IsValid() || len(call.Args) <= formatIndex {
+		return false
+	}
+	quoted, ok := translationTimeFormat(call.Args[formatIndex])
+	if !ok {
+		return false
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+
+	argCount := 0
+	for i := 0; i < len(format); {
+		if format[i] != '%' {
+			i++
+			continue
+		}
+		if i+1 >= len(format) {
+			return false
+		}
+		if format[i+1] == '%' {
+			i += 2
+			continue
+		}
+
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0", format[j]) >= 0 {
+			j++
+		}
+		for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+			j++
+		}
+		if j < len(format) && format[j] == '.' {
+			j++
+			for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+				j++
+			}
+		}
+		if j >= len(format) || strings.IndexByte("svqxX", format[j]) < 0 {
+			return false
+		}
+		argCount++
+		i = j + 1
+	}
+	if len(call.Args)-formatIndex-1 != argCount {
+		return false
+	}
+	for _, arg := range call.Args[formatIndex+1:] {
+		// Keep this path to statically known strings. Interface and Stringer
+		// operands can carry other dynamic types whose richer verbs need the
+		// normal static formatter's complete type-specific lowering.
+		if !printOperandIsString(arg) {
+			return false
+		}
+	}
+
+	writeRuntimeFormatCall(out, call.Args[formatIndex], call.Args[formatIndex+1:], false, false)
+	return true
 }
 
 // writeSimpleStringFormatExpression handles the byte-sensitive common case

@@ -648,6 +648,11 @@ func main() {
 	n, err := fmt.Fprintf(&c, format, s, s)
 	n, err = fmt.Fprintf(&b, format, s, s)
 	n, err = fmt.Fprintf(&builder, format, s, s)
+	n, err = fmt.Fprintf(&c, "<%q|%x>", s, s)
+	n, err = fmt.Fprintf(&b, "<%q|%x>", s, s)
+	n, err = fmt.Fprintf(&builder, "<%q|%x>", s, s)
+	fmt.Printf("<%q|%x>", s, s)
+	_ = fmt.Sprintf("<%q|%x>", s, s)
 	fmt.Println(n, err == nil)
 }
 `)
@@ -661,6 +666,9 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("dynamic Fprintf writers must consume the canonical runtime string; missing %q:\n%s", want, rust)
 		}
+	}
+	if strings.Count(rust, "go_sprintf(") < 8 {
+		t.Fatalf("dynamic and richer literal string formats must use the byte-aware runtime formatter:\n%s", rust)
 	}
 	if strings.Contains(rust, "push_str(&format!(\"{}\", go_sprintf(") ||
 		strings.Contains(rust, "Vec::from(__s.into_bytes())") ||
@@ -680,7 +688,12 @@ func main() {
 }
 `)
 
-	if strings.Count(rust, "let __bytes = __go_string_bytes(&__text)") < 2 {
-		t.Fatalf("fmt %%x/%%X strings must format canonical Go bytes:\n%s", rust)
+	for _, want := range []string{
+		`go_sprintf(&"%x %X".to_string(),`,
+		"return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt %%x/%%X strings must format canonical Go bytes; missing %q:\n%s", want, rust)
+		}
 	}
 }

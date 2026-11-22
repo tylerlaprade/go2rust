@@ -1935,7 +1935,7 @@ pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -1964,7 +1964,7 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -1993,7 +1993,7 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
