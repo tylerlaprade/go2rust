@@ -886,6 +886,34 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	}
 }
 
+func TestExecLookPathStubSearchesHostPath(t *testing.T) {
+	var out strings.Builder
+	writeExecLookPathStub(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("String"),
+			wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+		},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"pub fn look_path<T0: GoStringArg>",
+		"std::env::var_os(\"PATH\")",
+		"file.as_bytes().contains(&b'/')",
+		"std::env::split_paths(&path)",
+		"dir.join(&file)",
+		"std::fs::metadata(&candidate)",
+		"std::os::unix::fs::PermissionsExt",
+		"mode() & 0o111",
+		"candidate.to_string_lossy().into_owned()",
+		"executable file not found",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.LookPath stub should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestExecCmdStubImplementsStderrPipeMethod(t *testing.T) {
 	var out strings.Builder
 	writeExecCmdTypeStub(&out, nil, map[string]externalTypeStubMethod{

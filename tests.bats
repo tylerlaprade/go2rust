@@ -1167,6 +1167,14 @@ run_xfail_test() {
     run_test "tests/exec_look_path_not_found"
 }
 
+@test "exec_look_path_success" {
+    run_test "tests/exec_look_path_success"
+}
+
+@test "exec_look_path_success_goroutines" {
+    run_test "tests/exec_look_path_success_goroutines"
+}
+
 @test "external_atomic_int32_add" {
     run_test "tests/external_atomic_int32_add"
 }

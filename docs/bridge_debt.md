@@ -242,6 +242,23 @@ before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
 
+### exec-lookpath-path-search
+
+- Location: `go/external_type_stubs.go`, `writeExecLookPathStub`
+- Go symbol: `os/exec.LookPath`
+- Transpiler gap: source-transpiled `os/exec.LookPath` reaches
+  `internal/syscall/unix.Eaccess`, whose native-tier implementation is still a
+  generic panic, and its relative-path `ErrDot` path reaches untranslated
+  `internal/godebug.Setting` methods. Until those native/runtime boundaries
+  are implemented, non-source-mapped callers need the host PATH search.
+- Fixture: `tests/exec_look_path_success/` and
+  `tests/exec_look_path_success_goroutines/` cover PATH success, direct-path
+  success, a non-executable regular file, and a missing executable.
+- Removal trigger: implement the native `Eaccess` hook and the source-tier
+  `internal/godebug` path, make the source-mapped `os/exec` LookPath fixture
+  compile and match Go (including `ErrDot`), then delete this emitter.
+- Added: 2026-11-22 (backfill of the pre-existing always-failing stub)
+
 ### json-marshal-helpers
 
 - Location: `go/external_type_stubs.go:1421`

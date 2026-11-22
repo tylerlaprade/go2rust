@@ -3978,7 +3978,9 @@ func writeExecCommandArgsTrait(out *strings.Builder) {
 `, sliceType, borrow)
 }
 
-// PERMANENT: not scaffold — exec.LookPath walks $PATH, syscall/env-tied.
+// TEMPORARY: exec-lookpath-path-search — source-transpiled os/exec still
+// reaches an unimplemented native Eaccess hook and internal/godebug methods;
+// remove this emitter when those paths compile and run. See bridge_debt.md.
 func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn look_path")
 	if fn.ParamCount > 0 {
@@ -3989,6 +3991,7 @@ func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction)
 			}
 			out.WriteString("T")
 			out.WriteString(strconv.Itoa(i))
+			out.WriteString(": GoStringArg")
 		}
 		out.WriteString(">")
 	}
@@ -4004,10 +4007,42 @@ func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction)
 	}
 	out.WriteString(") -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n        (")
+	errorType := rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())
+	out.WriteString(" {\n")
+	out.WriteString("        let file = _arg0.into_go_string();\n")
+	out.WriteString("        let file_path = std::path::PathBuf::from(&file);\n")
+	out.WriteString("        let has_separator = {\n")
+	out.WriteString("            #[cfg(unix)]\n")
+	out.WriteString("            { file.as_bytes().contains(&b'/') }\n")
+	out.WriteString("            #[cfg(windows)]\n")
+	out.WriteString("            { file.contains('\\\\') || file.contains('/') }\n")
+	out.WriteString("            #[cfg(not(any(unix, windows)))]\n")
+	out.WriteString("            { file_path.components().count() > 1 }\n")
+	out.WriteString("        };\n")
+	out.WriteString("        let candidates: Vec<std::path::PathBuf> = if has_separator {\n")
+	out.WriteString("            vec![file_path]\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            std::env::var_os(\"PATH\").map(|path| {\n")
+	out.WriteString("                std::env::split_paths(&path).map(|dir| dir.join(&file)).collect()\n")
+	out.WriteString("            }).unwrap_or_default()\n")
+	out.WriteString("        };\n")
+	out.WriteString("        for candidate in candidates {\n")
+	out.WriteString("            let Ok(metadata) = std::fs::metadata(&candidate) else { continue; };\n")
+	out.WriteString("            if !metadata.is_file() { continue; }\n")
+	out.WriteString("            #[cfg(unix)]\n")
+	out.WriteString("            {\n")
+	out.WriteString("                use std::os::unix::fs::PermissionsExt;\n")
+	out.WriteString("                if metadata.permissions().mode() & 0o111 == 0 { continue; }\n")
+	out.WriteString("            }\n")
+	out.WriteString("            return (")
+	out.WriteString(wrappedExternalStubExpr("String", "candidate.to_string_lossy().into_owned()"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorType))
+	out.WriteString(");\n")
+	out.WriteString("        }\n")
+	out.WriteString("        (")
 	writeExternalStubDefaultValue(out, fn.ReturnTypes[0])
 	out.WriteString(", ")
-	errorType := rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())
 	out.WriteString(wrappedExternalStubExpr(errorType, rustErrorFromTextFor("std::error::Error", NeedsConcurrentWrapper(), "\"executable file not found\"")))
 	out.WriteString(")\n    }\n")
 }
