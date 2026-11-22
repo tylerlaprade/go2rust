@@ -198,3 +198,19 @@ func main() {
 		t.Fatalf("fmt.Fprint/Fprintln to *os.File must both pass canonical bytes:\n%s", rust)
 	}
 }
+
+func TestFmtHexStringUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	s := string([]byte{0xfa})
+	fmt.Printf("%x %X", s, s)
+}
+`)
+
+	if strings.Count(rust, "let __bytes = __go_string_bytes(&__text)") < 2 {
+		t.Fatalf("fmt %%x/%%X strings must format canonical Go bytes:\n%s", rust)
+	}
+}

@@ -1374,20 +1374,13 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 
 	if typeInfo != nil && typeInfo.IsString(arg) {
 		NeedHexFormat()
-		out.WriteString("go_format_hex_bytes(")
-		if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			TranspileExpression(out, lit)
-			out.WriteString(".as_bytes()")
-		} else {
-			out.WriteString("(*")
-			TranspileExpressionContext(out, arg, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).as_bytes()")
-		}
+		out.WriteString("{ let __text = ")
+		writeStringSequenceOwnedValue(out, arg)
+		out.WriteString("; let __bytes = __go_string_bytes(&__text); go_format_hex_bytes(&__bytes")
 		if upper {
-			out.WriteString(", true)")
+			out.WriteString(", true) }")
 		} else {
-			out.WriteString(", false)")
+			out.WriteString(", false) }")
 		}
 		return
 	}

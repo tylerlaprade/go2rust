@@ -1,0 +1,11 @@
+[package]
+name = "invalid_utf8_fmt_hex_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "invalid_utf8_fmt_hex_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
