@@ -160,6 +160,31 @@ func join(parts []string, sep string) string {
 	}
 }
 
+func TestStringsSplitUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func split(s, sep string) []string {
+	return strings.Split(s, sep)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __sep_bytes = __go_string_bytes(&__sep)",
+		"let __runes = __go_string_range(&__s)",
+		"__parts.push(__go_string_from_bytes(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Split byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.split(&__sep)") {
+		t.Fatalf("strings.Split must not split the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

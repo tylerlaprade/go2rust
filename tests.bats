@@ -1695,6 +1695,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_strings_search_goroutines"
 }
 
+@test "invalid_utf8_strings_split" {
+    run_test "tests/invalid_utf8_strings_split"
+}
+
+@test "invalid_utf8_strings_split_goroutines" {
+    run_test "tests/invalid_utf8_strings_split_goroutines"
+}
+
 @test "invalid_utf8_strings_substrings" {
     run_test "tests/invalid_utf8_strings_substrings"
 }
