@@ -324,6 +324,36 @@ func main() {
 	}
 }
 
+func TestFmtStdStreamResultReassignmentUsesBareCount(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	var n int
+	var err error
+	n, err = fmt.Print("a")
+	n, err = fmt.Println("b")
+	n, err = fmt.Printf("%s", "c")
+	n, err = fmt.Fprint(os.Stdout, "d")
+	n, err = fmt.Fprintln(os.Stderr, "e")
+	n, err = fmt.Fprintf(os.Stdout, "%s", "f")
+	_, _ = n, err
+}
+`)
+
+	if strings.Contains(rust, "__tmp_0.borrow()") || strings.Contains(rust, "__tmp_0.borrow_mut()") ||
+		strings.Contains(rust, "__tmp_0.lock()") {
+		t.Fatalf("fmt result reassignment must not borrow the bare integer count:\n%s", rust)
+	}
+	if strings.Count(rust, "= Some(__tmp_0)") < 6 {
+		t.Fatalf("fmt result reassignment must store each bare integer count into the wrapped local:\n%s", rust)
+	}
+}
+
 func TestFmtStringsBuilderPathsPreserveArbitraryStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
