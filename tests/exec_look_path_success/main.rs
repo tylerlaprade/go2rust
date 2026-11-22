@@ -680,7 +680,7 @@ pub mod exec {
             #[cfg(not(any(unix, windows)))]
             { file_path.components().count() > 1 }
         };
-        let candidates: Vec<std::path::PathBuf> = if has_separator {
+        let candidates: std::vec::Vec<std::path::PathBuf> = if has_separator {
             vec![file_path]
         } else {
             std::env::var_os("PATH").map(|path| {

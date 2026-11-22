@@ -900,6 +900,7 @@ func TestExecLookPathStubSearchesHostPath(t *testing.T) {
 		"pub fn look_path<T0: GoStringArg>",
 		"std::env::var_os(\"PATH\")",
 		"file.as_bytes().contains(&b'/')",
+		"std::vec::Vec<std::path::PathBuf>",
 		"std::env::split_paths(&path)",
 		"dir.join(&file)",
 		"std::fs::metadata(&candidate)",
