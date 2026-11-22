@@ -3994,7 +3994,7 @@ func transpileStringsEqualFold(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __b = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __a.to_lowercase() == __b.to_lowercase() }")
+	out.WriteString("; let __a_runes = __go_string_range(&__a); let __b_runes = __go_string_range(&__b); let __a_folded: String = __a_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); let __b_folded: String = __b_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); __a_folded == __b_folded }")
 	WriteWrapperSuffix(out)
 }
 

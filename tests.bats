@@ -1687,6 +1687,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_strings_case_goroutines"
 }
 
+@test "invalid_utf8_strings_equal_fold" {
+    run_test "tests/invalid_utf8_strings_equal_fold"
+}
+
+@test "invalid_utf8_strings_equal_fold_goroutines" {
+    run_test "tests/invalid_utf8_strings_equal_fold_goroutines"
+}
+
 @test "invalid_utf8_strings_join" {
     run_test "tests/invalid_utf8_strings_join"
 }

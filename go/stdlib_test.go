@@ -311,6 +311,30 @@ func trim(s string) string {
 	}
 }
 
+func TestStringsEqualFoldUsesCanonicalGoRunes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func equal(a, b string) bool {
+	return strings.EqualFold(a, b)
+}
+`)
+
+	for _, want := range []string{
+		"let __a_runes = __go_string_range(&__a)",
+		"let __b_runes = __go_string_range(&__b)",
+		"__rune.1.to_lowercase()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.EqualFold canonical-rune lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__a.to_lowercase() == __b.to_lowercase()") {
+		t.Fatalf("strings.EqualFold must not fold the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestStrconvQuoteUsesCanonicalGoBytes(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
