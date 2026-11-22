@@ -833,7 +833,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1240,9 +1240,15 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<&str>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -1263,7 +1269,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+		let text = format_any(value);
+		if matches!(verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, verb, &__go_string_bytes(&text));
+		}
+        return go_format_string(&basic, verb, &text);
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());

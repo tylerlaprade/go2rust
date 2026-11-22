@@ -515,6 +515,37 @@ func main() {
 	}
 }
 
+func TestFmtRuntimeFprintfStdoutReturnsByteCountAndErrorTuple(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	format := "%q"
+	n, err := fmt.Fprintf(os.Stdout, format, "x")
+	_, _ = n, err
+}
+`)
+
+	for _, want := range []string{
+		"go_sprintf(&(*format.borrow().as_ref().unwrap()).clone()",
+		"let __bytes = __go_string_bytes(&__s)",
+		"std::io::Write::write_all(&mut std::io::stdout(), &__bytes)",
+		"Ok(()) => (__n,",
+		"Err(e) => (0,",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("runtime fmt.Fprintf to os.Stdout must return fmt's tuple; missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "let (__tmp_0, __tmp_1) = print!") {
+		t.Fatalf("runtime fmt.Fprintf must not destructure Rust print!'s unit result:\n%s", rust)
+	}
+}
+
 func TestFmtStdStreamsPreserveNonStringMethodBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -833,7 +833,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1240,9 +1240,15 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<&str>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -1263,7 +1269,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+		let text = format_any(value);
+		if matches!(verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, verb, &__go_string_bytes(&text));
+		}
+        return go_format_string(&basic, verb, &text);
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1599,6 +1609,6 @@ fn main() {
 
     print!("Name: {}, Age: {}, Height: {:.1}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*height.borrow().as_ref().unwrap()).clone(); __v });
     print!("{}", go_sprintf(&"Quoted string: %q\n".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
-    print!("String with width: '{:>10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Left-aligned: '{:<10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[83u8, 116u8, 114u8, 105u8, 110u8, 103u8, 32u8, 119u8, 105u8, 116u8, 104u8, 32u8, 119u8, 105u8, 100u8, 116u8, 104u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*name.borrow().as_ref().unwrap()).clone(); let __go_sprintf_arg_bytes_0 = __go_string_bytes(&__go_sprintf_arg_0); let __go_sprintf_arg_end_0 = __go_sprintf_arg_bytes_0.len(); let __go_sprintf_arg_slice_0 = &__go_sprintf_arg_bytes_0[..__go_sprintf_arg_end_0]; let __go_sprintf_arg_piece_0 = __go_string_from_bytes(__go_sprintf_arg_slice_0.to_vec()); let __go_sprintf_arg_padding_0 = 10usize.saturating_sub(__go_string_range(&__go_sprintf_arg_piece_0).len()); __go_sprintf_bytes.extend(std::iter::repeat(b' ').take(__go_sprintf_arg_padding_0)); __go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_0); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[76u8, 101u8, 102u8, 116u8, 45u8, 97u8, 108u8, 105u8, 103u8, 110u8, 101u8, 100u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*name.borrow().as_ref().unwrap()).clone(); let __go_sprintf_arg_bytes_0 = __go_string_bytes(&__go_sprintf_arg_0); let __go_sprintf_arg_end_0 = __go_sprintf_arg_bytes_0.len(); let __go_sprintf_arg_slice_0 = &__go_sprintf_arg_bytes_0[..__go_sprintf_arg_end_0]; let __go_sprintf_arg_piece_0 = __go_string_from_bytes(__go_sprintf_arg_slice_0.to_vec()); let __go_sprintf_arg_padding_0 = 10usize.saturating_sub(__go_string_range(&__go_sprintf_arg_piece_0).len()); __go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_0); __go_sprintf_bytes.extend(std::iter::repeat(b' ').take(__go_sprintf_arg_padding_0)); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }

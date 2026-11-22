@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
@@ -15,6 +16,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -753,7 +836,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1160,9 +1243,15 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<&str>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -1183,7 +1272,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+		let text = format_any(value);
+		if matches!(verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, verb, &__go_string_bytes(&text));
+		}
+        return go_format_string(&basic, verb, &text);
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1369,13 +1462,13 @@ pub fn sprintf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<
 }
 
 pub fn show(format: Rc<RefCell<Option<String>>>, text: Rc<RefCell<Option<String>>>) {
-    println!("{} {} {}", format!("{}", { let __v = (*format.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", "=>".to_string()), format!("{}", {
-        let mut __s = String::new();
-        __s.push_str(&format!("{}", "[".to_string()));
-        __s.push_str(&format!("{}", (*text.borrow().as_ref().unwrap())));
-        __s.push_str(&format!("{}", "]".to_string()));
-        __s
-    }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*format.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "=>".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = {
+    let mut __s = String::new();
+    __s = __go_string_concat(&__s, &"[".to_string());
+    __s = __go_string_concat(&__s, &(*text.borrow().as_ref().unwrap()));
+    __s = __go_string_concat(&__s, &"]".to_string());
+    __s
+}; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }
 
 fn main() {
@@ -1559,14 +1652,14 @@ fn main() {
     } }
 
         // A []byte prints as text with %s, %q and %x, and as numbers with %v.
-    let mut data = Rc::new(RefCell::new(Some(("Hello".to_string()).as_bytes().to_go_slice())));
+    let mut data = Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&("Hello".to_string()))))));
     show(Rc::new(RefCell::new(Some("%s".to_string()))), sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%q".to_string()))), sprintf(Rc::new(RefCell::new(Some("%q".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%x".to_string()))), sprintf(Rc::new(RefCell::new(Some("%x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%X".to_string()))), sprintf(Rc::new(RefCell::new(Some("%X".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("% x".to_string()))), sprintf(Rc::new(RefCell::new(Some("% x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%v".to_string()))), sprintf(Rc::new(RefCell::new(Some("%v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
-    show(Rc::new(RefCell::new(Some("%s".to_string()))), sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(("direct".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any>])))));
+    show(Rc::new(RefCell::new(Some("%s".to_string()))), sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(Vec::from(__go_string_bytes(&("direct".to_string())))))).clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%10s|".to_string()))), sprintf(Rc::new(RefCell::new(Some("%10s|".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
     show(Rc::new(RefCell::new(Some("%.2s".to_string()))), sprintf(Rc::new(RefCell::new(Some("%.2s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(data.clone()) as Box<dyn Any>])))));
 

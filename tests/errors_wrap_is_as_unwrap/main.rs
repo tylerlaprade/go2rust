@@ -16,6 +16,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -880,7 +962,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1287,9 +1369,15 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<&str>() {
+		if matches!(string_verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, string_verb, &__go_string_bytes(v));
+		}
         return go_format_string(&basic, string_verb, v);
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -1310,7 +1398,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+		let text = format_any(value);
+		if matches!(verb, 'q' | 'x' | 'X') {
+			return go_format_bytes(&basic, verb, &__go_string_bytes(&text));
+		}
+        return go_format_string(&basic, verb, &text);
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -2031,7 +2123,7 @@ fn __go_init_globals() {
 
 impl NotFound {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", "missing ".to_string(), (*self.key.clone().borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some(__go_string_concat(&"missing ".to_string(), &self.key.clone()))))
     }
 }
 
@@ -2081,9 +2173,9 @@ impl QueryError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
         return Rc::new(RefCell::new(Some({
             let mut __s = String::new();
-            __s.push_str(&format!("{}", (*self.query.clone().borrow().as_ref().unwrap())));
-            __s.push_str(&format!("{}", ": ".to_string()));
-            __s.push_str(&format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", self.err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
+            __s = __go_string_concat(&__s, &self.query.clone());
+            __s = __go_string_concat(&__s, &": ".to_string());
+            __s = __go_string_concat(&__s, &{ let __s = Rc::new(RefCell::new(Some(format!("{}", self.err.borrow().as_ref().unwrap())))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value });
             __s
         })));
     }
@@ -2115,7 +2207,7 @@ impl StdError for __go_error_ptr_QueryError {}
 
 
 pub fn find(key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-    if (*key.borrow().as_ref().unwrap()).clone() == "".to_string() {
+    if { let __left = __go_string_from_bytes(__go_string_bytes(&(*key.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&"".to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal } {
         return Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_NotFound(Rc::new(RefCell::new(Some(NotFound { key: Rc::new(RefCell::new(Some("empty".to_string()))), ..Default::default() }))).clone())) as Rc<dyn StdError>)));
     }
     Rc::new(RefCell::new(Some(go_error_wrap(format!("{}", go_sprintf(&"find %q: %w".to_string(), &[Box::new({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, {
@@ -2157,7 +2249,7 @@ pub fn user_unwrap() {
     println!("{} {} {}", format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap())), format!("{}", { let __left = Rc::new(RefCell::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }))).clone(); let __right = ErrTimeout.clone(); let __left_value = { (*__left.borrow()).clone() }; let __right_value = { (*__right.borrow()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<Code>(), __r.downcast_ref::<Code>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_Code>(), __r.downcast_ref::<__go_error_ptr_Code>()) { let __go_left_nil = { __go_left.0.borrow().is_none() }; let __go_right_nil = { __go_right.0.borrow().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_NotFound>(), __r.downcast_ref::<__go_error_ptr_NotFound>()) { let __go_left_nil = { __go_left.0.borrow().is_none() }; let __go_right_nil = { __go_right.0.borrow().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_QueryError>(), __r.downcast_ref::<__go_error_ptr_QueryError>()) { let __go_left_nil = { __go_left.0.borrow().is_none() }; let __go_right_nil = { __go_right.0.borrow().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false }; __eq }));
     let mut wrapped = Rc::new(RefCell::new(Some(go_error_wrap(format!("db: {}", match { let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
     let mut qe: Rc<RefCell<Option<QueryError>>> = Rc::new(RefCell::new(None));
-    println!("{} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<__go_error_ptr_QueryError>() { __as_found = Some(__as_value.0.clone()); true } else { false } }); match __as_found { Some(__as_value) => { let new_val = __as_value; qe = new_val; true } None => false } }))).borrow().as_ref().unwrap())), format!("{}", (*(*qe.borrow().as_ref().unwrap()).query.borrow().as_ref().unwrap()).clone()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrTimeout.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = wrapped.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<__go_error_ptr_QueryError>() { __as_found = Some(__as_value.0.clone()); true } else { false } }); match __as_found { Some(__as_value) => { let new_val = __as_value; qe = new_val; true } None => false } }))).borrow().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*(*qe.borrow().as_ref().unwrap()).query.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }
 
 fn main() {
@@ -2177,13 +2269,13 @@ fn main() {
     { let __rhs_holder = load(Rc::new(RefCell::new(Some("".to_string())))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
     let mut nf: Rc<RefCell<Option<NotFound>>> = Rc::new(RefCell::new(None));
     if (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<__go_error_ptr_NotFound>() { __as_found = Some(__as_value.0.clone()); true } else { false } }); match __as_found { Some(__as_value) => { let new_val = __as_value; nf = new_val; true } None => false } }))).borrow().as_ref().unwrap()) {
-        println!("{} {} {}", format!("{}", "as:".to_string()), format!("{}", (*(*nf.borrow().as_ref().unwrap()).key.borrow().as_ref().unwrap()).clone()), format!("{}", { let __text = match nf.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "as:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*(*nf.borrow().as_ref().unwrap()).key.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = { let __go_string_method_receiver = { let __text = match nf.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }; let __go_string_method_result = __go_string_method_receiver.error(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.borrow(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }
     let mut code: Rc<RefCell<Option<Code>>> = Rc::new(RefCell::new(Some(Code(Rc::new(RefCell::new(Some(0)))))));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<Code>() { __as_found = Some(__as_value.clone()); true } else { false } }); match __as_found { Some(__as_value) => { *code.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap())));
     { let __rhs_holder = Rc::new(RefCell::new(Some(go_error_wrap(format!("outer: {}", match { let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i64 as i64))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = Rc::new(RefCell::new(Some(Rc::new(Code(Rc::new(RefCell::new(Some(7 as i64 as i64))))) as Rc<dyn StdError>))); let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
     if (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<Code>() { __as_found = Some(__as_value.clone()); true } else { false } }); match __as_found { Some(__as_value) => { *code.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap()) {
-        println!("{} {} {}", format!("{}", "code:".to_string()), format!("{}", { let __v = (*code.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some((*(*code.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "code:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = { let __go_string_method_receiver = { let __v = (*code.borrow().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.error(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.borrow(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = format!("{}", (*Rc::new(RefCell::new(Some((*(*code.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_2.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }
 
     let mut both = Rc::new(RefCell::new(Some(go_error_wrap(format!("{} and {}", match { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }, match { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrDenied.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
@@ -2198,15 +2290,15 @@ fn main() {
 }
 
 pub fn __go_nil_recv_not_found_error(e: Rc<RefCell<Option<NotFound>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}{}", "missing ".to_string(), (*(*e.borrow().as_ref().unwrap()).key.borrow().as_ref().unwrap()).clone()))))
+    Rc::new(RefCell::new(Some(__go_string_concat(&"missing ".to_string(), &(*(*e.borrow().as_ref().unwrap()).key.borrow().as_ref().unwrap()).clone()))))
 }
 
 pub fn __go_nil_recv_query_error_error(e: Rc<RefCell<Option<QueryError>>>) -> Rc<RefCell<Option<String>>> {
     return Rc::new(RefCell::new(Some({
         let mut __s = String::new();
-        __s.push_str(&format!("{}", (*(*e.borrow().as_ref().unwrap()).query.borrow().as_ref().unwrap()).clone()));
-        __s.push_str(&format!("{}", ": ".to_string()));
-        __s.push_str(&format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*e.borrow().as_ref().unwrap()).err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
+        __s = __go_string_concat(&__s, &(*(*e.borrow().as_ref().unwrap()).query.borrow().as_ref().unwrap()).clone());
+        __s = __go_string_concat(&__s, &": ".to_string());
+        __s = __go_string_concat(&__s, &{ let __s = Rc::new(RefCell::new(Some(format!("{}", (*e.borrow().as_ref().unwrap()).err.borrow().as_ref().unwrap())))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value });
         __s
     })));
 }

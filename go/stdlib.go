@@ -1914,6 +1914,9 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 			return
 		}
+		writeFmtMacroCall(&formatted, "format!", call, 1)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+		return
 	}
 	// Check if writing to stderr
 	macro := "print!"

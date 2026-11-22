@@ -51,7 +51,7 @@ func main() {
 `)
 
 	for _, want := range []string{
-		`print!("{}", go_sprintf_spread(&format!("{}{}", (*format.borrow().as_ref().unwrap()), "\n".to_string()), &args, false))`,
+		`print!("{}", go_sprintf_spread(&__go_string_concat(&(*format.borrow().as_ref().unwrap()), &"\n".to_string()), &args, false))`,
 		"fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {",
 		"let args_guard = guard.as_ref().map(|args| args.as_slice());",
 		"go_sprintf(format, args_guard.as_deref().unwrap_or(&[]), wraps)",
@@ -218,6 +218,32 @@ func main() {
 	}
 }
 
+func TestRuntimeFormatterUsesCanonicalGoStringBytesForQuotedAndHexText(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type text string
+func (text) String() string { return string([]byte{0xfb}) }
+
+func main() {
+	format := "%q %x"
+	value := string([]byte{0xfa, 'A'})
+	_ = fmt.Sprintf(format, value, text("x"))
+}
+`)
+
+	for _, want := range []string{
+		"use super::{format_any, __go_string_bytes, __go_type_name",
+		"go_format_bytes(&basic, string_verb, &__go_string_bytes(v))",
+		"go_format_bytes(&basic, verb, &__go_string_bytes(&text))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("runtime %%q/%%x text formatting must use canonical Go bytes; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 // f(format, args...) cannot be expanded while translating even when the
 // format is known then: the number of arguments and their types are only
 // known when the call runs. It used to pass the slice as one argument of a
@@ -373,7 +399,7 @@ func main() {
 
 	for _, want := range []string{
 		"fn go_format_is_text(__value: &dyn Any) -> bool {",
-		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_string_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};",
 		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"}\nuse __go_runtime_format::go_sprintf;\n",
 	} {
