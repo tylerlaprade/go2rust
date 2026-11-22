@@ -3366,6 +3366,15 @@ func main() {
 	if !strings.Contains(rust, "fn go_os_args()") {
 		t.Fatalf("package global os.Args should use a shared helper:\n%s", rust)
 	}
+	for _, want := range []string{
+		"fn __go_collect_os_args()",
+		"std::env::args_os()",
+		"__go_string_from_bytes(arg.into_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("package global os.Args should preserve Unix argument bytes through %q:\n%s", want, rust)
+		}
+	}
 	if strings.Contains(rust, "__go_os_args") {
 		t.Fatalf("package global os.Args should not reference a function-local binding:\n%s", rust)
 	}

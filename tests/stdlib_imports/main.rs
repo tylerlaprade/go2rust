@@ -810,9 +810,23 @@ fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
     }
 }
 
+fn __go_collect_os_args() -> Vec<String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStringExt;
+        std::env::args_os()
+            .map(|arg| __go_string_from_bytes(arg.into_vec()))
+            .collect::<Vec<String>>()
+    }
+    #[cfg(not(unix))]
+    {
+        std::env::args().collect::<Vec<String>>()
+    }
+}
+
 thread_local! {
     static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
-        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+        std::rc::Rc::new(std::cell::RefCell::new(Some(__go_collect_os_args())));
 }
 
 fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {

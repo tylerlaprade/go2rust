@@ -36,6 +36,25 @@ if [[ -n "$raw_env_spec" ]]; then
     done
 fi
 
+# Some argv-boundary fixtures need bytes that Rust's UTF-8 std::env::args API
+# rejects. Encode one raw argument as HEX so Go and generated Rust receive the
+# same argv bytes. NUL is rejected because Unix argv cannot contain it.
+raw_argv_hex=$(fixture_config_value "$test_dir" "raw_argv_hex")
+if [[ -n "$raw_argv_hex" ]]; then
+    if [[ "$raw_argv_hex" =~ [^0-9A-Fa-f] ]] ||
+       (( ${#raw_argv_hex} % 2 != 0 )) ||
+       [[ "${raw_argv_hex,,}" == *00* ]]; then
+        echo "Invalid raw_argv_hex fixture config: $raw_argv_hex"
+        exit 1
+    fi
+    export GO2RUST_TEST_RAW_ARG=""
+    while [[ -n "$raw_argv_hex" ]]; do
+        printf -v raw_argv_byte '%b' "\\x${raw_argv_hex:0:2}"
+        GO2RUST_TEST_RAW_ARG+="$raw_argv_byte"
+        raw_argv_hex=${raw_argv_hex:2}
+    done
+fi
+
 if [[ -f "$test_dir/go.mod" ]]; then
     note_fixture_phase "go mod download"
     if ! mod_download_output=$(cd "$test_dir" && go mod download 2>&1); then
@@ -47,11 +66,15 @@ fi
 
 # Run Go version
 note_fixture_phase "go run"
+go_run=(go run .)
+if [[ -n "${GO2RUST_TEST_RAW_ARG+x}" ]]; then
+    go_run+=("$GO2RUST_TEST_RAW_ARG")
+fi
 if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
-    go_output=$(cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" go run . 2>&1)
+    go_output=$(cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" "${go_run[@]}" 2>&1)
     go_exit_code=$?
 else
-    go_output=$(cd "$test_dir" && go run . 2>&1)
+    go_output=$(cd "$test_dir" && "${go_run[@]}" 2>&1)
     go_exit_code=$?
 fi
 if [[ "$go_exit_code" -ne 0 ]]; then
