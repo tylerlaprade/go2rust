@@ -136,6 +136,30 @@ func repeat(s string, n int) string {
 	}
 }
 
+func TestStringsJoinUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func join(parts []string, sep string) string {
+	return strings.Join(parts, sep)
+}
+`)
+
+	for _, want := range []string{
+		"let __sep_bytes = __go_string_bytes(&__sep)",
+		"__out.extend(__go_string_bytes(__part))",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Join byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__parts.join(&__sep)") {
+		t.Fatalf("strings.Join must not join the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

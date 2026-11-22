@@ -3924,7 +3924,7 @@ func transpileStringsJoin(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringSliceStdlibArg(out, call.Args[0])
 	out.WriteString("; let __sep = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __parts.join(&__sep) }")
+	out.WriteString("; let __sep_bytes = __go_string_bytes(&__sep); let mut __out = Vec::new(); for (__i, __part) in __parts.iter().enumerate() { if __i != 0 { __out.extend_from_slice(&__sep_bytes); } __out.extend(__go_string_bytes(__part)); } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 
