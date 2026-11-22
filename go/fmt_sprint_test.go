@@ -160,11 +160,12 @@ func main() {
 	s := string([]byte{0xfa})
 	fmt.Fprint(w, "x", s)
 	fmt.Fprintf(w, "<%s>", s)
+	fmt.Fprintln(w, s, "z")
 }
 `)
 
-	if strings.Count(rust, "let __bytes = __go_string_bytes(&__s)") < 2 {
-		t.Fatalf("Fprint and simple %%s Fprintf must write canonical Go bytes:\n%s", rust)
+	if strings.Count(rust, "let __bytes = __go_string_bytes(&__s)") < 3 {
+		t.Fatalf("Fprint, Fprintln and simple %%s Fprintf must write canonical Go bytes:\n%s", rust)
 	}
 }
 
@@ -180,6 +181,7 @@ func main() {
 	f, _ := os.Create("out.bin")
 	s := string([]byte{0xfa})
 	fmt.Fprint(f, s)
+	fmt.Fprintln(f, s)
 }
 `)
 
@@ -191,5 +193,8 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("fmt.Fprint to *os.File must write canonical Go bytes; missing %q:\n%s", want, rust)
 		}
+	}
+	if strings.Count(rust, "Vec::from(__bytes)") < 2 {
+		t.Fatalf("fmt.Fprint/Fprintln to *os.File must both pass canonical bytes:\n%s", rust)
 	}
 }

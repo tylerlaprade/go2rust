@@ -1659,6 +1659,18 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		})
 		return
 	}
+	if !call.Ellipsis.IsValid() && fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+		return
+	}
 	// Check if writing to stderr
 	if isOsStderr(call.Args[0]) {
 		out.WriteString("eprintln!")

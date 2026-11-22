@@ -21,4 +21,8 @@ func main() {
 	c.data = nil
 	n, err = fmt.Fprintf(c, "<%s>", invalid)
 	fmt.Println(n, err == nil, c.data)
+
+	c.data = nil
+	n, err = fmt.Fprintln(c, invalid, "B")
+	fmt.Println(n, err == nil, c.data)
 }
