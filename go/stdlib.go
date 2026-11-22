@@ -420,6 +420,21 @@ func writeConcreteStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
 	return true
 }
 
+// printOperandProvidesCanonicalStringBytes reports whether an operand can be
+// appended without routing its Go string through Rust's UTF-8-only formatter.
+func printOperandProvidesCanonicalStringBytes(arg ast.Expr) bool {
+	if printOperandIsString(arg) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	return typ != nil && !types.IsInterface(typ) &&
+		(typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ))
+}
+
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 	if writeFmtPrintlnVariadicAny(out, call) {
 		return
@@ -1626,17 +1641,8 @@ func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func fmtPrintOperandsNeedCanonicalBytes(args []ast.Expr) bool {
-	typeInfo := GetTypeInfo()
 	for _, arg := range args {
-		if printOperandIsString(arg) {
-			return true
-		}
-		if typeInfo == nil {
-			continue
-		}
-		typ := typeInfo.GetType(arg)
-		if typ != nil && !types.IsInterface(typ) &&
-			(typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ)) {
+		if printOperandProvidesCanonicalStringBytes(arg) {
 			return true
 		}
 	}
@@ -2607,7 +2613,7 @@ func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr,
 		return false
 	}
 	for _, arg := range call.Args[formatIndex+1:] {
-		if !printOperandIsString(arg) {
+		if !printOperandProvidesCanonicalStringBytes(arg) {
 			return false
 		}
 	}

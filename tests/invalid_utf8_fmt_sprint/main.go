@@ -45,6 +45,12 @@ func main() {
 	fmt.Println(n, err == nil)
 	n, err = fmt.Fprintln(os.Stderr, valueError{})
 	fmt.Println(n, err == nil)
+	n, err = fmt.Printf("printf-method<%s>\n", valueStringer{})
+	fmt.Println(n, err == nil)
+	n, err = fmt.Fprintf(os.Stderr, "fprintf-method<%s>\n", valueError{})
+	fmt.Println(n, err == nil)
+	fmt.Println([]byte(fmt.Sprintf("<%s>", valueStringer{})))
+	fmt.Println([]byte(fmt.Sprintf("<%s>", valueError{})))
 
 	fmt.Println([]byte(fmt.Sprint("x", invalid)))
 	fmt.Println([]byte(fmt.Sprintln(invalid)))

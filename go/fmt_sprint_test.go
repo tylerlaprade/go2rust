@@ -382,6 +382,34 @@ func main() {
 	}
 }
 
+func TestFmtStaticPercentSPreservesNonStringMethodBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+type stringer struct{}
+func (stringer) String() string { return string([]byte{0xfa}) }
+
+type failure struct{}
+func (failure) Error() string { return string([]byte{0xfb}) }
+
+func main() {
+	fmt.Printf("<%s>", stringer{})
+	fmt.Fprintf(os.Stderr, "<%s>", failure{})
+	_ = fmt.Sprintf("<%s>", stringer{})
+}
+`)
+
+	if strings.Count(rust, "__go_sprintf_arg_0") < 3 ||
+		strings.Count(rust, "__go_string_method_result") < 3 ||
+		strings.Count(rust, "__go_string_bytes(&__go_sprintf_arg_0)") < 3 {
+		t.Fatalf("static %%s must append canonical bytes returned by non-string Stringer/error values:\n%s", rust)
+	}
+}
+
 func TestFmtStringsBuilderPathsPreserveArbitraryStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
