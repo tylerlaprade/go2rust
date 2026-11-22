@@ -888,6 +888,11 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 		"let mut __key = __bytes[..__separator].to_vec()",
 		"if !__seen.insert(__key)",
 		"__dedup.reverse()",
+		"let __effective_env = self.environ()",
+		"exec: environment variable contains NUL",
+		"command.env_clear()",
+		"std::ffi::OsString::from_vec(__bytes[..__separator].to_vec())",
+		"std::ffi::OsString::from_vec(__bytes[__separator + 1..].to_vec())",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd Environ shim should include %q:\n%s", want, got)

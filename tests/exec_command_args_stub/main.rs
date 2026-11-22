@@ -797,14 +797,34 @@ impl exec_Cmd {
         let args_view = args.as_slice();
         let mut command = std::process::Command::new(&args_view[0]);
         command.args(&args_view[1..]);
-        if let Some(env) = self.env.lock().unwrap().as_ref() {
-            let env_values = env.as_slice();
-            for item in env_values.iter() {
-                if let Some((key, value)) = item.split_once('=') {
-                    command.env(key, value);
-                }
-            }
-        }
+        if let Some(__cmd_env) = self.env.lock().unwrap().as_ref() {
+			if __cmd_env.as_slice().iter().any(|item| __go_string_bytes(item).contains(&0)) {
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "exec: environment variable contains NUL"));
+			}
+		}
+		let __effective_env = self.environ();
+		let __env_values = __effective_env.lock().unwrap().as_ref().cloned().unwrap_or_default();
+		command.env_clear();
+		for __item in __env_values.iter() {
+			let __bytes = __go_string_bytes(__item);
+			if let Some(__separator) = __bytes.iter().position(|byte| *byte == b'=') {
+				#[cfg(unix)]
+				{
+					use std::os::unix::ffi::OsStringExt;
+					command.env(
+						std::ffi::OsString::from_vec(__bytes[..__separator].to_vec()),
+						std::ffi::OsString::from_vec(__bytes[__separator + 1..].to_vec()),
+					);
+				}
+				#[cfg(not(unix))]
+				{
+					command.env(
+						String::from_utf8_lossy(&__bytes[..__separator]).into_owned(),
+						String::from_utf8_lossy(&__bytes[__separator + 1..]).into_owned(),
+					);
+				}
+			}
+		}
         command.output()
     }
 
