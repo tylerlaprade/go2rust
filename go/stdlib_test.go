@@ -311,6 +311,30 @@ func trim(s string) string {
 	}
 }
 
+func TestStrconvQuoteUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strconv"
+
+func quote(s string) string {
+	return strconv.Quote(s)
+}
+`)
+
+	for _, want := range []string{
+		"go_sprintf(&\"%q\".to_string()",
+		"__go_string_bytes(v)",
+		"quoted.push_str(&format!(\"\\\\x{:02x}\", byte))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strconv.Quote canonical-byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "format!(\"{:?}\"") {
+		t.Fatalf("strconv.Quote must not debug-format the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

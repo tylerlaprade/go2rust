@@ -4609,9 +4609,7 @@ func transpileStrconvQuote(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	WriteWrapperPrefix(out)
-	out.WriteString("format!(\"{:?}\", ")
-	writeOwnedStringStdlibArg(out, call.Args[0])
-	out.WriteString(")")
+	writeRuntimeFormatCall(out, &ast.BasicLit{Kind: token.STRING, Value: `"%q"`}, call.Args[:1], false, false)
 	WriteWrapperSuffix(out)
 }
 
