@@ -96,6 +96,8 @@ func main() {
 	fmt.Println([]byte(fmt.Sprint(1, 2, invalid)))
 	fmt.Println([]byte(fmt.Sprintf("<%s>", invalid)))
 	fmt.Println([]byte(fmt.Sprintf("%s%%:%s", invalid, "z")))
+	invalidMixed := string([]byte{0xfa, 'A'})
+	fmt.Println([]byte(fmt.Sprintf("[%4s][%-4s][%.1s][%4.1s]", invalidMixed, invalidMixed, invalidMixed, invalidMixed)))
 	fmt.Println([]byte(fmt.Sprint(stringerText(invalid))))
 	fmt.Println([]byte(fmt.Sprintln(errorText(invalid))))
 	fmt.Println([]byte(fmt.Sprintf("<%s>", stringerText(invalid))))

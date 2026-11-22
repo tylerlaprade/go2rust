@@ -160,6 +160,46 @@ func main() {
 	}
 }
 
+func TestFmtSprintfPercentSWidthAndPrecisionPreserveArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	s := string([]byte{0xfa, 'A'})
+	_ = fmt.Sprintf("[%4s][%-4s][%.1s][%4.1s]", s, s, s, s)
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_range(&__go_sprintf_arg_piece_0).len()",
+		"4usize.saturating_sub",
+		"__go_string_range(&__go_sprintf_arg_2).get(1)",
+		"__go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_3)",
+		"__go_string_from_bytes(__go_sprintf_bytes)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("fmt.Sprintf %%s width/precision must preserve Go bytes and rune counts; missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestFmtSprintfPercentSZeroPaddingUsesGeneralFormatting(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	s := "xy"
+	_ = fmt.Sprintf("[%04s]", s)
+}
+`)
+
+	if strings.Contains(rust, "__go_sprintf_arg_piece_") {
+		t.Fatalf("fmt.Sprintf %%0s must not use the space-padding byte path:\n%s", rust)
+	}
+}
+
 func TestFmtSprintfPercentSUsesNamedStringMethods(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
