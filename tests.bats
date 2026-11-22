@@ -1679,6 +1679,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_strings_search_goroutines"
 }
 
+@test "invalid_utf8_strings_substrings" {
+    run_test "tests/invalid_utf8_strings_substrings"
+}
+
+@test "invalid_utf8_strings_substrings_goroutines" {
+    run_test "tests/invalid_utf8_strings_substrings_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }

@@ -3834,7 +3834,7 @@ func transpileStringsCut(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __sep = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let __found = if __sep_bytes.is_empty() { Some(0usize) } else { __s_bytes.windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()) }; if let Some(__idx) = __found { let __before = __go_string_from_bytes(__s_bytes[..__idx].to_vec()); let __after = __go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec()); (")
 	WriteWrapperPrefix(out)
 	out.WriteString("__before")
 	WriteWrapperSuffix(out)
@@ -3872,7 +3872,7 @@ func transpileStringsTrimSuffix(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __suffix = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.strip_suffix(&__suffix).unwrap_or(&__s).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __suffix_bytes = __go_string_bytes(&__suffix); if __s_bytes.ends_with(&__suffix_bytes) { __go_string_from_bytes(__s_bytes[..__s_bytes.len() - __suffix_bytes.len()].to_vec()) } else { __s } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3885,7 +3885,7 @@ func transpileStringsTrimPrefix(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __prefix = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.strip_prefix(&__prefix).unwrap_or(&__s).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __prefix_bytes = __go_string_bytes(&__prefix); if __s_bytes.starts_with(&__prefix_bytes) { __go_string_from_bytes(__s_bytes[__prefix_bytes.len()..].to_vec()) } else { __s } }")
 	WriteWrapperSuffix(out)
 }
 

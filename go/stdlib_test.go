@@ -80,6 +80,37 @@ func search(s string) (bool, int, int, int, int, bool, bool) {
 	}
 }
 
+func TestStringsByteSubstringsUseCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func cut(s, sep string) (string, string, bool) {
+	return strings.Cut(s, sep)
+}
+
+func trim(s, part string) (string, string) {
+	return strings.TrimPrefix(s, part), strings.TrimSuffix(s, part)
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_bytes(&__s)",
+		"__go_string_bytes(&__sep)",
+		"__go_string_from_bytes(__s_bytes[..__idx].to_vec())",
+		"__go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings byte substring lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.find(&__sep)") ||
+		strings.Contains(rust, "__s.strip_prefix(&__prefix)") ||
+		strings.Contains(rust, "__s.strip_suffix(&__suffix)") {
+		t.Fatalf("strings byte substring operations must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
