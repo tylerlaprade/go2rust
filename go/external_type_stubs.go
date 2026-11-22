@@ -3234,7 +3234,7 @@ func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
-// PERMANENT: not scaffold — os.Getenv maps to std::env::var in the host process environment.
+// PERMANENT: not scaffold — os.Getenv maps to the host process environment.
 func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	stringType := wrappedExternalStubType("String")
 	stringBorrow := externalStubBorrowExpr("v")
@@ -3253,8 +3253,16 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        } else {\n")
 	out.WriteString("            panic!(\"os.Getenv bridge: expected string argument\")\n")
 	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            let os_key = std::ffi::OsString::from_vec(__go_string_bytes(&key));\n")
+	out.WriteString("            std::env::var_os(os_key).map(|value| __go_string_from_bytes(value.into_vec())).unwrap_or_default()\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value = std::env::var(key).unwrap_or_default();\n")
 	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n")
 	out.WriteString("    }\n")
 }

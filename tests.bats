@@ -258,7 +258,10 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
+    if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
+        (cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1)
+        rust_exit_code=$?
+    elif (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
@@ -2429,6 +2432,14 @@ run_xfail_test() {
 
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
+}
+
+@test "os_getenv_non_utf8" {
+    run_test "tests/os_getenv_non_utf8"
+}
+
+@test "os_getenv_non_utf8_goroutines" {
+    run_test "tests/os_getenv_non_utf8_goroutines"
 }
 
 @test "os_readdir_filepath" {

@@ -11,6 +11,31 @@ echo "$$" > "$test_tmp_root/go2rust-test.pid"
 trap 'rm -rf "$test_tmp_root"' EXIT
 export GO2RUST_TEST_TMP="$test_tmp_root"
 
+# Some OS-boundary fixtures need bytes that Go can observe but Rust's UTF-8
+# std::env::var API rejects. Encode one raw environment entry as NAME=HEX in
+# .go2rust.toml so the identical byte value reaches both executables.
+raw_env_spec=$(fixture_config_value "$test_dir" "raw_env_hex")
+if [[ -n "$raw_env_spec" ]]; then
+    raw_env_name=${raw_env_spec%%=*}
+    raw_env_hex=${raw_env_spec#*=}
+    if [[ ! "$raw_env_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] ||
+       [[ "$raw_env_hex" == "$raw_env_spec" ]] ||
+       [[ "$raw_env_hex" =~ [^0-9A-Fa-f] ]] ||
+       (( ${#raw_env_hex} % 2 != 0 )) ||
+       [[ "${raw_env_hex,,}" == *00* ]]; then
+        echo "Invalid raw_env_hex fixture config: $raw_env_spec"
+        exit 1
+    fi
+    export GO2RUST_TEST_RAW_ENV_NAME="$raw_env_name"
+    export GO2RUST_TEST_RAW_ENV_VALUE
+    GO2RUST_TEST_RAW_ENV_VALUE=""
+    while [[ -n "$raw_env_hex" ]]; do
+        printf -v raw_env_byte '%b' "\\x${raw_env_hex:0:2}"
+        GO2RUST_TEST_RAW_ENV_VALUE+="$raw_env_byte"
+        raw_env_hex=${raw_env_hex:2}
+    done
+fi
+
 if [[ -f "$test_dir/go.mod" ]]; then
     note_fixture_phase "go mod download"
     if ! mod_download_output=$(cd "$test_dir" && go mod download 2>&1); then
@@ -22,7 +47,14 @@ fi
 
 # Run Go version
 note_fixture_phase "go run"
-if ! go_output=$(cd "$test_dir" && go run . 2>&1); then
+if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
+    go_output=$(cd "$test_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" go run . 2>&1)
+    go_exit_code=$?
+else
+    go_output=$(cd "$test_dir" && go run . 2>&1)
+    go_exit_code=$?
+fi
+if [[ "$go_exit_code" -ne 0 ]]; then
     echo "Go compilation/execution failed:"
     echo "$go_output"
     exit 1

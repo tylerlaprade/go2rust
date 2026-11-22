@@ -957,6 +957,12 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 		t.Fatalf("os.Getenv should not use the generic stub panic:\n%s", got)
 	}
 	for _, want := range []string{
+		"#[cfg(unix)]",
+		"std::os::unix::ffi::OsStringExt",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&key))",
+		"std::env::var_os(os_key)",
+		"__go_string_from_bytes(value.into_vec())",
+		"#[cfg(not(unix))]",
 		"std::env::var(key).unwrap_or_default()",
 		"downcast_ref::<" + wrappedExternalStubType("String") + ">",
 		externalStubBorrowExpr("v") + ".as_ref().cloned().unwrap_or_default()",
