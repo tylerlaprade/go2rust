@@ -5,6 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::rc::{Rc};
 
 #[allow(unused_macros)]
@@ -13,6 +14,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -638,6 +721,6 @@ impl std::io::Write for GoSlice<u8> {
 fn main() {
     let mut errstr = Rc::new(RefCell::new(Some("no such directory   /tmp/missing\n".to_string())));
     let mut marker = Rc::new(RefCell::new(Some("no such directory".to_string())));
-    let mut abspath = Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some({ let __s = &((*errstr.borrow().as_ref().unwrap()).clone()); let __low = (((*Rc::new(RefCell::new(Some({ let __s = (*errstr.borrow().as_ref().unwrap()).clone(); let __substr = (*marker.borrow().as_ref().unwrap()).clone(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()) as i64) + ((*marker.borrow().as_ref().unwrap()).len() as i64)) as usize; __s[__low..].to_string() }))).borrow().as_ref().unwrap()).clone(); __s.trim().to_string() })));
-    println!("{}", format!("{}", { let __v = (*abspath.borrow().as_ref().unwrap()).clone(); __v }));
+    let mut abspath = Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some({ let __s = &((*errstr.borrow().as_ref().unwrap()).clone()); let __low = (((*Rc::new(RefCell::new(Some({ let __s = (*errstr.borrow().as_ref().unwrap()).clone(); let __substr = (*marker.borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { 0 } else { __s_bytes.windows(__substr_bytes.len()).position(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as i64).unwrap_or(-1) } }))).borrow().as_ref().unwrap()) as i64) + ({ let __s = (*marker.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) } as i64)) as usize; __go_string_slice(__s, __low, __go_string_len(__s)) }))).borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __first = 0usize; while __first < __runes.len() && __runes[__first].1.is_whitespace() { __first += 1; } let __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; let mut __last = __runes.len(); while __last > __first && __runes[__last - 1].1.is_whitespace() { __last -= 1; } let __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) })));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*abspath.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }

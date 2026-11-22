@@ -13,6 +13,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -653,10 +735,53 @@ impl exec_Cmd {
 	    }
 
 	    pub fn environ(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
-        if let Some(cmd_env) = self.env.lock().unwrap().as_ref() {
-            env.extend(cmd_env.as_slice().iter().cloned());
+        let __cmd_env = self.env.lock().unwrap().as_ref().cloned();
+        let __use_host = __cmd_env.is_none();
+        let mut env: Vec<String> = if let Some(cmd_env) = __cmd_env {
+            cmd_env
+        } else {
+            #[cfg(unix)]
+            {
+                use std::os::unix::ffi::OsStringExt;
+                std::env::vars_os().map(|(key, value)| {
+                    let mut bytes = key.into_vec();
+                    bytes.push(b'=');
+                    bytes.extend(value.into_vec());
+                    __go_string_from_bytes(bytes)
+                }).collect()
+            }
+            #[cfg(not(unix))]
+            {
+                std::env::vars().map(|(key, value)| format!("{}={}", key, value)).collect()
+            }
+        };
+        let mut __seen = std::collections::HashSet::<Vec<u8>>::new();
+        let mut __dedup = Vec::<String>::new();
+        for __entry in env.into_iter().rev() {
+            let __bytes = __go_string_bytes(&__entry);
+            if __bytes.contains(&0) {
+                continue;
+            }
+            let __separator = if cfg!(windows) && __bytes.first() == Some(&b'=') {
+                __bytes[1..].iter().position(|byte| *byte == b'=').map(|index| index + 1)
+            } else {
+                __bytes.iter().position(|byte| *byte == b'=')
+            };
+            if let Some(__separator) = __separator {
+                let mut __key = __bytes[..__separator].to_vec();
+                if cfg!(windows) {
+                    __key.make_ascii_lowercase();
+                }
+                if !__seen.insert(__key) {
+                    continue;
+                }
+                __dedup.push(__entry);
+            } else if !__bytes.is_empty() {
+                __dedup.push(__entry);
+            }
         }
+        __dedup.reverse();
+        env = __dedup;
         Arc::new(Mutex::new(Some::<Vec<String>>(Vec::from(env))))
     }
 
@@ -672,14 +797,34 @@ impl exec_Cmd {
         let args_view = args.as_slice();
         let mut command = std::process::Command::new(&args_view[0]);
         command.args(&args_view[1..]);
-        if let Some(env) = self.env.lock().unwrap().as_ref() {
-            let env_values = env.as_slice();
-            for item in env_values.iter() {
-                if let Some((key, value)) = item.split_once('=') {
-                    command.env(key, value);
-                }
-            }
-        }
+        if let Some(__cmd_env) = self.env.lock().unwrap().as_ref() {
+			if __cmd_env.as_slice().iter().any(|item| __go_string_bytes(item).contains(&0)) {
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "exec: environment variable contains NUL"));
+			}
+		}
+		let __effective_env = self.environ();
+		let __env_values = __effective_env.lock().unwrap().as_ref().cloned().unwrap_or_default();
+		command.env_clear();
+		for __item in __env_values.iter() {
+			let __bytes = __go_string_bytes(__item);
+			if let Some(__separator) = __bytes.iter().position(|byte| *byte == b'=') {
+				#[cfg(unix)]
+				{
+					use std::os::unix::ffi::OsStringExt;
+					command.env(
+						std::ffi::OsString::from_vec(__bytes[..__separator].to_vec()),
+						std::ffi::OsString::from_vec(__bytes[__separator + 1..].to_vec()),
+					);
+				}
+				#[cfg(not(unix))]
+				{
+					command.env(
+						String::from_utf8_lossy(&__bytes[..__separator]).into_owned(),
+						String::from_utf8_lossy(&__bytes[__separator + 1..]).into_owned(),
+					);
+				}
+			}
+		}
         command.output()
     }
 
@@ -823,8 +968,8 @@ fn main() {
     };
     let mut out = { let __slice_header = GoSliceHeader::go_slice_header(&out); Arc::new(Mutex::new(__slice_header)) };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{}", format!("{}", "error".to_string()));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "error".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
         return;
     }
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*out.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "[go1.".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some(__go_string_from_bytes(std::vec::Vec::from((*out.lock().unwrap().as_ref().unwrap()).clone()))))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "[go1.".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __s_bytes.starts_with(&__arg_bytes) }))).lock().unwrap().as_ref().unwrap())));
 }

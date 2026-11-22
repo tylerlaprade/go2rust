@@ -258,7 +258,21 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
+    local -a cargo_run_args=("${cargo_offline_args[@]}" run --quiet)
+    local cargo_run_dir="$test_dir"
+    if [[ -n "${GO2RUST_TEST_RAW_CWD:-}" ]]; then
+        local test_manifest
+        test_manifest=$(cd "$test_dir" && pwd)/Cargo.toml
+        cargo_run_args+=(--manifest-path "$test_manifest")
+        cargo_run_dir="$GO2RUST_TEST_RAW_CWD"
+    fi
+    if [[ -n "${GO2RUST_TEST_RAW_ARG+x}" ]]; then
+        cargo_run_args+=(-- "$GO2RUST_TEST_RAW_ARG")
+    fi
+    if [[ -n "${GO2RUST_TEST_RAW_ENV_NAME:-}" ]]; then
+        (cd "$cargo_run_dir" && env "$GO2RUST_TEST_RAW_ENV_NAME=$GO2RUST_TEST_RAW_ENV_VALUE" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1)
+        rust_exit_code=$?
+    elif (cd "$cargo_run_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_run_args[@]}" >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
@@ -1175,6 +1189,22 @@ run_xfail_test() {
     run_test "tests/evaluation_order_of_element_writes_goroutines"
 }
 
+@test "exec_cmd_env_process" {
+    run_test "tests/exec_cmd_env_process"
+}
+
+@test "exec_cmd_env_process_goroutines" {
+    run_test "tests/exec_cmd_env_process_goroutines"
+}
+
+@test "exec_cmd_environ_non_utf8" {
+    run_test "tests/exec_cmd_environ_non_utf8"
+}
+
+@test "exec_cmd_environ_non_utf8_goroutines" {
+    run_test "tests/exec_cmd_environ_non_utf8_goroutines"
+}
+
 @test "exec_command_args_stub" {
     run_test "tests/exec_command_args_stub"
 }
@@ -1597,6 +1627,182 @@ run_xfail_test() {
 
 @test "interfaces_simple" {
     run_test "tests/interfaces_simple"
+}
+
+@test "invalid_utf8_copy_string" {
+    run_test "tests/invalid_utf8_copy_string"
+}
+
+@test "invalid_utf8_copy_string_goroutines" {
+    run_test "tests/invalid_utf8_copy_string_goroutines"
+}
+
+@test "invalid_utf8_fmt_hex" {
+    run_test "tests/invalid_utf8_fmt_hex"
+}
+
+@test "invalid_utf8_fmt_hex_goroutines" {
+    run_test "tests/invalid_utf8_fmt_hex_goroutines"
+}
+
+@test "invalid_utf8_fmt_mixed_bool" {
+    run_test "tests/invalid_utf8_fmt_mixed_bool"
+}
+
+@test "invalid_utf8_fmt_mixed_bool_goroutines" {
+    run_test "tests/invalid_utf8_fmt_mixed_bool_goroutines"
+}
+
+@test "invalid_utf8_fmt_mixed_integer_verbs" {
+    run_test "tests/invalid_utf8_fmt_mixed_integer_verbs"
+}
+
+@test "invalid_utf8_fmt_mixed_integer_verbs_goroutines" {
+    run_test "tests/invalid_utf8_fmt_mixed_integer_verbs_goroutines"
+}
+
+@test "invalid_utf8_fmt_sprint" {
+    run_test "tests/invalid_utf8_fmt_sprint"
+}
+
+@test "invalid_utf8_fmt_sprint_goroutines" {
+    run_test "tests/invalid_utf8_fmt_sprint_goroutines"
+}
+
+@test "invalid_utf8_fmt_writer" {
+    run_test "tests/invalid_utf8_fmt_writer"
+}
+
+@test "invalid_utf8_fmt_writer_goroutines" {
+    run_test "tests/invalid_utf8_fmt_writer_goroutines"
+}
+
+@test "invalid_utf8_sort_strings" {
+    run_test "tests/invalid_utf8_sort_strings"
+}
+
+@test "invalid_utf8_sort_strings_goroutines" {
+    run_test "tests/invalid_utf8_sort_strings_goroutines"
+}
+
+@test "invalid_utf8_strconv_quote" {
+    run_test "tests/invalid_utf8_strconv_quote"
+}
+
+@test "invalid_utf8_strconv_quote_goroutines" {
+    run_test "tests/invalid_utf8_strconv_quote_goroutines"
+}
+
+@test "invalid_utf8_string_bytes" {
+    run_test "tests/invalid_utf8_string_bytes"
+}
+
+@test "invalid_utf8_string_bytes_goroutines" {
+    run_test "tests/invalid_utf8_string_bytes_goroutines"
+}
+
+@test "invalid_utf8_string_ordering" {
+    run_test "tests/invalid_utf8_string_ordering"
+}
+
+@test "invalid_utf8_string_ordering_goroutines" {
+    run_test "tests/invalid_utf8_string_ordering_goroutines"
+}
+
+@test "invalid_utf8_string_range" {
+    run_test "tests/invalid_utf8_string_range"
+}
+
+@test "invalid_utf8_string_range_goroutines" {
+    run_test "tests/invalid_utf8_string_range_goroutines"
+}
+
+@test "invalid_utf8_strings_case" {
+    run_test "tests/invalid_utf8_strings_case"
+}
+
+@test "invalid_utf8_strings_case_goroutines" {
+    run_test "tests/invalid_utf8_strings_case_goroutines"
+}
+
+@test "invalid_utf8_strings_equal_fold" {
+    run_test "tests/invalid_utf8_strings_equal_fold"
+}
+
+@test "invalid_utf8_strings_equal_fold_goroutines" {
+    run_test "tests/invalid_utf8_strings_equal_fold_goroutines"
+}
+
+@test "invalid_utf8_strings_join" {
+    run_test "tests/invalid_utf8_strings_join"
+}
+
+@test "invalid_utf8_strings_join_goroutines" {
+    run_test "tests/invalid_utf8_strings_join_goroutines"
+}
+
+@test "invalid_utf8_strings_repeat" {
+    run_test "tests/invalid_utf8_strings_repeat"
+}
+
+@test "invalid_utf8_strings_repeat_goroutines" {
+    run_test "tests/invalid_utf8_strings_repeat_goroutines"
+}
+
+@test "invalid_utf8_strings_replace" {
+    run_test "tests/invalid_utf8_strings_replace"
+}
+
+@test "invalid_utf8_strings_replace_goroutines" {
+    run_test "tests/invalid_utf8_strings_replace_goroutines"
+}
+
+@test "invalid_utf8_strings_runes" {
+    run_test "tests/invalid_utf8_strings_runes"
+}
+
+@test "invalid_utf8_strings_runes_goroutines" {
+    run_test "tests/invalid_utf8_strings_runes_goroutines"
+}
+
+@test "invalid_utf8_strings_search" {
+    run_test "tests/invalid_utf8_strings_search"
+}
+
+@test "invalid_utf8_strings_search_goroutines" {
+    run_test "tests/invalid_utf8_strings_search_goroutines"
+}
+
+@test "invalid_utf8_strings_split" {
+    run_test "tests/invalid_utf8_strings_split"
+}
+
+@test "invalid_utf8_strings_split_goroutines" {
+    run_test "tests/invalid_utf8_strings_split_goroutines"
+}
+
+@test "invalid_utf8_strings_substrings" {
+    run_test "tests/invalid_utf8_strings_substrings"
+}
+
+@test "invalid_utf8_strings_substrings_goroutines" {
+    run_test "tests/invalid_utf8_strings_substrings_goroutines"
+}
+
+@test "invalid_utf8_strings_trim_cutset" {
+    run_test "tests/invalid_utf8_strings_trim_cutset"
+}
+
+@test "invalid_utf8_strings_trim_cutset_goroutines" {
+    run_test "tests/invalid_utf8_strings_trim_cutset_goroutines"
+}
+
+@test "invalid_utf8_strings_trim_space" {
+    run_test "tests/invalid_utf8_strings_trim_space"
+}
+
+@test "invalid_utf8_strings_trim_space_goroutines" {
+    run_test "tests/invalid_utf8_strings_trim_space_goroutines"
 }
 
 @test "iota_complex" {
@@ -2255,16 +2461,80 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_args_non_utf8" {
+    run_test "tests/os_args_non_utf8"
+}
+
+@test "os_args_non_utf8_goroutines" {
+    run_test "tests/os_args_non_utf8_goroutines"
+}
+
+@test "os_environ_non_utf8" {
+    run_test "tests/os_environ_non_utf8"
+}
+
+@test "os_environ_non_utf8_goroutines" {
+    run_test "tests/os_environ_non_utf8_goroutines"
+}
+
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
+}
+
+@test "os_file_path_non_utf8" {
+    run_test "tests/os_file_path_non_utf8"
+}
+
+@test "os_file_path_non_utf8_goroutines" {
+    run_test "tests/os_file_path_non_utf8_goroutines"
 }
 
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
 }
 
+@test "os_getenv_non_utf8" {
+    run_test "tests/os_getenv_non_utf8"
+}
+
+@test "os_getenv_non_utf8_goroutines" {
+    run_test "tests/os_getenv_non_utf8_goroutines"
+}
+
+@test "os_getwd_non_utf8" {
+    run_test "tests/os_getwd_non_utf8"
+}
+
+@test "os_getwd_non_utf8_goroutines" {
+    run_test "tests/os_getwd_non_utf8_goroutines"
+}
+
+@test "os_lookup_env_non_utf8" {
+    run_test "tests/os_lookup_env_non_utf8"
+}
+
+@test "os_lookup_env_non_utf8_goroutines" {
+    run_test "tests/os_lookup_env_non_utf8_goroutines"
+}
+
 @test "os_readdir_filepath" {
     run_test "tests/os_readdir_filepath"
+}
+
+@test "os_readdir_non_utf8" {
+    run_test "tests/os_readdir_non_utf8"
+}
+
+@test "os_readdir_non_utf8_goroutines" {
+    run_test "tests/os_readdir_non_utf8_goroutines"
+}
+
+@test "os_setenv_unsetenv" {
+    run_test "tests/os_setenv_unsetenv"
+}
+
+@test "os_setenv_unsetenv_goroutines" {
+    run_test "tests/os_setenv_unsetenv_goroutines"
 }
 
 @test "os_stat_fileinfo_isdir" {
@@ -2919,6 +3189,14 @@ run_xfail_test() {
     run_test "tests/regexp_methods"
 }
 
+@test "reserved_prefix_string_literal" {
+    run_test "tests/reserved_prefix_string_literal"
+}
+
+@test "reserved_prefix_string_literal_goroutines" {
+    run_test "tests/reserved_prefix_string_literal_goroutines"
+}
+
 @test "return_conversion_as_interface" {
     run_test "tests/return_conversion_as_interface"
 }
@@ -3209,6 +3487,10 @@ run_xfail_test() {
 
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
+}
+
+@test "source_stdlib_utf8_invalid_string" {
+    run_test "tests/source_stdlib_utf8_invalid_string"
 }
 
 @test "star_pointer_incdec" {

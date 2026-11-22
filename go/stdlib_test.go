@@ -50,6 +50,315 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestStringsByteSearchUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func search(s string) (bool, int, int, int, int, bool, bool) {
+	return strings.Contains(s, "a"), strings.Index(s, "A"),
+		strings.LastIndex(s, "A"), strings.Count(s, "A"), strings.Compare(s, "A"),
+		strings.HasPrefix(s, "A"), strings.HasSuffix(s, "A")
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_bytes(&__s)",
+		"__go_string_bytes(&__arg)",
+		"__go_string_bytes(&__substr)",
+		"__go_string_cmp(&__a, &__b)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings byte search lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.find(&__substr)") ||
+		strings.Contains(rust, "__s.rfind(&__substr)") ||
+		strings.Contains(rust, "__s.matches(&__substr)") ||
+		strings.Contains(rust, "__s.cmp(&__b)") {
+		t.Fatalf("strings byte search must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsByteSubstringsUseCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func cut(s, sep string) (string, string, bool) {
+	return strings.Cut(s, sep)
+}
+
+func trim(s, part string) (string, string) {
+	return strings.TrimPrefix(s, part), strings.TrimSuffix(s, part)
+}
+`)
+
+	for _, want := range []string{
+		"__go_string_bytes(&__s)",
+		"__go_string_bytes(&__sep)",
+		"__go_string_from_bytes(__s_bytes[..__idx].to_vec())",
+		"__go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings byte substring lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.find(&__sep)") ||
+		strings.Contains(rust, "__s.strip_prefix(&__prefix)") ||
+		strings.Contains(rust, "__s.strip_suffix(&__suffix)") {
+		t.Fatalf("strings byte substring operations must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsRepeatUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func repeat(s string, n int) string {
+	return strings.Repeat(s, n)
+}
+`)
+
+	for _, want := range []string{
+		"let __bytes = __go_string_bytes(&__s)",
+		"__go_string_from_bytes(__out)",
+		`panic!("strings: negative Repeat count")`,
+		`expect("strings: Repeat output length overflow")`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Repeat byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.repeat(") {
+		t.Fatalf("strings.Repeat must not repeat the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsJoinUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func join(parts []string, sep string) string {
+	return strings.Join(parts, sep)
+}
+`)
+
+	for _, want := range []string{
+		"let __sep_bytes = __go_string_bytes(&__sep)",
+		"__out.extend(__go_string_bytes(__part))",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Join byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__parts.join(&__sep)") {
+		t.Fatalf("strings.Join must not join the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsSplitUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func split(s, sep string) []string {
+	return strings.Split(s, sep)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __sep_bytes = __go_string_bytes(&__sep)",
+		"let __runes = __go_string_range(&__s)",
+		"__parts.push(__go_string_from_bytes(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Split byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.split(&__sep)") {
+		t.Fatalf("strings.Split must not split the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsReplaceUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func replace(s, old, new string, n int) (string, string) {
+	return strings.Replace(s, old, new, n), strings.ReplaceAll(s, old, new)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __old_bytes = __go_string_bytes(&__old)",
+		"let __new_bytes = __go_string_bytes(&__new)",
+		"let __runes = __go_string_range(&__s)",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Replace byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.replace(&__old, &__new)") ||
+		strings.Contains(rust, "__s.replacen(&__old, &__new") {
+		t.Fatalf("strings.Replace must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsRuneSearchAndFieldsUseCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func inspect(s, chars string) ([]string, int) {
+	return strings.Fields(s), strings.IndexAny(s, chars)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"let __chars = __go_string_range(&__chars)",
+		"__go_string_from_bytes(__s_bytes[",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings rune/field byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.split_whitespace()") || strings.Contains(rust, "__s.char_indices()") {
+		t.Fatalf("strings rune/field operations must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsTrimCutsetUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func trim(s, cutset string) (string, string, string) {
+	return strings.TrimLeft(s, cutset), strings.TrimRight(s, cutset), strings.Trim(s, cutset)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"let __cutset_runes = __go_string_range(&__cutset)",
+		"__go_string_from_bytes(__s_bytes[__start..__end].to_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings cutset trim byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "trim_start_matches") || strings.Contains(rust, "trim_end_matches") || strings.Contains(rust, "trim_matches") {
+		t.Fatalf("strings cutset trimming must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsCaseMappingUsesCanonicalGoRunes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func change(s string) (string, string) {
+	return strings.ToUpper(s), strings.ToLower(s)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"std::str::from_utf8(&__s_bytes[__start..__end])",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings case mapping missing canonical-rune step %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.to_uppercase()") || strings.Contains(rust, "__s.to_lowercase()") {
+		t.Fatalf("strings case mapping must not transform the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsTrimSpaceUsesCanonicalGoRunes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func trim(s string) string {
+	return strings.TrimSpace(s)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"__go_string_from_bytes(__s_bytes[__start..__end].to_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.TrimSpace canonical-rune lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.trim().to_string()") {
+		t.Fatalf("strings.TrimSpace must not trim the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStringsEqualFoldUsesCanonicalGoRunes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func equal(a, b string) bool {
+	return strings.EqualFold(a, b)
+}
+`)
+
+	for _, want := range []string{
+		"let __a_runes = __go_string_range(&__a)",
+		"let __b_runes = __go_string_range(&__b)",
+		"__rune.1.to_lowercase()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.EqualFold canonical-rune lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__a.to_lowercase() == __b.to_lowercase()") {
+		t.Fatalf("strings.EqualFold must not fold the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestStrconvQuoteUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strconv"
+
+func quote(s string) string {
+	return strconv.Quote(s)
+}
+`)
+
+	for _, want := range []string{
+		"go_sprintf(&\"%q\".to_string()",
+		"__go_string_bytes(v)",
+		"quoted.push_str(&format!(\"\\\\x{:02x}\", byte))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strconv.Quote canonical-byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "format!(\"{:?}\"") {
+		t.Fatalf("strconv.Quote must not debug-format the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -189,6 +498,49 @@ func order(names []string) {
 	}
 	if !strings.Contains(rust, "__sort_values.swap(__sort_j, __sort_j - 1)") {
 		t.Fatalf("source-mapped sort.Slice lowering should emit the typed in-place sort:\n%s", rust)
+	}
+}
+
+func TestSortStringsUsesCanonicalGoByteOrder(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sort"
+
+func order(values []string) {
+	sort.Strings(values)
+}
+`)
+
+	for _, want := range []string{
+		"__sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b))",
+		"let __sort_target = ",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Strings canonical byte ordering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__sort_values.sort();") {
+		t.Fatalf("sort.Strings must not order the reversible Rust encoding:\n%s", rust)
+	}
+}
+
+func TestSlicesSortStringsUsesCanonicalGoByteOrder(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "slices"
+
+type names []string
+
+func order(values names) {
+	slices.Sort(values)
+}
+`)
+
+	if !strings.Contains(rust, "__sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b))") {
+		t.Fatalf("slices.Sort over strings must use canonical Go byte ordering:\n%s", rust)
+	}
+	if strings.Contains(rust, "__sort_values.sort();") {
+		t.Fatalf("slices.Sort over strings must not order the reversible Rust encoding:\n%s", rust)
 	}
 }
 
@@ -622,9 +974,9 @@ import (
 	"strings"
 )
 
-func build(s string) string {
+func build(format, s string) string {
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "%s", s)
+	fmt.Fprintf(&buf, format, s)
 	return buf.String()
 }
 `, 0)
@@ -638,11 +990,14 @@ func build(s string) string {
 
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
 
-	if strings.Contains(rust, ".push_str(") {
+	if strings.Contains(rust, "buf.clone().borrow_mut().as_mut().unwrap()).push_str(") {
 		t.Fatalf("source-mapped fmt.Fprintf should not use native String::push_str:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".write_string(") {
 		t.Fatalf("source-mapped fmt.Fprintf should call generated Builder.write_string:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_sprintf(") {
+		t.Fatalf("source-mapped dynamic fmt.Fprintf should pass the canonical runtime result to Builder.write_string:\n%s", rust)
 	}
 }
 
@@ -655,9 +1010,9 @@ import (
 	"fmt"
 )
 
-func build(s string) string {
+func build(format, s string) string {
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "%s", s)
+	fmt.Fprintf(&buf, format, s)
 	return buf.String()
 }
 `, 0)
@@ -674,7 +1029,7 @@ func build(s string) string {
 	if strings.Contains(rust, "__go_write_bytes") {
 		t.Fatalf("source-mapped fmt.Fprintf should not call the bytes bridge helper:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".write(") || !strings.Contains(rust, "__s.into_bytes()") {
+	if !strings.Contains(rust, ".write(") || !strings.Contains(rust, "__go_string_bytes(&__s)") {
 		t.Fatalf("source-mapped fmt.Fprintf should call generated Buffer.write with formatted bytes:\n%s", rust)
 	}
 }
@@ -1474,6 +1829,22 @@ func fill(v any, src []int) int {
 	}
 	if !strings.Contains(rust, "let mut _dst =") {
 		t.Fatalf("copy destination from slice type assertion should use a mutable bare Vec temp:\n%s", rust)
+	}
+}
+
+func TestBuiltinCopyStringSourceUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func fill(dst []byte, src string) int {
+	return copy(dst[1:], src)
+}
+`)
+
+	if strings.Contains(rust, ".as_bytes().to_vec()") {
+		t.Fatalf("copy from string must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _src = __go_string_bytes(&") {
+		t.Fatalf("copy from string should decode canonical Go bytes:\n%s", rust)
 	}
 }
 

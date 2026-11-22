@@ -19,6 +19,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1181,7 +1263,7 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1525,7 +1607,13 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
     let bytes = &bytes[..kept];
     let spec = &GoFormatSpec { precision: None, ..*spec };
     match std::str::from_utf8(bytes) {
-        Ok(text) => go_format_string(spec, verb, text),
+        Ok(text) => {
+            let formatted = go_format_string(spec, verb, text);
+            if verb == 's' {
+                return formatted.map(|text| __go_string_from_bytes(text.into_bytes()));
+            }
+            formatted
+        }
         // %q writes a byte that is not UTF-8 as an escape.
         Err(_) if verb == 'q' => {
             let mut quoted = String::from("\"");
@@ -1538,9 +1626,24 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s would have to write the byte as it is, and the result is a Rust
-        // String, which cannot hold it.
-        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
+        // The result uses the same reversible representation as every Go
+        // string, so go_sprintf can append the original bytes rather than
+        // exposing the representation. Width counts decoded runes; each
+        // malformed byte counts as one RuneError, as it did for precision.
+        Err(_) => {
+            let len = bytes.utf8_chunks().map(|chunk| chunk.valid().chars().count() + chunk.invalid().len()).sum::<usize>();
+            let fill = spec.width.unwrap_or(0).saturating_sub(len);
+            let padding = std::vec![if spec.zero && !spec.minus { b'0' } else { b' ' }; fill];
+            let mut out = std::vec::Vec::with_capacity(bytes.len() + fill);
+            if !spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            out.extend_from_slice(bytes);
+            if spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            Some(__go_string_from_bytes(out))
+        }
     }
 }
 
@@ -1588,10 +1691,12 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
@@ -1611,7 +1716,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+        let text = format_any(value);
+        let bytes_verb = if verb == 'v' { 's' } else { verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1629,6 +1736,36 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         }
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
+}
+
+// Read an explicit one-based argument index. Go applies the selected argument
+// to the next * or verb, and subsequent unindexed operands continue after it.
+// An invalid or out-of-range index is reported at the eventual verb.
+fn go_format_index(chars: &mut std::iter::Peekable<std::str::Chars>, args_len: usize, next: &mut usize) -> Result<bool, ()> {
+    if chars.peek() != Some(&'[') {
+        return Ok(false);
+    }
+    chars.next();
+    let mut index: Option<usize> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        index = Some(index.unwrap_or(0).saturating_mul(10).saturating_add(digit as usize));
+        chars.next();
+    }
+    if chars.next() != Some(']') {
+        while let Some(c) = chars.next() {
+            if c == ']' {
+                break;
+            }
+        }
+        return Err(());
+    }
+    match index {
+        Some(index) if index > 0 && index <= args_len => {
+            *next = index - 1;
+            Ok(true)
+        }
+        _ => Err(()),
+    }
 }
 
 // The number after % or after the dot: digits, or * for the next argument.
@@ -1677,7 +1814,10 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
-    format!("{}={}", __go_type_name(value), text)
+    let mut out = __go_type_name(value).as_bytes().to_vec();
+    out.push(b'=');
+    out.extend(__go_string_bytes(&text));
+    __go_string_from_bytes(out)
 }
 
 // The verb that writes value as %v does and leaves the flags as they are.
@@ -1703,12 +1843,14 @@ fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
-    let mut out = String::new();
+    let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
+    let mut reordered = false;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
-            out.push(c);
+            let mut encoded = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut encoded).as_bytes());
             continue;
         }
         let mut spec = GoFormatSpec::default();
@@ -1723,8 +1865,23 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
             }
             chars.next();
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        let mut bad_index = false;
+        let mut after_index = false;
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => {
+                reordered |= found;
+                after_index = found;
+            }
+            Err(()) => {
+                reordered = true;
+                after_index = true;
+                bad_index = true;
+            }
+        }
+        // A literal width cannot follow an index at this position. An indexed
+        // * is valid and consumes the selected argument as the width.
+        if after_index && (chars.peek() == Some(&'.') || chars.peek().and_then(|c| c.to_digit(10)).is_some()) {
+            bad_index = true;
         }
         match go_format_number(&mut chars, args, &mut next) {
             // A negative width from an argument means left alignment.
@@ -1733,34 +1890,57 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
                 spec.width = Some((-width) as usize);
             }
             Ok(width) => spec.width = width.map(|width| width as usize),
-            Err(()) => out.push_str("%!(BADWIDTH)"),
+            Err(()) => out.extend_from_slice(b"%!(BADWIDTH)"),
         }
         if chars.peek() == Some(&'.') {
             chars.next();
+            let mut after_precision_index = false;
+            match go_format_index(&mut chars, args.len(), &mut next) {
+                Ok(found) => {
+                    reordered |= found;
+                    after_precision_index = found;
+                }
+                Err(()) => {
+                    reordered = true;
+                    after_precision_index = true;
+                    bad_index = true;
+                }
+            }
+            if after_precision_index && chars.peek().and_then(|c| c.to_digit(10)).is_some() {
+                bad_index = true;
+            }
             match go_format_number(&mut chars, args, &mut next) {
-                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
-                Err(()) => out.push_str("%!(BADPREC)"),
+                Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => reordered |= found,
+            Err(()) => {
+                reordered = true;
+                bad_index = true;
+            }
         }
         let verb = match chars.next() {
             Some(verb) => verb,
             None => {
-                out.push_str("%!(NOVERB)");
+                out.extend_from_slice(b"%!(NOVERB)");
                 break;
             }
         };
         if verb == '%' {
-            out.push('%');
+            out.push(b'%');
+            continue;
+        }
+        if bad_index {
+            out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());
             continue;
         }
         let arg = match args.get(next) {
             Some(arg) => arg,
             None => {
-                out.push_str(&format!("%!{}(MISSING)", verb));
+                out.extend_from_slice(format!("%!{}(MISSING)", verb).as_bytes());
                 continue;
             }
         };
@@ -1770,15 +1950,25 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
-            Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
+            Some(text) => out.extend(__go_string_bytes(&text)),
+            None => {
+                out.extend_from_slice(format!("%!{}(", verb).as_bytes());
+                out.extend(__go_string_bytes(&go_format_typed_value(&spec, arg.as_ref())));
+                out.push(b')');
+            }
         }
     }
-    if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
-        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+    if !reordered && next < args.len() {
+        out.extend_from_slice(b"%!(EXTRA ");
+        for (index, arg) in args[next..].iter().enumerate() {
+            if index > 0 {
+                out.extend_from_slice(b", ");
+            }
+            out.extend(__go_string_bytes(&go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())));
+        }
+        out.push(b')');
     }
-    out
+    __go_string_from_bytes(out)
 }
 }
 use __go_runtime_format::go_sprintf;
@@ -2422,13 +2612,13 @@ impl Money {
         { let new_val = "-".to_string(); *sign.lock().unwrap() = Some(new_val); };
         { let new_val = Money(Arc::new(Mutex::new(Some(-(*__self.0.lock().unwrap().as_ref().unwrap()))))); __self = new_val; };
     }
-        return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%s$%d.%02d".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x / __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x % __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));
+        return Arc::new(Mutex::new(Some(go_sprintf(&"%s$%d.%02d".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x / __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x % __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))));
     }
 }
 
 impl Base {
     pub fn describe(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("#{} ({})", format!("{}", (*self.i_d.lock().unwrap().as_ref().unwrap())), format!("{}", (*self.created.lock().unwrap().as_ref().unwrap()))))))
+        Arc::new(Mutex::new(Some(go_sprintf(&"#%d (%s)".to_string(), &[{ let __go_format_arg = Box::new({ let __selector_holder = self.i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __selector_holder = self.created.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))
     }
 }
 
@@ -2438,7 +2628,7 @@ impl Item {
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("{} x{} @ {}", format!("{}", (*self.name.lock().unwrap().as_ref().unwrap())), format!("{}", (*self.qty.lock().unwrap().as_ref().unwrap())), format!("{}", (*self.price.lock().unwrap().as_ref().unwrap()))))))
+        Arc::new(Mutex::new(Some(go_sprintf(&"%s x%d @ %v".to_string(), &[{ let __go_format_arg = Box::new({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(self.price.clone().clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))
     }
 
     pub fn describe(&self) -> Arc<Mutex<Option<String>>> {
@@ -2452,7 +2642,7 @@ impl Item {
 
 impl StockError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("not enough {}: have {}, want {}", format!("{}", (*self.name.lock().unwrap().as_ref().unwrap())), format!("{}", (*self.have.lock().unwrap().as_ref().unwrap())), format!("{}", (*self.want.lock().unwrap().as_ref().unwrap()))))))
+        Arc::new(Mutex::new(Some(go_sprintf(&"not enough %s: have %d, want %d".to_string(), &[{ let __go_format_arg = Box::new({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __selector_holder = self.have.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __selector_holder = self.want.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))
     }
 }
 
@@ -2477,7 +2667,7 @@ impl Inventory {
         let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {
             { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
-            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "restock ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };;
+            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = __go_string_concat(&"restock ".to_string(), &{ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };;
             return it.clone();;
         }
     }
@@ -2497,7 +2687,7 @@ impl Inventory {
         };
         { let __target = self.next_i_d.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __map_key = ({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = it.clone(); (*self.items.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "add ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = __go_string_concat(&"add ".to_string(), &{ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
         return it.clone();
     }
 
@@ -2518,7 +2708,7 @@ impl Inventory {
         { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         if { let __tmp_x = (*{ let __field = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __map_handle = self.items.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); };
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "sold out ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = __go_string_concat(&"sold out ".to_string(), &{ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
     }
         return (
             Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*(*it.lock().unwrap().as_ref().unwrap()).price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * ({ let __v = (*qty.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))),
@@ -2531,7 +2721,7 @@ impl Inventory {
         for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = n.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *names.lock().unwrap() = __slice_header; };
     }
-        { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+        { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b)); } };
         return names.clone();
     }
 
@@ -2620,8 +2810,8 @@ fn main() {
     { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("gadget".to_string()))), Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(1999 as i64))))))), Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some(vec![])))); __result };
     { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("widget".to_string()))), Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(250 as i64))))))), Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(vec![])))); __result };
     let mut apple = { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(45 as i64))))))), Arc::new(Mutex::new(Some(30))), Arc::new(Mutex::new(Some(vec!["food".to_string()])))); __result };
-    println!("{} {}", format!("{}", (*{ let __recv = apple.clone(); let __recv_ptr: *const Item = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Item }; let __result = unsafe { &*__recv_ptr }.describe(); __result }.lock().unwrap().as_ref().unwrap())), format!("{}", { let __text = match apple.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{} {} {} {}", format!("{}", "names:".to_string()), format!("{}", format_slice(&{ let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.names(); __result })), format!("{}", "value:".to_string()), format!("{}", (*{ let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.value(); __result }.lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*{ let __recv = apple.clone(); let __recv_ptr: *const Item = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Item }; let __result = unsafe { &*__recv_ptr }.describe(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = { let __go_string_method_receiver = { let __text = match apple.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "names:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", format_slice(&{ let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.names(); __result })); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = "value:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = { let __go_string_method_receiver = (*{ let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.value(); __result }.lock().unwrap().as_ref().unwrap()); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_3)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
     for req in vec![
         AnonymousStruct1 { name: Arc::new(Mutex::new(Some("widget".to_string()))), qty: Arc::new(Mutex::new(Some(3))), ..Default::default() },
@@ -2633,17 +2823,17 @@ fn main() {
         let (mut cost, mut err) = { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.take(Arc::new(Mutex::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
         let mut se: Arc<Mutex<Option<StockError>>> = Arc::new(Mutex::new(Some(Default::default())));
         if (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap()) {
-            println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "missing:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
         } else if (*Arc::new(Mutex::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<StockError>() { __as_found = Some(__as_value.clone()); true } else { false } }); match __as_found { Some(__as_value) => { *se.lock().unwrap() = Some(__as_value); true } None => false } }))).lock().unwrap().as_ref().unwrap()) {
-            print!("short by {}: {}\n", format!("{}", { let __tmp_x = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).want.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).have.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            { let __s = format!("short by {}: {}\n", format!("{}", { let __tmp_x = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).want.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).have.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
         } else if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "other:".to_string()), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "other:".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
         } else {
-            print!("took {} {} for {}\n", format!("{}", (*req.qty.lock().unwrap().as_ref().unwrap())), format!("{}", (*req.name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __v = (*cost.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            { let __s = go_sprintf(&"took %d %s for %v\n".to_string(), &[{ let __go_format_arg = Box::new({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*cost.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
         }
     }
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*(*inv.lock().unwrap().as_ref().unwrap()).log.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "; ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
-    print!("{} {} {}\n", format!("{}", Money(Arc::new(Mutex::new(Some(-1234 as i64))))), format!("{}", Money(Arc::new(Mutex::new(Some(5 as i64))))), format!("{}", (*(*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"apple".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).qty.lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*Arc::new(Mutex::new(Some({ let __parts = (*(*inv.lock().unwrap().as_ref().unwrap()).log.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "; ".to_string(); let __sep_bytes = __go_string_bytes(&__sep); let mut __out = Vec::new(); for (__i, __part) in __parts.iter().enumerate() { if __i != 0 { __out.extend_from_slice(&__sep_bytes); } __out.extend(__go_string_bytes(__part)); } __go_string_from_bytes(__out) }))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = format!("{} {} {}\n", format!("{}", Money(Arc::new(Mutex::new(Some(-1234 as i64))))), format!("{}", Money(Arc::new(Mutex::new(Some(5 as i64))))), format!("{}", (*(*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"apple".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).qty.lock().unwrap().as_ref().unwrap()))); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     for n in vec![4i64, (-1i64)].as_slice().iter().copied() {
         let (mut r, mut err) = must_positive(Arc::new(Mutex::new(Some(n.clone()))));
         println!("{} {}", format!("{}", r), format!("{}", { let __go_print_handle = err.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -2658,9 +2848,9 @@ fn main() {
     for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = tags.clone(); let __append_value = t.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *tags.lock().unwrap() = __slice_header; };
     }
-    { let __sort_target = tags.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    { let __sort_target = tags.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b)); } };
     { let __range_holder = tags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
-        print!("{} {}\n", format!("{:<6}", t), format!("{}", format_slice(&{ let __map = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
+        { let __s = format!("{} {}\n", format!("{:<6}", t), format!("{}", format_slice(&{ let __map = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }))); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     } }
 }
 

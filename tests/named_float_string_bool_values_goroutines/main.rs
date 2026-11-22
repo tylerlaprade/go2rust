@@ -7,6 +7,7 @@ macro_rules! vec {
 use std::any::Any;
 use std::cmp::Ord;
 use std::collections::BTreeMap;
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -17,6 +18,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -961,7 +1044,7 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1305,7 +1388,13 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
     let bytes = &bytes[..kept];
     let spec = &GoFormatSpec { precision: None, ..*spec };
     match std::str::from_utf8(bytes) {
-        Ok(text) => go_format_string(spec, verb, text),
+        Ok(text) => {
+            let formatted = go_format_string(spec, verb, text);
+            if verb == 's' {
+                return formatted.map(|text| __go_string_from_bytes(text.into_bytes()));
+            }
+            formatted
+        }
         // %q writes a byte that is not UTF-8 as an escape.
         Err(_) if verb == 'q' => {
             let mut quoted = String::from("\"");
@@ -1318,9 +1407,24 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s would have to write the byte as it is, and the result is a Rust
-        // String, which cannot hold it.
-        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
+        // The result uses the same reversible representation as every Go
+        // string, so go_sprintf can append the original bytes rather than
+        // exposing the representation. Width counts decoded runes; each
+        // malformed byte counts as one RuneError, as it did for precision.
+        Err(_) => {
+            let len = bytes.utf8_chunks().map(|chunk| chunk.valid().chars().count() + chunk.invalid().len()).sum::<usize>();
+            let fill = spec.width.unwrap_or(0).saturating_sub(len);
+            let padding = std::vec![if spec.zero && !spec.minus { b'0' } else { b' ' }; fill];
+            let mut out = std::vec::Vec::with_capacity(bytes.len() + fill);
+            if !spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            out.extend_from_slice(bytes);
+            if spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            Some(__go_string_from_bytes(out))
+        }
     }
 }
 
@@ -1368,10 +1472,12 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
@@ -1391,7 +1497,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+        let text = format_any(value);
+        let bytes_verb = if verb == 'v' { 's' } else { verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1409,6 +1517,36 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         }
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
+}
+
+// Read an explicit one-based argument index. Go applies the selected argument
+// to the next * or verb, and subsequent unindexed operands continue after it.
+// An invalid or out-of-range index is reported at the eventual verb.
+fn go_format_index(chars: &mut std::iter::Peekable<std::str::Chars>, args_len: usize, next: &mut usize) -> Result<bool, ()> {
+    if chars.peek() != Some(&'[') {
+        return Ok(false);
+    }
+    chars.next();
+    let mut index: Option<usize> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        index = Some(index.unwrap_or(0).saturating_mul(10).saturating_add(digit as usize));
+        chars.next();
+    }
+    if chars.next() != Some(']') {
+        while let Some(c) = chars.next() {
+            if c == ']' {
+                break;
+            }
+        }
+        return Err(());
+    }
+    match index {
+        Some(index) if index > 0 && index <= args_len => {
+            *next = index - 1;
+            Ok(true)
+        }
+        _ => Err(()),
+    }
 }
 
 // The number after % or after the dot: digits, or * for the next argument.
@@ -1457,7 +1595,10 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
-    format!("{}={}", __go_type_name(value), text)
+    let mut out = __go_type_name(value).as_bytes().to_vec();
+    out.push(b'=');
+    out.extend(__go_string_bytes(&text));
+    __go_string_from_bytes(out)
 }
 
 // The verb that writes value as %v does and leaves the flags as they are.
@@ -1483,12 +1624,14 @@ fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
-    let mut out = String::new();
+    let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
+    let mut reordered = false;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
-            out.push(c);
+            let mut encoded = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut encoded).as_bytes());
             continue;
         }
         let mut spec = GoFormatSpec::default();
@@ -1503,8 +1646,23 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
             }
             chars.next();
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        let mut bad_index = false;
+        let mut after_index = false;
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => {
+                reordered |= found;
+                after_index = found;
+            }
+            Err(()) => {
+                reordered = true;
+                after_index = true;
+                bad_index = true;
+            }
+        }
+        // A literal width cannot follow an index at this position. An indexed
+        // * is valid and consumes the selected argument as the width.
+        if after_index && (chars.peek() == Some(&'.') || chars.peek().and_then(|c| c.to_digit(10)).is_some()) {
+            bad_index = true;
         }
         match go_format_number(&mut chars, args, &mut next) {
             // A negative width from an argument means left alignment.
@@ -1513,34 +1671,57 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
                 spec.width = Some((-width) as usize);
             }
             Ok(width) => spec.width = width.map(|width| width as usize),
-            Err(()) => out.push_str("%!(BADWIDTH)"),
+            Err(()) => out.extend_from_slice(b"%!(BADWIDTH)"),
         }
         if chars.peek() == Some(&'.') {
             chars.next();
+            let mut after_precision_index = false;
+            match go_format_index(&mut chars, args.len(), &mut next) {
+                Ok(found) => {
+                    reordered |= found;
+                    after_precision_index = found;
+                }
+                Err(()) => {
+                    reordered = true;
+                    after_precision_index = true;
+                    bad_index = true;
+                }
+            }
+            if after_precision_index && chars.peek().and_then(|c| c.to_digit(10)).is_some() {
+                bad_index = true;
+            }
             match go_format_number(&mut chars, args, &mut next) {
-                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
-                Err(()) => out.push_str("%!(BADPREC)"),
+                Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => reordered |= found,
+            Err(()) => {
+                reordered = true;
+                bad_index = true;
+            }
         }
         let verb = match chars.next() {
             Some(verb) => verb,
             None => {
-                out.push_str("%!(NOVERB)");
+                out.extend_from_slice(b"%!(NOVERB)");
                 break;
             }
         };
         if verb == '%' {
-            out.push('%');
+            out.push(b'%');
+            continue;
+        }
+        if bad_index {
+            out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());
             continue;
         }
         let arg = match args.get(next) {
             Some(arg) => arg,
             None => {
-                out.push_str(&format!("%!{}(MISSING)", verb));
+                out.extend_from_slice(format!("%!{}(MISSING)", verb).as_bytes());
                 continue;
             }
         };
@@ -1550,15 +1731,25 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
-            Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
+            Some(text) => out.extend(__go_string_bytes(&text)),
+            None => {
+                out.extend_from_slice(format!("%!{}(", verb).as_bytes());
+                out.extend(__go_string_bytes(&go_format_typed_value(&spec, arg.as_ref())));
+                out.push(b')');
+            }
         }
     }
-    if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
-        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+    if !reordered && next < args.len() {
+        out.extend_from_slice(b"%!(EXTRA ");
+        for (index, arg) in args[next..].iter().enumerate() {
+            if index > 0 {
+                out.extend_from_slice(b", ");
+            }
+            out.extend(__go_string_bytes(&go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())));
+        }
+        out.push(b')');
     }
-    out
+    __go_string_from_bytes(out)
 }
 }
 use __go_runtime_format::go_sprintf;
@@ -2284,13 +2475,13 @@ impl Celsius {
 
 impl Color {
     pub fn upper(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); __s.to_uppercase() })))
+        Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __out = Vec::new(); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; if let Ok(__valid) = std::str::from_utf8(&__s_bytes[__start..__end]) { let __mapped = __valid.to_uppercase(); __out.extend_from_slice(__mapped.as_bytes()); } else { __out.extend_from_slice("\u{fffd}".as_bytes()); } } __go_string_from_bytes(__out) })))
     }
 }
 
 impl Status {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("{}{}", "status:".to_string(), (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap())))));
+        return Arc::new(Mutex::new(Some(__go_string_concat(&"status:".to_string(), &{ let __s = Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }))));
     }
 }
 
@@ -2345,10 +2536,10 @@ fn main() {
     started.recv().unwrap_or_default();
 
     let mut boiling = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(100.0 as f64)))))));
-    println!("{} {} {}", format!("{}", { let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Arc::new(Mutex::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*f_to_c(Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(212.0)))))))).lock().unwrap().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }), format!("{}", Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))), format!("{}", Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float }))))));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = { let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", (*c_to_f(Arc::new(Mutex::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = { let __go_string_method_receiver = (*f_to_c(Arc::new(Mutex::new(Some(Fahrenheit(Arc::new(Mutex::new(Some(212.0)))))))).lock().unwrap().as_ref().unwrap()); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).sqrt()))).lock().unwrap().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 3; __tmp_x / __tmp_y }); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = { let __go_string_method_receiver = Celsius(Arc::new(Mutex::new(Some(-{ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = { let __go_string_method_receiver = Celsius(Arc::new(Mutex::new(Some({ let __named_float = *{ let __v = (*boiling.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_3)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut temps = Arc::new(Mutex::new(Some(vec![Celsius(Arc::new(Mutex::new(Some(20.5)))), Celsius(Arc::new(Mutex::new(Some(18.0)))), Celsius(Arc::new(Mutex::new(Some(25.25))))])));
-    println!("{}", format!("{}", (*average(temps.clone()).lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = (*average(temps.clone()).lock().unwrap().as_ref().unwrap()); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __seq = { let __seq_holder = temps_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize) };
@@ -2373,17 +2564,17 @@ fn main() {
         { let new_val = t.clone(); *hottest.lock().unwrap() = Some(new_val); };
     }
     }
-    println!("{}", format!("{}", { let __v = (*hottest.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = { let __v = (*hottest.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
     let mut c: Arc<Mutex<Option<Celsius>>> = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(0.0)))))));
     { let __rhs = 1.5; let mut guard = c.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     (*c.lock().unwrap().as_mut().unwrap()).warm(Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(2.0))))))));
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*c.lock().unwrap().as_ref().unwrap()).truncated().lock().unwrap().as_ref().unwrap())), format!("{}", (*zero().lock().unwrap().as_ref().unwrap())), format!("{}", { let __tmp_x = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Celsius(Arc::new(Mutex::new(Some(3.5)))); __tmp_x == __tmp_y }), format!("{}", { let __tmp_x = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = 0.0; __tmp_x != __tmp_y }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = { let __go_string_method_receiver = (*(*c.lock().unwrap().as_ref().unwrap()).truncated().lock().unwrap().as_ref().unwrap()); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = { let __go_string_method_receiver = (*zero().lock().unwrap().as_ref().unwrap()); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = format!("{}", { let __tmp_x = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Celsius(Arc::new(Mutex::new(Some(3.5)))); __tmp_x == __tmp_y }); __go_sprint_bytes.extend(__go_sprint_arg_3.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_4 = format!("{}", { let __tmp_x = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = 0.0; __tmp_x != __tmp_y }); __go_sprint_bytes.extend(__go_sprint_arg_4.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     { let new_val = Celsius(Arc::new(Mutex::new(Some(10.25)))); *c.lock().unwrap() = Some(new_val); };
-    print!("{}", go_sprintf(&"%.2f %v %T\n".to_string(), &[{ let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    { let __s = format!("{}", go_sprintf(&"%.2f %v %T\n".to_string(), &[{ let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut r = Arc::new(Mutex::new(Some(Reading { place: Arc::new(Mutex::new(Some("lab".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(21.5))))))), ..Default::default() })));
     { let __target = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); let __rhs = 0.5; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
-    println!("{} {}", format!("{}", (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __tmp_x = { let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = 20.0; __tmp_x > __tmp_y }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", { let __tmp_x = { let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).temp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = 20.0; __tmp_x > __tmp_y }); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut rs = Arc::new(Mutex::new(Some(vec![Reading { place: Arc::new(Mutex::new(Some("a".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(3.0))))))), ..Default::default() }, Reading { place: Arc::new(Mutex::new(Some("b".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1.0))))))), ..Default::default() }, Reading { place: Arc::new(Mutex::new(Some("c".to_string()))), temp: Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(2.0))))))), ..Default::default() }])));
     let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
         return {
@@ -2394,46 +2585,42 @@ fn main() {
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __range_holder = rs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
-        print!("{}{}{}", format!("{}", (*x.place.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*x.temp.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*x.place.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = { let __go_string_method_receiver = (*x.temp.lock().unwrap().as_ref().unwrap()).clone(); let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); let __go_sprint_arg_2 = " ".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     } }
     println!();
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64).max((*Arc::new(Mutex::new(Some({ let __named_float = *(*{ let __seq = { let __seq_holder = rs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((2) as usize) }.temp.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap(); __named_float } as f64))).lock().unwrap().as_ref().unwrap()) as f64)))).lock().unwrap().as_ref().unwrap())));
     let mut byPlace = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Celsius>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1.25))))))))]))));
     { let __map_key = "y".to_string(); let __map_value = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(({ let __named_float = *{ let __map = { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Arc::new(Mutex::new(Some(0.0))))) }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 2.0)))))))); (*byPlace.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{} {}", format!("{}", { let __map = { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Arc::new(Mutex::new(Some(0.0))))) }), format!("{}", ({ let __len = (*byPlace.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = { let __map = { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Arc::new(Mutex::new(Some(0.0))))) }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", ({ let __len = (*byPlace.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
     let (mut a, mut b) = (Arc::new(Mutex::new(Some(Meters(Arc::new(Mutex::new(Some(7.0 as f64))))))), Arc::new(Mutex::new(Some(Meters(Arc::new(Mutex::new(Some(2.0 as f64))))))));
     println!("{} {} {}", format!("{}", Meters(Arc::new(Mutex::new(Some(({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } / { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))), format!("{}", Meters(Arc::new(Mutex::new(Some((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } * 2.0) + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))), format!("{}", Meters(Arc::new(Mutex::new(Some(((({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } - { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })) * (({ let __named_float = *{ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float } + { let __named_float = *{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap(); __named_float })))))))));
 
     let mut col = Arc::new(Mutex::new(Some(Color(Arc::new(Mutex::new(Some(RED.to_string())))))));
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*col.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.lock().unwrap().as_ref().unwrap()).upper().lock().unwrap().as_ref().unwrap())), format!("{}", ((*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()), format!("{}", { let __tmp_x = ({ let __v = (*col.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Color(Arc::new(Mutex::new(Some(RED.to_string())))); __tmp_x == __tmp_y }), format!("{}", { let __tmp_x = ({ let __v = (*col.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Color(Arc::new(Mutex::new(Some(GREEN.to_string())))); __tmp_x != __tmp_y }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*(*col.lock().unwrap().as_ref().unwrap()).upper().lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = format!("{}", { let __s = (*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_string_len(&__s) }); __go_sprint_bytes.extend(__go_sprint_arg_2.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&RED.to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }); __go_sprint_bytes.extend(__go_sprint_arg_3.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_4 = format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*col.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&GREEN.to_string())); __go_string_cmp(&__left, &__right) != std::cmp::Ordering::Equal }); __go_sprint_bytes.extend(__go_sprint_arg_4.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut colors = Arc::new(Mutex::new(Some(BTreeMap::<Color, Arc<Mutex<Option<i64>>>>::from([(Color(Arc::new(Mutex::new(Some(RED.to_string())))), Arc::new(Mutex::new(Some(1i64)))), (Color(Arc::new(Mutex::new(Some(GREEN.to_string())))), Arc::new(Mutex::new(Some(2i64))))]))));
     println!("{} {}", format!("{}", { let __map = { let __map_holder = colors.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Color(Arc::new(Mutex::new(Some(RED.to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map = { let __map_holder = colors.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Color(Arc::new(Mutex::new(Some("green".to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut name = Arc::new(Mutex::new(Some(Color(Arc::new(Mutex::new(Some("blue".to_string())))))));
     { let __rhs = "ish"; let mut guard = name.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }), format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap())), format!("{}", ((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()));
-    for (i, ch) in ((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).char_indices() {
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __s_bytes.starts_with(&__arg_bytes) }))).lock().unwrap().as_ref().unwrap())); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = format!("{}", { let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(0) as usize] }); __go_sprint_bytes.extend(__go_sprint_arg_2.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = (*(*Arc::new(Mutex::new(Some({ let __s = &((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __go_string_slice(__s, __low, __high) }))).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_3)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_4 = format!("{}", { let __s = (*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_string_len(&__s) }); __go_sprint_bytes.extend(__go_sprint_arg_4.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    for (i, ch) in __go_string_range(&(*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()) {
         if { let __tmp_x = i as i64; let __tmp_y = 2; __tmp_x == __tmp_y } {
-        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*Arc::new(Mutex::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     }
     }
 
     let mut s = Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))))));
-    println!("{} {} {} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*label(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some(INACTIVE.to_string())))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some("other".to_string())))))))).lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = { let __go_string_method_receiver = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*label(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some(INACTIVE.to_string())))))))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = (*label(Arc::new(Mutex::new(Some(Status(Arc::new(Mutex::new(Some("other".to_string())))))))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_3)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut statuses = Arc::new(Mutex::new(Some(vec![Status(Arc::new(Mutex::new(Some(INACTIVE.to_string())))), Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))), Status(Arc::new(Mutex::new(Some("pending".to_string()))))])));
     let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>| -> bool {
-        return {
-            let __tmp_x = { let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize) };
-            let __tmp_y = { let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize) };
-            __tmp_x < __tmp_y
-        };
+        return { let __left = __go_string_from_bytes(__go_string_bytes(&(*{ let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize) }.0.lock().unwrap().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&(*{ let __seq = { let __seq_holder = statuses_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize) }.0.lock().unwrap().as_ref().unwrap()).clone())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&statuses)));
     let mut parts = Arc::new(Mutex::new(Some(Vec::<String>::new())));
     { let __range_holder = statuses.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); for st in __range_values.iter().cloned() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = parts.clone(); let __append_value = (*Arc::new(Mutex::new(Some((*st.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *parts.lock().unwrap() = __slice_header; };
     } }
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*parts.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*Arc::new(Mutex::new(Some({ let __parts = (*parts.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); let __sep_bytes = __go_string_bytes(&__sep); let mut __out = Vec::new(); for (__i, __part) in __parts.iter().enumerate() { if __i != 0 { __out.extend_from_slice(&__sep_bytes); } __out.extend(__go_string_bytes(__part)); } __go_string_from_bytes(__out) }))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))).clone()) as Box<dyn Any + Send + Sync>)));
     {
     let _ts_subject = boxed.clone();
@@ -2449,11 +2636,11 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<Status>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Status>()).unwrap().clone())));
         drop(_ts_guard);
-        println!("{} {}", format!("{}", "status".to_string()), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "status".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = { let __go_string_method_receiver = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __go_string_method_result = __go_string_method_receiver.string(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result.lock().unwrap(); (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        println!("{} {}", format!("{}", "string".to_string()), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "string".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*v.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };;
     }
     }
     {
@@ -2471,7 +2658,7 @@ fn main() {
         }
     });;
         if ok {
-            println!("{} {}", format!("{}", { let __tmp_x = ({ let __v = (*st.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))); __tmp_x == __tmp_y }), format!("{}", ((*(*st.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone()).len()));;
+            println!("{} {}", format!("{}", { let __left = __go_string_from_bytes(__go_string_bytes(&(*(*st.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone())); let __right = __go_string_from_bytes(__go_string_bytes(&ACTIVE.to_string())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }), format!("{}", { let __s = (*(*st.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone(); __go_string_len(&__s) }));;
         }
     }
     let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<Status, Arc<Mutex<Option<i64>>>>::from([]))));
@@ -2480,5 +2667,5 @@ fn main() {
     println!("{} {}", format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&Status(Arc::new(Mutex::new(Some(ACTIVE.to_string())))))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_map(&counts)));
 
     let mut e: Arc<Mutex<Option<Enabled>>> = Arc::new(Mutex::new(Some(Enabled(Arc::new(Mutex::new(Some(true)))))));
-    println!("{} {} {}", format!("{}", (*describe(Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some(Enabled(Arc::new(Mutex::new(Some(!((*(*e.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", Enabled(Arc::new(Mutex::new(Some((*(*e.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) && true))))));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*describe(Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*describe(Arc::new(Mutex::new(Some(Enabled(Arc::new(Mutex::new(Some(!((*(*e.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = format!("{}", Enabled(Arc::new(Mutex::new(Some((*(*e.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) && true))))); __go_sprint_bytes.extend(__go_sprint_arg_2.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 }

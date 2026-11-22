@@ -14,13 +14,16 @@ import "fmt"
 
 func main() {
 	f := "value: %d\n"
-	fmt.Printf(f, 42)
+	n, err := fmt.Printf(f, 42)
+	_, _ = n, err
 	fmt.Println(fmt.Sprintf(f, 43))
 }
 `)
 
 	for _, want := range []string{
-		`print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42i64) as Box<dyn Any>], false))`,
+		`{ let __s = format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42i64) as Box<dyn Any>], false)); let __bytes = __go_string_bytes(&__s);`,
+		`std::io::Write::write_all(&mut std::io::stdout(), &__bytes)`,
+		`Ok(()) => (__n,`,
 		`format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43i64) as Box<dyn Any>], false))`,
 		"fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"fn format_any(value: &dyn Any) -> String {",
@@ -51,7 +54,8 @@ func main() {
 `)
 
 	for _, want := range []string{
-		`print!("{}", go_sprintf_spread(&format!("{}{}", (*format.borrow().as_ref().unwrap()), "\n".to_string()), &args, false))`,
+		`{ let __s = format!("{}", go_sprintf_spread(&__go_string_concat(&(*format.borrow().as_ref().unwrap()), &"\n".to_string()), &args, false)); let __bytes = __go_string_bytes(&__s);`,
+		`std::io::Write::write_all(&mut std::io::stdout(), &__bytes)`,
 		"fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {",
 		"let args_guard = guard.as_ref().map(|args| args.as_slice());",
 		"go_sprintf(format, args_guard.as_deref().unwrap_or(&[]), wraps)",
@@ -152,12 +156,47 @@ func main() {
 func TestRuntimeFormatterFailsLoudlyOnWhatItDoesNotSupport(t *testing.T) {
 	for _, want := range []string{
 		`panic!("go2rust: %p is not supported in a format that is only known at run time");`,
-		`panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");`,
 		`panic!("go2rust: the # flag on %{} of a float is not supported in a format that is only known at run time", verb);`,
 		`panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time"`,
 	} {
 		if !strings.Contains(goSprintfFormatting+goSprintfEntry, want) {
 			t.Fatalf("the run-time formatter lost a loud failure: %s", want)
+		}
+	}
+}
+
+func TestRuntimeFormatterSupportsExplicitArgumentIndexes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	format := "%[1]s|%[2]q|%[1]x"
+	invalid := string([]byte{0xfa})
+	_ = fmt.Sprintf(format, invalid, "ok")
+	widthPrecision := "%[3]*.[2]*[1]s"
+	_ = fmt.Sprintf(widthPrecision, invalid+"A", 1, 4)
+	continueAfterIndex := "%[2]s|%s"
+	_ = fmt.Sprintf(continueAfterIndex, "one", "two", "three")
+}
+`)
+
+	for _, want := range []string{
+		"fn go_format_index(",
+		"*next = index - 1;",
+		"let mut reordered = false;",
+		`out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());`,
+		"if !reordered && next < args.len() {",
+		`go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[`,
+		`Box::new({ let __arg_holder = invalid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>`,
+		`Box::new("ok".to_string()) as Box<dyn Any>`,
+		`go_sprintf(&(*widthPrecision.borrow().as_ref().unwrap()).clone(), &[`,
+		`Box::new(1i64) as Box<dyn Any>`,
+		`Box::new(4i64) as Box<dyn Any>`,
+		`go_sprintf(&(*continueAfterIndex.borrow().as_ref().unwrap()).clone(), &[`,
+	} {
+		if !strings.Contains(goSprintfEntry+rust, want) {
+			t.Fatalf("the run-time formatter lost indexed-argument support: %s", want)
 		}
 	}
 }
@@ -215,6 +254,37 @@ func main() {
 	locked := transpileTypedConcurrentRegression(t, source)
 	if !strings.Contains(locked, "value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>()") || !strings.Contains(locked, "let guard = v.lock().unwrap();") {
 		t.Fatalf("want the Arc handle of a []byte:\n%s", locked)
+	}
+}
+
+func TestRuntimeFormatterCarriesCanonicalGoStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type text string
+func (text) String() string { return string([]byte{0xfb}) }
+
+func main() {
+	format := "%s %v %q %x"
+	value := string([]byte{0xfa, 'A'})
+	_ = fmt.Sprintf(format, value, value, value, text("x"))
+}
+`)
+
+	for _, want := range []string{
+		"use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name",
+		"let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };",
+		"return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));",
+		"let bytes_verb = if verb == 'v' { 's' } else { verb };",
+		"return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));",
+		"let mut out = std::vec::Vec::<u8>::new();",
+		"Some(text) => out.extend(__go_string_bytes(&text))",
+		"__go_string_from_bytes(out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("runtime string formatting must carry canonical Go bytes; missing %q:\n%s", want, rust)
+		}
 	}
 }
 
@@ -336,7 +406,7 @@ func main() {
 		"if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {",
 		// What is left stops the program; it does not print an approximation.
 		"if spec.width.is_none() && spec.precision.is_none() && !spec.space {",
-		`panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time")`,
+		"Some(__go_string_from_bytes(out))",
 		"let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };",
 	} {
 		if !strings.Contains(rust, want) {
@@ -373,7 +443,7 @@ func main() {
 
 	for _, want := range []string{
 		"fn go_format_is_text(__value: &dyn Any) -> bool {",
-		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};",
 		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"}\nuse __go_runtime_format::go_sprintf;\n",
 	} {
@@ -424,7 +494,8 @@ func main() {
 	fmt.Print(1, 2, "a", 3, Name("b"), "c", 4.5)
 }
 `)
-	if !strings.Contains(rust, `print!("{} {}{}{}{}{}{}"`) {
+	if strings.Count(rust, `__go_sprint_bytes.push(b' ');`) != 1 ||
+		!strings.Contains(rust, `std::io::Write::write_all(&mut std::io::stdout(), &__bytes)`) {
 		t.Fatalf("expected spaces only between the two integers:\n%s", rust)
 	}
 }

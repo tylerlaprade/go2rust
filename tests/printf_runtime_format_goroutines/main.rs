@@ -18,6 +18,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1036,7 +1118,7 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1380,7 +1462,13 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
     let bytes = &bytes[..kept];
     let spec = &GoFormatSpec { precision: None, ..*spec };
     match std::str::from_utf8(bytes) {
-        Ok(text) => go_format_string(spec, verb, text),
+        Ok(text) => {
+            let formatted = go_format_string(spec, verb, text);
+            if verb == 's' {
+                return formatted.map(|text| __go_string_from_bytes(text.into_bytes()));
+            }
+            formatted
+        }
         // %q writes a byte that is not UTF-8 as an escape.
         Err(_) if verb == 'q' => {
             let mut quoted = String::from("\"");
@@ -1393,9 +1481,24 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s would have to write the byte as it is, and the result is a Rust
-        // String, which cannot hold it.
-        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
+        // The result uses the same reversible representation as every Go
+        // string, so go_sprintf can append the original bytes rather than
+        // exposing the representation. Width counts decoded runes; each
+        // malformed byte counts as one RuneError, as it did for precision.
+        Err(_) => {
+            let len = bytes.utf8_chunks().map(|chunk| chunk.valid().chars().count() + chunk.invalid().len()).sum::<usize>();
+            let fill = spec.width.unwrap_or(0).saturating_sub(len);
+            let padding = std::vec![if spec.zero && !spec.minus { b'0' } else { b' ' }; fill];
+            let mut out = std::vec::Vec::with_capacity(bytes.len() + fill);
+            if !spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            out.extend_from_slice(bytes);
+            if spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            Some(__go_string_from_bytes(out))
+        }
     }
 }
 
@@ -1443,10 +1546,12 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         let guard = v.lock().unwrap();
@@ -1466,7 +1571,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+        let text = format_any(value);
+        let bytes_verb = if verb == 'v' { 's' } else { verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1532,7 +1639,10 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
-    format!("{}={}", __go_type_name(value), text)
+    let mut out = __go_type_name(value).as_bytes().to_vec();
+    out.push(b'=');
+    out.extend(__go_string_bytes(&text));
+    __go_string_from_bytes(out)
 }
 
 // The verb that writes value as %v does and leaves the flags as they are.
@@ -1558,12 +1668,13 @@ fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
-    let mut out = String::new();
+    let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
-            out.push(c);
+            let mut encoded = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut encoded).as_bytes());
             continue;
         }
         let mut spec = GoFormatSpec::default();
@@ -1588,14 +1699,14 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
                 spec.width = Some((-width) as usize);
             }
             Ok(width) => spec.width = width.map(|width| width as usize),
-            Err(()) => out.push_str("%!(BADWIDTH)"),
+            Err(()) => out.extend_from_slice(b"%!(BADWIDTH)"),
         }
         if chars.peek() == Some(&'.') {
             chars.next();
             match go_format_number(&mut chars, args, &mut next) {
-                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
-                Err(()) => out.push_str("%!(BADPREC)"),
+                Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
         if chars.peek() == Some(&'[') {
@@ -1604,18 +1715,18 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         let verb = match chars.next() {
             Some(verb) => verb,
             None => {
-                out.push_str("%!(NOVERB)");
+                out.extend_from_slice(b"%!(NOVERB)");
                 break;
             }
         };
         if verb == '%' {
-            out.push('%');
+            out.push(b'%');
             continue;
         }
         let arg = match args.get(next) {
             Some(arg) => arg,
             None => {
-                out.push_str(&format!("%!{}(MISSING)", verb));
+                out.extend_from_slice(format!("%!{}(MISSING)", verb).as_bytes());
                 continue;
             }
         };
@@ -1625,15 +1736,25 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
-            Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
+            Some(text) => out.extend(__go_string_bytes(&text)),
+            None => {
+                out.extend_from_slice(format!("%!{}(", verb).as_bytes());
+                out.extend(__go_string_bytes(&go_format_typed_value(&spec, arg.as_ref())));
+                out.push(b')');
+            }
         }
     }
     if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
-        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+        out.extend_from_slice(b"%!(EXTRA ");
+        for (index, arg) in args[next..].iter().enumerate() {
+            if index > 0 {
+                out.extend_from_slice(b", ");
+            }
+            out.extend(__go_string_bytes(&go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())));
+        }
+        out.push(b')');
     }
-    out
+    __go_string_from_bytes(out)
 }
 
 // go_sprintf for f(format, args...), where the arguments are a slice.
@@ -1840,7 +1961,7 @@ impl Status {
 /// logf is the wrapper most programs have: the format arrives as a value, so
 /// it is only known when the program runs.
 pub fn logf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
-    print!("{}", go_sprintf_spread(&format!("{}{}", { let __v = (*format.lock().unwrap().as_ref().unwrap()).clone(); __v }, "\n".to_string()), &args, false));
+    { let __s = format!("{}", go_sprintf_spread(&__go_string_concat(&{ let __v = (*format.lock().unwrap().as_ref().unwrap()).clone(); __v }, &"\n".to_string()), &args, false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 }
 
 pub fn sprintf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<String>>> {
@@ -1854,9 +1975,9 @@ pub fn errorf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box
 /// showPair passes its arguments on as a list to a format that is known when
 /// the program is translated: a constant, and one written out in the call.
 pub fn show_pair(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
-    print!("{}", go_sprintf_spread(&PAIR_LAYOUT, &args, false));
+    { let __s = format!("{}", go_sprintf_spread(&PAIR_LAYOUT, &args, false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut text = Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&"%v|%v".to_string(), &args, false)))));
-    println!("{}", format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*text.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 }
 
 /// later formats inside a closure. The closure holds the format and the
@@ -1865,17 +1986,17 @@ pub fn later(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<
     let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.lock().unwrap().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    println!("{}", format!("{}", (*{
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = build.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*{
+    let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
+        let mut __f_guard = build.lock().unwrap();
+        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
+    };
+    let __f = unsafe { &mut *__f_ptr };
+    (*__f)(
 
-        )
-    }.lock().unwrap().as_ref().unwrap())));
-    println!("{} {}", format!("{}", ({ let __len = (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", "arguments".to_string()));
+    )
+}.lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", ({ let __len = (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = "arguments".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 }
 
 pub fn pick(named: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
@@ -1891,14 +2012,14 @@ fn main() {
     let done_thread = done.clone(); std::thread::spawn(move || {
         done_thread.send("started".to_string());;;
     });
-    println!("{}", format!("{}", done.recv().unwrap_or_default()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*done.recv().unwrap_or_default().lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
         // The format is a parameter, the result of a call, or a variable.
     logf(Arc::new(Mutex::new(Some("count %d of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>]))));
-    print!("{}", go_sprintf(&(*pick(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("x".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(true) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d-%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    { let __s = format!("{}", go_sprintf(&(*pick(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("x".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(true) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%d-%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut f = Arc::new(Mutex::new(Some("value: %d\n".to_string())));
-    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(42i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    { let __s = format!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(42i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
     show_pair(Arc::new(Mutex::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>]))));
     later(Arc::new(Mutex::new(Some("%d and %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>]))));
@@ -1929,18 +2050,18 @@ fn main() {
     logf(Arc::new(Mutex::new(Some("%8v|%-8v|%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(none.clone()) as Box<dyn Any + Send + Sync>, Box::new(none.clone()) as Box<dyn Any + Send + Sync>, Box::new(none.clone()) as Box<dyn Any + Send + Sync>]))));
 
         // A []byte prints as text where a string would.
-    logf(Arc::new(Mutex::new(Some("bytes %s, hex %x, list %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("bytes %s, hex %x, list %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&("Hi".to_string())))))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&("Hi".to_string())))))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Vec::from(__go_string_bytes(&("Hi".to_string())))))).clone()) as Box<dyn Any + Send + Sync>]))));
     logf(Arc::new(Mutex::new(Some("%*d|%#v|%#v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(-4i64) as Box<dyn Any + Send + Sync>, Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("quoted".to_string()) as Box<dyn Any + Send + Sync>, Box::new(255u8) as Box<dyn Any + Send + Sync>]))));
 
         // What fmt writes when the format and the arguments do not fit.
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%z".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("trailing %".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("no verbs".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("plain".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%d %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("%z".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("trailing %".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("no verbs".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*sprintf(Arc::new(Mutex::new(Some("plain".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
         // The same through Sprintf, Errorf and Fprintf.
     let mut err = errorf(Arc::new(Mutex::new(Some("code %d: %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
@@ -1950,14 +2071,14 @@ fn main() {
     println!("{}", format!("{}", { let __go_print_handle = errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __go_print_handle = errorf(Arc::new(Mutex::new(Some("%w and %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }])))); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{}", format!("{}", { let __go_print_handle = errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any + Send + Sync>])))); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(43i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    { let __s = format!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(43i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
     let mut pair = Arc::new(Mutex::new(Some("%s=%d".to_string())));
     let mut b: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*b.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("k".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __builder = b.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())));
+    { let __go_builder_part = go_sprintf(&(*pair.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("k".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false); let __go_builder_n = __go_string_len(&__go_builder_part) as i64; let __go_builder_handle = b.clone(); let mut __go_builder_guard = __go_builder_handle.lock().unwrap(); let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); (__go_builder_n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))) };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*Arc::new(Mutex::new(Some({ let __builder = b.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 
         // A constant format is known when the program is translated.
     const layout: &'static str = "%s has %d items\n";
 
-    print!("{} has {} items\n", format!("{}", "cart".to_string()), format!("{}", 3));
+    { let __s = format!("{} has {} items\n", format!("{}", "cart".to_string()), format!("{}", 3)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (0, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
 }

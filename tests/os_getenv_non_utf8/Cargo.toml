@@ -1,0 +1,11 @@
+[package]
+name = "os_getenv_non_utf8"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_getenv_non_utf8"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

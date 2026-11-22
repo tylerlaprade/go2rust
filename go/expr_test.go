@@ -1117,9 +1117,9 @@ func appendName(name string) []byte {
 		strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()).clone().as_bytes()") {
 		t.Fatalf("append string expansion should not treat string concatenation as wrapped:\n%s", rust)
 	}
-	if !strings.Contains(rust, "format!(\"{}{}\", \" \".to_string(),") ||
+	if !strings.Contains(rust, "__go_string_concat(&\" \".to_string(),") ||
 		!strings.Contains(rust, ".as_bytes().iter().cloned()") {
-		t.Fatalf("append string expansion should extend from the bare formatted string:\n%s", rust)
+		t.Fatalf("append string expansion should extend from the bare concatenated string:\n%s", rust)
 	}
 }
 
@@ -1135,13 +1135,77 @@ func render(name string) string {
 		t.Fatalf("long string concatenation should not lower to nested format macros:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut __s = String::new()") ||
-		!strings.Contains(rust, `__s.push_str(&format!("{}",`) {
+		!strings.Contains(rust, `__s = __go_string_concat(&__s, &`) {
 		t.Fatalf("long string concatenation should use a linear string builder shape:\n%s", rust)
 	}
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "let mut __s = String::new()") && strings.Contains(line, "__s.push_str") {
+		if strings.Contains(line, "let mut __s = String::new()") && strings.Contains(line, "__go_string_concat") {
 			t.Fatalf("long string concatenation builder should split pushes across lines:\n%s", rust)
 		}
+	}
+}
+
+func TestStringComparisonUsesGoBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type label string
+
+func compare(left, right string, namedLeft, namedRight label) bool {
+	return left < right || left >= right || namedLeft > namedRight || left == right
+}
+`)
+
+	if got := strings.Count(rust, "__go_string_cmp("); got != 4 {
+		t.Fatalf("string comparisons should compare decoded Go bytes; got %d helpers:\n%s", got, rust)
+	}
+	if !strings.Contains(rust, "std::cmp::Ordering::Less") ||
+		!strings.Contains(rust, "std::cmp::Ordering::Greater") ||
+		!strings.Contains(rust, "std::cmp::Ordering::Equal") {
+		t.Fatalf("string comparisons should map every ordering result explicitly:\n%s", rust)
+	}
+}
+
+func TestReservedPrefixStringConstantsEscapeRuntimeEncoding(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const collision = "\ufdd0\ufdd1fa"
+
+func preserve() (string, bool, []byte) {
+	value := collision
+	return collision + "X", collision == string([]byte{0xfa}), []byte(value)
+}
+`)
+
+	encoded := "__go_string_from_bytes(std::vec::Vec::from([0xefu8, 0xb7u8, 0x90u8, 0xefu8, 0xb7u8, 0x91u8, 0x66u8, 0x61u8]))"
+	if got := strings.Count(rust, encoded); got < 3 {
+		t.Fatalf("reserved-prefix constants should enter runtime strings through their original bytes; got %d encodings:\n%s", got, rust)
+	}
+	if !strings.Contains(rust, `const COLLISION: &'static str = "\u{fdd0}\u{fdd1}fa";`) {
+		t.Fatalf("constant declarations should remain valid Rust constants:\n%s", rust)
+	}
+	if strings.Contains(rust, encoded+".len()") {
+		t.Fatalf("constant byte length should not inspect the escaped runtime representation:\n%s", rust)
+	}
+}
+
+func TestGoStringValueCollidesWithByteEncoding(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value string
+		want  bool
+	}{
+		{name: "prefix alone", value: "\ufdd0\ufdd1", want: true},
+		{name: "lower hex", value: "\ufdd0\ufdd1fa", want: true},
+		{name: "upper hex", value: "\ufdd0\ufdd1FA", want: true},
+		{name: "odd suffix", value: "\ufdd0\ufdd1f", want: false},
+		{name: "non hex", value: "\ufdd0\ufdd1fg", want: false},
+		{name: "ordinary", value: "fa", want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := goStringValueCollidesWithByteEncoding(tc.value); got != tc.want {
+				t.Fatalf("goStringValueCollidesWithByteEncoding(%q) = %v, want %v", tc.value, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -1158,7 +1222,7 @@ func substrings(s string, beg int, end int) []string {
 	if strings.Contains(rust, "let __append_value = Rc::new(") || strings.Contains(rust, "let __append_value = Arc::new(") {
 		t.Fatalf("append string slice to []string should not push a wrapped String handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __append_value = { let __s = &(") || !strings.Contains(rust, "].to_string() }") {
+	if !strings.Contains(rust, "let __append_value = { let __s = &(") || !strings.Contains(rust, "__go_string_slice(__s, __low, __high) }") {
 		t.Fatalf("append string slice to []string should push the bare String value:\n%s", rust)
 	}
 }
@@ -4323,7 +4387,7 @@ func trimParens(s string) string {
 	return s[len("(") : len(s)-len(")")]
 }`)
 
-	if !strings.Contains(rust, "].to_string()") {
+	if !strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string slice should produce a String under syntax fallback:\n%s", rust)
 	}
 	if strings.Contains(rust, "].to_vec()") {
@@ -4350,7 +4414,7 @@ func (i Accuracy) String() string {
 		t.Fatalf("string slice should not borrow complex bounds inside the slice range:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __low =") || !strings.Contains(rust, "let __high =") ||
-		!strings.Contains(rust, "__s[__low..__high].to_string()") {
+		!strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string slice should bind complex bounds before slicing:\n%s", rust)
 	}
 }
@@ -4475,8 +4539,8 @@ func upper(s string) string {
 	if strings.Contains(rust, "type info required for range statement") {
 		t.Fatalf("string parameter range should use syntax-derived parameter type:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".char_indices()") {
-		t.Fatalf("string parameter range should iterate chars:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_range(") {
+		t.Fatalf("string parameter range should iterate Go string bytes:\n%s", rust)
 	}
 	if !strings.Contains(rust, "to_string()") {
 		t.Fatalf("string(char) over a range rune should use the bare char value:\n%s", rust)
@@ -4506,8 +4570,8 @@ func upper(s string) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, &TypeInfo{})
-	if !strings.Contains(rust, "push_str") {
-		t.Fatalf("partial type info should still use string append syntax fallback:\n%s", rust)
+	if !strings.Contains(rust, "__go_string_concat") {
+		t.Fatalf("partial type info should still use string concatenation syntax fallback:\n%s", rust)
 	}
 	if strings.Contains(rust, "guard.as_ref().unwrap() +") {
 		t.Fatalf("partial type info should not force numeric compound assignment:\n%s", rust)
@@ -4527,10 +4591,10 @@ func add(path string, start int, end int) string {
 }
 `)
 
-	if strings.Contains(rust, "push_str(&Rc::new") || strings.Contains(rust, "push_str(&Arc::new") {
-		t.Fatalf("string += string slice should pass a bare String to push_str:\n%s", rust)
+	if strings.Contains(rust, "__go_string_concat(&Rc::new") || strings.Contains(rust, "__go_string_concat(&Arc::new") {
+		t.Fatalf("string += string slice should pass a bare String to the concatenation helper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__s[__low..__high].to_string()") {
+	if !strings.Contains(rust, "__go_string_slice(__s, __low, __high)") {
 		t.Fatalf("string += string slice should use the raw string-slice helper:\n%s", rust)
 	}
 }
@@ -4552,7 +4616,7 @@ func join(prefix string, s string) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, nil)
-	if !strings.Contains(rust, "format!(\"{}{}\"") {
+	if !strings.Contains(rust, "__go_string_concat") {
 		t.Fatalf("string parameter concatenation should use syntax-derived string types:\n%s", rust)
 	}
 	if strings.Contains(rust, "__tmp_x + __tmp_y") {
@@ -8011,7 +8075,7 @@ func lookup(i uint8) int {
 	if strings.Contains(rust, "TABLE.borrow()") || strings.Contains(rust, "TABLE.lock()") {
 		t.Fatalf("string constant index should not borrow or lock the constant as a wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".as_bytes()[") {
+	if !strings.Contains(rust, "__go_string_bytes(__s)[") {
 		t.Fatalf("string constant index should read from bare string bytes:\n%s", rust)
 	}
 }

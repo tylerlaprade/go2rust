@@ -2357,15 +2357,7 @@ impl exec_Cmd {
 	    }
 
 	`)
-	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
-        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
-        if let Some(cmd_env) = %s.as_ref() {
-            env.extend(cmd_env.as_slice().iter().cloned());
-        }
-        %s
-    }
-
-`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"), wrappedExternalStubExpr("Vec<String>", "env"))
+	writeExecCmdEnvironMethod(out, fields)
 	if method, ok := methods["stderr_pipe"]; ok && len(method.ReturnTypes) == 2 {
 		fmt.Fprintf(out, `    pub fn stderr_pipe(&mut self) -> (%s, %s) {
         let file = os_File::default();
@@ -2397,15 +2389,35 @@ impl exec_Cmd {
 `, externalStubBorrowExpr("self.dir"))
 	}
 	if _, ok := fields["env"]; ok {
-		fmt.Fprintf(out, `        if let Some(env) = %s.as_ref() {
-            let env_values = env.as_slice();
-            for item in env_values.iter() {
-                if let Some((key, value)) = item.split_once('=') {
-                    command.env(key, value);
-                }
-            }
-        }
-`, externalStubBorrowExpr("self.env"))
+		fmt.Fprintf(out, `        if let Some(__cmd_env) = %s.as_ref() {
+			if __cmd_env.as_slice().iter().any(|item| __go_string_bytes(item).contains(&0)) {
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "exec: environment variable contains NUL"));
+			}
+		}
+		let __effective_env = self.environ();
+		let __env_values = %s.as_ref().cloned().unwrap_or_default();
+		command.env_clear();
+		for __item in __env_values.iter() {
+			let __bytes = __go_string_bytes(__item);
+			if let Some(__separator) = __bytes.iter().position(|byte| *byte == b'=') {
+				#[cfg(unix)]
+				{
+					use std::os::unix::ffi::OsStringExt;
+					command.env(
+						std::ffi::OsString::from_vec(__bytes[..__separator].to_vec()),
+						std::ffi::OsString::from_vec(__bytes[__separator + 1..].to_vec()),
+					);
+				}
+				#[cfg(not(unix))]
+				{
+					command.env(
+						String::from_utf8_lossy(&__bytes[..__separator]).into_owned(),
+						String::from_utf8_lossy(&__bytes[__separator + 1..]).into_owned(),
+					);
+				}
+			}
+		}
+`, externalStubBorrowExpr("self.env"), externalStubBorrowExpr("__effective_env"))
 	}
 	out.WriteString(`        command.output()
     }
@@ -2463,6 +2475,82 @@ impl exec_Cmd {
     }
 }
 `, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
+}
+
+func writeExecCmdEnvironMethod(out *strings.Builder, fields map[string]string) {
+	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
+        let __cmd_env = %s.as_ref().cloned();
+        let __use_host = __cmd_env.is_none();
+        let mut env: Vec<String> = if let Some(cmd_env) = __cmd_env {
+            cmd_env
+        } else {
+            #[cfg(unix)]
+            {
+                use std::os::unix::ffi::OsStringExt;
+                std::env::vars_os().map(|(key, value)| {
+                    let mut bytes = key.into_vec();
+                    bytes.push(b'=');
+                    bytes.extend(value.into_vec());
+                    __go_string_from_bytes(bytes)
+                }).collect()
+            }
+            #[cfg(not(unix))]
+            {
+                std::env::vars().map(|(key, value)| format!("{}={}", key, value)).collect()
+            }
+        };
+`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"))
+	if _, ok := fields["dir"]; ok {
+		fmt.Fprintf(out, `        if __use_host {
+            let __dir = %s.as_ref().cloned().unwrap_or_default();
+            if !__dir.is_empty() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::ffi::OsStringExt;
+                    let __dir_path = std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&__dir)));
+                    if let Ok(__absolute) = std::path::absolute(__dir_path) {
+                        let mut __pwd = b"PWD=".to_vec();
+                        __pwd.extend(__absolute.into_os_string().into_vec());
+                        env.push(__go_string_from_bytes(__pwd));
+                    }
+                }
+            }
+        }
+`, externalStubBorrowExpr("self.dir"))
+	}
+	out.WriteString(`        let mut __seen = std::collections::HashSet::<Vec<u8>>::new();
+        let mut __dedup = Vec::<String>::new();
+        for __entry in env.into_iter().rev() {
+            let __bytes = __go_string_bytes(&__entry);
+            if __bytes.contains(&0) {
+                continue;
+            }
+            let __separator = if cfg!(windows) && __bytes.first() == Some(&b'=') {
+                __bytes[1..].iter().position(|byte| *byte == b'=').map(|index| index + 1)
+            } else {
+                __bytes.iter().position(|byte| *byte == b'=')
+            };
+            if let Some(__separator) = __separator {
+                let mut __key = __bytes[..__separator].to_vec();
+                if cfg!(windows) {
+                    __key.make_ascii_lowercase();
+                }
+                if !__seen.insert(__key) {
+                    continue;
+                }
+                __dedup.push(__entry);
+            } else if !__bytes.is_empty() {
+                __dedup.push(__entry);
+            }
+        }
+        __dedup.reverse();
+        env = __dedup;
+        `)
+	out.WriteString(wrappedExternalStubExpr("Vec<String>", "env"))
+	out.WriteString(`
+    }
+
+`)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
@@ -3121,12 +3209,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsSetenv := pkg.Functions["setenv"]
+	_, needsUnsetenv := pkg.Functions["unsetenv"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
 		if _, ok := pkg.Functions["write_file"]; ok {
 			writeGoBytesArgTrait(out)
 		}
+	}
+	if needsFilesystemHelpers || needsSetenv || needsUnsetenv {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3169,10 +3261,18 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "environ" {
+			writeOsEnvironFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getwd" {
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "lookup_env" {
+			writeOsLookupEnvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "setenv" {
+			writeOsSetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "unsetenv" {
+			writeOsUnsetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
@@ -3194,6 +3294,28 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	out.WriteString("}\n")
+}
+
+func writeOsStringValue(out *strings.Builder, argName, label string) {
+	stringType := wrappedExternalStubType("String")
+	stringBorrow := externalStubBorrowExpr("v")
+	out.WriteString("        let ")
+	out.WriteString(label)
+	out.WriteString(" = if let Some(v) = (&")
+	out.WriteString(argName)
+	out.WriteString(" as &dyn Any).downcast_ref::<String>() {\n")
+	out.WriteString("            v.clone()\n")
+	out.WriteString("        } else if let Some(v) = (&")
+	out.WriteString(argName)
+	out.WriteString(" as &dyn Any).downcast_ref::<")
+	out.WriteString(stringType)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(stringBorrow)
+	out.WriteString(".as_ref().cloned().unwrap_or_default()\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os environment bridge: expected string argument\")\n")
+	out.WriteString("        };\n")
 }
 
 func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
@@ -3224,6 +3346,18 @@ func writeOsErrorHelpers(out *strings.Builder) {
         %s::new(%s::new(Some(%s)))
     }
 
+    fn go_path(path: String) -> std::path::PathBuf {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&path)))
+        }
+        #[cfg(not(unix))]
+        {
+            std::path::PathBuf::from(path)
+        }
+    }
+
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
@@ -3234,7 +3368,30 @@ func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
-// PERMANENT: not scaffold — os.Getenv maps to std::env::var in the host process environment.
+// PERMANENT: not scaffold — os.Environ maps to the host process environment.
+func writeOsEnvironFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn environ() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value: Vec<String> = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::vars_os().map(|(key, value)| {\n")
+	out.WriteString("                let mut bytes = key.into_vec();\n")
+	out.WriteString("                bytes.push(b'=');\n")
+	out.WriteString("                bytes.extend(value.into_vec());\n")
+	out.WriteString("                __go_string_from_bytes(bytes)\n")
+	out.WriteString("            }).collect()\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value: Vec<String> = std::env::vars().map(|(key, value)| format!(\"{}={}\", key, value)).collect();\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("Vec<String>", "value"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Getenv maps to the host process environment.
 func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	stringType := wrappedExternalStubType("String")
 	stringBorrow := externalStubBorrowExpr("v")
@@ -3253,9 +3410,88 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        } else {\n")
 	out.WriteString("            panic!(\"os.Getenv bridge: expected string argument\")\n")
 	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            let os_key = std::ffi::OsString::from_vec(__go_string_bytes(&key));\n")
+	out.WriteString("            std::env::var_os(os_key).map(|value| __go_string_from_bytes(value.into_vec())).unwrap_or_default()\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value = std::env::var(key).unwrap_or_default();\n")
 	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.LookupEnv maps to the host process environment.
+func writeOsLookupEnvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn lookup_env<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        let value = {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            let os_key = std::ffi::OsString::from_vec(__go_string_bytes(&key));\n")
+	out.WriteString("            std::env::var_os(os_key).map(|value| __go_string_from_bytes(value.into_vec()))\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let value = std::env::var(key).ok();\n")
+	out.WriteString("        match value {\n")
+	out.WriteString("            Some(value) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(", true),\n")
+	out.WriteString("            None => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", false),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Setenv maps to the host process environment.
+func writeOsSetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn setenv<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	writeOsStringValue(out, "_arg1", "value")
+	out.WriteString("        let key_bytes = __go_string_bytes(&key);\n")
+	out.WriteString("        let value_bytes = __go_string_bytes(&value);\n")
+	out.WriteString("        if key_bytes.is_empty() || key_bytes.contains(&b'=') || key_bytes.contains(&0) || value_bytes.contains(&0) {\n")
+	out.WriteString("            return io_error(std::io::Error::new(std::io::ErrorKind::InvalidInput, \"invalid environment variable\"));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::set_var(std::ffi::OsString::from_vec(key_bytes), std::ffi::OsString::from_vec(value_bytes));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        std::env::set_var(key, value);\n")
+	out.WriteString("        no_error()\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Unsetenv maps to the host process environment.
+func writeOsUnsetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn unsetenv<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeOsStringValue(out, "_arg0", "key")
+	out.WriteString("        let key_bytes = __go_string_bytes(&key);\n")
+	out.WriteString("        if key_bytes.is_empty() || key_bytes.contains(&b'=') || key_bytes.contains(&0) {\n")
+	// Go's os.Unsetenv treats invalid keys as an already-absent variable and
+	// returns nil. Rust's remove_var panics for the same keys, so stop here.
+	out.WriteString("            return no_error();\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        {\n")
+	out.WriteString("            use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("            std::env::remove_var(std::ffi::OsString::from_vec(key_bytes));\n")
+	out.WriteString("        }\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        std::env::remove_var(key);\n")
+	out.WriteString("        no_error()\n")
 	out.WriteString("    }\n")
 }
 
@@ -3265,9 +3501,18 @@ func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
 	out.WriteString("        match std::env::current_dir() {\n")
-	out.WriteString("            Ok(path) => (")
-	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
-	out.WriteString(", no_error()),\n")
+	out.WriteString("            Ok(path) => {\n")
+	out.WriteString("                #[cfg(unix)]\n")
+	out.WriteString("                let value = {\n")
+	out.WriteString("                    use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("                    __go_string_from_bytes(path.into_os_string().into_vec())\n")
+	out.WriteString("                };\n")
+	out.WriteString("                #[cfg(not(unix))]\n")
+	out.WriteString("                let value = path.to_string_lossy().into_owned();\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            },\n")
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
 	out.WriteString(", io_error(err)),\n")
@@ -3389,7 +3634,7 @@ func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => (")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "data"))
@@ -3406,7 +3651,7 @@ func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("    pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        let data = _arg1.into_go_bytes();\n")
 	out.WriteString("        match std::fs::write(&path, data) {\n")
 	out.WriteString("            Ok(()) => no_error(),\n")
@@ -3431,6 +3676,12 @@ func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction
 	out.WriteString("        for entry in entries {\n")
 	out.WriteString("            match entry {\n")
 	out.WriteString("                Ok(entry) => {\n")
+	out.WriteString("                    #[cfg(unix)]\n")
+	out.WriteString("                    let name = {\n")
+	out.WriteString("                        use std::os::unix::ffi::OsStringExt;\n")
+	out.WriteString("                        __go_string_from_bytes(entry.file_name().into_vec())\n")
+	out.WriteString("                    };\n")
+	out.WriteString("                    #[cfg(not(unix))]\n")
 	out.WriteString("                    let name = entry.file_name().to_string_lossy().into_owned();\n")
 	out.WriteString("                    let is_dir = entry.file_type().map(|file_type| file_type.is_dir()).unwrap_or(false);\n")
 	out.WriteString("                    result.push(fs_DirEntry { name, is_dir });\n")
@@ -3440,7 +3691,7 @@ func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("            }\n")
 	out.WriteString("        }\n")
-	out.WriteString("        result.sort_by(|left, right| left.name.cmp(&right.name));\n")
+	out.WriteString("        result.sort_by(|left, right| __go_string_bytes(&left.name).cmp(&__go_string_bytes(&right.name)));\n")
 	out.WriteString("        (")
 	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "result"))
 	out.WriteString(", no_error())\n")

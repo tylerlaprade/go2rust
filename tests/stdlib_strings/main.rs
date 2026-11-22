@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
@@ -15,6 +16,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -750,7 +833,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1094,7 +1177,13 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
     let bytes = &bytes[..kept];
     let spec = &GoFormatSpec { precision: None, ..*spec };
     match std::str::from_utf8(bytes) {
-        Ok(text) => go_format_string(spec, verb, text),
+        Ok(text) => {
+            let formatted = go_format_string(spec, verb, text);
+            if verb == 's' {
+                return formatted.map(|text| __go_string_from_bytes(text.into_bytes()));
+            }
+            formatted
+        }
         // %q writes a byte that is not UTF-8 as an escape.
         Err(_) if verb == 'q' => {
             let mut quoted = String::from("\"");
@@ -1107,9 +1196,24 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s would have to write the byte as it is, and the result is a Rust
-        // String, which cannot hold it.
-        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
+        // The result uses the same reversible representation as every Go
+        // string, so go_sprintf can append the original bytes rather than
+        // exposing the representation. Width counts decoded runes; each
+        // malformed byte counts as one RuneError, as it did for precision.
+        Err(_) => {
+            let len = bytes.utf8_chunks().map(|chunk| chunk.valid().chars().count() + chunk.invalid().len()).sum::<usize>();
+            let fill = spec.width.unwrap_or(0).saturating_sub(len);
+            let padding = std::vec![if spec.zero && !spec.minus { b'0' } else { b' ' }; fill];
+            let mut out = std::vec::Vec::with_capacity(bytes.len() + fill);
+            if !spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            out.extend_from_slice(bytes);
+            if spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            Some(__go_string_from_bytes(out))
+        }
     }
 }
 
@@ -1157,10 +1261,12 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
         let guard = v.borrow();
@@ -1180,7 +1286,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+        let text = format_any(value);
+        let bytes_verb = if verb == 'v' { 's' } else { verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1198,6 +1306,36 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         }
     }
     panic!("go2rust: %{}{}{} of a {} is not supported in a format that is only known at run time", if spec.plus { "+" } else { "" }, if spec.sharp { "#" } else { "" }, verb, __go_type_name(value));
+}
+
+// Read an explicit one-based argument index. Go applies the selected argument
+// to the next * or verb, and subsequent unindexed operands continue after it.
+// An invalid or out-of-range index is reported at the eventual verb.
+fn go_format_index(chars: &mut std::iter::Peekable<std::str::Chars>, args_len: usize, next: &mut usize) -> Result<bool, ()> {
+    if chars.peek() != Some(&'[') {
+        return Ok(false);
+    }
+    chars.next();
+    let mut index: Option<usize> = None;
+    while let Some(digit) = chars.peek().and_then(|c| c.to_digit(10)) {
+        index = Some(index.unwrap_or(0).saturating_mul(10).saturating_add(digit as usize));
+        chars.next();
+    }
+    if chars.next() != Some(']') {
+        while let Some(c) = chars.next() {
+            if c == ']' {
+                break;
+            }
+        }
+        return Err(());
+    }
+    match index {
+        Some(index) if index > 0 && index <= args_len => {
+            *next = index - 1;
+            Ok(true)
+        }
+        _ => Err(()),
+    }
 }
 
 // The number after % or after the dot: digits, or * for the next argument.
@@ -1246,7 +1384,10 @@ fn go_format_is_basic(value: &dyn Any) -> bool {
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
-    format!("{}={}", __go_type_name(value), text)
+    let mut out = __go_type_name(value).as_bytes().to_vec();
+    out.push(b'=');
+    out.extend(__go_string_bytes(&text));
+    __go_string_from_bytes(out)
 }
 
 // The verb that writes value as %v does and leaves the flags as they are.
@@ -1272,12 +1413,14 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
-    let mut out = String::new();
+    let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
+    let mut reordered = false;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
-            out.push(c);
+            let mut encoded = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut encoded).as_bytes());
             continue;
         }
         let mut spec = GoFormatSpec::default();
@@ -1292,8 +1435,23 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
             }
             chars.next();
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        let mut bad_index = false;
+        let mut after_index = false;
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => {
+                reordered |= found;
+                after_index = found;
+            }
+            Err(()) => {
+                reordered = true;
+                after_index = true;
+                bad_index = true;
+            }
+        }
+        // A literal width cannot follow an index at this position. An indexed
+        // * is valid and consumes the selected argument as the width.
+        if after_index && (chars.peek() == Some(&'.') || chars.peek().and_then(|c| c.to_digit(10)).is_some()) {
+            bad_index = true;
         }
         match go_format_number(&mut chars, args, &mut next) {
             // A negative width from an argument means left alignment.
@@ -1302,34 +1460,57 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
                 spec.width = Some((-width) as usize);
             }
             Ok(width) => spec.width = width.map(|width| width as usize),
-            Err(()) => out.push_str("%!(BADWIDTH)"),
+            Err(()) => out.extend_from_slice(b"%!(BADWIDTH)"),
         }
         if chars.peek() == Some(&'.') {
             chars.next();
+            let mut after_precision_index = false;
+            match go_format_index(&mut chars, args.len(), &mut next) {
+                Ok(found) => {
+                    reordered |= found;
+                    after_precision_index = found;
+                }
+                Err(()) => {
+                    reordered = true;
+                    after_precision_index = true;
+                    bad_index = true;
+                }
+            }
+            if after_precision_index && chars.peek().and_then(|c| c.to_digit(10)).is_some() {
+                bad_index = true;
+            }
             match go_format_number(&mut chars, args, &mut next) {
-                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
-                Err(()) => out.push_str("%!(BADPREC)"),
+                Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
-        if chars.peek() == Some(&'[') {
-            panic!("go2rust: an argument index such as %[1]d is not supported in a format that is only known at run time");
+        match go_format_index(&mut chars, args.len(), &mut next) {
+            Ok(found) => reordered |= found,
+            Err(()) => {
+                reordered = true;
+                bad_index = true;
+            }
         }
         let verb = match chars.next() {
             Some(verb) => verb,
             None => {
-                out.push_str("%!(NOVERB)");
+                out.extend_from_slice(b"%!(NOVERB)");
                 break;
             }
         };
         if verb == '%' {
-            out.push('%');
+            out.push(b'%');
+            continue;
+        }
+        if bad_index {
+            out.extend_from_slice(format!("%!{}(BADINDEX)", verb).as_bytes());
             continue;
         }
         let arg = match args.get(next) {
             Some(arg) => arg,
             None => {
-                out.push_str(&format!("%!{}(MISSING)", verb));
+                out.extend_from_slice(format!("%!{}(MISSING)", verb).as_bytes());
                 continue;
             }
         };
@@ -1339,143 +1520,153 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
         // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
-            Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
+            Some(text) => out.extend(__go_string_bytes(&text)),
+            None => {
+                out.extend_from_slice(format!("%!{}(", verb).as_bytes());
+                out.extend(__go_string_bytes(&go_format_typed_value(&spec, arg.as_ref())));
+                out.push(b')');
+            }
         }
     }
-    if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
-        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+    if !reordered && next < args.len() {
+        out.extend_from_slice(b"%!(EXTRA ");
+        for (index, arg) in args[next..].iter().enumerate() {
+            if index > 0 {
+                out.extend_from_slice(b", ");
+            }
+            out.extend(__go_string_bytes(&go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())));
+        }
+        out.push(b')');
     }
-    out
+    __go_string_from_bytes(out)
 }
 }
 use __go_runtime_format::go_sprintf;
 
 fn main() {
         // Basic string operations
-    println!("{}", format!("{}", "=== Basic string operations ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "=== Basic string operations ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
     let mut str = Rc::new(RefCell::new(Some("Hello, World!".to_string())));
-    print!("Original string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Length: {}\n", (*str.borrow().as_ref().unwrap()).len());
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[79u8, 114u8, 105u8, 103u8, 105u8, 110u8, 97u8, 108u8, 32u8, 115u8, 116u8, 114u8, 105u8, 110u8, 103u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*str.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Length: {}\n", { let __s = (*str.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String indexing and slicing
-    print!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(((*str.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize] }) as u8 as char);
-    print!("Substring [0:5]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()));
-    print!("Substring [7:]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).borrow().as_ref().unwrap()));
+    { let __s = format!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(0) as usize] }) as u8 as char); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __go_string_bytes(__s)[(({ let __s = (*str.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) } as i64) - (1 as i64)) as usize] }) as u8 as char); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[83u8, 117u8, 98u8, 115u8, 116u8, 114u8, 105u8, 110u8, 103u8, 32u8, 91u8, 48u8, 58u8, 53u8, 93u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __go_string_slice(__s, __low, __high) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[83u8, 117u8, 98u8, 115u8, 116u8, 114u8, 105u8, 110u8, 103u8, 32u8, 91u8, 55u8, 58u8, 93u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __go_string_slice(__s, __low, __go_string_len(__s)) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String concatenation
-    println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String concatenation ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut first = Rc::new(RefCell::new(Some("Hello".to_string())));
     let mut second = Rc::new(RefCell::new(Some("World".to_string())));
     let mut combined = Rc::new(RefCell::new(Some({
         let mut __s = String::new();
-        __s.push_str(&format!("{}", (*first.borrow().as_ref().unwrap())));
-        __s.push_str(&format!("{}", ", ".to_string()));
-        __s.push_str(&format!("{}", (*second.borrow().as_ref().unwrap())));
-        __s.push_str(&format!("{}", "!".to_string()));
+        __s = __go_string_concat(&__s, &(*first.borrow().as_ref().unwrap()));
+        __s = __go_string_concat(&__s, &", ".to_string());
+        __s = __go_string_concat(&__s, &(*second.borrow().as_ref().unwrap()));
+        __s = __go_string_concat(&__s, &"!".to_string());
         __s
     })));
-    print!("Concatenated: {}\n", { let __v = (*combined.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[67u8, 111u8, 110u8, 99u8, 97u8, 116u8, 101u8, 110u8, 97u8, 116u8, 101u8, 100u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*combined.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Using strings package
-    println!("{}", format!("{}", "\n=== strings package functions ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== strings package functions ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
     let mut text = Rc::new(RefCell::new(Some("  Go is awesome for systems programming  ".to_string())));
-    print!("Original: '{}'\n", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[79u8, 114u8, 105u8, 103u8, 105u8, 110u8, 97u8, 108u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*text.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Trimming
-    let mut trimmed = Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); __s.trim().to_string() })));
-    print!("Trimmed: '{}'\n", { let __v = (*trimmed.borrow().as_ref().unwrap()).clone(); __v });
+    let mut trimmed = Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __first = 0usize; while __first < __runes.len() && __runes[__first].1.is_whitespace() { __first += 1; } let __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; let mut __last = __runes.len(); while __last > __first && __runes[__last - 1].1.is_whitespace() { __last -= 1; } let __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) })));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 114u8, 105u8, 109u8, 109u8, 101u8, 100u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*trimmed.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Case conversion
-    print!("Upper: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); __s.to_uppercase() }))).borrow().as_ref().unwrap()));
-    print!("Lower: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); __s.to_lowercase() }))).borrow().as_ref().unwrap()));
-    print!("Title: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }))).borrow().as_ref().unwrap()));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[85u8, 112u8, 112u8, 101u8, 114u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __out = Vec::new(); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; if let Ok(__valid) = std::str::from_utf8(&__s_bytes[__start..__end]) { let __mapped = __valid.to_uppercase(); __out.extend_from_slice(__mapped.as_bytes()); } else { __out.extend_from_slice("\u{fffd}".as_bytes()); } } __go_string_from_bytes(__out) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[76u8, 111u8, 119u8, 101u8, 114u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __out = Vec::new(); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; if let Ok(__valid) = std::str::from_utf8(&__s_bytes[__start..__end]) { let __mapped = __valid.to_lowercase(); __out.extend_from_slice(__mapped.as_bytes()); } else { __out.extend_from_slice("\u{fffd}".as_bytes()); } } __go_string_from_bytes(__out) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 105u8, 116u8, 108u8, 101u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String searching
-    println!("{}", format!("{}", "\n=== String searching ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String searching ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut searchText = Rc::new(RefCell::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
-    print!("Text: {}\n", { let __v = (*searchText.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 101u8, 120u8, 116u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*searchText.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    print!("Contains 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "fox".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Contains 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "cat".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
+    { let __s = format!("Contains 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "fox".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __arg_bytes.is_empty() || __s_bytes.windows(__arg_bytes.len()).any(|__window| __window == __arg_bytes.as_slice()) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Contains 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "cat".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __arg_bytes.is_empty() || __s_bytes.windows(__arg_bytes.len()).any(|__window| __window == __arg_bytes.as_slice()) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    print!("Index of 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "fox".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("Index of 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "cat".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("IndexAny of vowels: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __chars = "aeiou".to_string(); __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    { let __s = format!("Index of 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "fox".to_string(); let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { 0 } else { __s_bytes.windows(__substr_bytes.len()).position(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as i64).unwrap_or(-1) } }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Index of 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "cat".to_string(); let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { 0 } else { __s_bytes.windows(__substr_bytes.len()).position(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as i64).unwrap_or(-1) } }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("IndexAny of vowels: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __chars = "aeiou".to_string(); let __runes = __go_string_range(&__s); let __chars = __go_string_range(&__chars); __runes.iter().find(|__rune| __chars.iter().any(|__candidate| __candidate.1 == __rune.1)).map(|__rune| __rune.0 as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    print!("Last index of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); __s.rfind(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
+    { let __s = format!("Last index of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __s_bytes.len() as i64 } else { __s_bytes.windows(__substr_bytes.len()).rposition(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as i64).unwrap_or(-1) } }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    print!("Count of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); if __substr.is_empty() { __s.chars().count() as i64 + 1 } else { __s.matches(&__substr).count() as i64 } }))).borrow().as_ref().unwrap()));
+    { let __s = format!("Count of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __go_string_range(&__s).len() as i64 + 1 } else { let mut __count = 0; let mut __i = 0usize; while __i + __substr_bytes.len() <= __s_bytes.len() { if &__s_bytes[__i..__i + __substr_bytes.len()] == __substr_bytes.as_slice() { __count += 1; __i += __substr_bytes.len(); } else { __i += 1; } } __count } }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String prefixes and suffixes
-    println!("{}", format!("{}", "\n=== Prefixes and suffixes ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== Prefixes and suffixes ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut filename = Rc::new(RefCell::new(Some("document.txt".to_string())));
-    print!("Filename: {}\n", { let __v = (*filename.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Has .txt suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".txt".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Has .pdf suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".pdf".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Has 'doc' prefix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = "doc".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap()));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[70u8, 105u8, 108u8, 101u8, 110u8, 97u8, 109u8, 101u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*filename.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Has .txt suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".txt".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __s_bytes.ends_with(&__arg_bytes) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Has .pdf suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".pdf".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __s_bytes.ends_with(&__arg_bytes) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Has 'doc' prefix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = "doc".to_string(); let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); __s_bytes.starts_with(&__arg_bytes) }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String splitting and joining
-    println!("{}", format!("{}", "\n=== Splitting and joining ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== Splitting and joining ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut csv = Rc::new(RefCell::new(Some("apple,banana,cherry,date".to_string())));
-    print!("CSV: {}\n", { let __v = (*csv.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[67u8, 83u8, 86u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*csv.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    let mut fruits = Rc::new(RefCell::new(Some({ let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
+    let mut fruits = Rc::new(RefCell::new(Some({ let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let mut __parts = Vec::new(); if __sep_bytes.is_empty() { let __runes = __go_string_range(&__s); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; __parts.push(__go_string_from_bytes(__s_bytes[__start..__end].to_vec())); } } else { let mut __start = 0usize; loop { let __found = __s_bytes[__start..].windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __parts.push(__go_string_from_bytes(__s_bytes[__start..__idx].to_vec())); __start = __idx + __sep_bytes.len(); } else { __parts.push(__go_string_from_bytes(__s_bytes[__start..].to_vec())); break; } } } __parts })));
     let mut fruits = { let __slice_header = GoSliceHeader::go_slice_header(&fruits); Rc::new(RefCell::new(__slice_header)) };
-    print!("Split result: {}\n", format_slice(&fruits));
+    { let __s = format!("Split result: {}\n", format_slice(&fruits)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    let mut rejoined = Rc::new(RefCell::new(Some({ let __parts = (*fruits.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " | ".to_string(); __parts.join(&__sep) })));
-    print!("Rejoined: {}\n", { let __v = (*rejoined.borrow().as_ref().unwrap()).clone(); __v });
-    let (mut before, mut after, mut found) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } };
-    print!("Cut first comma: {} | {} | {}\n", { let __v = (*before.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*after.borrow().as_ref().unwrap()).clone(); __v }, found);
-    { let (__tmp_0, __tmp_1, __tmp_2) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ";".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *before.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *after.borrow_mut() = __moved_tmp_1; found = __tmp_2; };
-    print!("Cut semicolon: {} | {} | {}\n", { let __v = (*before.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*after.borrow().as_ref().unwrap()).clone(); __v }, found);
+    let mut rejoined = Rc::new(RefCell::new(Some({ let __parts = (*fruits.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " | ".to_string(); let __sep_bytes = __go_string_bytes(&__sep); let mut __out = Vec::new(); for (__i, __part) in __parts.iter().enumerate() { if __i != 0 { __out.extend_from_slice(&__sep_bytes); } __out.extend(__go_string_bytes(__part)); } __go_string_from_bytes(__out) })));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[82u8, 101u8, 106u8, 111u8, 105u8, 110u8, 101u8, 100u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*rejoined.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    let (mut before, mut after, mut found) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let __found = if __sep_bytes.is_empty() { Some(0usize) } else { __s_bytes.windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()) }; if let Some(__idx) = __found { let __before = __go_string_from_bytes(__s_bytes[..__idx].to_vec()); let __after = __go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec()); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } };
+    { let __s = go_sprintf(&"Cut first comma: %s | %s | %t\n".to_string(), &[Box::new({ let __arg_holder = before.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = after.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(found) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let (__tmp_0, __tmp_1, __tmp_2) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ";".to_string(); let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let __found = if __sep_bytes.is_empty() { Some(0usize) } else { __s_bytes.windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()) }; if let Some(__idx) = __found { let __before = __go_string_from_bytes(__s_bytes[..__idx].to_vec()); let __after = __go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec()); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *before.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *after.borrow_mut() = __moved_tmp_1; found = __tmp_2; };
+    { let __s = go_sprintf(&"Cut semicolon: %s | %s | %t\n".to_string(), &[Box::new({ let __arg_holder = before.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = after.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(found) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Fields (split on whitespace)
     let mut sentence = Rc::new(RefCell::new(Some("The quick brown fox".to_string())));
-    let mut words = Rc::new(RefCell::new(Some({ let __s = (*sentence.borrow().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() })));
+    let mut words = Rc::new(RefCell::new(Some({ let __s = (*sentence.borrow().as_ref().unwrap()).clone(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __fields = Vec::new(); let mut __start = None; for __rune in __runes.iter() { if __rune.1.is_whitespace() { if let Some(__field_start) = __start.take() { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..__rune.0].to_vec())); } } else if __start.is_none() { __start = Some(__rune.0); } } if let Some(__field_start) = __start { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..].to_vec())); } __fields })));
     let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Rc::new(RefCell::new(__slice_header)) };
-    print!("Words: {}\n", format_slice(&words));
+    { let __s = format!("Words: {}\n", format_slice(&words)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String replacement
-    println!("{}", format!("{}", "\n=== String replacement ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String replacement ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut original = Rc::new(RefCell::new(Some("I like cats and cats like me".to_string())));
-    print!("Original: {}\n", { let __v = (*original.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[79u8, 114u8, 105u8, 103u8, 105u8, 110u8, 97u8, 108u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*original.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    let mut replaced = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); let __n = 1; if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } })));
-    print!("Replace first 'cats': {}\n", { let __v = (*replaced.borrow().as_ref().unwrap()).clone(); __v });
+    let mut replaced = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); let __n = 1; if __n == 0 { __s } else { let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let __limit = if __n < 0 { usize::MAX } else { __n as usize }; let mut __out = Vec::new(); let mut __replaced = 0usize; if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { if __replaced < __limit { __out.extend_from_slice(&__new_bytes); __replaced += 1; } if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; while __replaced < __limit && __start + __old_bytes.len() <= __s_bytes.len() { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); __replaced += 1; } else { break; } } __out.extend_from_slice(&__s_bytes[__start..]); } __go_string_from_bytes(__out) } })));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[82u8, 101u8, 112u8, 108u8, 97u8, 99u8, 101u8, 32u8, 102u8, 105u8, 114u8, 115u8, 116u8, 32u8, 39u8, 99u8, 97u8, 116u8, 115u8, 39u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*replaced.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
-    let mut replacedAll = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); __s.replace(&__old, &__new) })));
-    print!("Replace all 'cats': {}\n", { let __v = (*replacedAll.borrow().as_ref().unwrap()).clone(); __v });
+    let mut replacedAll = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let mut __out = Vec::new(); if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { __out.extend_from_slice(&__new_bytes); if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; loop { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); } else { __out.extend_from_slice(&__s_bytes[__start..]); break; } } } __go_string_from_bytes(__out) })));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[82u8, 101u8, 112u8, 108u8, 97u8, 99u8, 101u8, 32u8, 97u8, 108u8, 108u8, 32u8, 39u8, 99u8, 97u8, 116u8, 115u8, 39u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*replacedAll.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String repetition
-    println!("{}", format!("{}", "\n=== String repetition ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String repetition ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut pattern = Rc::new(RefCell::new(Some("Go! ".to_string())));
-    let mut repeated = Rc::new(RefCell::new(Some({ let __s = (*pattern.borrow().as_ref().unwrap()).clone(); let __count = 3; __s.repeat(__count as usize) })));
-    print!("Repeated: {}\n", { let __v = (*repeated.borrow().as_ref().unwrap()).clone(); __v });
+    let mut repeated = Rc::new(RefCell::new(Some({ let __s = (*pattern.borrow().as_ref().unwrap()).clone(); let __count = 3; if __count < 0 { panic!("strings: negative Repeat count"); } let __count = __count as usize; let __bytes = __go_string_bytes(&__s); let __capacity = __bytes.len().checked_mul(__count).expect("strings: Repeat output length overflow"); let mut __out = Vec::with_capacity(__capacity); for _ in 0..__count { __out.extend_from_slice(&__bytes); } __go_string_from_bytes(__out) })));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[82u8, 101u8, 112u8, 101u8, 97u8, 116u8, 101u8, 100u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*repeated.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String comparison
-    println!("{}", format!("{}", "\n=== String comparison ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String comparison ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut str1 = Rc::new(RefCell::new(Some("apple".to_string())));
     let mut str2 = Rc::new(RefCell::new(Some("banana".to_string())));
     let mut str3 = Rc::new(RefCell::new(Some("apple".to_string())));
 
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str2.borrow().as_ref().unwrap()));
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str3.borrow().as_ref().unwrap()));
-    print!("'{}' < '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) < (*str2.borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str2.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str2.borrow().as_ref().unwrap()).clone(); let __b = (*str1.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str3.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
+    { let __s = go_sprintf(&"'%s' == '%s': %t\n".to_string(), &[Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str2.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"'%s' == '%s': %t\n".to_string(), &[Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str3.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str3.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Equal }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"'%s' < '%s': %t\n".to_string(), &[Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __left = __go_string_from_bytes(__go_string_bytes(&(*str1.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*str2.borrow().as_ref().unwrap()))); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"Compare('%s', '%s'): %d\n".to_string(), &[Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str2.borrow().as_ref().unwrap()).clone(); match __go_string_cmp(&__a, &__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"Compare('%s', '%s'): %d\n".to_string(), &[Box::new({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some({ let __a = (*str2.borrow().as_ref().unwrap()).clone(); let __b = (*str1.borrow().as_ref().unwrap()).clone(); match __go_string_cmp(&__a, &__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"Compare('%s', '%s'): %d\n".to_string(), &[Box::new({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = str3.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str3.borrow().as_ref().unwrap()).clone(); match __go_string_cmp(&__a, &__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Case-insensitive comparison
-    print!("EqualFold('Apple', 'APPLE'): {}\n", (*Rc::new(RefCell::new(Some({ let __a = "Apple".to_string(); let __b = "APPLE".to_string(); __a.to_lowercase() == __b.to_lowercase() }))).borrow().as_ref().unwrap()));
+    { let __s = format!("EqualFold('Apple', 'APPLE'): {}\n", (*Rc::new(RefCell::new(Some({ let __a = "Apple".to_string(); let __b = "APPLE".to_string(); let __a_runes = __go_string_range(&__a); let __b_runes = __go_string_range(&__b); let __a_folded: String = __a_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); let __b_folded: String = __b_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); __a_folded == __b_folded }))).borrow().as_ref().unwrap())); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String building with strings.Builder
-    println!("{}", format!("{}", "\n=== String building ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String building ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut builder: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
 
     (*builder.borrow_mut().as_mut().unwrap()).push_str("Building ");
@@ -1484,38 +1675,38 @@ fn main() {
     (*builder.borrow_mut().as_mut().unwrap()).push_str("efficiently");
 
     let mut built = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
-    print!("Built string: {}\n", { let __v = (*built.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i64);
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[66u8, 117u8, 105u8, 108u8, 116u8, 32u8, 115u8, 116u8, 114u8, 105u8, 110u8, 103u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*built.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i64); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // Rune iteration (Unicode support)
-    println!("{}", format!("{}", "\n=== Unicode and runes ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== Unicode and runes ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut unicode = Rc::new(RefCell::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
-    print!("Unicode string: {}\n", { let __v = (*unicode.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Byte length: {}\n", (*unicode.borrow().as_ref().unwrap()).len());
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[85u8, 110u8, 105u8, 99u8, 111u8, 100u8, 101u8, 32u8, 115u8, 116u8, 114u8, 105u8, 110u8, 103u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*unicode.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = format!("Byte length: {}\n", { let __s = (*unicode.borrow().as_ref().unwrap()).clone(); __go_string_len(&__s) }); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
     let mut runeCount = Rc::new(RefCell::new(Some(0i64)));
-    for (_, r) in (*unicode.borrow().as_ref().unwrap()).char_indices() {
+    for (_, r) in __go_string_range(&(*unicode.borrow().as_ref().unwrap())) {
         { let mut guard = runeCount.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: {} (U+{})\n", r, format!("{:04X}", r as u32));
+        { let __s = format!("Rune: {} (U+{})\n", r, format!("{:04X}", r as u32)); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }
-    print!("Rune count: {}\n", { let __v = (*runeCount.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = format!("Rune count: {}\n", { let __v = (*runeCount.borrow().as_ref().unwrap()).clone(); __v }); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String trimming variations
-    println!("{}", format!("{}", "\n=== String trimming variations ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String trimming variations ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut messy = Rc::new(RefCell::new(Some("!!!Hello World!!!".to_string())));
-    print!("Original: {}\n", { let __v = (*messy.borrow().as_ref().unwrap()).clone(); __v });
-    print!("TrimLeft '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_start_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
-    print!("TrimRight '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_end_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
-    print!("Trim '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[79u8, 114u8, 105u8, 103u8, 105u8, 110u8, 97u8, 108u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*messy.borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 114u8, 105u8, 109u8, 76u8, 101u8, 102u8, 116u8, 32u8, 39u8, 33u8, 39u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let __cutset_runes = __go_string_range(&__cutset); let mut __start = 0usize; let mut __end = __s_bytes.len(); let mut __first = 0usize; while __first < __runes.len() && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__first].1) { __first += 1; } __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; if __end < __start { __end = __start; } __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 114u8, 105u8, 109u8, 82u8, 105u8, 103u8, 104u8, 116u8, 32u8, 39u8, 33u8, 39u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let __cutset_runes = __go_string_range(&__cutset); let mut __start = 0usize; let mut __end = __s_bytes.len(); let mut __last = __runes.len(); while __last > 0 && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__last - 1].1) { __last -= 1; } __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; if __end < __start { __end = __start; } __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[84u8, 114u8, 105u8, 109u8, 32u8, 39u8, 33u8, 39u8, 58u8, 32u8]); let __go_sprintf_arg_0 = (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let __cutset_runes = __go_string_range(&__cutset); let mut __start = 0usize; let mut __end = __s_bytes.len(); let mut __first = 0usize; while __first < __runes.len() && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__first].1) { __first += 1; } __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; let mut __last = __runes.len(); while __last > 0 && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__last - 1].1) { __last -= 1; } __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; if __end < __start { __end = __start; } __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }))).borrow().as_ref().unwrap()).clone(); __go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_0)); __go_sprintf_bytes.extend_from_slice(&[10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 
         // String formatting with different verbs
-    println!("{}", format!("{}", "\n=== String formatting ===".to_string()));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = "\n=== String formatting ===".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     let mut name = Rc::new(RefCell::new(Some("Alice".to_string())));
     let mut age = Rc::new(RefCell::new(Some(30i64)));
     let mut height = Rc::new(RefCell::new(Some(5.6)));
 
-    print!("Name: {}, Age: {}, Height: {:.1}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*height.borrow().as_ref().unwrap()).clone(); __v });
-    print!("{}", go_sprintf(&"Quoted string: %q\n".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
-    print!("String with width: '{:>10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Left-aligned: '{:<10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
+    { let __s = format!("Name: {}, Age: {}, Height: {:.1}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*height.borrow().as_ref().unwrap()).clone(); __v }); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = go_sprintf(&"Quoted string: %q\n".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false); let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[83u8, 116u8, 114u8, 105u8, 110u8, 103u8, 32u8, 119u8, 105u8, 116u8, 104u8, 32u8, 119u8, 105u8, 100u8, 116u8, 104u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*name.borrow().as_ref().unwrap()).clone(); let __go_sprintf_arg_bytes_0 = __go_string_bytes(&__go_sprintf_arg_0); let __go_sprintf_arg_end_0 = __go_sprintf_arg_bytes_0.len(); let __go_sprintf_arg_slice_0 = &__go_sprintf_arg_bytes_0[..__go_sprintf_arg_end_0]; let __go_sprintf_arg_piece_0 = __go_string_from_bytes(__go_sprintf_arg_slice_0.to_vec()); let __go_sprintf_arg_padding_0 = 10usize.saturating_sub(__go_string_range(&__go_sprintf_arg_piece_0).len()); __go_sprintf_bytes.extend(std::iter::repeat(b' ').take(__go_sprintf_arg_padding_0)); __go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_0); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); __go_sprintf_bytes.extend_from_slice(&[76u8, 101u8, 102u8, 116u8, 45u8, 97u8, 108u8, 105u8, 103u8, 110u8, 101u8, 100u8, 58u8, 32u8, 39u8]); let __go_sprintf_arg_0 = (*name.borrow().as_ref().unwrap()).clone(); let __go_sprintf_arg_bytes_0 = __go_string_bytes(&__go_sprintf_arg_0); let __go_sprintf_arg_end_0 = __go_sprintf_arg_bytes_0.len(); let __go_sprintf_arg_slice_0 = &__go_sprintf_arg_bytes_0[..__go_sprintf_arg_end_0]; let __go_sprintf_arg_piece_0 = __go_string_from_bytes(__go_sprintf_arg_slice_0.to_vec()); let __go_sprintf_arg_padding_0 = 10usize.saturating_sub(__go_string_range(&__go_sprintf_arg_piece_0).len()); __go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_0); __go_sprintf_bytes.extend(std::iter::repeat(b' ').take(__go_sprintf_arg_padding_0)); __go_sprintf_bytes.extend_from_slice(&[39u8, 10u8]); __go_string_from_bytes(__go_sprintf_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }

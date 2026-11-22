@@ -463,6 +463,9 @@ func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
 		return false
 	}
 	switch key {
+	case "fmt.Print", "fmt.Println", "fmt.Printf",
+		"fmt.Fprint", "fmt.Fprintln", "fmt.Fprintf":
+		return index == 0
 	case "strconv.Atoi":
 		return index == 0
 	case "strconv.ParseBool":

@@ -1,0 +1,11 @@
+[package]
+name = "os_setenv_unsetenv"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_setenv_unsetenv"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

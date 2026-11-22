@@ -873,12 +873,26 @@ func TestFsFileModeStubImplementsIsDirMethod(t *testing.T) {
 
 func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	var out strings.Builder
-	writeExecCmdTypeStub(&out, nil, nil)
+	writeExecCmdTypeStub(&out, map[string]string{
+		"dir": wrappedExternalStubType("String"),
+	}, nil)
 	got := out.String()
 	for _, want := range []string{
 		"pub fn environ(&self) -> ",
-		"std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect()",
-		"env.extend(cmd_env.as_slice().iter().cloned())",
+		"let __use_host = __cmd_env.is_none()",
+		"std::env::vars_os().map(|(key, value)|",
+		"cmd_env",
+		"std::path::absolute(__dir_path)",
+		"__pwd.extend(__absolute.into_os_string().into_vec())",
+		"for __entry in env.into_iter().rev()",
+		"let mut __key = __bytes[..__separator].to_vec()",
+		"if !__seen.insert(__key)",
+		"__dedup.reverse()",
+		"let __effective_env = self.environ()",
+		"exec: environment variable contains NUL",
+		"command.env_clear()",
+		"std::ffi::OsString::from_vec(__bytes[..__separator].to_vec())",
+		"std::ffi::OsString::from_vec(__bytes[__separator + 1..].to_vec())",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd Environ shim should include %q:\n%s", want, got)
@@ -957,6 +971,12 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 		t.Fatalf("os.Getenv should not use the generic stub panic:\n%s", got)
 	}
 	for _, want := range []string{
+		"#[cfg(unix)]",
+		"std::os::unix::ffi::OsStringExt",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&key))",
+		"std::env::var_os(os_key)",
+		"__go_string_from_bytes(value.into_vec())",
+		"#[cfg(not(unix))]",
 		"std::env::var(key).unwrap_or_default()",
 		"downcast_ref::<" + wrappedExternalStubType("String") + ">",
 		externalStubBorrowExpr("v") + ".as_ref().cloned().unwrap_or_default()",
@@ -964,6 +984,95 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Getenv shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsLookupEnvStubPreservesPresenceAndRawBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"lookup_env": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType("String"), "bool"},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.LookupEnv should not use a generic panic stub:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn lookup_env<T0: 'static>",
+		"std::env::var_os(os_key)",
+		"__go_string_from_bytes(value.into_vec())",
+		"Some(value) => (",
+		", true)",
+		", false)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.LookupEnv shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsEnvironStubUsesCanonicalHostEnv(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"environ": {
+				ReturnTypes: []string{wrappedExternalStubType("Vec<String>")},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Environ should not use a generic panic stub:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn environ() -> ",
+		"std::env::vars_os()",
+		"use std::os::unix::ffi::OsStringExt",
+		"bytes.push(b'=')",
+		"__go_string_from_bytes(bytes)",
+		"std::env::vars()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Environ shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsSetenvAndUnsetenvStubsUseCanonicalHostEnv(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"setenv": {
+				ParamCount:  2,
+				ReturnTypes: []string{wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+			"unsetenv": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Setenv/Unsetenv should not use generic panic stubs:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn setenv<T0: 'static, T1: 'static>",
+		"pub fn unsetenv<T0: 'static>",
+		"let key_bytes = __go_string_bytes(&key)",
+		"let value_bytes = __go_string_bytes(&value)",
+		"std::env::set_var(std::ffi::OsString::from_vec(key_bytes), std::ffi::OsString::from_vec(value_bytes))",
+		"std::env::remove_var(std::ffi::OsString::from_vec(key_bytes))",
+		"std::io::ErrorKind::InvalidInput",
+		"no_error()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Setenv/Unsetenv shims should include %q:\n%s", want, got)
 		}
 	}
 }
@@ -986,12 +1095,69 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::env::current_dir()",
+		"std::os::unix::ffi::OsStringExt",
+		"__go_string_from_bytes(path.into_os_string().into_vec())",
 		"path.to_string_lossy().into_owned()",
 		"String::new()",
 		"io_error(err)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Getwd shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsReadDirStubPreservesAndSortsUnixNameBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsReadDirFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("Vec<fs_DirEntry>"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"std::os::unix::ffi::OsStringExt",
+		"__go_string_from_bytes(entry.file_name().into_vec())",
+		"entry.file_name().to_string_lossy().into_owned()",
+		"__go_string_bytes(&left.name).cmp(&__go_string_bytes(&right.name))",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.ReadDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsReadWriteFileStubsUseCanonicalUnixPathBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsErrorHelpers(&out)
+	writeOsReadFileFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("Vec<u8>"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	writeOsWriteFileFunction(&out, externalPackageStubFunction{
+		ParamCount: 3,
+		ReturnTypes: []string{
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	got := out.String()
+	if count := strings.Count(got, "let path = go_path(_arg0.into_go_string());"); count != 2 {
+		t.Fatalf("os.ReadFile/WriteFile should both decode canonical path bytes; got %d uses:\n%s", count, got)
+	}
+	for _, want := range []string{
+		"fn go_path(path: String) -> std::path::PathBuf",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&path))",
+		"std::path::PathBuf::from(path)",
+		"std::fs::read(&path)",
+		"std::fs::write(&path, data)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.ReadFile/WriteFile shims should include %q:\n%s", want, got)
 		}
 	}
 }

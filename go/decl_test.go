@@ -146,7 +146,15 @@ func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	if strings.Contains(got, "Go function declaration has no body") {
 		t.Fatalf("syscall runtime-linked declarations should not use the generic bodyless fallback:\n%s", got)
 	}
-	for _, want := range []string{"std::env::vars()", "std::env::set_var(__key, __value)", "std::env::remove_var(__key)"} {
+	for _, want := range []string{
+		"std::env::vars_os()",
+		"use std::os::unix::ffi::OsStringExt",
+		"__bytes.push(b'=')",
+		"__go_string_from_bytes(__bytes)",
+		"std::env::vars()",
+		"std::env::set_var(__key, __value)",
+		"std::env::remove_var(__key)",
+	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
 		}
@@ -3357,6 +3365,15 @@ func main() {
 
 	if !strings.Contains(rust, "fn go_os_args()") {
 		t.Fatalf("package global os.Args should use a shared helper:\n%s", rust)
+	}
+	for _, want := range []string{
+		"fn __go_collect_os_args()",
+		"std::env::args_os()",
+		"__go_string_from_bytes(arg.into_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("package global os.Args should preserve Unix argument bytes through %q:\n%s", want, rust)
+		}
 	}
 	if strings.Contains(rust, "__go_os_args") {
 		t.Fatalf("package global os.Args should not reference a function-local binding:\n%s", rust)

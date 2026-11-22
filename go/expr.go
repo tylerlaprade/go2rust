@@ -1351,15 +1351,19 @@ func writeStringSliceValue(out *strings.Builder, expr ast.Expr, low ast.Expr, hi
 		writeExpressionAsUsize(out, high)
 		out.WriteString("; ")
 	}
-	out.WriteString("__s[")
+	out.WriteString("__go_string_slice(__s, ")
 	if low != nil {
 		out.WriteString("__low")
+	} else {
+		out.WriteString("0")
 	}
-	out.WriteString("..")
+	out.WriteString(", ")
 	if high != nil {
 		out.WriteString("__high")
+	} else {
+		out.WriteString("__go_string_len(__s)")
 	}
-	out.WriteString("].to_string() }")
+	out.WriteString(") }")
 }
 
 func sliceBoundNeedsLocalTemp(expr ast.Expr) bool {
@@ -13361,6 +13365,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	if ctx != AddressOf && writeWideIntConstant(out, expr) {
 		return
 	}
+	if ctx == RValue && writeRuntimeStringConstValue(out, expr) {
+		return
+	}
 	if lit, ok := expr.(*ast.CompositeLit); ok {
 		markCompositeLiteralIntConstants(lit)
 	}
@@ -14369,6 +14376,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeStatementBuiltLogicalExpressionValue(out, e) {
 			return
 		}
+		if writeGoStringComparison(out, e) {
+			return
+		}
 
 		// Special handling for string concatenation
 		if e.Op == token.ADD {
@@ -14860,7 +14870,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				} else {
 					out.WriteString("{ let __s = &(")
 					writeStringSequenceValue(out, e.X)
-					out.WriteString("); __s.as_bytes()[")
+					out.WriteString("); __go_string_bytes(__s)[")
 					writeExpressionAsUsize(out, e.Index)
 					out.WriteString("] }")
 				}
@@ -17559,8 +17569,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			case "byte", "uint8":
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
+				if goSliceModeEnabled() {
+					out.WriteString("Vec::from(")
+				}
+				out.WriteString("__go_string_bytes(&")
 				writeStringConversionSource(out, call.Args[0])
-				out.WriteString(".as_bytes()" + sliceToVecMethod())
+				out.WriteString(")")
+				if goSliceModeEnabled() {
+					out.WriteString(")")
+				}
 				WriteWrapperSuffix(out)
 				return
 			case "rune", "int32":
@@ -19777,12 +19794,48 @@ func typedStringConcatOperands(expr ast.Expr) []ast.Expr {
 }
 
 func writePairStringConcat(out *strings.Builder, left ast.Expr, right ast.Expr) {
-	out.WriteString("format!(\"{}{}\"")
-	out.WriteString(", ")
-	writeUnwrappedForFormat(out, left)
-	out.WriteString(", ")
-	writeUnwrappedForFormat(out, right)
+	out.WriteString("__go_string_concat(&")
+	writeStringAppendExpression(out, left)
+	out.WriteString(", &")
+	writeStringAppendExpression(out, right)
 	out.WriteString(")")
+}
+
+func writeGoStringComparison(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil {
+		return false
+	}
+	switch expr.Op {
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(expr.X) || !typeInfo.IsString(expr.Y) {
+		return false
+	}
+
+	out.WriteString("{ let __left = __go_string_from_bytes(__go_string_bytes(&")
+	writeStringAppendExpression(out, expr.X)
+	out.WriteString(")); let __right = __go_string_from_bytes(__go_string_bytes(&")
+	writeStringAppendExpression(out, expr.Y)
+	out.WriteString(")); __go_string_cmp(&__left, &__right) ")
+	switch expr.Op {
+	case token.EQL:
+		out.WriteString("== std::cmp::Ordering::Equal")
+	case token.NEQ:
+		out.WriteString("!= std::cmp::Ordering::Equal")
+	case token.LSS:
+		out.WriteString("== std::cmp::Ordering::Less")
+	case token.LEQ:
+		out.WriteString("!= std::cmp::Ordering::Greater")
+	case token.GTR:
+		out.WriteString("== std::cmp::Ordering::Greater")
+	case token.GEQ:
+		out.WriteString("!= std::cmp::Ordering::Less")
+	}
+	out.WriteString(" }")
+	return true
 }
 
 func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {
@@ -19792,9 +19845,9 @@ func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {
 	out.WriteString("    let mut __s = String::new();\n")
 	for _, operand := range operands {
 		out.WriteString(indent)
-		out.WriteString("    __s.push_str(&format!(\"{}\", ")
-		writeUnwrappedForFormat(out, operand)
-		out.WriteString("));\n")
+		out.WriteString("    __s = __go_string_concat(&__s, &")
+		writeStringAppendExpression(out, operand)
+		out.WriteString(");\n")
 	}
 	out.WriteString(indent)
 	out.WriteString("    __s\n")

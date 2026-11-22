@@ -15,7 +15,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 pub fn inside(path: Rc<RefCell<Option<String>>>, dir: Rc<RefCell<Option<String>>>) -> bool {
-    (*Rc::new(RefCell::new(Some({ let __s = (*path.borrow().as_ref().unwrap()).clone(); let __arg = format!("{}{}", (*dir.borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(char::from_u32((example_com_stringconst_dep::SEPARATOR) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())
+    (*Rc::new(RefCell::new(Some({ let __s = (*path.borrow().as_ref().unwrap()).clone(); let __arg = __go_string_concat(&(*dir.borrow().as_ref().unwrap()), &{ let __s = Rc::new(RefCell::new(Some(char::from_u32((example_com_stringconst_dep::SEPARATOR) as u32).unwrap().to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())
 }
 
 fn main() {

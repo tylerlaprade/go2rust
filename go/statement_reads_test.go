@@ -27,7 +27,7 @@ func main() {
 	// ends made the next read of the same variable wait forever.
 	for _, want := range []string{
 		"({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as u64",
-		"({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len })",
+		"{ let __s = (*s.lock().unwrap().as_ref().unwrap()).clone(); __go_string_len(&__s) }",
 		"-(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }))",
 		"({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v })",
 	} {
@@ -48,7 +48,7 @@ func main() {
 	_ = len(s + "!")
 }
 `)
-	if !strings.Contains(rust, `(format!("{}{}", (*s.borrow().as_ref().unwrap()), "!".to_string())).len()`) {
+	if !strings.Contains(rust, `let __s = __go_string_concat(&(*s.borrow().as_ref().unwrap()), &"!".to_string()); __go_string_len(&__s)`) {
 		t.Errorf("len of a concatenation should measure the new String:\n%s", rust)
 	}
 }

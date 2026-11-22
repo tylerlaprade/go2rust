@@ -214,6 +214,15 @@ func init() {
 }
 
 func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
+	if writeFmtStdStreamVariadicAny(out, call, 0, false, false) {
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args, false)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
 	out.WriteString("print!")
 	out.WriteString("(")
 
@@ -260,15 +269,55 @@ func writePrintOperandsFormat(out *strings.Builder, args []ast.Expr, line bool) 
 	}
 }
 
+// writeSprintBytesExpression writes a Rust expression that formats ordinary
+// (non-variadic) fmt.Sprint or fmt.Sprintln operands into Go string bytes.
+// Rust's format! cannot be used for string operands here: an arbitrary Go
+// string may use the internal reversible encoding for invalid UTF-8, and
+// displaying that Rust String would expose the encoding instead of the Go
+// bytes. Each operand is evaluated once and in source order.
+func writeSprintBytesExpression(out *strings.Builder, args []ast.Expr, line bool) {
+	out.WriteString("{ let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); ")
+	for i, arg := range args {
+		if i > 0 && (line || (!printOperandIsString(args[i-1]) && !printOperandIsString(arg))) {
+			out.WriteString("__go_sprint_bytes.push(b' '); ")
+		}
+		out.WriteString("let __go_sprint_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		if printOperandUsesDirectStringBytes(arg) {
+			writeStringSequenceOwnedValue(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
+		} else if writeConcreteStringMethodResult(out, arg) {
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
+		} else if isEmptyInterfaceValueExpr(arg) {
+			writeFormatAnyPrintArg(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
+		} else {
+			transpilePrintArgString(out, arg)
+			out.WriteString("; __go_sprint_bytes.extend(__go_sprint_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(".into_bytes()); ")
+		}
+	}
+	if line {
+		out.WriteString("__go_sprint_bytes.push(b'\\n'); ")
+	}
+	out.WriteString("__go_string_from_bytes(__go_sprint_bytes) }")
+}
+
 // fmt.Sprint formats its operands as fmt.Print prints them.
 func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
-		writeSprintVariadicAny(out, call.Args[0])
+		writeSprintVariadicAny(out, call.Args[0], false)
 	} else {
-		out.WriteString("format!(")
-		writePrintOperandsFormat(out, call.Args, false)
-		out.WriteString(")")
+		writeSprintBytesExpression(out, call.Args, false)
 	}
 	WriteWrapperSuffix(out)
 }
@@ -277,15 +326,9 @@ func transpileFmtSprint(out *strings.Builder, call *ast.CallExpr) {
 func transpileFmtSprintln(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	if call.Ellipsis.IsValid() && len(call.Args) == 1 && isEmptyInterfaceSliceArgument(call.Args[0]) {
-		NeedFormatAnySlice()
-		TrackImport("Any")
-		out.WriteString("format!(\"{}\\n\", format_any_variadic(&")
-		writeSprintVariadicSlice(out, call.Args[0])
-		out.WriteString("))")
+		writeSprintVariadicAny(out, call.Args[0], true)
 	} else {
-		out.WriteString("format!(")
-		writePrintOperandsFormat(out, call.Args, true)
-		out.WriteString(")")
+		writeSprintBytesExpression(out, call.Args, true)
 	}
 	WriteWrapperSuffix(out)
 }
@@ -300,20 +343,23 @@ func writeSprintVariadicSlice(out *strings.Builder, arg ast.Expr) {
 
 // writeSprintVariadicAny writes fmt.Sprint(values...) for a []any: a space
 // goes between two operands when neither holds a string.
-func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
+func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr, line bool) {
 	NeedFormatAny()
 	TrackImport("Any")
 	out.WriteString("{ let __sprint_values = ")
 	writeSprintVariadicSlice(out, arg)
 	out.WriteString(".clone(); let __sprint_guard = __sprint_values")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let mut __sprint_text = String::new(); let mut __sprint_after_string = true; ")
+	out.WriteString("; let mut __sprint_bytes = std::vec::Vec::<u8>::new(); let mut __sprint_after_string = true; ")
 	out.WriteString("if let Some(__sprint_values) = __sprint_guard.as_ref() { let __sprint_slice = __sprint_values.as_slice(); ")
 	out.WriteString("for (__sprint_index, __sprint_value) in __sprint_slice.iter().enumerate() { ")
 	out.WriteString("let __sprint_is_string = __sprint_value.is::<String>(); ")
-	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
-	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } } ")
-	out.WriteString("__sprint_text }")
+	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_bytes.push(b' '); } ")
+	out.WriteString("let __sprint_text = format_any(__sprint_value.as_ref()); __sprint_bytes.extend(__go_string_bytes(&__sprint_text)); __sprint_after_string = __sprint_is_string; } } ")
+	if line {
+		out.WriteString("__sprint_bytes.push(b'\\n'); ")
+	}
+	out.WriteString("__go_string_from_bytes(__sprint_bytes) }")
 }
 
 // printOperandIsString reports whether a fmt.Print operand is a string, of
@@ -331,8 +377,82 @@ func printOperandIsString(arg ast.Expr) bool {
 	return ok && basic.Info()&types.IsString != 0
 }
 
+// printOperandUsesDirectStringBytes reports whether a Print-family operand
+// should contribute its underlying string bytes directly. Named strings that
+// implement String or error must stay on the formatter path so Go's method
+// precedence is preserved instead of printing the stored string value.
+func printOperandUsesDirectStringBytes(arg ast.Expr) bool {
+	if !printOperandIsString(arg) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	return !typeHasGoStringMethod(typ) && !isConcreteGoErrorValue(typ)
+}
+
+// writeConcreteStringMethodResult writes the Go string returned by a concrete
+// operand's Error or String method. Rust Display cannot carry invalid UTF-8,
+// so routing these methods through format! would expose the internal reversible
+// encoding instead of the bytes returned by the Go method.
+// Error takes precedence over String, matching fmt's method selection.
+func writeConcreteStringMethodResult(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil || types.IsInterface(typ) {
+		return false
+	}
+	method := ""
+	if isConcreteGoErrorValue(typ) {
+		method = "error"
+	} else if typeHasGoStringMethod(typ) {
+		method = "string"
+	}
+	if method == "" {
+		return false
+	}
+
+	out.WriteString("{ let __go_string_method_receiver = ")
+	transpilePrintArg(out, arg)
+	out.WriteString("; let __go_string_method_result = __go_string_method_receiver.")
+	out.WriteString(method)
+	out.WriteString("(); let __go_string_method_text = { let __go_string_method_guard = __go_string_method_result")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__go_string_method_guard.as_ref().unwrap()).clone() }; __go_string_method_text }")
+	return true
+}
+
+// printOperandProvidesCanonicalStringBytes reports whether an operand can be
+// appended without routing its Go string through Rust's UTF-8-only formatter.
+func printOperandProvidesCanonicalStringBytes(arg ast.Expr) bool {
+	if isEmptyInterfaceValueExpr(arg) {
+		return true
+	}
+	if printOperandIsString(arg) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	return typ != nil && !types.IsInterface(typ) &&
+		(typeHasGoStringMethod(typ) || isConcreteGoErrorValue(typ))
+}
+
 func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
-	if writeFmtPrintlnVariadicAny(out, call) {
+	if writeFmtStdStreamVariadicAny(out, call, 0, true, false) {
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtPrintOperandsNeedCanonicalBytes(call.Args) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args, true)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
 		return
 	}
 
@@ -358,22 +478,41 @@ func transpileFmtPrintln(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(")")
 }
 
-func writeFmtPrintlnVariadicAny(out *strings.Builder, call *ast.CallExpr) bool {
-	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 1 {
+func writeFmtStdStreamVariadicAny(out *strings.Builder, call *ast.CallExpr, argIndex int, line bool, stderr bool) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != argIndex+1 {
 		return false
 	}
-	if !isEmptyInterfaceSliceArgument(call.Args[0]) {
+	if !isEmptyInterfaceSliceArgument(call.Args[argIndex]) {
 		return false
 	}
-	NeedFormatAnySlice()
-	TrackImport("Any")
-	out.WriteString("println!(\"{}\", format_any_variadic(&")
-	if ident, ok := call.Args[0].(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
-	} else {
-		TranspileExpression(out, call.Args[0])
+	var formatted strings.Builder
+	writeSprintVariadicAny(&formatted, call.Args[argIndex], line)
+	writeFmtStdStreamGoStringTuple(out, formatted.String(), stderr)
+	return true
+}
+
+// writeFmtWriterVariadicAny writes a spread []any through a concrete writer
+// from the canonical bytes produced by the same operand loop as Sprint. The
+// target-specific helpers preserve the existing behavior for each writer class.
+func writeFmtWriterVariadicAny(out *strings.Builder, call *ast.CallExpr, line bool) bool {
+	if call == nil || !call.Ellipsis.IsValid() || len(call.Args) != 2 ||
+		!isEmptyInterfaceSliceArgument(call.Args[1]) {
+		return false
 	}
-	out.WriteString("))")
+	var formatted strings.Builder
+	writeSprintVariadicAny(&formatted, call.Args[1], line)
+	switch {
+	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
+		writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+			out.WriteString(formatted.String())
+		})
+	case fmtFprintfTargetIsByteWriter(call.Args[0]):
+		writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
+		writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+	default:
+		return false
+	}
 	return true
 }
 
@@ -1345,20 +1484,13 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 
 	if typeInfo != nil && typeInfo.IsString(arg) {
 		NeedHexFormat()
-		out.WriteString("go_format_hex_bytes(")
-		if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
-			TranspileExpression(out, lit)
-			out.WriteString(".as_bytes()")
-		} else {
-			out.WriteString("(*")
-			TranspileExpressionContext(out, arg, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).as_bytes()")
-		}
+		out.WriteString("{ let __text = ")
+		writeStringSequenceOwnedValue(out, arg)
+		out.WriteString("; let __bytes = __go_string_bytes(&__text); go_format_hex_bytes(&__bytes")
 		if upper {
-			out.WriteString(", true)")
+			out.WriteString(", true) }")
 		} else {
-			out.WriteString(", false)")
+			out.WriteString(", false) }")
 		}
 		return
 	}
@@ -1529,7 +1661,26 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 }
 
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
-	writeFmtMacroCall(out, "print!", call, 0)
+	var formatted strings.Builder
+	if writeSimpleStringFormatExpression(&formatted, call, 0) {
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
+	if writeLiteralStringRuntimeFormatExpression(&formatted, call, 0) {
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+		return
+	}
+	writeFmtMacroCall(&formatted, "format!", call, 0)
+	writeFmtStdStreamGoStringTuple(out, formatted.String(), false)
+}
+
+func fmtPrintOperandsNeedCanonicalBytes(args []ast.Expr) bool {
+	for _, arg := range args {
+		if printOperandProvidesCanonicalStringBytes(arg) {
+			return true
+		}
+	}
+	return false
 }
 
 func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, formatArgIndex int) {
@@ -1624,10 +1775,40 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: fmt.Fprintln requires at least 1 argument */")
 		return
 	}
+	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, true, isOsStderr(call.Args[0])) {
+		return
+	}
+	if writeFmtWriterVariadicAny(out, call, true) {
+		return
+	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
-		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtFprintlnFormatCall(out, call)
-		})
+		if !call.Ellipsis.IsValid() {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeSprintBytesExpression(out, call.Args[1:], true)
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+				writeFmtFprintlnFormatCall(out, call)
+			})
+		}
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+		return
+	}
+	if !call.Ellipsis.IsValid() && fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+		return
+	}
+	if !call.Ellipsis.IsValid() && isOsStdoutOrStderr(call.Args[0]) && fmtPrintOperandsNeedCanonicalBytes(call.Args[1:]) {
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], true)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 		return
 	}
 	// Check if writing to stderr
@@ -1702,17 +1883,76 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
-		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtMacroCall(out, "format!", call, 1)
-		})
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				out.WriteString(formatted.String())
+			})
+		} else if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				out.WriteString(formatted.String())
+			})
+		} else if _, ok := expandedFormat(call, 1); !ok {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeRuntimeFormatCall(out, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+				writeFmtMacroCall(out, "format!", call, 1)
+			})
+		}
 		return
 	}
 	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if _, ok := expandedFormat(call, 1); !ok {
+			var runtimeFormatted strings.Builder
+			writeRuntimeFormatCall(&runtimeFormatted, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			writeFprintByteWriterGoStringTuple(out, call, runtimeFormatted.String())
+			return
+		}
 		writeFprintfByteWriterTuple(out, call)
 		return
 	}
 	if fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+			return
+		}
+		if _, ok := expandedFormat(call, 1); !ok {
+			var runtimeFormatted strings.Builder
+			writeRuntimeFormatCall(&runtimeFormatted, call.Args[1], call.Args[2:], call.Ellipsis.IsValid(), false)
+			writeFprintUserWriteGoStringTuple(out, call, runtimeFormatted.String())
+			return
+		}
 		writeFprintfUserWriteTuple(out, call)
+		return
+	}
+	if isOsStdoutOrStderr(call.Args[0]) {
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+			return
+		}
+		if writeLiteralStringRuntimeFormatExpression(&formatted, call, 1) {
+			writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
+			return
+		}
+		writeFmtMacroCall(&formatted, "format!", call, 1)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 		return
 	}
 	// Check if writing to stderr
@@ -1730,6 +1970,12 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: fmt.Fprint requires at least 1 argument */")
 		return
 	}
+	if isOsStdoutOrStderr(call.Args[0]) && writeFmtStdStreamVariadicAny(out, call, 1, false, isOsStderr(call.Args[0])) {
+		return
+	}
+	if writeFmtWriterVariadicAny(out, call, false) {
+		return
+	}
 	writeOperands := func(macro string) func() {
 		return func() {
 			out.WriteString(macro)
@@ -1744,11 +1990,33 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 	}
 	switch {
 	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
-		writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeSprintBytesExpression(out, call.Args[1:], false)
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+		}
 	case fmtFprintfTargetIsByteWriter(call.Args[0]):
-		writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			var formatted strings.Builder
+			writeSprintBytesExpression(&formatted, call.Args[1:], false)
+			writeFprintByteWriterGoStringTuple(out, call, formatted.String())
+		} else {
+			writeFprintByteWriterTuple(out, call, writeOperands("format!"))
+		}
 	case fmtFprintfTargetHasUserWriteMethod(call.Args[0]):
-		writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			var formatted strings.Builder
+			writeSprintBytesExpression(&formatted, call.Args[1:], false)
+			writeFprintUserWriteGoStringTuple(out, call, formatted.String())
+		} else {
+			writeFprintUserWriteTuple(out, call, writeOperands("format!"))
+		}
+	case !call.Ellipsis.IsValid() && isOsStdoutOrStderr(call.Args[0]) && fmtPrintOperandsNeedCanonicalBytes(call.Args[1:]):
+		var formatted strings.Builder
+		writeSprintBytesExpression(&formatted, call.Args[1:], false)
+		writeFmtStdStreamGoStringTuple(out, formatted.String(), isOsStderr(call.Args[0]))
 	case isOsStderr(call.Args[0]):
 		writeOperands("eprint!")()
 	default:
@@ -1776,6 +2044,36 @@ func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, wr
 	out.WriteString(".push_str(&")
 	writeFormatted()
 	out.WriteString(")")
+}
+
+// writeStringsBuilderGoStringWrite appends a canonical Go string to a
+// strings.Builder without concatenating the reversible Rust encoding itself.
+// The native builder is represented by String, so both existing and appended
+// values must be decoded and re-encoded as one Go byte sequence.
+func writeStringsBuilderGoStringWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
+	if fmtFprintfTargetIsSourceMappedStringsBuilder(target) {
+		writeStringsBuilderFormattedWrite(out, target, writeFormatted)
+		return
+	}
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __go_builder_part = ")
+	writeFormatted()
+	out.WriteString("; let __go_builder_n = __go_string_len(&__go_builder_part) as " + rustIntType() + "; ")
+	if isStringsBuilderReceiverBare(target) {
+		out.WriteString("let __go_builder = ")
+		writeStringsBuilderRawReceiver(out, target)
+		out.WriteString("; *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); ")
+	} else {
+		out.WriteString("let __go_builder_handle = ")
+		writeStringsBuilderReceiverHandle(out, target)
+		out.WriteString("; let mut __go_builder_guard = __go_builder_handle")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); ")
+	}
+	out.WriteString("(__go_builder_n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString(") }")
 }
 
 func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {
@@ -1852,6 +2150,44 @@ func writeFprintByteWriterTuple(out *strings.Builder, call *ast.CallExpr, writeF
 	out.WriteString(") }")
 }
 
+// writeFprintByteWriterGoStringTuple writes a canonical Go string result to
+// an external byte writer without exposing its reversible Rust encoding.
+func writeFprintByteWriterGoStringTuple(out *strings.Builder, call *ast.CallExpr, formatted string) {
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as " + rustIntType() + "; (*")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).__go_write_bytes(&__bytes); (__n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString(") }")
+}
+
+// writeFmtStdStreamGoStringTuple writes a canonical Go string directly to
+// stdout or stderr. Rust's print macros require UTF-8 text and would expose
+// the reversible internal representation for a Go string containing arbitrary
+// bytes. The result keeps fmt's (int, error) shape and maps concrete I/O
+// failures back into the generated Go error representation.
+func writeFmtStdStreamGoStringTuple(out *strings.Builder, formatted string, stderr bool) {
+	TrackImport("Error")
+	errorInner := externalStubErrorInnerType()
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as " + rustIntType() + "; match std::io::Write::write_all(&mut std::io::")
+	if stderr {
+		out.WriteString("stderr()")
+	} else {
+		out.WriteString("stdout()")
+	}
+	out.WriteString(", &__bytes) { Ok(()) => (__n, ")
+	out.WriteString(wrappedExternalStubNoneExpr(errorInner))
+	out.WriteString("), Err(e) => (0, ")
+	out.WriteString(wrappedExternalStubSomeExpr(errorInner, rustErrorFromText("e")))
+	out.WriteString(") } }")
+}
+
 // writeFprintfUserWriteTuple emits a block expression that formats the args
 // and calls the target's user-defined `write` method with the formatted bytes.
 // The user's write returns the Go (int, error) shape directly, so the block
@@ -1879,6 +2215,28 @@ func writeFprintUserWriteTuple(out *strings.Builder, call *ast.CallExpr, writeFo
 	}
 	out.WriteString(".write(")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__s.into_bytes()"))
+	out.WriteString(") }")
+}
+
+// writeFprintUserWriteGoStringTuple calls a source/user writer with the Go
+// bytes of a canonical formatting result rather than the internal Rust text.
+func writeFprintUserWriteGoStringTuple(out *strings.Builder, call *ast.CallExpr, formatted string) {
+	TrackImport("Error")
+	out.WriteString("{ let __s = ")
+	out.WriteString(formatted)
+	out.WriteString("; let __bytes = __go_string_bytes(&__s); ")
+	if fmtFprintfTargetIsBareReceiver(call.Args[0]) || isExpressionResultBare(call.Args[0]) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		out.WriteString(")")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, call.Args[0], LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
+	}
+	out.WriteString(".write(")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "__bytes"))
 	out.WriteString(") }")
 }
 
@@ -2212,6 +2570,14 @@ func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
 func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	// fmt.Sprintf returns a string, which needs to be wrapped
 	WriteWrapperPrefix(out)
+	if writeSimpleStringFormatExpression(out, call, 0) {
+		WriteWrapperSuffix(out)
+		return
+	}
+	if writeLiteralStringRuntimeFormatExpression(out, call, 0) {
+		WriteWrapperSuffix(out)
+		return
+	}
 	out.WriteString("format!")
 	out.WriteString("(")
 
@@ -2288,6 +2654,289 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	out.WriteString("))))")
+}
+
+// writeLiteralStringRuntimeFormatExpression handles a translation-time format
+// that contains a byte-sensitive string operand and otherwise stays within a
+// conservative subset supported by go_sprintf. The ordinary Rust formatter
+// cannot carry malformed Go string bytes through %v or %q, while go_sprintf
+// returns the canonical reversible Go string.
+func writeLiteralStringRuntimeFormatExpression(out *strings.Builder, call *ast.CallExpr, formatIndex int) bool {
+	if call == nil || call.Ellipsis.IsValid() || len(call.Args) <= formatIndex {
+		return false
+	}
+	quoted, ok := translationTimeFormat(call.Args[formatIndex])
+	if !ok {
+		return false
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+
+	var verbs []byte
+	for i := 0; i < len(format); {
+		if format[i] != '%' {
+			i++
+			continue
+		}
+		if i+1 >= len(format) {
+			return false
+		}
+		if format[i+1] == '%' {
+			i += 2
+			continue
+		}
+
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0", format[j]) >= 0 {
+			j++
+		}
+		for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+			j++
+		}
+		if j < len(format) && format[j] == '.' {
+			j++
+			for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+				j++
+			}
+		}
+		if j >= len(format) || strings.IndexByte("svqxXdtboOcU", format[j]) < 0 {
+			return false
+		}
+		verbs = append(verbs, format[j])
+		i = j + 1
+	}
+	if len(call.Args)-formatIndex-1 != len(verbs) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	hasString := false
+	for index, arg := range call.Args[formatIndex+1:] {
+		if printOperandIsString(arg) && strings.IndexByte("svqxX", verbs[index]) >= 0 {
+			hasString = true
+			continue
+		}
+		typ := typeInfo.GetType(arg)
+		if typ == nil {
+			return false
+		}
+		basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+		if !ok {
+			return false
+		}
+		integerText := strings.IndexByte("vdboOxXcqU", verbs[index]) >= 0 && basic.Info()&types.IsInteger != 0
+		booleanText := strings.IndexByte("tv", verbs[index]) >= 0 && basic.Info()&types.IsBoolean != 0
+		if !integerText && !booleanText {
+			return false
+		}
+	}
+	if !hasString {
+		return false
+	}
+
+	writeRuntimeFormatCall(out, call.Args[formatIndex], call.Args[formatIndex+1:], false, false)
+	return true
+}
+
+// writeSimpleStringFormatExpression handles the byte-sensitive common case
+// where a translation-time format contains only literal bytes, %% and %s
+// verbs whose operands have string type. Rust formatting cannot represent an
+// invalid UTF-8 result, so this case assembles Go bytes directly. Width and
+// precision are measured in Go runes while the selected value is copied as
+// its original bytes.
+func writeSimpleStringFormatExpression(out *strings.Builder, call *ast.CallExpr, formatIndex int) bool {
+	if call == nil || call.Ellipsis.IsValid() || len(call.Args) <= formatIndex {
+		return false
+	}
+	quoted, ok := translationTimeFormat(call.Args[formatIndex])
+	if !ok {
+		return false
+	}
+	format, err := strconv.Unquote(quoted)
+	if err != nil {
+		return false
+	}
+
+	type stringFormatSpec struct {
+		left         bool
+		zero         bool
+		hasWidth     bool
+		width        int
+		hasPrecision bool
+		precision    int
+	}
+	parts := make([][]byte, 1)
+	specs := make([]stringFormatSpec, 0)
+	for i := 0; i < len(format); {
+		if format[i] != '%' {
+			parts[len(parts)-1] = append(parts[len(parts)-1], format[i])
+			i++
+			continue
+		}
+		if i+1 >= len(format) {
+			return false
+		}
+		if format[i+1] == '%' {
+			parts[len(parts)-1] = append(parts[len(parts)-1], '%')
+			i += 2
+			continue
+		}
+
+		j := i + 1
+		spec := stringFormatSpec{}
+		for j < len(format) && (format[j] == '-' || format[j] == '0') {
+			if format[j] == '-' {
+				spec.left = true
+			} else {
+				spec.zero = true
+			}
+			j++
+		}
+		widthStart := j
+		for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+			j++
+		}
+		if j > widthStart {
+			spec.hasWidth = true
+			spec.width, err = strconv.Atoi(format[widthStart:j])
+			if err != nil {
+				return false
+			}
+		}
+		if j < len(format) && format[j] == '.' {
+			spec.hasPrecision = true
+			j++
+			precisionStart := j
+			for j < len(format) && format[j] >= '0' && format[j] <= '9' {
+				j++
+			}
+			if j > precisionStart {
+				spec.precision, err = strconv.Atoi(format[precisionStart:j])
+				if err != nil {
+					return false
+				}
+			}
+		}
+		if j >= len(format) || format[j] != 's' {
+			return false
+		}
+		specs = append(specs, spec)
+		parts = append(parts, nil)
+		i = j + 1
+	}
+	if len(call.Args)-formatIndex != len(parts) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	for _, arg := range call.Args[formatIndex+1:] {
+		if !printOperandProvidesCanonicalStringBytes(arg) {
+			return false
+		}
+	}
+
+	out.WriteString("{ let mut __go_sprintf_bytes = std::vec::Vec::<u8>::new(); ")
+	for i, part := range parts {
+		if len(part) > 0 {
+			out.WriteString("__go_sprintf_bytes.extend_from_slice(&[")
+			for j, b := range part {
+				if j > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(strconv.Itoa(int(b)))
+				out.WriteString("u8")
+			}
+			out.WriteString("]); ")
+		}
+		if i >= len(parts)-1 {
+			continue
+		}
+		out.WriteString("let __go_sprintf_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		if !writeConcreteStringMethodResult(out, call.Args[formatIndex+i+1]) {
+			writeStringSequenceOwnedValue(out, call.Args[formatIndex+i+1])
+		}
+		out.WriteString("; ")
+		spec := specs[i]
+		if !spec.hasWidth && !spec.hasPrecision {
+			out.WriteString("__go_sprintf_bytes.extend(__go_string_bytes(&__go_sprintf_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(")); ")
+			continue
+		}
+
+		index := strconv.Itoa(i)
+		out.WriteString("let __go_sprintf_arg_bytes_")
+		out.WriteString(index)
+		out.WriteString(" = __go_string_bytes(&__go_sprintf_arg_")
+		out.WriteString(index)
+		out.WriteString("); ")
+		if spec.hasPrecision {
+			out.WriteString("let __go_sprintf_arg_end_")
+			out.WriteString(index)
+			out.WriteString(" = __go_string_range(&__go_sprintf_arg_")
+			out.WriteString(index)
+			out.WriteString(").get(")
+			out.WriteString(strconv.Itoa(spec.precision))
+			out.WriteString(").map(|__entry| __entry.0).unwrap_or(__go_sprintf_arg_bytes_")
+			out.WriteString(index)
+			out.WriteString(".len()); ")
+		} else {
+			out.WriteString("let __go_sprintf_arg_end_")
+			out.WriteString(index)
+			out.WriteString(" = __go_sprintf_arg_bytes_")
+			out.WriteString(index)
+			out.WriteString(".len(); ")
+		}
+		out.WriteString("let __go_sprintf_arg_slice_")
+		out.WriteString(index)
+		out.WriteString(" = &__go_sprintf_arg_bytes_")
+		out.WriteString(index)
+		out.WriteString("[..__go_sprintf_arg_end_")
+		out.WriteString(index)
+		out.WriteString("]; ")
+		if spec.hasWidth {
+			out.WriteString("let __go_sprintf_arg_piece_")
+			out.WriteString(index)
+			out.WriteString(" = __go_string_from_bytes(__go_sprintf_arg_slice_")
+			out.WriteString(index)
+			out.WriteString(".to_vec()); let __go_sprintf_arg_padding_")
+			out.WriteString(index)
+			out.WriteString(" = ")
+			out.WriteString(strconv.Itoa(spec.width))
+			out.WriteString("usize.saturating_sub(__go_string_range(&__go_sprintf_arg_piece_")
+			out.WriteString(index)
+			out.WriteString(").len()); ")
+			if !spec.left {
+				out.WriteString("__go_sprintf_bytes.extend(std::iter::repeat(")
+				if spec.zero {
+					out.WriteString("b'0'")
+				} else {
+					out.WriteString("b' '")
+				}
+				out.WriteString(").take(__go_sprintf_arg_padding_")
+				out.WriteString(index)
+				out.WriteString(")); ")
+			}
+		}
+		out.WriteString("__go_sprintf_bytes.extend_from_slice(__go_sprintf_arg_slice_")
+		out.WriteString(index)
+		out.WriteString("); ")
+		if spec.hasWidth && spec.left {
+			out.WriteString("__go_sprintf_bytes.extend(std::iter::repeat(b' ').take(__go_sprintf_arg_padding_")
+			out.WriteString(index)
+			out.WriteString(")); ")
+		}
+	}
+	out.WriteString("__go_string_from_bytes(__go_sprintf_bytes) }")
+	return true
 }
 
 func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
@@ -3068,30 +3717,37 @@ func writeStringBinaryResult(out *strings.Builder, call *ast.CallExpr, method st
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __arg = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.")
-	out.WriteString(method)
-	out.WriteString("(&__arg) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __arg_bytes = __go_string_bytes(&__arg); ")
+	if method == "contains" {
+		out.WriteString("__arg_bytes.is_empty() || __s_bytes.windows(__arg_bytes.len()).any(|__window| __window == __arg_bytes.as_slice())")
+	} else {
+		out.WriteString("__s_bytes.")
+		out.WriteString(method)
+		out.WriteString("(&__arg_bytes)")
+	}
+	out.WriteString(" }")
 	WriteWrapperSuffix(out)
 }
 
 func transpileStringsToUpper(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) > 0 {
-		WriteWrapperPrefix(out)
-		out.WriteString("{ let __s = ")
-		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.to_uppercase() }")
-		WriteWrapperSuffix(out)
-	}
+	transpileStringsCaseMapping(out, call, "to_uppercase")
 }
 
 func transpileStringsToLower(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) > 0 {
-		WriteWrapperPrefix(out)
-		out.WriteString("{ let __s = ")
-		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.to_lowercase() }")
-		WriteWrapperSuffix(out)
+	transpileStringsCaseMapping(out, call, "to_lowercase")
+}
+
+func transpileStringsCaseMapping(out *strings.Builder, call *ast.CallExpr, method string) {
+	if len(call.Args) == 0 {
+		return
 	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __s = ")
+	writeOwnedStringStdlibArg(out, call.Args[0])
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __out = Vec::new(); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; if let Ok(__valid) = std::str::from_utf8(&__s_bytes[__start..__end]) { let __mapped = __valid.")
+	out.WriteString(method)
+	out.WriteString("(); __out.extend_from_slice(__mapped.as_bytes()); } else { __out.extend_from_slice(\"\\u{fffd}\".as_bytes()); } } __go_string_from_bytes(__out) }")
+	WriteWrapperSuffix(out)
 }
 
 func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
@@ -3099,7 +3755,7 @@ func transpileStringsTrimSpace(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperPrefix(out)
 		out.WriteString("{ let __s = ")
 		writeOwnedStringStdlibArg(out, call.Args[0])
-		out.WriteString("; __s.trim().to_string() }")
+		out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __first = 0usize; while __first < __runes.len() && __runes[__first].1.is_whitespace() { __first += 1; } let __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; let mut __last = __runes.len(); while __last > __first && __runes[__last - 1].1.is_whitespace() { __last -= 1; } let __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }")
 		WriteWrapperSuffix(out)
 	}
 }
@@ -3128,7 +3784,7 @@ func transpileStringsIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.find(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { 0 } else { __s_bytes.windows(__substr_bytes.len()).position(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3141,7 +3797,7 @@ func transpileStringsLastIndex(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.rfind(&__substr).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __s_bytes.len() as " + rustIntType() + " } else { __s_bytes.windows(__substr_bytes.len()).rposition(|__window| __window == __substr_bytes.as_slice()).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3154,7 +3810,7 @@ func transpileStringsCount(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __substr = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; if __substr.is_empty() { __s.chars().count() as " + rustIntType() + " + 1 } else { __s.matches(&__substr).count() as " + rustIntType() + " } }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __substr_bytes = __go_string_bytes(&__substr); if __substr_bytes.is_empty() { __go_string_range(&__s).len() as " + rustIntType() + " + 1 } else { let mut __count = 0; let mut __i = 0usize; while __i + __substr_bytes.len() <= __s_bytes.len() { if &__s_bytes[__i..__i + __substr_bytes.len()] == __substr_bytes.as_slice() { __count += 1; __i += __substr_bytes.len(); } else { __i += 1; } } __count } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3167,7 +3823,7 @@ func transpileStringsCompare(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __b = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }")
+	out.WriteString("; match __go_string_cmp(&__a, &__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3179,7 +3835,7 @@ func transpileStringsCut(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __sep = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let __found = if __sep_bytes.is_empty() { Some(0usize) } else { __s_bytes.windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()) }; if let Some(__idx) = __found { let __before = __go_string_from_bytes(__s_bytes[..__idx].to_vec()); let __after = __go_string_from_bytes(__s_bytes[__idx + __sep_bytes.len()..].to_vec()); (")
 	WriteWrapperPrefix(out)
 	out.WriteString("__before")
 	WriteWrapperSuffix(out)
@@ -3217,7 +3873,7 @@ func transpileStringsTrimSuffix(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __suffix = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.strip_suffix(&__suffix).unwrap_or(&__s).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __suffix_bytes = __go_string_bytes(&__suffix); if __s_bytes.ends_with(&__suffix_bytes) { __go_string_from_bytes(__s_bytes[..__s_bytes.len() - __suffix_bytes.len()].to_vec()) } else { __s } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3230,7 +3886,7 @@ func transpileStringsTrimPrefix(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __prefix = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.strip_prefix(&__prefix).unwrap_or(&__s).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __prefix_bytes = __go_string_bytes(&__prefix); if __s_bytes.starts_with(&__prefix_bytes) { __go_string_from_bytes(__s_bytes[__prefix_bytes.len()..].to_vec()) } else { __s } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3243,7 +3899,7 @@ func transpileStringsIndexAny(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __chars = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as " + rustIntType() + ").unwrap_or(-1) }")
+	out.WriteString("; let __runes = __go_string_range(&__s); let __chars = __go_string_range(&__chars); __runes.iter().find(|__rune| __chars.iter().any(|__candidate| __candidate.1 == __rune.1)).map(|__rune| __rune.0 as " + rustIntType() + ").unwrap_or(-1) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3256,7 +3912,7 @@ func transpileStringsSplit(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __sep = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __sep_bytes = __go_string_bytes(&__sep); let mut __parts = Vec::new(); if __sep_bytes.is_empty() { let __runes = __go_string_range(&__s); for __i in 0..__runes.len() { let __start = __runes[__i].0; let __end = if __i + 1 < __runes.len() { __runes[__i + 1].0 } else { __s_bytes.len() }; __parts.push(__go_string_from_bytes(__s_bytes[__start..__end].to_vec())); } } else { let mut __start = 0usize; loop { let __found = __s_bytes[__start..].windows(__sep_bytes.len()).position(|__window| __window == __sep_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __parts.push(__go_string_from_bytes(__s_bytes[__start..__idx].to_vec())); __start = __idx + __sep_bytes.len(); } else { __parts.push(__go_string_from_bytes(__s_bytes[__start..].to_vec())); break; } } } __parts }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3269,7 +3925,7 @@ func transpileStringsJoin(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringSliceStdlibArg(out, call.Args[0])
 	out.WriteString("; let __sep = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __parts.join(&__sep) }")
+	out.WriteString("; let __sep_bytes = __go_string_bytes(&__sep); let mut __out = Vec::new(); for (__i, __part) in __parts.iter().enumerate() { if __i != 0 { __out.extend_from_slice(&__sep_bytes); } __out.extend(__go_string_bytes(__part)); } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3280,7 +3936,7 @@ func transpileStringsFields(out *strings.Builder, call *ast.CallExpr) {
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let __s = ")
 	writeOwnedStringStdlibArg(out, call.Args[0])
-	out.WriteString("; __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let mut __fields = Vec::new(); let mut __start = None; for __rune in __runes.iter() { if __rune.1.is_whitespace() { if let Some(__field_start) = __start.take() { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..__rune.0].to_vec())); } } else if __start.is_none() { __start = Some(__rune.0); } } if let Some(__field_start) = __start { __fields.push(__go_string_from_bytes(__s_bytes[__field_start..].to_vec())); } __fields }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3297,7 +3953,7 @@ func transpileStringsReplace(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[2])
 	out.WriteString("; let __n = ")
 	TranspileExpression(out, call.Args[3])
-	out.WriteString("; if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } }")
+	out.WriteString("; if __n == 0 { __s } else { let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let __limit = if __n < 0 { usize::MAX } else { __n as usize }; let mut __out = Vec::new(); let mut __replaced = 0usize; if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { if __replaced < __limit { __out.extend_from_slice(&__new_bytes); __replaced += 1; } if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; while __replaced < __limit && __start + __old_bytes.len() <= __s_bytes.len() { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); __replaced += 1; } else { break; } } __out.extend_from_slice(&__s_bytes[__start..]); } __go_string_from_bytes(__out) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3312,7 +3968,7 @@ func transpileStringsReplaceAll(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[1])
 	out.WriteString("; let __new = ")
 	writeOwnedStringStdlibArg(out, call.Args[2])
-	out.WriteString("; __s.replace(&__old, &__new) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let mut __out = Vec::new(); if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { __out.extend_from_slice(&__new_bytes); if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; loop { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); } else { __out.extend_from_slice(&__s_bytes[__start..]); break; } } } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3325,7 +3981,7 @@ func transpileStringsRepeat(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __count = ")
 	writeNumericConversionValue(out, call.Args[1])
-	out.WriteString("; __s.repeat(__count as usize) }")
+	out.WriteString("; if __count < 0 { panic!(\"strings: negative Repeat count\"); } let __count = __count as usize; let __bytes = __go_string_bytes(&__s); let __capacity = __bytes.len().checked_mul(__count).expect(\"strings: Repeat output length overflow\"); let mut __out = Vec::with_capacity(__capacity); for _ in 0..__count { __out.extend_from_slice(&__bytes); } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3338,7 +3994,7 @@ func transpileStringsEqualFold(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __b = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __a.to_lowercase() == __b.to_lowercase() }")
+	out.WriteString("; let __a_runes = __go_string_range(&__a); let __b_runes = __go_string_range(&__b); let __a_folded: String = __a_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); let __b_folded: String = __b_runes.iter().flat_map(|__rune| __rune.1.to_lowercase()).collect(); __a_folded == __b_folded }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3363,15 +4019,20 @@ func transpileStringsTrimCutset(out *strings.Builder, call *ast.CallExpr, method
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __cutset = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.")
-	out.WriteString(method)
-	out.WriteString("(|__ch| __cutset.contains(__ch)).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let __cutset_runes = __go_string_range(&__cutset); let mut __start = 0usize; let mut __end = __s_bytes.len(); ")
+	if method != "trim_end_matches" {
+		out.WriteString("let mut __first = 0usize; while __first < __runes.len() && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__first].1) { __first += 1; } __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; ")
+	}
+	if method != "trim_start_matches" {
+		out.WriteString("let mut __last = __runes.len(); while __last > 0 && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__last - 1].1) { __last -= 1; } __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; ")
+	}
+	out.WriteString("if __end < __start { __end = __start; } __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }")
 	WriteWrapperSuffix(out)
 }
 
 func transpileSortStrings(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		transpileNilSafeSort(out, call.Args[0])
+		transpileNilSafeStringSort(out, call.Args[0])
 	}
 }
 
@@ -3383,7 +4044,11 @@ func transpileSortInts(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
-		transpileNilSafeSort(out, call.Args[0])
+		if sortSliceElementIsString(call.Args[0]) {
+			transpileNilSafeStringSort(out, call.Args[0])
+		} else {
+			transpileNilSafeSort(out, call.Args[0])
+		}
 	}
 }
 
@@ -3571,6 +4236,31 @@ func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".clone(); let mut __sort_guard = __sort_target")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
+}
+
+func transpileNilSafeStringSort(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("{ let __sort_target = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let mut __sort_guard = __sort_target")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort_by(|__a, __b| __go_string_cmp(__a, __b)); } }")
+}
+
+func sortSliceElementIsString(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(slice.Elem()).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.String
 }
 
 func writeSortFuncWrappedElement(out *strings.Builder, name string, elemIsInterface, elemHasInherentWrapper bool) {
@@ -3948,9 +4638,7 @@ func transpileStrconvQuote(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	WriteWrapperPrefix(out)
-	out.WriteString("format!(\"{:?}\", ")
-	writeOwnedStringStdlibArg(out, call.Args[0])
-	out.WriteString(")")
+	writeRuntimeFormatCall(out, &ast.BasicLit{Kind: token.STRING, Value: `"%q"`}, call.Args[:1], false, false)
 	WriteWrapperSuffix(out)
 }
 
@@ -5746,6 +6434,13 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if typeInfo != nil && typeInfo.IsString(call.Args[0]) {
+			out.WriteString("{ let __s = ")
+			writeStringSequenceValue(out, call.Args[0])
+			out.WriteString("; __go_string_len(&__s) }")
+			return
+		}
+
 		if writeNamedSliceLen(out, call.Args[0]) {
 			return
 		}
@@ -5884,8 +6579,13 @@ func writePointerDerefSliceLen(out *strings.Builder, expr ast.Expr) bool {
 }
 
 func writeConstStringLen(out *strings.Builder, expr ast.Expr) bool {
-	if _, ok := constStringLiteral(expr); !ok {
+	value, ok := constStringValue(expr)
+	if !ok {
 		return false
+	}
+	if goStringValueCollidesWithByteEncoding(value) {
+		out.WriteString(strconv.Itoa(len(value)))
+		return true
 	}
 	TranspileExpression(out, expr)
 	out.WriteString(".len()")
@@ -6591,8 +7291,9 @@ func writeCopyDestination(out *strings.Builder, dst ast.Expr, mutable bool) {
 
 func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 	if isString {
+		out.WriteString("__go_string_bytes(&")
 		writeStringSequenceValue(out, expr)
-		out.WriteString(".as_bytes().to_vec()")
+		out.WriteString(")")
 		return
 	}
 	if writeNamedSliceCopySourceValue(out, expr) {

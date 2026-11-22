@@ -20,7 +20,10 @@ func goSliceModeEnabled() bool {
 // goSliceImportNames are the names every module imports from the helper that
 // defines GoSlice. Vec and vec! shadow the prelude's, so the slice types and
 // literals the translator writes as Vec<T> and vec![..] are Go slices.
-var goSliceImportNames = []string{"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "GoSliceView", "Vec"}
+var goSliceImportNames = []string{
+	"GoSlice", "GoSliceAppendBoxed", "GoSliceFromSlice", "GoSliceHeader", "GoSliceView", "Vec",
+	"__go_string_from_bytes", "__go_string_bytes", "__go_string_cmp", "__go_string_concat", "__go_string_len", "__go_string_range", "__go_string_slice",
+}
 
 // goSliceVecMacro shadows the prelude's vec! with one that makes a GoSlice.
 // A macro reached through an import, or defined in an include!d file, is
@@ -73,19 +76,20 @@ func deferStackDecl() string {
 }
 
 // stringFromUTF8Open and stringFromUTF8Close surround a []byte value to make
-// a string of it. String::from_utf8 takes the standard library's Vec.
+// a Go string. Go strings may contain arbitrary bytes, so the runtime helper
+// uses a reversible encoding when the bytes are not valid UTF-8.
 func stringFromUTF8Open() string {
 	if goSliceModeEnabled() {
-		return "String::from_utf8(std::vec::Vec::from("
+		return "__go_string_from_bytes(std::vec::Vec::from("
 	}
-	return "String::from_utf8("
+	return "__go_string_from_bytes("
 }
 
 func stringFromUTF8Close() string {
 	if goSliceModeEnabled() {
-		return ")).unwrap()"
+		return "))"
 	}
-	return ").unwrap()"
+	return ")"
 }
 
 // goSliceHelperText adapts the text of another helper to GoSlice mode, where
@@ -100,12 +104,12 @@ func goSliceHelperText(text string) string {
 		"fn go_format_hex_bytes(data: &[u8], upper: bool) -> String {", "fn go_format_hex_bytes<S: GoSliceView<u8> + ?Sized>(source: &S, upper: bool) -> String {\n    let data = source.go_slice_view();",
 		"    for b in data {", "    for b in data.iter() {",
 		"        self[index]", "        self.get_cloned(index)",
-		"        String::from_utf8(self[start..end].to_vec()).unwrap()", "        let data = self.as_slice();\n        String::from_utf8(data[start..end].to_vec()).unwrap()",
-		"        String::from_utf8(self.clone()).unwrap()", "        let data = self.as_slice();\n        String::from_utf8(data.as_ref().to_vec()).unwrap()",
+		"        String::from_utf8(self[start..end].to_vec()).unwrap()", "        let data = self.as_slice();\n        __go_string_from_bytes(data[start..end].to_vec())",
+		"        String::from_utf8(self.clone()).unwrap()", "        let data = self.as_slice();\n        __go_string_from_bytes(data.as_ref().to_vec())",
 		"fn format_slice_values<T>(slice: &[T]) -> String\nwhere\n    T: Display,\n{\n    let formatted: Vec<String> = slice.iter()", "fn format_slice_values<T, C>(slice: &C) -> String\nwhere\n    C: GoSliceView<T> + ?Sized,\n    T: Display,\n{\n    let __view = slice.go_slice_view();\n    let formatted: std::vec::Vec<String> = __view.iter()",
 		"fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String\nwhere\n    Inner: AsRef<[T]>,\n    T: Display,\n{\n    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();", "fn format_nested_slice_values<T, Inner, C>(slice: &C) -> String\nwhere\n    C: GoSliceView<Inner> + ?Sized,\n    Inner: GoSliceView<T>,\n    T: Display,\n{\n    let __view = slice.go_slice_view();\n    let formatted: std::vec::Vec<String> = __view.iter().map(|inner| { let __inner_view = inner.go_slice_view(); format_slice_values(__inner_view.as_ref()) }).collect();",
-		"String::from_utf8(self.clone())", "String::from_utf8(self.to_vec())",
-		"String::from_utf8(out)", "String::from_utf8(out.to_vec())",
+		"String::from_utf8(self.clone()).unwrap()", "__go_string_from_bytes(self.to_vec())",
+		"String::from_utf8(out).unwrap()", "__go_string_from_bytes(out.to_vec())",
 		"GoValueClone for std::vec::Vec<T>", "GoValueClone for GoSlice<T>",
 		"GoTypeParamFieldClone for std::vec::Vec<T>", "GoTypeParamFieldClone for GoSlice<T>",
 		"let mut items: Vec<_>", "let mut items: std::vec::Vec<_>",
@@ -172,7 +176,89 @@ func generateGoSliceHelper(out *strings.Builder, includeBoxedImpls bool) {
 // goSliceRuntime is the Rust definition of GoSlice. Every header shares one
 // backing-wide RwLock so references cannot outlive the guard that excludes a
 // write through another header.
-const goSliceRuntime = `/// A Go slice: an offset, a length and a capacity over a backing array that
+const goSliceRuntime = `const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
+/// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
 pub struct GoSlice<T> {

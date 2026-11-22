@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -15,6 +16,88 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+const __GO_STRING_BYTES_PREFIX: &str = "\u{fdd0}\u{fdd1}";
+
+/// Stores arbitrary Go string bytes in a Rust String without violating
+/// Rust's UTF-8 invariant. Valid UTF-8 keeps its ordinary representation;
+/// other byte strings use a reserved noncharacter prefix plus hex bytes.
+pub fn __go_string_from_bytes(__bytes: std::vec::Vec<u8>) -> String {
+    if let Ok(__text) = std::str::from_utf8(&__bytes) {
+        if !__text.starts_with(__GO_STRING_BYTES_PREFIX) {
+            return __text.to_string();
+        }
+    }
+    let mut __encoded = String::from(__GO_STRING_BYTES_PREFIX);
+    for __byte in __bytes {
+        use std::fmt::Write as _;
+        write!(&mut __encoded, "{:02x}", __byte).unwrap();
+    }
+    __encoded
+}
+
+pub fn __go_string_bytes(__text: &str) -> std::vec::Vec<u8> {
+    let Some(__hex) = __text.strip_prefix(__GO_STRING_BYTES_PREFIX) else {
+        return __text.as_bytes().to_vec();
+    };
+    if __hex.len() % 2 != 0 || !__hex.as_bytes().iter().all(|__b| __b.is_ascii_hexdigit()) {
+        return __text.as_bytes().to_vec();
+    }
+    (0..__hex.len())
+        .step_by(2)
+        .map(|__i| u8::from_str_radix(&__hex[__i..__i + 2], 16).unwrap())
+        .collect()
+}
+
+pub fn __go_string_concat(__left: &str, __right: &str) -> String {
+    let mut __bytes = __go_string_bytes(__left);
+    __bytes.extend(__go_string_bytes(__right));
+    __go_string_from_bytes(__bytes)
+}
+
+pub fn __go_string_cmp(__left: &str, __right: &str) -> std::cmp::Ordering {
+    __go_string_bytes(__left).cmp(&__go_string_bytes(__right))
+}
+
+pub fn __go_string_len(__text: &str) -> usize {
+    __go_string_bytes(__text).len()
+}
+
+pub fn __go_string_range(__text: &str) -> std::vec::Vec<(usize, char)> {
+    let __bytes = __go_string_bytes(__text);
+    let mut __items = std::vec::Vec::new();
+    let mut __index = 0usize;
+    while __index < __bytes.len() {
+        let __first = __bytes[__index];
+        let __width = match __first {
+            0x00..=0x7f => 1,
+            0xc2..=0xdf => 2,
+            0xe0..=0xef => 3,
+            0xf0..=0xf4 => 4,
+            _ => 1,
+        };
+        let mut __rune = '\u{fffd}';
+        let mut __used = 1usize;
+        if __first <= 0x7f {
+            __rune = __first as char;
+        } else if __width > 1 && __index + __width <= __bytes.len() {
+            if let Ok(__valid) = std::str::from_utf8(&__bytes[__index..__index + __width]) {
+                if let Some(__decoded) = __valid.chars().next() {
+                    __rune = __decoded;
+                    __used = __width;
+                }
+            }
+        }
+        __items.push((__index, __rune));
+        __index += __used;
+    }
+    __items
+}
+
+pub fn __go_string_slice(__text: &str, __low: usize, __high: usize) -> String {
+    let __bytes = __go_string_bytes(__text);
+    __go_string_from_bytes(__bytes[__low..__high].to_vec())
+}
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -750,7 +833,7 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_string_bytes, __go_string_from_bytes, __go_type_name, go_format_is_text, go_format_named_basic_value};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1094,7 +1177,13 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
     let bytes = &bytes[..kept];
     let spec = &GoFormatSpec { precision: None, ..*spec };
     match std::str::from_utf8(bytes) {
-        Ok(text) => go_format_string(spec, verb, text),
+        Ok(text) => {
+            let formatted = go_format_string(spec, verb, text);
+            if verb == 's' {
+                return formatted.map(|text| __go_string_from_bytes(text.into_bytes()));
+            }
+            formatted
+        }
         // %q writes a byte that is not UTF-8 as an escape.
         Err(_) if verb == 'q' => {
             let mut quoted = String::from("\"");
@@ -1107,9 +1196,24 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
             quoted.push('"');
             Some(go_format_pad(spec, quoted, 0, true))
         }
-        // %s would have to write the byte as it is, and the result is a Rust
-        // String, which cannot hold it.
-        Err(_) => panic!("go2rust: %s of a []byte that is not UTF-8 is not supported in a format that is only known at run time"),
+        // The result uses the same reversible representation as every Go
+        // string, so go_sprintf can append the original bytes rather than
+        // exposing the representation. Width counts decoded runes; each
+        // malformed byte counts as one RuneError, as it did for precision.
+        Err(_) => {
+            let len = bytes.utf8_chunks().map(|chunk| chunk.valid().chars().count() + chunk.invalid().len()).sum::<usize>();
+            let fill = spec.width.unwrap_or(0).saturating_sub(len);
+            let padding = std::vec![if spec.zero && !spec.minus { b'0' } else { b' ' }; fill];
+            let mut out = std::vec::Vec::with_capacity(bytes.len() + fill);
+            if !spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            out.extend_from_slice(bytes);
+            if spec.minus {
+                out.extend_from_slice(&padding);
+            }
+            Some(__go_string_from_bytes(out))
+        }
     }
 }
 
@@ -1157,10 +1261,12 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     }
     let string_verb = if sharp_v { 'q' } else { verb };
     if let Some(v) = value.downcast_ref::<String>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<&str>() {
-        return go_format_string(&basic, string_verb, v);
+        let bytes_verb = if string_verb == 'v' { 's' } else { string_verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(v));
     }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
         let guard = v.borrow();
@@ -1180,7 +1286,9 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
-        return go_format_string(&basic, verb, &format_any(value));
+        let text = format_any(value);
+        let bytes_verb = if verb == 'v' { 's' } else { verb };
+        return go_format_bytes(&basic, bytes_verb, &__go_string_bytes(&text));
     }
     if let Some(inner) = go_format_named_basic_value(value) {
         return go_format_argument(spec, verb, inner.as_ref());
@@ -1246,7 +1354,10 @@ fn go_format_is_basic(value: &dyn Any) -> bool {
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
-    format!("{}={}", __go_type_name(value), text)
+    let mut out = __go_type_name(value).as_bytes().to_vec();
+    out.push(b'=');
+    out.extend(__go_string_bytes(&text));
+    __go_string_from_bytes(out)
 }
 
 // The verb that writes value as %v does and leaves the flags as they are.
@@ -1272,12 +1383,13 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
 pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
-    let mut out = String::new();
+    let mut out = std::vec::Vec::<u8>::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
     while let Some(c) = chars.next() {
         if c != '%' {
-            out.push(c);
+            let mut encoded = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut encoded).as_bytes());
             continue;
         }
         let mut spec = GoFormatSpec::default();
@@ -1302,14 +1414,14 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
                 spec.width = Some((-width) as usize);
             }
             Ok(width) => spec.width = width.map(|width| width as usize),
-            Err(()) => out.push_str("%!(BADWIDTH)"),
+            Err(()) => out.extend_from_slice(b"%!(BADWIDTH)"),
         }
         if chars.peek() == Some(&'.') {
             chars.next();
             match go_format_number(&mut chars, args, &mut next) {
-                Ok(Some(precision)) if precision < 0 => out.push_str("%!(BADPREC)"),
+                Ok(Some(precision)) if precision < 0 => out.extend_from_slice(b"%!(BADPREC)"),
                 Ok(precision) => spec.precision = Some(precision.unwrap_or(0) as usize),
-                Err(()) => out.push_str("%!(BADPREC)"),
+                Err(()) => out.extend_from_slice(b"%!(BADPREC)"),
             }
         }
         if chars.peek() == Some(&'[') {
@@ -1318,18 +1430,18 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
         let verb = match chars.next() {
             Some(verb) => verb,
             None => {
-                out.push_str("%!(NOVERB)");
+                out.extend_from_slice(b"%!(NOVERB)");
                 break;
             }
         };
         if verb == '%' {
-            out.push('%');
+            out.push(b'%');
             continue;
         }
         let arg = match args.get(next) {
             Some(arg) => arg,
             None => {
-                out.push_str(&format!("%!{}(MISSING)", verb));
+                out.extend_from_slice(format!("%!{}(MISSING)", verb).as_bytes());
                 continue;
             }
         };
@@ -1339,15 +1451,25 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
         // for a scalar, and for each byte of a []byte.
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
-            Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("%!{}({})", verb, go_format_typed_value(&spec, arg.as_ref()))),
+            Some(text) => out.extend(__go_string_bytes(&text)),
+            None => {
+                out.extend_from_slice(format!("%!{}(", verb).as_bytes());
+                out.extend(__go_string_bytes(&go_format_typed_value(&spec, arg.as_ref())));
+                out.push(b')');
+            }
         }
     }
     if next < args.len() {
-        let extra: Vec<String> = args[next..].iter().map(|arg| go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())).collect();
-        out.push_str(&format!("%!(EXTRA {})", extra.join(", ")));
+        out.extend_from_slice(b"%!(EXTRA ");
+        for (index, arg) in args[next..].iter().enumerate() {
+            if index > 0 {
+                out.extend_from_slice(b", ");
+            }
+            out.extend(__go_string_bytes(&go_format_typed_value(&GoFormatSpec::default(), arg.as_ref())));
+        }
+        out.push(b')');
     }
-    out
+    __go_string_from_bytes(out)
 }
 }
 use __go_runtime_format::go_sprintf;
@@ -1742,7 +1864,7 @@ impl Tree__string {
         if false {
         return Rc::new(RefCell::new(Some(Tree__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-        if (*v.borrow().as_ref().unwrap()).clone() < (*self.val.borrow().as_ref().unwrap()).clone() {
+        if { let __left = __go_string_from_bytes(__go_string_bytes(&(*v.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&self.val.clone())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
@@ -1813,7 +1935,7 @@ pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -1842,7 +1964,7 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -1871,7 +1993,7 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
+        return Rc::new(RefCell::new(Some(go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))));;
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
@@ -1904,7 +2026,7 @@ fn main() {
         { let new_val = __go_nil_recv_tree__int_insert(root.clone(), Rc::new(RefCell::new(Some(v.clone())))).clone(); root = new_val; };
     }
     __go_nil_recv_tree__int_walk(root.clone(), Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i64>>>| {
-        print!("{}{}", format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); let __go_sprint_arg_1 = " ".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>))));
     println!();
     let mut words: Rc<RefCell<Option<Tree__string>>> = Rc::new(RefCell::new(None));
@@ -1912,15 +2034,15 @@ fn main() {
         { let new_val = __go_nil_recv_tree__string_insert(words.clone(), Rc::new(RefCell::new(Some((*w).clone())))).clone(); words = new_val; };
     }
     __go_nil_recv_tree__string_walk(words.clone(), Rc::new(RefCell::new(Some(Box::new(move |w: Rc<RefCell<Option<String>>>| {
-        print!("{}{}", format!("{}", { let __v = (*w.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
+        { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*w.borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); let __go_sprint_arg_1 = " ".to_string(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
     println!();
 
     let mut a = some__int(Rc::new(RefCell::new(Some(42))));
     let mut b = none__string();
     let (mut v, mut ok) = (*a.borrow().as_ref().unwrap()).get();
-    println!("{} {} {} {}", format!("{}", v), format!("{}", ok), format!("{}", (*(*b.borrow().as_ref().unwrap()).or_else(Rc::new(RefCell::new(Some("default".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*a.borrow().as_ref().unwrap()).or_else(Rc::new(RefCell::new(Some(0))))));
-    println!("{} {} {}", format!("{}", (*describe__int(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap())), format!("{}", (*describe__string(Rc::new(RefCell::new(Some("hi".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*describe__float64(Rc::new(RefCell::new(Some(2.5)))).borrow().as_ref().unwrap())));
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = format!("{}", v); __go_sprint_bytes.extend(__go_sprint_arg_0.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = format!("{}", ok); __go_sprint_bytes.extend(__go_sprint_arg_1.into_bytes()); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*(*b.borrow().as_ref().unwrap()).or_else(Rc::new(RefCell::new(Some("default".to_string())))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_3 = format!("{}", (*a.borrow().as_ref().unwrap()).or_else(Rc::new(RefCell::new(Some(0))))); __go_sprint_bytes.extend(__go_sprint_arg_3.into_bytes()); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    { let __s = { let mut __go_sprint_bytes = std::vec::Vec::<u8>::new(); let __go_sprint_arg_0 = (*describe__int(Rc::new(RefCell::new(Some(7)))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_0)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_1 = (*describe__string(Rc::new(RefCell::new(Some("hi".to_string())))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_1)); __go_sprint_bytes.push(b' '); let __go_sprint_arg_2 = (*describe__float64(Rc::new(RefCell::new(Some(2.5)))).borrow().as_ref().unwrap()).clone(); __go_sprint_bytes.extend(__go_string_bytes(&__go_sprint_arg_2)); __go_sprint_bytes.push(b'\n'); __go_string_from_bytes(__go_sprint_bytes) }; let __bytes = __go_string_bytes(&__s); let __n = __bytes.len() as i64; match std::io::Write::write_all(&mut std::io::stdout(), &__bytes) { Ok(()) => (__n, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
 }
 
 pub fn __go_nil_recv_tree__int_insert(t: Rc<RefCell<Option<Tree__int>>>, v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Tree__int>>> {
@@ -1948,7 +2070,7 @@ pub fn __go_nil_recv_tree__string_insert(t: Rc<RefCell<Option<Tree__string>>>, v
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(Some(Tree__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-    if (*v.borrow().as_ref().unwrap()) < (*(*t.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap()).clone() {
+    if { let __left = __go_string_from_bytes(__go_string_bytes(&(*v.borrow().as_ref().unwrap()))); let __right = __go_string_from_bytes(__go_string_bytes(&(*(*t.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap()).clone())); __go_string_cmp(&__left, &__right) == std::cmp::Ordering::Less } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.borrow_mut().as_mut().unwrap()).left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.borrow_mut().as_mut().unwrap()).right = new_val; };

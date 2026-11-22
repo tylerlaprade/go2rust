@@ -5351,10 +5351,25 @@ fn go_rand_float64() -> f64 {
 }
 
 func generateOsArgsHelper(out *strings.Builder) {
+	out.WriteString(`
+fn __go_collect_os_args() -> Vec<String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::ffi::OsStringExt;
+        std::env::args_os()
+            .map(|arg| __go_string_from_bytes(arg.into_vec()))
+            .collect::<Vec<String>>()
+    }
+    #[cfg(not(unix))]
+    {
+        std::env::args().collect::<Vec<String>>()
+    }
+}
+`)
 	if NeedsConcurrentWrapper() {
 		out.WriteString(`
 static __GO_OS_ARGS: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> =
-    std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(Some(std::env::args().collect::<Vec<String>>()))));
+    std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(Some(__go_collect_os_args()))));
 
 fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
     __GO_OS_ARGS.clone()
@@ -5366,7 +5381,7 @@ fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
 	out.WriteString(`
 thread_local! {
     static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
-        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+        std::rc::Rc::new(std::cell::RefCell::new(Some(__go_collect_os_args())));
 }
 
 fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
