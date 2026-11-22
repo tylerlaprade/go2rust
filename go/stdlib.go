@@ -4018,9 +4018,14 @@ func transpileStringsTrimCutset(out *strings.Builder, call *ast.CallExpr, method
 	writeOwnedStringStdlibArg(out, call.Args[0])
 	out.WriteString("; let __cutset = ")
 	writeOwnedStringStdlibArg(out, call.Args[1])
-	out.WriteString("; __s.")
-	out.WriteString(method)
-	out.WriteString("(|__ch| __cutset.contains(__ch)).to_string() }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __runes = __go_string_range(&__s); let __cutset_runes = __go_string_range(&__cutset); let mut __start = 0usize; let mut __end = __s_bytes.len(); ")
+	if method != "trim_end_matches" {
+		out.WriteString("let mut __first = 0usize; while __first < __runes.len() && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__first].1) { __first += 1; } __start = if __first < __runes.len() { __runes[__first].0 } else { __s_bytes.len() }; ")
+	}
+	if method != "trim_start_matches" {
+		out.WriteString("let mut __last = __runes.len(); while __last > 0 && __cutset_runes.iter().any(|__cut| __cut.1 == __runes[__last - 1].1) { __last -= 1; } __end = if __last < __runes.len() { __runes[__last].0 } else { __s_bytes.len() }; ")
+	}
+	out.WriteString("if __end < __start { __end = __start; } __go_string_from_bytes(__s_bytes[__start..__end].to_vec()) }")
 	WriteWrapperSuffix(out)
 }
 

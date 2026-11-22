@@ -237,6 +237,31 @@ func inspect(s, chars string) ([]string, int) {
 	}
 }
 
+func TestStringsTrimCutsetUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func trim(s, cutset string) (string, string, string) {
+	return strings.TrimLeft(s, cutset), strings.TrimRight(s, cutset), strings.Trim(s, cutset)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __runes = __go_string_range(&__s)",
+		"let __cutset_runes = __go_string_range(&__cutset)",
+		"__go_string_from_bytes(__s_bytes[__start..__end].to_vec())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings cutset trim byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "trim_start_matches") || strings.Contains(rust, "trim_end_matches") || strings.Contains(rust, "trim_matches") {
+		t.Fatalf("strings cutset trimming must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

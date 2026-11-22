@@ -1727,6 +1727,14 @@ run_xfail_test() {
     run_test "tests/invalid_utf8_strings_substrings_goroutines"
 }
 
+@test "invalid_utf8_strings_trim_cutset" {
+    run_test "tests/invalid_utf8_strings_trim_cutset"
+}
+
+@test "invalid_utf8_strings_trim_cutset_goroutines" {
+    run_test "tests/invalid_utf8_strings_trim_cutset_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }
