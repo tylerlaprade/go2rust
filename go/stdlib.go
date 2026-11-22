@@ -3952,7 +3952,7 @@ func transpileStringsReplace(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[2])
 	out.WriteString("; let __n = ")
 	TranspileExpression(out, call.Args[3])
-	out.WriteString("; if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } }")
+	out.WriteString("; if __n == 0 { __s } else { let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let __limit = if __n < 0 { usize::MAX } else { __n as usize }; let mut __out = Vec::new(); let mut __replaced = 0usize; if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { if __replaced < __limit { __out.extend_from_slice(&__new_bytes); __replaced += 1; } if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; while __replaced < __limit && __start + __old_bytes.len() <= __s_bytes.len() { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); __replaced += 1; } else { break; } } __out.extend_from_slice(&__s_bytes[__start..]); } __go_string_from_bytes(__out) } }")
 	WriteWrapperSuffix(out)
 }
 
@@ -3967,7 +3967,7 @@ func transpileStringsReplaceAll(out *strings.Builder, call *ast.CallExpr) {
 	writeOwnedStringStdlibArg(out, call.Args[1])
 	out.WriteString("; let __new = ")
 	writeOwnedStringStdlibArg(out, call.Args[2])
-	out.WriteString("; __s.replace(&__old, &__new) }")
+	out.WriteString("; let __s_bytes = __go_string_bytes(&__s); let __old_bytes = __go_string_bytes(&__old); let __new_bytes = __go_string_bytes(&__new); let mut __out = Vec::new(); if __old_bytes.is_empty() { let __runes = __go_string_range(&__s); let mut __bounds = Vec::with_capacity(__runes.len() + 1); __bounds.push(0usize); for __rune in __runes.iter().skip(1) { __bounds.push(__rune.0); } if !__runes.is_empty() { __bounds.push(__s_bytes.len()); } for __i in 0..__bounds.len() { __out.extend_from_slice(&__new_bytes); if __i + 1 < __bounds.len() { __out.extend_from_slice(&__s_bytes[__bounds[__i]..__bounds[__i + 1]]); } } } else { let mut __start = 0usize; loop { let __found = __s_bytes[__start..].windows(__old_bytes.len()).position(|__window| __window == __old_bytes.as_slice()); if let Some(__relative) = __found { let __idx = __start + __relative; __out.extend_from_slice(&__s_bytes[__start..__idx]); __out.extend_from_slice(&__new_bytes); __start = __idx + __old_bytes.len(); } else { __out.extend_from_slice(&__s_bytes[__start..]); break; } } } __go_string_from_bytes(__out) }")
 	WriteWrapperSuffix(out)
 }
 

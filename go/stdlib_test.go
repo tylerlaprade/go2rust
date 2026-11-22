@@ -185,6 +185,33 @@ func split(s, sep string) []string {
 	}
 }
 
+func TestStringsReplaceUsesCanonicalGoBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "strings"
+
+func replace(s, old, new string, n int) (string, string) {
+	return strings.Replace(s, old, new, n), strings.ReplaceAll(s, old, new)
+}
+`)
+
+	for _, want := range []string{
+		"let __s_bytes = __go_string_bytes(&__s)",
+		"let __old_bytes = __go_string_bytes(&__old)",
+		"let __new_bytes = __go_string_bytes(&__new)",
+		"let __runes = __go_string_range(&__s)",
+		"__go_string_from_bytes(__out)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strings.Replace byte lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "__s.replace(&__old, &__new)") ||
+		strings.Contains(rust, "__s.replacen(&__old, &__new") {
+		t.Fatalf("strings.Replace must not inspect the reversible Rust encoding:\n%s", rust)
+	}
+}
+
 func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
