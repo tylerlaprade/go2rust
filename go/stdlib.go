@@ -1663,9 +1663,15 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
-		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtFprintlnFormatCall(out, call)
-		})
+		if !call.Ellipsis.IsValid() {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeSprintBytesExpression(out, call.Args[1:], true)
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+				writeFmtFprintlnFormatCall(out, call)
+			})
+		}
 		return
 	}
 	if !call.Ellipsis.IsValid() && fmtFprintfTargetIsByteWriter(call.Args[0]) {
@@ -1752,9 +1758,16 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
-		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
-			writeFmtMacroCall(out, "format!", call, 1)
-		})
+		var formatted strings.Builder
+		if writeSimpleStringFormatExpression(&formatted, call, 1) {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				out.WriteString(formatted.String())
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+				writeFmtMacroCall(out, "format!", call, 1)
+			})
+		}
 		return
 	}
 	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
@@ -1804,7 +1817,13 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 	}
 	switch {
 	case fmtFprintfTargetIsStringsBuilder(call.Args[0]):
-		writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+		if !call.Ellipsis.IsValid() {
+			writeStringsBuilderGoStringWrite(out, call.Args[0], func() {
+				writeSprintBytesExpression(out, call.Args[1:], false)
+			})
+		} else {
+			writeStringsBuilderFormattedWrite(out, call.Args[0], writeOperands("format!"))
+		}
 	case fmtFprintfTargetIsByteWriter(call.Args[0]):
 		if !call.Ellipsis.IsValid() {
 			var formatted strings.Builder
@@ -1848,6 +1867,32 @@ func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, wr
 	out.WriteString(".push_str(&")
 	writeFormatted()
 	out.WriteString(")")
+}
+
+// writeStringsBuilderGoStringWrite appends a canonical Go string to a
+// strings.Builder without concatenating the reversible Rust encoding itself.
+// The native builder is represented by String, so both existing and appended
+// values must be decoded and re-encoded as one Go byte sequence.
+func writeStringsBuilderGoStringWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
+	if fmtFprintfTargetIsSourceMappedStringsBuilder(target) {
+		writeStringsBuilderFormattedWrite(out, target, writeFormatted)
+		return
+	}
+	out.WriteString("{ let __go_builder_part = ")
+	writeFormatted()
+	out.WriteString("; ")
+	if isStringsBuilderReceiverBare(target) {
+		out.WriteString("let __go_builder = ")
+		writeStringsBuilderRawReceiver(out, target)
+		out.WriteString("; *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); ")
+	} else {
+		out.WriteString("let __go_builder_handle = ")
+		writeStringsBuilderReceiverHandle(out, target)
+		out.WriteString("; let mut __go_builder_guard = __go_builder_handle")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; let __go_builder = __go_builder_guard.as_mut().unwrap(); *__go_builder = __go_string_concat(__go_builder, &__go_builder_part); ")
+	}
+	out.WriteString("}")
 }
 
 func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {

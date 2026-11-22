@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type capture struct {
 	data []byte
@@ -25,4 +28,10 @@ func main() {
 	c.data = nil
 	n, err = fmt.Fprintln(c, invalid, "B")
 	fmt.Println(n, err == nil, c.data)
+
+	var builder strings.Builder
+	fmt.Fprint(&builder, "C", invalid)
+	fmt.Fprintf(&builder, "[%s]", invalid)
+	fmt.Fprintln(&builder, invalid, "D")
+	fmt.Println([]byte(builder.String()))
 }

@@ -226,6 +226,31 @@ func main() {
 	}
 }
 
+func TestFmtStringsBuilderPathsPreserveArbitraryStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func main() {
+	var b strings.Builder
+	s := string([]byte{0xfa})
+	fmt.Fprint(&b, "x", s)
+	fmt.Fprintln(&b, s)
+	fmt.Fprintf(&b, "<%s>", s)
+}
+`)
+
+	if strings.Count(rust, "__go_string_from_bytes(__go_sprint_bytes)") < 2 {
+		t.Fatalf("Fprint and Fprintln to strings.Builder must preserve canonical Go bytes:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_string_from_bytes(__go_sprintf_bytes)") {
+		t.Fatalf("simple %%s Fprintf to strings.Builder must preserve canonical Go bytes:\n%s", rust)
+	}
+}
+
 func TestFmtHexStringUsesCanonicalGoBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
