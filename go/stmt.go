@@ -253,42 +253,6 @@ func identExpressionEmissionStartsWithBlock(ident *ast.Ident) bool {
 // named return that lowers as a bare scalar slot fed by a wrapped local. Those
 // slots use `(*name.borrow().as_ref().unwrap())` at the return boundary, which
 // has the same lifetime issue as wrapped local reads inside explicit returns.
-// returnExpressionsReadNamedResults reports whether a return statement's
-// values read one of the function's named results.
-func returnExpressionsReadNamedResults(results []ast.Expr, fnType *ast.FuncType) bool {
-	if fnType == nil || fnType.Results == nil {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	named := map[types.Object]bool{}
-	for _, field := range fnType.Results.List {
-		for _, name := range field.Names {
-			if obj := typeInfo.info.Defs[name]; obj != nil {
-				named[obj] = true
-			}
-		}
-	}
-	if len(named) == 0 {
-		return false
-	}
-	found := false
-	for _, expr := range results {
-		ast.Inspect(expr, func(n ast.Node) bool {
-			if found {
-				return false
-			}
-			if ident, ok := n.(*ast.Ident); ok && named[typeInfo.info.Uses[ident]] {
-				found = true
-			}
-			return !found
-		})
-	}
-	return found
-}
-
 func namedReturnsUnwrapBareScalar(fnType *ast.FuncType) bool {
 	if fnType == nil || fnType.Results == nil {
 		return false
@@ -11984,10 +11948,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// explicit `return <expr>;` keeps the temporaries scoped to
 			// the statement so locals can drop afterward safely.
 			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results, fnType) {
-				tailReturn = false
-			} else if len(s.Results) > 0 && returnExpressionsReadNamedResults(s.Results, fnType) {
-				// Named results are let-bound locals of the body too, so a
-				// tail read of one has the same lifetime conflict.
 				tailReturn = false
 			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
 				// Naked returns lower named-return locals through the same
