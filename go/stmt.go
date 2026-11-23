@@ -10702,6 +10702,12 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
 		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+			// A range over a slice or array can bind a reference to the
+			// iterator element. Sending the range variable still copies its
+			// Go value into the channel rather than sending that reference.
+			if writeOwnedRangeValue(out, ident) {
+				return
+			}
 			out.WriteString(rustName)
 			return
 		}

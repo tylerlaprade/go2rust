@@ -10347,3 +10347,20 @@ func main() {
 		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
 	}
 }
+
+func TestChannelSendCopiesReferenceRangeValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	values := []string{"alpha", "beta"}
+	ch := make(chan string, len(values))
+	for _, value := range values {
+		ch <- value
+	}
+}
+`)
+
+	if !strings.Contains(rust, "ch.send((*value).clone())") {
+		t.Fatalf("range value sent its iterator reference instead of a Go value copy:\n%s", rust)
+	}
+}
