@@ -701,6 +701,31 @@ fn go_runtime_error_text(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
 fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
@@ -1323,8 +1348,7 @@ fn main() {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |n: Arc<Mutex<Option<i64>>>| {
-            let __go_previous_panic_hook = std::panic::take_hook();
-std::panic::set_hook(Box::new(|_| {}));
+            let __go_previous_panic_hook = go_silence_panic_hook();
 let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
@@ -1337,7 +1361,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
             }));
             match __go_panic_result {
                 Ok(__go_value) => {
-                    std::panic::set_hook(__go_previous_panic_hook);
+                    go_restore_panic_hook(__go_previous_panic_hook);
                     __go_value
                 }
                 Err(__go_panic_payload) => {
@@ -1347,7 +1371,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
                             go_store_panic_payload(__go_defer_panic);
                         }
                     }
-                    std::panic::set_hook(__go_previous_panic_hook);
+                    go_restore_panic_hook(__go_previous_panic_hook);
                     go_resume_unrecovered_panic();
                     ()
                 }
@@ -1398,8 +1422,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     let results_thread = results.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
-        let __go_previous_panic_hook = std::panic::take_hook();
-std::panic::set_hook(Box::new(|_| {}));
+        let __go_previous_panic_hook = go_silence_panic_hook();
 let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
 let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new(move || {
         results_defer_captured.close();
@@ -1413,7 +1436,7 @@ let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new
         }));
         match __go_panic_result {
             Ok(__go_value) => {
-                std::panic::set_hook(__go_previous_panic_hook);
+                go_restore_panic_hook(__go_previous_panic_hook);
                 __go_value
             }
             Err(__go_panic_payload) => {
@@ -1423,7 +1446,7 @@ let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new
                         go_store_panic_payload(__go_defer_panic);
                     }
                 }
-                std::panic::set_hook(__go_previous_panic_hook);
+                go_restore_panic_hook(__go_previous_panic_hook);
                 go_resume_unrecovered_panic();
                 ()
             }

@@ -697,7 +697,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_any_handle_copy", "go_any_store")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_silence_panic_hook", "go_restore_panic_hook")
 	}
 	if ht.needsGoPointerError {
 		add("GoPointerError")
@@ -1457,6 +1457,7 @@ func generatePanicRecoverHelper(out *strings.Builder) {
 }
 `)
 	writeGoRuntimeErrorText(out, visibility)
+	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
@@ -1509,6 +1510,7 @@ thread_local! {
 }
 `)
 	writeGoRuntimeErrorText(out, visibility)
+	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
@@ -1518,6 +1520,47 @@ thread_local! {
             Err(__payload) => std::panic::resume_unwind(__payload),
         }
     }
+}
+`)
+}
+
+// writePanicHookSilencer writes go_silence_panic_hook and
+// go_restore_panic_hook. While a function with a defer runs its body under
+// catch_unwind, Rust's panic hook must not print a panic that a deferred
+// recover() may still stop. The hook is one per process, so swapping it in
+// and out races when goroutines on several threads do it at once: one
+// thread puts the printing hook back while another is panicking. Instead a
+// hook installed once checks a per-thread depth, and each catch raises the
+// depth on its own thread and puts it back afterwards.
+func writePanicHookSilencer(out *strings.Builder, visibility string) {
+	out.WriteString(`
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
 }
 `)
 }

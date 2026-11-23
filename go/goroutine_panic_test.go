@@ -36,3 +36,39 @@ func main() {
 		}
 	}
 }
+
+// Goroutines on several threads recover at once, so a catch must not swap
+// the process-wide panic hook: one thread would put the printing hook back
+// while another is panicking, and Rust would print a panic Go recovered.
+func TestPanicRecoverSilencesTheHookPerThread(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+func main() {
+	var wg sync.WaitGroup
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { _ = recover() }()
+			panic("boom")
+		}()
+	}
+	wg.Wait()
+}
+`)
+	for _, want := range []string{
+		"let __go_previous_panic_hook = go_silence_panic_hook();",
+		"go_restore_panic_hook(__go_previous_panic_hook);",
+		"static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize>",
+		"__GO_PANIC_HOOK.call_once(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "std::panic::set_hook(Box::new(|_| {}))") {
+		t.Errorf("a catch still swaps the process-wide panic hook:\n%s", rust)
+	}
+}
