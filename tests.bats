@@ -875,6 +875,10 @@ run_xfail_test() {
     run_test "tests/context_usage"
 }
 
+@test "converted_shift_counts" {
+    run_test "tests/converted_shift_counts"
+}
+
 @test "copy_compound_assign" {
     run_test "tests/copy_compound_assign"
 }
@@ -1425,6 +1429,10 @@ run_xfail_test() {
 
 @test "global_pointer_argument_lock_lifetime" {
     run_test "tests/global_pointer_argument_lock_lifetime"
+}
+
+@test "goroutine_capture_rust_keyword" {
+    run_test "tests/goroutine_capture_rust_keyword"
 }
 
 @test "goroutine_function_param_capture" {
@@ -2093,6 +2101,14 @@ run_xfail_test() {
 
 @test "named_pointer_defer_return" {
     run_test "tests/named_pointer_defer_return"
+}
+
+@test "named_scalar_conversion_method_receiver" {
+    run_test "tests/named_scalar_conversion_method_receiver"
+}
+
+@test "named_scalar_conversion_method_receiver_goroutines" {
+    run_test "tests/named_scalar_conversion_method_receiver_goroutines"
 }
 
 @test "named_scalar_copies_are_values" {
@@ -3149,6 +3165,10 @@ run_xfail_test() {
 
 @test "source_stdlib_io_copy" {
     run_test "tests/source_stdlib_io_copy"
+}
+
+@test "source_stdlib_io_fs_filemode" {
+    run_test "tests/source_stdlib_io_fs_filemode"
 }
 
 @test "source_stdlib_parser_decl_cross_package" {
