@@ -84,6 +84,7 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 		Dir:        pl.workDir,
 		Tests:      false,
 		BuildFlags: packageLoadBuildFlags(os.Getenv("GOFLAGS")),
+		Overlay:    stdlibNoAsmOverlay(),
 	}
 
 	// Load the packages
