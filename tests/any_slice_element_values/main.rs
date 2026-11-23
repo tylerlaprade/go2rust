@@ -637,6 +637,13 @@ fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String
 }
 
 fn go_any_eq(left: &Rc<RefCell<Option<Box<dyn Any>>>>, right: &Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
+    if Rc::ptr_eq(left, right) {
+        let guard = left.borrow();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.borrow();
     let right_guard = right.borrow();
     match (left_guard.as_ref(), right_guard.as_ref()) {
@@ -691,42 +698,6 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
 
 fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
-}
-
-#[allow(dead_code)]
-fn go_any_handle_copy(handle: &Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    let __copy = match handle.borrow().as_ref() {
-        None => None,
-        Some(value) => match go_any_try_clone(&**value) {
-            Some(copy) => Some(copy),
-            None => return handle.clone(),
-        },
-    };
-    Rc::new(RefCell::new(__copy))
-}
-
-/// Stores Go's copy of source's value in target's cell. A source that no
-/// one else holds gives up its value; a value whose type has no copy comes
-/// back for the caller to share instead.
-#[allow(dead_code)]
-fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<Option<Box<dyn Any>>>>) -> Option<Rc<RefCell<Option<Box<dyn Any>>>>> {
-    if Rc::ptr_eq(target, &source) {
-        return None;
-    }
-    let __value = if Rc::strong_count(&source) == 1 {
-        source.borrow_mut().take()
-    } else {
-        let __copy = match source.borrow().as_ref() {
-            None => None,
-            Some(value) => match go_any_try_clone(&**value) {
-                Some(copy) => Some(copy),
-                None => return Some(source.clone()),
-            },
-        };
-        __copy
-    };
-    *target.borrow_mut() = __value;
-    None
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {

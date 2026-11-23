@@ -710,42 +710,6 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
-#[allow(dead_code)]
-fn go_any_handle_copy(handle: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    let __copy = match handle.lock().unwrap().as_ref() {
-        None => None,
-        Some(value) => match go_any_try_clone(&**value) {
-            Some(copy) => Some(copy),
-            None => return handle.clone(),
-        },
-    };
-    Arc::new(Mutex::new(__copy))
-}
-
-/// Stores Go's copy of source's value in target's cell. A source that no
-/// one else holds gives up its value; a value whose type has no copy comes
-/// back for the caller to share instead.
-#[allow(dead_code)]
-fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Option<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>> {
-    if Arc::ptr_eq(target, &source) {
-        return None;
-    }
-    let __value = if Arc::strong_count(&source) == 1 {
-        source.lock().unwrap().take()
-    } else {
-        let __copy = match source.lock().unwrap().as_ref() {
-            None => None,
-            Some(value) => match go_any_try_clone(&**value) {
-                Some(copy) => Some(copy),
-                None => return Some(source.clone()),
-            },
-        };
-        __copy
-    };
-    *target.lock().unwrap() = __value;
-    None
-}
-
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,

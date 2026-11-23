@@ -583,6 +583,69 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<notFound>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<pointerError>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<notFound>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    None
+}
+
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
+}
+
+#[allow(dead_code)]
+fn go_any_handle_copy(handle: &Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __copy = match handle.borrow().as_ref() {
+        None => None,
+        Some(value) => match go_any_try_clone(&**value) {
+            Some(copy) => Some(copy),
+            None => return handle.clone(),
+        },
+    };
+    Rc::new(RefCell::new(__copy))
+}
+
+/// Stores Go's copy of source's value in target's cell. A source that no
+/// one else holds gives up its value; a value whose type has no copy comes
+/// back for the caller to share instead.
+#[allow(dead_code)]
+fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<Option<Box<dyn Any>>>>) -> Option<Rc<RefCell<Option<Box<dyn Any>>>>> {
+    if Rc::ptr_eq(target, &source) {
+        return None;
+    }
+    let __value = if Rc::strong_count(&source) == 1 {
+        source.borrow_mut().take()
+    } else {
+        let __copy = match source.borrow().as_ref() {
+            None => None,
+            Some(value) => match go_any_try_clone(&**value) {
+                Some(copy) => Some(copy),
+                None => return Some(source.clone()),
+            },
+        };
+        __copy
+    };
+    *target.borrow_mut() = __value;
+    None
+}
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -808,7 +871,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    let (mut valueCase, mut valueText) = error_text(value.clone());
+    let (mut valueCase, mut valueText) = error_text(go_any_handle_copy(&value));
     println!("{} {} {} {}", format!("{}", valueOK), format!("{}", valueCase), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", valueErr.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", ({
         let val = value.clone();
         let guard = val.borrow();
@@ -840,7 +903,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    let (mut pointerCase, mut pointerText) = error_text(pointer.clone());
+    let (mut pointerCase, mut pointerText) = error_text(go_any_handle_copy(&pointer));
     println!("{} {} {} {}", format!("{}", pointerOK), format!("{}", pointerCase), format!("{}", { let __v = (*pointerText.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", ({
         let val = pointer.clone();
         let guard = val.borrow();
@@ -852,7 +915,7 @@ fn main() {
     }))))).borrow().as_ref().unwrap())));
     { let new_val = pointerError { code: Rc::new(RefCell::new(Some(8))), ..Default::default() }; *pointerValue.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", "assertion replacement".to_string()), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", pointerErr.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "switch replacement".to_string()), format!("{}", (*replace_then_error_text(pointer.clone(), pointerValue.clone()).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "switch replacement".to_string()), format!("{}", (*replace_then_error_text(go_any_handle_copy(&pointer), pointerValue.clone()).borrow().as_ref().unwrap())));
 
     let mut valuePointer: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(notFound { name: Rc::new(RefCell::new(Some("pointer key".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any>)));
     let (mut valuePointerErr, mut valuePointerOK) = ({
@@ -874,7 +937,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    let (mut valuePointerCase, _) = error_text(valuePointer.clone());
+    let (mut valuePointerCase, _) = error_text(go_any_handle_copy(&valuePointer));
     println!("{} {} {}", format!("{}", valuePointerOK), format!("{}", valuePointerCase), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", valuePointerErr.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 
     let mut nilPointer: Rc<RefCell<Option<pointerError>>> = Rc::new(RefCell::new(None));
@@ -898,7 +961,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    let mut typedNilCase = is_error(typedNil.clone());
+    let mut typedNilCase = is_error(go_any_handle_copy(&typedNil));
     println!("{} {} {}", format!("{}", typedNilOK), format!("{}", typedNilCase), format!("{}", { let __nil_result = (*typedNilErr.borrow()).is_none(); __nil_result }));
 
     let mut text: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("plain".to_string()) as Box<dyn Any>)));
@@ -921,7 +984,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    let (mut textCase, _) = error_text(text.clone());
+    let (mut textCase, _) = error_text(go_any_handle_copy(&text));
     let (mut textErr, mut textErrOK) = ({
         let val = text.clone();
         let guard = val.borrow();

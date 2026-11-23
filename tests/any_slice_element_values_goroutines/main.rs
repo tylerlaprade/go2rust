@@ -637,6 +637,13 @@ fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>
 }
 
 fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    if Arc::ptr_eq(left, right) {
+        let guard = left.lock().unwrap();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.lock().unwrap();
     let right_guard = right.lock().unwrap();
     match (left_guard.as_ref(), right_guard.as_ref()) {
@@ -691,42 +698,6 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
 
 fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
-}
-
-#[allow(dead_code)]
-fn go_any_handle_copy(handle: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    let __copy = match handle.lock().unwrap().as_ref() {
-        None => None,
-        Some(value) => match go_any_try_clone(&**value) {
-            Some(copy) => Some(copy),
-            None => return handle.clone(),
-        },
-    };
-    Arc::new(Mutex::new(__copy))
-}
-
-/// Stores Go's copy of source's value in target's cell. A source that no
-/// one else holds gives up its value; a value whose type has no copy comes
-/// back for the caller to share instead.
-#[allow(dead_code)]
-fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Option<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>> {
-    if Arc::ptr_eq(target, &source) {
-        return None;
-    }
-    let __value = if Arc::strong_count(&source) == 1 {
-        source.lock().unwrap().take()
-    } else {
-        let __copy = match source.lock().unwrap().as_ref() {
-            None => None,
-            Some(value) => match go_any_try_clone(&**value) {
-                Some(copy) => Some(copy),
-                None => return Some(source.clone()),
-            },
-        };
-        __copy
-    };
-    *target.lock().unwrap() = __value;
-    None
 }
 
 struct GoChannel<T> {

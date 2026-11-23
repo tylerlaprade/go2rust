@@ -652,42 +652,6 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
-#[allow(dead_code)]
-fn go_any_handle_copy(handle: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-    let __copy = match handle.lock().unwrap().as_ref() {
-        None => None,
-        Some(value) => match go_any_try_clone(&**value) {
-            Some(copy) => Some(copy),
-            None => return handle.clone(),
-        },
-    };
-    Arc::new(Mutex::new(__copy))
-}
-
-/// Stores Go's copy of source's value in target's cell. A source that no
-/// one else holds gives up its value; a value whose type has no copy comes
-/// back for the caller to share instead.
-#[allow(dead_code)]
-fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Option<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>> {
-    if Arc::ptr_eq(target, &source) {
-        return None;
-    }
-    let __value = if Arc::strong_count(&source) == 1 {
-        source.lock().unwrap().take()
-    } else {
-        let __copy = match source.lock().unwrap().as_ref() {
-            None => None,
-            Some(value) => match go_any_try_clone(&**value) {
-                Some(copy) => Some(copy),
-                None => return Some(source.clone()),
-            },
-        };
-        __copy
-    };
-    *target.lock().unwrap() = __value;
-    None
-}
-
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -1251,7 +1215,7 @@ pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}{}", "stringer ".to_string(), (*(*x.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).unwrap(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) } } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}{}", "error ".to_string(), (*Arc::new(Mutex::new(Some(format!("{}", x.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())))));;
     } else {

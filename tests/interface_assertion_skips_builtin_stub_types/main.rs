@@ -652,42 +652,6 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
-#[allow(dead_code)]
-fn go_any_handle_copy(handle: &Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
-    let __copy = match handle.borrow().as_ref() {
-        None => None,
-        Some(value) => match go_any_try_clone(&**value) {
-            Some(copy) => Some(copy),
-            None => return handle.clone(),
-        },
-    };
-    Rc::new(RefCell::new(__copy))
-}
-
-/// Stores Go's copy of source's value in target's cell. A source that no
-/// one else holds gives up its value; a value whose type has no copy comes
-/// back for the caller to share instead.
-#[allow(dead_code)]
-fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<Option<Box<dyn Any>>>>) -> Option<Rc<RefCell<Option<Box<dyn Any>>>>> {
-    if Rc::ptr_eq(target, &source) {
-        return None;
-    }
-    let __value = if Rc::strong_count(&source) == 1 {
-        source.borrow_mut().take()
-    } else {
-        let __copy = match source.borrow().as_ref() {
-            None => None,
-            Some(value) => match go_any_try_clone(&**value) {
-                Some(copy) => Some(copy),
-                None => return Some(source.clone()),
-            },
-        };
-        __copy
-    };
-    *target.borrow_mut() = __value;
-    None
-}
-
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -1074,7 +1038,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "stringer ".to_string(), (*(*x.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {
