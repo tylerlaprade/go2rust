@@ -7,12 +7,6 @@ macro_rules! vec {
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub fn make_expr() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::Ident { ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))
 }

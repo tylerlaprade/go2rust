@@ -16638,6 +16638,65 @@ func isPredeclaredTypeConversionTarget(fun ast.Expr) bool {
 	return obj == nil || isTypeName
 }
 
+// blockEndsDiverging reports whether the last statement of block never
+// finishes: a call to panic, os.Exit or log.Fatal*, or a for loop with no
+// condition and no break.
+func blockEndsDiverging(block *ast.BlockStmt) bool {
+	if block == nil || len(block.List) == 0 {
+		return false
+	}
+	switch last := block.List[len(block.List)-1].(type) {
+	case *ast.ExprStmt:
+		call, ok := unwrapParens(last.X).(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+		switch fun := unwrapParens(call.Fun).(type) {
+		case *ast.Ident:
+			return fun.Name == "panic" && isBuiltinIdent(fun)
+		case *ast.SelectorExpr:
+			pkg, ok := fun.X.(*ast.Ident)
+			if !ok {
+				return false
+			}
+			typeInfo := GetTypeInfo()
+			if typeInfo == nil || typeInfo.info == nil {
+				return false
+			}
+			pkgName, ok := typeInfo.info.Uses[pkg].(*types.PkgName)
+			if !ok || pkgName.Imported() == nil {
+				return false
+			}
+			switch pkgName.Imported().Path() {
+			case "os":
+				return fun.Sel.Name == "Exit"
+			case "log":
+				return strings.HasPrefix(fun.Sel.Name, "Fatal") || strings.HasPrefix(fun.Sel.Name, "Panic")
+			}
+		}
+	case *ast.ForStmt:
+		if last.Cond != nil {
+			return false
+		}
+		hasBreak := false
+		ast.Inspect(last.Body, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.FuncLit:
+				return false
+			case *ast.BranchStmt:
+				if n.Tok == token.BREAK || n.Tok == token.GOTO {
+					hasBreak = true
+				}
+			}
+			return !hasBreak
+		})
+		return !hasBreak
+	case *ast.BlockStmt:
+		return blockEndsDiverging(last)
+	}
+	return false
+}
+
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
@@ -16823,6 +16882,11 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 			out.WriteString("(" + strings.Join(retTypes, ", ") + ")")
 		}
 		out.WriteString(" ")
+	} else if blockEndsDiverging(funcLit.Body) {
+		// A body that ends in panic has type !, and since Rust 1.100 a
+		// closure with no annotation infers ! as its return type, which is
+		// not FnMut(). The annotation keeps it a closure returning ().
+		out.WriteString("-> () ")
 	}
 
 	if vt := GetVarTable(); vt != nil {
@@ -17301,7 +17365,14 @@ func writeFunctionPointerDerefCallTarget(out *strings.Builder, star *ast.StarExp
 	boxType := functionBoxTypeForCallTarget(star)
 	out.WriteString("{ let __f_holder = ")
 	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone(); let __f_ptr: *mut ")
+	if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isGoPtrIdent(ident) {
+		// A GoPtr to the function's cell, as from (*F)(unsafe.Pointer):
+		// the call goes through the cell it points to.
+		out.WriteString(".borrow().expect(\"invalid memory address or nil pointer dereference\")")
+	} else {
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __f_ptr: *mut ")
 	out.WriteString(boxType)
 	out.WriteString(" = { let mut __f_guard = __f_holder")
 	WriteBorrowMethod(out, true)

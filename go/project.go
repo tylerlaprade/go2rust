@@ -1275,6 +1275,9 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 
 	var mainRust strings.Builder
 	if goSliceModeEnabled() {
+		// The macro goes above the mod declarations so every module sees
+		// it; the copy the file itself starts with would be a second one.
+		mainContent = strings.Replace(mainContent, goSliceVecMacro, "", 1)
 		mainRust.WriteString(goSliceVecMacro)
 	}
 	if pg.packageHelpersNeeded(packageState) {

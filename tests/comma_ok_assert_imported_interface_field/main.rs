@@ -8,12 +8,6 @@ use go2rust_stdlib_stubs::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// Comma-ok type assertion on a field whose type is an interface imported from
 /// another package (ast.Expr). The assertion operand must stay the wrapped
 /// interface handle so the downcast can unwrap it; go/parser does this on
