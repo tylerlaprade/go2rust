@@ -15181,8 +15181,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 					}
-					if (valueAssigned || needsCloned || needsCopied) && strings.HasPrefix(valueType, "&") && !isWrappedRangeVarType(valueType) {
-						// .cloned() and .copied() yield owned values.
+					if (valueAssigned || needsCloned || needsCopied) && strings.HasPrefix(valueType, "&") {
+						// The iterator yields an owned element, including pointer handles.
 						registeredValueType = strings.TrimPrefix(valueType, "&")
 					} else if valueType == "T" && (needsCopied || needsCloned || valueAssigned) {
 						registeredValueType = valueType

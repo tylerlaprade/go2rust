@@ -217,6 +217,16 @@ func (*E) Error() string { return "e" }
 	writeTestFile(t, filepath.Join(tempDir, "a.go"), `package main
 
 func call(p *E) string { return p.Error() }
+
+func callRange(values []*E) {
+	for _, borrowed := range values {
+		_ = borrowed.Error()
+	}
+	for _, owned := range values {
+		owned = values[0]
+		_ = owned.Error()
+	}
+}
 `)
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
 
@@ -235,6 +245,10 @@ func main() { _ = call(nil) }
 	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
 	if !strings.Contains(aRS, "crate::b::__go_nil_recv_e_error(p.clone())") {
 		t.Fatalf("cross-file helper call should name its defining module:\n%s", aRS)
+	}
+	if !strings.Contains(aRS, "crate::b::__go_nil_recv_e_error(owned.clone())") ||
+		!strings.Contains(aRS, "crate::b::__go_nil_recv_e_error((*borrowed).clone())") {
+		t.Fatalf("range receivers should clone the pointer handle with the iterator's ownership:\n%s", aRS)
 	}
 }
 
