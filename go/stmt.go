@@ -11790,6 +11790,14 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
+	if binding, rewritten, ok := multiValueArgumentStatement(stmt); ok {
+		// g(f()) with a multi-value f: bind f's results, then call g.
+		TranspileStatement(out, binding, fnType, fileSet, comments, lastPos, indent)
+		out.WriteString("\n")
+		out.WriteString(indent)
+		TranspileStatement(out, rewritten, fnType, fileSet, nil, nil, indent)
+		return
+	}
 	markDeclaredIntConstants(stmt)
 	if fileSet != nil {
 		if ctx := GetTranspileContext(); ctx != nil && ctx.File != nil {
