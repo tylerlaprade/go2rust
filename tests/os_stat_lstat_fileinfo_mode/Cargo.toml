@@ -1,0 +1,11 @@
+[package]
+name = "os_stat_lstat_fileinfo_mode"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_stat_lstat_fileinfo_mode"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

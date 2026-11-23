@@ -841,7 +841,7 @@ impl bufio_Scanner {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct fs_FileInfo {
     pub name: String,
-    pub is_dir: bool,
+    pub mode: u32,
     pub size: i64,
 }
 
@@ -863,14 +863,10 @@ impl fs_FileInfo {
         self.size
     }
     pub fn is_dir(&self) -> bool {
-        self.is_dir
+        (self.mode & (1u32 << 31)) != 0
     }
     pub fn mode(&self) -> Arc<Mutex<Option<fs_FileMode>>> {
-        if self.is_dir {
-            Arc::new(Mutex::new(Some::<fs_FileMode>(fs_FileMode(1u32 << 31))))
-        } else {
-            Arc::new(Mutex::new(Some::<fs_FileMode>(fs_FileMode(0))))
-        }
+        Arc::new(Mutex::new(Some::<fs_FileMode>(fs_FileMode(self.mode))))
     }
     pub fn mod_time(&self) -> Arc<Mutex<Option<GoTime>>> {
         panic!("fs_FileInfo.mod_time bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
@@ -1105,6 +1101,50 @@ pub mod os {
         Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
+    #[cfg(unix)]
+    fn file_mode_bits_from_metadata(metadata: &std::fs::Metadata) -> u32 {
+        use std::os::unix::fs::{FileTypeExt, MetadataExt};
+
+        let file_type = metadata.file_type();
+        let unix_mode = metadata.mode();
+        let mut mode = unix_mode & 0o777;
+        if file_type.is_dir() {
+            mode |= 1u32 << 31;
+        } else if file_type.is_symlink() {
+            mode |= 1u32 << 27;
+        } else if file_type.is_block_device() {
+            mode |= 1u32 << 26;
+        } else if file_type.is_char_device() {
+            mode |= (1u32 << 26) | (1u32 << 21);
+        } else if file_type.is_fifo() {
+            mode |= 1u32 << 25;
+        } else if file_type.is_socket() {
+            mode |= 1u32 << 24;
+        }
+        if (unix_mode & 0o4000) != 0 {
+            mode |= 1u32 << 23;
+        }
+        if (unix_mode & 0o2000) != 0 {
+            mode |= 1u32 << 22;
+        }
+        if (unix_mode & 0o1000) != 0 {
+            mode |= 1u32 << 20;
+        }
+        mode
+    }
+
+    #[cfg(not(unix))]
+    fn file_mode_bits_from_metadata(metadata: &std::fs::Metadata) -> u32 {
+        let file_type = metadata.file_type();
+        let mut mode = if metadata.permissions().readonly() { 0o444 } else { 0o666 };
+        if file_type.is_dir() {
+            mode |= 1u32 << 31;
+        } else if file_type.is_symlink() {
+            mode |= 1u32 << 27;
+        }
+        mode
+    }
+
     pub fn is_not_exist<T0>(_arg0: T0) -> bool {
         panic!("is_not_exist bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
@@ -1137,7 +1177,7 @@ pub mod os {
         match std::fs::metadata(&path) {
             Ok(metadata) => {
                 let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());
-                (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }))), no_error())
+                (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo { name, mode: file_mode_bits_from_metadata(&metadata), size: metadata.len() as i64 }))), no_error())
             }
             Err(err) => (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo::default()))), io_error(err)),
         }

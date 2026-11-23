@@ -2271,6 +2271,14 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "os_stat_lstat_fileinfo_mode" {
+    run_test "tests/os_stat_lstat_fileinfo_mode"
+}
+
+@test "os_stat_lstat_fileinfo_mode_goroutines" {
+    run_test "tests/os_stat_lstat_fileinfo_mode_goroutines"
+}
+
 @test "package_any_value_from_caller" {
     run_test "tests/package_any_value_from_caller"
 }

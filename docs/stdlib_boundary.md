@@ -131,6 +131,15 @@ one place.
   far less work to provide some `os` operations directly on Rust's `std::fs`.
   If so, each one is listed by name as a reviewed replacement, the way hooks
   are listed now. The package does not go back to native as a whole.
+
+  One reviewed replacement is filesystem metadata for `os.Stat` and
+  `os.Lstat`. On Unix, the Rust host adapter preserves permission bits,
+  setuid/setgid/sticky bits, and directory, symlink, device, named-pipe, and
+  socket types in Go's `FileMode` layout. Other Rust targets keep compiling
+  with a deliberately narrower mapping: directory and symlink type plus a
+  read-only-derived `0444`/`0666` permission approximation. Windows ACLs,
+  reparse-point subtypes, and other target-specific metadata are not claimed
+  to be Unix-equivalent behavior.
 - **`net` is source with hooks**, for the same reason as `os`.
   `net.JoinHostPort` is a colon search and a string concatenation, and a
   program that never opens a socket can use it. `net` declares three
