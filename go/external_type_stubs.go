@@ -3285,6 +3285,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsReadFileFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_dir" {
 			writeOsReadDirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "rename" {
+			writeOsRenameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
@@ -3328,9 +3330,10 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
+	_, needsRename := pkg.Functions["rename"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3654,6 +3657,20 @@ func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFuncti
 	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        let data = _arg1.into_go_bytes();\n")
 	out.WriteString("        match std::fs::write(&path, data) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Rename maps to std::fs::rename, syscall-tied.
+func writeOsRenameFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn rename<T0: GoStringArg, T1: GoStringArg>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let old_path = go_path(_arg0.into_go_string());\n")
+	out.WriteString("        let new_path = go_path(_arg1.into_go_string());\n")
+	out.WriteString("        match std::fs::rename(&old_path, &new_path) {\n")
 	out.WriteString("            Ok(()) => no_error(),\n")
 	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
