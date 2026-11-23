@@ -3291,6 +3291,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsRenameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "symlink" {
+			writeOsSymlinkFunction(out, pkg.Functions[funcName])
 		} else if funcName == "truncate" {
 			writeOsTruncateFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
@@ -3337,9 +3339,10 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsRename := pkg.Functions["rename"]
 	_, needsLink := pkg.Functions["link"]
 	_, needsTruncate := pkg.Functions["truncate"]
+	_, needsSymlink := pkg.Functions["symlink"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsTruncate || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsTruncate || needsSymlink || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3721,6 +3724,41 @@ func writeOsTruncateFunction(out *strings.Builder, fn externalPackageStubFunctio
         }
     }
 `, i64Type, i64Borrow)
+}
+
+// PERMANENT: not scaffold — os.Symlink maps to the host symbolic-link syscall.
+func writeOsSymlinkFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn symlink<T0: GoStringArg, T1: GoStringArg>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        let old_path = go_path(_arg0.into_go_string());
+        let new_path = go_path(_arg1.into_go_string());
+        #[cfg(unix)]
+        let result = std::os::unix::fs::symlink(&old_path, &new_path);
+        #[cfg(windows)]
+        let result = {
+            let target = if old_path.is_absolute() {
+                old_path.clone()
+            } else {
+                new_path.parent().unwrap_or_else(|| Path::new("")).join(&old_path)
+            };
+            if target.is_dir() {
+                std::os::windows::fs::symlink_dir(&old_path, &new_path)
+            } else {
+                std::os::windows::fs::symlink_file(&old_path, &new_path)
+            }
+        };
+        #[cfg(not(any(unix, windows)))]
+        let result: Result<(), std::io::Error> = Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "os.Symlink is unsupported on this target",
+        ));
+        match result {
+            Ok(()) => no_error(),
+            Err(err) => io_error(err),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.ReadDir maps to std::fs::read_dir, syscall-tied.
