@@ -3571,6 +3571,14 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "strconv_errors_from_source" {
+    run_test "tests/strconv_errors_from_source"
+}
+
+@test "strconv_from_source" {
+    run_test "tests/strconv_from_source"
+}
+
 @test "strconv_itoa_wrapped_call" {
     run_test "tests/strconv_itoa_wrapped_call"
 }
