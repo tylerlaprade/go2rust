@@ -909,7 +909,23 @@ impl std::ops::BitOr for fs_FileMode {
 
 impl std::fmt::Display for fs_FileMode {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<fs_FileMode>")
+        let mut __go_mode = String::new();
+        for (__index, __character) in "dalTLDpSugct?".bytes().enumerate() {
+            if (self.0 & (1u32 << (31 - __index))) != 0 {
+                __go_mode.push(__character as char);
+            }
+        }
+        if __go_mode.is_empty() {
+            __go_mode.push('-');
+        }
+        for (__index, __character) in "rwxrwxrwx".bytes().enumerate() {
+            if (self.0 & (1u32 << (8 - __index))) != 0 {
+                __go_mode.push(__character as char);
+            } else {
+                __go_mode.push('-');
+            }
+        }
+        f.write_str(&__go_mode)
     }
 }
 

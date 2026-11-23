@@ -1835,15 +1835,19 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 				writeExternalStubStructDefault(&out, name, fields)
 			}
 		}
-		out.WriteString("impl std::fmt::Display for ")
-		out.WriteString(name)
-		out.WriteString(" {\n")
-		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-		out.WriteString("        write!(f, \"<")
-		out.WriteString(name)
-		out.WriteString(">\")\n")
-		out.WriteString("    }\n")
-		out.WriteString("}\n")
+		if name == "fs_FileMode" {
+			writeFsFileModeDisplay(&out)
+		} else {
+			out.WriteString("impl std::fmt::Display for ")
+			out.WriteString(name)
+			out.WriteString(" {\n")
+			out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+			out.WriteString("        write!(f, \"<")
+			out.WriteString(name)
+			out.WriteString(">\")\n")
+			out.WriteString("    }\n")
+			out.WriteString("}\n")
+		}
 		methods := methodsByType[name]
 		if externalTypeStubHasErrorMethod(methods) {
 			out.WriteString("\nimpl std::error::Error for ")
@@ -1874,6 +1878,8 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 				writeFsFileModeIsDirMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "is_regular" {
 				writeFsFileModeIsRegularMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "string" {
+				writeFsFileModeStringMethod(&out, method)
 			} else if name == "fs_FileMode" && methodName == "r#type" {
 				writeFsFileModeTypeMethod(&out, method)
 			} else {
@@ -3024,6 +3030,43 @@ func writeFsFileModeIsDirMethod(out *strings.Builder) {
 func writeFsFileModeIsRegularMethod(out *strings.Builder) {
 	out.WriteString(`    pub fn is_regular(&self) -> bool {
         (self.0 & 0x8f28_0000) == 0
+    }
+`)
+}
+
+// Shared formatter for FileMode.String and implicit fmt formatting.
+func writeFsFileModeDisplay(out *strings.Builder) {
+	out.WriteString(`impl std::fmt::Display for fs_FileMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut __go_mode = String::new();
+        for (__index, __character) in "dalTLDpSugct?".bytes().enumerate() {
+            if (self.0 & (1u32 << (31 - __index))) != 0 {
+                __go_mode.push(__character as char);
+            }
+        }
+        if __go_mode.is_empty() {
+            __go_mode.push('-');
+        }
+        for (__index, __character) in "rwxrwxrwx".bytes().enumerate() {
+            if (self.0 & (1u32 << (8 - __index))) != 0 {
+                __go_mode.push(__character as char);
+            } else {
+                __go_mode.push('-');
+            }
+        }
+        f.write_str(&__go_mode)
+    }
+}
+`)
+}
+
+// TEMPORARY: fs-filemode-string — remove when ordinary io/fs.FileMode callers use the source method.
+func writeFsFileModeStringMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn string(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n        ")
+	out.WriteString(wrappedExternalStubExpr("String", "self.to_string()"))
+	out.WriteString(`
     }
 `)
 }

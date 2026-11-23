@@ -268,6 +268,19 @@ in the first place.
   `IsRegular` method; delete the custom emitter and this row.
 - Added: 2026-11-23
 
+### fs-filemode-string
+
+- Location: `go/external_type_stubs.go`, `writeFsFileModeStringMethod`
+- Go symbol: `io/fs.FileMode.String`
+- Transpiler gap: ordinary programs import `io/fs.FileMode` as an external
+  named scalar, so its pure Go formatting method is not emitted and method
+  calls otherwise reach the generic external-method panic.
+- Fixture: `tests/filemode_string/` and
+  `tests/filemode_string_goroutines/`.
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-transpiled
+  `String` method; delete the custom emitter and this row.
+- Added: 2026-11-23
+
 ### json-marshal-helpers
 
 - Location: `go/external_type_stubs.go:1421`

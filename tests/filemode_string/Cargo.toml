@@ -1,0 +1,11 @@
+[package]
+name = "filemode_string"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "filemode_string"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
