@@ -843,7 +843,7 @@ fn main() {
             (Arc::new(Mutex::new(Some(0))), false)
         }
     });
-    print!("{} {} {}\n", format!("{}", { let __type_name = __go_type_name(&**x.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", isInt), format!("{}", 5000000000i64));
+    print!("{} {} {}\n", format!("{}", { let __type_name = match x.lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }), format!("{}", isInt), format!("{}", 5000000000i64));
     let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(('A' as i32))));
     print!("{} {} {}\n", format!("{}", "int32"), format!("{}", { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as u8 as char));
 }

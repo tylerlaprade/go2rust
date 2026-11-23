@@ -674,7 +674,7 @@ fn main() {
     each(
         e.clone(),
         Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
-        println!("{}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+        println!("{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>)))
     );
 }

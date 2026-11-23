@@ -16,7 +16,7 @@ macro_rules! vec {
 /// file. They have to import what these payload types are spelled with, even
 /// though main.go uses none of it.
 pub fn type_name(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}", __go_type_name(&**v.borrow().as_ref().unwrap())))))
+    Rc::new(RefCell::new(Some(format!("{}", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }))))
 }
 
 pub fn report() {

@@ -932,7 +932,7 @@ fn main() {
     }
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for k in __range_values.iter() {
-        print!("{}{}{}{}", format!("{}", k), format!("{}", "=".to_string()), format!("{}", format_any(((*(*q.borrow().as_ref().unwrap()).params.borrow().as_ref().unwrap()).clone().get(k).map(|__v| __v.clone()).unwrap_or_else(|| Default::default())).borrow().as_ref().unwrap().as_ref())), format!("{}", " ".to_string()));
+        print!("{}{}{}{}", format!("{}", k), format!("{}", "=".to_string()), format!("{}", match ((*(*q.borrow().as_ref().unwrap()).params.borrow().as_ref().unwrap()).clone().get(k).map(|__v| __v.clone()).unwrap_or_else(|| Default::default())).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
     } }
     println!();
 

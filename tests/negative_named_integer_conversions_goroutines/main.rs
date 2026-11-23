@@ -2463,7 +2463,7 @@ fn main() {
     let mut b = Arc::new(Mutex::new(Some(Level(Arc::new(Mutex::new(Some(-3 as i64)))))));
     let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(-4 as i64))))) as Box<dyn Any + Send + Sync>)));
     let mut levels = Arc::new(Mutex::new(Some(vec![Level(Arc::new(Mutex::new(Some(-5 as i64 as i64)))), Level(Arc::new(Mutex::new(Some(-6 as i64))))])));
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = format_any(c.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", format_slice(&levels)));
+    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = match c.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", format_slice(&levels)));
 
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i64))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i64))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
 

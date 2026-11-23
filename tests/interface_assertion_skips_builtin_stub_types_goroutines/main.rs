@@ -1218,7 +1218,7 @@ pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()

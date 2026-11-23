@@ -639,7 +639,7 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
 }
 
 pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    print!("{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()));
+    print!("{}\n", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
 }
 
 fn main() {

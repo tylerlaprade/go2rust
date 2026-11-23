@@ -1493,7 +1493,7 @@ fn main() {
         { let new_val = "%s\n".to_string(); *format.lock().unwrap() = Some(new_val); };
         show(Arc::new(Mutex::new(Some(vec![Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>]))));
         let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new((*dir).clone()) as Box<dyn Any + Send + Sync>)));
-        println!("{}", format!("{}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+        println!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     }
 
     let mut f = Arc::new(Mutex::new(Some("%d:%v\n".to_string())));
@@ -1503,7 +1503,7 @@ fn main() {
         print!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(i) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new((*it).__go_value_clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())));
         let mut boxed: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new((*it).__go_value_clone()) as Box<dyn Any + Send + Sync>)));
         { let new_val = "changed".to_string(); *it.name.lock().unwrap() = Some(new_val); };
-        println!("{} {}", format!("{}", { let __text = format_any(boxed.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", (*it.name.lock().unwrap().as_ref().unwrap()).clone()));
+        println!("{} {}", format!("{}", { let __text = match boxed.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*it.name.lock().unwrap().as_ref().unwrap()).clone()));
     }
 
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
