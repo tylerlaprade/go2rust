@@ -3416,7 +3416,15 @@ func BoxCommented(file *ast.File, comments []*ast.CommentGroup) any {
 		"go/ast":     "go_ast",
 		"go/printer": "go_printer",
 	})
-	if strings.Contains(rust, "Option<go_printer::CommentedNode>") {
+	// go_any_try_clone names the boxed pointer type in its arms; the slot of
+	// node itself must not hold the concrete struct.
+	var withoutCloneArms []string
+	for _, line := range strings.Split(rust, "\n") {
+		if !strings.Contains(line, "downcast_ref::<") {
+			withoutCloneArms = append(withoutCloneArms, line)
+		}
+	}
+	if strings.Contains(strings.Join(withoutCloneArms, "\n"), "Option<go_printer::CommentedNode>") {
 		t.Fatalf("assignment to any should not store the concrete source-mapped struct slot directly:\n%s", rust)
 	}
 	if strings.Contains(rust, "__moved_val") {
@@ -7671,8 +7679,10 @@ func load(ptr unsafe.Pointer) any {
 	if strings.Contains(rust, "as_mut().unwrap()).clone()") {
 		t.Fatalf("assignment from temporary unsafe any dereference should not clone Box<dyn Any>:\n%s", rust)
 	}
-	if !strings.Contains(rust, "eface = Rc::new(RefCell::new({") &&
-		!strings.Contains(rust, "eface = Arc::new(Mutex::new({") {
+	// The temporary handle is the only holder of its value, so go_any_store
+	// moves the value into eface's cell.
+	if !strings.Contains(rust, "go_any_store(&eface, Rc::new(RefCell::new({") &&
+		!strings.Contains(rust, "go_any_store(&eface, Arc::new(Mutex::new({") {
 		t.Fatalf("assignment from temporary unsafe any dereference should move the temporary interface handle:\n%s", rust)
 	}
 }
@@ -10517,5 +10527,50 @@ func launch(inputs ...<-chan int) {
 	}
 	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
 		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsCaptureShadowsInNestedControlFlow(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	value := 7
+	seen := make(chan int, 11)
+	go func() {
+		seen <- value
+		if true {
+			value := 9
+			seen <- value
+		}
+		seen <- value
+		for i := 0; i < 1; i++ {
+			value := 10
+			seen <- value
+		}
+		seen <- value
+		if value := 11; value == 11 {
+			seen <- value
+		}
+		seen <- value
+		for value := 12; value < 13; value++ {
+			seen <- value
+		}
+		seen <- value
+		switch value := 14; {
+		case value == 14:
+			seen <- value
+		}
+		seen <- value
+	}()
+}
+`)
+
+	outerSend := "seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))"
+	localSend := "seen_thread.send((*value.lock().unwrap().as_ref().unwrap()))"
+	if count := strings.Count(rust, outerSend); count != 6 {
+		t.Fatalf("expected six sends of the captured outer value, got %d:\n%s", count, rust)
+	}
+	if count := strings.Count(rust, localSend); count != 5 {
+		t.Fatalf("expected five sends of nested local values, got %d:\n%s", count, rust)
 	}
 }
