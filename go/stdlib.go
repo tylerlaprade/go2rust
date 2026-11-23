@@ -2500,6 +2500,20 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
+	// A pointer variable, parameter or field is the handle of the value it
+	// points to; reading it as a value would read the int instead.
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.Ident:
+			if !isGoPtrIdent(e) {
+				writePointerHandleExpression(out, e)
+				return
+			}
+		case *ast.SelectorExpr:
+			writePointerHandleExpression(out, e)
+			return
+		}
+	}
 	TranspileExpression(out, expr)
 }
 

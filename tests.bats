@@ -551,6 +551,14 @@ run_xfail_test() {
     run_test "tests/asserted_collections_shared_goroutines"
 }
 
+@test "atomic_integer_operations" {
+    run_test "tests/atomic_integer_operations"
+}
+
+@test "atomic_integer_operations_goroutines" {
+    run_test "tests/atomic_integer_operations_goroutines"
+}
+
 @test "atomic_operations" {
     run_test "tests/atomic_operations"
 }
