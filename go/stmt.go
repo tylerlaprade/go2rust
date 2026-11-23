@@ -16181,6 +16181,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		assignedCaptured := assignedCapturedVarsInCall(s.Call, captured)
 		for _, varName := range capturedVars {
+			source := RustLocalIdent(varName)
 			out.WriteString("let ")
 			if assignedCaptured[varName] || currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("mut ")
@@ -16192,18 +16193,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(".clone(); ")
 			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || goStmtCapturedNameIsFunctionHandle(s.Call, varName) {
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
-				out.WriteString(varName)
+				out.WriteString(source)
 				out.WriteString(".clone(); ")
 			} else if goStmtSharesCapturedVariable(s.Call, varName) {
 				// The goroutine works on the variable itself, as a closure does.
-				out.WriteString(varName)
+				out.WriteString(source)
 				out.WriteString(".clone(); ")
 			} else {
 				// A loop variable, or a value passed as an argument: Go copies
 				// it when the go statement runs.
 				WriteWrapperPrefix(out)
 				out.WriteString("(*")
-				out.WriteString(varName)
+				out.WriteString(source)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
 				WriteWrapperSuffix(out)

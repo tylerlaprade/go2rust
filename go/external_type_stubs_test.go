@@ -871,6 +871,34 @@ func TestFsFileModeStubImplementsIsDirMethod(t *testing.T) {
 	}
 }
 
+func TestFsFileModeStubImplementsPermMethod(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"fs_FileMode": true},
+		nil,
+		map[string]string{"fs_FileMode": "u32"},
+		nil,
+		nil,
+		map[string]map[string]externalTypeStubMethod{
+			"fs_FileMode": {
+				"perm": {ReturnTypes: []string{wrappedExternalStubType("fs_FileMode")}},
+			},
+		},
+		nil,
+		nil,
+	)
+	if strings.Contains(got, "generic stub method body has no implementation") {
+		t.Fatalf("fs.FileMode Perm shim should not use the generic method panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn perm(&self) -> " + wrappedExternalStubType("fs_FileMode"),
+		"fs_FileMode(self.0 & 0o777)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("fs.FileMode Perm shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	var out strings.Builder
 	writeExecCmdTypeStub(&out, nil, nil)
@@ -1020,6 +1048,37 @@ func TestOsExecutableStubUsesCurrentExe(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Executable shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsHostnameStubUsesHostRuntime(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"hostname": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Hostname should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn hostname()",
+		"std::env::var(\"COMPUTERNAME\")",
+		"std::fs::read(\"/proc/sys/kernel/hostname\")",
+		"std::process::Command::new(\"hostname\").output()",
+		"while matches!(bytes.last(), Some(b'\\n' | b'\\r'))",
+		"String::from_utf8(bytes)",
+		"std::io::ErrorKind::InvalidData",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Hostname shim should include %q:\n%s", want, got)
 		}
 	}
 }
