@@ -1,0 +1,11 @@
+[package]
+name = "os_chdir_paths"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_chdir_paths"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -1309,6 +1309,34 @@ func TestOsMkdirStubCreatesOneCanonicalHostDirectory(t *testing.T) {
 	}
 }
 
+func TestOsChdirStubChangesToCanonicalHostDirectory(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"chdir": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Chdir should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string())",
+		"std::env::set_current_dir(&path)",
+		"Ok(()) => no_error()",
+		"Err(err) => io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Chdir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
