@@ -4767,6 +4767,35 @@ func text(v time.Duration) string {
 	}
 }
 
+func TestExternalNamedIntegerAliasConversionMethodReceiverUsesNewtype(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "os"
+
+func check(raw uint32) bool {
+	converted := os.FileMode(0644)
+	return !os.FileMode(0644).IsDir() &&
+		os.FileMode(os.ModeDir|0755).IsDir() &&
+		os.FileMode(raw).IsDir() &&
+		!converted.IsDir()
+}
+`)
+
+	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
+		t.Fatalf("external named integer alias conversions should construct the newtype before method dispatch:\n%s", rust)
+	}
+	for _, want := range []string{
+		"Some(fs_FileMode(0644 as u32))",
+		"fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode((*raw.borrow().as_ref().unwrap()) as u32)))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in external named integer method receiver lowering:\n%s", want, rust)
+		}
+	}
+}
+
 func TestRuneSliceSelectorStringConversionBorrowsFieldHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

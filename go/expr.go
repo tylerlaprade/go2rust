@@ -509,11 +509,20 @@ func writeShiftCountPrimitiveOperand(out *strings.Builder, expr ast.Expr, shift 
 	if writeNamedIntegerShiftCountLiteral(out, expr, shift, typeInfo) {
 		return true
 	}
-	if !isConstantExpression(expr) {
-		return false
+	if isConstantExpression(expr) {
+		TranspileExpression(out, expr)
+		return true
 	}
-	TranspileExpression(out, expr)
-	return true
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok && isUnwrappedBasicIntegerType(typeInfo.GetType(expr)) {
+		var value strings.Builder
+		if writeBareBasicNumericConversionValue(&value, call) {
+			out.WriteByte('(')
+			out.WriteString(value.String())
+			out.WriteByte(')')
+			return true
+		}
+	}
+	return false
 }
 
 func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr, typeInfo *TypeInfo) bool {
@@ -6347,6 +6356,20 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 }
 
 func writeWrappedHandleNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) {
+	// A function that returns a pointer into a slice ("return &xs[i]")
+	// gives an Option of the element pointer, not a cell.
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok {
+		if _, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			out.WriteString("(")
+			TranspileExpression(out, call)
+			if op == token.EQL {
+				out.WriteString(").is_none()")
+			} else {
+				out.WriteString(").is_some()")
+			}
+			return
+		}
+	}
 	out.WriteString("{ let __nil_result = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
@@ -12678,7 +12701,7 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		case AddressOf, LValue:
 			out.WriteString(rustPackageGlobalName(e.Name))
 		}
-	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
+	} else if ((e.Name == "true" || e.Name == "false") && isPredeclaredBoolConstant(e)) || e.Name == "_" {
 		out.WriteString(e.Name)
 	} else if isLocalConstantIdent(e) {
 		if ctx != RValue || !writeNamedScalarConstValue(out, e, varName) {
@@ -13286,7 +13309,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
 		renamedReceiver := ""
-		if renamed, exists := captureRenameForIdent(e); exists {
+		isDefinition := false
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			isDefinition = typeInfo.info.Defs[e] != nil
+		}
+		// A declaration inside the closure may shadow a captured outer name.
+		// Capture aliases apply to uses, never to the defining identifier itself.
+		if renamed, exists := captureRenameForIdent(e); exists && !isDefinition {
 			varName = RustLocalIdent(renamed)
 			if isCurrentReceiverIdent(e) {
 				renamedReceiver = varName
@@ -15249,6 +15278,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							return
 						}
 					}
+					// d{-32, 0, -32} with "type d [3]rune": the newtype over
+					// the array's cell. It was written as a struct literal
+					// with no fields, so every element read as zero.
+					if _, isArray := typ.Underlying().(*types.Array); isArray && !IsTypeAlias(ident.Name) {
+						if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+							out.WriteString(RustTypeNameForUse(ident.Name))
+							out.WriteString("(")
+							WriteWrapperPrefix(out)
+							writeBareFixedArrayCompositeLiteral(out, e, typ)
+							WriteWrapperSuffix(out)
+							out.WriteString(")")
+							return
+						}
+					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
 						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
 						if wrapInTypeDefinition {
@@ -16630,6 +16673,65 @@ func isPredeclaredTypeConversionTarget(fun ast.Expr) bool {
 	return obj == nil || isTypeName
 }
 
+// blockEndsDiverging reports whether the last statement of block never
+// finishes: a call to panic, os.Exit or log.Fatal*, or a for loop with no
+// condition and no break.
+func blockEndsDiverging(block *ast.BlockStmt) bool {
+	if block == nil || len(block.List) == 0 {
+		return false
+	}
+	switch last := block.List[len(block.List)-1].(type) {
+	case *ast.ExprStmt:
+		call, ok := unwrapParens(last.X).(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+		switch fun := unwrapParens(call.Fun).(type) {
+		case *ast.Ident:
+			return fun.Name == "panic" && isBuiltinIdent(fun)
+		case *ast.SelectorExpr:
+			pkg, ok := fun.X.(*ast.Ident)
+			if !ok {
+				return false
+			}
+			typeInfo := GetTypeInfo()
+			if typeInfo == nil || typeInfo.info == nil {
+				return false
+			}
+			pkgName, ok := typeInfo.info.Uses[pkg].(*types.PkgName)
+			if !ok || pkgName.Imported() == nil {
+				return false
+			}
+			switch pkgName.Imported().Path() {
+			case "os":
+				return fun.Sel.Name == "Exit"
+			case "log":
+				return strings.HasPrefix(fun.Sel.Name, "Fatal") || strings.HasPrefix(fun.Sel.Name, "Panic")
+			}
+		}
+	case *ast.ForStmt:
+		if last.Cond != nil {
+			return false
+		}
+		hasBreak := false
+		ast.Inspect(last.Body, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.FuncLit:
+				return false
+			case *ast.BranchStmt:
+				if n.Tok == token.BREAK || n.Tok == token.GOTO {
+					hasBreak = true
+				}
+			}
+			return !hasBreak
+		})
+		return !hasBreak
+	case *ast.BlockStmt:
+		return blockEndsDiverging(last)
+	}
+	return false
+}
+
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
@@ -16815,6 +16917,11 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 			out.WriteString("(" + strings.Join(retTypes, ", ") + ")")
 		}
 		out.WriteString(" ")
+	} else if blockEndsDiverging(funcLit.Body) {
+		// A body that ends in panic has type !, and since Rust 1.100 a
+		// closure with no annotation infers ! as its return type, which is
+		// not FnMut(). The annotation keeps it a closure returning ().
+		out.WriteString("-> () ")
 	}
 
 	if vt := GetVarTable(); vt != nil {
@@ -16914,6 +17021,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		beginPanicRecoverCatch(out, "        ")
 	}
 	if funcLit.Body != nil {
+		var restoreCaptureShadows []func()
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
 			if i == len(funcLit.Body.List)-1 {
@@ -16922,6 +17030,10 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 				TranspileStatementSimple(out, stmt, funcLit.Type, nil)
 			}
 			out.WriteString("\n")
+			restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+		}
+		for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+			restoreCaptureShadows[i]()
 		}
 		writeFuncLitReceiverCaptureStateWritebacks(out, captureRenames, assignedInlineCaptures)
 		if hasClosureDefer {
@@ -17293,7 +17405,14 @@ func writeFunctionPointerDerefCallTarget(out *strings.Builder, star *ast.StarExp
 	boxType := functionBoxTypeForCallTarget(star)
 	out.WriteString("{ let __f_holder = ")
 	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone(); let __f_ptr: *mut ")
+	if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isGoPtrIdent(ident) {
+		// A GoPtr to the function's cell, as from (*F)(unsafe.Pointer):
+		// the call goes through the cell it points to.
+		out.WriteString(".borrow().expect(\"invalid memory address or nil pointer dereference\")")
+	} else {
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __f_ptr: *mut ")
 	out.WriteString(boxType)
 	out.WriteString(" = { let mut __f_guard = __f_holder")
 	WriteBorrowMethod(out, true)
@@ -18678,7 +18797,7 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	if !typeInfo.IsTypeConversion(call) {
 		return nil, "", false
 	}
-	named, ok := typeInfo.GetType(call).(*types.Named)
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
 	if !ok {
 		return nil, "", false
 	}
@@ -24427,6 +24546,11 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	}
 	if writeOrderedTypeParamCallArgument(out, nil, 0, arg, expected) {
 		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok && isChannelFieldType(expected) {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) && writeOwnedRangeValue(out, ident) {
+			return
+		}
 	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {

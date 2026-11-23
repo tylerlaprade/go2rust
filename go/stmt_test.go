@@ -10376,3 +10376,117 @@ func main() {
 		}
 	}
 }
+
+func TestChannelSendUsesRustIdentifiersAndCaptureNames(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	loop := 7
+	ordinary := make(chan int, 1)
+	ordinary <- loop
+
+	final := make(chan int)
+	go func() {
+		final <- loop
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"ordinary.send((*r#loop.lock().unwrap().as_ref().unwrap()))",
+		"final_thread.send((*loop_thread.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "send((*loop.lock()") {
+		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
+	}
+}
+
+func TestChannelSendCopiesReferenceRangeValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	values := []string{"alpha", "beta"}
+	ch := make(chan string, len(values))
+	for _, value := range values {
+		ch <- value
+	}
+}
+`)
+
+	if !strings.Contains(rust, "ch.send((*value).clone())") {
+		t.Fatalf("range value sent its iterator reference instead of a Go value copy:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsPredeclaredBoolAndLocalCaptureShadows(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	true := 11
+	ints := make(chan int, 1)
+	ints <- true
+
+	bools := make(chan bool, 1)
+	bools <- false
+
+	value := 7
+	variable := 12
+	seen := make(chan int, 4)
+	go func() {
+		seen <- value
+		const value = 9
+		seen <- value
+		seen <- variable
+		variable := 13
+		seen <- variable
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"let mut true_ =",
+		"ints.send((*true_.lock().unwrap().as_ref().unwrap()))",
+		"bools.send(false)",
+		"seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))",
+		"seen_thread.send(value)",
+		"seen_thread.send((*variable_thread.lock().unwrap().as_ref().unwrap()))",
+		"let mut variable =",
+		"seen_thread.send((*variable.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"let mut true =",
+		"let mut variable_thread =",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
+		}
+	}
+}
+
+func TestGoroutineFunctionLiteralCopiesRangeChannelArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(inputs ...<-chan int) {
+	for _, input := range inputs {
+		go func(ch <-chan int) {
+			<-ch
+		}(input)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let __go_arg_0 = (*input).clone()") {
+		t.Fatalf("range channel argument was wrapped instead of copied as a channel handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
+		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
+	}
+}

@@ -1,0 +1,7 @@
+built
+other plain
+stringer (1,2)
+stringer 21.5C
+error bad 3
+other 42
+string is not a Stringer
