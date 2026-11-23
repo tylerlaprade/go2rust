@@ -3639,6 +3639,17 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString(">()).is_some()")
 		return
 	}
+	if isEmptyInterfaceType(subjectType) && isErrorInterfaceType(typeInfo.GetType(typeExpr)) {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">()).is_some()")
+		for _, candidate := range goErrorAssertionCandidates(subjectType) {
+			out.WriteString(" || _ts_val.and_then(|__v| __v.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">()).is_some()")
+		}
+		return
+	}
 	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(handleType)
@@ -16704,11 +16715,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// handle of its own to the same error, so
 							// assigning to it does not change what the
 							// interface value holds.
-							writeErrorHandleCopy(out, func() {
-								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-								out.WriteString(handleType)
-								out.WriteString(">()).unwrap()")
-							})
+							out.WriteString("if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()) { ")
+							writeErrorHandleCopy(out, func() { out.WriteString("__err_handle") })
+							out.WriteString(" }")
+							for _, candidate := range goErrorAssertionCandidates(typeSwitchSubjectType) {
+								out.WriteString(" else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(candidate.rustType)
+								out.WriteString(">()) { ")
+								writeGoErrorHandleFromAssertionCandidate(out, candidate)
+								out.WriteString(" }")
+							}
+							out.WriteString(" else { unreachable!(\"type switch error case matched no error payload\") }")
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.

@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -8335,6 +8336,75 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 
 func isErrorInterfaceType(typ types.Type) bool {
 	return isGoErrorType(typ)
+}
+
+// goErrorAssertionCandidates are the concrete error implementations a value
+// of sourceType can carry in an interface box. Opaque errors such as the value
+// returned by errors.New use rustGoErrorHandleType instead; these candidates
+// cover user-defined value and pointer error types boxed under their own type.
+func goErrorAssertionCandidates(sourceType types.Type) []localInterfaceAssertionCandidate {
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return nil
+	}
+	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
+	candidates := localInterfaceAssertionCandidates(errorIface, sourceType)
+	if sourceType == nil || isEmptyInterfaceType(sourceType) {
+		// A value-receiver Error method belongs to both T and *T. The generic
+		// candidate collector deliberately chooses one implementing form per
+		// named type, but an any box uses distinct Rust payloads for T and *T,
+		// so error assertions must probe both.
+		baseCandidates := slices.Clone(candidates)
+		for _, candidate := range baseCandidates {
+			named, ok := types.Unalias(candidate.typ).(*types.Named)
+			if !ok {
+				continue
+			}
+			ptr := types.NewPointer(named)
+			if types.Implements(ptr, errorIface) {
+				candidates = append(candidates, localInterfaceAssertionCandidate{
+					external: candidate.external,
+					typ:      ptr,
+				})
+			}
+		}
+		seen := make(map[string]bool)
+		filtered := candidates[:0]
+		for i := range candidates {
+			if handleType, ok := anyBoxedHandleRustType(candidates[i].typ); ok {
+				candidates[i].rustType = handleType
+			}
+			if candidates[i].rustType == "" || seen[candidates[i].rustType] {
+				continue
+			}
+			seen[candidates[i].rustType] = true
+			filtered = append(filtered, candidates[i])
+		}
+		candidates = filtered
+	}
+	return candidates
+}
+
+func writeGoErrorPayloadFromAssertionCandidate(out *strings.Builder, candidate localInterfaceAssertionCandidate) {
+	if _, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+		// Keep the pointer handle itself. Replacing *p after the assertion must
+		// be visible through the bound error, just as it is in Go. The adapter
+		// also retains the existing typed-nil behavior without dereferencing it.
+		NeedGoPointerError()
+		out.WriteString(rustErrorFromValueStart())
+		out.WriteString("GoPointerError::new(typed_val.clone())")
+		out.WriteString(rustErrorFromValueEnd())
+		return
+	}
+	out.WriteString(rustErrorFromValueStart())
+	out.WriteString("typed_val.clone()")
+	out.WriteString(rustErrorFromValueEnd())
+}
+
+func writeGoErrorHandleFromAssertionCandidate(out *strings.Builder, candidate localInterfaceAssertionCandidate) {
+	WriteWrapperPrefix(out)
+	writeGoErrorPayloadFromAssertionCandidate(out, candidate)
+	WriteWrapperSuffix(out)
 }
 
 func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
@@ -20481,7 +20551,20 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 			out.WriteString(rustGoErrorHandleType())
 			out.WriteString(">() { (*__err_handle")
 			WriteBorrowMethod(out, false)
-			out.WriteString(").clone().expect(\"type assertion failed\") } else { ")
+			out.WriteString(").clone().expect(\"type assertion failed\") }")
+			for _, candidate := range goErrorAssertionCandidates(nil) {
+				out.WriteString(" else if let Some(typed_val) = ")
+				out.WriteString(receiver)
+				out.WriteString(".downcast_ref::<")
+				out.WriteString(candidate.rustType)
+				out.WriteString(">() { ")
+				writeGoErrorPayloadFromAssertionCandidate(out, candidate)
+				out.WriteString(" }")
+			}
+			out.WriteString(" else { ")
+			writeTypeAssertionFailurePanic(out)
+			out.WriteString(" } }")
+			return
 		}
 		out.WriteString("let typed_val = ")
 		out.WriteString(receiver)
@@ -20566,6 +20649,24 @@ func writeTypeAssertionFailedUnwrap(out *strings.Builder) {
 	out.WriteString("), ")
 	out.WriteString(RustStringLiteral(strconv.Quote(failure.target)))
 	out.WriteString("))")
+}
+
+func writeTypeAssertionFailurePanic(out *strings.Builder) {
+	failure := currentTypeAssertionFailure
+	if failure == nil {
+		out.WriteString("panic!(\"type assertion failed\")")
+		return
+	}
+	NeedGoTypeName()
+	out.WriteString("panic!(\"interface conversion: {} is {}, not {}\", ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.source)))
+	out.WriteString(", ")
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
+	out.WriteString(failure.dynamicValue)
+	out.WriteString("), ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.target)))
+	out.WriteString(")")
 }
 
 // typeAssertionNilPanic is the panic of "x.(T)" when x is a nil interface.
@@ -21796,7 +21897,32 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("                (")
 		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
 		out.WriteString(", true)\n")
-		out.WriteString("            } else ")
+		out.WriteString("            }")
+		var assertionSourceType types.Type
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			assertionSourceType = typeInfo.GetType(e.X)
+		}
+		for _, candidate := range goErrorAssertionCandidates(assertionSourceType) {
+			out.WriteString(" else if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">() {\n")
+			out.WriteString("                (")
+			writeGoErrorHandleFromAssertionCandidate(out, candidate)
+			out.WriteString(", true)\n")
+			out.WriteString("            }")
+		}
+		out.WriteString(" else {\n")
+		out.WriteString("                (")
+		writeEmptyErrorHandle(out)
+		out.WriteString(", false)\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeEmptyErrorHandle(out)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
 	}
 	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
@@ -22692,13 +22818,21 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			WriteWrapperPrefix(out)
 			out.WriteString("format!(\"{}\", ")
 			receiverExpr := sel.X
-			if ident, ok := sel.X.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
-				out.WriteString(rustPackageGlobalName(ident.Name))
+			if asserted, ok := unwrapParens(sel.X).(*ast.TypeAssertExpr); ok && typeInfo != nil && isGoErrorType(typeInfo.GetType(asserted)) {
+				// The one-value form x.(error) yields the error payload;
+				// unlike an error variable it has no outer variable handle
+				// to borrow before invoking Error.
+				TranspileExpression(out, receiverExpr)
 			} else {
-				TranspileExpressionContext(out, receiverExpr, LValue)
+				if ident, ok := sel.X.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
+					out.WriteString(rustPackageGlobalName(ident.Name))
+				} else {
+					TranspileExpressionContext(out, receiverExpr, LValue)
+				}
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
 			}
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(")")
 			WriteWrapperSuffix(out)
 			return
 		}
