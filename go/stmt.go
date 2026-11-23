@@ -97,7 +97,10 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return false
+		// Syntax-only callers cannot distinguish a shadow from the universe
+		// constant. Preserve the long-standing literal behavior; production
+		// translation installs go/types information before lowering.
+		return true
 	}
 	obj := typeInfo.info.Uses[ident]
 	if obj == nil {
@@ -10640,6 +10643,17 @@ func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 	return true
 }
 
+func isPredeclaredBoolConstant(ident *ast.Ident) bool {
+	if ident == nil || (ident.Name != "true" && ident.Name != "false") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	return typeInfo.GetObject(ident) == types.Universe.Lookup(ident.Name)
+}
+
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
@@ -10654,9 +10668,11 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 
-	// For boolean identifiers (true/false), output directly
+	// Only the predeclared boolean constants are Rust boolean literals. Go
+	// permits local variables named true and false; those use ordinary Rust
+	// bindings (renamed to true_/false_ because Rust reserves the literals).
 	if ident, ok := expr.(*ast.Ident); ok {
-		if ident.Name == "true" || ident.Name == "false" {
+		if isPredeclaredBoolConstant(ident) {
 			out.WriteString(ident.Name)
 			return
 		}
@@ -10699,6 +10715,13 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// For identifiers that are wrapped, unwrap them
 	if ident, ok := expr.(*ast.Ident); ok {
+		// A local constant can shadow a captured outer variable with the same
+		// spelling. Its go/types object, rather than the name-only capture map,
+		// determines that this use names the local constant.
+		if isLocalConstantIdent(ident) {
+			out.WriteString(RustIdentForUse(ident))
+			return
+		}
 		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
 		if _, isRange := rangeLoopVars[ident.Name]; isRange {
@@ -10708,10 +10731,6 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 			if writeOwnedRangeValue(out, ident) {
 				return
 			}
-			out.WriteString(rustName)
-			return
-		}
-		if _, isConst := localConstants[ident.Name]; isConst {
 			out.WriteString(rustName)
 			return
 		}
@@ -14602,6 +14621,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("{\n")
 		var prevStmt ast.Stmt
 		var blockLastPos token.Pos = s.Lbrace
+		var restoreCaptureShadows []func()
 		for i, stmt := range s.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
@@ -14614,8 +14634,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &blockLastPos, indent+"    ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.List)-1)
 			out.WriteString("\n")
+			restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
 
 			prevStmt = stmt
+		}
+		for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+			restoreCaptureShadows[i]()
 		}
 		out.WriteString(indent)
 		out.WriteString("}")
@@ -16281,12 +16305,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Body
 				popParamScope := pushFuncLitParamVarScope(funcLit)
 				restoreRangeShadows := shadowRangeLoopVars(funcLitParamNames(funcLit))
+				var restoreCaptureShadows []func()
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
 						out.WriteString("\n            ")
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+					restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+				}
+				for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+					restoreCaptureShadows[i]()
 				}
 				restoreRangeShadows()
 				popParamScope()
@@ -16310,12 +16339,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			} else {
 				// No arguments - just inline the body
+				var restoreCaptureShadows []func()
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
 						out.WriteString("\n        ")
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+					restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+				}
+				for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+					restoreCaptureShadows[i]()
 				}
 				if hasClosureDefer {
 					out.WriteString("\n        while let Some(f) = __defer_stack.pop() {\n")
@@ -17357,6 +17391,57 @@ func suppressCaptureRename(name string) func() {
 	delete(currentCaptureRenames, name)
 	return func() {
 		currentCaptureRenames[name] = renamed
+	}
+}
+
+// suppressCaptureRenamesDeclaredBy removes name-only outer capture aliases
+// after a statement introduces block-local bindings with the same spelling.
+// go/types Defs distinguishes new bindings in a short declaration from names
+// that the statement merely assigns. The returned function restores aliases
+// when the lexical block ends.
+func suppressCaptureRenamesDeclaredBy(stmt ast.Stmt) func() {
+	if stmt == nil || currentCaptureRenames == nil {
+		return func() {}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return func() {}
+	}
+
+	var names []*ast.Ident
+	switch s := stmt.(type) {
+	case *ast.AssignStmt:
+		if s.Tok == token.DEFINE {
+			for _, lhs := range s.Lhs {
+				if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" && typeInfo.info.Defs[ident] != nil {
+					names = append(names, ident)
+				}
+			}
+		}
+	case *ast.DeclStmt:
+		if decl, ok := s.Decl.(*ast.GenDecl); ok && (decl.Tok == token.VAR || decl.Tok == token.CONST) {
+			for _, spec := range decl.Specs {
+				if values, ok := spec.(*ast.ValueSpec); ok {
+					for _, ident := range values.Names {
+						if ident.Name != "_" && typeInfo.info.Defs[ident] != nil {
+							names = append(names, ident)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var restores []func()
+	for _, ident := range names {
+		if _, captured := currentCaptureRenames[ident.Name]; captured {
+			restores = append(restores, suppressCaptureRename(ident.Name))
+		}
+	}
+	return func() {
+		for i := len(restores) - 1; i >= 0; i-- {
+			restores[i]()
+		}
 	}
 }
 
