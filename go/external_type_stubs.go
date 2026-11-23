@@ -47,6 +47,7 @@ type externalPackageStub struct {
 }
 
 type externalPackageStubFunction struct {
+	ImportPath        string
 	ParamCount        int
 	ParamTypes        []string
 	GenericParamNames []string
@@ -563,7 +564,7 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 		if !ok {
 			return
 		}
-		RegisterExternalPackageStubFunction(pkgName, ToSnakeCase(sel.Sel.Name), sig)
+		RegisterExternalPackageStubFunction(pkgName, obj.Pkg().Path(), ToSnakeCase(obj.Name()), sig)
 	case *types.Const:
 		RegisterExternalPackageStubConstantValue(pkgName, rustConstName(sel.Sel.Name), obj.Type(), obj.Val())
 	case *types.Var:
@@ -630,7 +631,7 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 	pkg.Functions[funcName] = fn
 }
 
-func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *types.Signature) {
+func RegisterExternalPackageStubFunction(pkgName string, importPath string, funcName string, sig *types.Signature) {
 	if pkgName == "" || funcName == "" || sig == nil {
 		return
 	}
@@ -642,6 +643,7 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		return
 	}
 	fn := externalPackageStubFunction{
+		ImportPath: importPath,
 		ParamCount: sig.Params().Len(),
 	}
 	typeParams := sig.TypeParams()
@@ -3847,6 +3849,13 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 // generic body has no implementation — calling it at runtime is a bug
 // to be fixed at the call site or by adding a custom emitter.
 func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, funcName string, fn externalPackageStubFunction) {
+	// internal/bytealg supplies this entry point in assembly. Its stdlib callers
+	// have already converted both arguments to ordinary Rust values here.
+	if fn.ImportPath == "internal/bytealg" && funcName == "index_byte_string" {
+		fmt.Fprintf(out, "    pub fn index_byte_string(s: impl AsRef<str>, c: u8) -> %s {\n", rustIntType())
+		fmt.Fprintf(out, "        %s\n    }\n", rustIndexByteStringExpr("s.as_ref()", "c"))
+		return
+	}
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
 		return
