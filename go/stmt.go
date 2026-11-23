@@ -10699,28 +10699,29 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// For identifiers that are wrapped, unwrap them
 	if ident, ok := expr.(*ast.Ident); ok {
+		rustName := rustIdentForUseWithCapture(ident)
 		// Check if it's a range loop variable, constant, or bare variable
 		if _, isRange := rangeLoopVars[ident.Name]; isRange {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			return
 		}
 		if _, isConst := localConstants[ident.Name]; isConst {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			return
 		}
 		if isVarBare(ident.Name) {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			return
 		}
 		// Wrapped variable — unwrap and copy if needed. A value sent on a
 		// channel is a copy of the variable.
 		if isCopyType {
 			out.WriteString("(*")
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 		} else if copyCall, known := goValueCopyCallForExpr(ident); known {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(copyCall)

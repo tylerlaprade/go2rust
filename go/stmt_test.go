@@ -10319,3 +10319,31 @@ func main() {
 		}
 	}
 }
+
+func TestChannelSendUsesRustIdentifiersAndCaptureNames(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	loop := 7
+	ordinary := make(chan int, 1)
+	ordinary <- loop
+
+	final := make(chan int)
+	go func() {
+		final <- loop
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"ordinary.send((*r#loop.lock().unwrap().as_ref().unwrap()))",
+		"final_thread.send((*loop_thread.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "send((*loop.lock()") {
+		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
+	}
+}
