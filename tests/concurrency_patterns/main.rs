@@ -1573,36 +1573,44 @@ let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(mov
     }
     });
 
+    {
+    let __go_select_channel_0 = result.clone();
+    let __go_select_channel_1 = go_channel_after(std::time::Duration::from_millis(1)).clone();
     loop {
-        if let Some(__select_recv) = result.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let value = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut value = Arc::new(Mutex::new(Some(value)));
             print!("Success: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = go_channel_after(std::time::Duration::from_millis(1)).try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "Timeout: Operation took too long".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
+    }
 
         // Make the result available after observing the timeout.
     allowResult.close();
+    {
+    let __go_select_channel_0 = result.clone();
+    let __go_select_channel_1 = go_channel_after(std::time::Duration::from_secs(3600)).clone();
     loop {
-        if let Some(__select_recv) = result.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let value = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut value = Arc::new(Mutex::new(Some(value)));
             print!("Success: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = go_channel_after(std::time::Duration::from_secs(3600)).try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "Timeout: Operation took too long".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 }
 

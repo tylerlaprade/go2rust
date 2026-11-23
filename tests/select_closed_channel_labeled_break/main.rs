@@ -755,8 +755,10 @@ fn main() {
     done.close();
     let mut n = Arc::new(Mutex::new(Some(0i64)));
     'r#loop: loop {
-        loop {
-        if let Some(_) = done.try_recv_select() {
+        {
+    let __go_select_channel_0 = done.clone();
+    loop {
+        if let Some(_) = __go_select_channel_0.try_recv_select() {
             println!("{}", format!("{}", "closed".to_string()));
             break 'r#loop;
             break;
@@ -769,14 +771,17 @@ fn main() {
         break;
     }
     }
+    }
 
     let mut results = GoChannel::<i64>::new_buffered(2 as usize);
     results.send(7);
     results.close();
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
-        loop {
-        if let Some(__select_recv) = results.try_recv_select() {
+        {
+    let __go_select_channel_0 = results.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let v = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut ok = Arc::new(Mutex::new(Some(__select_ok)));
@@ -785,6 +790,7 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -807,19 +813,23 @@ fn main() {
     });
     let mut sum = Arc::new(Mutex::new(Some(0i64)));
     'outer: loop {
-        loop {
-        if let Some(__select_recv) = work.try_recv_select() {
+        {
+    let __go_select_channel_0 = work.clone();
+    let __go_select_channel_1 = quit.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let v = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut v = Arc::new(Mutex::new(Some(v)));
             { let __rhs = (*v.lock().unwrap().as_ref().unwrap()); let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
             break;
         }
-        if let Some(_) = quit.try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             break 'outer;
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
     }
     println!("{} {} {} {}", format!("{}", "sum".to_string()), format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "n".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));

@@ -862,8 +862,10 @@ pub fn run(ch: GoChannel<i64>) {
 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        loop {
-        if let Some(_) = ch.try_recv_select() {
+        {
+    let __go_select_channel_0 = ch.clone();
+    loop {
+        if let Some(_) = __go_select_channel_0.try_recv_select() {
             __defer_stack.push(Box::new(move || {
         println!("{}", format!("{}", "deferred".to_string()));
     }));
@@ -872,6 +874,7 @@ pub fn run(ch: GoChannel<i64>) {
         }
         println!("{}", format!("{}", "default".to_string()));
         break;
+    }
     }
 
         // Execute deferred functions

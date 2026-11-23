@@ -3151,6 +3151,10 @@ run_xfail_test() {
     run_test "tests/select_closed_channel_labeled_break"
 }
 
+@test "select_operands_once" {
+    run_test "tests/select_operands_once"
+}
+
 @test "select_statements" {
     run_test "tests/select_statements"
 }

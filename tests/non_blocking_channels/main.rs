@@ -748,12 +748,36 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+
 fn main() {
     let mut messages = GoChannel::<String>::new();
     let mut signals = GoChannel::<bool>::new();
 
+    {
+    let __go_select_channel_0 = messages.clone();
     loop {
-        if let Some(__select_recv) = messages.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
@@ -763,26 +787,34 @@ fn main() {
         println!("{}", format!("{}", "no message received".to_string()));
         break;
     }
+    }
 
     let mut msg = Arc::new(Mutex::new(Some("hi".to_string())));
+    {
+    let __go_select_channel_0 = messages.clone();
+    let mut __go_select_value_0 = Some(msg.lock().unwrap().as_ref().unwrap().clone());
     loop {
-        if messages.try_send(msg.lock().unwrap().as_ref().unwrap().clone()) {
+        if __go_select_channel_0.try_send_select(&mut __go_select_value_0) {
             println!("{} {}", format!("{}", "sent message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
         println!("{}", format!("{}", "no message sent".to_string()));
         break;
     }
+    }
 
+    {
+    let __go_select_channel_0 = messages.clone();
+    let __go_select_channel_1 = signals.clone();
     loop {
-        if let Some(__select_recv) = messages.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "received message".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(__select_recv) = signals.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let sig = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut sig = Arc::new(Mutex::new(Some(sig)));
@@ -791,5 +823,6 @@ fn main() {
         }
         println!("{}", format!("{}", "no activity".to_string()));
         break;
+    }
     }
 }

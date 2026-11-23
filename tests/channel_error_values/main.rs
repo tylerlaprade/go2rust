@@ -898,8 +898,10 @@ pub fn receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mu
 }
 
 pub fn select_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    {
+    let __go_select_channel_0 = ch.clone();
     loop {
-        if let Some(__select_recv) = ch.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let err = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut err = Arc::new(Mutex::new(err));
@@ -908,6 +910,7 @@ pub fn select_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) ->
         return Arc::new(Mutex::new(None));
     }
     unreachable!()
+    }
 }
 
 pub fn local_receive(ch: GoChannel<Option<Arc<dyn StdError + Send + Sync>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {

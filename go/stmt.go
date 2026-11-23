@@ -9650,6 +9650,53 @@ type parallelIndexedAssignmentTarget struct {
 	outerIndexNames []string
 }
 
+type selectOperands struct {
+	channel string
+	value   string
+}
+
+// Go evaluates all channel operands and send values, in source order,
+// before choosing a ready arm. The polling loop can then reuse those values.
+func prepareSelectOperands(out *strings.Builder, clauses []*ast.CommClause) []selectOperands {
+	operands := make([]selectOperands, len(clauses))
+	for i, cc := range clauses {
+		var channel, value ast.Expr
+		var receive ast.Expr
+		switch comm := cc.Comm.(type) {
+		case *ast.AssignStmt:
+			if len(comm.Rhs) == 1 {
+				receive = comm.Rhs[0]
+			}
+		case *ast.ExprStmt:
+			receive = comm.X
+		case *ast.SendStmt:
+			channel, value = comm.Chan, comm.Value
+		}
+		if unary, ok := unwrapParens(receive).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+			channel = unary.X
+		}
+		if channel == nil {
+			continue
+		}
+		name := freshParallelAssignmentTempName(fmt.Sprintf("__go_select_channel_%d", i))
+		operands[i].channel = name
+		fmt.Fprintf(out, "let %s = ", name)
+		writeChannelExpression(out, channel)
+		out.WriteString(".clone();\n    ")
+		if value != nil {
+			NeedGoSelectSend()
+			name = freshParallelAssignmentTempName(fmt.Sprintf("__go_select_value_%d", i))
+			operands[i].value = name
+			fmt.Fprintf(out, "let mut %s = Some(", name)
+			if !writeInterfaceChannelSendValue(out, channel, value) {
+				transpileChannelValue(out, value)
+			}
+			out.WriteString(");\n    ")
+		}
+	}
+	return operands
+}
+
 func freshParallelAssignmentTempName(base string) string {
 	name := base
 	for lookupVarInfo(name) != nil || packageGlobalNames[name] {
@@ -16030,10 +16077,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		out.WriteString("{\n    ")
+		operands := prepareSelectOperands(out, commClauses)
 		out.WriteString("loop {\n")
 		restoreSelectBreakTarget := pushBreakTarget("")
 
-		for _, cc := range commClauses {
+		for i, cc := range commClauses {
 			if cc.Comm == nil {
 				// Default case — handled at the end
 				continue
@@ -16044,11 +16093,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case *ast.AssignStmt:
 				// case val := <-ch or case val, ok := <-ch
 				if len(comm.Rhs) == 1 {
-					if unary, ok := comm.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+					if unary, ok := unwrapParens(comm.Rhs[0]).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 						// A closed channel is ready too: it gives the zero
 						// value, and ok is false.
 						out.WriteString("        if let Some(__select_recv) = ")
-						writeChannelExpression(out, unary.X)
+						out.WriteString(operands[i].channel)
 						out.WriteString(".try_recv_select() {\n")
 						out.WriteString("            let __select_ok = __select_recv.is_some();\n")
 						if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
@@ -16112,9 +16161,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			case *ast.ExprStmt:
 				// case <-ch (receive without assignment)
-				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+				if unary, ok := unwrapParens(comm.X).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
-					writeChannelExpression(out, unary.X)
+					out.WriteString(operands[i].channel)
 					out.WriteString(".try_recv_select() {\n")
 
 					var captureShadowRestores []func()
@@ -16133,14 +16182,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 			case *ast.SendStmt:
-				// case ch <- val (send case) — use try_send for non-blocking
-				out.WriteString("        if ")
-				writeChannelExpression(out, comm.Chan)
-				out.WriteString(".try_send(")
-				if !writeInterfaceChannelSendValue(out, comm.Chan, comm.Value) {
-					transpileChannelValue(out, comm.Value)
-				}
-				out.WriteString(") {\n")
+				// Keep a non-Copy payload available when a send has to retry.
+				fmt.Fprintf(out, "        if %s.try_send_select(&mut %s) {\n", operands[i].channel, operands[i].value)
 
 				var captureShadowRestores []func()
 				for _, bodyStmt := range cc.Body {
@@ -16186,6 +16229,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if selectStmtTerminates(s) {
 			out.WriteString("\n    unreachable!()")
 		}
+		out.WriteString("\n    }")
 
 	case *ast.DeferStmt:
 		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)
@@ -16883,7 +16927,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.LabeledStmt:
 		label := ToSnakeCase(s.Label.Name)
 		switch s.Stmt.(type) {
-		case *ast.SwitchStmt, *ast.TypeSwitchStmt:
+		case *ast.SwitchStmt, *ast.TypeSwitchStmt, *ast.SelectStmt:
 			out.WriteString("'")
 			out.WriteString(label)
 			out.WriteString(": {\n")

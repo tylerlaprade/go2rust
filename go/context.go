@@ -1138,6 +1138,16 @@ func NeedGoAnyPtrKey() {
 }
 
 // NeedGoChannel marks that we need the GoChannel helper struct
+func NeedGoSelectSend() {
+	NeedGoChannel()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSelectSend = true
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoSelectSend = true
+	})
+}
+
 func NeedGoChannel() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoChannel = true

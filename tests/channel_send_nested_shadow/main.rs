@@ -778,10 +778,12 @@ fn main() {
             seen_thread.send((*value.lock().unwrap().as_ref().unwrap()));
         };
         seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()));;
-        loop {
+        {
+    loop {
         let mut value = Arc::new(Mutex::new(Some(13i64)));
         seen_thread.send((*value.lock().unwrap().as_ref().unwrap()));
         break;
+    }
     };
         seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()));;
         if false {
