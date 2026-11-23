@@ -1,0 +1,11 @@
+[package]
+name = "exec_command_non_utf8_argv_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "exec_command_non_utf8_argv_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

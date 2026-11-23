@@ -900,6 +900,27 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	}
 }
 
+func TestExecCmdStubUsesCanonicalUnixProgramAndArgumentBytes(t *testing.T) {
+	var out strings.Builder
+	writeExecCmdTypeStub(&out, map[string]string{
+		"dir": wrappedExternalStubType("String"),
+	}, nil)
+	got := out.String()
+	for _, want := range []string{
+		"std::ffi::OsString::from_vec(__go_string_bytes(&args_view[0]))",
+		"command.args(args_view[1..].iter().map(|arg|",
+		"std::ffi::OsString::from_vec(__go_string_bytes(arg))",
+		"command.current_dir(std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(dir))))",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.Cmd process boundary should include %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "std::process::Command::new(&args_view[0])") {
+		t.Fatalf("exec.Cmd must not pass the reversible Rust string encoding to the OS:\n%s", got)
+	}
+}
+
 func TestExecCmdStubImplementsStderrPipeMethod(t *testing.T) {
 	var out strings.Builder
 	writeExecCmdTypeStub(&out, nil, map[string]externalTypeStubMethod{

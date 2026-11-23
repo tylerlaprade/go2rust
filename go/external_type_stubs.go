@@ -2377,12 +2377,33 @@ impl exec_Cmd {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
         }
         let args_view = args.as_slice();
-        let mut command = std::process::Command::new(&args_view[0]);
+        #[cfg(unix)]
+        let __program = {
+            use std::os::unix::ffi::OsStringExt;
+            std::ffi::OsString::from_vec(__go_string_bytes(&args_view[0]))
+        };
+        #[cfg(not(unix))]
+        let __program = args_view[0].clone();
+        let mut command = std::process::Command::new(__program);
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            command.args(args_view[1..].iter().map(|arg| {
+                std::ffi::OsString::from_vec(__go_string_bytes(arg))
+            }));
+        }
+        #[cfg(not(unix))]
         command.args(&args_view[1..]);
 `, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
             if !dir.is_empty() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::ffi::OsStringExt;
+                    command.current_dir(std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(dir))));
+                }
+                #[cfg(not(unix))]
                 command.current_dir(dir);
             }
         }

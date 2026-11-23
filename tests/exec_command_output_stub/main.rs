@@ -795,7 +795,22 @@ impl exec_Cmd {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
         }
         let args_view = args.as_slice();
-        let mut command = std::process::Command::new(&args_view[0]);
+        #[cfg(unix)]
+        let __program = {
+            use std::os::unix::ffi::OsStringExt;
+            std::ffi::OsString::from_vec(__go_string_bytes(&args_view[0]))
+        };
+        #[cfg(not(unix))]
+        let __program = args_view[0].clone();
+        let mut command = std::process::Command::new(__program);
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            command.args(args_view[1..].iter().map(|arg| {
+                std::ffi::OsString::from_vec(__go_string_bytes(arg))
+            }));
+        }
+        #[cfg(not(unix))]
         command.args(&args_view[1..]);
         if let Some(__cmd_env) = self.env.lock().unwrap().as_ref() {
 			if __cmd_env.as_slice().iter().any(|item| __go_string_bytes(item).contains(&0)) {
