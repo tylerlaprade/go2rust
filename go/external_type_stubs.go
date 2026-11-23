@@ -3259,7 +3259,9 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		if i > 0 || len(varNames) > 0 {
 			out.WriteString("\n")
 		}
-		if funcName == "exit" {
+		if funcName == "chdir" {
+			writeOsChdirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "exit" {
 			writeOsExitFunction(out)
 		} else if funcName == "environ" {
 			writeOsEnvironFunction(out, pkg.Functions[funcName])
@@ -3304,6 +3306,20 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	out.WriteString("}\n")
+}
+
+// PERMANENT: not scaffold — os.Chdir maps to the process working-directory syscall.
+func writeOsChdirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn chdir<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        let path = go_path(_arg0.into_go_string());
+        match std::env::set_current_dir(&path) {
+            Ok(()) => no_error(),
+            Err(err) => io_error(err),
+        }
+    }
+`)
 }
 
 func writeOsStringValue(out *strings.Builder, argName, label string) {
