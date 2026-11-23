@@ -657,7 +657,7 @@ impl std::fmt::Display for bucket {
 impl bucket {
     pub fn sum(&self) -> i64 {
         let mut total = Rc::new(RefCell::new(Some(0i64)));
-        { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+        { let __range_holder = self.values.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter().copied() {
         { let __rhs = value; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
         return (*total.borrow().as_ref().unwrap());
@@ -669,7 +669,7 @@ pub fn names() -> Rc<RefCell<Option<Vec<String>>>> {
 }
 
 fn main() {
-    { let __range_holder = names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
+    { let __range_holder = names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
         println!("{}", format!("{}", name));
     } }
     let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some([2i64, 3i64, 5i64]))), ..Default::default() })));
@@ -677,7 +677,7 @@ fn main() {
 
     let mut groups = Rc::new(RefCell::new(Some([vec!["go".to_string()], vec!["rust".to_string(), "zig".to_string()]])));
     let mut total = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
+    { let __range_holder = groups.clone().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for group in __range_values.iter() {
         for name in group.iter() {
         if (*name).clone() != "".to_string() {
         { let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -859,7 +859,7 @@ impl From<ast_Ident> for ast_Expr {
 
 pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
     let mut values: Arc<Mutex<Option<Vec<ast_Expr>>>> = Arc::new(Mutex::new(None));
-    { let __range_holder = elts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for elt in __range_values.iter() {
+    { let __range_holder = elts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for elt in __range_values.iter() {
         let mut value = Arc::new(Mutex::new(Some((*elt).clone())));
         {
         let (mut kv, mut ok) = ({
@@ -871,7 +871,7 @@ pub fn normalize(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>) -> Arc<Mutex<Option<Ve
         }
     });;
         if ok {
-            { let new_val = { let __selector_holder = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *value.lock().unwrap() = Some(new_val); };;
+            { let new_val = { let __selector_holder = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; *value.lock().unwrap() = Some(new_val); };;
         }
     }
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = ({ let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<ast_Expr> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *values.lock().unwrap() = __slice_header; };

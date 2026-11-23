@@ -1035,15 +1035,15 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         } else {
             panic!("type switch interface case condition matched no concrete implementor")
         };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "stringer ".to_string(), (*(*x.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
         let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {
         let x = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
@@ -1053,7 +1053,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 fn main() {
     let mut sb: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
     (*sb.borrow_mut().as_mut().unwrap()).push_str("built");
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = sb.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = sb.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }))).borrow().as_ref().unwrap())));
     for v in &vec![Box::new("plain".to_string()) as Box<dyn Any>, Box::new(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>, Box::new(Temp(Rc::new(RefCell::new(Some(21.5 as f64))))) as Box<dyn Any>, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("bad {}", 3)))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(42i64) as Box<dyn Any>] {
         println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(go_any_clone(v.as_ref()))))).borrow().as_ref().unwrap())));
     }

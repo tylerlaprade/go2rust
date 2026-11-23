@@ -586,7 +586,7 @@ fn main() {
     let mut filename = Rc::new(RefCell::new(Some("file.go".to_string())));
     let mut goFiles: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     let mut compiledGoFiles: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    for (path, _) in { let __range_holder = overlay.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (path, _) in { let __range_holder = overlay.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         if path.clone() == (*filename.borrow().as_ref().unwrap()) {
         { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some(vec![path.clone()]))))); *goFiles.borrow_mut() = __slice_header; };
         { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some(vec![path.clone()]))))); *compiledGoFiles.borrow_mut() = __slice_header; };

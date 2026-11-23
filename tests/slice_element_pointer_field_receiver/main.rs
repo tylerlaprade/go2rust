@@ -1370,9 +1370,9 @@ fn main() {
     let mut r = Arc::new(Mutex::new(Some(runner { ..Default::default() })));
     assign(r.clone(), program.clone());
     println!("{}", format!("{}", step(r.clone())));
-    { let new_val = 1; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.op.lock().unwrap() = Some(new_val); };
-    { let new_val = 7; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.out.lock().unwrap() = Some(new_val); };
+    { let new_val = 1; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.op.lock().unwrap() = Some(new_val); };
+    { let new_val = 7; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.out.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", step(r.clone())));
-    { let new_val = 3; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.op.lock().unwrap() = Some(new_val); };
+    { let new_val = 3; *{ let __seq = { let __seq_holder = program.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.op.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", step(r.clone())));
 }

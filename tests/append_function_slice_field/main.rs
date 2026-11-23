@@ -626,7 +626,7 @@ fn main() {
         println!("{}", format!("{}", "later".to_string()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))),
     );
-    let mut f = { let __seq = { let __seq_holder = (*q.lock().unwrap().as_ref().unwrap()).later.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
+    let mut f = { let __seq = { let __seq_holder = (*q.lock().unwrap().as_ref().unwrap()).later.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
     {
         let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
             let mut __f_guard = f.lock().unwrap();

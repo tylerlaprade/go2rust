@@ -760,7 +760,7 @@ pub fn process_slice(slice: Arc<Mutex<Option<Vec<i64>>>>) -> (i64, i64) {
 
     { let new_val = 0; *sum.lock().unwrap() = Some(new_val); };
     { let new_val = ({ let __len = (*slice.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; *count.lock().unwrap() = Some(new_val); };
-    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for val in __range_values.iter().copied() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for val in __range_values.iter().copied() {
         { let __rhs = val; let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return ((*sum.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()));
@@ -789,14 +789,14 @@ fn main() {
 
         // Ignore index, use only value
     println!("{}", format!("{}", "Values only:".to_string()));
-    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for val in __range_values.iter().copied() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
 
         // Ignore value, use only index
     println!("{}", format!("{}", "Indices only:".to_string()));
-    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, _) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, _) in __range_values.iter().copied().enumerate() {
         print!("{} ", i);
     } }
     println!();
@@ -816,11 +816,11 @@ fn main() {
         // Ignore values, use only keys (sorted for deterministic output)
     println!("{}", format!("{}", "Keys only:".to_string()));
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
-    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = name.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *names.lock().unwrap() = __slice_header; };
     }
     { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
+    { let __range_holder = names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
         print!("{} ", name);
     } }
     println!();
@@ -828,11 +828,11 @@ fn main() {
         // Ignore keys, use only values (sorted for deterministic output)
     println!("{}", format!("{}", "Values only:".to_string()));
     let mut sortedAges: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
-    for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = sortedAges.clone(); let __append_value = (*age.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *sortedAges.lock().unwrap() = __slice_header; };
     }
     { let __sort_target = sortedAges.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = sortedAges.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for age in __range_values.iter().copied() {
+    { let __range_holder = sortedAges.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for age in __range_values.iter().copied() {
         print!("{} ", age);
     } }
     println!();
@@ -930,7 +930,7 @@ fn main() {
     let mut data = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64, 3i64], vec![4i64, 5i64, 6i64], vec![7i64, 8i64, 9i64]])));
 
     let mut total = Arc::new(Mutex::new(Some(0i64)));
-    { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for row in __range_values.iter() {
+    { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
         for val in row.iter().copied() {
         { let __rhs = val; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

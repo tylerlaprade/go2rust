@@ -649,7 +649,7 @@ fn main() {
     let mut pkgs = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::from([("pkg".to_string(), Rc::new(RefCell::new(Some(Package { ..Default::default() }))).clone())]))));
     let mut additional = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([("pkg".to_string(), Rc::new(RefCell::new(Some(vec!["missing file".to_string()]))))]))));
 
-    for (id, errs) in { let __range_holder = additional.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (id, errs) in { let __range_holder = additional.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         {
         let (mut p, mut ok) = { let __map_holder = pkgs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&id)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {

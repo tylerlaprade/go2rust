@@ -697,10 +697,10 @@ impl std::fmt::Display for Holder {
 fn main() {
     let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Spec { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }))), Rc::new(RefCell::new(Some(Spec { name: Rc::new(RefCell::new(Some("beta".to_string()))), ..Default::default() })))])));
     let mut holders = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Holder { ..Default::default() }))), Rc::new(RefCell::new(Some(Holder { ..Default::default() })))])));
-    { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, spec) in __range_values.iter().enumerate() {
+    { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, spec) in __range_values.iter().enumerate() {
         { let new_val = Box::new(spec.clone()) as Box<dyn Any>; *(*(*holders.borrow().as_ref().unwrap())[(i) as usize].clone().borrow().as_ref().unwrap()).decl.borrow_mut() = Some(new_val); };
     } }
-    { let __range_holder = holders.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for h in __range_values.iter() {
+    { let __range_holder = holders.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for h in __range_values.iter() {
         {
         let (mut s, mut ok) = ({
         let val = (*h.borrow().as_ref().unwrap()).decl.clone();

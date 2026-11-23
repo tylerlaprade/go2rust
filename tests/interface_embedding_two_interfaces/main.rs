@@ -976,7 +976,7 @@ impl Shape for SquarePtr {
 
 pub fn total_area(shapes: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Shape>>>>>>>>) -> f64 {
     let mut t = Rc::new(RefCell::new(Some(0.0)));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         { let __rhs = (*s.borrow().as_ref().unwrap()).area(); let mut guard = t.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*t.borrow().as_ref().unwrap());
@@ -998,19 +998,19 @@ fn main() {
         return { let __recv = (*items_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result } < { let __recv = (*items_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     let mut plain: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Shape>>>>>>>> = Rc::new(RefCell::new(None));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         println!("{} {} {}", format!("{}", (*(*it.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())), format!("{}", (*it.borrow().as_ref().unwrap()).area()), format!("{}", (*describe({ let __inner: Option<Box<dyn Named>> = (*it.borrow()).clone().map(|__v| -> Box<dyn Named> { __v }); Rc::new(RefCell::new(__inner)) }).borrow().as_ref().unwrap())));
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = plain.clone(); let __append_value = { let __inner: Option<Box<dyn Shape>> = (*it.borrow()).clone().map(|__v| -> Box<dyn Shape> { __v }); Rc::new(RefCell::new(__inner)) }; let mut __appended: Vec<Rc<RefCell<Option<Box<dyn Shape>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *plain.borrow_mut() = __slice_header; };
     } }
     println!("{}", format!("{}", total_area(plain.clone())));
 
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         {
     let _ts_subject = it.clone();
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
+    std::mem::drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
         let __any = Shape::__go_as_any(__v.as_ref());
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn NamedShape>>() {
@@ -1075,8 +1075,8 @@ fn main() {
     println!("{} {}", format!("{}", (*withNil.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_result = (*(*withNil.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).is_none(); __nil_result }));
 
     let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Shape>>>>>::from([]))));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
-        { let __map_key = { let __map_key_holder = (*it.borrow().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.borrow(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape>> = (*it.borrow()).clone().map(|__v| -> Box<dyn Shape> { __v }); Rc::new(RefCell::new(__inner)) }; (*byName.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
+        { let __map_key = { let __map_key_holder = (*it.borrow().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.borrow(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape>> = (*it.borrow()).clone().map(|__v| -> Box<dyn Shape> { __v }); Rc::new(RefCell::new(__inner)) }; (*byName.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     println!("{} {}", format!("{}", (*byName.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __recv = { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"square".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }));
 }

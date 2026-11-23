@@ -1216,8 +1216,8 @@ impl Perm {
         let mut s = Rc::new(RefCell::new(Some("".to_string())));
         for x in &vec![AnonymousStruct1 { bit: Rc::new(RefCell::new(Some(Perm(Rc::new(RefCell::new(Some(READ as u8))))))), ch: Rc::new(RefCell::new(Some(('r' as u8)))), ..Default::default() }, AnonymousStruct1 { bit: Rc::new(RefCell::new(Some(Perm(Rc::new(RefCell::new(Some(WRITE as u8))))))), ch: Rc::new(RefCell::new(Some(('w' as u8)))), ..Default::default() }, AnonymousStruct1 { bit: Rc::new(RefCell::new(Some(Perm(Rc::new(RefCell::new(Some(EXEC as u8))))))), ch: Rc::new(RefCell::new(Some(('x' as u8)))), ..Default::default() }] {
         let x = &x.__go_value_clone();
-        if Perm::has(self, Rc::new(RefCell::new(Some({ let __selector_holder = x.bit.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
-        { (*s.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(({ let __selector_holder = x.ch.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as char).to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
+        if Perm::has(self, Rc::new(RefCell::new(Some({ let __selector_holder = x.bit.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) {
+        { (*s.borrow_mut().as_mut().unwrap()).push_str(&{ let __s = Rc::new(RefCell::new(Some(({ let __selector_holder = x.ch.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as char).to_string()))); let __value = (*__s.borrow().as_ref().unwrap()).clone(); __value }); };
     } else {
         { (*s.borrow_mut().as_mut().unwrap()).push_str(&"-".to_string()); };
     }
@@ -1242,7 +1242,7 @@ fn __go_init_1() {
 
 pub fn sum(nums: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     let mut t = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter().copied() {
+    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for n in __range_values.iter().copied() {
         { let __rhs = n; let mut guard = t.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*t.borrow().as_ref().unwrap());
@@ -1250,7 +1250,7 @@ pub fn sum(nums: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
 
 pub fn apply(fs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>>>>>) -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>> {
     let fs_closure_clone = fs.clone(); return Rc::new(RefCell::new(Some(Box::new(move |mut x: Rc<RefCell<Option<i64>>>| -> i64 {
-        { let __range_holder = fs_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter().cloned() {
+        { let __range_holder = fs_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) }; *x.borrow_mut() = Some(new_val); };
     } }
         (*x.borrow().as_ref().unwrap())

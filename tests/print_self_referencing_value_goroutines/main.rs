@@ -939,7 +939,7 @@ impl std::fmt::Display for Label {
 
 impl Label {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))))
+        render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))))
     }
 }
 

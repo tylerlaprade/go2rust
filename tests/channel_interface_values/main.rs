@@ -1119,10 +1119,10 @@ fn main() {
     println!("{}", format!("{}", (*describe(Arc::new(Mutex::new({ let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.recv().unwrap_or_default())).clone()).lock().unwrap().as_ref().unwrap())));
 
     let mut shapes = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1))), h: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>)))])));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for shape in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for shape in __range_values.iter() {
         { let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.send({ let __iface_handle = { let __iface_value = (*shape).lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }; let __iface_value = (*__iface_handle.lock().unwrap()).clone(); __iface_value });
     } }
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for _ in __range_values.iter() {
         println!("{}", format!("{}", (*describe(Arc::new(Mutex::new({ let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.recv().unwrap_or_default())).clone()).lock().unwrap().as_ref().unwrap())));
     } }
 }

@@ -623,9 +623,9 @@ fn main() {
     let mut p = Rc::new(RefCell::new(Some(pair { begin: Rc::new(RefCell::new(Some(1))), end: Rc::new(RefCell::new(Some(2))), ..Default::default() })));
     let mut x = Rc::new(RefCell::new(Some(9i64)));
     {
-        let __tmp_0 = { let __selector_holder = (*p.borrow().as_ref().unwrap()).end.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_0 = { let __selector_holder = (*p.borrow().as_ref().unwrap()).end.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned };
         let __tmp_1 = (*x.borrow().as_ref().unwrap()).clone();
-        let __tmp_2 = { let __selector_holder = (*p.borrow().as_ref().unwrap()).begin.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+        let __tmp_2 = { let __selector_holder = (*p.borrow().as_ref().unwrap()).begin.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned };
         *x.borrow_mut() = Some(__tmp_0);
         *(*p.borrow().as_ref().unwrap()).begin.borrow_mut() = Some(__tmp_1);
         *(*p.borrow().as_ref().unwrap()).end.borrow_mut() = Some(__tmp_2);

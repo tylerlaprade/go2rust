@@ -775,7 +775,7 @@ fn main() {
     let mut pets: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Animal>>>>>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (2) as usize])));
     { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(Cat { name: Rc::new(RefCell::new(Some("whiskers".to_string()))), ..Default::default() }) as Box<dyn Animal>))); (*pets.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(Dog { name: Rc::new(RefCell::new(Some("rex".to_string()))), ..Default::default() }) as Box<dyn Animal>))); (*pets.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    { let __range_holder = pets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = pets.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         println!("{}", format!("{}", (*(*p.borrow().as_ref().unwrap()).sound().borrow().as_ref().unwrap())));
     } }
 }

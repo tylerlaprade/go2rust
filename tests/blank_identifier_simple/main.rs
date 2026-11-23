@@ -615,7 +615,7 @@ fn main() {
 
         // Ignore index, use only value
     println!("{}", format!("{}", "Values only:".to_string()));
-    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for val in __range_values.iter().copied() {
+    { let __range_holder = slice.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for val in __range_values.iter().copied() {
         print!("{} ", val);
     } }
     println!();
@@ -642,11 +642,11 @@ fn main() {
         // Ignore values, use only keys
     println!("{}", format!("{}", "Keys only:".to_string()));
     let mut keys = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
-    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (name, _) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = name.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *keys.borrow_mut() = __slice_header; };
     }
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
+    { let __range_holder = keys.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
         print!("{} ", name);
     } }
     println!();
@@ -654,11 +654,11 @@ fn main() {
         // Ignore keys, use only values
     println!("{}", format!("{}", "Values only:".to_string()));
     let mut values = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
-    for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = (*age.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *values.borrow_mut() = __slice_header; };
     }
     { let __sort_target = values.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for age in __range_values.iter().copied() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for age in __range_values.iter().copied() {
         print!("{} ", age);
     } }
     println!();
