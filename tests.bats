@@ -3795,6 +3795,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
+@test "XFAIL: filemode_type" {
+    run_xfail_test "tests/XFAIL/filemode_type"
+}
+
+@test "XFAIL: filemode_type_goroutines" {
+    run_xfail_test "tests/XFAIL/filemode_type_goroutines"
+}
+
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
 }
