@@ -1633,7 +1633,7 @@ impl std::fmt::Display for upper {
 
 impl upper {
     pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        { let __range_holder = p.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut b in __range_values.iter().copied() {
+        { let __range_holder = p.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut b in __range_values.iter().copied() {
         if { let __tmp_x = b; let __tmp_y = ('a' as u8) as u8; __tmp_x >= __tmp_y } && { let __tmp_x = b; let __tmp_y = ('z' as u8) as u8; __tmp_x <= __tmp_y } {
         { let __rhs = ({ let __tmp_x = ('a' as i32); let __tmp_y = ('A' as i32); __tmp_x - __tmp_y }) as u8; b = b - __rhs; };
     }
@@ -1650,7 +1650,7 @@ pub fn fprint() {
     print!("{}{} {}{}", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", 2), format!("{}", "b\n".to_string()));
     let mut sb: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
     (*sb.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{} {}{}{}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3)));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __builder = sb.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __builder = sb.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }))).lock().unwrap().as_ref().unwrap())));
     let mut u = Arc::new(Mutex::new(Some(upper { data: Default::default() })));
     { let __s = format!("{}{}", format!("{}", "hi ".to_string()), format!("{}", 7)); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __slice_holder = (*u.lock().unwrap().as_ref().unwrap()).data.clone(); let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard.as_ref().unwrap()).clone() })).unwrap()))).lock().unwrap().as_ref().unwrap())));

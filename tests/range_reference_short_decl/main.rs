@@ -750,7 +750,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 pub fn first_alias(values: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<String>>> {
-    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter() {
         let mut alias = Arc::new(Mutex::new(Some((*value).clone())));
         return { let __owned = alias.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     } }

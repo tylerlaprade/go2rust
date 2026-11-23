@@ -788,7 +788,7 @@ impl Savings {
 impl Premium {
     pub fn reward(&mut self) {
         { let __promoted_recv = self.savings.clone(); let mut __promoted_guard = __promoted_recv.borrow_mut(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.add_interest(); __result };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.bonus.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.deposit(__method_arg0) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.bonus.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); self.deposit(__method_arg0) };
     }
 
     pub fn add_interest(&mut self) {

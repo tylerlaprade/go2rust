@@ -1160,7 +1160,7 @@ impl Shape for SquarePtr {
 
 pub fn total_area(shapes: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>>>>) -> f64 {
     let mut t = Arc::new(Mutex::new(Some(0.0)));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         { let __rhs = (*s.lock().unwrap().as_ref().unwrap()).area(); let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -1194,7 +1194,7 @@ fn main() {
         return {
             let __tmp_x = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1202,7 +1202,7 @@ fn main() {
             };
             let __tmp_y = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1212,19 +1212,19 @@ fn main() {
         };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     let mut plain: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         println!("{} {} {}", format!("{}", (*(*it.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())), format!("{}", (*it.lock().unwrap().as_ref().unwrap()).area()), format!("{}", (*describe({ let __inner: Option<Box<dyn Named + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Named + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }).lock().unwrap().as_ref().unwrap())));
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = plain.clone(); let __append_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; let mut __appended: Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *plain.lock().unwrap() = __slice_header; };
     } }
     println!("{}", format!("{}", total_area(plain.clone())));
 
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         {
     let _ts_subject = it.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
+    std::mem::drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
         let __any = Shape::__go_as_any(__v.as_ref());
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn NamedShape + Send + Sync>>() {
@@ -1262,7 +1262,7 @@ fn main() {
     } }
 
     let mut a: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>)));let mut b: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>)));
-    println!("{} {}", format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = b.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __seq = { let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }));
+    println!("{} {}", format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = b.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __seq = { let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }));
 
         // A copy shares the fields of the struct it holds.
     let mut same = { let __iface_value = a.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
@@ -1286,11 +1286,11 @@ fn main() {
         // A nil NamedShape converts to a nil Shape.
     let mut none: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut withNil = { let __append_target = Arc::new(Mutex::new(Some(Vec::<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::new()))).clone(); let __append_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*none.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; let mut __appended: Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) };
-    println!("{} {}", format!("{}", ({ let __len = (*withNil.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = withNil.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", ({ let __len = (*withNil.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = withNil.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }));
 
     let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::from([]))));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
-        { let __map_key = { let __map_key_holder = (*it.lock().unwrap().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; (*byName.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
+        { let __map_key = { let __map_key_holder = (*it.lock().unwrap().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; (*byName.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
-    println!("{} {}", format!("{}", ({ let __len = (*byName.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __recv = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"square".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }));
+    println!("{} {}", format!("{}", ({ let __len = (*byName.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __recv = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"square".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }));
 }

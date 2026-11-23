@@ -1177,7 +1177,7 @@ fn main() {
         // Iterate through employees
     println!("{}", format!("{}", "\n=== Department employees ===".to_string()));
 
-    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
+    { let __range_holder = (*(*company.borrow().as_ref().unwrap()).departments.borrow().as_ref().unwrap())[(0) as usize].clone().employees.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, emp) in __range_values.iter().enumerate() {
         let emp = &emp.__go_value_clone();
         print!("Employee {}: {}\n", i as i64 + 1, (*emp.name.borrow().as_ref().unwrap()).clone());
         print!("  Age: {}\n", (*emp.age.borrow().as_ref().unwrap()));
@@ -1195,19 +1195,19 @@ fn main() {
 
     println!("{}", format!("{}", "Inventory:".to_string()));
     let mut categories: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    for (category, _) in { let __range_holder = inventory.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (category, _) in { let __range_holder = inventory.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = categories.clone(); let __append_value = category.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *categories.borrow_mut() = __slice_header; };
     }
     { let __sort_target = categories.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for category in __range_values.iter() {
+    { let __range_holder = categories.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for category in __range_values.iter() {
         let mut items = { let __map_holder = inventory.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(category)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
         print!("  {}:\n", category);
         let mut itemNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-        for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (item, _) in { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = itemNames.clone(); let __append_value = item.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *itemNames.borrow_mut() = __slice_header; };
     }
         { let __sort_target = itemNames.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-        { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+        { let __range_holder = itemNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for item in __range_values.iter() {
         let mut count = Rc::new(RefCell::new(Some({ let __map_holder = items.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(item)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) })));
         print!("    {}: {}\n", item, { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
     } }
@@ -1224,7 +1224,7 @@ fn main() {
     let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64, 3i64], vec![4i64, 5i64, 6i64], vec![7i64, 8i64, 9i64]])));
 
     println!("{}", format!("{}", "Matrix:".to_string()));
-    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, row) in __range_values.iter().enumerate() {
         print!("Row {}: ", i);
         for (j, val) in row.iter().copied().enumerate() {
         print!("{} ", val);
@@ -1243,7 +1243,7 @@ fn main() {
     let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![1i64, 2i64], vec![3i64, 4i64]], vec![vec![5i64, 6i64], vec![7i64, 8i64]]])));
 
     println!("{}", format!("{}", "\n3D Cube:".to_string()));
-    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, layer) in __range_values.iter().enumerate() {
+    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, layer) in __range_values.iter().enumerate() {
         print!("Layer {}:\n", i);
         for (j, row) in layer.iter().enumerate() {
         print!("  Row {}: ", j);
@@ -1260,7 +1260,7 @@ fn main() {
     let mut canvas = Rc::new(RefCell::new(Some(Canvas { name: Rc::new(RefCell::new(Some("My Drawing".to_string()))), shapes: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Drawable>))), Rc::new(RefCell::new(Some(Box::new(Rectangle { width: Rc::new(RefCell::new(Some(10.0))), height: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Drawable>))), Rc::new(RefCell::new(Some(Box::new(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Drawable>)))]))), ..Default::default() })));
 
     print!("Canvas: {}\n", (*(*canvas.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone());
-    { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
+    { let __range_holder = (*canvas.borrow().as_ref().unwrap()).shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: {}\n", i as i64 + 1, (*(*shape.borrow().as_ref().unwrap()).draw().borrow().as_ref().unwrap()));
     } }
 

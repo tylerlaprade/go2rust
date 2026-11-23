@@ -834,7 +834,7 @@ pub type failure = Rc<RefCell<Option<Rc<dyn StdError>>>>;
 /// show and count take their arguments as interface values, the way a logging
 /// helper does. An error made by errors.New or fmt.Errorf has to survive that.
 pub fn show(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         println!("{}", format!("{}", format_any(arg.as_ref())));
     } }
 }
@@ -858,19 +858,19 @@ pub fn kind(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>>
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "string ".to_string(), (*x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
         let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {
         let x = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }
@@ -890,7 +890,7 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return true;;
     }
     }
@@ -967,7 +967,7 @@ fn main() {
     println!("{} {}", format!("{}", match boxedAlias.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", aliasIsError));
 
     let mut items = Rc::new(RefCell::new(Some(vec![{ let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new("text".to_string()) as Box<dyn Any>, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }])));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         println!("{}", format!("{}", format_any(item.as_ref())));
     } }
 

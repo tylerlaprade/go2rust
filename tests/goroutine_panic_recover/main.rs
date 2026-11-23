@@ -1030,7 +1030,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));;
         let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<i64>>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));;
-        let _ = { let __seq = { let __seq_holder = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };;
+        let _ = { let __seq = { let __seq_holder = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1113,7 +1113,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
     for want in &vec!["5".to_string(), "recovered: runtime error: integer divide by zero".to_string(), "inline recovered: runtime error: index out of range [3] with length 0".to_string(), "arg recovered: true 7".to_string()] {
         let mut found = Arc::new(Mutex::new(Some(false)));
-        { let __range_holder = all.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for r in __range_values.iter() {
+        { let __range_holder = all.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for r in __range_values.iter() {
         if { let __tmp_x = (*r).clone(); let __tmp_y = (*want).clone(); __tmp_x == __tmp_y } {
         { let new_val = true; *found.lock().unwrap() = Some(new_val); };
     }

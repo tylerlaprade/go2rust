@@ -751,7 +751,7 @@ impl<T> Iterator for GoChannel<T> {
 
 pub fn print_first(inputs: Arc<Mutex<Option<Vec<GoChannel<i64>>>>>) {
     let mut done = GoChannel::<bool>::new();
-    { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for input in __range_values.iter() {
+    { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for input in __range_values.iter() {
         let done_thread = done.clone(); let __go_arg_0 = (*input).clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let __closure = move |ch: GoChannel<i64>| {
@@ -766,7 +766,7 @@ pub fn print_first(inputs: Arc<Mutex<Option<Vec<GoChannel<i64>>>>>) {
     }
     });
     } }
-    { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for _ in __range_values.iter() {
+    { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for _ in __range_values.iter() {
         done.recv().unwrap_or_default();
     } }
 }

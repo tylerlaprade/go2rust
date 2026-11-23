@@ -614,7 +614,7 @@ impl std::fmt::Display for holder {
 
 impl holder {
     pub fn to_string(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {

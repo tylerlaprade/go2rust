@@ -656,7 +656,7 @@ pub fn quote(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 
 pub fn debug(cmd: Rc<RefCell<Option<Command>>>) -> Rc<RefCell<Option<String>>> {
     let mut args: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    { let __range_holder = (*cmd.borrow().as_ref().unwrap()).args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
+    { let __range_holder = (*cmd.borrow().as_ref().unwrap()).args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for arg in __range_values.iter() {
         let mut quoted = quote(Rc::new(RefCell::new(Some(arg.clone()))));
         if (*Rc::new(RefCell::new(Some({ let __s = &((*quoted.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (((*quoted.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()).clone() != (*arg).clone() || (*Rc::new(RefCell::new(Some({ let __s = (*arg).clone(); let __arg = " ".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()) {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = args.clone(); let __append_value = (*quoted.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *args.borrow_mut() = __slice_header; };

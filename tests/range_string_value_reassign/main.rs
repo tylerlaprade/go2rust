@@ -593,13 +593,13 @@ pub fn qualify(dir: Rc<RefCell<Option<String>>>, file: Rc<RefCell<Option<String>
 fn main() {
     let mut files = Rc::new(RefCell::new(Some(vec!["a.go".to_string(), "b.go".to_string()])));
     let mut out: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    { let __range_holder = files.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut file in __range_values.iter().cloned() {
+    { let __range_holder = files.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut file in __range_values.iter().cloned() {
         if file.clone() == "a.go".to_string() {
         { let new_val = (*qualify(Rc::new(RefCell::new(Some("src".to_string()))), Rc::new(RefCell::new(Some(file.clone())))).borrow().as_ref().unwrap()).clone(); file = new_val; };
     }
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_value = file.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *out.borrow_mut() = __slice_header; };
     } }
-    { let __range_holder = out.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for file in __range_values.iter() {
+    { let __range_holder = out.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for file in __range_values.iter() {
         println!("{}", format!("{}", file));
     } }
 }

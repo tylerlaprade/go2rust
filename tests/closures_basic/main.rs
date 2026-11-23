@@ -638,7 +638,7 @@ pub fn make_adder(x: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Box<dyn FnMu
 
 pub fn apply_operation(nums: Rc<RefCell<Option<Vec<i64>>>>, op: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut result = Rc::new(RefCell::new(Some(vec![0; ((*nums.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
-    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = nums.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         { let __idx = (i) as usize; let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) }; (*result.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
     return result.clone();

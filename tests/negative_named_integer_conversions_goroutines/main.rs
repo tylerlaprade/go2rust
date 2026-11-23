@@ -2482,7 +2482,7 @@ fn main() {
     print!("{} {} {}\n", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "main.I8"));
     let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
     println!("{}", format_any_variadic(&vals));
-    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}|", format_any(v.as_ref()));
     } }
     println!();

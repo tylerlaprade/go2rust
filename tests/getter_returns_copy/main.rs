@@ -659,20 +659,20 @@ impl std::fmt::Display for User {
 
 impl User {
     pub fn name(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 
     pub fn pos(&self) -> Rc<RefCell<Option<Point>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 
     pub fn label(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 }
 
 pub fn name_of(u: Rc<RefCell<Option<User>>>) -> Rc<RefCell<Option<String>>> {
-    return Rc::new(RefCell::new(Some({ let __selector_holder = (*u.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*u.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
 }
 
 /// A method that returns a field returns a copy of it. The caller's variable
@@ -688,7 +688,7 @@ fn main() {
     { (*b.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
     println!("{} {}", format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*u.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 
-    let mut c = Rc::new(RefCell::new(Some({ let __selector_holder = (*u.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    let mut c = Rc::new(RefCell::new(Some({ let __selector_holder = (*u.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     { (*c.borrow_mut().as_mut().unwrap()).push_str(&"?".to_string()); };
     println!("{} {}", format!("{}", { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*u.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 

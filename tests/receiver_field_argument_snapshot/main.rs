@@ -1034,7 +1034,7 @@ impl Parser {
 
     pub fn parse(&mut self) {
         { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *self.tok.borrow_mut() = Some(new_val); };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
     }
 }
 

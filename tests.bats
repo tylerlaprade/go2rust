@@ -1515,6 +1515,10 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "go_names_drop" {
+    run_test "tests/go_names_drop"
+}
+
 @test "goroutine_capture_rust_keyword" {
     run_test "tests/goroutine_capture_rust_keyword"
 }

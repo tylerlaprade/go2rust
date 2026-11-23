@@ -1019,7 +1019,7 @@ impl scanner {
     let mut lit: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
         {
-            let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned };
             let __tmp_1 = 9;
             let __tmp_2 = "x".to_string();
             *pos.borrow_mut() = Some(__tmp_0);

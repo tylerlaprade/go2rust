@@ -659,11 +659,11 @@ pub fn label(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Stri
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return { let __owned = v.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };;
     } else {
         let v = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

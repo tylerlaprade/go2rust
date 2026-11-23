@@ -647,7 +647,7 @@ impl std::fmt::Display for Dest {
 
 fn main() {
     let mut src = Rc::new(RefCell::new(Some(Source { name: Rc::new(RefCell::new(Some("original".to_string()))), ..Default::default() })));
-    let mut dst = Rc::new(RefCell::new(Some(Dest { name: Rc::new(RefCell::new(Some({ let __selector_holder = (*src.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
+    let mut dst = Rc::new(RefCell::new(Some(Dest { name: Rc::new(RefCell::new(Some({ let __selector_holder = (*src.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() })));
     { let new_val = "changed".to_string(); *(*src.borrow().as_ref().unwrap()).name.borrow_mut() = Some(new_val); };
 
     println!("{}", format!("{}", (*(*dst.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));

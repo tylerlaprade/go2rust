@@ -696,23 +696,23 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         print!("Integer: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         print!("String: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<bool>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bool>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         print!("Boolean: {}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<f64>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<f64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         print!("Float: {:.2}\n", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v });;
     } else {
         let v = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         print!("Unknown type: {}\n", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });;
     }
     }

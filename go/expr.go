@@ -1311,10 +1311,10 @@ func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.S
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
 	if sequenceTypeIsArray(starType) {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", false)
 	} else {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", true)
 	}
 	WriteWrapperSuffix(out)
@@ -2920,7 +2920,7 @@ func writeNilTolerantNamedMapInnerHandleClone(out *strings.Builder, expr ast.Exp
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
 	WriteWrappedNone(out)
-	out.WriteString("); drop(__named_map_guard); __map_holder }")
+	out.WriteString("); std::mem::drop(__named_map_guard); __map_holder }")
 	return true
 }
 
@@ -2957,7 +2957,7 @@ func writeOptionalClonedMapExpression(out *strings.Builder, expr ast.Expr) {
 	writeMapHandleCloneForOp(out, expr)
 	out.WriteString("; let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }")
+	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }")
 }
 
 func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
@@ -3009,7 +3009,7 @@ func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
+		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }")
 		return true
@@ -12659,7 +12659,7 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __cloned = ")
 	writeClonedValueFromGuard(out, expr, guardName)
-	out.WriteString("; drop(")
+	out.WriteString("; std::mem::drop(")
 	out.WriteString(guardName)
 	out.WriteString("); __cloned }")
 }
@@ -14948,7 +14948,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
 			out.WriteString("; let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", true)
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
@@ -15003,7 +15003,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
 				out.WriteString(";\n")
 				out.WriteString(indent)
-				out.WriteString("drop(__seq_guard)")
+				out.WriteString("std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray, indent, closeIndent)
 			} else {
 				out.WriteString("{ let __seq_holder = ")
@@ -15016,7 +15016,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
 				}
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
-				out.WriteString("; drop(__seq_guard)")
+				out.WriteString("; std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			}
 			WriteWrapperSuffix(out)
@@ -22107,7 +22107,7 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		out.WriteString(".clone(); let __guard = __builder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }")
+		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }")
 		WriteWrapperSuffix(out)
 		return true
 	case "Len":

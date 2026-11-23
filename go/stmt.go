@@ -8065,22 +8065,22 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
-			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
+			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
 			WriteBorrowMethod(out, true)
 			out.WriteString("; let __range_value = std::mem::replace(&mut __range_guard.as_mut().unwrap()[__range_index], Box::new(()) as ")
 			out.WriteString(rustAnyTraitObject())
-			out.WriteString("); drop(__range_guard); __range_values.push(__range_value); } __range_values }; ")
+			out.WriteString("); std::mem::drop(__range_guard); __range_values.push(__range_value); } __range_values }; ")
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; ")
+		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
 	if !known {
 		out.WriteString("; let __range_values: Vec<()> = ")
 		out.WriteString(goValueCopyNeedsTypeInfo)
-		out.WriteString("; drop(__range_guard); ")
+		out.WriteString("; std::mem::drop(__range_guard); ")
 		return
 	}
 	if copyCall != ".clone()" && rangeExprIsArrayValue(rangeExpr) {
@@ -8089,7 +8089,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		// would clone each struct's handles and let those writes through.
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
 		out.WriteString(copyCall)
-		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard); ")
 		return
 	}
 	// A slice is not copied: each element is read when its turn comes. The
@@ -8097,7 +8097,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 	// during the loop is seen, and the loop variable takes its copy of the
 	// element at the start of its iteration (writeRangeOwnedValuesAdapter
 	// and writeRangeValueIterationCopy).
-	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); ")
 }
 
 // writeRangeValueIterationCopy makes the loop variable of a range over
@@ -10579,7 +10579,7 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString(".unlock();")
 		return true
 	}
-	out.WriteString("drop(")
+	out.WriteString("std::mem::drop(")
 	out.WriteString(guardName)
 	out.WriteString(");")
 	delete(activeMutexGuards, key)
@@ -15298,7 +15298,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("; let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map }")
+			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map }")
 		}
 
 		if isInteger {
@@ -16690,7 +16690,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
 			out.WriteString("    let _ts_owned = _ts_guard.as_ref().cloned();\n")
-			out.WriteString("    drop(_ts_guard);\n")
+			out.WriteString("    std::mem::drop(_ts_guard);\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {\n")
 			out.WriteString("        let __any = ")
 			out.WriteString(goAsAnyCall(goAsAnyQualifyingTrait(typeSwitchSubjectType), "__v.as_ref()", "__v.as_ref()"))
@@ -16847,7 +16847,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			// Case body
 			if typeSwitchSubjectHasGuard {
-				out.WriteString("        drop(_ts_guard);\n")
+				out.WriteString("        std::mem::drop(_ts_guard);\n")
 			}
 			if varName != "" && len(caseClause.List) == 1 {
 				writeGoSliceTypeSwitchBindingCopy(out, typeInfo, varName, caseClause.List[0])

@@ -621,7 +621,7 @@ impl Parser {
 
     pub fn parse(&mut self) {
         { let new_val = 7; *self.offset.borrow_mut() = Some(new_val); };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.add_line(__method_arg0) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); self.add_line(__method_arg0) };
     }
 }
 

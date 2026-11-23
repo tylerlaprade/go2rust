@@ -1,0 +1,11 @@
+[package]
+name = "go_names_drop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "go_names_drop"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
