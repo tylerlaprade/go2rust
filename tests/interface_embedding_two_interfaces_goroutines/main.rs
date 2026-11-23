@@ -1241,7 +1241,7 @@ fn main() {
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = Shape::__go_as_any(any_val.as_ref()).downcast_ref::<Rect>() {
-            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            (Arc::new(Mutex::new(Some(typed_val.__go_value_clone()))), true)
             } else {
                 (Arc::new(Mutex::new(Some(Default::default()))), false)
             }
