@@ -865,6 +865,16 @@ func NeedAnyClone() {
 	}
 }
 
+// NeedAnyHandleCopy marks that we need go_any_handle_copy and go_any_store,
+// which give an interface{} variable Go's copy of a value.
+func NeedAnyHandleCopy() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsAnyHandleCopy = true
+		helpers.needsAnyClone = true
+		TrackImport("Any")
+	}
+}
+
 // NeedPanicRecover marks that panic/defer/recover runtime helpers are needed.
 func NeedPanicRecover() {
 	if helpers := activeHelperTracker(); helpers != nil {

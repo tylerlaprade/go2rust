@@ -583,6 +583,68 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<customError>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    None
+}
+
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
+}
+
+#[allow(dead_code)]
+fn go_any_handle_copy(handle: &Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    let __copy = match handle.borrow().as_ref() {
+        None => None,
+        Some(value) => match go_any_try_clone(&**value) {
+            Some(copy) => Some(copy),
+            None => return handle.clone(),
+        },
+    };
+    Rc::new(RefCell::new(__copy))
+}
+
+/// Stores Go's copy of source's value in target's cell. A source that no
+/// one else holds gives up its value; a value whose type has no copy comes
+/// back for the caller to share instead.
+#[allow(dead_code)]
+fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<Option<Box<dyn Any>>>>) -> Option<Rc<RefCell<Option<Box<dyn Any>>>>> {
+    if Rc::ptr_eq(target, &source) {
+        return None;
+    }
+    let __value = if Rc::strong_count(&source) == 1 {
+        source.borrow_mut().take()
+    } else {
+        let __copy = match source.borrow().as_ref() {
+            None => None,
+            Some(value) => match go_any_try_clone(&**value) {
+                Some(copy) => Some(copy),
+                None => return Some(source.clone()),
+            },
+        };
+        __copy
+    };
+    *target.borrow_mut() = __value;
+    None
+}
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -990,8 +1052,8 @@ fn main() {
         }
     }))));
     println!("{} {}", format!("{}", "single".to_string()), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", single.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "switch named".to_string()), format!("{}", (*switch_named(value.clone()).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "switch anonymous".to_string()), format!("{}", (*switch_anonymous(value.clone()).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "switch named".to_string()), format!("{}", (*switch_named(go_any_handle_copy(&value)).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "switch anonymous".to_string()), format!("{}", (*switch_anonymous(go_any_handle_copy(&value)).borrow().as_ref().unwrap())));
 
     let mut wrapped = Rc::new(RefCell::new(Some(go_error_wrap(format!("wrap: {}", match { let __err_handle = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("inner".to_string()))))); let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("inner".to_string()))))); let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
     println!("{} {}", format!("{}", "wrapped".to_string()), format!("{}", (*describe({ let __err_source = wrapped.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }).borrow().as_ref().unwrap())));
