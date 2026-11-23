@@ -907,7 +907,9 @@ func TestExecCommandContextStubRetainsCancellationState(t *testing.T) {
 
 func TestExecCmdStubChecksContextBeforeSpawn(t *testing.T) {
 	var out strings.Builder
-	writeExecCmdTypeStub(&out, nil, nil)
+	writeExecCmdTypeStub(&out, map[string]string{
+		"dir": wrappedExternalStubType("String"),
+	}, nil)
 	got := out.String()
 	for _, want := range []string{
 		"pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>",
@@ -921,6 +923,14 @@ func TestExecCmdStubChecksContextBeforeSpawn(t *testing.T) {
 			t.Fatalf("exec.Cmd shim should include %q:\n%s", want, got)
 		}
 	}
+	finalCheck := strings.LastIndex(got, "if let Some(err) = self.__go_context_cancellation_error()")
+	dirSetup := strings.Index(got, "command.current_dir(dir)")
+	envSetup := strings.Index(got, "command.env(key, value)")
+	launch := strings.Index(got, "command.output()")
+	if finalCheck < 0 || dirSetup < 0 || envSetup < 0 || launch < 0 ||
+		finalCheck < dirSetup || finalCheck < envSetup || finalCheck > launch {
+		t.Fatalf("final cancellation check must follow command setup and precede launch:\n%s", got)
+	}
 }
 
 func TestGoContextHelperPropagatesParentAndExpiresZeroSynchronously(t *testing.T) {
@@ -929,17 +939,23 @@ func TestGoContextHelperPropagatesParentAndExpiresZeroSynchronously(t *testing.T
 	got := out.String()
 	for _, want := range []string{
 		"fn link_parent(",
-		"parent_ctx.children.lock().unwrap().push(propagate.clone())",
+		"std::sync::Mutex<std::vec::Vec<(usize, GoContextChildCallback)>>",
+		"parent_children.push((child_id, propagate))",
+		"std::mem::take(&mut *children_guard)",
+		"retain(|(registered_id, _)| *registered_id != child_id)",
 		"if parent_ctx.cancelled.load(std::sync::atomic::Ordering::SeqCst)",
 		"let mut err_guard = err.lock().unwrap()",
 		"*err_guard = Some(",
 		"cancelled.store(true, std::sync::atomic::Ordering::SeqCst)",
 		"if duration.is_zero()",
-		"GoContext::cancel_with_message(&done, &err, &cancelled, &children, \"context deadline exceeded\".to_string())",
+		"GoContext::cancel_with_message(&done, &err, &cancelled, &children, &parent_cleanup, \"context deadline exceeded\".to_string())",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("GoContext helper should include %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got, "Mutex<Vec<") {
+		t.Fatalf("GoContext child registrations must use std::vec::Vec, not the GoSlice alias:\n%s", got)
 	}
 }
 

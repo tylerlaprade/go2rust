@@ -7570,7 +7570,9 @@ func transpileContextWithTimeout(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString(", ")
 	if len(call.Args) > 1 {
-		transpileDurationArg(out, call.Args[1])
+		if !writeNonPositiveTimeDurationConstant(out, call.Args[1]) {
+			transpileDurationArg(out, call.Args[1])
+		}
 	}
 	out.WriteString(")")
 }
@@ -7689,6 +7691,9 @@ func writeTimeDurationRawValue(out *strings.Builder, value ast.Expr) bool {
 	if typeInfo == nil || !timeDurationUsesStdTimeDuration(typeInfo.GetType(value)) {
 		return false
 	}
+	if writeNonPositiveTimeDurationConstant(out, value) {
+		return true
+	}
 	if hasStdlibSelectorMapping(value) {
 		TranspileExpression(out, value)
 		return true
@@ -7707,6 +7712,20 @@ func writeTimeDurationRawValue(out *strings.Builder, value ast.Expr) bool {
 		return true
 	}
 	TranspileExpression(out, value)
+	return true
+}
+
+func writeNonPositiveTimeDurationConstant(out *strings.Builder, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil ||
+		!timeDurationUsesStdTimeDuration(typeInfo.GetType(value)) {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[value]
+	if !ok || tv.Value == nil || constant.Sign(tv.Value) > 0 {
+		return false
+	}
+	out.WriteString("std::time::Duration::ZERO")
 	return true
 }
 

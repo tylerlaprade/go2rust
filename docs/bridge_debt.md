@@ -238,16 +238,21 @@ against the `// TEMPORARY:` comments of that one file.
 ### exec-command-context
 
 - Location: `go/external_type_stubs.go:writeExecCommandStub`,
-  `go/external_type_stubs.go:writeExecCmdTypeStub`
-- Go symbol: `os/exec.CommandContext` and the cancellation state on `exec.Cmd`
-- Transpiler gap: source-transpiled `os/exec` does not yet cross the native
-  process boundary, so context state and the pre-launch cancellation check are
-  emitted around Rust's host process API.
+  `go/external_type_stubs.go:writeExecCommandStubBody`,
+  `go/external_type_stubs.go:writeExecCmdTypeStub`, and
+  `go/imports.go:generateGoContextHelper` (`cancel_with_message` and
+  `link_parent`)
+- Go symbol: `os/exec.CommandContext`, the cancellation state on `exec.Cmd`,
+  and child propagation for `context.WithCancel` / `context.WithTimeout`
+- Transpiler gap: source-transpiled `os/exec` and `context` do not yet own the
+  native process boundary or the full parent/child cancellation tree, so
+  context state, child propagation, cleanup, and the pre-launch cancellation
+  check are emitted around Rust's host process API.
 - Fixture: `tests/exec_command_context_cancel/`,
   `tests/exec_command_context_cancel_goroutines/`
-- Removal trigger: source `os/exec` lowering owns context propagation and
-  cancellation around a reviewed native process boundary; then delete the
-  external CommandContext cancellation bridge.
+- Removal trigger: source `os/exec` and `context` lowering own parent/child
+  propagation, cleanup, and cancellation around a reviewed native process
+  boundary; then delete the external CommandContext/GoContext bridge.
 - Added: 2026-11-23
 
 The rows below were backfilled on 2026-05-27 from the existing 36

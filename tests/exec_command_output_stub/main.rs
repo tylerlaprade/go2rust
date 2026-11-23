@@ -590,6 +590,8 @@ impl std::io::Write for GoSlice<u8> {
 pub struct exec_Cmd {
     pub args: Arc<Mutex<Option<Vec<String>>>>,
     pub env: Arc<Mutex<Option<Vec<String>>>>,
+    pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    pub __go_context_error: Option<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>,
 }
 
 impl std::fmt::Display for exec_Cmd {
@@ -615,10 +617,28 @@ impl exec_Cmd {
 	        Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(message)))))
 	    }
 
-    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+    fn __go_context_cancellation_error(&self) -> Option<Arc<dyn StdError + Send + Sync>> {
+        if self
+            .__go_context_cancelled
+            .as_ref()
+            .is_some_and(|cancelled| cancelled.load(std::sync::atomic::Ordering::SeqCst))
+        {
+            return self
+                .__go_context_error
+                .as_ref()
+                .and_then(|err| err.lock().unwrap().as_ref().cloned())
+                .or_else(|| Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("context canceled".to_string()))));
+        }
+        None
+    }
+
+    fn __go_run_output(&self) -> Result<std::process::Output, Arc<dyn StdError + Send + Sync>> {
+        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
+        }
         let args = self.args.lock().unwrap().as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+            return Err(Arc::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command")) as Arc<dyn StdError + Send + Sync>);
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
@@ -629,7 +649,10 @@ impl exec_Cmd {
                 }
             }
         }
-        command.output()
+        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
+        }
+        command.output().map_err(|err| Arc::new(err) as Arc<dyn StdError + Send + Sync>)
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
@@ -645,7 +668,7 @@ impl exec_Cmd {
                 };
                 (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(output.stdout)))), err)
             }
-            Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), Self::__go_error(err.to_string())),
+            Err(err) => (Arc::new(Mutex::new(None::<Vec<u8>>)), Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(err)))),
         }
     }
 
@@ -663,7 +686,7 @@ impl exec_Cmd {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
             }
-            Err(err) => Self::__go_error(err.to_string()),
+            Err(err) => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(err))),
         }
     }
 

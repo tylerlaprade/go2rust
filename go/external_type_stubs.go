@@ -2488,7 +2488,7 @@ impl exec_Cmd {
         %s
     }
 }
-`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), wrappedExternalStubExpr(errorInnerType, "err"), errorType, errorType, noneError, wrappedExternalStubExpr(errorInnerType, "err"), errorType, noneError)
+`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubNoneExpr("Vec<u8>"), wrappedExternalStubExpr(errorInnerType, "err"), errorType, errorType, noneError, wrappedExternalStubExpr(errorInnerType, "err"), errorType, noneError)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
