@@ -10733,6 +10733,17 @@ func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 	return true
 }
 
+// writeGoroutinePanicExit ends the program for a panic that left a goroutine,
+// the way Go does: "panic: " and the value on stderr, then exit status 2.
+func writeGoroutinePanicExit(out *strings.Builder, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from(\"goroutine panicked\") };\n")
+	out.WriteString(indent)
+	out.WriteString("eprintln!(\"panic: {}\", __go_panic_text);\n")
+	out.WriteString(indent)
+	out.WriteString("std::process::exit(2);\n")
+}
+
 func isPredeclaredBoolConstant(ident *ast.Ident) bool {
 	if ident == nil || (ident.Name != "true" && ident.Name != "false") {
 		return false
@@ -16419,8 +16430,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		oldCaptureRenames := snapshotCaptureRenames()
 		currentCaptureRenames = captureRenames
 
-		// Generate the thread::spawn call
+		// Generate the thread::spawn call. A panic that nothing in the
+		// goroutine recovers ends the whole program, as in Go, instead of
+		// only its thread, which left the rest waiting on it forever.
 		out.WriteString("std::thread::spawn(move || {\n")
+		out.WriteString("    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {\n")
 		out.WriteString("        ")
 
 		// Check if it's an immediately invoked function literal
@@ -16455,6 +16469,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(strings.Join(params, ", "))
 				}
 				out.WriteString("| {\n            ")
+				recoverCatch := hasClosureDefer && shouldWrapDeferPanicRecover(true)
+				if recoverCatch {
+					beginPanicRecoverCatch(out, "")
+				}
 
 				// Body
 				popParamScope := pushFuncLitParamVarScope(funcLit)
@@ -16479,6 +16497,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("                f();\n")
 					out.WriteString("            }")
 				}
+				if recoverCatch {
+					out.WriteString("\n")
+					finishPanicRecoverCatchWith(out, "            ", func() { out.WriteString("()") })
+				}
 
 				out.WriteString("\n        };\n")
 				out.WriteString("        __closure(")
@@ -16493,6 +16515,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			} else {
 				// No arguments - just inline the body
+				recoverCatch := hasClosureDefer && shouldWrapDeferPanicRecover(true)
+				if recoverCatch {
+					beginPanicRecoverCatch(out, "")
+				}
 				var restoreCaptureShadows []func()
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
@@ -16510,6 +16536,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("            f();\n")
 					out.WriteString("        }")
 				}
+				if recoverCatch {
+					out.WriteString("\n")
+					finishPanicRecoverCatchWith(out, "        ", func() { out.WriteString("()") })
+				}
 			}
 		} else {
 			// Regular function call
@@ -16517,6 +16547,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		out.WriteString(";\n")
+		out.WriteString("    })) {\n")
+		writeGoroutinePanicExit(out, "        ")
+		out.WriteString("    }\n")
 		out.WriteString("    })")
 		out.WriteString(";")
 

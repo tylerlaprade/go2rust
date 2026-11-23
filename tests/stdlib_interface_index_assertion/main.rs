@@ -849,7 +849,13 @@ fn main() {
     if false {
         let mut done = GoChannel::<bool>::new_buffered(1 as usize);
         let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send({ let __nil_result = (*first_func(Arc::new(Mutex::new(Some(Vec::<ast_Expr>::from([{ let __arg = Arc::new(Mutex::new(Some(ast_FuncLit { ..Default::default() }))); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Expr::default) }]))))).lock().unwrap()).is_some(); __nil_result });;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
         println!("{}", format!("{}", done.recv().unwrap_or_default()));
     }

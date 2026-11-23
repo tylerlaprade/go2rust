@@ -4,8 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -582,6 +583,149 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+
+fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
+    }
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -751,183 +895,229 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn go_rand_state() -> &'static std::sync::Mutex<u64> {
-    static STATE: std::sync::OnceLock<std::sync::Mutex<u64>> = std::sync::OnceLock::new();
-    STATE.get_or_init(|| std::sync::Mutex::new(1))
+struct WaitGroup {
+    count: std::sync::Arc<(std::sync::Mutex<i64>, std::sync::Condvar)>,
 }
 
-fn go_rand_seed(seed: i64) {
-    *go_rand_state().lock().unwrap() = seed as u64;
-}
-
-fn go_rand_next_u64() -> u64 {
-    let mut state = go_rand_state().lock().unwrap();
-    *state = state
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    *state
-}
-
-fn go_rand_intn(n: i64) -> i64 {
-    if n <= 0 {
-        panic!("invalid argument to Intn");
+impl WaitGroup {
+    fn new() -> Self {
+        WaitGroup {
+            count: std::sync::Arc::new((std::sync::Mutex::new(0), std::sync::Condvar::new())),
+        }
     }
-    (go_rand_next_u64() % n as u64) as i64
-}
 
-fn go_rand_float64() -> f64 {
-    ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
-}
+    fn add(&self, n: i64) {
+        let (lock, _) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        *count += n;
+    }
 
-#[derive(Debug, Clone)]
-pub struct readOp {
-    pub key: Arc<Mutex<Option<i64>>>,
-    pub resp: GoChannel<i64>,
-}
+    fn done(&self) {
+        let (lock, cvar) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        *count -= 1;
+        if *count <= 0 {
+            cvar.notify_all();
+        }
+    }
 
-impl readOp {
-    pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.resp.clone();
-        Self {
-            key: __go_clone_0_0,
-            resp: __go_clone_1_0,
+    fn wait(&self) {
+        let (lock, cvar) = &*self.count;
+        let mut count = lock.lock().unwrap();
+        while *count > 0 {
+            count = cvar.wait(count).unwrap();
         }
     }
 }
 
+impl Clone for WaitGroup {
+    fn clone(&self) -> Self {
+        WaitGroup {
+            count: self.count.clone(),
+        }
+    }
+}
 
-impl Default for readOp {
+impl Default for WaitGroup {
     fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_1_0 = Default::default();
-        Self {
-            key: __go_default_0_0,
-            resp: __go_default_1_0,
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for WaitGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "WaitGroup")
+    }
+}
+
+pub fn safe_div(a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, results: GoChannel<String>, wg: WaitGroup) {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let wg_defer_captured = wg.clone(); __defer_stack.push(Box::new(move || {
+        wg_defer_captured.done();
+    }));
+        let results_defer_captured = results.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        {
+        let mut r = go_recover();;
+        if { let __nil_result = (*r.lock().unwrap()).is_some(); __nil_result } {
+            results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "recovered: ".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());;
+        }
+    }
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        results.send((*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }))))).lock().unwrap().as_ref().unwrap()).clone());
+
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            ()
         }
     }
 }
-
-impl std::fmt::Display for readOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-
-#[derive(Debug, Clone)]
-pub struct writeOp {
-    pub key: Arc<Mutex<Option<i64>>>,
-    pub val: Arc<Mutex<Option<i64>>>,
-    pub resp: GoChannel<bool>,
-}
-
-impl writeOp {
-    pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.resp.clone();
-        Self {
-            key: __go_clone_0_0,
-            val: __go_clone_1_0,
-            resp: __go_clone_2_0,
-        }
-    }
-}
-
-
-impl Default for writeOp {
-    fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_2_0 = Default::default();
-        Self {
-            key: __go_default_0_0,
-            val: __go_default_1_0,
-            resp: __go_default_2_0,
-        }
-    }
-}
-
-impl std::fmt::Display for writeOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
-
 
 fn main() {
-    let mut readOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
-    let mut writeOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
-
-    let mut reads = GoChannel::<readOp>::new();
-    let mut writes = GoChannel::<writeOp>::new();
-    let mut done = GoChannel::<bool>::new();
-
-    let reads_thread = reads.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
-        let mut state = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<i64>>>>::new())));;
-        loop {
-        loop {
-        if let Some(__select_recv) = reads_thread.try_recv_select() {
-            let __select_ok = __select_recv.is_some();
-            let read = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut read = Arc::new(Mutex::new(Some(read)));
-            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
-            break;
+    let mut wg = WaitGroup::new();
+    let mut results = GoChannel::<String>::new_buffered(4 as usize);
+    for b in vec![2i64, 0i64].iter().copied() {
+        wg.add(1);
+        let b_thread = b.clone(); let results_thread = results.clone(); let wg_thread = wg.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        safe_div(
+            Arc::new(Mutex::new(Some(10))),
+            Arc::new(Mutex::new(Some(b_thread.clone()))),
+            results_thread.clone(),
+            wg_thread.clone()
+        );
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
+    });
+    }
+    wg.add(1);
+    let results_thread = results.clone(); let wg_thread = wg.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+        wg_defer_captured.done();
+    }));;
+        let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        let mut r = go_recover();
+        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "inline recovered: ".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));;
+        let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<i64>>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));;
+        let _ = { let __seq = { let __seq_holder = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };;
+        while let Some(f) = __defer_stack.pop() {
+            f();
         }
-        if let Some(__select_recv) = writes_thread.try_recv_select() {
-            let __select_ok = __select_recv.is_some();
-            let write = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut write = Arc::new(Mutex::new(Some(write)));
-            { let __map_key = (*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __map_value = (*write.lock().unwrap().as_ref().unwrap()).val.clone(); (*state.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-            { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send(true);
-            break;
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
-        std::thread::sleep(std::time::Duration::from_millis(1));
+;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
     }
-    };;
     });
+    wg.add(1);
+    let results_thread = results.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(7))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let mut __closure = move |n: Arc<Mutex<Option<i64>>>| {
+            let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+        wg_defer_captured.done();
+    }));;
+            let n_defer_captured = n.clone(); let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{} {}", format!("{}", "arg recovered: ".to_string()), format!("{}", { let __nil_result = (*go_recover().lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __v = (*n_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).clone());
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));;
+            std::panic::panic_any(Box::new("boom".to_string()) as Box<dyn Any + Send + Sync>);;
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                            go_store_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
+            }
 
-    let mut r = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let readOps_thread = readOps.clone(); let reads_thread = reads.clone(); std::thread::spawn(move || {
-        let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))), resp: GoChannel::<i64>::new(), ..Default::default() })));;
-        reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        Arc::new(Mutex::new(Some({ let __target = readOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
-        done_thread.send(true);;;
+        };
+        __closure(__go_arg_0);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
-        { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    wg.wait();
+    results.close();
+    let mut all: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
+    for r in results.clone() {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = all.clone(); let __append_value = r.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *all.lock().unwrap() = __slice_header; };
     }
-
-    let mut w = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let writeOps_thread = writeOps.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
-        let mut write = Arc::new(Mutex::new(Some(writeOp {
-            key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))),
-            val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i64)))),
-            resp: GoChannel::<bool>::new(),
-            ..Default::default()
-        })));;
-        writes_thread.send(write.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        Arc::new(Mutex::new(Some({ let __target = writeOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
-        done_thread.send(true);;;
-    });
-        { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    for want in &vec!["5".to_string(), "recovered: runtime error: integer divide by zero".to_string(), "inline recovered: runtime error: index out of range [3] with length 0".to_string(), "arg recovered: true 7".to_string()] {
+        let mut found = Arc::new(Mutex::new(Some(false)));
+        { let __range_holder = all.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for r in __range_values.iter() {
+        if { let __tmp_x = (*r).clone(); let __tmp_y = (*want).clone(); __tmp_x == __tmp_y } {
+        { let new_val = true; *found.lock().unwrap() = Some(new_val); };
     }
-
-    let mut i = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 110; __tmp_x < __tmp_y } {
-        done.recv().unwrap_or_default();
-        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    } }
+        println!("{} {}", format!("{}", want), format!("{}", { let __v = (*found.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }
-
-    let mut readOpsFinal = Arc::new(Mutex::new(Some({ let __target = readOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
-    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", { let __v = (*readOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut writeOpsFinal = Arc::new(Mutex::new(Some({ let __target = writeOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
-    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", { let __v = (*writeOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
