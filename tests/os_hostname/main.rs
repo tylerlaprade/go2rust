@@ -615,7 +615,8 @@ pub mod os {
             while matches!(bytes.last(), Some(b'\n' | b'\r')) {
                 bytes.pop();
             }
-            Ok(__go_string_from_bytes(bytes))
+            String::from_utf8(bytes)
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))
         });
 
         match result {

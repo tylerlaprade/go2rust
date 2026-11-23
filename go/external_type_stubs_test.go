@@ -1017,7 +1017,8 @@ func TestOsHostnameStubUsesHostRuntime(t *testing.T) {
 		"std::env::var(\"COMPUTERNAME\")",
 		"std::process::Command::new(\"hostname\").output()",
 		"while matches!(bytes.last(), Some(b'\\n' | b'\\r'))",
-		"Ok(__go_string_from_bytes(bytes))",
+		"String::from_utf8(bytes)",
+		"std::io::ErrorKind::InvalidData",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Hostname shim should include %q:\n%s", want, got)
