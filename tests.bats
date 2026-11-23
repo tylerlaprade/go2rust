@@ -2231,6 +2231,14 @@ run_xfail_test() {
     run_test "tests/os_file_readcloser_assignment"
 }
 
+@test "os_hostname" {
+    run_test "tests/os_hostname"
+}
+
+@test "os_hostname_goroutines" {
+    run_test "tests/os_hostname_goroutines"
+}
+
 @test "os_readdir_filepath" {
     run_test "tests/os_readdir_filepath"
 }

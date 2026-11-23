@@ -3119,12 +3119,15 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsHostname := pkg.Functions["hostname"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
 		if _, ok := pkg.Functions["write_file"]; ok {
 			writeGoBytesArgTrait(out)
 		}
+	}
+	if needsFilesystemHelpers || needsHostname {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3171,6 +3174,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "hostname" {
+			writeOsHostnameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
@@ -3271,6 +3276,42 @@ func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Hostname is a host OS/runtime query.
+func writeOsHostnameFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn hostname() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        #[cfg(windows)]
+        let result = std::env::var("COMPUTERNAME")
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::NotFound, err.to_string()));
+
+        #[cfg(not(windows))]
+        let result = std::process::Command::new("hostname").output().and_then(|output| {
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("hostname exited with {}", output.status),
+                ));
+            }
+            let mut bytes = output.stdout;
+            while matches!(bytes.last(), Some(b'\n' | b'\r')) {
+                bytes.pop();
+            }
+            Ok(__go_string_from_bytes(bytes))
+        });
+
+        match result {
+            Ok(value) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`, no_error()),
+            Err(err) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(`, io_error(err)),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.IsPathSeparator follows host OS path separator rules.
