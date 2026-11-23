@@ -834,8 +834,9 @@ func TestFsFileInfoStubImplementsModeMethod(t *testing.T) {
 	}
 	for _, want := range []string{
 		"pub fn mode(&self) -> " + wrappedExternalStubType("fs_FileMode"),
-		"fs_FileMode(1u32 << 31)",
-		"fs_FileMode(0)",
+		"pub mode: u32",
+		"fs_FileMode(self.mode)",
+		"(self.mode & (1u32 << 31)) != 0",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("fs.FileInfo Mode shim should include %q:\n%s", want, got)
@@ -1128,9 +1129,18 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::fs::symlink_metadata(&path)",
-		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
+		"fs_FileInfo { name, mode: file_mode_bits_from_metadata(&metadata), size: metadata.len() as i64 }",
 		"fs_FileInfo::default()",
 		"io_error(err)",
+		"use std::os::unix::fs::{FileTypeExt, MetadataExt}",
+		"let mut mode = unix_mode & 0o777",
+		"file_type.is_symlink()",
+		"mode |= 1u32 << 27",
+		"file_type.is_block_device()",
+		"mode |= (1u32 << 26) | (1u32 << 21)",
+		"(unix_mode & 0o4000) != 0",
+		"#[cfg(not(unix))]",
+		"metadata.permissions().readonly()",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Lstat shim should include %q:\n%s", want, got)

@@ -2967,7 +2967,7 @@ func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]e
 	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct %s {
     pub name: String,
-    pub is_dir: bool,
+    pub mode: u32,
     pub size: i64,
 }
 
@@ -2989,20 +2989,14 @@ impl %s {
         self.size
     }
     pub fn is_dir(&self) -> bool {
-        self.is_dir
+        (self.mode & (1u32 << 31)) != 0
     }
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
 	if method, ok := methods["mode"]; ok && len(method.ReturnTypes) == 1 {
 		fmt.Fprintf(out, `    pub fn mode(&self) -> %s {
-        if self.is_dir {
-            %s
-        } else {
-            %s
-        }
+        %s
     }
-`, method.ReturnTypes[0],
-			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
-			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+`, method.ReturnTypes[0], wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(self.mode)"))
 	}
 	methodNames := make([]string, 0, len(methods))
 	for methodName := range methods {
@@ -3192,6 +3186,11 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeGoBytesArgTrait(out)
 		}
 		writeOsErrorHelpers(out)
+		if _, needsStat := pkg.Functions["stat"]; needsStat {
+			writeOsFileModeFromMetadataHelper(out)
+		} else if _, needsLstat := pkg.Functions["lstat"]; needsLstat {
+			writeOsFileModeFromMetadataHelper(out)
+		}
 	}
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -3258,6 +3257,56 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	out.WriteString("}\n")
+}
+
+// PERMANENT: not scaffold — maps host filesystem metadata into Go's portable
+// FileMode bit layout while keeping platform-only differences explicit.
+func writeOsFileModeFromMetadataHelper(out *strings.Builder) {
+	out.WriteString(`    #[cfg(unix)]
+    fn file_mode_bits_from_metadata(metadata: &std::fs::Metadata) -> u32 {
+        use std::os::unix::fs::{FileTypeExt, MetadataExt};
+
+        let file_type = metadata.file_type();
+        let unix_mode = metadata.mode();
+        let mut mode = unix_mode & 0o777;
+        if file_type.is_dir() {
+            mode |= 1u32 << 31;
+        } else if file_type.is_symlink() {
+            mode |= 1u32 << 27;
+        } else if file_type.is_block_device() {
+            mode |= 1u32 << 26;
+        } else if file_type.is_char_device() {
+            mode |= (1u32 << 26) | (1u32 << 21);
+        } else if file_type.is_fifo() {
+            mode |= 1u32 << 25;
+        } else if file_type.is_socket() {
+            mode |= 1u32 << 24;
+        }
+        if (unix_mode & 0o4000) != 0 {
+            mode |= 1u32 << 23;
+        }
+        if (unix_mode & 0o2000) != 0 {
+            mode |= 1u32 << 22;
+        }
+        if (unix_mode & 0o1000) != 0 {
+            mode |= 1u32 << 20;
+        }
+        mode
+    }
+
+    #[cfg(not(unix))]
+    fn file_mode_bits_from_metadata(metadata: &std::fs::Metadata) -> u32 {
+        let file_type = metadata.file_type();
+        let mut mode = if metadata.permissions().readonly() { 0o444 } else { 0o666 };
+        if file_type.is_dir() {
+            mode |= 1u32 << 31;
+        } else if file_type.is_symlink() {
+            mode |= 1u32 << 27;
+        }
+        mode
+    }
+
+`)
 }
 
 func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
@@ -3398,7 +3447,7 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, mode: file_mode_bits_from_metadata(&metadata), size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
@@ -3418,7 +3467,7 @@ func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, mode: file_mode_bits_from_metadata(&metadata), size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
