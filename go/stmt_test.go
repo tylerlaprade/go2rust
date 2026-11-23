@@ -7599,6 +7599,20 @@ func explicitFromLocals(a, b int) (int, int) {
 	}
 }
 
+func TestExplicitTailReturnReadsNamedResult(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count(input int) (n int, err error) {
+	n = input
+	return n, nil
+}
+`)
+
+	if !strings.Contains(rust, "return ((*n.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));") {
+		t.Fatalf("the named result must outlive its return-statement borrow:\n%s", rust)
+	}
+}
+
 func TestDeferReturnEmitsTrailingSemicolonForBareScalarReturn(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
