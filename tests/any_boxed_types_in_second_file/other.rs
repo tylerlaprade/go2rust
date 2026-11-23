@@ -25,7 +25,7 @@ pub fn report() {
         Rc::new(RefCell::new(None))
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>)));
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(counts.clone()) as Box<dyn Any>, Box::new(failed.clone()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}\n", __go_type_name(item.as_ref()));
     } }
     println!("{}", format!("{}", (*type_name(Rc::new(RefCell::new(Some(Box::new(counts.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
