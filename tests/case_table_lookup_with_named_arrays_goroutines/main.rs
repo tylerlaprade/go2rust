@@ -1477,14 +1477,14 @@ pub fn lookup_case_range(r: Arc<Mutex<Option<i32>>>, caseRange: Arc<Mutex<Option
         let mut cr: Option<GoSliceElemPtr<CaseRange>> = Some(GoSliceElemPtr::new(caseRange.clone(), ({ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         if {
             let __go_cond_0 = {
-                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
                 let __tmp_y = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
                 __tmp_x <= __tmp_y
             };
             if __go_cond_0 {
                 let __go_cond_1 = {
                     let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
-                    let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
                     __tmp_x <= __tmp_y
                 };
                 __go_cond_1
@@ -1496,7 +1496,7 @@ pub fn lookup_case_range(r: Arc<Mutex<Option<i32>>>, caseRange: Arc<Mutex<Option
     }
         if {
             let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*cr.as_ref().unwrap().borrow().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
             __tmp_x < __tmp_y
         } {
         { let new_val = m.lock().unwrap().as_ref().unwrap().clone(); *hi.lock().unwrap() = Some(new_val); };
@@ -1511,9 +1511,9 @@ pub fn convert_case(_case: Arc<Mutex<Option<i64>>>, r: Arc<Mutex<Option<i32>>>, 
     let mut delta = Arc::new(Mutex::new(Some({ let __seq_holder = { let __named_array = (*{ let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.delta.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = ({ let __v = (*_case.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })));
     if { let __tmp_x = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MAX_RUNE as i32; __tmp_x > __tmp_y } {
         return {
-            let __go_binary_0 = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.lo.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_0 = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.lo.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
             let __go_binary_1 = (*r.lock().unwrap().as_ref().unwrap());
-            let __go_binary_2 = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.lo.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_2 = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.lo.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
             let __go_binary_3 = __go_binary_1 - __go_binary_2;
             let __go_binary_4 = 1 as i32;
             let __go_binary_5 = __go_binary_3 & ! __go_binary_4;

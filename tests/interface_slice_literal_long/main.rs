@@ -934,7 +934,7 @@ pub fn new_square(s: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Square>>> {
 fn main() {
     let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(3.0))), h: Rc::new(RefCell::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new((*new_square(Rc::new(RefCell::new(Some(2.0)))).borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(Tri { b: Rc::new(RefCell::new(Some(4.0))), h: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1.0))), h: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new((*new_square(Rc::new(RefCell::new(Some(1.5)))).borrow().as_ref().unwrap()).clone()) as Box<dyn Shape>)))])));
     let mut total = Rc::new(RefCell::new(Some(0.0)));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
         print!("{} {:.2}\n", i, (*s.borrow().as_ref().unwrap()).area());
         { let __rhs = (*s.borrow().as_ref().unwrap()).area(); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }

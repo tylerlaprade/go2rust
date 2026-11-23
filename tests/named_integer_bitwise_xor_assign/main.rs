@@ -1018,7 +1018,7 @@ fn __go_init_globals() {
 
 pub fn strip(mut mode: Rc<RefCell<Option<LoadMode>>>) -> Rc<RefCell<Option<String>>> {
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
-    { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+    { let __range_holder = modes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard); for item in __range_values.iter() {
         let item = &item.__go_value_clone();
         if (LoadMode(Rc::new(RefCell::new(Some(((*(*mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & (*(*item.mode.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))) != LoadMode(Rc::new(RefCell::new(Some(0 as i64)))) {
         { let __rhs = (*((*item.mode.borrow().as_ref().unwrap()).clone()).0.borrow().as_ref().unwrap()).clone(); let mut guard = mode.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };

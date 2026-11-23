@@ -621,7 +621,7 @@ impl std::fmt::Display for wrapped {
 
 impl wrapped {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 
     pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
@@ -639,10 +639,10 @@ pub fn describe(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> Rc<RefCell<Option
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val = _ts_guard.as_ref();
     if _ts_val.and_then(|__v| __v.downcast_ref::<wrapped>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("unwrappable".to_string())));;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("plain".to_string())));;
     }
     }

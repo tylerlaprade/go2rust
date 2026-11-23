@@ -621,11 +621,11 @@ impl std::fmt::Display for r#box {
 
 impl r#box {
     pub fn rotate(&mut self, mut v: Rc<RefCell<Option<i64>>>) -> i64 {
-        let mut old = Rc::new(RefCell::new(Some({ let __selector_holder = self.a.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        let mut old = Rc::new(RefCell::new(Some({ let __selector_holder = self.a.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
         {
-            let __tmp_0 = { let __selector_holder = self.b.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_0 = { let __selector_holder = self.b.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned };
             let __tmp_1 = (*v.borrow().as_ref().unwrap()).clone();
-            let __tmp_2 = { let __selector_holder = self.a.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let __tmp_2 = { let __selector_holder = self.a.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned };
             *self.a.borrow_mut() = Some(__tmp_0);
             *self.b.borrow_mut() = Some(__tmp_1);
             *v.borrow_mut() = Some(__tmp_2);

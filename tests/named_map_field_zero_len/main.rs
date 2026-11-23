@@ -705,5 +705,5 @@ impl std::fmt::Display for graphNode {
 
 fn main() {
     let mut n: Rc<RefCell<Option<graphNode>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", { let __named_map_holder = (*n.borrow().as_ref().unwrap()).succ.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }));
+    println!("{}", format!("{}", { let __named_map_holder = (*n.borrow().as_ref().unwrap()).succ.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }));
 }

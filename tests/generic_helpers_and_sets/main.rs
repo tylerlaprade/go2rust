@@ -757,7 +757,7 @@ impl Set__string {
 
 pub fn keys__string__int(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
     let mut keys = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
-    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *keys.borrow_mut() = __slice_header; };
     }
     let keys_closure_clone = keys.clone(); { let __sort_target = keys_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
@@ -768,7 +768,7 @@ pub fn keys__string__int(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option
 
 pub fn keys__int__bool(m: Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<bool>>>>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut keys = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
-    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *keys.borrow_mut() = __slice_header; };
     }
     let keys_closure_clone = keys.clone(); { let __sort_target = keys_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
@@ -801,7 +801,7 @@ pub fn max__string(a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>
 pub fn filter__int(xs: Rc<RefCell<Option<Vec<i64>>>>, keep: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut out: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
 
-    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
+    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter().copied() {
         if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool> = { let mut __f_guard = keep.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(x)))) } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_value = x; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *out.borrow_mut() = __slice_header; };
     }
@@ -811,7 +811,7 @@ pub fn filter__int(xs: Rc<RefCell<Option<Vec<i64>>>>, keep: Rc<RefCell<Option<Bo
 
 pub fn reduce__int__int(xs: Rc<RefCell<Option<Vec<i64>>>>, init: Rc<RefCell<Option<i64>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>>>>) -> i64 {
     let mut acc = { let __owned = init.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
+    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter().copied() {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(acc.clone(), Rc::new(RefCell::new(Some(x)))) }; *acc.borrow_mut() = Some(new_val); };
     } }
     return (*acc.borrow().as_ref().unwrap());
@@ -819,7 +819,7 @@ pub fn reduce__int__int(xs: Rc<RefCell<Option<Vec<i64>>>>, init: Rc<RefCell<Opti
 
 pub fn reduce__string__string(xs: Rc<RefCell<Option<Vec<String>>>>, init: Rc<RefCell<Option<String>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<String>>> {
     let mut acc = { let __owned = init.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
+    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter() {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_holder = acc.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some((*x).clone())))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *acc.borrow_mut() = __moved_val; };
     } }
     return { let __owned = acc.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
@@ -827,7 +827,7 @@ pub fn reduce__string__string(xs: Rc<RefCell<Option<Vec<String>>>>, init: Rc<Ref
 
 pub fn map__int__string(xs: Rc<RefCell<Option<Vec<i64>>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
     let mut out = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*xs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
-    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, x) in __range_values.iter().copied().enumerate() {
         { let __idx = (i) as usize; let __rhs = (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(x)))) }.borrow().as_ref().unwrap()).clone(); (*out.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
     return out.clone();
@@ -836,13 +836,13 @@ pub fn map__int__string(xs: Rc<RefCell<Option<Vec<i64>>>>, f: Rc<RefCell<Option<
 fn main() {
     let mut ages = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("bob".to_string(), Rc::new(RefCell::new(Some(30i64)))), ("alice".to_string(), Rc::new(RefCell::new(Some(25i64)))), ("carol".to_string(), Rc::new(RefCell::new(Some(35i64))))]))));
     let mut pairs: Rc<RefCell<Option<Vec<Pair__string__int>>>> = Rc::new(RefCell::new(None));
-    { let __range_holder = keys__string__int(ages.clone()).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for k in __range_values.iter() {
+    { let __range_holder = keys__string__int(ages.clone()).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for k in __range_values.iter() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = pairs.clone(); let __append_value = Pair__string__int { key: Rc::new(RefCell::new(Some((*k).clone()))), val: Rc::new(RefCell::new(Some({ let __map_holder = ages.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }))), ..Default::default() }; let mut __appended: Vec<Pair__string__int> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *pairs.borrow_mut() = __slice_header; };
     } }
     println!("{}", format!("{}", format_slice(&pairs)));
     println!("{} {}", format!("{}", (*pairs.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*pairs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
     let mut s = Rc::new(RefCell::new(Some(Set__string(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct1>>>>::from([]))))))));
-    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = "a b a c b".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for w in __range_values.iter() {
+    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = "a b a c b".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
         (*s.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some((*w).clone()))));
     } }
     println!("{} {} {}", format!("{}", (*s.borrow().as_ref().unwrap()).len()), format!("{}", (*s.borrow().as_ref().unwrap()).has(Rc::new(RefCell::new(Some("a".to_string()))))), format!("{}", (*s.borrow().as_ref().unwrap()).has(Rc::new(RefCell::new(Some("z".to_string()))))));

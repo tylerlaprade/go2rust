@@ -745,7 +745,7 @@ impl std::fmt::Display for Holder {
 
 
 pub fn get_item(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Item>>> {
-    return Rc::new(RefCell::new(Some({ let __selector_holder = (*h.borrow().as_ref().unwrap()).item.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned })));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*h.borrow().as_ref().unwrap()).item.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); std::mem::drop(__selector_guard); __cloned })));
 }
 
 pub fn get_values(h: Rc<RefCell<Option<Holder>>>) -> Rc<RefCell<Option<Vec<i64>>>> {

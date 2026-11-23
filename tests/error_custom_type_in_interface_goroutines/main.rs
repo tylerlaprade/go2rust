@@ -1072,7 +1072,7 @@ pub fn log(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
 }
 
 pub fn log_all(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
-    { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         println!("{}", format!("{}", format_any(arg.as_ref())));
     } }
     println!("{}", format_any_variadic(&args));

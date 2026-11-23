@@ -1027,7 +1027,7 @@ fn main() {
     let mut numbers = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64, 6i64, 7i64, 8i64, 9i64, 10i64])));
 
     println!("{}", format!("{}", "Processing numbers:".to_string()));
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = { let __tmp_x = num; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if { let __tmp_x = num; let __tmp_y = 6; __tmp_x > __tmp_y } {
         print!("Stopping at even number {} (index {})\n", format!("{}", num), format!("{}", i));
@@ -1048,7 +1048,7 @@ fn main() {
 
     let mut matrix = Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string(), "c".to_string()], vec!["d".to_string(), "e".to_string(), "f".to_string()], vec!["g".to_string(), "h".to_string(), "i".to_string()]])));
 
-    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (rowIdx, row) in __range_values.iter().enumerate() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (rowIdx, row) in __range_values.iter().enumerate() {
         for (colIdx, cell) in row.iter().enumerate() {
         if { let __tmp_x = (*cell).clone(); let __tmp_y = "e".to_string(); __tmp_x == __tmp_y } {
         print!("Found center at [{}][{}]: {}\n", format!("{}", rowIdx), format!("{}", colIdx), format!("{}", cell));
@@ -1154,7 +1154,7 @@ fn main() {
         if { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("empty data"))))));
     }
-        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
+        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = val; let __tmp_y = 0; __tmp_x < __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("negative value at index {}: {}", i, val))))));
     }
@@ -1173,7 +1173,7 @@ fn main() {
         vec![10i64, 20i64, 30i64],
     ])));
 
-    { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
+    { let __range_holder = testData.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, data) in __range_values.iter().enumerate() {
         print!("Testing dataset {}: {}\n", format!("{}", { let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", format_slice_values(data)));
         {
         let mut err = {

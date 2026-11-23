@@ -614,11 +614,11 @@ impl std::fmt::Display for item {
 
 
 pub fn has_name(it: Rc<RefCell<Option<item>>>) -> bool {
-    return { let __nil_result = (*it.borrow()).is_some(); __nil_result } && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready".to_string();
+    return { let __nil_result = (*it.borrow()).is_some(); __nil_result } && { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } == "ready".to_string();
 }
 
 pub fn missing_or_ready(it: Rc<RefCell<Option<item>>>) -> bool {
-    return { let __nil_result = (*it.borrow()).is_none(); __nil_result } || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } == "ready".to_string();
+    return { let __nil_result = (*it.borrow()).is_none(); __nil_result } || { let __selector_holder = (*it.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } == "ready".to_string();
 }
 
 fn main() {

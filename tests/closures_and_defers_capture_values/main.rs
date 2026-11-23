@@ -624,7 +624,7 @@ fn main() {
     }) as Box<dyn FnMut() -> i64>))); let mut __appended: Vec<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *funcs.borrow_mut() = __slice_header; };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    { let __range_holder = funcs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter().cloned() {
+    { let __range_holder = funcs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         print!("{}{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }), format!("{}", " ".to_string()));
     } }
     println!();
@@ -642,7 +642,7 @@ fn main() {
             *s.borrow_mut() = Some(__tmp_1);
         };
     }
-    { let __range_holder = printers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter().cloned() {
+    { let __range_holder = printers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter().cloned() {
         { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = p.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     } }
     println!();

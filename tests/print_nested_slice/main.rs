@@ -755,7 +755,7 @@ fn main() {
 
     let mut cube = Rc::new(RefCell::new(Some(vec![vec![vec![5i64], vec![6i64, 7i64]]])));
     println!("{} {}", format!("{}", { let __formatted = format_nested_slice_values(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone()); __formatted }), format!("{}", { let __formatted = format_nested_slice_values(&(*cube.borrow().as_ref().unwrap())[(0) as usize].clone()); __formatted }));
-    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for layer in __range_values.iter() {
+    { let __range_holder = cube.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for layer in __range_values.iter() {
         println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&layer); __formatted }));
     } }
     println!("{}", format!("{}", { let __formatted = format_nested_slice_values(&(*board { rows: Rc::new(RefCell::new(Some(vec![vec![8i64]]))), ..Default::default() }.rows.borrow().as_ref().unwrap()).clone()); __formatted }));

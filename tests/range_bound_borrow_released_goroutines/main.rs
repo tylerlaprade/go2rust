@@ -901,7 +901,7 @@ fn main() {
 
     let mut grid = Arc::new(Mutex::new(Some([std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0), std::array::from_fn::<_, 3, _>(|_| 0)])));
     for i in 0..(({ let __range_holder = grid.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        for j in 0..({ let __range_len = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.len(); __range_len }) {
+        for j in 0..({ let __range_len = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.len(); __range_len }) {
         { let __outer_idx = (i) as usize; let __idx = (j) as usize; let __rhs = { let __tmp_x = i as i64; let __tmp_y = j as i64; __tmp_x * __tmp_y }; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     }
     }
@@ -909,7 +909,7 @@ fn main() {
 
     let mut rows = Arc::new(Mutex::new(Some(vec![vec!["a".to_string(), "b".to_string()], vec!["c".to_string()]])));
     for i in 0..(({ let __range_holder = rows.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        for j in 0..({ let __range_len = { let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.len(); __range_len }) {
+        for j in 0..({ let __range_len = { let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.len(); __range_len }) {
         { let __outer_idx = (i) as usize; let __idx = (j) as usize; let __rhs = "!".to_string(); let mut __seq_guard = rows.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx].clone() + &__rhs; };
     }
         { let __idx = (i) as usize; let __rhs = { let __append_idx = (i) as usize; let __append_value = "+".to_string(); let mut __appended = (*rows.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*rows.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
@@ -918,7 +918,7 @@ fn main() {
 
     let mut b = Arc::new(Mutex::new(Some(board { cells: Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]]))), ..Default::default() })));
     for r in 0..(({ let __range_holder = (*b.lock().unwrap().as_ref().unwrap()).cells.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        for c in 0..({ let __range_len = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(r) as usize].clone() }.len(); __range_len }) {
+        for c in 0..({ let __range_len = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(r) as usize].clone() }.len(); __range_len }) {
         { let __outer_idx = (r) as usize; let __idx = (c) as usize; let __rhs = 10; let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).cells.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = &mut __seq_guard.as_mut().unwrap()[__outer_idx]; __seq[__idx] = __seq[__idx] * __rhs; };
     }
     }

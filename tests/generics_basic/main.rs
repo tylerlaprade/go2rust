@@ -753,7 +753,7 @@ impl List__int {
 
 pub fn map_keys__int__string(m: Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<String>>>>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut r = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
-    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = r.clone(); let __append_value = k; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *r.borrow_mut() = __slice_header; };
     }
     return r.clone();

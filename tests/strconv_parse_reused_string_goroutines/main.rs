@@ -763,7 +763,7 @@ fn main() {
     });
     started.recv().unwrap_or_default();
     let mut total = Arc::new(Mutex::new(Some(0i64)));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "1, 2,x, 30".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut field in __range_values.iter().cloned() {
+    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "1, 2,x, 30".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut field in __range_values.iter().cloned() {
         { let new_val = (*Arc::new(Mutex::new(Some({ let __s = field.clone(); __s.trim().to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); field = new_val; };
         let (mut n, mut err) = { let __atoi_input = field.clone(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Arc::new(Mutex::new(None))), Err(_) => (0 as i64, Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {

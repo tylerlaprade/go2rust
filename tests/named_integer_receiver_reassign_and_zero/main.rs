@@ -2255,7 +2255,7 @@ impl Base {
 
 impl Item {
     pub fn total(&self) -> Rc<RefCell<Option<Money>>> {
-        return Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(((*(*self.price.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))))))));
+        return Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(((*(*self.price.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i64))))))));
     }
 
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
@@ -2291,7 +2291,7 @@ impl Inventory {
         }
     }
         let mut it = {
-            let __owner = Rc::new(RefCell::new(Some(Item { base: Rc::new(RefCell::new(Some(Base { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), created: Rc::new(RefCell::new(Some("today".to_string()))), ..Default::default() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), price: Rc::new(RefCell::new(Some({ let __arg_holder = price.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), qty: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&tags); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() })));
+            let __owner = Rc::new(RefCell::new(Some(Item { base: Rc::new(RefCell::new(Some(Base { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), created: Rc::new(RefCell::new(Some("today".to_string()))), ..Default::default() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), price: Rc::new(RefCell::new(Some({ let __arg_holder = price.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), qty: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&tags); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() })));
             let __embedded = { let __owner_guard = __owner.borrow(); __owner_guard.as_ref().unwrap().base.clone() };
             let __embedded_key = { let __embedded_guard = __embedded.borrow(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
             go_register_embedded_owner(__embedded_key, __owner.clone());
@@ -2309,7 +2309,7 @@ impl Inventory {
         return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } } }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))));
     }
         if (*(*it.borrow().as_ref().unwrap()).qty.borrow().as_ref().unwrap()) < (*qty.borrow().as_ref().unwrap()) {
-        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(Rc::new(StockError { name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Rc::new(RefCell::new(Some({ let __selector_holder = (*it.borrow().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), want: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Rc<dyn StdError>))));
+        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(Rc::new(StockError { name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Rc::new(RefCell::new(Some({ let __selector_holder = (*it.borrow().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), want: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Rc<dyn StdError>))));
     }
         { let __target = (*it.borrow().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         if (*(*it.borrow().as_ref().unwrap()).qty.borrow().as_ref().unwrap()) == 0 as i64 {
@@ -2321,7 +2321,7 @@ impl Inventory {
 
     pub fn names(&self) -> Rc<RefCell<Option<Vec<String>>>> {
         let mut names = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..(({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
-        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = n.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *names.borrow_mut() = __slice_header; };
     }
         { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -2331,7 +2331,7 @@ impl Inventory {
     pub fn value(&self) -> Rc<RefCell<Option<Money>>> {
     let mut total: Rc<RefCell<Option<Money>>> = Rc::new(RefCell::new(Some(Default::default())));
 
-        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __rhs = (*(*it.borrow().as_ref().unwrap()).total().borrow().as_ref().unwrap()).clone(); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
         total.clone()
@@ -2404,7 +2404,7 @@ fn main() {
 
     for req in &vec![AnonymousStruct1 { name: Rc::new(RefCell::new(Some("widget".to_string()))), qty: Rc::new(RefCell::new(Some(3))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("gadget".to_string()))), qty: Rc::new(RefCell::new(Some(5))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("pear".to_string()))), qty: Rc::new(RefCell::new(Some(1))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("gadget".to_string()))), qty: Rc::new(RefCell::new(Some(2))), ..Default::default() }] {
         let req = &req.__go_value_clone();
-        let (mut cost, mut err) = (*inv.borrow_mut().as_mut().unwrap()).take(Rc::new(RefCell::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        let (mut cost, mut err) = (*inv.borrow_mut().as_mut().unwrap()).take(Rc::new(RefCell::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));
         let mut se: Rc<RefCell<Option<StockError>>> = Rc::new(RefCell::new(Some(Default::default())));
         if (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap()) {
             println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -2423,17 +2423,17 @@ fn main() {
         println!("{} {}", format!("{}", r), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     let mut byTag = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = (*inv.borrow().as_ref().unwrap()).names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        { let __range_holder = (*(*(*inv.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().get(name).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = (*inv.borrow().as_ref().unwrap()).names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
+        { let __range_holder = (*(*(*inv.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().get(name).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         { let __map_key = t.clone(); let __map_value = { let __slice = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(t).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*name).clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byTag.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     } }
     let mut tags = Rc::new(RefCell::new(Some(Vec::<String>::with_capacity(0))));
-    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = tags.clone(); let __append_value = t.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *tags.borrow_mut() = __slice_header; };
     }
     { let __sort_target = tags.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         print!("{:<6} {}\n", t, format_slice(&{ let __map_holder = byTag.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }));
     } }
 }

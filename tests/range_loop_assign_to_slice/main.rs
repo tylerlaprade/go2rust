@@ -677,12 +677,12 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 fn main() {
     let mut lines = Rc::new(RefCell::new(Some(vec!["a".to_string(), "".to_string(), "b".to_string(), "".to_string(), "c".to_string()])));
     let mut n = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = lines.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for line in __range_values.iter() {
+    { let __range_holder = lines.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for line in __range_values.iter() {
         if (*line).clone() != "".to_string() {
         { let __idx = ((*n.borrow().as_ref().unwrap())) as usize; let __rhs = line.clone(); (*lines.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     } }
-    { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = lines.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (0) as usize; let __high = ((*n.borrow().as_ref().unwrap())) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))))); *lines.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = lines.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (0) as usize; let __high = ((*n.borrow().as_ref().unwrap())) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))))); *lines.borrow_mut() = __slice_header; };
     println!("{}", format!("{}", format_slice(&lines)));
 }

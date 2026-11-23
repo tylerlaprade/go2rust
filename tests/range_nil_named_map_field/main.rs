@@ -706,7 +706,7 @@ impl std::fmt::Display for holder {
 fn main() {
     let mut h: Rc<RefCell<Option<holder>>> = Rc::new(RefCell::new(Some(Default::default())));
     let mut count = Rc::new(RefCell::new(Some(0i64)));
-    for (key, _) in { let __range_holder = { let __named_map_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (key, _) in { let __range_holder = { let __named_map_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); std::mem::drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         println!("{} {}", format!("{}", "unexpected".to_string()), format!("{}", key));
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

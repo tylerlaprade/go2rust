@@ -723,7 +723,7 @@ pub fn first(xs: Rc<RefCell<Option<Items>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 pub fn grow(xs: Rc<RefCell<Option<Items>>>) -> Rc<RefCell<Option<Items>>> {
-    { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push("gamma".to_string()); Rc::new(RefCell::new(Some(Items(Rc::new(RefCell::new(Some(__values))))))) }
+    { let __base = { let __named_slice = (*xs.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push("gamma".to_string()); Rc::new(RefCell::new(Some(Items(Rc::new(RefCell::new(Some(__values))))))) }
 }
 
 fn main() {

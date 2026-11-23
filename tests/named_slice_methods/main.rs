@@ -695,7 +695,7 @@ impl Names {
 
     pub fn join(&self) -> Rc<RefCell<Option<String>>> {
         let mut out = Rc::new(RefCell::new(Some("".to_string())));
-        { let __range_holder = self.0.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
+        { let __range_holder = self.0.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
         if i as i64 > 0 {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&",".to_string()); };
     }

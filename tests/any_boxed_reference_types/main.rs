@@ -1044,53 +1044,53 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "string ".to_string(), (*v.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         let mut v = { let __slice_header = GoSliceHeader::go_slice_header(&v); Rc::new(RefCell::new(__slice_header)) };
         return Rc::new(RefCell::new(Some(format!("[]int len {}", (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         let mut v = { let __slice_header = GoSliceHeader::go_slice_header(&v); Rc::new(RefCell::new(__slice_header)) };
         return Rc::new(RefCell::new(Some(format!("[]string len {}", (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("map len {}", (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("*Point {}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Point>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("Point {}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<IntList>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<IntList>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("IntList len {}", { let __slice_holder = { let __named_slice = (*v.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Registry>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Registry>()).unwrap().clone())));
-        drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("Registry len {}", { let __named_map_holder = v.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }))));;
+        std::mem::drop(_ts_guard);
+        return Rc::new(RefCell::new(Some(format!("Registry len {}", { let __named_map_holder = v.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("func {}", { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = v.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }))));;
     } else if _ts_is_nil {
         let v = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("nil".to_string())));;
     } else {
         let v = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("other {}", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }))));;
     }
     }
@@ -1118,7 +1118,7 @@ pub fn box_named_result(xs: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<RefCell<Option<
 
 pub fn classify_all(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<String>>> {
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
-    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = arg;
     let _ts_is_nil = false;
@@ -1143,7 +1143,7 @@ pub fn box_pointer(p: Rc<RefCell<Option<Point>>>) -> Rc<RefCell<Option<Box<dyn A
 
 pub fn sum(xs: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     let mut total = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
+    { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter().copied() {
         { let __rhs = x; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
@@ -1209,7 +1209,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", "map value:".to_string()), format!("{}", (*classify(go_any_handle_copy(&{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"xs".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify(go_any_handle_copy(&{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"p".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })).borrow().as_ref().unwrap())));
 
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(xs.clone()) as Box<dyn Any>, Box::new(counts.clone()) as Box<dyn Any>, Box::new(p.clone()) as Box<dyn Any>, Box::new((*pv.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*list.borrow()).clone().unwrap_or_default()) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>])));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = item;
     let _ts_is_nil = false;
@@ -1473,7 +1473,7 @@ let mut shared = { let __slice_header = GoSliceHeader::go_slice_header(&shared);
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).is_some() {
         let shared = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = 70; *(*shared.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };;
     }
     }
@@ -1545,7 +1545,7 @@ let mut shared = { let __slice_header = GoSliceHeader::go_slice_header(&shared);
         // still a []int when it is put in an interface. So is a map's value.
     let mut matrix = Rc::new(RefCell::new(Some(vec![vec![1i64], vec![2i64, 3i64]])));
     println!("{} {}", format!("{}", "element:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*matrix.borrow().as_ref().unwrap())[(1) as usize].clone().clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for row in __range_values.iter() {
+    { let __range_holder = matrix.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
         println!("{} {}", format!("{}", "range value:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*row).clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     } }
     let mut firstRow: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*matrix.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))) as Box<dyn Any>)));
@@ -1570,12 +1570,12 @@ let mut row = { let __slice_header = GoSliceHeader::go_slice_header(&row); Rc::n
     }
     let mut rowsByName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(vec![4i64, 5i64, 6i64]))))]))));
     println!("{} {}", format!("{}", "slice in map:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new({ let __map_holder = rowsByName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    for (_, value) in { let __range_holder = rowsByName.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (_, value) in { let __range_holder = rowsByName.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         println!("{} {}", format!("{}", "slice in map, range value:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(value.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     }
     let mut tables = Rc::new(RefCell::new(Some(vec![BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64)))), ("b".to_string(), Rc::new(RefCell::new(Some(2i64))))])])));
     println!("{} {}", format!("{}", "slice of maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*tables.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
-    { let __range_holder = tables.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for table in __range_values.iter() {
+    { let __range_holder = tables.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for table in __range_values.iter() {
         println!("{} {}", format!("{}", "range over maps:".to_string()), format!("{}", (*classify(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some((*table).clone())))) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     } }
 

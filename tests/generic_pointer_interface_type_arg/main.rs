@@ -694,7 +694,7 @@ pub fn area_of(s: Rc<RefCell<Option<Box<dyn Shape>>>>) -> i64 {
 
 pub fn sum_all__ptr__sq(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Sq>>>>>>>) -> i64 {
     let mut total = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         { let __rhs = area_of(Rc::new(RefCell::new(Some(Box::new(SqPtr(it.clone())) as Box<dyn Shape>)))); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());

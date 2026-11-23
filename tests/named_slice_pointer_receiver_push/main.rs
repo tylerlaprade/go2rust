@@ -686,7 +686,7 @@ impl Display for Stack {
 
 impl Stack {
     pub fn push(&mut self, n: Rc<RefCell<Option<i64>>>) {
-        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push((*n.borrow().as_ref().unwrap()).clone()); Rc::new(RefCell::new(Some(Stack(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
+        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push((*n.borrow().as_ref().unwrap()).clone()); Rc::new(RefCell::new(Some(Stack(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
     }
 
     pub fn pop(&mut self) -> i64 {
@@ -695,7 +695,7 @@ impl Stack {
         return -(1);
     }
         let mut top = Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_index = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })));
-        { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard); let __low = (0) as usize; let __high = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })))); *self = new_val; };
+        { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard); let __low = (0) as usize; let __high = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })))); *self = new_val; };
         return (*top.borrow().as_ref().unwrap());
     }
 }

@@ -714,7 +714,7 @@ impl std::fmt::Display for invocation {
 
 impl invocation {
     pub fn run(&self) -> Rc<RefCell<Option<Vec<String>>>> {
-        let mut goArgs = Rc::new(RefCell::new(Some(vec![{ let __selector_holder = self.verb.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }])));
+        let mut goArgs = Rc::new(RefCell::new(Some(vec![{ let __selector_holder = self.verb.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }])));
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = goArgs.clone(); let __append_values: Vec<_> = { let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *goArgs.borrow_mut() = __slice_header; };
         return goArgs.clone();
     }

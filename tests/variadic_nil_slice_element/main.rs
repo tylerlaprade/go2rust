@@ -582,7 +582,7 @@ impl std::io::Write for GoSlice<u8> {
 
 pub fn collect(groups: Rc<RefCell<Option<Vec<Vec<String>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
     let mut out: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    { let __range_holder = groups.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for group in __range_values.iter() {
+    { let __range_holder = groups.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for group in __range_values.iter() {
         for value in group.iter() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_value = (*value).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *out.borrow_mut() = __slice_header; };
     }

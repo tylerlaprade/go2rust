@@ -1483,7 +1483,7 @@ fn main() {
     (*builder.borrow_mut().as_mut().unwrap()).push_str("string ");
     (*builder.borrow_mut().as_mut().unwrap()).push_str("efficiently");
 
-    let mut built = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    let mut built = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
     print!("Built string: {}\n", { let __v = (*built.borrow().as_ref().unwrap()).clone(); __v });
     print!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i64);
 

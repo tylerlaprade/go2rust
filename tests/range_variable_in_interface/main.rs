@@ -1382,7 +1382,7 @@ fn main() {
     let mut f = Rc::new(RefCell::new(Some("%d:%v\n".to_string())));
     for (i, it) in vec![item { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }, item { name: Rc::new(RefCell::new(Some("y".to_string()))), ..Default::default() }].iter().enumerate() {
         let it = &it.__go_value_clone();
-        print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(i) as Box<dyn Any>, Box::new({ let __selector_holder = it.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any>], false));
+        print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(i) as Box<dyn Any>, Box::new({ let __selector_holder = it.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any>], false));
         print!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(i) as Box<dyn Any>, Box::new((*it).__go_value_clone()) as Box<dyn Any>], false))))).borrow().as_ref().unwrap())));
         let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new((*it).__go_value_clone()) as Box<dyn Any>)));
         { let new_val = "changed".to_string(); *it.name.borrow_mut() = Some(new_val); };
@@ -1390,7 +1390,7 @@ fn main() {
     }
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
-    for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(k.clone()) as Box<dyn Any>], false));
         show(Rc::new(RefCell::new(Some(vec![Box::new(k.clone()) as Box<dyn Any>, Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>]))));
     }
