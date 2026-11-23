@@ -330,9 +330,22 @@ func nilPointerReceiverSyntheticFunc(method *ast.FuncDecl, helperName string) *a
 		params = append(params, method.Type.Params.List...)
 	}
 	syntheticType.Params = &ast.FieldList{List: params}
-	return &ast.FuncDecl{
+	synthetic := &ast.FuncDecl{
 		Name: ast.NewIdent(helperName),
 		Type: &syntheticType,
 		Body: method.Body,
 	}
+	nilPointerReceiverSyntheticOrigins[synthetic] = method
+	return synthetic
+}
+
+// nilPointerReceiverSyntheticOrigins maps each synthetic nil-receiver helper
+// to the method it was made from. The helper has no types.Object of its own,
+// so facts about its results (such as a pointer result being a GoPtr) are
+// those of the method.
+var nilPointerReceiverSyntheticOrigins = map[*ast.FuncDecl]*ast.FuncDecl{}
+
+func nilPointerReceiverSyntheticOrigin(fn *ast.FuncDecl) (*ast.FuncDecl, bool) {
+	method, ok := nilPointerReceiverSyntheticOrigins[fn]
+	return method, ok && method != nil
 }

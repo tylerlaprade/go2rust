@@ -1,0 +1,11 @@
+[package]
+name = "os_hostname"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_hostname"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

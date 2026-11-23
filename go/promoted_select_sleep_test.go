@@ -114,7 +114,7 @@ func main() {
 		t.Fatalf("Generate() error = %v", err)
 	}
 	rust := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(rust, "pub const MAX_INT64: i64 = 9223372036854775807;") || !strings.Contains(rust, "pub const MAX_INT32: i32 = 2147483647;") {
+	if !strings.Contains(rust, "pub const MAX_INT64: i64 = 9223372036854775807;") || !strings.Contains(rust, "pub const MAX_INT32: i64 = 2147483647;") {
 		t.Fatalf("an untyped constant should get a Rust integer that holds it:\n%s", rust)
 	}
 }

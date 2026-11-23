@@ -608,13 +608,13 @@ func main() {
 }
 `)
 
-	const mapHandle = "Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i32>>>>>>>"
+	const mapHandle = "Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>"
 	shared := "({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + mapHandle + ">().expect(\"type assertion failed\").clone() } else { panic!(\"type assertion on nil interface\") } })"
 	for what, want := range map[string]string{
 		"a short declaration": "let mut m = " + shared + ";",
 		"a var declaration":   "let mut c = " + shared + ";",
 		"len of an assertion": shared,
-		"printing a slice":    "format_slice(&({ let val = list.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i32>>>>>().expect(\"type assertion failed\").clone() }",
+		"printing a slice":    "format_slice(&({ let val = list.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect(\"type assertion failed\").clone() }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -643,7 +643,7 @@ func main() {
 	if !strings.Contains(rust, "let mut n: Rc<RefCell<Option<Numbers>>> = Rc::new(RefCell::new(Some(Numbers(") {
 		t.Fatalf("var n Numbers should be built as a Numbers value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut s: Rc<RefCell<Option<Vec<i32>>>> = ({ let val = x.clone();") {
+	if !strings.Contains(rust, "let mut s: Rc<RefCell<Option<Vec<i64>>>> = ({ let val = x.clone();") {
 		t.Fatalf("var s []int should keep the interface's slice handle:\n%s", rust)
 	}
 }

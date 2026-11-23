@@ -22,7 +22,7 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 - Wrapped map range sources must clone the inner map inside a block and drop the borrow guard before the loop body.
 - Owned non-copy map range keys must be cloned before insertion, wrapping, or call arguments if the Go variable is reused later.
 - Wrapped map range values are handles. Clone or unwrap the inner value according to the map element type; do not move from the ranged wrapper.
-- Map values whose Go type is handle-shaped (`*T`, `[]T`, `map[K]V`, `chan T`, `func`, `interface`, or `error`) must preserve the stored handle through lookup, comma-ok, short declarations, calls, returns, and assignments.
+- Map values whose Go type is handle-shaped (`*T`, `[]T`, `map[K]V`, `chan T`, `func`, `interface`, or `error`) must preserve the stored handle through lookup, comma-ok, short declarations, calls, returns, and assignments. The exception is a named interface value read into a new variable, which is a copy (see Interfaces And Errors).
 - Nil map values for handle-shaped element types are nil handles, not `Some(None)`.
 - Pointer and interface map values are handles. Do not deep-copy pointees or interface payloads unless Go value semantics require a real copy and the inner type is cloneable.
 - Assignments into pointer-valued maps must preserve the RHS pointer handle, including selector-field RHS values.
@@ -56,7 +56,12 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 
 - `interface{}` / `any` values are handles to `Box<dyn Any>`. Passing or assigning an existing `any` clones the handle; do not re-box from a shared reference.
 - The predeclared `any` alias follows the same path as explicit `interface{}`.
+- A named interface value is a handle to `Option<Box<dyn Trait>>`, and assigning to the variable writes into that handle. So a value stored somewhere new (`y := x`, a field, a slice or map element, an appended value, a field returned from a function) gets a handle of its own holding a clone of the box. The clone keeps a pointer inside the box pointing at the same value. Use `writeLocalInterfaceHandleClone`, which copies values read from a variable, field or element.
+- A value of an interface that embeds the expected one is a different trait object. Convert it with `writeLocalInterfaceSubtraitUpcast`, which keeps a nil value nil.
+- An interface that embeds two or more interfaces inherits `__go_as_any` from each of them, so method syntax on its trait object is ambiguous (E0034). Write the call with `goAsAnyCall`, which names one of the declaring traits.
+- An element of a `[]any` is a bare `Box<dyn Any>`, which has no `Clone`. Reading one (`v := xs[0]`, `fmt.Println(xs[0])`) copies it with `go_any_clone` into a handle of its own (`writeAnySequenceElementClone`), which every use of an `any` value accepts.
 - The predeclared `error` is special. Slices and maps of `error` store normal wrapped error handles; `chan error` carries the nullable payload option.
+- A channel of a named interface carries the handle's `Option<Box<dyn Trait>>` the same way (channel_interface_values.go): nil can be sent, a receive from a closed channel gives nil, a send copies the value out of a handle, and every receive puts the value in a handle of its own.
 - Sending on `chan error` moves the payload with `take()`. Receiving into an `error` variable stores that payload directly; select receives wrap the payload for the case body.
 - Returning or assigning selector fields of type `error` clones the error handle, not the boxed payload.
 - Concrete values that implement `error` must be boxed when assigned, returned, or passed as `error`; prove this with `types.Implements`.
@@ -74,6 +79,7 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 - Reassigned range variables over slices or strings need owned mutable Rust bindings.
 - Range over wrapped slice-returning calls and pointer-to-array expressions should use borrowed slice views.
 - Array/slice elements whose element type is a pointer or channel must preserve existing handles in literals and append paths.
+- A channel read out of a struct field or an element is used through a block that has already released the holder's lock (`writeChannelExpression`). A send or a receive may block while another goroutine locks the same struct to reach its end of the channel.
 - Nested slices are bare `Vec<T>` inside the outer collection. Mutate inner vectors directly for `arr[i] = append(arr[i], x)` and `arr[i][j] = value`.
 - `append` should evaluate its target once, bind the handle, mutate it, and return the same handle.
 - Variadic `append(dst, src...)` extends from unwrapped source slice values.

@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::collections::BTreeMap;
@@ -89,7 +95,7 @@ fn main() {
         );
         __result
     }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
-    println!("{} {} {}", format!("{}", { let __nil_result = (*pkg.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len_target = { let __field = (*info.lock().unwrap().as_ref().unwrap()).types.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y }));
+    println!("{} {} {}", format!("{}", { let __nil_result = (*pkg.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len = ({ let __len_target = { let __field = (*info.lock().unwrap().as_ref().unwrap()).types.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 0; __tmp_x > __tmp_y }));
     let (mut nilInfoPkg, mut nilInfoErr) = {
         let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default())));
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(

@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::error::Error as StdError;
@@ -42,20 +48,20 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -80,6 +86,8 @@ mod __go_runtime_format {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
+    #[allow(unused_imports)]
+    use super::{GoSlice, Vec};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -706,7 +714,7 @@ impl std::fmt::Display for writer {
 
 
 impl writer {
-    pub fn available(&self) -> i32 {
+    pub fn available(&self) -> i64 {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -727,35 +735,35 @@ impl writer {
         embedded_ref.bytes()
     }
 
-    pub fn cap(&self) -> i32 {
+    pub fn cap(&self) -> i64 {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.cap()
     }
 
-    pub fn grow(&self, _arg0: Arc<Mutex<Option<i32>>>) {
+    pub fn grow(&self, _arg0: Arc<Mutex<Option<i64>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.grow(_arg0)
     }
 
-    pub fn len(&self) -> i32 {
+    pub fn len(&self) -> i64 {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.len()
     }
 
-    pub fn next(&self, _arg0: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
+    pub fn next(&self, _arg0: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.next(_arg0)
     }
 
-    pub fn read(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn read(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -783,7 +791,7 @@ impl writer {
         embedded_ref.read_from(_arg0)
     }
 
-    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn read_rune(&self) -> (i32, i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -811,7 +819,7 @@ impl writer {
         embedded_ref.string()
     }
 
-    pub fn truncate(&self, _arg0: Arc<Mutex<Option<i32>>>) {
+    pub fn truncate(&self, _arg0: Arc<Mutex<Option<i64>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -832,7 +840,7 @@ impl writer {
         embedded_ref.unread_rune()
     }
 
-    pub fn write(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write(&self, _arg0: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -846,14 +854,14 @@ impl writer {
         embedded_ref.write_byte(_arg0)
     }
 
-    pub fn write_rune(&self, _arg0: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write_rune(&self, _arg0: Arc<Mutex<Option<i32>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.write_rune(_arg0)
     }
 
-    pub fn write_string(&self, _arg0: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string(&self, _arg0: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -882,8 +890,8 @@ fn main() {
 
     let mut w = Arc::new(Mutex::new(Some(writer { buffer: Arc::new(Mutex::new(Some(bytes::buffer::Buffer { ..Default::default() }))), ..Default::default() })));
     (*w.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("go".to_string()))));
-    (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("rust".to_string()).as_bytes().to_vec()))));
-    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as i32) as u8))));
+    (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("rust".to_string()).as_bytes().to_go_slice()))));
+    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as u8) as u8))));
     (*w.lock().unwrap().as_mut().unwrap()).reset();
     let mut length = (*w.lock().unwrap().as_ref().unwrap()).len();
     let mut text = (*w.lock().unwrap().as_ref().unwrap()).string();

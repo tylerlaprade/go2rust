@@ -131,7 +131,7 @@ func main() {
 		t.Fatalf("package global array literal should not emit one nested wrapper expression:\n%s", rust)
 	}
 	for _, want := range []string{
-		"let mut __go_array = Vec::<u32>::with_capacity(4);",
+		"let mut __go_array = std::vec::Vec::<u32>::with_capacity(4);",
 		"__go_array.push(1 as u32);",
 		"__go_array.push(0);",
 		"__go_array.push(3 as u32);",
@@ -253,7 +253,7 @@ var Interrupt Signal = dep.SIGINT
 		t.Fatalf("package-global interface selector const should not store the raw constant:\n%s", mainRS)
 	}
 	if (!strings.Contains(mainRS, "Box::new(example_com_dep::Sig(") && !strings.Contains(mainRS, "Box::new(example_com_dep::r#mod::Sig(")) ||
-		!strings.Contains(mainRS, "S_I_G_I_N_T as i32") ||
+		!strings.Contains(mainRS, "S_I_G_I_N_T as i64") ||
 		!strings.Contains(mainRS, "as Box<dyn Signal") {
 		t.Fatalf("package-global interface selector const should box the named value as the interface:\n%s", mainRS)
 	}

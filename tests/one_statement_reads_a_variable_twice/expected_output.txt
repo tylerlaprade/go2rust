@@ -1,0 +1,25 @@
+conv 44
+neg -36
+mul 84
+float 2.0/4
+not true
+len go:2
+index 56
+field 12
+struct 2
+slice 10
+map 99
+conv2 44
+paren 36
+bit 5
+cmp false
+byte 1141
+lit {-3 3} [-3 3 3] map[-3:3]
+ret -3 3
+printf -3 3 3 2
+append [1 2 -3 3 2]
+swap -10 3
+method 2 8
+cmp false true false
+uint 400 -200
+mul -30 -10

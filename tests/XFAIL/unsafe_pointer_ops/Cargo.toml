@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "unsafe_pointer_ops"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

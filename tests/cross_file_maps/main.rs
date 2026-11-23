@@ -1,3 +1,10 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+include!("__go2rust_helpers.rs");
 mod data;
 use data::*;
 
@@ -23,16 +30,17 @@ fn main() {
 
         // Access slice - transpiler needs to know Numbers is a slice
     print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
-    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32) - (1 as i32)) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = { let __map_holder = Groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"admins".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+    let mut admins = { let __slice_header = GoSliceHeader::go_slice_header(&admins); Rc::new(RefCell::new(__slice_header)) };
     print!("Admin count: {}\n", (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
     print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
         // Iterate over map - requires knowing the type
         // Note: map iteration order is non-deterministic, so we'll just count
-    let mut count = Rc::new(RefCell::new(Some(0)));
+    let mut count = Rc::new(RefCell::new(Some(0i64)));
     for (_, _) in { let __range_holder = Users.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         { let mut guard = count.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

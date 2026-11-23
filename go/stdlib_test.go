@@ -357,7 +357,7 @@ func contains(values []int, target int) bool {
 		t.Fatalf("sort.Search result short declaration should register i as a bare scalar:\n%s", rust)
 	}
 	for _, want := range []string{
-		"let mut i = { let mut __sort_i: i32 = 0;",
+		"let mut i = { let mut __sort_i: i64 = 0;",
 		"i <",
 		"[(i) as usize]",
 	} {
@@ -1074,10 +1074,10 @@ func render(k Kind) string {
 }
 `)
 
-	if strings.Contains(rust, "as i32.to_string()") {
+	if strings.Contains(rust, "as i64.to_string()") {
 		t.Fatalf("strconv.Itoa should parenthesize converted operands before to_string:\n%s", rust)
 	}
-	if !strings.Contains(rust, " as i32).to_string()") {
+	if !strings.Contains(rust, " as i64).to_string()") {
 		t.Fatalf("strconv.Itoa should call to_string on the converted value:\n%s", rust)
 	}
 }
@@ -1774,10 +1774,10 @@ func alloc() *[]int {
 }
 `)
 
-	if strings.Contains(rust, "Vec<i32>::default()") {
+	if strings.Contains(rust, "Vec<i64>::default()") {
 		t.Fatalf("new([]T) should not emit generic type path without turbofish:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Vec::<i32>::default()") {
+	if !strings.Contains(rust, "Vec::<i64>::default()") {
 		t.Fatalf("new([]T) should emit a turbofish default constructor:\n%s", rust)
 	}
 }
@@ -1802,7 +1802,7 @@ func main() {
 	describe(5)
 }
 `)
-	if !strings.Contains(plain, `print!("{}|{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()), format_any(v.borrow().as_ref().unwrap().as_ref()));`) {
+	if !strings.Contains(plain, `print!("{}|{}\n", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });`) {
 		t.Fatalf("the sequential form should not change:\n%s", plain)
 	}
 
@@ -1814,16 +1814,16 @@ func main() {
 	describe(5)
 }
 `)
-	want := `print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	want := `print!("{}|{}\n", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));`
 	if !strings.Contains(locked, want) {
 		t.Fatalf("missing %q in:\n%s", want, locked)
 	}
 	// %T reads the variable as well.
-	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = match v.lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));`
 	if !strings.Contains(locked, wantType) {
 		t.Fatalf("missing %q in:\n%s", wantType, locked)
 	}
-	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
+	if strings.Contains(locked, "match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() }, ") {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)
 	}
 }

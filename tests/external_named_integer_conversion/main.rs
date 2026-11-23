@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
@@ -10,14 +16,14 @@ pub fn dir() -> Arc<Mutex<Option<types_ChanDir>>> {
 }
 
 pub fn zero_kind() -> Arc<Mutex<Option<types_BasicKind>>> {
-    Arc::new(Mutex::new(Some(types_BasicKind(0 as i32))))
+    Arc::new(Mutex::new(Some(types_BasicKind(0 as i64))))
 }
 
-pub fn pos_from_int(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-    Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i32)))))))
+pub fn pos_from_int(n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
+    Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))
 }
 
-pub fn int_value() -> i32 {
+pub fn int_value() -> i64 {
     1
 }
 

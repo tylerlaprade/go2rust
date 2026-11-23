@@ -63,7 +63,7 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	}
 
 	helpers := &HelperTracker{needsFormatSlice: true}
-	helperImports := prefixPackageHelperImports("", helpers, false)
+	helperImports := withoutGoSliceUses(prefixPackageHelperImports("", helpers, false))
 	if helperImports != "use crate::{format_slice, format_slice_values, format_slice_wrapped};\n" {
 		t.Fatalf("empty module helper imports should not add a trailing blank line: %q", helperImports)
 	}
@@ -666,10 +666,10 @@ func use(items []item, x int) int {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i32>(") {
+	if !strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i64>(") {
 		t.Fatalf("imported generic selector call should emit inferred Rust type arguments:\n%s", mainRS)
 	}
-	if strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i32>(items.clone(),") {
+	if strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i64>(items.clone(),") {
 		t.Fatalf("imported generic selector call should not pass a bare concrete slice to a slice-type-param slot:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, ".iter().cloned().map(|__elem| Rc::new(RefCell::new(Some(__elem))))") &&
@@ -1774,7 +1774,7 @@ func main() {
 	if strings.Contains(depRS, "Rc<RefCell") {
 		t.Fatalf("external package with goroutine should not emit Rc<RefCell> wrappers, got:\n%s", depRS)
 	}
-	if !strings.Contains(depRS, "pub fn run(value: Arc<Mutex<Option<i32>>>)") {
+	if !strings.Contains(depRS, "pub fn run(value: Arc<Mutex<Option<i64>>>)") {
 		t.Fatalf("external package function signature should use Arc/Mutex wrappers, got:\n%s", depRS)
 	}
 }
@@ -1821,7 +1821,7 @@ func main() {
 	}
 
 	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
-	if !strings.Contains(depRS, "pub fn value(value: Arc<Mutex<Option<i32>>>)") {
+	if !strings.Contains(depRS, "pub fn value(value: Arc<Mutex<Option<i64>>>)") {
 		t.Fatalf("external package should use the workspace wrapper policy, got:\n%s", depRS)
 	}
 	if strings.Contains(depRS, "Rc<RefCell") {
@@ -2167,11 +2167,11 @@ const MaxExp = dep.MaxInt32
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "pub const MAX_EXP: i32 = example_com_dep::MAX_INT32;") {
+	if strings.Contains(mainRS, "pub const MAX_EXP: i64 = example_com_dep::MAX_INT32;") {
 		t.Fatalf("external package const selector should be cast to the inferred const storage type:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "pub const MAX_EXP: i32 = example_com_dep::MAX_INT32 as i32;") {
-		t.Fatalf("external package const selector should cast to i32:\n%s", mainRS)
+	if !strings.Contains(mainRS, "pub const MAX_EXP: i64 = example_com_dep::MAX_INT32 as i64;") {
+		t.Fatalf("external package const selector should cast to i64:\n%s", mainRS)
 	}
 }
 
@@ -2848,8 +2848,10 @@ func collect(ident dep.Ident) []dep.Node {
 	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("existing imported interface handles should not be cloned into a nested box, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "node: node.clone()") {
-		t.Fatalf("existing imported interface handles should be preserved at struct fields, got:\n%s", mainRS)
+	// The field gets a copy of the parameter's interface value in a handle of
+	// its own.
+	if !strings.Contains(mainRS, "node: { let __iface_value = node.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("existing imported interface values should be copied into struct fields, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, ".push((*ident.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("append to imported interface slice should not push the concrete value directly, got:\n%s", mainRS)
@@ -3578,7 +3580,7 @@ func main() {
 	clockRS := mustReadFile(t, filepath.Join(tempDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(tempDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
+		if !strings.Contains(withoutGoSliceUses(code), "use crate::{GoTime, go_time_civil_from_days};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "use crate::*;") {
@@ -3672,7 +3674,7 @@ func main() {}
 	if !strings.Contains(printerRS, "format_any_variadic(&values)") {
 		t.Fatalf("fmt.Println(values...) should call the variadic any formatter, got:\n%s", printerRS)
 	}
-	if !strings.Contains(printerRS, "use crate::{format_any, format_any_slice, format_any_variadic};") {
+	if !strings.Contains(withoutGoSliceUses(printerRS), "use crate::{format_any, format_any_slice, format_any_variadic};") {
 		t.Fatalf("multi-file module should import the crate-root variadic any formatter, got:\n%s", printerRS)
 	}
 
@@ -3867,7 +3869,7 @@ func main() {
 	if strings.Contains(normalizeRS, "use crate::*;") {
 		t.Fatalf("module should not glob-import crate root and shadow termlist type with termlist module, got:\n%s", normalizeRS)
 	}
-	if !strings.Contains(normalizeRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(normalizeRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import only the needed crate-root helper, got:\n%s", normalizeRS)
 	}
 	if !strings.Contains(normalizeRS, "pub terms: Rc<RefCell<Option<termlist>>>") {
@@ -3950,7 +3952,7 @@ func main() {
 	if strings.Contains(typexprRS, "use crate::{go_type_name};") {
 		t.Fatalf("module should not import a helper name that collides with its own function, got:\n%s", typexprRS)
 	}
-	if !strings.Contains(typexprRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(typexprRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import the internal type-name helper, got:\n%s", typexprRS)
 	}
 	if !strings.Contains(typexprRS, "pub fn go_type_name(") {
@@ -4036,8 +4038,8 @@ func main() {}
 
 	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
 	wantInitializers := []string{
-		"Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))",
-		"Some(crate::defs::objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))",
+		"Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))",
+		"Some(crate::defs::objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))",
 	}
 	foundInitializer := false
 	for _, want := range wantInitializers {
@@ -4191,7 +4193,7 @@ func main() {
 	if !strings.Contains(defsRS, "impl Node for item") {
 		t.Fatalf("interface impl should use package-wide methods, including sibling-file methods:\n%s", defsRS)
 	}
-	if !strings.Contains(defsRS, "fn b(&self) -> i32") {
+	if !strings.Contains(defsRS, "fn b(&self) -> i64") {
 		t.Fatalf("interface impl should include sibling-file method in the trait impl:\n%s", defsRS)
 	}
 	if !strings.Contains(defsRS, "self.b()") && !strings.Contains(defsRS, "item::b(self)") {
@@ -4322,8 +4324,10 @@ func lang(v version) bool {
 	if !strings.Contains(mainRS, "impl PartialEq for version") {
 		t.Fatalf("concurrent comparable struct should get custom PartialEq, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__left.as_ref() == __right.as_ref()") {
-		t.Fatalf("custom PartialEq should compare locked field values by reference, got:\n%s", mainRS)
+	// Each side is read under its own lock, so two values that share a
+	// field's cell do not lock one mutex twice.
+	if !strings.Contains(mainRS, "let __left = { self.minor.lock().unwrap().as_ref().cloned() }; let __right = { other.minor.lock().unwrap().as_ref().cloned() }; __left == __right") {
+		t.Fatalf("custom PartialEq should compare field values read one lock at a time, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
 		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)
@@ -4587,7 +4591,7 @@ func (c Code) String() string {
 	if strings.Contains(mainRS, "c.lock().unwrap()") {
 		t.Fatalf("type-definition method body should translate receiver uses through self, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()) as i32") {
+	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()) as i64") {
 		t.Fatalf("type-definition receiver conversion should use self.0, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()).clone()") {
@@ -4670,7 +4674,7 @@ func use(xs Items, s uint) Items {
 	if strings.Contains(mainRS, "Arc::new(Mutex::new(None::<Items>)).shift") {
 		t.Fatalf("named-slice nil conversion receiver should call the method on an Items value, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Items(Arc::new(Mutex::new(None::<Vec<i32>>))).shift") {
+	if !strings.Contains(mainRS, "Items(Arc::new(Mutex::new(None::<Vec<i64>>))).shift") {
 		t.Fatalf("named-slice nil conversion receiver should construct the named slice value, got:\n%s", mainRS)
 	}
 }
@@ -4746,12 +4750,12 @@ func (c Code) Check() bool {
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	for _, want := range []string{
-		"impl PartialEq<i32> for Code",
-		"impl PartialOrd<i32> for Code",
-		"impl PartialEq<Code> for i32",
-		"impl PartialOrd<Code> for i32",
-		"impl std::ops::Add<i32> for Code",
-		"impl std::ops::Add<Code> for i32",
+		"impl PartialEq<i64> for Code",
+		"impl PartialOrd<i64> for Code",
+		"impl PartialEq<Code> for i64",
+		"impl PartialOrd<Code> for i64",
+		"impl std::ops::Add<i64> for Code",
+		"impl std::ops::Add<Code> for i64",
 		"impl std::ops::Sub for Code",
 	} {
 		if !strings.Contains(mainRS, want) {
@@ -6862,13 +6866,13 @@ func searchLineInfos(a []lineInfo, x int) int {
 	}
 
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"cmp": "cmp", "slices": "slices"})
-	if strings.Contains(rust, "cmp::compare::<i32>({ let __field =") {
+	if strings.Contains(rust, "cmp::compare::<i64>({ let __field =") {
 		t.Fatalf("source-mapped ordered selector argument should pass the raw field value, not the field handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "cmp::compare::<i32>({ let __selector_holder =") {
+	if !strings.Contains(rust, "cmp::compare::<i64>({ let __selector_holder =") {
 		t.Fatalf("source-mapped ordered selector argument should unwrap through an owned selector value:\n%s", rust)
 	}
-	compareStart := strings.Index(rust, "cmp::compare::<i32>")
+	compareStart := strings.Index(rust, "cmp::compare::<i64>")
 	if compareStart < 0 {
 		t.Fatalf("source-mapped ordered call should emit cmp::compare:\n%s", rust)
 	}

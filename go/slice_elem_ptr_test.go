@@ -111,8 +111,10 @@ func lookup(r *reader, i int) types.Type {
 	if strings.Contains(rust, "let new_val = (*typ.borrow().as_ref().unwrap())") {
 		t.Fatalf("slice element pointer assignment should store the interface handle, not the boxed payload:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = typ.clone()") {
-		t.Fatalf("slice element pointer assignment should clone the interface handle into the slice element:\n%s", rust)
+	// The element gets a copy of typ's interface value in a handle of its
+	// own, so assigning to typ afterwards leaves the element alone.
+	if !strings.Contains(rust, "let new_val = { let __iface_value = typ.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("slice element pointer assignment should store a copy of the interface value in the slice element:\n%s", rust)
 	}
 }
 
@@ -172,7 +174,7 @@ func update() int {
 	if strings.Contains(rust, "array element address requires pointer support") {
 		t.Fatalf("array element address should use array element pointer support:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut p: Option<GoArrayElemPtr<i32, 2>> = Some(GoArrayElemPtr::new(nums.clone(), (0) as usize))") {
+	if !strings.Contains(rust, "let mut p: Option<GoArrayElemPtr<i64, 2>> = Some(GoArrayElemPtr::new(nums.clone(), (0) as usize))") {
 		t.Fatalf("array element pointer short declaration should preserve array identity and index:\n%s", rust)
 	}
 	if !strings.Contains(rust, "*p.as_ref().unwrap().borrow_mut() = Some(new_val)") {
@@ -492,7 +494,7 @@ func update(ch uint64) uint64 {
 	if strings.Contains(rust, "cache.borrow()") || strings.Contains(rust, "cache.lock()") {
 		t.Fatalf("pointer-to-array operations should borrow through GoArrayElemPtr, not normal wrapper handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "< (4 as i32)") {
+	if !strings.Contains(rust, "< (4 as i64)") {
 		t.Fatalf("len(cache) should use the typed pointer-to-array length:\n%s", rust)
 	}
 	if strings.Contains(rust, "array element address through pointer-to-array requires nested pointer representation") {
@@ -750,10 +752,10 @@ func (b *box[T]) useAfterGenericMethodTuple(hash uint, shift uint) (swapped bool
 }
 `)
 
-	if !strings.Contains(rust, "-> (Option<GoArrayElemPtr<child, 16>>, i32)") {
+	if !strings.Contains(rust, "-> (Option<GoArrayElemPtr<child, 16>>, i64)") {
 		t.Fatalf("named array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Option<GoArrayElemPtr<child, 16>>, i32)") {
+	if !strings.Contains(rust, "Option<GoArrayElemPtr<child, 16>>, i64)") {
 		t.Fatalf("third named array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut slot: Option<GoArrayElemPtr<child, 16>> = None") {
@@ -786,8 +788,8 @@ func use(values *[8]byte) byte {
 }
 `)
 
-	if !strings.Contains(rust, "fn pick(values: Rc<RefCell<Option<[u8; 8]>>>, i: Rc<RefCell<Option<i32>>>) -> Option<GoArrayElemPtr<u8, 8>>") &&
-		!strings.Contains(rust, "fn pick(values: Arc<Mutex<Option<[u8; 8]>>>, i: Arc<Mutex<Option<i32>>>) -> Option<GoArrayElemPtr<u8, 8>>") {
+	if !strings.Contains(rust, "fn pick(values: Rc<RefCell<Option<[u8; 8]>>>, i: Rc<RefCell<Option<i64>>>) -> Option<GoArrayElemPtr<u8, 8>>") &&
+		!strings.Contains(rust, "fn pick(values: Arc<Mutex<Option<[u8; 8]>>>, i: Arc<Mutex<Option<i64>>>) -> Option<GoArrayElemPtr<u8, 8>>") {
 		t.Fatalf("unnamed array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
 	}
 	if !strings.Contains(rust, "return Some(GoArrayElemPtr::new(values.clone(), (7) as usize));") ||
@@ -1490,13 +1492,13 @@ func pick(addr uintptr, fast bool) (*node, int) {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn slow(") || !strings.Contains(rust, " -> (GoPtr<node>, i32)") {
+	if !strings.Contains(rust, "pub fn slow(") || !strings.Contains(rust, " -> (GoPtr<node>, i64)") {
 		t.Fatalf("callee returning raw pointer plus scalar should use GoPtr result type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (GoPtr<node>, i32)") {
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (GoPtr<node>, i64)") {
 		t.Fatalf("multi-result call return should propagate GoPtr result type to caller:\n%s", rust)
 	}
-	if strings.Contains(rust, "pub fn pick(") && strings.Contains(rust, " -> (Rc<RefCell<Option<node>>>, i32)") {
+	if strings.Contains(rust, "pub fn pick(") && strings.Contains(rust, " -> (Rc<RefCell<Option<node>>>, i64)") {
 		t.Fatalf("multi-result call return should not leave caller with ordinary pointer wrapper:\n%s", rust)
 	}
 }
@@ -2744,11 +2746,11 @@ func pick(h *holder) (int, *node, bool) {
 	if !strings.Contains(rust, "pub fn current(") || !strings.Contains(rust, " -> GoPtr<node>") {
 		t.Fatalf("source method should return a GoPtr handle for this regression:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (i32, GoPtr<node>, bool)") {
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (i64, GoPtr<node>, bool)") {
 		t.Fatalf("GoPtr call result in a later return slot should promote that result type:\n%s", rust)
 	}
-	if strings.Contains(rust, " -> (i32, Rc<RefCell<Option<node>>>, bool)") ||
-		strings.Contains(rust, " -> (i32, Arc<Mutex<Option<node>>>, bool)") {
+	if strings.Contains(rust, " -> (i64, Rc<RefCell<Option<node>>>, bool)") ||
+		strings.Contains(rust, " -> (i64, Arc<Mutex<Option<node>>>, bool)") {
 		t.Fatalf("GoPtr call result in a later return slot should not keep the ordinary pointer wrapper:\n%s", rust)
 	}
 }
@@ -2799,11 +2801,11 @@ func build(s *state) {
 		t.Fatalf("test setup should promote the pointer parameter through the GoPtr field call site:\n%s", rust)
 	}
 	if !strings.Contains(rust, "pub fn walk(") ||
-		!strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, GoPtr<node>, i32)") {
+		!strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, GoPtr<node>, i64)") {
 		t.Fatalf("pointer parameter returned in a later tuple slot should promote that result type:\n%s", rust)
 	}
-	if strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Rc<RefCell<Option<node>>>, i32)") ||
-		strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Arc<Mutex<Option<node>>>, i32)") {
+	if strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Rc<RefCell<Option<node>>>, i64)") ||
+		strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Arc<Mutex<Option<node>>>, i64)") {
 		t.Fatalf("pointer parameter returned in a later tuple slot should not keep the ordinary pointer wrapper:\n%s", rust)
 	}
 	if !strings.Contains(rust, "x = __tmp_1.clone();") {
@@ -4462,8 +4464,8 @@ func use(p *prog) int {
 }
 `)
 
-	if !strings.Contains(rust, "fn skip(&self, pc: Rc<RefCell<Option<i32>>>) -> Option<GoSliceElemPtr<inst>>") &&
-		!strings.Contains(rust, "fn skip(&self, pc: Arc<Mutex<Option<i32>>>) -> Option<GoSliceElemPtr<inst>>") {
+	if !strings.Contains(rust, "fn skip(&self, pc: Rc<RefCell<Option<i64>>>) -> Option<GoSliceElemPtr<inst>>") &&
+		!strings.Contains(rust, "fn skip(&self, pc: Arc<Mutex<Option<i64>>>) -> Option<GoSliceElemPtr<inst>>") {
 		t.Fatalf("slice element pointer method should expose the slice element pointer representation:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut i: Option<GoSliceElemPtr<inst>> =") {
@@ -4562,7 +4564,7 @@ func use(chunks [][]int) int {
 		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
 		t.Fatalf("pointer parameter should not receive a cloned direct slice element pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "fn dump(values: GoPtr<Vec<i32>>)") ||
+	if !strings.Contains(rust, "fn dump(values: GoPtr<Vec<i64>>)") ||
 		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
 		t.Fatalf("pointer parameter should receive a GoPtr slice element handle:\n%s", rust)
 	}
@@ -5274,7 +5276,7 @@ func pick(raw unsafe.Pointer, i int) int {
 }
 `)
 
-	if !strings.Contains(rust, "let mut bh: GoPtr<[i32; 4]>") {
+	if !strings.Contains(rust, "let mut bh: GoPtr<[i64; 4]>") {
 		t.Fatalf("unsafe pointer conversion to named array pointer should use GoPtr:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __named_array = bh; __named_array.0.clone()") {
@@ -6885,8 +6887,8 @@ func use(chunks [][]int) int {
 		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
 		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a cloned pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn dump(values: GoPtr<Vec<i32>>) -> i32") ||
-		!strings.Contains(rust, "Box<dyn FnMut(GoPtr<Vec<i32>>) -> i32>") ||
+	if !strings.Contains(rust, "pub fn dump(values: GoPtr<Vec<i64>>) -> i64") ||
+		!strings.Contains(rust, "Box<dyn FnMut(GoPtr<Vec<i64>>) -> i64>") ||
 		!strings.Contains(rust, "(*__f)(values.clone())") ||
 		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
 		t.Fatalf("read-only pointer parameter passed through a function literal should preserve GoPtr handles:\n%s", rust)
@@ -7345,5 +7347,5 @@ func transpileTypedSliceElemPtrRegressionWithOptions(t *testing.T, src string, u
 		})
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }

@@ -1,0 +1,8 @@
+1
+two
+3.5 true
+two!
+false true true
+two 5
+changed 1
+true float64
