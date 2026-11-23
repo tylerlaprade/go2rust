@@ -9,12 +9,6 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -757,9 +751,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -797,7 +792,13 @@ pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
 fn main() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     done.recv().unwrap_or_default();
     let mut count = Arc::new(Mutex::new(Some(0i64)));
@@ -946,10 +947,10 @@ fn main() {
     let _ts_subject = x.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {
-        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);
+            __any = __boxed.as_ref() as &dyn Any;
         }
         __any
     });

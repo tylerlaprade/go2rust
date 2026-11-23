@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -886,7 +880,13 @@ impl Sheet {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
     let mut a = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
@@ -914,8 +914,8 @@ fn main() {
         let __go_lhs_sequence_1 = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.clone();
         let __go_lhs_outer_index_1_0 = (1) as usize;
         let __go_lhs_index_1 = (1) as usize;
-        let __tmp_0 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }[(1) as usize].clone();
-        let __tmp_1 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }[(0) as usize].clone();
+        let __tmp_0 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }[(1) as usize].clone();
+        let __tmp_1 = { let __seq_holder = { let __named_slice = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }[(0) as usize].clone();
         (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;
         (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_outer_index_1_0][__go_lhs_index_1] = __tmp_1;
     };

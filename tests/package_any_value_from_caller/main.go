@@ -59,6 +59,7 @@ func main() {
 	logger.Each(Point{5, 6}, callerError{"copied error"})
 	var boxed any = callerError{"preboxed"}
 	fmt.Println(logger.Describe(boxed))
+	fmt.Println(logger.RequireError(boxed).Error())
 	var pointerAsError error = &pointerError{"typed pointer error"}
 	logger.Show(pointerAsError)
 	fmt.Println(logger.Describe(pointerAsError), logger.Kind(pointerAsError), logger.Classify(pointerAsError))
@@ -66,6 +67,11 @@ func main() {
 	logger.Show(pointer)
 	logger.Each(pointer)
 	fmt.Println(logger.Describe(pointer), logger.Kind(pointer), logger.Classify(pointer))
+	bound := logger.RequireError(pointer)
+	*pointer = pointerError{"replaced"}
+	fmt.Println(bound.Error())
+	var typedNil *pointerError
+	fmt.Println(logger.RequireError(typedNil) == nil)
 
 	// The other direction: a value created over there, printed here.
 	var numbers interface{} = logger.Numbers()

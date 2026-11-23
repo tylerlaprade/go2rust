@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -664,6 +658,31 @@ fn go_runtime_error_text(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
 fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
@@ -842,8 +861,7 @@ impl<T> Iterator for GoChannel<T> {
 pub fn deferred() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut x = Arc::new(Mutex::new(Some(1i64)));
         let x_defer_captured = Arc::new(Mutex::new((*x.lock().unwrap()).clone())); __defer_stack.push(Box::new(move || {
@@ -878,7 +896,7 @@ pub fn deferred() {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -888,7 +906,7 @@ pub fn deferred() {
                     go_store_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
             ()
         }
@@ -898,7 +916,13 @@ pub fn deferred() {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 
@@ -906,7 +930,7 @@ fn main() {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let i_closure_clone = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = funcs.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
-        return { let __bin_i = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i };
+        return { let __bin_i = ({ let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i };
     }) as Box<dyn FnMut() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *funcs.lock().unwrap() = __slice_header; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

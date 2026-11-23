@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -644,7 +638,7 @@ impl Names {
     }
 
     pub fn first(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })))
+        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_index = (0) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })))
     }
 
     pub fn join(&self) -> Rc<RefCell<Option<String>>> {

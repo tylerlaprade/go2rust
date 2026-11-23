@@ -9,12 +9,6 @@ use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -804,7 +798,13 @@ fn main() {
         // A goroutine makes every variable a locked one.
     let mut done = GoChannel::<String>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send("started".to_string());;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
@@ -868,24 +868,24 @@ fn main() {
 
         )
     }.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = { let __slice = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&{ let __map_key_holder = {
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = key.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+    let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
+        let mut __f_guard = key.lock().unwrap();
+        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
+    };
+    let __f = unsafe { &mut *__f_ptr };
+    (*__f)(
 
-        )
-    }.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = value.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+    )
+}.clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = {
+    let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
+        let mut __f_guard = value.lock().unwrap();
+        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
+    };
+    let __f = unsafe { &mut *__f_ptr };
+    (*__f)(
 
-        )
-    }; (*__slice.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*lists.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    )
+}; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*lists.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", "append to a slice in a map:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 
     let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64]])));
@@ -894,7 +894,7 @@ fn main() {
         0
     }) as Box<dyn FnMut() -> i64 + Send + Sync>)));
     { let new_val = "".to_string(); *order.lock().unwrap() = Some(new_val); };
-    { let _ = ({
+    { let __idx = ({
         let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
             let mut __f_guard = idx.lock().unwrap();
             __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
@@ -903,7 +903,7 @@ fn main() {
         (*__f)(
 
         )
-    }) as usize; { let __append_idx = ({
+    }) as usize; let __rhs = { let __append_idx = ({
         let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
             let mut __f_guard = idx.lock().unwrap();
             __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
@@ -921,7 +921,7 @@ fn main() {
         (*__f)(
 
         )
-    }; (*grid.lock().unwrap().as_mut().unwrap())[__append_idx].push(__append_value); (*grid.lock().unwrap().as_ref().unwrap())[__append_idx].clone() }; };
+    }; let mut __appended = (*grid.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*grid.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "append to an element:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.len()));
 
     let mut s = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));

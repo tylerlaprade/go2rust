@@ -22,10 +22,13 @@ switch error: caller error
 {5 6}
 copied error
 error: preboxed
+preboxed
 typed pointer error
 error: typed pointer error *main.pointerError switch error: typed pointer error
 pointer error
 pointer error
 error: pointer error *main.pointerError switch error: pointer error
+replaced
+false
 [10 20]
 7

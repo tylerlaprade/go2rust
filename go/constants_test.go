@@ -459,10 +459,12 @@ const (
 )
 `)
 
-	if !strings.Contains(rust, "pub const LOG2_E: f64 = 1.0 / LN2;") {
+	// A float constant is written as the value the type checker computed
+	// exactly, as Go evaluates constant expressions.
+	if !strings.Contains(rust, "pub const LOG2_E: f64 = 1.4426950408889634;") {
 		t.Fatalf("untyped float const expression should infer f64:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub const UNDERFLOW: f64 = -7.45133219101941108420e+02;") {
+	if !strings.Contains(rust, "pub const UNDERFLOW: f64 = -745.1332191019411;") {
 		t.Fatalf("unary untyped float const should infer f64:\n%s", rust)
 	}
 	if strings.Contains(rust, "LOG2_E: i32") || strings.Contains(rust, "UNDERFLOW: i32") {
@@ -735,6 +737,20 @@ const n = uint64(2 - 1)
 	}
 	if !strings.Contains(rust, "const N: u64 = ((2 - 1) as u64);") {
 		t.Fatalf("const type conversion should cast the whole binary expression:\n%s", rust)
+	}
+}
+
+func TestConstCastOnLeftOfComparisonIsParenthesized(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const limit = 10
+
+func above(value int32) bool {
+	return limit < value
+}
+`)
+	if !strings.Contains(rust, "(LIMIT as i32) <") {
+		t.Fatalf("a cast on the left of < must be parenthesized for Rust to parse it as a comparison:\n%s", rust)
 	}
 }
 

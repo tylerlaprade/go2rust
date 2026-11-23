@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -599,13 +593,19 @@ pub const FLAGS: i64 = 0;
 pub const HAS_INIT: i64 = 1;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RelocKind(pub Rc<RefCell<Option<i32>>>);
 
 impl Clone for RelocKind {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         RelocKind(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for RelocKind {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -988,13 +988,19 @@ impl Ord for RelocKind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SyncMarker(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for SyncMarker {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         SyncMarker(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for SyncMarker {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1377,13 +1383,19 @@ impl Ord for SyncMarker {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Field(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Field {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Field(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Field {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

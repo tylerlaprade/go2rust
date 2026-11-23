@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -790,7 +784,7 @@ impl Expr for StarExprPtr {
 }
 
 pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> Rc<RefCell<Option<String>>> {
-    let mut t = (*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.clone();
+    let mut t = { let __iface_value = (*(*fields.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).r#type.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     {
         let (mut p, _) = ({
         let val = t.clone();

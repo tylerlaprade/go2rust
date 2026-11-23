@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -640,8 +634,8 @@ pub fn classify_op(op: Rc<RefCell<Option<u8>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
-    println!("{} {}", format!("{}", "digit 5:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('5' as i32) as u8))))));
-    println!("{} {}", format!("{}", "digit x:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('x' as i32) as u8))))));
+    println!("{} {}", format!("{}", "digit 5:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('5' as u8) as u8))))));
+    println!("{} {}", format!("{}", "digit x:".to_string()), format!("{}", is_digit(Rc::new(RefCell::new(Some(('x' as u8) as u8))))));
     println!("{} {}", format!("{}", "version v1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("v1.0.0".to_string()))))));
     println!("{} {}", format!("{}", "version x1:".to_string()), format!("{}", starts_with_v(Rc::new(RefCell::new(Some("x1.0.0".to_string()))))));
     let mut path = Rc::new(RefCell::new(Some(Vec::<u8>::new())));

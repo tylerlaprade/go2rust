@@ -959,7 +959,8 @@ func currentMapKeyStructTypes() map[string]bool {
 }
 
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && comparableStructTypes[structName] && NeedsConcurrentWrapper()
+	return structName != "" && structType != nil && comparableStructTypes[structName] &&
+		(NeedsConcurrentWrapper() || structHasTraitField(structType))
 }
 
 func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
@@ -1025,13 +1026,45 @@ func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation 
 	out.WriteString(")")
 }
 
-func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField) {
+func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
+	ptr, ok := types.Unalias(typ).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || !isGoSyncNamedType(named) || isSourceMappedGoSyncNamedType(named) || named.Obj() == nil {
+		return "", false
+	}
+	switch named.Obj().Name() {
+	case "Mutex":
+		return "GoMutex", true
+	default:
+		return "", false
+	}
+}
+
+func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField, typ types.Type) {
+	if helper, ok := structComparableBareSyncPointerHelper(typ); ok {
+		out.WriteString(helper)
+		out.WriteString("::go_ptr_eq(&self.")
+		out.WriteString(field.name)
+		out.WriteString(", &other.")
+		out.WriteString(field.name)
+		out.WriteString(")")
+		return
+	}
 	outerWrapper := GetOuterWrapperType()
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
 	out.WriteString("{ let __left_some = self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some(); let __right_some = other.")
+	out.WriteString(borrow)
+	out.WriteString(".is_some(); let __right_some = other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
+	out.WriteString(borrow)
+	out.WriteString(".is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
 	out.WriteString(outerWrapper)
 	out.WriteString("::ptr_eq(&self.")
 	out.WriteString(field.name)
@@ -1102,24 +1135,63 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 			writeStructComparableGoPtrFieldEq(out, field)
 			return
 		}
-		writeStructComparablePointerFieldEq(out, field)
+		writeStructComparablePointerFieldEq(out, field, typ)
 		return
 	}
+	// Each side is read under its own lock, one after the other. Two values
+	// can share a field's cell (an interface value and its copy share the
+	// fields of the struct they hold), and holding both locks at once would
+	// then lock one mutex twice.
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		out.WriteString("{ let __left = self.")
+		out.WriteString("{ let __left = { self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); let __right = other.")
+		out.WriteString(borrow)
+		out.WriteString(".clone() }; let __right = { other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+		out.WriteString(borrow)
+		out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 		out.WriteString(traitMethodSuffix(ifaceName))
 		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
 		return
 	}
-	out.WriteString("{ let __left = self.")
+	if isEmptyInterfaceType(typ) {
+		NeedAnyEq()
+		out.WriteString("go_any_eq(&self.")
+		out.WriteString(field.name)
+		out.WriteString(", &other.")
+		out.WriteString(field.name)
+		out.WriteString(")")
+		return
+	}
+	if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok {
+		if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(array.Elem()); ok {
+			out.WriteString("{ let __left_array = { self.")
+			out.WriteString(field.name)
+			out.WriteString(borrow)
+			out.WriteString(".as_ref().cloned() }; let __right_array = { other.")
+			out.WriteString(field.name)
+			out.WriteString(borrow)
+			out.WriteString(".as_ref().cloned() }; match (__left_array.as_ref(), __right_array.as_ref()) { (Some(__left_values), Some(__right_values)) => __left_values.iter().zip(__right_values.iter()).all(|(__left_cell, __right_cell)| { let __left = { __left_cell")
+			out.WriteString(borrow)
+			out.WriteString(".clone() }; let __right = { __right_cell")
+			out.WriteString(borrow)
+			out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+			out.WriteString(traitMethodSuffix(ifaceName))
+			out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }), (None, None) => true, _ => false } }")
+			return
+		}
+	}
+	out.WriteString("{ let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); let __right = other.")
+	out.WriteString(borrow)
+	out.WriteString(".as_ref().cloned() }; let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+	out.WriteString(borrow)
+	out.WriteString(".as_ref().cloned() }; __left == __right }")
 }
 
 func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
@@ -1491,6 +1563,10 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 			return
 		}
 		out.WriteString(goTypeToRustBase(fieldType))
+		if _, isPointer := fieldType.(*ast.StarExpr); isPointer {
+			out.WriteString("::nil()")
+			return
+		}
 		out.WriteString("::new()")
 		return
 	}
@@ -3009,7 +3085,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3042,7 +3120,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3142,7 +3222,9 @@ func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedNa
 	writeEmbeddedTraitObjectClone(out, embeddedName)
 	if !interfaceTypeHasNamedEmbedded(embeddedIface) {
 		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        (**self).__go_as_any()\n")
+		out.WriteString("        ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "(**self)", "&**self"))
+		out.WriteString("\n")
 		out.WriteString("    }\n")
 	}
 	writeEmbeddedTraitObjectEq(out, ifaceName, embeddedName, delegateEquality)
@@ -3807,7 +3889,9 @@ func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrap
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(wrapperName)
 	out.WriteString(">() {\n")
 	if NeedsConcurrentWrapper() {
@@ -5402,7 +5486,11 @@ func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncD
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone();\n")
 	out.WriteString(indent)
-	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
+	out.WriteString(rustIndexByteStringExpr("__s", "__c") + "\n")
+}
+
+func rustIndexByteStringExpr(text, value string) string {
+	return text + ".as_bytes().iter().position(|&__b| __b == " + value + ").map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)"
 }
 
 func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -6175,6 +6263,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("}\n")
 			}
 			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
+			writeNamedArrayPartialEq(out, typeSpec, rustTypeName)
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {
@@ -6320,7 +6409,9 @@ func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName stri
 		out.WriteString("(&self, other: ")
 		out.WriteString(paramBare)
 		out.WriteString(") -> bool {\n")
-		out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+		out.WriteString("        if let Some(__other) = ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(rustTypeName), "other", "other"))
+		out.WriteString(".downcast_ref::<")
 		out.WriteString(primitive)
 		out.WriteString(">() {\n")
 		out.WriteString("            self == __other\n")
@@ -6474,6 +6565,25 @@ func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) 
 	}
 }
 
+// typeDefinitionWrapsPredeclaredBasic reports whether typeSpec is "type T
+// int64" or the like: a newtype over the wrapped cell of a predeclared
+// number, string or bool.
+func typeDefinitionWrapsPredeclaredBasic(typeSpec *ast.TypeSpec) bool {
+	ident, ok := typeSpec.Type.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeName, ok := types.Universe.Lookup(ident.Name).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	basic, ok := typeName.Type().(*types.Basic)
+	if !ok || basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) == 0 {
+		return false
+	}
+	return strings.HasPrefix(GoTypeToRust(typeSpec.Type), GetOuterWrapperType()+"<")
+}
+
 func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	if typeSpec == nil || typeSpec.Name == nil {
 		return "", false
@@ -6489,6 +6599,17 @@ func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	named, ok := types.Unalias(obj.Type()).(*types.Named)
 	if !ok {
 		return "", false
+	}
+	if typeDefinitionWrapsPredeclaredBasic(typeSpec) {
+		// The zero value of "type Money int64" holds 0. A derived Default
+		// would hold an empty cell, and reading it panics.
+		var zero strings.Builder
+		zero.WriteString("Self(")
+		WriteWrapperPrefix(&zero)
+		zero.WriteString("Default::default()")
+		WriteWrapperSuffix(&zero)
+		zero.WriteString(")")
+		return zero.String(), true
 	}
 	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
 		return "", false
@@ -7159,7 +7280,9 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(RustTypeNameForUse(typeName))
 	out.WriteString(">() {\n")
 	if localConcreteTypeCanUsePartialEq(typeName) {
@@ -7177,6 +7300,39 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 
 func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
 	transpileConstDeclWithCase(out, genDecl, true)
+}
+
+// floatConstLiteral returns the value of a float constant as a Rust float
+// literal, when the constant's Rust type is a float and its value is known.
+func floatConstLiteral(name *ast.Ident, rustType string) (string, bool) {
+	if rustType != "f64" && rustType != "f32" {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.info.Defs[name].(*types.Const)
+	if !ok || obj.Val() == nil {
+		return "", false
+	}
+	value := constant.ToFloat(obj.Val())
+	if value.Kind() != constant.Float {
+		return "", false
+	}
+	f, _ := constant.Float64Val(value)
+	if math.IsInf(f, 0) || math.IsNaN(f) {
+		return "", false
+	}
+	format := byte('f')
+	if math.Abs(f) >= 1e21 || (f != 0 && math.Abs(f) < 1e-6) {
+		format = 'g'
+	}
+	literal := strconv.FormatFloat(f, format, -1, 64)
+	if !strings.ContainsAny(literal, ".eE") {
+		literal += ".0"
+	}
+	return literal, true
 }
 
 func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUpper bool) {
@@ -7262,7 +7418,12 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString(" = ")
 
 				// Handle value
-				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+				if literal, ok := floatConstLiteral(name, constType); ok {
+					// "KB Size = 1 << (10 * iota)" is an integer expression
+					// for a float constant; write the value the type
+					// checker computed.
+					out.WriteString(literal)
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
 						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)
@@ -8555,9 +8716,7 @@ func packageCallsRecover() bool {
 
 func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
 	out.WriteString(indent)
-	out.WriteString("let __go_previous_panic_hook = std::panic::take_hook();\n")
-	out.WriteString(indent)
-	out.WriteString("std::panic::set_hook(Box::new(|_| {}));\n")
+	out.WriteString("let __go_previous_panic_hook = go_silence_panic_hook();\n")
 	out.WriteString(indent)
 	out.WriteString("let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
 	return indent + "    "
@@ -8582,7 +8741,7 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("    Ok(__go_value) => {\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        go_restore_panic_hook(__go_previous_panic_hook);\n")
 	out.WriteString(indent)
 	out.WriteString("        __go_value\n")
 	out.WriteString(indent)
@@ -8602,7 +8761,7 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("        }\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        go_restore_panic_hook(__go_previous_panic_hook);\n")
 	out.WriteString(indent)
 	out.WriteString("        go_resume_unrecovered_panic();\n")
 	out.WriteString(indent)

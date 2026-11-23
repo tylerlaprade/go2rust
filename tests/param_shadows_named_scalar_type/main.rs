@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -590,13 +584,19 @@ impl std::io::Write for GoSlice<u8> {
 /// `color` is a named scalar type (a Rust tuple struct). A method parameter also
 /// named `color` would shadow it, which Rust rejects (E0530); the parameter
 /// binding must be renamed while the type reference keeps the bare name.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct color(pub Rc<RefCell<Option<u32>>>);
 
 impl Clone for color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

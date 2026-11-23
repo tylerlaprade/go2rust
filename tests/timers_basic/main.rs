@@ -8,12 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -903,7 +897,7 @@ impl GoTimer {
 fn main() {
     let mut timer1 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_secs(1)))));
 
-    (*timer1.lock().unwrap().as_ref().unwrap()).c.recv().unwrap_or_default();
+    { let __channel = (*timer1.lock().unwrap().as_ref().unwrap()).c.clone(); __channel }.recv().unwrap_or_default();
     println!("{}", format!("{}", "Timer 1 fired".to_string()));
 
     let mut timer2 = Arc::new(Mutex::new(Some(go_new_timer(std::time::Duration::from_millis(500)))));

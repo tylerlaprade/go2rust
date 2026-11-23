@@ -7,12 +7,6 @@ macro_rules! vec {
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -589,7 +583,7 @@ impl std::io::Write for GoSlice<u8> {
 fn main() {
     let mut builder = String::new();
     builder.push_str("a");
-    builder.push((('b' as i32)) as u8 as char);
+    builder.push((('b' as u8)) as u8 as char);
     builder.push('c');
     let mut result = Rc::new(RefCell::new(Some(builder.clone())));
     println!("{} {}", format!("{}", { let __v = (*result.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", builder.len() as i64));

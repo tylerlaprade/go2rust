@@ -7,12 +7,6 @@ macro_rules! vec {
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -798,10 +792,10 @@ fn main() {
 
     let mut h2 = Arc::new(Mutex::new(Some(Holder { ch: GoChannel::<i64>::new_buffered(1 as usize), ..Default::default() })));
     println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ready()));
-    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.len()));
-    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.capacity()));
-    (*h2.lock().unwrap().as_ref().unwrap()).ch.send(7);
-    println!("{}", format!("{}", (*h2.lock().unwrap().as_ref().unwrap()).ch.recv().unwrap_or_default()));
+    println!("{}", format!("{}", { let __channel = (*h2.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.len()));
+    println!("{}", format!("{}", { let __channel = (*h2.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.capacity()));
+    { let __channel = (*h2.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.send(7);
+    println!("{}", format!("{}", { let __channel = (*h2.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.recv().unwrap_or_default()));
 
     let mut h3 = Arc::new(Mutex::new(Some(Holder { ch: Default::default(), ..Default::default() })));
     println!("{}", format!("{}", (*h3.lock().unwrap().as_ref().unwrap()).ready()));

@@ -1,0 +1,6 @@
+map[apple:5 pear:1]
+map[z:26] map[1:[a b]]
+map[ok:true]
+map[apple:5 pear:1] 2
+map[a:1 b:2]
+map[] true

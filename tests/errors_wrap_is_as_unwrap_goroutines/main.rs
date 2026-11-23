@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -850,9 +844,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1346,6 +1341,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1637,13 +1637,19 @@ impl std::fmt::Display for NotFound {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Code(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Code {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Code(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Code {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2122,7 +2128,7 @@ impl StdError for QueryError {}
 
 
 pub fn find(key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
-    if { let __tmp_x = (*key.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
+    if { let __tmp_x = ({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::new(NotFound { key: Arc::new(Mutex::new(Some("empty".to_string()))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
     }
     Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"find %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = {
@@ -2171,7 +2177,13 @@ fn main() {
     __go_init_all();
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 

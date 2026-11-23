@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -593,13 +587,19 @@ pub const FUNC: i8 = 2;
 pub const FIELD: i8 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Kind(pub Rc<RefCell<Option<i8>>>);
 
 impl Clone for Kind {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Kind(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Kind {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -982,13 +982,19 @@ impl Ord for Kind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Version(pub Rc<RefCell<Option<i8>>>);
 
 impl Clone for Version {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Version(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

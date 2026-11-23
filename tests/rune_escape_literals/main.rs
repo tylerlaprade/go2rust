@@ -7,12 +7,6 @@ macro_rules! vec {
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -595,6 +589,6 @@ pub(crate) const MAX_RUNE: i32 = ('\u{10ffff}' as i32);
 fn main() {
     let mut v = Rc::new(RefCell::new(Some(('\u{b}' as i32))));
     let mut b = Rc::new(RefCell::new(Some(('\u{8}' as i32))));
-    let mut f = Rc::new(RefCell::new(Some(('\u{c}' as i32) as u8)));
+    let mut f = Rc::new(RefCell::new(Some(('\u{c}' as u8) as u8)));
     println!("{} {} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(BELL as i64))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(MAX_RUNE as i64))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }));
 }

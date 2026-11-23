@@ -1,0 +1,8 @@
+[click(0,0) click(1,2) click(2,4) key a key b key c]
+a got click(1,1)
+a got key z
+b got click(1,1)
+b got key z
+click at 3 4
+nil event
+other key q

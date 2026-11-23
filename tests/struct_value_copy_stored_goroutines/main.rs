@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -883,6 +877,14 @@ impl std::fmt::Display for Rect {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Rect {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.w.lock().unwrap().as_ref().cloned() }; let __right = { other.w.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Rect {
@@ -903,7 +905,7 @@ impl Shape for Rect {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Rect>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -948,7 +950,13 @@ fn main() {
         // A goroutine makes every variable a locked one.
     let mut done = GoChannel::<String>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send("started".to_string());;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
@@ -959,7 +967,7 @@ fn main() {
     { let new_val = 2; *(*p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "stored in a slice".to_string()), format!("{}", { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_value = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); let mut __appended: Vec<Point> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *s.lock().unwrap() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_value = ({ let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); let mut __appended: Vec<Point> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *s.lock().unwrap() = __slice_header; };
     { let new_val = 3; *(*p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "appended".to_string()), format!("{}", { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
@@ -1010,7 +1018,7 @@ fn main() {
     { let new_val = 400; *{ let __seq = { let __seq_holder = spread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", { let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = spread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
 
-    let mut copied: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut copied: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); (({ let __len = (*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut n = {
         let _src = { let __copy_src_holder = list.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
         let _n = std::cmp::min((*copied.lock().unwrap().as_ref().unwrap()).len(), _src.len());
@@ -1024,7 +1032,7 @@ fn main() {
 
     let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) };
     { let new_val = 600; *{ let __seq = { let __seq_holder = grown.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
-    println!("{} {} {} {}", format!("{}", "slice appended to another".to_string()), format!("{}", { let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = grown.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }), format!("{}", (*grown.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {} {}", format!("{}", "slice appended to another".to_string()), format!("{}", { let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = grown.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }), format!("{}", ({ let __len = (*grown.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     let mut ch = GoChannel::<Point>::new_buffered(1 as usize);
     ch.send(p.lock().unwrap().as_ref().unwrap().__go_value_clone());

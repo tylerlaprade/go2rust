@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -799,9 +793,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -846,10 +841,10 @@ impl std::fmt::Display for Holder {
 /// with a goroutine every variable is locked while it is read, and reading
 /// the same one twice in a statement must not wait on itself.
 pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-    print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
-    print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
-    println!("{} {}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
-    let mut text = Arc::new(Mutex::new(Some(format!("{} and {}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text })))));
+    print!("{}|{}\n", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    print!("{}: {}\n", format!("{}", { let __type_name = match v.lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
+    let mut text = Arc::new(Mutex::new(Some(format!("{} and {}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })))));
     println!("{}", format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
 
@@ -857,7 +852,13 @@ fn main() {
         // A goroutine makes every shared value a locked one.
     let mut done = GoChannel::<String>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send("started".to_string());;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
@@ -866,7 +867,7 @@ fn main() {
     describe(Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>))));
 
     let mut held: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>)));
-    print!("{} {} {}\n", format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(held.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+    print!("{} {} {}\n", format!("{}", { let __text = match held.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match held.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match held.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     let mut h = Arc::new(Mutex::new(Some(Holder { value: Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>))), ..Default::default() })));
-    println!("{} {}", format!("{}", { let __text = format_any((*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any((*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+    println!("{} {}", format!("{}", { let __text = match (*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match (*h.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 }

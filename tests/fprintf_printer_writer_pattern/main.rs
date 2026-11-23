@@ -10,12 +10,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 #[derive(Clone)]
 pub struct printer {
     pub output: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>,
@@ -61,7 +55,7 @@ impl printer {
 
         let mut m: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
         { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
-        if { let __tmp_x = b; let __tmp_y = ('\n' as i32) as u8; __tmp_x == __tmp_y } {
+        if { let __tmp_x = b; let __tmp_y = ('\n' as u8) as u8; __tmp_x == __tmp_y } {
         {
             let (__tmp_0, __tmp_1) = (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
                 let __seq_holder = data.clone();
@@ -82,14 +76,14 @@ impl printer {
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
         { let __target = self.line.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    } else if { let __tmp_x = b; let __tmp_y = ('#' as i32) as u8; __tmp_x == __tmp_y } {
+    } else if { let __tmp_x = b; let __tmp_y = ('#' as u8) as u8; __tmp_x == __tmp_y } {
         { let (__tmp_0, __tmp_1) = { let __s = format!("{:6}  ", (*self.line.lock().unwrap().as_ref().unwrap())); (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
     }
     } }
-        if { let __tmp_x = ((*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); __tmp_x > __tmp_y } {
         {
             let (__tmp_0, __tmp_1) = (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
                 let __seq_holder = data.clone();

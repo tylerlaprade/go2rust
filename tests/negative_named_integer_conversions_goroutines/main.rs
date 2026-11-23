@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -689,28 +683,31 @@ fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>
     format_any_slice_values(slice)
 }
 
-fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<Big>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<I8>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<Level>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Big>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<I8>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Level>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    None
+}
 
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
 struct GoChannel<T> {
@@ -885,13 +882,19 @@ impl<T> Iterator for GoChannel<T> {
 pub(crate) const STEP: i64 = 5;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct I8(pub Arc<Mutex<Option<i8>>>);
 
 impl Clone for I8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         I8(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for I8 {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1274,13 +1277,19 @@ impl Ord for I8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Level(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1663,13 +1672,19 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct U8(pub Arc<Mutex<Option<u8>>>);
 
 impl Clone for U8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         U8(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for U8 {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2045,13 +2060,19 @@ impl Ord for U8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Big(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Big {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Big(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Big {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -2437,7 +2458,13 @@ impl Ord for Big {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 
@@ -2445,23 +2472,23 @@ fn main() {
     let mut b = Arc::new(Mutex::new(Some(Level(Arc::new(Mutex::new(Some(-3 as i64)))))));
     let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(-4 as i64))))) as Box<dyn Any + Send + Sync>)));
     let mut levels = Arc::new(Mutex::new(Some(vec![Level(Arc::new(Mutex::new(Some(-5 as i64 as i64)))), Level(Arc::new(Mutex::new(Some(-6 as i64))))])));
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = format_any(c.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", format_slice(&levels)));
+    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = match c.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", format_slice(&levels)));
 
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i64))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i64))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
 
     let mut n = Arc::new(Mutex::new(Some(4i64)));
-    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-((*n.lock().unwrap().as_ref().unwrap())) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(({ let __tmp_x = -((*n.lock().unwrap().as_ref().unwrap())); let __tmp_y = 1; __tmp_x + __tmp_y }) as i64))))));
+    println!("{} {}", format!("{}", Level(Arc::new(Mutex::new(Some(-(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v })) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(({ let __tmp_x = -(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v })); let __tmp_y = 1; __tmp_x + __tmp_y }) as i64))))));
 
     print!("{} {} {}\n", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "main.I8"));
     let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
     println!("{}", format_any_variadic(&vals));
-    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
+    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}|", format_any(v.as_ref()));
     } }
     println!();
 
     if {
-        let __tmp_x = (*b.lock().unwrap().as_ref().unwrap()).clone();
+        let __tmp_x = ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v });
         let __tmp_y = Level(Arc::new(Mutex::new(Some(-2 as i64))));
         __tmp_x < __tmp_y
     } {

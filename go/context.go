@@ -845,10 +845,9 @@ func NeedFormatAny() {
 // NeedFormatAnyNested marks that a value held inside another one is printed,
 // which goes through format_any_nested.
 func NeedFormatAnyNested() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnyNested = true
-		helpers.needsFormatAny = true
-		TrackImport("Any")
 	}
 }
 
@@ -885,6 +884,15 @@ func NeedGoAnyRuntimeOps() {
 	})
 }
 
+// NeedAnyHandleCopy marks that we need go_any_handle_copy and go_any_store,
+// which give an interface{} variable Go's copy of a value.
+func NeedAnyHandleCopy() {
+	NeedAnyClone()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsAnyHandleCopy = true
+	}
+}
+
 // NeedPanicRecover marks that panic/defer/recover runtime helpers are needed.
 func NeedPanicRecover() {
 	if helpers := activeHelperTracker(); helpers != nil {
@@ -895,12 +903,21 @@ func NeedPanicRecover() {
 	}
 }
 
+// NeedGoPointerError marks that an error assertion must keep a concrete
+// pointer handle live instead of snapshotting its current pointee.
+func NeedGoPointerError() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoPointerError = true
+		trackWrapperImports()
+		TrackImport("Error")
+	}
+}
+
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
 func NeedGoValueClone() {
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoValueClone = true
-		helpers.needsAnyClone = true
-		TrackImport("Any")
 	}
 	markSharedStdlibHelper(func(helpers *HelperTracker) {
 		helpers.needsGoValueClone = true
@@ -1045,6 +1062,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		}
 		return handleType, true
 	}
+	if array, ok := typ.(*types.Array); ok && anyArrayHasCloneableScalars(array) {
+		return goTypesTypeToRust(array), true
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -1057,6 +1077,17 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		return qualified, true
 	}
 	return rustType, true
+}
+
+// Rust's array Clone copies these elements by value, including when the
+// arrays are nested. Struct and interface elements need their own copy paths.
+func anyArrayHasCloneableScalars(array *types.Array) bool {
+	elem := types.Unalias(array.Elem())
+	for nested, ok := elem.(*types.Array); ok; nested, ok = elem.(*types.Array) {
+		elem = types.Unalias(nested.Elem())
+	}
+	basic, ok := elem.(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
 func currentPackageHelperRustTypePath(named *types.Named, rustType string) (string, bool) {
@@ -1099,12 +1130,9 @@ func NeedGoInteger() {
 
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnySlice = true
-		// Also need the regular format_any helper
-		helpers.needsFormatAny = true
-		// Track the Any import that the helpers will need
-		TrackImport("Any")
 	}
 }
 
@@ -1196,11 +1224,10 @@ func NeedGoTypeName() {
 // that is only known at run time. It prints through format_any and names
 // types through the %T helper.
 func NeedGoSprintf() {
+	NeedFormatAny()
+	NeedGoTypeName()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoSprintf = true
-		helpers.needsFormatAny = true
-		helpers.needsGoTypeName = true
-		TrackImport("Any")
 	}
 }
 

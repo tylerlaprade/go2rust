@@ -136,7 +136,7 @@ func main() {
 		"the held map is locked last":              "let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap();",
 		"a package-level map is written in place":  "let mut __map_guard = totals.borrow_mut();",
 		"an element is indexed before the value":   "{ let __append_idx = (0) as usize; let __append_value = ",
-		"the index of the target is evaluated too": "{ let _ = ({ let __f_ptr",
+		"the index of the target is evaluated too": "{ let __idx = ({ let __f_ptr",
 		"a sequence that is a call is held first":  "{ let __seq = { let __f_ptr",
 		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",

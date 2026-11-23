@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -625,5 +619,5 @@ fn main() {
     let mut more = Rc::new(RefCell::new(Some(Numbers(Rc::new(RefCell::new(Some(vec![5i64, 6i64])))))));
     let mut grown = grow(Rc::new(RefCell::new(Some({ let __arg_holder = nums.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut merged = merge(Rc::new(RefCell::new(Some({ let __arg_holder = nums.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = more.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    println!("{} {} {} {} {}", format!("{}", total(Rc::new(RefCell::new(Some({ let __arg_holder = nums.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))), format!("{}", total(Rc::new(RefCell::new(Some({ let __arg_holder = grown.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))), format!("{}", { let __slice_holder = { let __named_slice = (*merged.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq_holder = { let __named_slice = (*merged.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(4) as usize].clone() }), format!("{}", (*(*nums.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {} {} {} {}", format!("{}", total(Rc::new(RefCell::new(Some({ let __arg_holder = nums.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))), format!("{}", total(Rc::new(RefCell::new(Some({ let __arg_holder = grown.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))))), format!("{}", { let __slice_holder = { let __named_slice = (*merged.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq_holder = { let __named_slice = (*merged.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (4) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", (*(*nums.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));
 }

@@ -9,12 +9,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -795,7 +789,7 @@ pub fn export_path(pkg: Rc<RefCell<Option<types_Package>>>) -> Rc<RefCell<Option
 
 pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<RefCell<Option<Vec<pkgObj>>>>>>>>, pkg: Rc<RefCell<Option<types_Package>>>, obj: Rc<RefCell<Option<types_Object>>>) {
     { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = Rc::new(RefCell::new(None)); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(bundle { localpkg: pkg.clone(), ..Default::default() }))).clone(), ..Default::default() })));
     let mut pkgs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Package>>>>>>> = Rc::new(RefCell::new(None));
     for (__range_key, objs) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {

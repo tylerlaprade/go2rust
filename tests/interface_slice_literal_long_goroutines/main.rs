@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -806,6 +800,14 @@ impl std::fmt::Display for Rect {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Rect {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.w.lock().unwrap().as_ref().cloned() }; let __right = { other.w.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -876,6 +878,14 @@ impl std::fmt::Display for Tri {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Tri {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.b.lock().unwrap().as_ref().cloned() }; let __right = { other.b.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Rect {
@@ -896,7 +906,7 @@ impl Shape for Rect {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Rect>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -956,7 +966,7 @@ impl Shape for Tri {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Tri>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1061,7 +1071,13 @@ pub fn new_square(s: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Square>>> {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
     let mut shapes = Arc::new(Mutex::new(Some(vec![

@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -853,9 +847,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1272,6 +1267,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1526,13 +1526,19 @@ impl std::fmt::Display for Point {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Named(pub Arc<Mutex<Option<String>>>);
 
 impl Clone for Named {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Named(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Named {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1628,13 +1634,13 @@ impl std::fmt::Display for upper {
 impl upper {
     pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         { let __range_holder = p.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut b in __range_values.iter().copied() {
-        if { let __tmp_x = b; let __tmp_y = ('a' as i32) as u8; __tmp_x >= __tmp_y } && { let __tmp_x = b; let __tmp_y = ('z' as i32) as u8; __tmp_x <= __tmp_y } {
+        if { let __tmp_x = b; let __tmp_y = ('a' as u8) as u8; __tmp_x >= __tmp_y } && { let __tmp_x = b; let __tmp_y = ('z' as u8) as u8; __tmp_x <= __tmp_y } {
         { let __rhs = ({ let __tmp_x = ('a' as i32); let __tmp_y = ('A' as i32); __tmp_x - __tmp_y }) as u8; b = b - __rhs; };
     }
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.data.clone(); let __append_value = b; let mut __appended: Vec<u8> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.data.lock().unwrap() = __slice_header; };
     } }
         (
-            (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64,
+            ({ let __len = (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64,
             Arc::new(Mutex::new(None))
         )
     }
@@ -1653,15 +1659,21 @@ pub fn fprint() {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 
     let mut s = Arc::new(Mutex::new(Some(format!("{}{} {}", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true)))));
-    println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*s.lock().unwrap().as_ref().unwrap()).len()));
+    println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len })));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{} {}{}{} {} {} {}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3), format!("{}", 4.5), format!("{}", Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }), "<nil>".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
-    print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("")))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("\n")))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut parts = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new(3i64) as Box<dyn Any + Send + Sync>])));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some({ let __sprint_values = parts.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_text = String::new(); let mut __sprint_after_string = true; for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } __sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } __sprint_text }))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}\n", format_any_variadic(&parts))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));

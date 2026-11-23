@@ -10,12 +10,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub trait localDecl: std::fmt::Display + Any {
     fn __go_clone_box_local_decl(&self) -> Box<dyn localDecl + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -49,6 +43,13 @@ impl std::fmt::Display for localVarDecl {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for localVarDecl {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left_some = self.spec.lock().unwrap().is_some(); let __right_some = other.spec.lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && Arc::ptr_eq(&self.spec, &other.spec)) }
+        )
+    }
+}
 
 
 impl localVarDecl {
@@ -69,7 +70,7 @@ impl localDecl for localVarDecl {
     }
     fn __go_eq_local_decl(&self, other: &(dyn localDecl + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<localVarDecl>() {
-            false
+            self == __other
         } else {
             false
         }

@@ -11,12 +11,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -700,6 +694,7 @@ fn format_any(value: &dyn Any) -> String {
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1126,6 +1121,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1350,13 +1350,19 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1498,13 +1504,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Fahrenheit {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Fahrenheit(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Fahrenheit {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1684,13 +1696,19 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Color(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1761,13 +1779,19 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Status(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Status {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Status(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1838,13 +1862,19 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Enabled(pub Rc<RefCell<Option<bool>>>);
 
 impl Clone for Enabled {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Enabled(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Enabled {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1863,13 +1893,19 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Meters(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Meters {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Meters(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Meters {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

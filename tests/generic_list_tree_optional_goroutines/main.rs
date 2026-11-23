@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -834,9 +828,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1253,6 +1248,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1812,7 +1812,7 @@ impl List__int {
         let mut out: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
         let mut out_closure_clone = out.clone(); self.each(
             Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))),
         );
         return out.clone();
@@ -1846,7 +1846,7 @@ impl List__string {
         let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
         let mut out_closure_clone = out.clone(); self.each(
             Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<String>>>| {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>))),
         );
         return out.clone();
@@ -1890,7 +1890,7 @@ impl Tree__string {
         if false {
         return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-        if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
+        if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
@@ -1956,10 +1956,10 @@ pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {
-        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);
+            __any = __boxed.as_ref() as &dyn Any;
         }
         __any
     });
@@ -1974,7 +1974,7 @@ pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -1985,10 +1985,10 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {
-        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);
+            __any = __boxed.as_ref() as &dyn Any;
         }
         __any
     });
@@ -2003,7 +2003,7 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -2014,10 +2014,10 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&(dyn Any + Send + Sync)> = _ts_guard.as_ref().map(|__v| {
-        let mut __any = __v.as_ref() as &(dyn Any + Send + Sync);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-            __any = __boxed.as_ref() as &(dyn Any + Send + Sync);
+            __any = __boxed.as_ref() as &dyn Any;
         }
         __any
     });
@@ -2032,7 +2032,7 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -2041,7 +2041,13 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
     let mut l: Arc<Mutex<Option<List__string>>> = Arc::new(Mutex::new(Some(Default::default())));
@@ -2052,7 +2058,7 @@ fn main() {
     let mut nums = Arc::new(Mutex::new(Some(List__int { head: Default::default(), size: Arc::new(Mutex::new(Some(0))) })));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
-        { let __recv = nums.clone(); let __recv_ptr: *mut List__int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut List__int }; let __result = unsafe { &mut *__recv_ptr }.push(Arc::new(Mutex::new(Some({ let __bin_i = (*i.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i })))); __result };
+        { let __recv = nums.clone(); let __recv_ptr: *mut List__int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut List__int }; let __result = unsafe { &mut *__recv_ptr }.push(Arc::new(Mutex::new(Some({ let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i })))); __result };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     let mut sum = Arc::new(Mutex::new(Some(0i64)));
@@ -2121,7 +2127,7 @@ pub fn __go_nil_recv_tree__string_insert(t: Arc<Mutex<Option<Tree__string>>>, v:
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-    if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x < __tmp_y } {
+    if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x < __tmp_y } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).right = new_val; };

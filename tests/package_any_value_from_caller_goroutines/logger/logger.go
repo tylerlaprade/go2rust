@@ -22,6 +22,9 @@ func Describe(v any) string {
 	return "not an error"
 }
 
+// RequireError returns the error from a one-result type assertion.
+func RequireError(v any) error { return v.(error) }
+
 // Classify exercises the type-switch path separately from comma-ok assertion.
 func Classify(v any) string {
 	switch err := v.(type) {

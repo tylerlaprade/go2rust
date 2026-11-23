@@ -1,0 +1,11 @@
+[package]
+name = "query_builder_and_any_arguments"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "query_builder_and_any_arguments"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -16,13 +16,19 @@ pub const HIGH: i64 = 5;
 pub const OFFSET: i64 = 6;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Level(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

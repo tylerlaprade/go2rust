@@ -1,0 +1,14 @@
+rect 1 <rect>
+square 4 <square>
+rect 12 <rect>
+17
+rect 1 1
+is rect 1
+square 2
+rect 3 4
+is rect 12
+true false
+true
+true 5
+1 true
+2 4

@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -787,6 +781,13 @@ impl std::fmt::Display for counter {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for counter {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.value.lock().unwrap().as_ref().cloned() }; let __right = { other.value.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 pub trait valueReader: std::fmt::Display + Any {
@@ -832,7 +833,7 @@ impl valueReader for counter {
     }
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -900,7 +901,13 @@ pub fn clear_counter() {
 
 pub fn mark_concurrent(done: GoChannel<bool>) {
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 }
 

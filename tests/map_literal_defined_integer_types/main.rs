@@ -11,12 +11,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
@@ -50,13 +44,19 @@ pub(crate) const NAMED: i64 = 3;
 pub(crate) const OFFSET: i64 = 2;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Index(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Index(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Index {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

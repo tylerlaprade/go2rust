@@ -28,13 +28,19 @@ impl Clone for Box<dyn Code> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CodeVal(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for CodeVal {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         CodeVal(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for CodeVal {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -648,7 +642,7 @@ impl Stack {
         if (*i.borrow().as_ref().unwrap()) == 0 {
         return -(1);
     }
-        let mut top = Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap()) - 1) as usize].clone() })));
+        let mut top = Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_index = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })));
         { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard); let __low = (0) as usize; let __high = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })))); *self = new_val; };
         return (*top.borrow().as_ref().unwrap());
     }

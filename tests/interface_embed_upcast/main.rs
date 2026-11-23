@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -900,11 +894,11 @@ pub fn dump_node(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
 }
 
 pub fn walk_expr(e: Rc<RefCell<Option<Box<dyn Expr>>>>) {
-    dump_node({ let __inner: Box<dyn Node> = (*e.borrow().as_ref().unwrap()).clone(); Rc::new(RefCell::new(Some(__inner))) });
+    dump_node({ let __inner: Option<Box<dyn Node>> = (*e.borrow()).clone().map(|__v| -> Box<dyn Node> { __v }); Rc::new(RefCell::new(__inner)) });
 }
 
 pub fn walk_stmt(s: Rc<RefCell<Option<Box<dyn Stmt>>>>) {
-    dump_node({ let __inner: Box<dyn Node> = (*s.borrow().as_ref().unwrap()).clone(); Rc::new(RefCell::new(Some(__inner))) });
+    dump_node({ let __inner: Option<Box<dyn Node>> = (*s.borrow()).clone().map(|__v| -> Box<dyn Node> { __v }); Rc::new(RefCell::new(__inner)) });
 }
 
 fn main() {

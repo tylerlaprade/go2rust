@@ -8,12 +8,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -876,6 +870,14 @@ impl Nums {
     }
 }
 
+impl PartialEq for Nums {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.lock().unwrap().clone();
+        let __right = other.0.lock().unwrap().clone();
+        __left == __right
+    }
+}
+
 impl Display for Nums {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", format_slice(&self.0))
@@ -884,7 +886,7 @@ impl Display for Nums {
 
 
 pub fn change(a: Arc<Mutex<Option<A>>>) {
-    { let new_val = 50; *{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
+    { let new_val = 50; *{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
 }
 
 /// A named array type is a value: assigning it or passing it copies every
@@ -893,41 +895,47 @@ fn main() {
         // A goroutine makes every variable a locked one.
     let mut done = GoChannel::<String>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send("started".to_string());;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
     let mut a: Arc<Mutex<Option<A>>> = Arc::new(Mutex::new(Some(A(Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))))))));
-    { let new_val = 1; *{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
+    { let new_val = 1; *{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
     let mut b = { let __owned = a.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let new_val = 9; *{ let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
-    println!("{} {} {}", format!("{}", "named array of structs".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+    { let new_val = 9; *{ let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "named array of structs".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     let mut c: Arc<Mutex<Option<A>>> = Arc::new(Mutex::new(Some(A(Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))))))));
     { let new_val = a.lock().unwrap().as_ref().unwrap().__go_value_clone(); *c.lock().unwrap() = Some(new_val); };
-    { let new_val = 8; *{ let __seq_holder = { let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
-    println!("{} {} {}", format!("{}", "assigned".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+    { let new_val = 8; *{ let __seq_holder = { let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "assigned".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     change(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));
-    println!("{} {}", format!("{}", "parameter".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "parameter".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     let mut n: Arc<Mutex<Option<Nums>>> = Arc::new(Mutex::new(Some(Nums(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))))))));
     { let __idx = (0) as usize; let __rhs = 1; (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = 2; (*{ let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     let mut m = { let __owned = n.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
     { let __idx = (0) as usize; let __rhs = 9; (*{ let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {} {}", format!("{}", "named array of ints".to_string()), format!("{}", { let __seq_holder = { let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }));
+    println!("{} {} {}", format!("{}", "named array of ints".to_string()), format!("{}", { let __seq_holder = { let __named_array = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }));
 
     let mut g: Arc<Mutex<Option<Grid>>> = Arc::new(Mutex::new(Some(Grid(Arc::new(Mutex::new(Some(std::array::from_fn(|_| A(Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))))))))))));
-    { let new_val = 1; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }; __named_array.0.clone() }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
-    { let new_val = 2; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }; __named_array.0.clone() }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
+    { let new_val = 1; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }; __named_array.0.clone() }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
+    { let new_val = 2; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }; __named_array.0.clone() }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
     let mut h = { let __owned = g.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let new_val = 7; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*h.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }; __named_array.0.clone() }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
-    println!("{} {} {}", format!("{}", "nested named arrays".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }; __named_array.0.clone() }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*h.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(1) as usize].clone() }; __named_array.0.clone() }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+    { let new_val = 7; *{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*h.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }; __named_array.0.clone() }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap() = Some(new_val); };
+    println!("{} {} {}", format!("{}", "nested named arrays".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*g.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }; __named_array.0.clone() }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq_holder = { let __named_array = { let __seq_holder = { let __named_array = (*h.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }; __named_array.0.clone() }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     { let __range_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         let p = &p.__go_value_clone();
         { let new_val = 99; *p.x.lock().unwrap() = Some(new_val); };
     } }
-    println!("{} {}", format!("{}", "range over a named array".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "range over a named array".to_string()), format!("{}", (*{ let __seq_holder = { let __named_array = (*a.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }.x.lock().unwrap().as_ref().unwrap())));
 }

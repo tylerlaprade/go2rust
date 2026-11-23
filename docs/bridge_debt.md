@@ -310,9 +310,25 @@ in the first place.
 
 ### json-package
 
-- Location: `go/external_type_stubs.go:5885`
+- Location: `go/external_type_stubs.go:writeJsonPackageStub`
 - Go symbol: `encoding/json` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: the package source is not yet lowered; `writeJsonPackageStub`
+  implements the currently supported JSON entry points, including `Valid`.
+- Fixture: `tests/json_valid/`, `tests/json_valid_goroutines/`
 - Removal trigger: transpiler can lower `encoding/json` source.
 - Added: 2026-05-27 (backfill)
+
+### fs-filemode-perm
+
+- Location: `go/external_type_stubs.go`,
+  `writeFsFileModePermMethod`
+- Go symbol: `io/fs.FileMode.Perm`
+- Transpiler gap: non-source-mapped callers still represent `io/fs.FileMode`
+  through the external integer stub, so its Go method body is unavailable and
+  the generic external method emitter panics.
+- Fixture: `tests/filemode_perm/` and
+  `tests/filemode_perm_goroutines/`
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-translated
+  `io/fs` type and method body instead of the external integer stub; then
+  delete `writeFsFileModePermMethod`.
+- Added: 2026-11-23

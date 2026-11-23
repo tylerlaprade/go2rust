@@ -8,12 +8,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -646,15 +640,15 @@ impl Names {
             let __go_lhs_index_0 = ((*i.borrow().as_ref().unwrap())) as usize;
             let __go_lhs_sequence_1 = __self.0.clone().clone();
             let __go_lhs_index_1 = ((*j.borrow().as_ref().unwrap())) as usize;
-            let __tmp_0 = { let __seq_holder = __self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*j.borrow().as_ref().unwrap())) as usize].clone() };
-            let __tmp_1 = { let __seq_holder = __self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap())) as usize].clone() };
+            let __tmp_0 = { let __seq_holder = __self.0.clone(); let __seq_index = ((*j.borrow().as_ref().unwrap())) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() };
+            let __tmp_1 = { let __seq_holder = __self.0.clone(); let __seq_index = ((*i.borrow().as_ref().unwrap())) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() };
             (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
             (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
         };
     }
 
     pub fn at(&self, i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[((*i.borrow().as_ref().unwrap())) as usize].clone() })))
+        Rc::new(RefCell::new(Some({ let __seq_holder = self.0.clone(); let __seq_index = ((*i.borrow().as_ref().unwrap())) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })))
     }
 }
 

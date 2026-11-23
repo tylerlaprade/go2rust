@@ -7,12 +7,6 @@ macro_rules! vec {
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -859,7 +853,7 @@ fn main() {
     { let __recv = r.clone(); let __recv_ptr: *mut runner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut runner }; let __result = unsafe { &mut *__recv_ptr }.initialize(); __result };
     { let __recv = r.clone(); let __recv_ptr: *mut runner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut runner }; let __result = unsafe { &mut *__recv_ptr }.initialize(); __result };
 
-    let mut inFlightCap = Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).in_flight.capacity() as i64)));
-    let mut serializedCap = Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()).serialized.capacity() as i64)));
+    let mut inFlightCap = Arc::new(Mutex::new(Some({ let __channel = (*r.lock().unwrap().as_ref().unwrap()).in_flight.clone(); __channel }.capacity() as i64)));
+    let mut serializedCap = Arc::new(Mutex::new(Some({ let __channel = (*r.lock().unwrap().as_ref().unwrap()).serialized.clone(); __channel }.capacity() as i64)));
     println!("{} {}", format!("{}", { let __v = (*inFlightCap.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*serializedCap.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

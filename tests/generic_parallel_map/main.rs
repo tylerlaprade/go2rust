@@ -4,18 +4,14 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
+use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -656,6 +652,113 @@ where
     }
 }
 
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+
+fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
+    }
+}
+
 struct WaitGroup {
     count: std::sync::Arc<(std::sync::Mutex<i64>, std::sync::Condvar)>,
 }
@@ -713,6 +816,7 @@ impl std::fmt::Debug for WaitGroup {
 
 struct GoMutex {
     inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+    is_nil: bool,
 }
 
 struct GoMutexGuard {
@@ -724,10 +828,26 @@ impl GoMutex {
     fn new() -> Self {
         GoMutex {
             inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: false,
         }
     }
 
+    fn nil() -> Self {
+        GoMutex {
+            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: true,
+        }
+    }
+
+    fn go_ptr_eq(left: &Self, right: &Self) -> bool {
+        if left.is_nil || right.is_nil {
+            return left.is_nil && right.is_nil;
+        }
+        std::sync::Arc::ptr_eq(&left.inner, &right.inner)
+    }
+
     fn lock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         while *locked {
@@ -737,6 +857,7 @@ impl GoMutex {
     }
 
     fn unlock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         if !*locked {
@@ -774,6 +895,7 @@ impl Clone for GoMutex {
     fn clone(&self) -> Self {
         GoMutex {
             inner: self.inner.clone(),
+            is_nil: self.is_nil,
         }
     }
 }
@@ -825,25 +947,28 @@ impl SafeCounter__string {
     pub fn inc(&mut self, k: Arc<Mutex<Option<String>>>) {
         let __mutex_guard_source_285 = self.mu.clone(); let __mutex_guard_285 = __mutex_guard_source_285.guard();
         // mu.Unlock() handled by RAII guard
-        { let __map_holder = self.m.clone(); let __key = (*k.lock().unwrap().as_ref().unwrap()).clone(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+        { let __map_holder = self.m.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
     }
 
     pub fn value(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         let __mutex_guard_source_374 = self.mu.clone(); let __mutex_guard_374 = __mutex_guard_source_374.guard();
         // mu.Unlock() handled by RAII guard
-        { let __map = { let __map_holder = self.m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*k.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }
+        { let __map = { let __map_holder = self.m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }
     }
 }
 
 pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; ((*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().copied().enumerate() {
         wg.add(1);
         let f_thread = f.clone(); let out_thread = out.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(i as i64))); let __go_arg_1 = Arc::new(Mutex::new(Some(x))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |i: Arc<Mutex<Option<i64>>>, x: Arc<Mutex<Option<i64>>>| {
-            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+            let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
             { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = {
@@ -859,8 +984,32 @@ pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Opt
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                            go_store_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
+            }
+
         };
         __closure(__go_arg_0, __go_arg_1);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     } }
     wg.wait();
@@ -868,14 +1017,17 @@ pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Opt
 }
 
 pub fn parallel_map__string__int(xs: Arc<Mutex<Option<Vec<String>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; ((*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().enumerate() {
         wg.add(1);
         let f_thread = f.clone(); let out_thread = out.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(i as i64))); let __go_arg_1 = Arc::new(Mutex::new(Some((*x).clone()))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |i: Arc<Mutex<Option<i64>>>, x: Arc<Mutex<Option<String>>>| {
-            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+            let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
             { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = {
@@ -891,8 +1043,32 @@ pub fn parallel_map__string__int(xs: Arc<Mutex<Option<Vec<String>>>>, f: Arc<Mut
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                            go_store_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
+            }
+
         };
         __closure(__go_arg_0, __go_arg_1);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     } }
     wg.wait();
@@ -906,9 +1082,12 @@ fn main() {
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         wg.add(1);
         let c_thread = c.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |i: Arc<Mutex<Option<i64>>>| {
-            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+            let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
             if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -919,8 +1098,32 @@ fn main() {
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                            go_store_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
+            }
+
         };
         __closure(__go_arg_0);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -929,7 +1132,7 @@ fn main() {
     let mut sq = parallel_map__int__int(
         Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64, 4i64]))),
         Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
-        return { let __bin_n = (*n.lock().unwrap().as_ref().unwrap()).clone(); __bin_n * __bin_n };
+        return { let __bin_n = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_n * __bin_n };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)))
     );
     let mut sq = { let __slice_header = GoSliceHeader::go_slice_header(&sq); Arc::new(Mutex::new(__slice_header)) };
@@ -937,7 +1140,7 @@ fn main() {
     let mut lens = parallel_map__string__int(
         Arc::new(Mutex::new(Some(vec!["a".to_string(), "bb".to_string(), "ccc".to_string()]))),
         Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>| -> i64 {
-        (*s.lock().unwrap().as_ref().unwrap()).len() as i64
+        ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>)))
     );
     let mut lens = { let __slice_header = GoSliceHeader::go_slice_header(&lens); Arc::new(Mutex::new(__slice_header)) };

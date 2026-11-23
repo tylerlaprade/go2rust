@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -845,6 +839,13 @@ impl std::fmt::Display for animal {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for animal {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -953,6 +954,13 @@ impl std::fmt::Display for counter {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
+impl PartialEq for counter {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.n.lock().unwrap().as_ref().cloned() }; let __right = { other.n.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl animal {
@@ -973,7 +981,7 @@ impl namer for animal {
     }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<animal>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1253,7 +1261,7 @@ impl incer for counter {
     }
     fn __go_eq_incer(&self, other: &(dyn incer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counter>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1294,7 +1302,13 @@ impl incer for counterPtr {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 

@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -672,6 +666,7 @@ fn format_any(value: &dyn Any) -> String {
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1097,6 +1092,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1321,13 +1321,19 @@ pub const TUESDAY: i64 = 2;
 pub const HIGH: i64 = 3;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Weekday(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Weekday {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Weekday(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Weekday {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1710,13 +1716,19 @@ impl Ord for Weekday {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Level(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -2109,7 +2121,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((TUESDAY as i64 + 0 as i64) as i64))))), format!("{}", Weekday(Rc::new(RefCell::new(Some(0 as i64))))), format!("{}", HIGH));
     print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>, Box::new(Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))) as Box<dyn Any>, Box::new(Level(Rc::new(RefCell::new(Some(HIGH as i64))))) as Box<dyn Any>], false));
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64))))) as Box<dyn Any>)));
-    println!("{} {} {}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", format!("{}", Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))))))).borrow().as_ref().unwrap())), format!("{}", (*Weekday(Rc::new(RefCell::new(Some(MONDAY as i64)))).string().borrow().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", format!("{}", Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))))))).borrow().as_ref().unwrap())), format!("{}", (*Weekday(Rc::new(RefCell::new(Some(MONDAY as i64)))).string().borrow().as_ref().unwrap())));
     let mut d = Rc::new(RefCell::new(Some(Weekday(Rc::new(RefCell::new(Some(MONDAY as i64)))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Rc::new(RefCell::new(Some(((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Rc::new(RefCell::new(Some((((*(*d.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![Weekday(Rc::new(RefCell::new(Some(SUNDAY as i64)))), Weekday(Rc::new(RefCell::new(Some(TUESDAY as i64))))]))))));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}-{}", { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v }, Weekday(Rc::new(RefCell::new(Some(SUNDAY as i64)))))))).borrow().as_ref().unwrap())));

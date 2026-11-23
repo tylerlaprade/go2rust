@@ -194,6 +194,7 @@ type transpileFileAnalysis struct {
 	externalLocalInterfaceArgs    []externalLocalInterfaceArg
 	typeAssertExprs               []*ast.TypeAssertExpr
 	typeSwitchStmts               []*ast.TypeSwitchStmt
+	comparedAnonymousStructs      []*types.Struct
 }
 
 func newTranspileFileAnalysis() *transpileFileAnalysis {
@@ -371,6 +372,8 @@ func (analysis *transpileFileAnalysis) inspectBinaryExpr(expr *ast.BinaryExpr, t
 	}
 	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.X))
 	markComparableStructType(analysis.comparableStructTypes, typeInfo.GetType(expr.Y))
+	analysis.markComparedAnonymousStruct(typeInfo.GetType(expr.X), typeInfo)
+	analysis.markComparedAnonymousStruct(typeInfo.GetType(expr.Y), typeInfo)
 	if name, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr.X)); ok {
 		analysis.localInterfaceEqualityTypes[name] = true
 	}
@@ -970,6 +973,65 @@ func localInterfaceSliceElemName(typ types.Type) (string, bool) {
 	}
 }
 
+// comparedAnonymousStructs holds the anonymous struct types that the file
+// being written compares with == or !=.
+var comparedAnonymousStructs []*types.Struct
+
+// markComparedAnonymousStruct records an anonymous struct type that is
+// compared, and marks the structs of this package that its fields hold.
+func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Type, typeInfo *TypeInfo) {
+	if typ == nil || typeInfo == nil {
+		return
+	}
+	structType, ok := types.Unalias(typ).(*types.Struct)
+	if !ok {
+		return
+	}
+	analysis.comparedAnonymousStructs = append(analysis.comparedAnonymousStructs, structType)
+	for i := 0; i < structType.NumFields(); i++ {
+		named, ok := types.Unalias(structType.Field(i).Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		if _, isStruct := named.Underlying().(*types.Struct); isStruct && named.Obj().Pkg() == typeInfo.pkg {
+			markComparableStructWithFields(analysis.comparableStructTypes, named, typeInfo.pkg)
+		}
+	}
+}
+
+// anonymousStructAliasIsCompared reports whether a type declared inside a
+// function, which is written as the anonymous struct typeName, is compared.
+func anonymousStructAliasIsCompared(typeName string) bool {
+	for alias, target := range anonymousStructAliases {
+		if target == typeName && comparableStructTypes[alias] {
+			return true
+		}
+	}
+	return false
+}
+
+// anonymousStructIsCompared reports whether the anonymous struct written as
+// structType is one that the file compares.
+func anonymousStructIsCompared(structType *ast.StructType) bool {
+	if len(comparedAnonymousStructs) == 0 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(structType)
+	if typ == nil {
+		return false
+	}
+	for _, compared := range comparedAnonymousStructs {
+		if types.Identical(typ, compared) {
+			return true
+		}
+	}
+	return false
+}
+
 func markComparableStructType(result map[string]bool, typ types.Type) {
 	if typ == nil {
 		return
@@ -980,6 +1042,59 @@ func markComparableStructType(result map[string]bool, typ types.Type) {
 	}
 	if _, ok := named.Underlying().(*types.Struct); ok {
 		result[named.Obj().Name()] = true
+	}
+}
+
+// markComparableStructWithFields marks a struct of the current package as
+// compared, together with the structs of the current package that its fields
+// hold: Rust equality on the struct needs equality on each of them. It marks
+// nothing when a field holds a struct of another package, whose Rust type
+// this package cannot give equality.
+func markComparableStructWithFields(result map[string]bool, named *types.Named, pkg *types.Package) {
+	var structs []string
+	seen := map[*types.Named]bool{}
+	var collect func(typ types.Type) bool
+	collect = func(typ types.Type) bool {
+		switch t := types.Unalias(typ).(type) {
+		case *types.Array:
+			return collect(t.Elem())
+		case *types.Named:
+			st, ok := t.Underlying().(*types.Struct)
+			if !ok {
+				if array, ok := t.Underlying().(*types.Array); ok {
+					return collect(array.Elem())
+				}
+				return true
+			}
+			if t.Obj() == nil || t.Obj().Pkg() != pkg || t.TypeArgs().Len() > 0 {
+				return false
+			}
+			if seen[t] {
+				return true
+			}
+			seen[t] = true
+			structs = append(structs, t.Obj().Name())
+			for i := 0; i < st.NumFields(); i++ {
+				if !collect(st.Field(i).Type()) {
+					return false
+				}
+			}
+			return true
+		case *types.Struct:
+			for i := 0; i < t.NumFields(); i++ {
+				if !collect(t.Field(i).Type()) {
+					return false
+				}
+			}
+			return true
+		}
+		return true
+	}
+	if !collect(named) {
+		return
+	}
+	for _, name := range structs {
+		result[name] = true
 	}
 }
 
@@ -1003,9 +1118,6 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 	spec *ast.TypeSpec
 	decl *ast.GenDecl
 }, methods map[string][]*ast.FuncDecl, interfaces map[string]*ast.InterfaceType) {
-	if NeedsConcurrentWrapper() {
-		return
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return
@@ -1021,7 +1133,9 @@ func markComparableInterfaceImplementorStructs(typeDecls []struct {
 		}
 		for _, ifaceType := range interfaces {
 			if implementsInterface(methods[decl.spec.Name.Name], ifaceType) {
-				comparableStructTypes[decl.spec.Name.Name] = true
+				if named, ok := obj.Type().(*types.Named); ok {
+					markComparableStructWithFields(comparableStructTypes, named, typeInfo.pkg)
+				}
 				break
 			}
 		}
@@ -1428,8 +1542,15 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		if rustType == "" || seen[rustType] {
 			return
 		}
-		seen[rustType] = true
 		external := typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg
+		if external && rustTypeIsBuiltinValue(rustType) {
+			// A package type the stubs lower to a Rust builtin, such as
+			// strings.Builder as String, has no Rust type of its own: a
+			// downcast to String also matches every Go string, and String
+			// does not implement the program's interface trait.
+			return
+		}
+		seen[rustType] = true
 		candidates = append(candidates, localInterfaceAssertionCandidate{
 			rustType: rustType,
 			external: external,
@@ -1460,6 +1581,17 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		return strings.Compare(a.rustType, b.rustType)
 	})
 	return candidates
+}
+
+// rustTypeIsBuiltinValue reports whether rustType is a Rust builtin that Go's
+// own basic types and slices also lower to.
+func rustTypeIsBuiltinValue(rustType string) bool {
+	switch rustType {
+	case "String", "bool", "char", "i8", "i16", "i32", "i64", "i128", "isize",
+		"u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64":
+		return true
+	}
+	return strings.HasPrefix(rustType, "Vec<") || strings.HasPrefix(rustType, "GoSlice<")
 }
 
 func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm types.Type, sourceType types.Type) string {
@@ -1568,6 +1700,9 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	if !targetOK {
 		targetType = typeInfo.GetType(e.Type)
 	}
+	if isGoErrorType(targetType) {
+		return "", nil, nil, nil, false
+	}
 	sourceType := typeInfo.GetType(e.X)
 	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(targetType)
 	if !ok && isNonEmptyInterfaceType(sourceType) {
@@ -1612,6 +1747,9 @@ func anonInterfaceMethodSet(typeExpr ast.Expr) (*types.Interface, bool) {
 	}
 	typ := typeInfo.GetType(typeExpr)
 	if typ == nil {
+		return nil, false
+	}
+	if isGoErrorType(typ) {
 		return nil, false
 	}
 	// A non-named interface literal has no *types.Named wrapper; its type is the
@@ -1867,7 +2005,9 @@ func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, con
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(_other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(_other) = ")
+	out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitFor(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(concreteType)
 	out.WriteString(">() {\n")
 	out.WriteString("            false\n")
@@ -3295,6 +3435,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		packageGlobalGoPtrElemRust = make(map[string]string)
 	}
 	prevComparableStructTypes := comparableStructTypes
+	prevComparedAnonymousStructs := comparedAnonymousStructs
+	comparedAnonymousStructs = fileAnalysis.comparedAnonymousStructs
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
 	prevAnonymousInterfaceAssertionTraits := anonymousInterfaceAssertionTraits
 	comparableStructTypes = make(map[string]bool)
@@ -3319,6 +3461,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	anonymousInterfaceAssertionTraits = make(map[string]anonymousInterfaceAssertionTrait)
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes
+		comparedAnonymousStructs = prevComparedAnonymousStructs
 		localInterfaceEqualityTypes = prevLocalInterfaceEqualityTypes
 		anonymousInterfaceAssertionTraits = prevAnonymousInterfaceAssertionTraits
 	}()
@@ -4109,7 +4252,13 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 			body.WriteString("\n\n")
 		}
 		*first = false
-		writeStructDerive(body, "", structType, true)
+		// A compared anonymous struct gets equality as a named one does.
+		comparedName := ""
+		if anonymousStructIsCompared(structType) || anonymousStructAliasIsCompared(typeName) || comparableStructTypes[typeName] {
+			comparedName = typeName
+			comparableStructTypes[typeName] = true
+		}
+		writeStructDerive(body, comparedName, structType, true)
 		body.WriteString("pub struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")
@@ -4154,6 +4303,9 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		}
 
 		body.WriteString("}\n")
+		if comparedName != "" {
+			generateStructPartialEq(body, typeName, structType, rustTypeGenerics{})
+		}
 		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
 		writeAnonymousStructPromotedMethods(body, typeName)
 		body.WriteString("\n")

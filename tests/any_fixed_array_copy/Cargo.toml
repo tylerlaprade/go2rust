@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_anyfixedarraycopy_check",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "any_fixed_array_copy"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_fixed_array_copy"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_anyfixedarraycopy_check = { path = "vendor/example_com_anyfixedarraycopy_check" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

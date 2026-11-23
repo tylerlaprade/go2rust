@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -796,9 +790,10 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
+fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1220,6 +1215,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1486,15 +1486,29 @@ impl std::fmt::Display for Rect {
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
+impl PartialEq for Rect {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.w.lock().unwrap().as_ref().cloned() }; let __right = { other.w.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.h.lock().unwrap().as_ref().cloned() }; let __right = { other.h.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Arc<Mutex<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Celsius(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1665,7 +1679,7 @@ impl Shape for Rect {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Rect>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1717,7 +1731,13 @@ impl Celsius {
 fn main() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     done.recv().unwrap_or_default();
     print!("{}", go_sprintf(&"%05.1f|%8.2f|%-8.3f|%-6s|%6s|%e|%o|%+5d|% d|%x|%X|%6.3g|%3c|%q|%U|%t|%5t|%08b|%5.1f%%|%10v|%-10v|\n".to_string(), &[{ let __go_format_arg = Box::new(3.14159) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(2.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1.0) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("ab".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("cd".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(12345.678) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(8i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(42i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(7i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("hi".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(255i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(3.14159) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(120i32) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(121i32) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(128512i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(true) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(false) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(5i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(99.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("v".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(3i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
@@ -1727,7 +1747,7 @@ fn main() {
     println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[{ let __go_format_arg = Box::new("name".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = 2.0; let __tmp_y = 3.0; __tmp_x / __tmp_y }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut c: Arc<Mutex<Option<Celsius>>> = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(21.5)))))));
-    print!("{}", go_sprintf(&"%v %s %8.2v|\n".to_string(), &[{ let __go_format_arg = Box::new((*c.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new((*c.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1.5) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&"%v %s %8.2v|\n".to_string(), &[{ let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1.5) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut shapes = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(3.0))), h: Arc::new(Mutex::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>)))])));
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, sh) in __range_values.iter().enumerate() {
                 // Two calls on one interface value in one Printf.

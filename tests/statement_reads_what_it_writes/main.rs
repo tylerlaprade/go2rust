@@ -10,12 +10,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -809,7 +803,7 @@ fn main() {
     println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", (*n.borrow().as_ref().unwrap())[(((*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone()));
 
     let mut byKey = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64]))))]))));
-    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone(); (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; (*__slice.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __slice.clone() }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "append to a slice in a map".to_string()), format!("{}", format_slice(&{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 }

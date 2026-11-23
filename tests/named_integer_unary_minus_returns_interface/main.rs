@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -604,13 +598,19 @@ impl Clone for Box<dyn Value> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct int64Val(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for int64Val {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         int64Val(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for int64Val {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

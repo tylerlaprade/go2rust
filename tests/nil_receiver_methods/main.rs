@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -953,6 +947,14 @@ impl std::fmt::Display for Elem {
         write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for Elem {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.val.lock().unwrap().as_ref().cloned() }; let __right = { other.val.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left_some = self.next.lock().unwrap().is_some(); let __right_some = other.next.lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && Arc::ptr_eq(&self.next, &other.next)) }
+        )
+    }
+}
 
 
 pub trait Stringer: std::fmt::Display + Any {
@@ -1113,7 +1115,7 @@ impl Stringer for Elem {
     }
     fn __go_eq_stringer(&self, other: &(dyn Stringer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Elem>() {
-            false
+            self == __other
         } else {
             false
         }
@@ -1200,7 +1202,13 @@ pub fn more() {
     println!("{} {}", format!("{}", __go_nil_recv_counter_hit({ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", __go_nil_recv_counter_hit({ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"zz".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
     let mut done = GoChannel::<i64>::new();
     let c_thread = c.clone(); let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(__go_nil_recv_counter_hit(c_thread.clone()));;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 }
@@ -1225,7 +1233,7 @@ fn main() {
     }
     let mut out: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
     let mut out_closure_clone = out.clone(); __go_nil_recv_tree_in_order(root.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))));
     println!("{} {} {} {}", format!("{}", format_slice(&out)), format!("{}", __go_nil_recv_tree_height(root.clone())), format!("{}", __go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(4))))), format!("{}", __go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(7))))));
     more();
@@ -1296,7 +1304,7 @@ pub fn __go_nil_recv_tree_height(t: Arc<Mutex<Option<Tree>>>) -> i64 {
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return 0;
     }
-    let (mut l, mut r) = (__go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }), __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }));
+    let (mut l, mut r) = ({ let __tuple_value = __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }); __tuple_value }, { let __tuple_value = __go_nil_recv_tree_height({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }); __tuple_value });
     if { let __tmp_x = l; let __tmp_y = r; __tmp_x > __tmp_y } {
         return { let __tmp_x = l; let __tmp_y = 1; __tmp_x + __tmp_y };
     }

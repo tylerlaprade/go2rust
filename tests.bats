@@ -435,6 +435,14 @@ run_xfail_test() {
     run_test "tests/anonymous_structs_positional"
 }
 
+@test "any_alias_slice_literal" {
+    run_test "tests/any_alias_slice_literal"
+}
+
+@test "any_alias_slice_literal_goroutines" {
+    run_test "tests/any_alias_slice_literal_goroutines"
+}
+
 @test "any_boxed_reference_types" {
     run_test "tests/any_boxed_reference_types"
 }
@@ -445,6 +453,10 @@ run_xfail_test() {
 
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
+}
+
+@test "any_fixed_array_copy" {
+    run_test "tests/any_fixed_array_copy"
 }
 
 @test "any_interface_static_assertion" {
@@ -467,8 +479,28 @@ run_xfail_test() {
     run_test "tests/any_slice_element_comma_ok_goroutines"
 }
 
+@test "any_slice_element_values" {
+    run_test "tests/any_slice_element_values"
+}
+
+@test "any_slice_element_values_goroutines" {
+    run_test "tests/any_slice_element_values_goroutines"
+}
+
 @test "any_slice_index_assign_concrete" {
     run_test "tests/any_slice_index_assign_concrete"
+}
+
+@test "any_slice_index_nil_bounds" {
+    run_test "tests/any_slice_index_nil_bounds"
+}
+
+@test "any_slice_range_late_read" {
+    run_test "tests/any_slice_range_late_read"
+}
+
+@test "any_slice_range_late_read_goroutines" {
+    run_test "tests/any_slice_range_late_read_goroutines"
 }
 
 @test "any_struct_empty_literal" {
@@ -503,6 +535,14 @@ run_xfail_test() {
     run_test "tests/append_nil_to_nested_slice"
 }
 
+@test "append_result_is_a_new_header" {
+    run_test "tests/append_result_is_a_new_header"
+}
+
+@test "append_result_is_a_new_header_goroutines" {
+    run_test "tests/append_result_is_a_new_header_goroutines"
+}
+
 @test "append_selector_slice_expansion" {
     run_test "tests/append_selector_slice_expansion"
 }
@@ -533,6 +573,14 @@ run_xfail_test() {
 
 @test "asserted_collections_shared_goroutines" {
     run_test "tests/asserted_collections_shared_goroutines"
+}
+
+@test "atomic_integer_operations" {
+    run_test "tests/atomic_integer_operations"
+}
+
+@test "atomic_integer_operations_goroutines" {
+    run_test "tests/atomic_integer_operations_goroutines"
 }
 
 @test "atomic_operations" {
@@ -623,6 +671,14 @@ run_xfail_test() {
     run_test "tests/cap_struct_slice_field"
 }
 
+@test "case_table_lookup_with_named_arrays" {
+    run_test "tests/case_table_lookup_with_named_arrays"
+}
+
+@test "case_table_lookup_with_named_arrays_goroutines" {
+    run_test "tests/case_table_lookup_with_named_arrays_goroutines"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
@@ -631,12 +687,40 @@ run_xfail_test() {
     run_test "tests/channel_error_values"
 }
 
+@test "channel_interface_events" {
+    run_test "tests/channel_interface_events"
+}
+
+@test "channel_interface_values" {
+    run_test "tests/channel_interface_values"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
 
+@test "channel_send_nested_shadow" {
+    run_test "tests/channel_send_nested_shadow"
+}
+
+@test "channel_send_range_value" {
+    run_test "tests/channel_send_range_value"
+}
+
+@test "channel_send_rust_keyword" {
+    run_test "tests/channel_send_rust_keyword"
+}
+
+@test "channel_send_shadowed_identifiers" {
+    run_test "tests/channel_send_shadowed_identifiers"
+}
+
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
+}
+
+@test "channel_struct_fields_between_goroutines" {
+    run_test "tests/channel_struct_fields_between_goroutines"
 }
 
 @test "channel_sync" {
@@ -687,6 +771,14 @@ run_xfail_test() {
     run_test "tests/closures_basic"
 }
 
+@test "closures_sharing_a_variable" {
+    run_test "tests/closures_sharing_a_variable"
+}
+
+@test "closures_sharing_a_variable_goroutines" {
+    run_test "tests/closures_sharing_a_variable_goroutines"
+}
+
 @test "comma_ok_assert_imported_interface_field" {
     run_test "tests/comma_ok_assert_imported_interface_field"
 }
@@ -721,6 +813,10 @@ run_xfail_test() {
 
 @test "concrete_reassigned_to_interface_var" {
     run_test "tests/concrete_reassigned_to_interface_var"
+}
+
+@test "concurrency_patterns" {
+    run_test "tests/concurrency_patterns"
 }
 
 @test "concurrent_address_composite_method" {
@@ -829,6 +925,10 @@ run_xfail_test() {
 
 @test "context_usage" {
     run_test "tests/context_usage"
+}
+
+@test "converted_shift_counts" {
+    run_test "tests/converted_shift_counts"
 }
 
 @test "copy_compound_assign" {
@@ -999,6 +1099,14 @@ run_xfail_test() {
     run_test "tests/embedded_structs"
 }
 
+@test "empty_interface_value_copy" {
+    run_test "tests/empty_interface_value_copy"
+}
+
+@test "empty_interface_value_copy_goroutines" {
+    run_test "tests/empty_interface_value_copy_goroutines"
+}
+
 @test "enums_iota" {
     run_test "tests/enums_iota"
 }
@@ -1009,6 +1117,14 @@ run_xfail_test() {
 
 @test "error_argument_clone" {
     run_test "tests/error_argument_clone"
+}
+
+@test "error_assertion_concrete" {
+    run_test "tests/error_assertion_concrete"
+}
+
+@test "error_assertion_concrete_goroutines" {
+    run_test "tests/error_assertion_concrete_goroutines"
 }
 
 @test "error_copy_and_identity" {
@@ -1025,6 +1141,14 @@ run_xfail_test() {
 
 @test "error_custom_type_in_interface_goroutines" {
     run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
+@test "error_equivalent_interface" {
+    run_test "tests/error_equivalent_interface"
+}
+
+@test "error_equivalent_interface_goroutines" {
+    run_test "tests/error_equivalent_interface_goroutines"
 }
 
 @test "error_field_return" {
@@ -1161,6 +1285,14 @@ run_xfail_test() {
 
 @test "file_io" {
     run_test "tests/file_io"
+}
+
+@test "filemode_perm" {
+    run_test "tests/filemode_perm"
+}
+
+@test "filemode_perm_goroutines" {
+    run_test "tests/filemode_perm_goroutines"
 }
 
 @test "flag_parsing" {
@@ -1383,12 +1515,24 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "goroutine_capture_rust_keyword" {
+    run_test "tests/goroutine_capture_rust_keyword"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
 
+@test "goroutine_panic_recover" {
+    run_test "tests/goroutine_panic_recover"
+}
+
 @test "goroutine_pointer_capture_alias" {
     run_test "tests/goroutine_pointer_capture_alias"
+}
+
+@test "goroutine_range_channel_argument" {
+    run_test "tests/goroutine_range_channel_argument"
 }
 
 @test "goroutines_basic" {
@@ -1455,6 +1599,22 @@ run_xfail_test() {
     run_test "tests/interface_arg_wrapped_struct_field"
 }
 
+@test "interface_asserted_collection_consumers" {
+    run_test "tests/interface_asserted_collection_consumers"
+}
+
+@test "interface_asserted_collection_consumers_goroutines" {
+    run_test "tests/interface_asserted_collection_consumers_goroutines"
+}
+
+@test "interface_assertion_skips_builtin_stub_types" {
+    run_test "tests/interface_assertion_skips_builtin_stub_types"
+}
+
+@test "interface_assertion_skips_builtin_stub_types_goroutines" {
+    run_test "tests/interface_assertion_skips_builtin_stub_types_goroutines"
+}
+
 @test "interface_basic" {
     run_test "tests/interface_basic"
 }
@@ -1467,8 +1627,32 @@ run_xfail_test() {
     run_test "tests/interface_embedded_method"
 }
 
+@test "interface_embedding_two_interfaces" {
+    run_test "tests/interface_embedding_two_interfaces"
+}
+
+@test "interface_embedding_two_interfaces_goroutines" {
+    run_test "tests/interface_embedding_two_interfaces_goroutines"
+}
+
 @test "interface_field_selector_assign" {
     run_test "tests/interface_field_selector_assign"
+}
+
+@test "interface_function_assertion_binding" {
+    run_test "tests/interface_function_assertion_binding"
+}
+
+@test "interface_function_assertion_binding_goroutines" {
+    run_test "tests/interface_function_assertion_binding_goroutines"
+}
+
+@test "interface_map_literal_assignment" {
+    run_test "tests/interface_map_literal_assignment"
+}
+
+@test "interface_map_literal_assignment_goroutines" {
+    run_test "tests/interface_map_literal_assignment_goroutines"
 }
 
 @test "interface_method_nil_argument" {
@@ -1477,6 +1661,22 @@ run_xfail_test() {
 
 @test "interface_mutating_method_dispatch" {
     run_test "tests/interface_mutating_method_dispatch"
+}
+
+@test "interface_slice_element_argument" {
+    run_test "tests/interface_slice_element_argument"
+}
+
+@test "interface_slice_element_argument_goroutines" {
+    run_test "tests/interface_slice_element_argument_goroutines"
+}
+
+@test "interface_slice_element_assertion_comma_ok" {
+    run_test "tests/interface_slice_element_assertion_comma_ok"
+}
+
+@test "interface_slice_element_assertion_comma_ok_goroutines" {
+    run_test "tests/interface_slice_element_assertion_comma_ok_goroutines"
 }
 
 @test "interface_slice_index_arg" {
@@ -1507,6 +1707,14 @@ run_xfail_test() {
     run_test "tests/interface_slice_nil_element"
 }
 
+@test "interface_values_are_copied" {
+    run_test "tests/interface_values_are_copied"
+}
+
+@test "interface_values_are_copied_goroutines" {
+    run_test "tests/interface_values_are_copied_goroutines"
+}
+
 @test "interfaces_basic" {
     run_test "tests/interfaces_basic"
 }
@@ -1523,6 +1731,14 @@ run_xfail_test() {
     run_test "tests/iota_enums"
 }
 
+@test "iota_flags_float_constants_and_local_types" {
+    run_test "tests/iota_flags_float_constants_and_local_types"
+}
+
+@test "iota_flags_float_constants_and_local_types_goroutines" {
+    run_test "tests/iota_flags_float_constants_and_local_types_goroutines"
+}
+
 @test "json_marshal" {
     run_test "tests/json_marshal"
 }
@@ -1533,6 +1749,14 @@ run_xfail_test() {
 
 @test "json_marshal_map_field" {
     run_test "tests/json_marshal_map_field"
+}
+
+@test "json_valid" {
+    run_test "tests/json_valid"
+}
+
+@test "json_valid_goroutines" {
+    run_test "tests/json_valid_goroutines"
 }
 
 @test "keyed_array_literal" {
@@ -1549,6 +1773,14 @@ run_xfail_test() {
 
 @test "len_call_argument" {
     run_test "tests/len_call_argument"
+}
+
+@test "len_of_computed_values" {
+    run_test "tests/len_of_computed_values"
+}
+
+@test "len_of_computed_values_goroutines" {
+    run_test "tests/len_of_computed_values_goroutines"
 }
 
 @test "len_short_decl" {
@@ -1835,6 +2067,14 @@ run_xfail_test() {
     run_test "tests/method_closure_receiver_capture"
 }
 
+@test "method_expressions_and_anonymous_struct_equality" {
+    run_test "tests/method_expressions_and_anonymous_struct_equality"
+}
+
+@test "method_expressions_and_anonymous_struct_equality_goroutines" {
+    run_test "tests/method_expressions_and_anonymous_struct_equality_goroutines"
+}
+
 @test "method_func_literal_argument" {
     run_test "tests/method_func_literal_argument"
 }
@@ -1893,6 +2133,14 @@ run_xfail_test() {
 
 @test "mutex_guard_method_call" {
     run_test "tests/mutex_guard_method_call"
+}
+
+@test "named_array_literals_and_equality" {
+    run_test "tests/named_array_literals_and_equality"
+}
+
+@test "named_array_literals_and_equality_goroutines" {
+    run_test "tests/named_array_literals_and_equality_goroutines"
 }
 
 @test "named_array_value_copy" {
@@ -1979,8 +2227,24 @@ run_xfail_test() {
     run_test "tests/named_integer_negative_index"
 }
 
+@test "named_integer_receiver_reassign_and_zero" {
+    run_test "tests/named_integer_receiver_reassign_and_zero"
+}
+
+@test "named_integer_receiver_reassign_and_zero_goroutines" {
+    run_test "tests/named_integer_receiver_reassign_and_zero_goroutines"
+}
+
 @test "named_integer_unary_minus_returns_interface" {
     run_test "tests/named_integer_unary_minus_returns_interface"
+}
+
+@test "named_interface_struct_equality" {
+    run_test "tests/named_interface_struct_equality"
+}
+
+@test "named_interface_struct_equality_goroutines" {
+    run_test "tests/named_interface_struct_equality_goroutines"
 }
 
 @test "named_map_field_zero_len" {
@@ -1993,6 +2257,14 @@ run_xfail_test() {
 
 @test "named_pointer_defer_return" {
     run_test "tests/named_pointer_defer_return"
+}
+
+@test "named_scalar_conversion_method_receiver" {
+    run_test "tests/named_scalar_conversion_method_receiver"
+}
+
+@test "named_scalar_conversion_method_receiver_goroutines" {
+    run_test "tests/named_scalar_conversion_method_receiver_goroutines"
 }
 
 @test "named_scalar_copies_are_values" {
@@ -2091,6 +2363,14 @@ run_xfail_test() {
     run_test "tests/nil_basic"
 }
 
+@test "nil_empty_interface_argument" {
+    run_test "tests/nil_empty_interface_argument"
+}
+
+@test "nil_empty_interface_argument_goroutines" {
+    run_test "tests/nil_empty_interface_argument_goroutines"
+}
+
 @test "nil_receiver_methods" {
     run_test "tests/nil_receiver_methods"
 }
@@ -2111,8 +2391,24 @@ run_xfail_test() {
     run_test "tests/numeric_conversion_literals"
 }
 
+@test "one_statement_reads_a_variable_twice" {
+    run_test "tests/one_statement_reads_a_variable_twice"
+}
+
+@test "one_statement_reads_a_variable_twice_goroutines" {
+    run_test "tests/one_statement_reads_a_variable_twice_goroutines"
+}
+
 @test "os_args" {
     run_test "tests/os_args"
+}
+
+@test "os_executable" {
+    run_test "tests/os_executable"
+}
+
+@test "os_executable_goroutines" {
+    run_test "tests/os_executable_goroutines"
 }
 
 @test "os_file_direct_close" {
@@ -2121,6 +2417,14 @@ run_xfail_test() {
 
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
+}
+
+@test "os_hostname" {
+    run_test "tests/os_hostname"
+}
+
+@test "os_hostname_goroutines" {
+    run_test "tests/os_hostname_goroutines"
 }
 
 @test "os_readdir_filepath" {
@@ -2315,6 +2619,14 @@ run_xfail_test() {
     run_test "tests/parallel_decl_from_wrapped_fields"
 }
 
+@test "parallel_define_evaluates_in_turn" {
+    run_test "tests/parallel_define_evaluates_in_turn"
+}
+
+@test "parallel_define_evaluates_in_turn_goroutines" {
+    run_test "tests/parallel_define_evaluates_in_turn_goroutines"
+}
+
 @test "parallel_slice_field_assign" {
     run_test "tests/parallel_slice_field_assign"
 }
@@ -2411,6 +2723,14 @@ run_xfail_test() {
     run_test "tests/print_interface_value_twice_goroutines"
 }
 
+@test "print_map_fields" {
+    run_test "tests/print_map_fields"
+}
+
+@test "print_map_fields_goroutines" {
+    run_test "tests/print_map_fields_goroutines"
+}
+
 @test "print_nested_slice" {
     run_test "tests/print_nested_slice"
 }
@@ -2425,6 +2745,14 @@ run_xfail_test() {
 
 @test "print_nil_error_and_pointer_goroutines" {
     run_test "tests/print_nil_error_and_pointer_goroutines"
+}
+
+@test "print_nil_interface_value" {
+    run_test "tests/print_nil_interface_value"
+}
+
+@test "print_nil_interface_value_goroutines" {
+    run_test "tests/print_nil_interface_value_goroutines"
 }
 
 @test "print_self_referencing_value_goroutines" {
@@ -2485,6 +2813,14 @@ run_xfail_test() {
 
 @test "promoted_pointer_method_mutates_receiver_goroutines" {
     run_test "tests/promoted_pointer_method_mutates_receiver_goroutines"
+}
+
+@test "query_builder_and_any_arguments" {
+    run_test "tests/query_builder_and_any_arguments"
+}
+
+@test "query_builder_and_any_arguments_goroutines" {
+    run_test "tests/query_builder_and_any_arguments_goroutines"
 }
 
 @test "random_numbers" {
@@ -2609,6 +2945,14 @@ run_xfail_test() {
 
 @test "range_return_struct_value" {
     run_test "tests/range_return_struct_value"
+}
+
+@test "range_rune_arithmetic" {
+    run_test "tests/range_rune_arithmetic"
+}
+
+@test "range_rune_arithmetic_goroutines" {
+    run_test "tests/range_rune_arithmetic_goroutines"
 }
 
 @test "range_selector_string_values" {
@@ -2773,6 +3117,14 @@ run_xfail_test() {
 
 @test "rune_escape_literals" {
     run_test "tests/rune_escape_literals"
+}
+
+@test "rune_literals_in_byte_fields" {
+    run_test "tests/rune_literals_in_byte_fields"
+}
+
+@test "rune_literals_in_byte_fields_goroutines" {
+    run_test "tests/rune_literals_in_byte_fields_goroutines"
 }
 
 @test "runtime_format_with_package_level_names" {
@@ -3007,6 +3359,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_io_copy"
 }
 
+@test "source_stdlib_io_fs_filemode" {
+    run_test "tests/source_stdlib_io_fs_filemode"
+}
+
 @test "source_stdlib_parser_decl_cross_package" {
     run_test "tests/source_stdlib_parser_decl_cross_package"
 }
@@ -3027,12 +3383,20 @@ run_xfail_test() {
     run_test "tests/source_stdlib_strconv_unquote"
 }
 
+@test "source_stdlib_strings_index_byte" {
+    run_test "tests/source_stdlib_strings_index_byte"
+}
+
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
 }
 
 @test "star_pointer_incdec" {
     run_test "tests/star_pointer_incdec"
+}
+
+@test "stateful_goroutines" {
+    run_test "tests/stateful_goroutines"
 }
 
 @test "statement_reads_what_it_writes" {
@@ -3157,6 +3521,10 @@ run_xfail_test() {
 
 @test "stdlib_package_pointer_var_method" {
     run_test "tests/stdlib_package_pointer_var_method"
+}
+
+@test "stdlib_package_test_unicode_utf8_constants" {
+    run_test "tests/stdlib_package_test_unicode_utf8_constants"
 }
 
 @test "stdlib_package_var_comparison" {
@@ -3643,10 +4011,6 @@ run_xfail_test() {
     run_test "tests/wrapped_call_argument"
 }
 
-@test "XFAIL: concurrency_patterns" {
-    run_xfail_test "tests/XFAIL/concurrency_patterns"
-}
-
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
 }
@@ -3655,12 +4019,16 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
-@test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
-    run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
+@test "XFAIL: os_file_handle_reassignment" {
+    run_xfail_test "tests/XFAIL/os_file_handle_reassignment"
 }
 
-@test "XFAIL: stateful_goroutines" {
-    run_xfail_test "tests/XFAIL/stateful_goroutines"
+@test "XFAIL: source_stdlib_io_fs_os_stat" {
+    run_xfail_test "tests/XFAIL/source_stdlib_io_fs_os_stat"
+}
+
+@test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
+    run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
 }
 
 @test "XFAIL: type_conversions" {

@@ -1207,6 +1207,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			siblingImports = siblingItemImports[module.name]
 		}
 		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpers, siblingImports, siblingItemImports != nil)
+		rustCode = compactHomogeneousVecLiterals(rustCode, goSliceModeEnabled())
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", module.name, err)
 		}
@@ -1240,7 +1241,7 @@ path = "lib.rs"
 			cargoToml += "num = \"0.4\"\n"
 		}
 		if needsSerdeJSON {
-			cargoToml += "serde_json = \"1\"\n"
+			cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 		}
 		if needsGosyn {
 			cargoToml += "gosyn = \"0.2.9\"\n"

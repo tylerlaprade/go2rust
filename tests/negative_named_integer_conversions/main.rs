@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -689,40 +683,49 @@ fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String
     format_any_slice_values(slice)
 }
 
-fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Big>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<I8>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<Level>() { return Box::new(v.clone()) as Box<dyn Any>; }
+fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Big>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<I8>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Level>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    None
+}
 
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
 pub(crate) const STEP: i64 = 5;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct I8(pub Rc<RefCell<Option<i8>>>);
 
 impl Clone for I8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         I8(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for I8 {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1105,13 +1108,19 @@ impl Ord for I8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Level(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Level(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1494,13 +1503,19 @@ impl Ord for Level {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct U8(pub Rc<RefCell<Option<u8>>>);
 
 impl Clone for U8 {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         U8(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for U8 {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1876,13 +1891,19 @@ impl Ord for U8 {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Big(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Big {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Big(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Big {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -2270,7 +2291,7 @@ fn main() {
     let mut b = Rc::new(RefCell::new(Some(Level(Rc::new(RefCell::new(Some(-3 as i64)))))));
     let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Level(Rc::new(RefCell::new(Some(-4 as i64))))) as Box<dyn Any>)));
     let mut levels = Rc::new(RefCell::new(Some(vec![Level(Rc::new(RefCell::new(Some(-5 as i64 as i64)))), Level(Rc::new(RefCell::new(Some(-6 as i64))))])));
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_any(c.borrow().as_ref().unwrap().as_ref())), format!("{}", format_slice(&levels)));
+    println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", match c.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", format_slice(&levels)));
 
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Rc::new(RefCell::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Rc::new(RefCell::new(Some(-128 as i8))))), format!("{}", Level(Rc::new(RefCell::new(Some(!0 as i64))))), format!("{}", Level(Rc::new(RefCell::new(Some(-STEP as i64))))), format!("{}", Big(Rc::new(RefCell::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Rc::new(RefCell::new(Some(7 as i64))))), format!("{}", U8(Rc::new(RefCell::new(Some(!0 as u8 as u8))))));
 
@@ -2280,7 +2301,7 @@ fn main() {
     print!("{} {} {}\n", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, "main.I8");
     let mut vals = Rc::new(RefCell::new(Some(vec![Box::new(I8(Rc::new(RefCell::new(Some(-2 as i8))))) as Box<dyn Any>, Box::new(Level(Rc::new(RefCell::new(Some(-9 as i64))))) as Box<dyn Any>, Box::new(Big(Rc::new(RefCell::new(Some(-1 as i64))))) as Box<dyn Any>])));
     println!("{}", format_any_variadic(&vals));
-    { let __range_holder = vals.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
+    { let __range_holder = vals.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}|", format_any(v.as_ref()));
     } }
     println!();

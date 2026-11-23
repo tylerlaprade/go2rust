@@ -9,12 +9,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -815,7 +809,7 @@ fn main() {
         println!("{} {}", format!("{}", "Parsed number:".to_string()), format!("{}", parsed));
     }
 
-    let mut floatStr = Rc::new(RefCell::new(Some(go_strconv_format_float(3.14159 as f64, char::from_u32((('f' as i32)) as u32).unwrap_or('f'), 2 as i32))));
+    let mut floatStr = Rc::new(RefCell::new(Some(go_strconv_format_float(3.14159 as f64, char::from_u32((('f' as u8)) as u32).unwrap_or('f'), 2 as i32))));
     println!("{} {}", format!("{}", "Float as string:".to_string()), format!("{}", { let __v = (*floatStr.borrow().as_ref().unwrap()).clone(); __v }));
 
         // math package
@@ -848,6 +842,6 @@ fn main() {
 
         // Mathematical calculation with string formatting
     let mut result = Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((3.0 as f64).powf(2.0 as f64)))).borrow().as_ref().unwrap()) + (*Rc::new(RefCell::new(Some((4.0 as f64).powf(2.0 as f64)))).borrow().as_ref().unwrap()) as f64).sqrt())));
-    let mut resultStr = Rc::new(RefCell::new(Some(go_strconv_format_float((*result.borrow().as_ref().unwrap()) as f64, char::from_u32((('f' as i32)) as u32).unwrap_or('f'), 2 as i32))));
+    let mut resultStr = Rc::new(RefCell::new(Some(go_strconv_format_float((*result.borrow().as_ref().unwrap()) as f64, char::from_u32((('f' as u8)) as u32).unwrap_or('f'), 2 as i32))));
     print!("Hypotenuse of 3,4 triangle: {}\n", { let __v = (*resultStr.borrow().as_ref().unwrap()).clone(); __v });
 }

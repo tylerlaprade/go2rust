@@ -128,6 +128,80 @@ func sum(s float64, h float64) float64 {
 	}
 }
 
+func TestNilArgumentToEmptyInterfaceUsesNilInterfaceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) bool { return v == nil }
+
+func main() { describe(nil) }
+`)
+
+	want := "describe(Rc::new(RefCell::new(None::<Box<dyn Any>>)))"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("nil argument should be a nil interface handle; want %q in:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("nil argument must not be boxed as an untyped Option:\n%s", rust)
+	}
+}
+
+func TestAssertedCollectionsKeepHandlesForDirectConsumers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(x interface{}, y interface{}) (int, int) {
+	return len(x.([]int)), y.(map[string]int)["k"]
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()") {
+		t.Fatalf("len of asserted slice should consume the boxed slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()") {
+		t.Fatalf("indexing an asserted map should consume the boxed map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __value =") {
+		t.Fatalf("direct consumers should not turn asserted collections into bare temporary values:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementCommaOkAssertionDowncastsInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func read(list []interface{}) (int, bool) {
+	n, ok := list[0].(int)
+	return n, ok
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("comma-ok assertion on []any element must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "any_val.downcast_ref::<i64>()") {
+		t.Fatalf("comma-ok assertion on []any element should downcast the boxed value in place:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementArgumentClonesDynamicValueInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) {}
+
+func call(list []interface{}) {
+	describe(list[0])
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("[]any element passed as any must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if strings.Contains(rust, "expect(\"nil []any in interface argument\")") {
+		t.Fatalf("nil []any indexing should reach the bounds check instead of a custom nil expect:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref())") {
+		t.Fatalf("[]any element passed as any should clone its dynamic value under the slice guard:\n%s", rust)
+	}
+}
+
 func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -1258,13 +1332,13 @@ func record(h *Holder) Pair {
 		strings.Contains(rust, "first: (*h.lock().unwrap().as_ref().unwrap()).first.clone()") {
 		t.Fatalf("local interface selector field should not hold the owner lock in the struct literal:\n%s", rust)
 	}
-	if !strings.Contains(rust, "first: { let __field = (*h.borrow().as_ref().unwrap()).first.clone(); __field }") &&
-		!strings.Contains(rust, "first: { let __field = (*h.lock().unwrap().as_ref().unwrap()).first.clone(); __field }") {
-		t.Fatalf("local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	// Each field gets a copy of the interface value, read inside a block
+	// that drops the owner's guard.
+	if !strings.Contains(rust, "first: { let __iface_value = (*h.borrow().as_ref().unwrap()).first.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
-	if !strings.Contains(rust, "second: { let __field = (*h.borrow().as_ref().unwrap()).second.clone(); __field }") &&
-		!strings.Contains(rust, "second: { let __field = (*h.lock().unwrap().as_ref().unwrap()).second.clone(); __field }") {
-		t.Fatalf("second local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	if !strings.Contains(rust, "second: { let __iface_value = (*h.borrow().as_ref().unwrap()).second.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("second local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
 }
 
@@ -2179,8 +2253,10 @@ func withNil(nodes []Node) []Node {
 		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
 		t.Fatalf("append of local interface handle should not clone the boxed trait object out of the handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__values.push(n.clone())") {
-		t.Fatalf("named slice append should keep the existing local interface handle:\n%s", rust)
+	// The element gets a copy of the parameter's interface value in a handle
+	// of its own, so assigning to n afterwards leaves the element alone.
+	if !strings.Contains(rust, "__values.push({ let __iface_value = n.borrow().clone(); Rc::new(RefCell::new(__iface_value)) })") {
+		t.Fatalf("named slice append should store a copy of the local interface value:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __append_value = None;") {
 		t.Fatalf("append nil to local interface slice should push a wrapped None handle:\n%s", rust)
@@ -3642,7 +3718,9 @@ func use(hash uint32) uint32 {
 	if strings.Contains(rust, "Rc<RefCell<Option<u8>>>") {
 		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![('m' as i32) as u8, (*") {
+	// The type checker gives the untyped 'm' the byte type of the variadic
+	// element, so the literal is a u8 already.
+	if !strings.Contains(rust, "vec![('m' as u8) as u8, (*") {
 		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
 	}
 }
@@ -4686,6 +4764,35 @@ func text(v time.Duration) string {
 	}
 	if strings.Contains(rust, "time_Duration((*") && strings.Contains(rust, " as i64") {
 		t.Fatalf("same-typed external named integer value should be cloned, not reconstructed through a cast:\n%s", rust)
+	}
+}
+
+func TestExternalNamedIntegerAliasConversionMethodReceiverUsesNewtype(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "os"
+
+func check(raw uint32) bool {
+	converted := os.FileMode(0644)
+	return !os.FileMode(0644).IsDir() &&
+		os.FileMode(os.ModeDir|0755).IsDir() &&
+		os.FileMode(raw).IsDir() &&
+		!converted.IsDir()
+}
+`)
+
+	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
+		t.Fatalf("external named integer alias conversions should construct the newtype before method dispatch:\n%s", rust)
+	}
+	for _, want := range []string{
+		"Some(fs_FileMode(0644 as u32))",
+		"fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode((*raw.borrow().as_ref().unwrap()) as u32)))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in external named integer method receiver lowering:\n%s", want, rust)
+		}
 	}
 }
 
@@ -9624,15 +9731,35 @@ func f(xs []int) int {
 	if strings.Contains(rust, "0 as usize") || strings.Contains(rust, "1 as usize") {
 		t.Fatalf("range index untyped integer peers should use Go int, not usize:\n%s", rust)
 	}
-	hasComparison := strings.Contains(rust, "i as i64 > 0 as i64") ||
+	hasComparison := strings.Contains(rust, "(i as i64) > (0 as i64)") ||
 		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 0 as i64")
 	if !hasComparison {
 		t.Fatalf("range index comparison should cast the range index and constant to Go int:\n%s", rust)
 	}
-	hasArithmetic := strings.Contains(rust, "i as i64 + 1 as i64") ||
+	hasArithmetic := strings.Contains(rust, "(i as i64) + (1 as i64)") ||
 		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 1 as i64")
 	if !hasArithmetic {
 		t.Fatalf("range index arithmetic should cast the range index and constant to Go int:\n%s", rust)
+	}
+}
+
+func TestRangeIndexUntypedConstComparisonCastsAreParenthesized(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+func f(xs []int) bool {
+	for i := range xs {
+		if 10 < i {
+			return true
+		}
+		if i < 10 {
+			return true
+		}
+	}
+	return false
+}`, &TypeInfo{})
+
+	if !strings.Contains(rust, "(10 as i64) < (i as i64)") {
+		t.Fatalf("range-index comparison casts must be parenthesized so Rust parses < as comparison:\n%s", rust)
 	}
 }
 
@@ -10107,5 +10234,23 @@ func main() {
 	}
 	if strings.Contains(rust, "Box::new(dir) as") {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}
+
+func TestAnyAliasSliceLiteralUsesRustAnyTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	list := []any{1, "s"}
+	_, _ = list[0].(int), list[1].(string)
+}
+`)
+
+	if strings.Contains(rust, "Box<dyn any>") {
+		t.Fatalf("Go's any alias must not be emitted as a lowercase Rust trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(1i64) as Box<dyn Any>") ||
+		!strings.Contains(rust, "Box::new(\"s\".to_string()) as Box<dyn Any>") {
+		t.Fatalf("[]any literal elements should use Rust's Any trait:\n%s", rust)
 	}
 }

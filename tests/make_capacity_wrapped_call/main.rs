@@ -8,12 +8,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -627,13 +621,19 @@ impl counter {
 
 fn main() {
     std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         ;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
     let mut xs = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..({ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = xs.clone(); let __append_values = vec![1, 2, 3]; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *xs.lock().unwrap() = __slice_header; };
 
-    println!("{}", format!("{}", (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{}", format!("{}", (*xs.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
 }

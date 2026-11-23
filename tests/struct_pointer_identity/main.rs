@@ -10,12 +10,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1432,7 +1426,7 @@ fn main() {
 
     let mut s: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(SquarePtr(Rc::new(RefCell::new(Some(Square { side: Rc::new(RefCell::new(Some(1))), ..Default::default() }))).clone())) as Box<dyn Shape>)));
     (*s.borrow_mut().as_mut().unwrap()).grow();
-    let mut t = s.clone();
+    let mut t = { let __iface_value = s.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     (*t.borrow_mut().as_mut().unwrap()).grow();
     println!("{} {}", format!("{}", "interface holding a pointer".to_string()), format!("{}", (*(*({
         let val = s.clone();

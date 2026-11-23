@@ -10,12 +10,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -687,6 +681,7 @@ fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1103,6 +1098,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1357,13 +1357,19 @@ impl std::fmt::Display for Point {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Named(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Named {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Named(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Named {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1483,7 +1489,7 @@ fn main() {
     println!("{} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*s.borrow().as_ref().unwrap()).len()));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{} {}{}{} {} {} {}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3), format!("{}", 4.5), format!("{}", Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }), "<nil>".to_string())))).borrow().as_ref().unwrap())));
     let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
-    print!("{}", go_sprintf(&"%q\n".to_string(), &[Box::new({ let __v = Rc::new(RefCell::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())), format!("{}", Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"%q\n".to_string(), &[Box::new({ let __v = Rc::new(RefCell::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[Box::new({ let __v = Rc::new(RefCell::new(Some(format!("")))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(format!("\n")))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));
     let mut parts = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("b".to_string()) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>])));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[Box::new({ let __v = Rc::new(RefCell::new(Some({ let __sprint_values = parts.clone(); let __sprint_guard = __sprint_values.borrow(); let mut __sprint_text = String::new(); let mut __sprint_after_string = true; for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } __sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } __sprint_text }))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new({ let __v = Rc::new(RefCell::new(Some(format!("{}\n", format_any_variadic(&parts))))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>], false));

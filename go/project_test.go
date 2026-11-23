@@ -56,6 +56,45 @@ import . "internal/types/errors"
 	}
 }
 
+func TestGeneratedMainImportsDotImportedTranspiledCrate(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const Value = 7
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import . "example.com/dep"
+
+func main() {
+	println(Value)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use example_com_dep::*;") {
+		t.Fatalf("generated main.rs must import names from its dot-imported transpiled crate:\n%s", mainRS)
+	}
+}
+
 func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	sibling := prefixSiblingModuleImports("", "compiletype", []string{"compiletype", "escape"})
 	if sibling != "use crate::escape::*;\n" {
@@ -2848,8 +2887,10 @@ func collect(ident dep.Ident) []dep.Node {
 	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("existing imported interface handles should not be cloned into a nested box, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "node: node.clone()") {
-		t.Fatalf("existing imported interface handles should be preserved at struct fields, got:\n%s", mainRS)
+	// The field gets a copy of the parameter's interface value in a handle of
+	// its own.
+	if !strings.Contains(mainRS, "node: { let __iface_value = node.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("existing imported interface values should be copied into struct fields, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, ".push((*ident.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("append to imported interface slice should not push the concrete value directly, got:\n%s", mainRS)
@@ -4322,8 +4363,10 @@ func lang(v version) bool {
 	if !strings.Contains(mainRS, "impl PartialEq for version") {
 		t.Fatalf("concurrent comparable struct should get custom PartialEq, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__left.as_ref() == __right.as_ref()") {
-		t.Fatalf("custom PartialEq should compare locked field values by reference, got:\n%s", mainRS)
+	// Each side is read under its own lock, so two values that share a
+	// field's cell do not lock one mutex twice.
+	if !strings.Contains(mainRS, "let __left = { self.minor.lock().unwrap().as_ref().cloned() }; let __right = { other.minor.lock().unwrap().as_ref().cloned() }; __left == __right") {
+		t.Fatalf("custom PartialEq should compare field values read one lock at a time, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
 		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)
@@ -5340,7 +5383,9 @@ func main() {}
 
 const alphaMarker = "pub(crate) fn __go_init_all()"
 
-var alphaValue = 2
+var alphaValue = alphaSeed()
+
+func alphaSeed() int { return 2 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "beta.go"), `package main
 
@@ -5380,6 +5425,9 @@ var gammaValue = 4
 	}
 
 	alphaRS := mustReadFile(t, filepath.Join(tempDir, "alpha.rs"))
+	if calls := strings.Count(alphaRS, "= Some(alpha_seed());"); calls != 1 {
+		t.Fatalf("expected one call to the global initializer alphaSeed, got %d:\n%s", calls, alphaRS)
+	}
 	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all_alpha()") {
 		t.Fatalf("alpha module should rename its init helper, got:\n%s", alphaRS)
 	}
