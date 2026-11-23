@@ -2477,6 +2477,14 @@ run_xfail_test() {
     run_test "tests/os_chdir_paths_goroutines"
 }
 
+@test "os_clearenv" {
+    run_test "tests/os_clearenv"
+}
+
+@test "os_clearenv_goroutines" {
+    run_test "tests/os_clearenv_goroutines"
+}
+
 @test "os_environ_non_utf8" {
     run_test "tests/os_environ_non_utf8"
 }

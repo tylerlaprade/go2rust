@@ -3261,6 +3261,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "chdir" {
 			writeOsChdirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "clearenv" {
+			writeOsClearenvFunction(out)
 		} else if funcName == "exit" {
 			writeOsExitFunction(out)
 		} else if funcName == "environ" {
@@ -3317,6 +3319,17 @@ func writeOsChdirFunction(out *strings.Builder, fn externalPackageStubFunction) 
         match std::env::set_current_dir(&path) {
             Ok(()) => no_error(),
             Err(err) => io_error(err),
+        }
+    }
+`)
+}
+
+// PERMANENT: not scaffold — os.Clearenv mutates the host process environment.
+func writeOsClearenvFunction(out *strings.Builder) {
+	out.WriteString(`    pub fn clearenv() {
+        let keys: Vec<std::ffi::OsString> = std::env::vars_os().map(|(key, _)| key).collect();
+        for key in keys {
+            std::env::remove_var(key);
         }
     }
 `)
