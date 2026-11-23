@@ -10529,3 +10529,48 @@ func launch(inputs ...<-chan int) {
 		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
 	}
 }
+
+func TestChannelSendRespectsCaptureShadowsInNestedControlFlow(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	value := 7
+	seen := make(chan int, 11)
+	go func() {
+		seen <- value
+		if true {
+			value := 9
+			seen <- value
+		}
+		seen <- value
+		for i := 0; i < 1; i++ {
+			value := 10
+			seen <- value
+		}
+		seen <- value
+		if value := 11; value == 11 {
+			seen <- value
+		}
+		seen <- value
+		for value := 12; value < 13; value++ {
+			seen <- value
+		}
+		seen <- value
+		switch value := 14; {
+		case value == 14:
+			seen <- value
+		}
+		seen <- value
+	}()
+}
+`)
+
+	outerSend := "seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))"
+	localSend := "seen_thread.send((*value.lock().unwrap().as_ref().unwrap()))"
+	if count := strings.Count(rust, outerSend); count != 6 {
+		t.Fatalf("expected six sends of the captured outer value, got %d:\n%s", count, rust)
+	}
+	if count := strings.Count(rust, localSend); count != 5 {
+		t.Fatalf("expected five sends of nested local values, got %d:\n%s", count, rust)
+	}
+}
