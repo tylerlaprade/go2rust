@@ -637,6 +637,13 @@ fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>
 }
 
 fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    if Arc::ptr_eq(left, right) {
+        let guard = left.lock().unwrap();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.lock().unwrap();
     let right_guard = right.lock().unwrap();
     match (left_guard.as_ref(), right_guard.as_ref()) {

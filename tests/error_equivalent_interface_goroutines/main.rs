@@ -583,6 +583,32 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+struct GoPointerError<T> {
+    handle: Arc<Mutex<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Arc<Mutex<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.lock().unwrap();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + Send + Sync + 'static> std::error::Error for GoPointerError<T> {}
+
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -888,8 +914,8 @@ pub fn switch_named(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mu
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).unwrap(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
+    if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<customError>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<customError>>>>()).is_some() {
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<customError>()) { Arc::new(Mutex::new(Some(Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<customError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}", x.lock().unwrap().as_ref().unwrap()))));;
     } else {
@@ -913,8 +939,8 @@ pub fn switch_anonymous(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Ar
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).unwrap(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
+    if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<customError>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<customError>>>>()).is_some() {
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<customError>()) { Arc::new(Mutex::new(Some(Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<customError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}", x.lock().unwrap().as_ref().unwrap()))));;
     } else {
@@ -949,13 +975,19 @@ fn main() {
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
                 ({ let __err_source = typed_val; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }, true)
-            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone()))))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<customError>() {
+                (Arc::new(Mutex::new(Some(Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>() {
+                (Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>() {
+                (Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<customError>>>>() {
+                (Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))), true)
             } else {
-                (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(std::string::String::new()))))), false)
+                (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(std::string::String::new()))))), false)
+            (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
     println!("{} {} {}", format!("{}", "assert".to_string()), format!("{}", ok), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", asserted.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
@@ -963,7 +995,7 @@ fn main() {
         let val = value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else { let typed_val = any_val.downcast_ref::<std::string::String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.failer")); Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(typed_val.clone())) } }
+            { if let Some(__err_handle) = any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { (*__err_handle.lock().unwrap()).clone().expect("type assertion failed") } else if let Some(typed_val) = any_val.downcast_ref::<customError>() { Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync> } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<errors_errorString>>>>() { Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync> } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<errors_joinError>>>>() { Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync> } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<customError>>>>() { Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync> } else { panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.failer") } }
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.failer")
         }

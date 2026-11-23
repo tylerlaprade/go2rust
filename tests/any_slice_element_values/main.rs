@@ -637,6 +637,13 @@ fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String
 }
 
 fn go_any_eq(left: &Rc<RefCell<Option<Box<dyn Any>>>>, right: &Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
+    if Rc::ptr_eq(left, right) {
+        let guard = left.borrow();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.borrow();
     let right_guard = right.borrow();
     match (left_guard.as_ref(), right_guard.as_ref()) {
