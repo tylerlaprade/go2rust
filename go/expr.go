@@ -9568,6 +9568,39 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+// writeEmptyInterfacePayloadCopy writes Go's copy of the dynamic value held
+// by expr, as an Option<Box<dyn Any...>>. The destination must get its own
+// interface cell: sharing the source handle would make a later assignment to
+// either interface variable change the other one.
+func writeEmptyInterfacePayloadCopy(out *strings.Builder, expr ast.Expr) bool {
+	if !isEmptyInterfaceValueExpr(expr) {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("{ let __any_source = ")
+	writeEmptyInterfaceHandleClone(out, expr)
+	out.WriteString("; let __any_guard = __any_source")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) }")
+	return true
+}
+
+// writeEmptyInterfaceValueCopy writes a new interface handle containing the
+// copied dynamic value of expr. A nil interface remains nil.
+func writeEmptyInterfaceValueCopy(out *strings.Builder, expr ast.Expr) bool {
+	if !isEmptyInterfaceValueExpr(expr) {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new(")
+	writeEmptyInterfacePayloadCopy(out, expr)
+	out.WriteString("))")
+	return true
+}
+
 func writePointerSlotAddress(out *strings.Builder, expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(expr) {
@@ -9640,7 +9673,7 @@ func writeEmptyInterfaceCallArgumentValue(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(">))")
 		return
 	}
-	if writeEmptyInterfaceHandleClone(out, arg) {
+	if writeEmptyInterfaceValueCopy(out, arg) {
 		return
 	}
 	WriteWrapperPrefix(out)
@@ -9653,9 +9686,12 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		return false
 	}
 	if _, ok := lhs.(*ast.Ident); ok {
+		out.WriteString("{ let __any_value = ")
+		writeEmptyInterfacePayloadCopy(out, rhs)
+		out.WriteString("; *")
 		TranspileExpressionContext(out, lhs, LValue)
-		out.WriteString(" = ")
-		writeEmptyInterfaceHandleClone(out, rhs)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = __any_value; }")
 		return true
 	}
 	if sel, ok := lhs.(*ast.SelectorExpr); ok {
@@ -23509,8 +23545,10 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if argIsInterface {
-					// Argument is already interface{} — just clone the Rc
-					if !writeEmptyInterfaceHandleClone(out, arg) {
+					// Passing an interface copies its dynamic value into the
+					// parameter's own cell. Reusing the caller's cell would let
+					// assignment to the parameter mutate the caller.
+					if !writeEmptyInterfaceValueCopy(out, arg) {
 						TranspileExpression(out, arg)
 					}
 				} else {
@@ -23522,7 +23560,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
-			if isClosureCall && expectedArgType == nil && writeEmptyInterfaceHandleClone(out, arg) {
+			if isClosureCall && expectedArgType == nil && writeEmptyInterfaceValueCopy(out, arg) {
 				continue
 			}
 

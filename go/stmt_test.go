@@ -9981,6 +9981,49 @@ func normalize(err any) error {
 	}
 }
 
+func TestEmptyInterfaceAssignmentCopiesPayloadIntoIndependentCells(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func get() any { return 7 }
+func replace(value any) { value = 9 }
+
+func use() {
+	var outer any = "first"
+	f := func() { outer = get() }
+	f()
+
+	var source any = "x"
+	short := source
+	var declared any = source
+	source = 9
+	replace(source)
+	_, _, _ = short, declared, outer
+}
+`)
+
+	for _, want := range []string{
+		"let mut short = Rc::new(RefCell::new({ let __any_source = source.clone();",
+		"let mut declared: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new({ let __any_source = source.clone();",
+		"*outer_closure_clone.borrow_mut() = __any_value",
+		"replace(Rc::new(RefCell::new({ let __any_source = source.clone();",
+		"go_any_clone(__value.as_ref())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected independent any-value copy %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"let mut short = source.clone()",
+		"let mut declared: Rc<RefCell<Option<Box<dyn Any>>>> = source.clone()",
+		"outer_closure_clone = get().clone()",
+		"replace(source.clone())",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("interface copy still shares or rebinds a cell via %q:\n%s", unwanted, rust)
+		}
+	}
+}
+
 func TestErrorPassedToAnyPreservesDynamicErrorValue(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

@@ -1511,6 +1511,10 @@ run_xfail_test() {
     run_test "tests/integer_overflow_wraps_goroutines"
 }
 
+@test "interface_any_assignment_copy" {
+    run_test "tests/interface_any_assignment_copy"
+}
+
 @test "interface_arg_wrapped_struct_field" {
     run_test "tests/interface_arg_wrapped_struct_field"
 }

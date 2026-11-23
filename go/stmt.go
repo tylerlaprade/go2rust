@@ -13816,8 +13816,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Slice fields are already wrapped handles; clone the handle.
 											} else if writeTranspiledInterfaceHandleClone(out, rhs) {
 												// Existing named-interface values are already represented by a handle.
-											} else if writeEmptyInterfaceHandleClone(out, rhs) {
-												// Existing interface values are already represented by a handle.
+											} else if writeEmptyInterfaceValueCopy(out, rhs) {
+												// A new interface variable gets its own cell containing a copy
+												// of the source's dynamic value.
 											} else if writeAnyHandleAssertionHandle(out, rhs) {
 												// A slice or map taken out of an interface value shares its data with it.
 											} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {

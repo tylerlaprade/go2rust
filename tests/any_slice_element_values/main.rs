@@ -735,7 +735,7 @@ impl std::fmt::Display for r#box {
 
 fn main() {
     let mut mixed = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>])));
-    let mut v = Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))).clone();
+    let mut v = Rc::new(RefCell::new({ let __any_source = Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))).clone(); let __any_guard = __any_source.borrow(); __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) }));
     println!("{}", format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())));
     println!("{}", format!("{}", format_any((Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref())));
     print!("{} {}\n", format_any((Rc::new(RefCell::new(Some({ let __idx = (2) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref()), format_any((Rc::new(RefCell::new(Some({ let __idx = (3) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref().unwrap().as_ref()));

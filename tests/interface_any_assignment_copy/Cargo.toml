@@ -1,0 +1,11 @@
+[package]
+name = "interface_any_assignment_copy"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_any_assignment_copy"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
