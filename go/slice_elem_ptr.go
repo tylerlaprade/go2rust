@@ -678,6 +678,9 @@ func arrayElemPtrResultInfoForCall(call *ast.CallExpr, resultIndex int) (arrayEl
 }
 
 func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
+	if method, ok := nilPointerReceiverSyntheticOrigin(fn); ok {
+		return goPtrResultInfosForFunc(method)
+	}
 	typeInfo := GetTypeInfo()
 	if fn == nil || fn.Body == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil {
 		return nil
@@ -1249,6 +1252,10 @@ func writeArrayElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl
 }
 
 func writeGoPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
+	if method, ok := nilPointerReceiverSyntheticOrigin(fn); ok {
+		// A nil-receiver helper returns what its method returns.
+		fn = method
+	}
 	resultInfos, ok := registeredGoPtrResultInfosForDecl(fn)
 	if !ok || len(resultInfos) == 0 {
 		resultInfos = goPtrResultInfosForFunc(fn)
@@ -8065,6 +8072,16 @@ func writeGoPtrRawPointerValue(out *strings.Builder, arg ast.Expr, elemRustType 
 		return false
 	}
 	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		// (*reflect.StringHeader)(unsafe.Pointer(&s)) points at a header
+		// built from s, which a raw address cannot be read through.
+		var header strings.Builder
+		if writeReflectStringHeaderPointerConversion(&header, call) {
+			writeGoPtrQualifiedConstructor(out, helperQualifier, "local")
+			out.WriteString("(")
+			out.WriteString(header.String())
+			out.WriteString(")")
+			return true
+		}
 		if target, ok := typedPointerTypeConversionTarget(call); ok {
 			if writeInternalABIEmptyInterfaceGoPtrValue(out, target, source, helperQualifier) {
 				return true

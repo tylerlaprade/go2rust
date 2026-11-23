@@ -1,7 +1,585 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+/// A Go slice: an offset, a length and a capacity over a backing array that
+/// every slice made from it shares. Every name below that a binding uses
+/// starts with __, so no package-level variable of the program shadows it.
+pub struct GoSlice<T> {
+    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
+    off: usize,
+    len: usize,
+    cap: usize,
+}
+
+unsafe impl<T: Send> Send for GoSlice<T> {}
+unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
+
+/// The prelude's Vec and vec! are Go slices in generated code.
+pub type Vec<T> = GoSlice<T>;
+
+impl<T> Clone for GoSlice<T> {
+    /// Copies the header. The copy shares the elements, as a Go slice
+    /// assignment does.
+    fn clone(&self) -> Self {
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+    }
+}
+
+impl<T> GoSlice<T> {
+    pub fn new() -> Self {
+        Self::from(std::vec::Vec::new())
+    }
+
+    pub fn with_capacity(__cap: usize) -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+    }
+
+    fn backing_ref(&self) -> &std::vec::Vec<T> {
+        unsafe { &*self.backing.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
+        unsafe { &mut *self.backing.get() }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.backing_ref()[self.off..self.off + self.len]
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
+    }
+
+    /// Go's cap(s).
+    pub fn capacity(&self) -> usize {
+        self.cap
+    }
+
+    /// Whether two slices share their backing array.
+    pub fn shares_backing_with(&self, __other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
+    }
+
+    /// Go's s[lo:hi].
+    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
+        if __lo > __hi || __hi > self.cap {
+            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
+        }
+        if self.off + __hi > self.backing_ref().len() {
+            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
+        }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+    }
+
+    /// Go's s[lo:hi:max].
+    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __max > self.cap || __hi > __max {
+            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
+        }
+        let mut __slice = self.reslice(__lo, __hi);
+        __slice.cap = __max - __lo;
+        __slice
+    }
+
+    /// Go's s = s[:n] when n is at most len(s).
+    pub fn truncate(&mut self, __n: usize) {
+        if __n < self.len {
+            self.len = __n;
+        }
+    }
+
+    /// Go's s = s[:0].
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    #[allow(unused_variables)]
+    pub fn reserve(&mut self, __additional: usize) {}
+
+    /// Keeps the elements the predicate accepts, in order, at the front.
+    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
+        let mut __kept = 0;
+        {
+            let __window = self.as_mut_slice();
+            for __index in 0..__window.len() {
+                if __keep(&__window[__index]) {
+                    __window.swap(__kept, __index);
+                    __kept += 1;
+                }
+            }
+        }
+        self.len = __kept;
+    }
+
+    /// Moves the slice's elements out when no other slice shares them.
+    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
+        let (__off, __len) = (self.off, self.len);
+        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
+        let mut __elems = std::mem::take(__backing.get_mut());
+        __elems.truncate(__off + __len);
+        __elems.drain(..__off);
+        Some(__elems)
+    }
+
+    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+    }
+
+    /// The capacity Go's append gives a slice that must grow to hold
+    /// __needed elements.
+    fn grown_cap(&self, __needed: usize) -> usize {
+        let __old = self.cap;
+        let __doubled = __old + __old;
+        if __needed > __doubled {
+            return __needed;
+        }
+        if __old < 256 {
+            return __doubled.max(1);
+        }
+        let mut __grown = __old;
+        while __grown < __needed {
+            __grown += (__grown + 3 * 256) / 4;
+        }
+        __grown
+    }
+
+    /// Stores a value at index len(s) of the backing array: the in-place
+    /// half of Go's append. The backing Vec has room for the capacity, so
+    /// pushing onto it never moves elements other slices are reading.
+    fn store_at_end(&mut self, __value: T) {
+        let __at = self.off + self.len;
+        let __backing = self.backing_mut();
+        if __at < __backing.len() {
+            __backing[__at] = __value;
+        } else {
+            __backing.push(__value);
+        }
+        self.len += 1;
+    }
+
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
+    }
+}
+
+impl<T: Clone> GoSlice<T> {
+    /// Go's s = append(s, v): in place while there is capacity, else into a
+    /// new backing array.
+    pub fn push(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.push(__value);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's append(s, v), leaving s as it was.
+    pub fn appended(&self, __value: T) -> Self {
+        let mut __result = self.clone();
+        __result.push(__value);
+        __result
+    }
+
+    /// Go's s = append(s, xs...).
+    pub fn extend_from_slice(&mut self, __values: &[T]) {
+        if self.len + __values.len() <= self.cap {
+            for __value in __values {
+                self.store_at_end(__value.clone());
+            }
+            return;
+        }
+        let __cap = self.grown_cap(self.len + __values.len());
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.extend_from_slice(__values);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's s = append(s, xs...) from values.
+    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
+        let __values: std::vec::Vec<T> = __values.into_iter().collect();
+        self.extend_from_slice(&__values);
+    }
+
+    /// Removes and returns the last element: Go's v := s[len(s)-1];
+    /// s = s[:len(s)-1].
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        let __last = self.as_slice()[self.len - 1].clone();
+        self.len -= 1;
+        Some(__last)
+    }
+
+    pub fn insert(&mut self, __index: usize, __value: T) {
+        if __index > self.len {
+            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
+        }
+        self.push(__value);
+        self.as_mut_slice()[__index..].rotate_right(1);
+    }
+
+    pub fn remove(&mut self, __index: usize) -> T {
+        let __removed = self.as_slice()[__index].clone();
+        self.as_mut_slice()[__index..].rotate_left(1);
+        self.len -= 1;
+        __removed
+    }
+
+    pub fn split_off(&mut self, __at: usize) -> Self {
+        let __tail = Self::from(self.as_slice()[__at..].to_vec());
+        self.len = __at;
+        __tail
+    }
+
+    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
+        let mut __elems = self.as_slice().to_vec();
+        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
+        let __cap = self.cap;
+        *self = Self::fresh(__elems, __cap);
+        __drained.into_iter()
+    }
+
+    pub fn resize(&mut self, __new_len: usize, __value: T) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more = std::vec::from_elem(__value, __new_len - self.len);
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn into_std_vec(self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
+    pub fn into_boxed_slice(self) -> Box<[T]> {
+        self.as_slice().to_vec().into_boxed_slice()
+    }
+}
+
+/// The values appended by append(s, xs...) to a slice of interface values:
+/// always a slice built for the append, which nothing else holds.
+pub trait GoSliceBoxedValues<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T>;
+}
+
+impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T> {
+        self
+    }
+}
+
+impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => panic!("append of interface values held by another slice"),
+        }
+    }
+}
+
+/// Go's append for interface values, which have no Clone. When the slice
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
+pub trait GoSliceAppendBoxed<T> {
+    fn push(&mut self, __value: T);
+    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+/// Reads the header of a slice value, whichever form the value has.
+pub trait GoSliceHeader<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>>;
+}
+
+impl<T> GoSliceHeader<T> for GoSlice<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        Some(self.clone())
+    }
+}
+
+impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.borrow().clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.lock().unwrap().clone()
+    }
+}
+
+/// Copies a Rust slice into a new Go slice.
+pub trait GoSliceFromSlice<T> {
+    fn to_go_slice(&self) -> GoSlice<T>;
+}
+
+impl<T: Clone> GoSliceFromSlice<T> for [T] {
+    fn to_go_slice(&self) -> GoSlice<T> {
+        GoSlice::from(self.to_vec())
+    }
+}
+
+impl<T> Default for GoSlice<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
+    fn from(__elems: std::vec::Vec<T>) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+    }
+}
+
+impl<T: Clone> From<&[T]> for GoSlice<T> {
+    fn from(__elems: &[T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T: Clone> From<&mut [T]> for GoSlice<T> {
+    fn from(__elems: &mut [T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
+    fn from(__elems: [T; N]) -> Self {
+        Self::from(std::vec::Vec::from(__elems))
+    }
+}
+
+impl From<&str> for GoSlice<u8> {
+    fn from(__text: &str) -> Self {
+        Self::from(__text.as_bytes().to_vec())
+    }
+}
+
+impl From<String> for GoSlice<u8> {
+    fn from(__text: String) -> Self {
+        Self::from(__text.into_bytes())
+    }
+}
+
+impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
+    fn from(__slice: GoSlice<T>) -> Self {
+        __slice.as_slice().to_vec()
+    }
+}
+
+impl<T> std::ops::Deref for GoSlice<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSlice<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> AsRef<[T]> for GoSlice<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> AsMut<[T]> for GoSlice<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::iter::FromIterator<T> for GoSlice<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
+        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
+    }
+}
+
+impl<T: Clone> IntoIterator for GoSlice<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(mut self) -> Self::IntoIter {
+        match self.take_unique() {
+            Some(__elems) => __elems.into_iter(),
+            None => self.as_slice().to_vec().into_iter(),
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a GoSlice<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(__f)
+    }
+}
+
+/// Go's %v of a slice: the elements' %v between brackets.
+impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        __f.write_str("[")?;
+        for (__index, __value) in self.as_slice().iter().enumerate() {
+            if __index > 0 {
+                __f.write_str(" ")?;
+            }
+            write!(__f, "{}", __value)?;
+        }
+        __f.write_str("]")
+    }
+}
+
+impl<T: PartialEq> PartialEq for GoSlice<T> {
+    fn eq(&self, __other: &Self) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
+    fn eq(&self, __other: &[T]) -> bool {
+        self.as_slice() == __other
+    }
+}
+
+impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
+    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: Eq> Eq for GoSlice<T> {}
+
+impl<T: PartialOrd> PartialOrd for GoSlice<T> {
+    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_slice().partial_cmp(__other.as_slice())
+    }
+}
+
+impl<T: Ord> Ord for GoSlice<T> {
+    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(__other.as_slice())
+    }
+}
+
+impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
+    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
+        self.as_slice().hash(__state)
+    }
+}
+
+impl std::io::Write for GoSlice<u8> {
+    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
+        self.extend_from_slice(__bytes);
+        Ok(__bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
@@ -251,20 +829,20 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -289,6 +867,8 @@ mod __go_runtime_format {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
+    #[allow(unused_imports)]
+    use super::{GoSlice, Vec};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -923,7 +1503,7 @@ impl std::fmt::Display for Node__string {
 
 #[derive(Debug, Clone)]
 pub struct Node__int {
-    pub val: Arc<Mutex<Option<i32>>>,
+    pub val: Arc<Mutex<Option<i64>>>,
     pub next: Arc<Mutex<Option<Node__int>>>,
 }
 
@@ -962,7 +1542,7 @@ impl std::fmt::Display for Node__int {
 #[derive(Debug, Clone)]
 pub struct List__string {
     pub head: Arc<Mutex<Option<Node__string>>>,
-    pub size: Arc<Mutex<Option<i32>>>,
+    pub size: Arc<Mutex<Option<i64>>>,
 }
 
 impl List__string {
@@ -1000,7 +1580,7 @@ impl std::fmt::Display for List__string {
 #[derive(Debug, Clone)]
 pub struct List__int {
     pub head: Arc<Mutex<Option<Node__int>>>,
-    pub size: Arc<Mutex<Option<i32>>>,
+    pub size: Arc<Mutex<Option<i64>>>,
 }
 
 impl List__int {
@@ -1039,7 +1619,7 @@ impl std::fmt::Display for List__int {
 pub struct Tree__int {
     pub left: Arc<Mutex<Option<Tree__int>>>,
     pub right: Arc<Mutex<Option<Tree__int>>>,
-    pub val: Arc<Mutex<Option<i32>>>,
+    pub val: Arc<Mutex<Option<i64>>>,
 }
 
 impl Tree__int {
@@ -1125,7 +1705,7 @@ impl std::fmt::Display for Tree__string {
 
 #[derive(Debug, Clone)]
 pub struct Optional__int {
-    pub val: Arc<Mutex<Option<i32>>>,
+    pub val: Arc<Mutex<Option<i64>>>,
     pub ok: Arc<Mutex<Option<bool>>>,
 }
 
@@ -1200,18 +1780,18 @@ impl std::fmt::Display for Optional__string {
 
 
 impl List__int {
-    pub fn push(&mut self, v: Arc<Mutex<Option<i32>>>) {
+    pub fn push(&mut self, v: Arc<Mutex<Option<i64>>>) {
         { let new_val = Arc::new(Mutex::new(Some(Node__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
         { let __target = self.size.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    pub fn each(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>>>) {
+    pub fn each(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>) {
         let mut n = self.head.clone();
     while { let __nil_result = (*n.lock().unwrap()).is_some(); __nil_result } {
         {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
                 let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -1222,12 +1802,12 @@ impl List__int {
     }
     }
 
-    pub fn slice(&self) -> Arc<Mutex<Option<Vec<i32>>>> {
-        let mut out: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+    pub fn slice(&self) -> Arc<Mutex<Option<Vec<i64>>>> {
+        let mut out: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
         let mut out_closure_clone = out.clone(); self.each(
-            Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i32>>>| {
-        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))),
+            Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))),
         );
         return out.clone();
     }
@@ -1260,7 +1840,7 @@ impl List__string {
         let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
         let mut out_closure_clone = out.clone(); self.each(
             Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<String>>>| {
-        { let __append_target = out_closure_clone.clone(); let __append_value = (*v.lock().unwrap().as_ref().unwrap()).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
     }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> () + Send + Sync>))),
         );
         return out.clone();
@@ -1268,7 +1848,7 @@ impl List__string {
 }
 
 impl Tree__int {
-    pub fn insert(&mut self, v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Tree__int>>> {
+    pub fn insert(&mut self, v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Tree__int>>> {
         if false {
         return Arc::new(Mutex::new(Some(Tree__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1280,15 +1860,15 @@ impl Tree__int {
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
-    pub fn walk(&self, visit: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>>>) {
+    pub fn walk(&self, visit: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>) {
         if false {
         return;
     }
         __go_nil_recv_tree__int_walk({ let __field = self.left.clone(); __field }, visit.clone());
         {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
                 let mut __f_guard = visit.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
@@ -1304,7 +1884,7 @@ impl Tree__string {
         if false {
         return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-        if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
+        if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
@@ -1332,11 +1912,11 @@ impl Tree__string {
 }
 
 impl Optional__int {
-    pub fn get(&self) -> (i32, bool) {
+    pub fn get(&self) -> (i64, bool) {
         return ((*self.val.lock().unwrap().as_ref().unwrap()), (*self.ok.lock().unwrap().as_ref().unwrap()));
     }
 
-    pub fn or_else(&self, d: Arc<Mutex<Option<i32>>>) -> i32 {
+    pub fn or_else(&self, d: Arc<Mutex<Option<i64>>>) -> i64 {
         if (*self.ok.clone().lock().unwrap().as_ref().unwrap()) {
         return (*self.val.lock().unwrap().as_ref().unwrap());
     }
@@ -1357,7 +1937,7 @@ impl Optional__string {
     }
 }
 
-pub fn some__int(v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Optional__int>>> {
+pub fn some__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Optional__int>>> {
     Arc::new(Mutex::new(Some(Optional__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ok: Arc::new(Mutex::new(Some(true))), ..Default::default() })))
 }
 
@@ -1365,7 +1945,7 @@ pub fn none__string() -> Arc<Mutex<Option<Optional__string>>> {
     Arc::new(Mutex::new(Some(Optional__string { val: Arc::new(Mutex::new(Some(String::new()))), ok: Arc::new(Mutex::new(Some(false))) })))
 }
 
-pub fn describe__int(v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {
+pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     {
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -1377,8 +1957,8 @@ pub fn describe__int(v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("int {}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1388,7 +1968,7 @@ pub fn describe__int(v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -1406,8 +1986,8 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("int {}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1417,7 +1997,7 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -1435,8 +2015,8 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
         drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("int {}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
@@ -1446,7 +2026,7 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -1464,26 +2044,26 @@ fn main() {
     (*l.lock().unwrap().as_mut().unwrap()).push(Arc::new(Mutex::new(Some("a".to_string()))));
     println!("{} {}", format!("{}", format_slice(&(*l.lock().unwrap().as_ref().unwrap()).slice())), format!("{}", (*{ let __field = (*l.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap())));
     let mut nums = Arc::new(Mutex::new(Some(List__int { head: Default::default(), size: Arc::new(Mutex::new(Some(0))) })));
-    let mut i = Arc::new(Mutex::new(Some(0)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
-        { let __recv = nums.clone(); let __recv_ptr: *mut List__int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut List__int }; let __result = unsafe { &mut *__recv_ptr }.push(Arc::new(Mutex::new(Some({ let __bin_i = (*i.lock().unwrap().as_ref().unwrap()).clone(); __bin_i * __bin_i })))); __result };
+        { let __recv = nums.clone(); let __recv_ptr: *mut List__int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut List__int }; let __result = unsafe { &mut *__recv_ptr }.push(Arc::new(Mutex::new(Some({ let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i })))); __result };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    let mut sum = Arc::new(Mutex::new(Some(0)));
+    let mut sum = Arc::new(Mutex::new(Some(0i64)));
     let mut sum_closure_clone = sum.clone(); { let __recv = nums.clone(); let __recv_ptr: *const List__int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const List__int }; let __result = unsafe { &*__recv_ptr }.each(
-        Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i32>>>| {
+        Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| {
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = sum_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))),
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))),
     ); __result };
     println!("{} {}", format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __recv = nums.clone(); let __recv_ptr: *const List__int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const List__int }; let __result = unsafe { &*__recv_ptr }.slice(); __result })));
 
     let mut root: Arc<Mutex<Option<Tree__int>>> = Arc::new(Mutex::new(None));
-    for v in vec![5, 3, 8, 1, 4].iter().copied() {
+    for v in vec![5i64, 3i64, 8i64, 1i64, 4i64].iter().copied() {
         { let new_val = __go_nil_recv_tree__int_insert(root.clone(), Arc::new(Mutex::new(Some(v.clone())))).clone(); root = new_val; };
     }
-    __go_nil_recv_tree__int_walk(root.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i32>>>| {
+    __go_nil_recv_tree__int_walk(root.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| {
         print!("{}{}", format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " ".to_string()));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))));
     println!();
     let mut words: Arc<Mutex<Option<Tree__string>>> = Arc::new(Mutex::new(None));
     for w in &vec!["pear".to_string(), "apple".to_string(), "fig".to_string()] {
@@ -1501,7 +2081,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*describe__int(Arc::new(Mutex::new(Some(7)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe__string(Arc::new(Mutex::new(Some("hi".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe__float64(Arc::new(Mutex::new(Some(2.5)))).lock().unwrap().as_ref().unwrap())));
 }
 
-pub fn __go_nil_recv_tree__int_insert(t: Arc<Mutex<Option<Tree__int>>>, v: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Tree__int>>> {
+pub fn __go_nil_recv_tree__int_insert(t: Arc<Mutex<Option<Tree__int>>>, v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Tree__int>>> {
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some(Tree__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1513,15 +2093,15 @@ pub fn __go_nil_recv_tree__int_insert(t: Arc<Mutex<Option<Tree__int>>>, v: Arc<M
     t.clone()
 }
 
-pub fn __go_nil_recv_tree__int_walk(t: Arc<Mutex<Option<Tree__int>>>, visit: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>>>) {
+pub fn __go_nil_recv_tree__int_walk(t: Arc<Mutex<Option<Tree__int>>>, visit: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>) {
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
     __go_nil_recv_tree__int_walk({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }, visit.clone());
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
             let mut __f_guard = visit.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync>
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
         };
         let __f = unsafe { &mut *__f_ptr };
         (*__f)(
@@ -1535,7 +2115,7 @@ pub fn __go_nil_recv_tree__string_insert(t: Arc<Mutex<Option<Tree__string>>>, v:
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
-    if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x < __tmp_y } {
+    if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x < __tmp_y } {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).left = new_val; };
     } else {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).right = new_val; };

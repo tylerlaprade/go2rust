@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -127,7 +133,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut typesList = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(localType {  }) as Box<dyn go_types::r#type::Type + Send + Sync>))), make_type().clone()])));
-    println!("{}", format!("{}", (*typesList.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*typesList.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }
 
 impl GoValueClone for localType {

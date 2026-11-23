@@ -1412,7 +1412,11 @@ func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globa
 		}
 		out.WriteString(");\n")
 	}
-	out.WriteString("        let __go_slice = __go_slice.into_boxed_slice().into_vec();\n")
+	if goSliceModeEnabled() {
+		out.WriteString("        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());\n")
+	} else {
+		out.WriteString("        let __go_slice = __go_slice.into_boxed_slice().into_vec();\n")
+	}
 	out.WriteString("        *")
 	out.WriteString(name)
 	WriteBorrowMethod(out, true)
@@ -1448,7 +1452,7 @@ func writePackageGlobalArrayLiteralInit(out *strings.Builder, name string, globa
 	elemRust := goTypesCollectionElemTypeToRust(arrayType.Elem())
 	arrayLen := fmt.Sprintf("%d", arrayType.Len())
 	out.WriteString("    {\n")
-	out.WriteString("        let mut __go_array = Vec::<")
+	out.WriteString("        let mut __go_array = " + stdVecPath() + "::<")
 	out.WriteString(elemRust)
 	out.WriteString(">::with_capacity(")
 	out.WriteString(arrayLen)

@@ -1,0 +1,27 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/bytes",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/oracle_testing",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "stdlib_package_test_unicode_utf8_constants"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stdlib_package_test_unicode_utf8_constants"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+bytes = { path = "vendor/bytes" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+oracle_testing = { path = "vendor/oracle_testing" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

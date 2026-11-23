@@ -7,6 +7,7 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
+	"sort"
 )
 
 // TypeInfo holds type checking results
@@ -15,6 +16,10 @@ type TypeInfo struct {
 	pkg                       *types.Package
 	methodMutableReceiverMap  map[string]bool
 	methodOriginalReceiverMap map[string]bool
+	// functionLocalInterfaces maps the names of interfaces declared inside
+	// function bodies to their go/types named types. Built lazily by
+	// functionLocalInterfaceNamedByName.
+	functionLocalInterfaces map[string]*types.Named
 }
 
 // NewTypeInfo creates type information for the given files using the default
@@ -747,4 +752,60 @@ func (ti *TypeInfo) IsTypeConversion(call *ast.CallExpr) bool {
 	}
 
 	return false
+}
+
+// functionLocalInterfaceNamedByName returns the named interface type declared
+// with the given name inside a function body of the current package. The
+// transpiler hoists these to top-level traits keyed by name, so when two
+// functions declare the same name the earliest declaration wins.
+func (ti *TypeInfo) functionLocalInterfaceNamedByName(name string) *types.Named {
+	if ti == nil || ti.pkg == nil {
+		return nil
+	}
+	if ti.functionLocalInterfaces == nil {
+		ti.functionLocalInterfaces = map[string]*types.Named{}
+		for _, named := range functionLocalInterfaceTypes(ti.pkg) {
+			if _, exists := ti.functionLocalInterfaces[named.Obj().Name()]; !exists {
+				ti.functionLocalInterfaces[named.Obj().Name()] = named
+			}
+		}
+	}
+	return ti.functionLocalInterfaces[name]
+}
+
+// functionLocalInterfaceTypes returns the named interface types declared inside
+// function bodies of pkg, in source order.
+func functionLocalInterfaceTypes(pkg *types.Package) []*types.Named {
+	if pkg == nil || pkg.Scope() == nil {
+		return nil
+	}
+	var found []*types.Named
+	var walk func(scope *types.Scope, depth int)
+	walk = func(scope *types.Scope, depth int) {
+		// depth 0 is the package scope and depth 1 a file scope; anything
+		// deeper is inside a function.
+		if depth >= 2 {
+			for _, name := range scope.Names() {
+				typeName, ok := scope.Lookup(name).(*types.TypeName)
+				if !ok {
+					continue
+				}
+				named, ok := typeName.Type().(*types.Named)
+				if !ok || named.Obj() != typeName {
+					continue
+				}
+				if _, ok := named.Underlying().(*types.Interface); ok {
+					found = append(found, named)
+				}
+			}
+		}
+		for i := 0; i < scope.NumChildren(); i++ {
+			walk(scope.Child(i), depth+1)
+		}
+	}
+	walk(pkg.Scope(), 0)
+	sort.SliceStable(found, func(i, j int) bool {
+		return found[i].Obj().Pos() < found[j].Obj().Pos()
+	})
+	return found
 }

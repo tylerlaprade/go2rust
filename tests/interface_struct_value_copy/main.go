@@ -25,6 +25,11 @@ func run() {
 	comma, ok := direct.(Record)
 	comma.Name = "comma"
 	fmt.Println(value.Name, direct.(Record).Name, comma.Name, ok, err.Error())
+
+	items := []any{Record{Name: "element"}}
+	element, found := items[0].(Record)
+	element.Name = "changed"
+	fmt.Println(items[0].(Record).Name, element.Name, found)
 }
 
 func main() {

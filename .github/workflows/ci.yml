@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [master]
 
+# A new push makes the runs of the branch's older commits useless; cancel
+# them so they do not hold runners while every other branch waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -35,9 +41,9 @@ jobs:
 
       - name: Check formatting
         run: |
-          if [ -n "$(gofmt -l ./go)" ]; then
-            echo "Please run 'gofmt -w ./go'"
-            gofmt -d ./go
+          if [ -n "$(gofmt -l ./go ./tools)" ]; then
+            echo "Please run 'gofmt -w ./go ./tools'"
+            gofmt -d ./go ./tools
             exit 1
           fi
 
@@ -46,6 +52,13 @@ jobs:
           # Vet main package only, skip tests directory
           # (Don't lint test files since we want to support any valid Go code)
           go vet ./go
+
+      - name: Run Go unit-test ratchet
+        run: |
+          go test ./tools/go-test-ratchet
+          go run ./tools/go-test-ratchet \
+            -known .github/go-test-known-failures.txt \
+            -package ./go
 
       - name: Build
         run: go build -o go2rust ./go

@@ -1166,6 +1166,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	cargoDependencyCrates := addGeneratedCrateDependencies(initDependencyCrates, crateName, pkgState.GeneratedCrateDependencies)
 
 	// Generate lib.rs
+	if goSliceModeEnabled() {
+		libRs.WriteString(goSliceVecMacro)
+	}
 	if helpersNeeded {
 		libRs.WriteString(fmt.Sprintf("include!(\"%s\");\n", packageHelperIncludeFile))
 	}
@@ -1230,7 +1233,7 @@ path = "lib.rs"
 			cargoToml += "num = \"0.4\"\n"
 		}
 		if needsSerdeJSON {
-			cargoToml += "serde_json = \"1\"\n"
+			cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 		}
 		if needsGosyn {
 			cargoToml += "gosyn = \"0.2.9\"\n"
@@ -1271,10 +1274,11 @@ func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames
 }
 
 func prefixSharedStdlibStubImport(rustCode string) string {
+	importLine := fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName)
 	if strings.TrimSpace(rustCode) == "" {
-		return fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName)
+		return importLine
 	}
-	return fmt.Sprintf("use %s::*;\n\n%s", sharedStdlibStubCrateName, rustCode)
+	return importLine + "\n" + rustCode
 }
 
 func addSharedStdlibStubCrateDependency(crateNames []string) []string {

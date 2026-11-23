@@ -331,6 +331,9 @@ mod __go_runtime_format {
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
 `)
+	if goSliceModeEnabled() {
+		out.WriteString("    #[allow(unused_imports)]\n    use super::{GoSlice, Vec};\n")
+	}
 	out.WriteString(replace.Replace(goSprintfFormatting))
 	out.WriteString(replace.Replace(strings.Replace(goSprintfEntry, "\nfn go_sprintf(", "\npub(super) fn go_sprintf(", 1)))
 	if spread {

@@ -174,7 +174,7 @@ func forceConcurrent() {
 	if strings.Contains(rust, "Arc<Mutex<Option<") || strings.Contains(rust, "Arc::new(Mutex::new") {
 		t.Fatalf("wrapper output should use the aliased StdMutex name:\n%s", rust)
 	}
-	if !strings.Contains(rust, "state: Arc<StdMutex<Option<i32>>>") {
+	if !strings.Contains(rust, "state: Arc<StdMutex<Option<i64>>>") {
 		t.Fatalf("struct field wrapper should use StdMutex:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));") ||

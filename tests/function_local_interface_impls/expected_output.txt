@@ -1,0 +1,6 @@
+rex says woof
+tom says meow
+cat:9,dog:lab
+count 2
+also a speaker: woof
+fido

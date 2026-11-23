@@ -1,0 +1,11 @@
+[package]
+name = "slice_headers_copy_and_share"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_headers_copy_and_share"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
