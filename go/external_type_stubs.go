@@ -1875,6 +1875,8 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			}
 			if name == "fs_FileMode" && methodName == "is_dir" {
 				writeFsFileModeIsDirMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "perm" {
+				writeFsFileModePermMethod(&out, method)
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -3019,6 +3021,17 @@ func writeFsFileModeIsDirMethod(out *strings.Builder) {
 `)
 }
 
+// TEMPORARY: fs-filemode-perm — remove when ordinary io/fs.FileMode callers use the source method.
+func writeFsFileModePermMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn perm(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(self.0 & 0o777)"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
 func writeFsDirEntryStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	stringType := wrappedExternalStubType("String")
@@ -3152,12 +3165,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsExecutable := pkg.Functions["executable"]
+	_, needsHostname := pkg.Functions["hostname"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
 		if _, ok := pkg.Functions["write_file"]; ok {
 			writeGoBytesArgTrait(out)
 		}
+	}
+	if needsFilesystemHelpers || needsExecutable || needsHostname {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3200,10 +3217,14 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "executable" {
+			writeOsExecutableFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getwd" {
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "hostname" {
+			writeOsHostnameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
@@ -3290,6 +3311,22 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.Executable is a host OS/runtime query.
+func writeOsExecutableFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn executable() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        match std::env::current_exe() {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
 // PERMANENT: not scaffold — os.Getwd maps to std::env::current_dir in the host process environment.
 func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn getwd() -> ")
@@ -3304,6 +3341,53 @@ func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Hostname is a host OS/runtime query.
+// Linux reads the kernel's node name from /proc/sys/kernel/hostname, the same
+// value Go's uname and /proc lookups return. Windows reads COMPUTERNAME. Other
+// systems ask the host's hostname command.
+func writeOsHostnameFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn hostname() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        #[cfg(windows)]
+        let bytes = std::env::var("COMPUTERNAME")
+            .map(String::into_bytes)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::NotFound, err.to_string()));
+
+        #[cfg(target_os = "linux")]
+        let bytes = std::fs::read("/proc/sys/kernel/hostname");
+
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let bytes = std::process::Command::new("hostname").output().and_then(|output| {
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("hostname exited with {}", output.status),
+                ));
+            }
+            Ok(output.stdout)
+        });
+
+        let result = bytes.and_then(|mut bytes| {
+            while matches!(bytes.last(), Some(b'\n' | b'\r')) {
+                bytes.pop();
+            }
+            String::from_utf8(bytes)
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))
+        });
+
+        match result {
+            Ok(value) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`, no_error()),
+            Err(err) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(`, io_error(err)),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.IsPathSeparator follows host OS path separator rules.
