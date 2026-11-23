@@ -10990,11 +10990,14 @@ func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTy
 			vt.PushScope()
 			popElseBodyScope = vt.PopScope
 		}
+		var captureShadowRestores []func()
 		for _, stmt := range block.List {
 			out.WriteString("            ")
 			TranspileStatementSimple(out, stmt, fnType, fileSet)
 			out.WriteString(";\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		popElseBodyScope()
 		out.WriteString("        }")
 	}
@@ -11011,6 +11014,8 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	}()
 	out.WriteString("{\n        ")
 	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
+	restoreInitCaptureShadow := suppressCaptureRenamesDeclaredBy(stmt.Init)
+	defer restoreInitCaptureShadow()
 	restoreRangeLoopVars = shadowRangeLoopVars(shortDeclNames(stmt.Init))
 	out.WriteString(";\n        if ")
 	transpileCondition(out, stmt.Cond)
@@ -11022,11 +11027,14 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 		vt.PushScope()
 		popIfBodyScope = vt.PopScope
 	}
+	var captureShadowRestores []func()
 	for _, bodyStmt := range stmt.Body.List {
 		out.WriteString("            ")
 		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 		out.WriteString(";\n")
+		trackCaptureShadows(&captureShadowRestores, bodyStmt)
 	}
+	restoreCaptureShadows(captureShadowRestores)
 	popIfBodyScope()
 	thenGuards := cloneMutexGuards(activeMutexGuards)
 	out.WriteString("        }")
@@ -14544,11 +14552,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 		restoreRangeLoopVars := func() {}
+		restoreInitCaptureShadow := func() {}
 		if wrapForScope {
 			out.WriteString("{\n    ")
 		}
 		if s.Init != nil {
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			restoreInitCaptureShadow = suppressCaptureRenamesDeclaredBy(s.Init)
 			restoreRangeLoopVars = shadowRangeLoopVars(shortNames)
 			out.WriteString("\n    ")
 		}
@@ -14577,6 +14587,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		currentLoopDepth++
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		if stmtListHasPlannedGoto(s.Body.List) {
 			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
 		} else {
@@ -14590,10 +14601,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
 				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
 				out.WriteString("\n")
+				trackCaptureShadows(&captureShadowRestores, stmt)
 
 				prevStmt = stmt
 			}
 		}
+		restoreCaptureShadows(captureShadowRestores)
 
 		// Add the post statement (increment) if present
 		if s.Post != nil {
@@ -14618,12 +14631,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if popForInitScope != nil {
 			popForInitScope()
 		}
+		restoreInitCaptureShadow()
 
 	case *ast.BlockStmt:
 		out.WriteString("{\n")
 		var prevStmt ast.Stmt
 		var blockLastPos token.Pos = s.Lbrace
-		var restoreCaptureShadows []func()
+		var captureShadowRestores []func()
 		for i, stmt := range s.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
@@ -14636,13 +14650,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &blockLastPos, indent+"    ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.List)-1)
 			out.WriteString("\n")
-			restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+			trackCaptureShadows(&captureShadowRestores, stmt)
 
 			prevStmt = stmt
 		}
-		for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
-			restoreCaptureShadows[i]()
-		}
+		restoreCaptureShadows(captureShadowRestores)
 		out.WriteString(indent)
 		out.WriteString("}")
 
@@ -14822,12 +14834,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			currentLoopDepth++
 			var rangeBodyLastPos token.Pos = s.Body.Lbrace
+			var captureShadowRestores []func()
 			for i, stmt := range s.Body.List {
 				out.WriteString("        ")
 				TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
 				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 				out.WriteString("\n")
+				trackCaptureShadows(&captureShadowRestores, stmt)
 			}
+			restoreCaptureShadows(captureShadowRestores)
 			currentLoopDepth--
 
 			out.WriteString("    }")
@@ -15495,12 +15510,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		currentLoopDepth++
 		var rangeBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		currentLoopDepth--
 
 		out.WriteString("    }")
@@ -15547,12 +15565,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			popIfBodyScope = vt.PopScope
 		}
 		var ifBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		popIfBodyScope()
 		thenGuards := cloneMutexGuards(activeMutexGuards)
 
@@ -15579,12 +15600,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					popElseBodyScope = vt.PopScope
 				}
 				var elseBodyLastPos token.Pos = block.Lbrace
+				var captureShadowRestores []func()
 				for i, stmt := range block.List {
 					out.WriteString("        ")
 					TranspileStatement(out, stmt, fnType, fileSet, comments, &elseBodyLastPos, "        ")
 					writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(block.List)-1)
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, stmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				popElseBodyScope()
 				out.WriteString("    }")
 			}
@@ -15594,8 +15618,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.SwitchStmt:
 		// Handle init statement if present
+		restoreInitCaptureShadow := func() {}
 		if s.Init != nil {
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			restoreInitCaptureShadow = suppressCaptureRenamesDeclaredBy(s.Init)
 			out.WriteString("\n    ")
 		}
 
@@ -15709,6 +15735,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					// Case body — replace fallthrough with flag set
 					var caseBodyLastPos token.Pos = caseClause.Colon
+					var captureShadowRestores []func()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -15720,7 +15747,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }\n")
 				}
@@ -15789,6 +15818,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" {\n")
 
 					var caseBodyLastPos token.Pos = caseClause.Colon
+					var captureShadowRestores []func()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -15796,7 +15826,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }")
 					emittedCase = true
@@ -15810,6 +15842,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("{\n")
 				}
 				var caseBodyLastPos token.Pos = defaultClause.Colon
+				var captureShadowRestores []func()
 				for _, bodyStmt := range defaultClause.Body {
 					if isUnlabeledBreakStmt(bodyStmt) {
 						break
@@ -15817,7 +15850,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("            ")
 					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				out.WriteString("        }")
 			}
 
@@ -15829,6 +15864,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n        break;\n    }")
 			restoreBreakTarget()
 		}
+		restoreInitCaptureShadow()
 
 	case *ast.BranchStmt:
 		switch s.Tok {
@@ -15953,12 +15989,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 
 						// Body
+						var captureShadowRestores []func()
 						for _, bodyStmt := range cc.Body {
 							out.WriteString("            ")
 							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 							writeSelectBranchTerminator(out, bodyStmt)
 							out.WriteString("\n")
+							trackCaptureShadows(&captureShadowRestores, bodyStmt)
 						}
+						restoreCaptureShadows(captureShadowRestores)
 						if !stmtListTerminates(cc.Body) {
 							out.WriteString("            break;\n")
 						}
@@ -15973,12 +16012,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeChannelExpression(out, unary.X)
 					out.WriteString(".try_recv_select() {\n")
 
+					var captureShadowRestores []func()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("            ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("            break;\n")
 					}
@@ -15995,12 +16037,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(") {\n")
 
+				var captureShadowRestores []func()
 				for _, bodyStmt := range cc.Body {
 					out.WriteString("            ")
 					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 					writeSelectBranchTerminator(out, bodyStmt)
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				if !stmtListTerminates(cc.Body) {
 					out.WriteString("            break;\n")
 				}
@@ -16012,12 +16057,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if hasDefault {
 			for _, cc := range commClauses {
 				if cc.Comm == nil {
+					var captureShadowRestores []func()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("        ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("        break;\n")
 					}
@@ -17444,6 +17492,16 @@ func suppressCaptureRenamesDeclaredBy(stmt ast.Stmt) func() {
 		for i := len(restores) - 1; i >= 0; i-- {
 			restores[i]()
 		}
+	}
+}
+
+func trackCaptureShadows(restores *[]func(), stmt ast.Stmt) {
+	*restores = append(*restores, suppressCaptureRenamesDeclaredBy(stmt))
+}
+
+func restoreCaptureShadows(restores []func()) {
+	for i := len(restores) - 1; i >= 0; i-- {
+		restores[i]()
 	}
 }
 
