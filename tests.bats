@@ -1207,6 +1207,22 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_isregular" {
+    run_test "tests/filemode_isregular"
+}
+
+@test "filemode_isregular_goroutines" {
+    run_test "tests/filemode_isregular_goroutines"
+}
+
+@test "filemode_string" {
+    run_test "tests/filemode_string"
+}
+
+@test "filemode_string_goroutines" {
+    run_test "tests/filemode_string_goroutines"
+}
+
 @test "filemode_type" {
     run_test "tests/filemode_type"
 }
@@ -2253,6 +2269,14 @@ run_xfail_test() {
 
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
+}
+
+@test "os_stat_lstat_fileinfo_mode" {
+    run_test "tests/os_stat_lstat_fileinfo_mode"
+}
+
+@test "os_stat_lstat_fileinfo_mode_goroutines" {
+    run_test "tests/os_stat_lstat_fileinfo_mode_goroutines"
 }
 
 @test "package_any_value_from_caller" {
@@ -3811,32 +3835,8 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
-@test "XFAIL: filemode_isregular" {
-    run_xfail_test "tests/XFAIL/filemode_isregular"
-}
-
-@test "XFAIL: filemode_isregular_goroutines" {
-    run_xfail_test "tests/XFAIL/filemode_isregular_goroutines"
-}
-
-@test "XFAIL: filemode_string" {
-    run_xfail_test "tests/XFAIL/filemode_string"
-}
-
-@test "XFAIL: filemode_string_goroutines" {
-    run_xfail_test "tests/XFAIL/filemode_string_goroutines"
-}
-
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: os_stat_lstat_fileinfo_mode" {
-    run_xfail_test "tests/XFAIL/os_stat_lstat_fileinfo_mode"
-}
-
-@test "XFAIL: os_stat_lstat_fileinfo_mode_goroutines" {
-    run_xfail_test "tests/XFAIL/os_stat_lstat_fileinfo_mode_goroutines"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
