@@ -814,8 +814,8 @@ pub mod os {
 fn main() {
     let mut done = GoChannel::<AnonymousStruct1>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
-        let mut withPerm = Arc::new(Mutex::new(Some(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0640)) as u32))));;
-        let mut typeOnly = Arc::new(Mutex::new(Some(fs_FileMode((((((os::MODE_SYMLINK).0 as u32) | ((os::MODE_SETUID).0 as u32)) | 0777)) as u32))));;
+        let mut withPerm = Arc::new(Mutex::new(Some(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o640)) as u32))));;
+        let mut typeOnly = Arc::new(Mutex::new(Some(fs_FileMode((((((os::MODE_SYMLINK).0 as u32) | ((os::MODE_SETUID).0 as u32)) | 0o777)) as u32))));;
         println!("{}", format!("{}", {
             let __tmp_x = (*fs_FileMode::r#type(&(os::MODE_DIR)).lock().unwrap().as_ref().unwrap()).clone();
             let __tmp_y = os::MODE_DIR;

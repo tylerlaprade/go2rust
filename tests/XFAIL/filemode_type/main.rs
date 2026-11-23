@@ -642,8 +642,8 @@ pub mod os {
 
 
 fn main() {
-    let mut withPerm = Rc::new(RefCell::new(Some(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0640)) as u32))));
-    let mut typeOnly = Rc::new(RefCell::new(Some(fs_FileMode((((((os::MODE_SYMLINK).0 as u32) | ((os::MODE_SETUID).0 as u32)) | 0777)) as u32))));
+    let mut withPerm = Rc::new(RefCell::new(Some(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o640)) as u32))));
+    let mut typeOnly = Rc::new(RefCell::new(Some(fs_FileMode((((((os::MODE_SYMLINK).0 as u32) | ((os::MODE_SETUID).0 as u32)) | 0o777)) as u32))));
 
     println!("{}", format!("{}", (*fs_FileMode::r#type(&(os::MODE_DIR)).borrow().as_ref().unwrap()).clone() == os::MODE_DIR));
     println!("{}", format!("{}", (*fs_FileMode::r#type(&(*withPerm.borrow().as_ref().unwrap())).borrow().as_ref().unwrap()).clone() == os::MODE_DIR));

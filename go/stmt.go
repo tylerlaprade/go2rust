@@ -8882,11 +8882,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok {
 				switch basic.Kind() {
 				case types.Float32, types.Float64:
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 			}
+			out.WriteString(RustIntegerLiteral(lit.Value))
+			return
 		}
 		out.WriteString(lit.Value)
 		return
@@ -10648,6 +10649,8 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		if lit.Kind == token.STRING {
 			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
+		} else if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(lit.Value)
 		}
@@ -14237,7 +14240,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													isFloatType := underlyingType == "float64" || underlyingType == "float32"
 													if isFloatType {
 														if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-															out.WriteString(lit.Value + ".0")
+															out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
@@ -14292,7 +14295,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												isFloatType := underlyingType == "float64" || underlyingType == "float32"
 												if isFloatType {
 													if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-														out.WriteString(lit.Value + ".0")
+														out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}
