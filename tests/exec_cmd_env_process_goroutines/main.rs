@@ -1044,6 +1044,12 @@ impl exec_Cmd {
         command.args(&args_view[1..]);
         if let Some(dir) = self.dir.lock().unwrap().as_ref() {
             if !dir.is_empty() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::ffi::OsStringExt;
+                    command.current_dir(std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(dir))));
+                }
+                #[cfg(not(unix))]
                 command.current_dir(dir);
             }
         }
