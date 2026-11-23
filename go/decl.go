@@ -5486,7 +5486,11 @@ func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncD
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone();\n")
 	out.WriteString(indent)
-	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
+	out.WriteString(rustIndexByteStringExpr("__s", "__c") + "\n")
+}
+
+func rustIndexByteStringExpr(text, value string) string {
+	return text + ".as_bytes().iter().position(|&__b| __b == " + value + ").map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)"
 }
 
 func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {

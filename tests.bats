@@ -955,6 +955,10 @@ run_xfail_test() {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
 
+@test "cross_file_error_chain_imports" {
+    run_test "tests/cross_file_error_chain_imports"
+}
+
 @test "cross_file_func_vars" {
     run_test "tests/cross_file_func_vars"
 }
@@ -3385,6 +3389,10 @@ run_xfail_test() {
 
 @test "source_stdlib_strconv_unquote" {
     run_test "tests/source_stdlib_strconv_unquote"
+}
+
+@test "source_stdlib_strings_index_byte" {
+    run_test "tests/source_stdlib_strings_index_byte"
 }
 
 @test "source_stdlib_sync_map_load" {

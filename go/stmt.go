@@ -48,16 +48,16 @@ func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.Fun
 // would outlive the local it borrows from. Parameters drop after temporaries
 // so they remain safe in tail position; only `let`-declared wrapped locals
 // trigger the rejection.
-func returnExpressionsBorrowWrappedLocals(results []ast.Expr) bool {
+func returnExpressionsBorrowWrappedLocals(results []ast.Expr, fnType *ast.FuncType) bool {
 	for _, expr := range results {
-		if expressionReadsWrappedLocal(expr) {
+		if expressionReadsWrappedLocal(expr, fnType) {
 			return true
 		}
 	}
 	return false
 }
 
-func expressionReadsWrappedLocal(expr ast.Expr) bool {
+func expressionReadsWrappedLocal(expr ast.Expr, fnType *ast.FuncType) bool {
 	found := false
 	ast.Inspect(expr, func(n ast.Node) bool {
 		if found {
@@ -67,7 +67,7 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 		if !ok {
 			return true
 		}
-		if identIsWrappedFunctionLocal(ident) {
+		if identIsWrappedFunctionLocal(ident, fnType) {
 			found = true
 			return false
 		}
@@ -88,7 +88,7 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 // records the rare opt-outs (bare scalar slot from a bare-scalar call, range
 // vars, etc.) as WrapNone. Anything else that's a body-declared local is
 // assumed wrapped.
-func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
+func identIsWrappedFunctionLocal(ident *ast.Ident, fnType *ast.FuncType) bool {
 	if ident == nil || ident.Name == "_" {
 		return false
 	}
@@ -114,7 +114,12 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	if v.Pkg() != nil && v.Parent() == v.Pkg().Scope() {
 		return false
 	}
-	// Names declared at or before the function body's opening brace are
+	// A named result is declared in the Go signature but initialized by a
+	// Rust let inside the function. Its borrow must end before that local drops.
+	if fnType != nil && fnType.Results != nil && v.Pos() >= fnType.Results.Pos() && v.Pos() < fnType.Results.End() {
+		return true
+	}
+	// Other names declared at or before the function body's opening brace are
 	// parameters, receivers, or enclosing-scope variables — they drop after
 	// the tail expression's temporaries, so they are safe.
 	if !currentFunctionBodyLbrace.IsValid() || v.Pos() <= currentFunctionBodyLbrace {
@@ -11942,7 +11947,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// local drops first, rustc rejects the body. Falling back to an
 			// explicit `return <expr>;` keeps the temporaries scoped to
 			// the statement so locals can drop afterward safely.
-			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results) {
+			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results, fnType) {
 				tailReturn = false
 			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
 				// Naked returns lower named-return locals through the same
@@ -16035,6 +16040,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		// Go evaluates each case's channel operand once, on entering the
+		// select. Inside the polling loop a call such as time.After would
+		// make a new timer each round, and the timer would never fire.
+		restoreSelectChannels := hoistSelectChannelOperands(out, commClauses)
+		defer restoreSelectChannels()
 		out.WriteString("loop {\n")
 		restoreSelectBreakTarget := pushBreakTarget("")
 
@@ -16053,7 +16063,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// A closed channel is ready too: it gives the zero
 						// value, and ok is false.
 						out.WriteString("        if let Some(__select_recv) = ")
-						writeChannelExpression(out, unary.X)
+						writeSelectChannelOperand(out, unary.X)
 						out.WriteString(".try_recv_select() {\n")
 						out.WriteString("            let __select_ok = __select_recv.is_some();\n")
 						if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
@@ -16119,7 +16129,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// case <-ch (receive without assignment)
 				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
-					writeChannelExpression(out, unary.X)
+					writeSelectChannelOperand(out, unary.X)
 					out.WriteString(".try_recv_select() {\n")
 
 					var captureShadowRestores []func()
@@ -16140,7 +16150,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case *ast.SendStmt:
 				// case ch <- val (send case) — use try_send for non-blocking
 				out.WriteString("        if ")
-				writeChannelExpression(out, comm.Chan)
+				writeSelectChannelOperand(out, comm.Chan)
 				out.WriteString(".try_send(")
 				if !writeInterfaceChannelSendValue(out, comm.Chan, comm.Value) {
 					transpileChannelValue(out, comm.Value)
@@ -16188,6 +16198,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		restoreSelectBreakTarget()
 		out.WriteString("    }")
+		if selectChannelsHoisted(commClauses) {
+			out.WriteString(" }")
+		}
 		if selectStmtTerminates(s) {
 			out.WriteString("\n    unreachable!()")
 		}
