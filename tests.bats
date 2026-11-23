@@ -679,6 +679,10 @@ run_xfail_test() {
     run_test "tests/case_table_lookup_with_named_arrays_goroutines"
 }
 
+@test "chan_any_values" {
+    run_test "tests/chan_any_values"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
