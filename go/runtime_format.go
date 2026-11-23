@@ -331,6 +331,9 @@ mod __go_runtime_format {
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
 `)
+	if goSliceModeEnabled() {
+		out.WriteString("    #[allow(unused_imports)]\n    use super::{GoSlice, Vec};\n")
+	}
 	out.WriteString(replace.Replace(goSprintfFormatting))
 	out.WriteString(replace.Replace(strings.Replace(goSprintfEntry, "\nfn go_sprintf(", "\npub(super) fn go_sprintf(", 1)))
 	if spread {
@@ -728,6 +731,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {

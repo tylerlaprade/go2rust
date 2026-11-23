@@ -54,8 +54,8 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 	tokenType := gotypes.NewNamed(tokenName, gotypes.Typ[gotypes.Int], nil)
 	RegisterExternalPackageStubConstantValue("token", rustConstName("ADD"), tokenType, goconstant.MakeInt64(12))
 
-	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i32" {
-		t.Fatalf("token package constants should register token_Token as i32, got %q", got)
+	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i64" {
+		t.Fatalf("token package constants should register token_Token as i64, got %q", got)
 	}
 
 	got := generateExternalStubs(
@@ -69,7 +69,7 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 		ctx.File.ExternalPackageStubs,
 	)
 	for _, want := range []string{
-		"pub struct token_Token(pub i32);",
+		"pub struct token_Token(pub i64);",
 		"pub const A_D_D: token_Token = token_Token(12);",
 	} {
 		if !strings.Contains(got, want) {
@@ -96,8 +96,8 @@ func TestAstPackageConstantsUseGenericConstStub(t *testing.T) {
 	RegisterExternalPackageStubConstantValue("ast", rustConstName("SEND"), chanDirType, goconstant.MakeInt64(1))
 	RegisterExternalPackageStubConstantValue("ast", rustConstName("RECV"), chanDirType, goconstant.MakeInt64(2))
 
-	if got := ctx.File.ExternalTypeStubIntegerTypes["ast_ChanDir"]; got != "i32" {
-		t.Fatalf("ast package constants should register ast_ChanDir as i32, got %q", got)
+	if got := ctx.File.ExternalTypeStubIntegerTypes["ast_ChanDir"]; got != "i64" {
+		t.Fatalf("ast package constants should register ast_ChanDir as i64, got %q", got)
 	}
 
 	got := generateExternalStubs(
@@ -111,7 +111,7 @@ func TestAstPackageConstantsUseGenericConstStub(t *testing.T) {
 		ctx.File.ExternalPackageStubs,
 	)
 	for _, want := range []string{
-		"pub struct ast_ChanDir(pub i32);",
+		"pub struct ast_ChanDir(pub i64);",
 		"pub const R_E_C_V: ast_ChanDir = ast_ChanDir(2);",
 		"pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);",
 	} {
@@ -179,7 +179,7 @@ func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T)
 		false,
 	)
 
-	RegisterExternalPackageStubFunction("slices", "clip", sig)
+	RegisterExternalPackageStubFunction("slices", "slices", "clip", sig)
 	got := GenerateExternalTypeStubs()
 	for _, want := range []string{
 		"pub fn clip<S, E>(",
@@ -464,6 +464,50 @@ func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	}
 }
 
+func TestJsonValidStubChecksCompleteJsonInput(t *testing.T) {
+	pkg := &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"valid": {ParamCount: 1, ReturnTypes: []string{"bool"}},
+		},
+	}
+	if !externalStubsNeedJsonSupport(nil, map[string]*externalPackageStub{"json": pkg}) {
+		t.Fatal("json.Valid should request the existing JSON input helpers")
+	}
+
+	var out strings.Builder
+	writeJsonPackageStub(&out, pkg)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("json.Valid should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn valid<T0: GoJsonInputArg>",
+		"let bytes = _arg0.into_go_json_bytes()",
+		"let mut depth = 0usize",
+		"if depth > 10_000 { return false; }",
+		"let text = String::from_utf8_lossy(&bytes)",
+		"serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("json.Valid shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestJsonSupportHelpersFullyQualifyBTreeMap(t *testing.T) {
+	var out strings.Builder
+	writeJsonSupportHelpers(&out)
+	got := out.String()
+	for _, want := range []string{
+		"impl<V> GoJsonDecode for std::collections::BTreeMap<String, V>",
+		"let mut out = std::collections::BTreeMap::new()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("JSON support helpers should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestPackageExternalStubsDoNotEmitJsonSupportByDefault(t *testing.T) {
 	pkg := NewPackageState()
 	pkg.ExternalPackageStubs["path"] = &externalPackageStub{
@@ -544,7 +588,7 @@ func TestSharedStdlibStubCrateIncludesSerdeJsonWhenJsonDecodeNeeded(t *testing.T
 	if err != nil {
 		t.Fatalf("ReadFile(Cargo.toml) error = %v", err)
 	}
-	if !strings.Contains(string(cargoToml), "serde_json = \"1\"") {
+	if !strings.Contains(string(cargoToml), "serde_json = { version = \"1\", features = [\"raw_value\"] }") {
 		t.Fatalf("JSON shared stdlib stub crate should depend on serde_json:\n%s", cargoToml)
 	}
 }
@@ -758,13 +802,13 @@ func TestRuntimeGOMAXPROCSStubMatchesBareReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeRuntimeGOMAXPROCSStub(&out, externalPackageStubFunction{
 		ParamCount:  1,
-		ReturnTypes: []string{"i32"},
+		ReturnTypes: []string{"i64"},
 	})
 	got := out.String()
-	if strings.Contains(got, "Some::<i32>") || strings.Contains(got, "RefCell::new") || strings.Contains(got, "Mutex::new") {
-		t.Fatalf("runtime.GOMAXPROCS stub should return bare i32 for bare signatures:\n%s", got)
+	if strings.Contains(got, "Some::<i64>") || strings.Contains(got, "RefCell::new") || strings.Contains(got, "Mutex::new") {
+		t.Fatalf("runtime.GOMAXPROCS stub should return bare i64 for bare signatures:\n%s", got)
 	}
-	if !strings.Contains(got, "pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i32") ||
+	if !strings.Contains(got, "pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i64") ||
 		!strings.Contains(got, "std::thread::available_parallelism()") {
 		t.Fatalf("runtime.GOMAXPROCS stub should preserve the runtime fallback body:\n%s", got)
 	}
@@ -867,6 +911,34 @@ func TestFsFileModeStubImplementsIsDirMethod(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("fs.FileMode IsDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestFsFileModeStubImplementsPermMethod(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"fs_FileMode": true},
+		nil,
+		map[string]string{"fs_FileMode": "u32"},
+		nil,
+		nil,
+		map[string]map[string]externalTypeStubMethod{
+			"fs_FileMode": {
+				"perm": {ReturnTypes: []string{wrappedExternalStubType("fs_FileMode")}},
+			},
+		},
+		nil,
+		nil,
+	)
+	if strings.Contains(got, "generic stub method body has no implementation") {
+		t.Fatalf("fs.FileMode Perm shim should not use the generic method panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn perm(&self) -> " + wrappedExternalStubType("fs_FileMode"),
+		"fs_FileMode(self.0 & 0o777)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("fs.FileMode Perm shim should include %q:\n%s", want, got)
 		}
 	}
 }
@@ -992,6 +1064,65 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Getwd shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsExecutableStubUsesCurrentExe(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"executable": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Executable should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn executable()",
+		"std::env::current_exe()",
+		"path.to_string_lossy().into_owned()",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Executable shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsHostnameStubUsesHostRuntime(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"hostname": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Hostname should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn hostname()",
+		"std::env::var(\"COMPUTERNAME\")",
+		"std::fs::read(\"/proc/sys/kernel/hostname\")",
+		"std::process::Command::new(\"hostname\").output()",
+		"while matches!(bytes.last(), Some(b'\\n' | b'\\r'))",
+		"String::from_utf8(bytes)",
+		"std::io::ErrorKind::InvalidData",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Hostname shim should include %q:\n%s", want, got)
 		}
 	}
 }

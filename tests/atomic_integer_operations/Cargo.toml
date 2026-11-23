@@ -1,0 +1,11 @@
+[package]
+name = "atomic_integer_operations"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "atomic_integer_operations"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

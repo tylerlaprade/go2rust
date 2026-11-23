@@ -1,9 +1,587 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use std::any::Any;
 use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
+
+/// A Go slice: an offset, a length and a capacity over a backing array that
+/// every slice made from it shares. Every name below that a binding uses
+/// starts with __, so no package-level variable of the program shadows it.
+pub struct GoSlice<T> {
+    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
+    off: usize,
+    len: usize,
+    cap: usize,
+}
+
+unsafe impl<T: Send> Send for GoSlice<T> {}
+unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
+
+/// The prelude's Vec and vec! are Go slices in generated code.
+pub type Vec<T> = GoSlice<T>;
+
+impl<T> Clone for GoSlice<T> {
+    /// Copies the header. The copy shares the elements, as a Go slice
+    /// assignment does.
+    fn clone(&self) -> Self {
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+    }
+}
+
+impl<T> GoSlice<T> {
+    pub fn new() -> Self {
+        Self::from(std::vec::Vec::new())
+    }
+
+    pub fn with_capacity(__cap: usize) -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+    }
+
+    fn backing_ref(&self) -> &std::vec::Vec<T> {
+        unsafe { &*self.backing.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
+        unsafe { &mut *self.backing.get() }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.backing_ref()[self.off..self.off + self.len]
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
+    }
+
+    /// Go's cap(s).
+    pub fn capacity(&self) -> usize {
+        self.cap
+    }
+
+    /// Whether two slices share their backing array.
+    pub fn shares_backing_with(&self, __other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
+    }
+
+    /// Go's s[lo:hi].
+    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
+        if __lo > __hi || __hi > self.cap {
+            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
+        }
+        if self.off + __hi > self.backing_ref().len() {
+            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
+        }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+    }
+
+    /// Go's s[lo:hi:max].
+    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __max > self.cap || __hi > __max {
+            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
+        }
+        let mut __slice = self.reslice(__lo, __hi);
+        __slice.cap = __max - __lo;
+        __slice
+    }
+
+    /// Go's s = s[:n] when n is at most len(s).
+    pub fn truncate(&mut self, __n: usize) {
+        if __n < self.len {
+            self.len = __n;
+        }
+    }
+
+    /// Go's s = s[:0].
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    #[allow(unused_variables)]
+    pub fn reserve(&mut self, __additional: usize) {}
+
+    /// Keeps the elements the predicate accepts, in order, at the front.
+    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
+        let mut __kept = 0;
+        {
+            let __window = self.as_mut_slice();
+            for __index in 0..__window.len() {
+                if __keep(&__window[__index]) {
+                    __window.swap(__kept, __index);
+                    __kept += 1;
+                }
+            }
+        }
+        self.len = __kept;
+    }
+
+    /// Moves the slice's elements out when no other slice shares them.
+    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
+        let (__off, __len) = (self.off, self.len);
+        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
+        let mut __elems = std::mem::take(__backing.get_mut());
+        __elems.truncate(__off + __len);
+        __elems.drain(..__off);
+        Some(__elems)
+    }
+
+    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+    }
+
+    /// The capacity Go's append gives a slice that must grow to hold
+    /// __needed elements.
+    fn grown_cap(&self, __needed: usize) -> usize {
+        let __old = self.cap;
+        let __doubled = __old + __old;
+        if __needed > __doubled {
+            return __needed;
+        }
+        if __old < 256 {
+            return __doubled.max(1);
+        }
+        let mut __grown = __old;
+        while __grown < __needed {
+            __grown += (__grown + 3 * 256) / 4;
+        }
+        __grown
+    }
+
+    /// Stores a value at index len(s) of the backing array: the in-place
+    /// half of Go's append. The backing Vec has room for the capacity, so
+    /// pushing onto it never moves elements other slices are reading.
+    fn store_at_end(&mut self, __value: T) {
+        let __at = self.off + self.len;
+        let __backing = self.backing_mut();
+        if __at < __backing.len() {
+            __backing[__at] = __value;
+        } else {
+            __backing.push(__value);
+        }
+        self.len += 1;
+    }
+
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
+    }
+}
+
+impl<T: Clone> GoSlice<T> {
+    /// Go's s = append(s, v): in place while there is capacity, else into a
+    /// new backing array.
+    pub fn push(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.push(__value);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's append(s, v), leaving s as it was.
+    pub fn appended(&self, __value: T) -> Self {
+        let mut __result = self.clone();
+        __result.push(__value);
+        __result
+    }
+
+    /// Go's s = append(s, xs...).
+    pub fn extend_from_slice(&mut self, __values: &[T]) {
+        if self.len + __values.len() <= self.cap {
+            for __value in __values {
+                self.store_at_end(__value.clone());
+            }
+            return;
+        }
+        let __cap = self.grown_cap(self.len + __values.len());
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.extend_from_slice(__values);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's s = append(s, xs...) from values.
+    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
+        let __values: std::vec::Vec<T> = __values.into_iter().collect();
+        self.extend_from_slice(&__values);
+    }
+
+    /// Removes and returns the last element: Go's v := s[len(s)-1];
+    /// s = s[:len(s)-1].
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        let __last = self.as_slice()[self.len - 1].clone();
+        self.len -= 1;
+        Some(__last)
+    }
+
+    pub fn insert(&mut self, __index: usize, __value: T) {
+        if __index > self.len {
+            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
+        }
+        self.push(__value);
+        self.as_mut_slice()[__index..].rotate_right(1);
+    }
+
+    pub fn remove(&mut self, __index: usize) -> T {
+        let __removed = self.as_slice()[__index].clone();
+        self.as_mut_slice()[__index..].rotate_left(1);
+        self.len -= 1;
+        __removed
+    }
+
+    pub fn split_off(&mut self, __at: usize) -> Self {
+        let __tail = Self::from(self.as_slice()[__at..].to_vec());
+        self.len = __at;
+        __tail
+    }
+
+    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
+        let mut __elems = self.as_slice().to_vec();
+        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
+        let __cap = self.cap;
+        *self = Self::fresh(__elems, __cap);
+        __drained.into_iter()
+    }
+
+    pub fn resize(&mut self, __new_len: usize, __value: T) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more = std::vec::from_elem(__value, __new_len - self.len);
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn into_std_vec(self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
+    pub fn into_boxed_slice(self) -> Box<[T]> {
+        self.as_slice().to_vec().into_boxed_slice()
+    }
+}
+
+/// The values appended by append(s, xs...) to a slice of interface values:
+/// always a slice built for the append, which nothing else holds.
+pub trait GoSliceBoxedValues<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T>;
+}
+
+impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T> {
+        self
+    }
+}
+
+impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => panic!("append of interface values held by another slice"),
+        }
+    }
+}
+
+/// Go's append for interface values, which have no Clone. When the slice
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
+pub trait GoSliceAppendBoxed<T> {
+    fn push(&mut self, __value: T);
+    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+/// Reads the header of a slice value, whichever form the value has.
+pub trait GoSliceHeader<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>>;
+}
+
+impl<T> GoSliceHeader<T> for GoSlice<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        Some(self.clone())
+    }
+}
+
+impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.borrow().clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.lock().unwrap().clone()
+    }
+}
+
+/// Copies a Rust slice into a new Go slice.
+pub trait GoSliceFromSlice<T> {
+    fn to_go_slice(&self) -> GoSlice<T>;
+}
+
+impl<T: Clone> GoSliceFromSlice<T> for [T] {
+    fn to_go_slice(&self) -> GoSlice<T> {
+        GoSlice::from(self.to_vec())
+    }
+}
+
+impl<T> Default for GoSlice<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
+    fn from(__elems: std::vec::Vec<T>) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+    }
+}
+
+impl<T: Clone> From<&[T]> for GoSlice<T> {
+    fn from(__elems: &[T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T: Clone> From<&mut [T]> for GoSlice<T> {
+    fn from(__elems: &mut [T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
+    fn from(__elems: [T; N]) -> Self {
+        Self::from(std::vec::Vec::from(__elems))
+    }
+}
+
+impl From<&str> for GoSlice<u8> {
+    fn from(__text: &str) -> Self {
+        Self::from(__text.as_bytes().to_vec())
+    }
+}
+
+impl From<String> for GoSlice<u8> {
+    fn from(__text: String) -> Self {
+        Self::from(__text.into_bytes())
+    }
+}
+
+impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
+    fn from(__slice: GoSlice<T>) -> Self {
+        __slice.as_slice().to_vec()
+    }
+}
+
+impl<T> std::ops::Deref for GoSlice<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSlice<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> AsRef<[T]> for GoSlice<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> AsMut<[T]> for GoSlice<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::iter::FromIterator<T> for GoSlice<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
+        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
+    }
+}
+
+impl<T: Clone> IntoIterator for GoSlice<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(mut self) -> Self::IntoIter {
+        match self.take_unique() {
+            Some(__elems) => __elems.into_iter(),
+            None => self.as_slice().to_vec().into_iter(),
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a GoSlice<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(__f)
+    }
+}
+
+/// Go's %v of a slice: the elements' %v between brackets.
+impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        __f.write_str("[")?;
+        for (__index, __value) in self.as_slice().iter().enumerate() {
+            if __index > 0 {
+                __f.write_str(" ")?;
+            }
+            write!(__f, "{}", __value)?;
+        }
+        __f.write_str("]")
+    }
+}
+
+impl<T: PartialEq> PartialEq for GoSlice<T> {
+    fn eq(&self, __other: &Self) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
+    fn eq(&self, __other: &[T]) -> bool {
+        self.as_slice() == __other
+    }
+}
+
+impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
+    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: Eq> Eq for GoSlice<T> {}
+
+impl<T: PartialOrd> PartialOrd for GoSlice<T> {
+    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_slice().partial_cmp(__other.as_slice())
+    }
+}
+
+impl<T: Ord> Ord for GoSlice<T> {
+    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(__other.as_slice())
+    }
+}
+
+impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
+    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
+        self.as_slice().hash(__state)
+    }
+}
+
+impl std::io::Write for GoSlice<u8> {
+    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
+        self.extend_from_slice(__bytes);
+        Ok(__bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
@@ -114,20 +692,21 @@ fn format_any(value: &dyn Any) -> String {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -162,6 +741,8 @@ mod __go_runtime_format {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
+    #[allow(unused_imports)]
+    use super::{GoSlice, Vec};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -540,6 +1121,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -764,13 +1350,19 @@ pub const ACTIVE: &'static str = "active";
 pub const INACTIVE: &'static str = "inactive";
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Celsius {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Celsius(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Celsius {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -912,13 +1504,19 @@ impl std::ops::Neg for Celsius {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Fahrenheit {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Fahrenheit(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Fahrenheit {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1098,13 +1696,19 @@ impl std::fmt::Display for Reading {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Color(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Color {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Color(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1124,7 +1728,7 @@ impl PartialEq for Color {
 
 impl PartialOrd for Color {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1175,13 +1779,19 @@ impl std::ops::Add<&str> for Color {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Status(pub Rc<RefCell<Option<String>>>);
 
 impl Clone for Status {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Status(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1201,7 +1811,7 @@ impl PartialEq for Status {
 
 impl PartialOrd for Status {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(std::cmp::Ord::cmp(self, other))
     }
 }
 
@@ -1252,13 +1862,19 @@ impl std::ops::Add<&str> for Status {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Enabled(pub Rc<RefCell<Option<bool>>>);
 
 impl Clone for Enabled {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Enabled(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Enabled {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1277,13 +1893,19 @@ impl PartialEq for Enabled {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Meters(pub Rc<RefCell<Option<f64>>>);
 
 impl Clone for Meters {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Meters(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Meters {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -1435,7 +2057,7 @@ impl Celsius {
     }
 
     pub fn truncated(&self) -> Rc<RefCell<Option<Celsius>>> {
-        Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i32 as f64 as f64)))))))
+        Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((*self.0.borrow().as_ref().unwrap()) as i64 as f64 as f64)))))))
     }
 }
 
@@ -1452,11 +2074,11 @@ impl Status {
 }
 
 pub fn c_to_f(c: Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Fahrenheit>>> {
-    Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(((((*(*c.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 9.0) / 5.0) + 32.0) as f64)))))))
+    Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some((((((*(*c.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * 9.0) / 5.0) + 32.0)) as f64)))))))
 }
 
 pub fn f_to_c(f: Rc<RefCell<Option<Fahrenheit>>>) -> Rc<RefCell<Option<Celsius>>> {
-    Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some((((((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 32.0)) * 5.0) / 9.0) as f64)))))))
+    Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((((((*(*f.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) - 32.0)) * 5.0) / 9.0)) as f64)))))))
 }
 
 pub fn zero() -> Rc<RefCell<Option<Celsius>>> {
@@ -1497,15 +2119,15 @@ pub fn describe(e: Rc<RefCell<Option<Enabled>>>) -> Rc<RefCell<Option<String>>> 
 fn main() {
     let mut boiling = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100.0 as f64)))))));
     println!("{} {} {}", format!("{}", { let __v = (*boiling.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Rc::new(RefCell::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*f_to_c(Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))))).borrow().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
+    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
     let mut temps = Rc::new(RefCell::new(Some(vec![Celsius(Rc::new(RefCell::new(Some(20.5)))), Celsius(Rc::new(RefCell::new(Some(18.0)))), Celsius(Rc::new(RefCell::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).borrow().as_ref().unwrap())));
-    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*temps_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone() < (*temps_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&temps)));
     let mut hottest = Rc::new(RefCell::new(Some((*temps.borrow().as_ref().unwrap())[(0) as usize].clone())));
-    for t in { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().cloned() {
+    for t in { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }.iter().cloned() {
         if t > (*hottest.borrow().as_ref().unwrap()) {
         { let new_val = t.clone(); *hottest.borrow_mut() = Some(new_val); };
     }
@@ -1522,9 +2144,9 @@ fn main() {
     { let __target = (*r.borrow().as_ref().unwrap()).temp.clone(); let __rhs = 0.5; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {}", format!("{}", (*(*r.borrow().as_ref().unwrap()).temp.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*r.borrow().as_ref().unwrap()).temp.borrow().as_ref().unwrap()).clone() > 20.0));
     let mut rs = Rc::new(RefCell::new(Some(vec![Reading { place: Rc::new(RefCell::new(Some("a".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(3.0))))))), ..Default::default() }, Reading { place: Rc::new(RefCell::new(Some("b".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.0))))))), ..Default::default() }, Reading { place: Rc::new(RefCell::new(Some("c".to_string()))), temp: Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(2.0))))))), ..Default::default() }])));
-    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let rs_closure_clone = rs.clone(); { let __sort_target = rs_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*(*rs_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().temp.borrow().as_ref().unwrap()).clone() < (*(*rs_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().temp.borrow().as_ref().unwrap()).clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     { let __range_holder = rs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         let x = &x.__go_value_clone();
         print!("{}{}{}", format!("{}", (*x.place.borrow().as_ref().unwrap()).clone()), format!("{}", (*x.temp.borrow().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
@@ -1540,13 +2162,13 @@ fn main() {
 
     let mut col = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some(RED.to_string())))))));
     println!("{} {} {} {} {}", format!("{}", { let __v = (*col.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*col.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap())), format!("{}", ((*(*col.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()), format!("{}", (*col.borrow().as_ref().unwrap()) == Color(Rc::new(RefCell::new(Some(RED.to_string()))))), format!("{}", (*col.borrow().as_ref().unwrap()) != Color(Rc::new(RefCell::new(Some(GREEN.to_string()))))));
-    let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<Color, Rc<RefCell<Option<i32>>>>::from([(Color(Rc::new(RefCell::new(Some(RED.to_string())))), Rc::new(RefCell::new(Some(1)))), (Color(Rc::new(RefCell::new(Some(GREEN.to_string())))), Rc::new(RefCell::new(Some(2))))]))));
+    let mut colors = Rc::new(RefCell::new(Some(BTreeMap::<Color, Rc<RefCell<Option<i64>>>>::from([(Color(Rc::new(RefCell::new(Some(RED.to_string())))), Rc::new(RefCell::new(Some(1i64)))), (Color(Rc::new(RefCell::new(Some(GREEN.to_string())))), Rc::new(RefCell::new(Some(2i64))))]))));
     println!("{} {}", format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some(RED.to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = colors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Color(Rc::new(RefCell::new(Some("green".to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut name = Rc::new(RefCell::new(Some(Color(Rc::new(RefCell::new(Some("blue".to_string())))))));
     { let __rhs = "ish"; let mut guard = name.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     println!("{} {} {} {} {}", format!("{}", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = (*Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); let __arg = "bl".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap())), format!("{}", { let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }), format!("{}", (*Rc::new(RefCell::new(Some({ let __s = &((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = (4) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap())), format!("{}", ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));
     for (i, ch) in ((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).char_indices() {
-        if i as i32 == 2 {
+        if i as i64 == 2 {
         println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32(((ch as i32)) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())));
     }
     }
@@ -1554,13 +2176,13 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*label(Rc::new(RefCell::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))))))).borrow().as_ref().unwrap())), format!("{}", (*label(Rc::new(RefCell::new(Some(Status(Rc::new(RefCell::new(Some("other".to_string())))))))).borrow().as_ref().unwrap())));
     let mut statuses = Rc::new(RefCell::new(Some(vec![Status(Rc::new(RefCell::new(Some(INACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))), Status(Rc::new(RefCell::new(Some("pending".to_string()))))])));
-    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i32>>>, j: Rc<RefCell<Option<i32>>>| -> bool {
+    let statuses_closure_clone = statuses.clone(); { let __sort_target = statuses_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
         return (*statuses_closure_clone.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone() < (*statuses_closure_clone.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone();
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i32))), Rc::new(RefCell::new(Some((__sort_j - 1) as i32)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> bool>))); let __sort_len = { let __sort_guard = __sort_target.borrow(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.borrow_mut(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Rc::new(RefCell::new(Some(__sort_j as i64))), Rc::new(RefCell::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     println!("{}", format!("{}", format_slice(&statuses)));
     let mut parts = Rc::new(RefCell::new(Some(Vec::<String>::new())));
     { let __range_holder = statuses.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for st in __range_values.iter().cloned() {
-        { let new_val = { let __append_target = parts.clone(); let __append_value = (*Rc::new(RefCell::new(Some((*st.0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }; parts = new_val; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = parts.clone(); let __append_value = (*Rc::new(RefCell::new(Some((*st.0.borrow().as_ref().unwrap()).clone()))).borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *parts.borrow_mut() = __slice_header; };
     } }
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __parts = (*parts.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) }))).borrow().as_ref().unwrap())));
     let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))).clone()) as Box<dyn Any>)));
@@ -1603,7 +2225,7 @@ fn main() {
             println!("{} {}", format!("{}", (*st.borrow().as_ref().unwrap()) == Status(Rc::new(RefCell::new(Some(ACTIVE.to_string()))))), format!("{}", ((*(*st.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone()).len()));;
         }
     }
-    let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<Status, Rc<RefCell<Option<i32>>>>::from([]))));
+    let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<Status, Rc<RefCell<Option<i64>>>>::from([]))));
     { let __map_holder = counts.clone(); let __key = Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))); let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
     { let __map_holder = counts.clone(); let __key = (*s.borrow().as_ref().unwrap()).clone(); let __rhs = 2; let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
     println!("{} {}", format!("{}", { let __map_holder = counts.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&Status(Rc::new(RefCell::new(Some(ACTIVE.to_string())))))).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_map(&counts)));

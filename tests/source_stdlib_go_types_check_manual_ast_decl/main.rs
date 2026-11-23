@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::cell::{RefCell};
@@ -117,6 +123,31 @@ fn go_runtime_error_text(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
 fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
@@ -159,17 +190,16 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         {
         let mut p = go_recover();;
         if { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "panic:".to_string()), format!("{}", { let __text = format_any(p.lock().unwrap().as_ref().unwrap().as_ref()); __text }));;
+            println!("{} {}", format!("{}", "panic:".to_string()), format!("{}", { let __text = match p.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -177,7 +207,7 @@ fn main() {
         let mut fset = go_token::new_file_set();
         let mut file = Arc::new(Mutex::new(Some(go_ast::r#mod::File {
             name: go_ast::new_ident(Arc::new(Mutex::new(Some("main".to_string())))).clone(),
-            decls: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { tok: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))))), specs: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { names: Arc::new(Mutex::new(Some(vec![go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string()))))]))), r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)))]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))]))),
+            decls: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { tok: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i64))))))), specs: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { names: Arc::new(Mutex::new(Some(vec![go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string()))))]))), r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)))]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))]))),
             ..Default::default()
         })));
         let (mut pkg, mut err) = {
@@ -202,7 +232,7 @@ fn main() {
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -212,7 +242,7 @@ fn main() {
                     go_store_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
             ()
         }

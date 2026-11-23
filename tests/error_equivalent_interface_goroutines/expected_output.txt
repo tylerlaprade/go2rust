@@ -1,0 +1,10 @@
+direct x
+call z
+custom custom
+anonymous y
+embedded embedded
+assert true bad
+single bad
+switch named bad
+switch anonymous bad
+wrapped wrap: inner

@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -596,7 +602,7 @@ impl std::fmt::Display for pkgReader {
 
 
 impl pkgReader {
-    pub fn new_reader(&self, delta: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Reader>>> {
+    pub fn new_reader(&self, delta: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Reader>>> {
         {
             let __owner = Arc::new(Mutex::new(Some(Reader { decoder: { let __promoted_recv = self.pkg_decoder.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.new_decoder(Arc::new(Mutex::new(Some({ let __arg_holder = delta.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }, name: Arc::new(Mutex::new(Some("frompkg".to_string()))), ..Default::default() })));
             let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().decoder.clone() };
@@ -610,7 +616,7 @@ impl pkgReader {
         { let __promoted_recv = self.pkg_decoder.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.retire_decoder((*r.lock().unwrap().as_ref().unwrap()).decoder.clone()); __result };
     }
 
-    pub fn new_decoder(&self, _arg0: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<example_com_importedembed_base::r#mod::Decoder>>> {
+    pub fn new_decoder(&self, _arg0: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<example_com_importedembed_base::r#mod::Decoder>>> {
         let embedded = self.pkg_decoder.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -626,7 +632,7 @@ impl pkgReader {
 }
 
 impl Reader {
-    pub fn add(&self, _arg0: Arc<Mutex<Option<i32>>>) {
+    pub fn add(&self, _arg0: Arc<Mutex<Option<i64>>>) {
         let embedded = self.decoder.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -647,7 +653,7 @@ impl Reader {
         embedded_ref.label(_arg0)
     }
 
-    pub fn snapshot(&self) -> i32 {
+    pub fn snapshot(&self) -> i64 {
         let embedded = self.decoder.clone();
         let guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_ref().unwrap();
@@ -658,7 +664,13 @@ impl Reader {
 pub fn force_concurrent_wrappers() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     done.recv().unwrap_or_default();
 }

@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::fmt::{Display};
@@ -115,7 +121,13 @@ fn main() {
 
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     done.recv().unwrap_or_default();
     let mut id = go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string()))));
@@ -127,7 +139,7 @@ fn main() {
     let mut held: Arc<Mutex<Option<Box<dyn named + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(id.clone())) as Box<dyn named + Send + Sync>)));
     { let new_val = "y".to_string(); *(*id.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", (*(*held.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(id.clone())) as Box<dyn named + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
-    let mut lit = Arc::new(Mutex::new(Some(go_ast::r#mod::BasicLit { kind: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i32))))))), value: Arc::new(Mutex::new(Some("1".to_string()))), ..Default::default() })));
+    let mut lit = Arc::new(Mutex::new(Some(go_ast::r#mod::BasicLit { kind: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i64))))))), value: Arc::new(Mutex::new(Some("1".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", {
         let __tmp_x = (*at(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BasicLitPtr(lit.clone())) as Box<dyn positioner + Send + Sync>)))).lock().unwrap().as_ref().unwrap()).clone();
         let __tmp_y = (*{ let __recv = lit.clone(); let __recv_ptr: *const go_ast::r#mod::BasicLit = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::BasicLit }; let __result = unsafe { &*__recv_ptr }.pos(); __result }.lock().unwrap().as_ref().unwrap()).clone();

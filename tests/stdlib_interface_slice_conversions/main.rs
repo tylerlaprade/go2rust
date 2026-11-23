@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::cell::{RefCell};
@@ -80,6 +86,31 @@ fn go_runtime_error_text(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
 fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
@@ -87,15 +118,15 @@ fn go_resume_unrecovered_panic() {
 }
 
 pub fn named_type() -> Arc<Mutex<Option<go_types::named::Named>>> {
-    let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
+    let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
     return go_types::new_named(obj.clone(), Arc::new(Mutex::new(Some(Box::new(go_types::basic::BasicPtr({ let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[2usize].clone() }.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(None)));
 }
 
-pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i32 {
+pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i64 {
     if { let __nil_result = (*named.lock().unwrap()).is_none(); __nil_result } {
         return 0;
     }
-    let mut count = Arc::new(Mutex::new(Some(0)));
+    let mut count = Arc::new(Mutex::new(Some(0i64)));
     for recv in &vec![Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(go_types::pointer::PointerPtr(go_types::new_pointer(Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))] {
         if { let __nil_result = (*recv.lock().unwrap()).is_some(); __nil_result } {
         { let mut guard = count.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -105,12 +136,11 @@ pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i32 {
 }
 
 pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + Sync>>>> {
-    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let mut res: Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    let __go_previous_panic_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
@@ -127,7 +157,7 @@ pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + S
     }));
     match __go_panic_result {
         Ok(__go_value) => {
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             __go_value
         }
         Err(__go_panic_payload) => {
@@ -137,7 +167,7 @@ pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + S
                     go_store_panic_payload(__go_defer_panic);
                 }
             }
-            std::panic::set_hook(__go_previous_panic_hook);
+            go_restore_panic_hook(__go_previous_panic_hook);
             go_resume_unrecovered_panic();
             res.clone()
         }

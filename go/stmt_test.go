@@ -455,6 +455,7 @@ func has(err error) bool {
 		return false
 	}
 }
+
 `)
 
 	if strings.Contains(rust, "downcast_ref::<multiPtr>()") {
@@ -476,6 +477,31 @@ func has(err error) bool {
 	}
 	if !strings.Contains(rust, "None::<Box<dyn GoAnonymousInterface") {
 		t.Fatalf("anonymous interface type-switch binding should initialize unreachable cases with typed nil:\n%s", rust)
+	}
+}
+
+func TestErrorAssertionPointerCandidateKeepsOriginalHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type pointerError struct{ code int }
+func (e *pointerError) Error() string { return "" }
+
+func text(v any, p *pointerError) string {
+	switch err := v.(type) {
+	case error:
+		*p = pointerError{code: 8}
+		return err.Error()
+	}
+	return ""
+}
+`)
+
+	if !strings.Contains(rust, "GoPointerError::new(typed_val.clone())") {
+		t.Fatalf("pointer error binding should retain the original pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::new(__typed_error.clone()) as Rc<dyn StdError>") ||
+		strings.Contains(rust, "Arc::new(__typed_error.clone()) as Arc<dyn StdError + Send + Sync>") {
+		t.Fatalf("pointer error binding should not snapshot the pointee:\n%s", rust)
 	}
 }
 
@@ -666,6 +692,28 @@ func rewrite(args []any) []any {
 	}
 	if !strings.Contains(rust, "let _ts_ref = &arg;") {
 		t.Fatalf("type switch on bare any range value should borrow the subject for downcasts:\n%s", rust)
+	}
+}
+
+func TestAnySliceRangeReadsEachElementAtIterationTime(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func visit(values []any) {
+	for i, value := range values {
+		if i == 0 {
+			values[1] = "updated"
+		}
+		_ = value
+	}
+}
+`)
+
+	if strings.Contains(rust, "__v.iter().map(|__e| go_any_clone(__e.as_ref()))") {
+		t.Fatalf("[]any range must not snapshot dynamic payloads before the loop:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __range_values = 0..__range_len") ||
+		!strings.Contains(rust, "go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref())") {
+		t.Fatalf("[]any range should reread the current backing-array element for each iteration:\n%s", rust)
 	}
 }
 
@@ -1268,8 +1316,8 @@ func wait(files []string) {
 		strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))") {
 		t.Fatalf("sync.WaitGroup.Add should not pass len() as usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") &&
-		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") {
+	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") &&
+		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") {
 		t.Fatalf("sync.WaitGroup.Add should cast len() to Go int:\n%s", rust)
 	}
 }
@@ -1601,8 +1649,8 @@ func search(a []int) int {
 		strings.Contains(rust, "let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));") {
 		t.Fatalf("multi-name short declaration should not leave len as bare usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") &&
-		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))") {
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") {
 		t.Fatalf("multi-name short declaration should wrap len as Go int:\n%s", rust)
 	}
 }
@@ -2586,6 +2634,41 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestMapLiteralAssignmentToEmptyInterfaceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func assign() interface{} {
+	var x interface{}
+	x = map[string]int{"k": 3}
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __moved_val") {
+		t.Fatalf("map literal assigned to interface{} should be boxed, not moved into the interface slot as a map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new") || !strings.Contains(rust, "BTreeMap::<") {
+		t.Fatalf("map literal assigned to interface{} should box the concrete map value:\n%s", rust)
+	}
+}
+
+func TestFunctionAssertionBindingKeepsCallableHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bind(x interface{}) int {
+	f := x.(func() int)
+	return f()
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()") {
+		t.Fatalf("bound function assertion should downcast to and clone the callable handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> i64>>") {
+		t.Fatalf("bound function assertion must not try to clone the boxed callable itself:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceVarInitializerConvertsStructuralInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3002,9 +3085,10 @@ func remember(seen map[Type]Expr, typ Type, nodes []Expr) {
 	if strings.Contains(rust, "Some((*node).clone())") {
 		t.Fatalf("interface map value assignment should not wrap an existing interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __map_value = node.clone();") &&
-		!strings.Contains(rust, "let __map_value = (*node).clone();") {
-		t.Fatalf("interface map value assignment should store the existing interface handle:\n%s", rust)
+	// The range variable refers to the slice's element, so the map gets a
+	// copy of the value in a handle of its own.
+	if !strings.Contains(rust, "let __map_value = { let __iface_value = (*node).borrow().clone(); Rc::new(RefCell::new(__iface_value)) };") {
+		t.Fatalf("interface map value assignment should store a copy of the interface value:\n%s", rust)
 	}
 }
 
@@ -3332,7 +3416,15 @@ func BoxCommented(file *ast.File, comments []*ast.CommentGroup) any {
 		"go/ast":     "go_ast",
 		"go/printer": "go_printer",
 	})
-	if strings.Contains(rust, "Option<go_printer::CommentedNode>") {
+	// go_any_try_clone names the boxed pointer type in its arms; the slot of
+	// node itself must not hold the concrete struct.
+	var withoutCloneArms []string
+	for _, line := range strings.Split(rust, "\n") {
+		if !strings.Contains(line, "downcast_ref::<") {
+			withoutCloneArms = append(withoutCloneArms, line)
+		}
+	}
+	if strings.Contains(strings.Join(withoutCloneArms, "\n"), "Option<go_printer::CommentedNode>") {
 		t.Fatalf("assignment to any should not store the concrete source-mapped struct slot directly:\n%s", rust)
 	}
 	if strings.Contains(rust, "__moved_val") {
@@ -3508,7 +3600,7 @@ func lookupParam(objMap map[Object]*declInfo, obj dependency) bool {
 	if !strings.Contains(rust, "as Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should convert to the expected interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __inner: Box<dyn Object") {
+	if !strings.Contains(rust, "let __inner: Option<Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should use the typed embedded-interface upcast:\n%s", rust)
 	}
 }
@@ -3693,20 +3785,20 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"pub fn year() -> i32",
-		"pub fn named() -> i32",
-		"pub fn pair() -> (i32, bool)",
-		"pub fn value(&self) -> i32",
+		"pub fn year() -> i64",
+		"pub fn named() -> i64",
+		"pub fn pair() -> (i64, bool)",
+		"pub fn value(&self) -> i64",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("copy scalar return boundary should emit %q:\n%s", want, rust)
 		}
 	}
 	for _, unwanted := range []string{
-		"pub fn year() -> Rc<RefCell<Option<i32>>>",
-		"pub fn named() -> Rc<RefCell<Option<i32>>>",
-		"pub fn pair() -> (Rc<RefCell<Option<i32>>>",
-		"pub fn value(&self) -> Rc<RefCell<Option<i32>>>",
+		"pub fn year() -> Rc<RefCell<Option<i64>>>",
+		"pub fn named() -> Rc<RefCell<Option<i64>>>",
+		"pub fn pair() -> (Rc<RefCell<Option<i64>>>",
+		"pub fn value(&self) -> Rc<RefCell<Option<i64>>>",
 	} {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("copy scalar return boundary should not remain wrapped (%q):\n%s", unwanted, rust)
@@ -3736,11 +3828,11 @@ func find(i int) (int, uint) {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn find(i: Rc<RefCell<Option<i32>>>) -> (i32, u64)") {
+	if !strings.Contains(rust, "pub fn find(i: Rc<RefCell<Option<i64>>>) -> (i64, u64)") {
 		t.Fatalf("tuple return signature should use a u64 slot for uint:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __tmp_x = PAGES; let __tmp_y = 1; __tmp_x - __tmp_y") {
-		t.Fatalf("constant binary expression in uint return slot should not stay as i32 arithmetic:\n%s", rust)
+		t.Fatalf("constant binary expression in uint return slot should not stay as i64 arithmetic:\n%s", rust)
 	}
 	if !strings.Contains(rust, "as u64") {
 		t.Fatalf("constant binary expression in uint return slot should use the expected u64 type:\n%s", rust)
@@ -3815,7 +3907,7 @@ func closure() int {
 	for _, want := range []string{
 		"\n    2\n}",
 		"\n    (3, true)\n}",
-		"move || -> i32 {\n        4\n    }",
+		"move || -> i64 {\n        4\n    }",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("tail return should emit %q:\n%s", want, rust)
@@ -3901,7 +3993,7 @@ func year(v string, i int) int {
 	if strings.Contains(rust, "let __atoi_input = Rc::new") || strings.Contains(rust, "let __atoi_input = Arc::new") {
 		t.Fatalf("strconv.Atoi should parse an owned string value, not a wrapped string handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match __atoi_input.parse::<i32>()") {
+	if !strings.Contains(rust, "match __atoi_input.parse::<i64>()") {
 		t.Fatalf("strconv.Atoi should parse the prepared string input:\n%s", rust)
 	}
 }
@@ -3961,8 +4053,8 @@ func use() {
 }
 `)
 
-	ordinary := "Rc::new(RefCell::new(Some(Box_::<i32> {"
-	concurrent := "Arc::new(Mutex::new(Some(Box_::<i32> {"
+	ordinary := "Rc::new(RefCell::new(Some(Box_::<i64> {"
+	concurrent := "Arc::new(Mutex::new(Some(Box_::<i64> {"
 	if strings.Count(rust, ordinary) < 2 && strings.Count(rust, concurrent) < 2 {
 		t.Fatalf("instantiated generic struct short and var declarations should store locals in their Go value wrappers:\n%s", rust)
 	}
@@ -4046,7 +4138,7 @@ func last(s string) span {
 	if strings.Contains(rust, ".len())))") {
 		t.Fatalf("len field should not leave a usize in a wrapped Go int field:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".len() as i32") {
+	if !strings.Contains(rust, ".len() as i64") {
 		t.Fatalf("len field should cast Rust usize to Go int:\n%s", rust)
 	}
 }
@@ -4690,7 +4782,7 @@ func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixS
 		t.Fatalf("NewTypeInfo error = %v", err)
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func transpileTypedConcurrentRegressionWithMapping(t *testing.T, src string, packageMapping map[string]string) string {
@@ -4719,7 +4811,7 @@ func transpileTypedConcurrentPackageWithMapping(t *testing.T, packagePath string
 		SetConcurrencyDetector(prevConcurrencyDetector)
 	})
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, packageMapping)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func firstMutexGuardName(t *testing.T, rust string) string {
@@ -5673,7 +5765,7 @@ func short() int {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn pair() -> (i32, bool)") {
+	if !strings.Contains(rust, "pub fn pair() -> (i64, bool)") {
 		t.Fatalf("tuple return signature should use bare scalar slots:\n%s", rust)
 	}
 	if strings.Contains(rust, "__tmp_0.borrow()") || strings.Contains(rust, "__tmp_0.lock()") ||
@@ -6380,9 +6472,9 @@ func load(v any) []*Type {
 	if strings.Contains(rust, "rts = new_val;") {
 		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*rts.borrow_mut() = Some(new_val);") &&
-		!strings.Contains(rust, "*rts.lock().unwrap() = Some(new_val);") {
-		t.Fatalf("slice type assertion assignment should store the asserted Vec in the existing handle:\n%s", rust)
+	if !strings.Contains(rust, "*rts.borrow_mut() = __slice_header;") &&
+		!strings.Contains(rust, "*rts.lock().unwrap() = __slice_header;") {
+		t.Fatalf("slice type assertion assignment should store the asserted slice's header in the existing handle:\n%s", rust)
 	}
 }
 
@@ -6491,8 +6583,8 @@ func positions(items []string) map[string]int {
 }
 `)
 
-	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(i as i32)))") &&
-		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(i as i32)))") {
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(i as i64)))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(i as i64)))") {
 		t.Fatalf("map assignment should cast bare range indexes to Go int values:\n%s", rust)
 	}
 }
@@ -6505,8 +6597,8 @@ func bump(m map[int]int) {
 }
 `)
 
-	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") &&
-		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;") {
+	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") &&
+		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") {
 		t.Fatalf("map update should cast len from usize to its Go int key type:\n%s", rust)
 	}
 }
@@ -6563,7 +6655,7 @@ func firstHit(items []string, table map[int]string) int {
 }
 `)
 
-	if !strings.Contains(rust, ".get(&(i as i32))") {
+	if !strings.Contains(rust, ".get(&(i as i64))") {
 		t.Fatalf("map lookup should cast bare range indexes to Go int keys:\n%s", rust)
 	}
 }
@@ -6589,8 +6681,10 @@ func use(f *file) {
 	if strings.Contains(rust, "let __v = (*") && strings.Contains(rust, "iovecs = new_val") {
 		t.Fatalf("slice assignment from pointer dereference should not assign a raw Vec into the slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iovecs.clone(); iovecs = new_val") {
-		t.Fatalf("slice assignment from pointer dereference should clone the pointee slice handle:\n%s", rust)
+	// Go copies the pointee's header; the local keeps its own cell, so an
+	// append to it does not reach *f.iovecs.
+	if strings.Contains(rust, "iovecs = new_val") || !strings.Contains(rust, "*iovecs.borrow_mut() = __slice_header;") {
+		t.Fatalf("slice assignment from pointer dereference should copy the pointee's header into the local's cell:\n%s", rust)
 	}
 }
 
@@ -7308,11 +7402,11 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "INVALID as i32 - -1 as i32 as usize") {
+	if strings.Contains(rust, "INVALID as i64 - -1 as i64 as usize") {
 		t.Fatalf("named-integer binary index must parenthesize as-cast operands before as-usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(INVALID as i32 - -1 as i32) as usize") &&
-		!strings.Contains(rust, "(INVALID as i32 - -1) as usize") {
+	if !strings.Contains(rust, "(INVALID as i64 - -1 as i64) as usize") &&
+		!strings.Contains(rust, "(INVALID as i64 - -1) as usize") {
 		t.Fatalf("expected named-integer binary index emission to wrap operands in parens:\n%s", rust)
 	}
 }
@@ -7365,8 +7459,8 @@ func main() {
 		strings.Contains(rust, "Err(e) => (Arc::new(Mutex::new(Some(0)))") {
 		t.Fatalf("strconv.Atoi Err branch should emit bare scalar zero in the first tuple slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Err(_) => (0 as i32,") {
-		t.Fatalf("strconv.Atoi Err branch should emit bare zero (0 as i32) in the first tuple slot:\n%s", rust)
+	if !strings.Contains(rust, "Err(_) => (0 as i64,") {
+		t.Fatalf("strconv.Atoi Err branch should emit bare zero (0 as i64) in the first tuple slot:\n%s", rust)
 	}
 	if !strings.Contains(rust, "(mut num, mut err)") {
 		t.Fatalf("expected num/err short-decl destructuring:\n%s", rust)
@@ -7474,6 +7568,20 @@ func explicitFromLocals(a, b int) (int, int) {
 
 	if !strings.Contains(rust, "return ((*x.borrow().as_ref().unwrap()), (*y.borrow().as_ref().unwrap()));") {
 		t.Fatalf("explicit return reading short-decl wrapped locals must stay an explicit return statement:\n%s", rust)
+	}
+}
+
+func TestExplicitTailReturnReadsNamedResult(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count(input int) (n int, err error) {
+	n = input
+	return n, nil
+}
+`)
+
+	if !strings.Contains(rust, "return ((*n.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));") {
+		t.Fatalf("the named result must outlive its return-statement borrow:\n%s", rust)
 	}
 }
 
@@ -7585,8 +7693,10 @@ func load(ptr unsafe.Pointer) any {
 	if strings.Contains(rust, "as_mut().unwrap()).clone()") {
 		t.Fatalf("assignment from temporary unsafe any dereference should not clone Box<dyn Any>:\n%s", rust)
 	}
-	if !strings.Contains(rust, "eface = Rc::new(RefCell::new({") &&
-		!strings.Contains(rust, "eface = Arc::new(Mutex::new({") {
+	// The temporary handle is the only holder of its value, so go_any_store
+	// moves the value into eface's cell.
+	if !strings.Contains(rust, "go_any_store(&eface, Rc::new(RefCell::new({") &&
+		!strings.Contains(rust, "go_any_store(&eface, Arc::new(Mutex::new({") {
 		t.Fatalf("assignment from temporary unsafe any dereference should move the temporary interface handle:\n%s", rust)
 	}
 }
@@ -7667,8 +7777,8 @@ func set(x []byte, bb *sliceHeader) {
 	if strings.Contains(rust, "Some(__tmp_0);") || strings.Contains(rust, "Some(__tmp_1);") {
 		t.Fatalf("parallel len/cap assignment to int fields should not store usize temporaries directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(__tmp_0 as i32);") ||
-		!strings.Contains(rust, "Some(__tmp_1 as i32);") {
+	if !strings.Contains(rust, "Some(__tmp_0 as i64);") ||
+		!strings.Contains(rust, "Some(__tmp_1 as i64);") {
 		t.Fatalf("parallel len/cap assignment to int fields should cast temporary values to Go int:\n%s", rust)
 	}
 }
@@ -7758,11 +7868,11 @@ func findInSlice(slice []int, target int) (int, bool) {
 	if !strings.Contains(rust, "pub fn find_in_slice") {
 		t.Fatalf("expected find_in_slice declaration:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return (i as i32, true);") {
-		t.Fatalf("range index returned through bare i32 tuple slot must cast usize -> i32:\n%s", rust)
+	if !strings.Contains(rust, "return (i as i64, true);") {
+		t.Fatalf("range index returned through bare i64 tuple slot must cast usize -> i64:\n%s", rust)
 	}
 	if strings.Contains(rust, "return (i, true);") {
-		t.Fatalf("range index emit should not leak usize into a bare i32 return slot:\n%s", rust)
+		t.Fatalf("range index emit should not leak usize into a bare i64 return slot:\n%s", rust)
 	}
 }
 
@@ -7786,13 +7896,13 @@ func write(data []byte) (n int, err error) {
 	if !strings.Contains(rust, "for (__range_n, __range_b) in") {
 		t.Fatalf("range assignment should bind loop temporaries before assigning existing variables:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = __range_n as i32; *n.borrow_mut() = Some(new_val);") {
+	if !strings.Contains(rust, "let new_val = __range_n as i64; *n.borrow_mut() = Some(new_val);") {
 		t.Fatalf("range assignment should store the usize key into the named result handle as Go int:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let new_val = __range_b; *b.borrow_mut() = Some(new_val);") {
 		t.Fatalf("range assignment should store the byte value into the existing local handle:\n%s", rust)
 	}
-	if strings.Contains(rust, "return (n as i32") {
+	if strings.Contains(rust, "return (n as i64") {
 		t.Fatalf("explicit return should read the named result handle, not a shadowing usize range key:\n%s", rust)
 	}
 }
@@ -7840,8 +7950,8 @@ func countUntilLimit(values []int) int {
 }
 `)
 
-	if !strings.Contains(rust, "i as i32 >= limit(values.clone())") {
-		t.Fatalf("range index usize must cast to i32 when compared against a bare-scalar int call:\n%s", rust)
+	if !strings.Contains(rust, "i as i64 >= limit(values.clone())") {
+		t.Fatalf("range index usize must cast to i64 when compared against a bare-scalar int call:\n%s", rust)
 	}
 }
 
@@ -8305,8 +8415,8 @@ func run(values []string, counts []int) {
 	if strings.Contains(rust, "Some(i))") {
 		t.Fatalf("goroutine range index argument should cast usize to Go int before wrapping:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(i as i32)") {
-		t.Fatalf("goroutine range index argument should cast usize to i32:\n%s", rust)
+	if !strings.Contains(rust, "Some(i as i64)") {
+		t.Fatalf("goroutine range index argument should cast usize to i64:\n%s", rust)
 	}
 	if strings.Contains(rust, "[(i) as usize]") {
 		t.Fatalf("function literal int parameter should shadow the outer range index:\n%s", rust)
@@ -8402,9 +8512,10 @@ func get(i int) Type {
 	if strings.Contains(rust, "Some({ let __seq") || strings.Contains(rust, "Some((*types.borrow") {
 		t.Fatalf("returning a local-interface slice element should not wrap the existing handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return (*types.borrow().as_ref().unwrap())") &&
-		!strings.Contains(rust, "return { let __seq") {
-		t.Fatalf("returning a local-interface slice element should return the cloned handle directly:\n%s", rust)
+	// The caller gets a copy of the element in a handle of its own, so
+	// assigning to its variable leaves the element alone.
+	if !strings.Contains(rust, "return { let __iface_value = (*types.borrow().as_ref().unwrap())") {
+		t.Fatalf("returning a local-interface slice element should return a copy of it:\n%s", rust)
 	}
 }
 
@@ -8838,8 +8949,8 @@ func main() {
 	if strings.Count(mainRust, "LoadMode(") > 1 {
 		t.Fatalf("nested named-integer const operands must not each be wrapped in LoadMode(...) — expected a single outer wrap inside main():\n%s", mainRust)
 	}
-	if !strings.Contains(mainRust, "NEED_NAME as i32 | NEED_FILES as i32") {
-		t.Fatalf("named-integer const bitwise OR should emit bare i32 operands:\n%s", mainRust)
+	if !strings.Contains(mainRust, "NEED_NAME as i64 | NEED_FILES as i64") {
+		t.Fatalf("named-integer const bitwise OR should emit bare i64 operands:\n%s", mainRust)
 	}
 }
 
@@ -9437,8 +9548,8 @@ func (s *scanner) advance() {
 	if strings.Contains(rust, "let __rhs = rdOffset;") {
 		t.Fatalf("compound assignment to int field should not use usize range index without a cast:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __rhs = (rdOffset as i32);") {
-		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
+	if !strings.Contains(rust, "let __rhs = (rdOffset as i64);") {
+		t.Fatalf("compound assignment to int field should cast usize range index to i64:\n%s", rust)
 	}
 }
 
@@ -9972,8 +10083,11 @@ func normalize(err any) error {
 	if !strings.Contains(rust, "Box::<dyn StdError") {
 		t.Fatalf("asserting any to error should rebuild an error interface value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "if let Some(__err_handle) = any_val.downcast_ref::<") {
 		t.Fatalf("error assertion used as an error result should be stored in a wrapped error handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+		t.Fatalf("a plain string must not satisfy an assertion to error:\n%s", rust)
 	}
 }
 
@@ -10064,7 +10178,7 @@ func use() string {
 		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
 	}
 	// The case variable is a copy: a handle of its own to the same error.
-	if !strings.Contains(rust, "let x = { let __err_source = _ts_val.and_then(|__v| "+handle+").unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
+	if !strings.Contains(rust, "let x = if let Some(__err_handle) = _ts_val.and_then(|__v| "+handle+") { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else") {
 		t.Fatalf("the case variable should get its own handle to the error the interface value holds:\n%s", rust)
 	}
 	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
@@ -10251,7 +10365,7 @@ func main() {
 	for _, want := range []string{
 		"let mut t = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
 		"let mut a = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
-		"let mut b: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut b: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
 		"let mut d = m.clone();",
 		"let mut f = m.clone();",
 		"let mut e = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()).clone())));",
@@ -10313,5 +10427,164 @@ func main() {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
 		}
+	}
+}
+
+func TestChannelSendUsesRustIdentifiersAndCaptureNames(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	loop := 7
+	ordinary := make(chan int, 1)
+	ordinary <- loop
+
+	final := make(chan int)
+	go func() {
+		final <- loop
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"ordinary.send((*r#loop.lock().unwrap().as_ref().unwrap()))",
+		"final_thread.send((*loop_thread.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "send((*loop.lock()") {
+		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
+	}
+}
+
+func TestChannelSendCopiesReferenceRangeValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	values := []string{"alpha", "beta"}
+	ch := make(chan string, len(values))
+	for _, value := range values {
+		ch <- value
+	}
+}
+`)
+
+	if !strings.Contains(rust, "ch.send((*value).clone())") {
+		t.Fatalf("range value sent its iterator reference instead of a Go value copy:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsPredeclaredBoolAndLocalCaptureShadows(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	true := 11
+	ints := make(chan int, 1)
+	ints <- true
+
+	bools := make(chan bool, 1)
+	bools <- false
+
+	value := 7
+	variable := 12
+	seen := make(chan int, 4)
+	go func() {
+		seen <- value
+		const value = 9
+		seen <- value
+		seen <- variable
+		variable := 13
+		seen <- variable
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"let mut true_ =",
+		"ints.send((*true_.lock().unwrap().as_ref().unwrap()))",
+		"bools.send(false)",
+		"seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))",
+		"seen_thread.send(value)",
+		"seen_thread.send((*variable_thread.lock().unwrap().as_ref().unwrap()))",
+		"let mut variable =",
+		"seen_thread.send((*variable.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"let mut true =",
+		"let mut variable_thread =",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
+		}
+	}
+}
+
+func TestGoroutineFunctionLiteralCopiesRangeChannelArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(inputs ...<-chan int) {
+	for _, input := range inputs {
+		go func(ch <-chan int) {
+			<-ch
+		}(input)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let __go_arg_0 = (*input).clone()") {
+		t.Fatalf("range channel argument was wrapped instead of copied as a channel handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
+		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsCaptureShadowsInNestedControlFlow(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	value := 7
+	seen := make(chan int, 11)
+	go func() {
+		seen <- value
+		if true {
+			value := 9
+			seen <- value
+		}
+		seen <- value
+		for i := 0; i < 1; i++ {
+			value := 10
+			seen <- value
+		}
+		seen <- value
+		if value := 11; value == 11 {
+			seen <- value
+		}
+		seen <- value
+		for value := 12; value < 13; value++ {
+			seen <- value
+		}
+		seen <- value
+		switch value := 14; {
+		case value == 14:
+			seen <- value
+		}
+		seen <- value
+	}()
+}
+`)
+
+	outerSend := "seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))"
+	localSend := "seen_thread.send((*value.lock().unwrap().as_ref().unwrap()))"
+	if count := strings.Count(rust, outerSend); count != 6 {
+		t.Fatalf("expected six sends of the captured outer value, got %d:\n%s", count, rust)
+	}
+	if count := strings.Count(rust, localSend); count != 5 {
+		t.Fatalf("expected five sends of nested local values, got %d:\n%s", count, rust)
 	}
 }

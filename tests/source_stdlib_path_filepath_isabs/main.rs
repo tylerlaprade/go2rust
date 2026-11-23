@@ -1,5 +1,12 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 /// Source-transpile demo: this fixture opts into transpiling
 /// `path/filepath` from the Go stdlib source instead of using the
@@ -15,6 +22,6 @@ fn main() {
     ::internal_stringslite::__go_init_all();
     ::path_filepath::__go_init_all();
 
-    println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("/foo".to_string()))))));
-    println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("foo".to_string()))))));
+    println!("{}", format!("{}", path_filepath::is_abs(Rc::new(RefCell::new(Some("/foo".to_string()))))));
+    println!("{}", format!("{}", path_filepath::is_abs(Rc::new(RefCell::new(Some("foo".to_string()))))));
 }

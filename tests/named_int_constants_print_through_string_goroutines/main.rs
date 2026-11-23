@@ -1,7 +1,585 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+/// A Go slice: an offset, a length and a capacity over a backing array that
+/// every slice made from it shares. Every name below that a binding uses
+/// starts with __, so no package-level variable of the program shadows it.
+pub struct GoSlice<T> {
+    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
+    off: usize,
+    len: usize,
+    cap: usize,
+}
+
+unsafe impl<T: Send> Send for GoSlice<T> {}
+unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
+
+/// The prelude's Vec and vec! are Go slices in generated code.
+pub type Vec<T> = GoSlice<T>;
+
+impl<T> Clone for GoSlice<T> {
+    /// Copies the header. The copy shares the elements, as a Go slice
+    /// assignment does.
+    fn clone(&self) -> Self {
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+    }
+}
+
+impl<T> GoSlice<T> {
+    pub fn new() -> Self {
+        Self::from(std::vec::Vec::new())
+    }
+
+    pub fn with_capacity(__cap: usize) -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+    }
+
+    fn backing_ref(&self) -> &std::vec::Vec<T> {
+        unsafe { &*self.backing.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
+        unsafe { &mut *self.backing.get() }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.backing_ref()[self.off..self.off + self.len]
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
+    }
+
+    /// Go's cap(s).
+    pub fn capacity(&self) -> usize {
+        self.cap
+    }
+
+    /// Whether two slices share their backing array.
+    pub fn shares_backing_with(&self, __other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
+    }
+
+    /// Go's s[lo:hi].
+    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
+        if __lo > __hi || __hi > self.cap {
+            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
+        }
+        if self.off + __hi > self.backing_ref().len() {
+            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
+        }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+    }
+
+    /// Go's s[lo:hi:max].
+    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __max > self.cap || __hi > __max {
+            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
+        }
+        let mut __slice = self.reslice(__lo, __hi);
+        __slice.cap = __max - __lo;
+        __slice
+    }
+
+    /// Go's s = s[:n] when n is at most len(s).
+    pub fn truncate(&mut self, __n: usize) {
+        if __n < self.len {
+            self.len = __n;
+        }
+    }
+
+    /// Go's s = s[:0].
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    #[allow(unused_variables)]
+    pub fn reserve(&mut self, __additional: usize) {}
+
+    /// Keeps the elements the predicate accepts, in order, at the front.
+    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
+        let mut __kept = 0;
+        {
+            let __window = self.as_mut_slice();
+            for __index in 0..__window.len() {
+                if __keep(&__window[__index]) {
+                    __window.swap(__kept, __index);
+                    __kept += 1;
+                }
+            }
+        }
+        self.len = __kept;
+    }
+
+    /// Moves the slice's elements out when no other slice shares them.
+    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
+        let (__off, __len) = (self.off, self.len);
+        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
+        let mut __elems = std::mem::take(__backing.get_mut());
+        __elems.truncate(__off + __len);
+        __elems.drain(..__off);
+        Some(__elems)
+    }
+
+    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+    }
+
+    /// The capacity Go's append gives a slice that must grow to hold
+    /// __needed elements.
+    fn grown_cap(&self, __needed: usize) -> usize {
+        let __old = self.cap;
+        let __doubled = __old + __old;
+        if __needed > __doubled {
+            return __needed;
+        }
+        if __old < 256 {
+            return __doubled.max(1);
+        }
+        let mut __grown = __old;
+        while __grown < __needed {
+            __grown += (__grown + 3 * 256) / 4;
+        }
+        __grown
+    }
+
+    /// Stores a value at index len(s) of the backing array: the in-place
+    /// half of Go's append. The backing Vec has room for the capacity, so
+    /// pushing onto it never moves elements other slices are reading.
+    fn store_at_end(&mut self, __value: T) {
+        let __at = self.off + self.len;
+        let __backing = self.backing_mut();
+        if __at < __backing.len() {
+            __backing[__at] = __value;
+        } else {
+            __backing.push(__value);
+        }
+        self.len += 1;
+    }
+
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
+    }
+}
+
+impl<T: Clone> GoSlice<T> {
+    /// Go's s = append(s, v): in place while there is capacity, else into a
+    /// new backing array.
+    pub fn push(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.push(__value);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's append(s, v), leaving s as it was.
+    pub fn appended(&self, __value: T) -> Self {
+        let mut __result = self.clone();
+        __result.push(__value);
+        __result
+    }
+
+    /// Go's s = append(s, xs...).
+    pub fn extend_from_slice(&mut self, __values: &[T]) {
+        if self.len + __values.len() <= self.cap {
+            for __value in __values {
+                self.store_at_end(__value.clone());
+            }
+            return;
+        }
+        let __cap = self.grown_cap(self.len + __values.len());
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.extend_from_slice(__values);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's s = append(s, xs...) from values.
+    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
+        let __values: std::vec::Vec<T> = __values.into_iter().collect();
+        self.extend_from_slice(&__values);
+    }
+
+    /// Removes and returns the last element: Go's v := s[len(s)-1];
+    /// s = s[:len(s)-1].
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        let __last = self.as_slice()[self.len - 1].clone();
+        self.len -= 1;
+        Some(__last)
+    }
+
+    pub fn insert(&mut self, __index: usize, __value: T) {
+        if __index > self.len {
+            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
+        }
+        self.push(__value);
+        self.as_mut_slice()[__index..].rotate_right(1);
+    }
+
+    pub fn remove(&mut self, __index: usize) -> T {
+        let __removed = self.as_slice()[__index].clone();
+        self.as_mut_slice()[__index..].rotate_left(1);
+        self.len -= 1;
+        __removed
+    }
+
+    pub fn split_off(&mut self, __at: usize) -> Self {
+        let __tail = Self::from(self.as_slice()[__at..].to_vec());
+        self.len = __at;
+        __tail
+    }
+
+    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
+        let mut __elems = self.as_slice().to_vec();
+        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
+        let __cap = self.cap;
+        *self = Self::fresh(__elems, __cap);
+        __drained.into_iter()
+    }
+
+    pub fn resize(&mut self, __new_len: usize, __value: T) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more = std::vec::from_elem(__value, __new_len - self.len);
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn into_std_vec(self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
+    pub fn into_boxed_slice(self) -> Box<[T]> {
+        self.as_slice().to_vec().into_boxed_slice()
+    }
+}
+
+/// The values appended by append(s, xs...) to a slice of interface values:
+/// always a slice built for the append, which nothing else holds.
+pub trait GoSliceBoxedValues<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T>;
+}
+
+impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T> {
+        self
+    }
+}
+
+impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => panic!("append of interface values held by another slice"),
+        }
+    }
+}
+
+/// Go's append for interface values, which have no Clone. When the slice
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
+pub trait GoSliceAppendBoxed<T> {
+    fn push(&mut self, __value: T);
+    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+/// Reads the header of a slice value, whichever form the value has.
+pub trait GoSliceHeader<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>>;
+}
+
+impl<T> GoSliceHeader<T> for GoSlice<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        Some(self.clone())
+    }
+}
+
+impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.borrow().clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.lock().unwrap().clone()
+    }
+}
+
+/// Copies a Rust slice into a new Go slice.
+pub trait GoSliceFromSlice<T> {
+    fn to_go_slice(&self) -> GoSlice<T>;
+}
+
+impl<T: Clone> GoSliceFromSlice<T> for [T] {
+    fn to_go_slice(&self) -> GoSlice<T> {
+        GoSlice::from(self.to_vec())
+    }
+}
+
+impl<T> Default for GoSlice<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
+    fn from(__elems: std::vec::Vec<T>) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+    }
+}
+
+impl<T: Clone> From<&[T]> for GoSlice<T> {
+    fn from(__elems: &[T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T: Clone> From<&mut [T]> for GoSlice<T> {
+    fn from(__elems: &mut [T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
+    fn from(__elems: [T; N]) -> Self {
+        Self::from(std::vec::Vec::from(__elems))
+    }
+}
+
+impl From<&str> for GoSlice<u8> {
+    fn from(__text: &str) -> Self {
+        Self::from(__text.as_bytes().to_vec())
+    }
+}
+
+impl From<String> for GoSlice<u8> {
+    fn from(__text: String) -> Self {
+        Self::from(__text.into_bytes())
+    }
+}
+
+impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
+    fn from(__slice: GoSlice<T>) -> Self {
+        __slice.as_slice().to_vec()
+    }
+}
+
+impl<T> std::ops::Deref for GoSlice<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSlice<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> AsRef<[T]> for GoSlice<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> AsMut<[T]> for GoSlice<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::iter::FromIterator<T> for GoSlice<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
+        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
+    }
+}
+
+impl<T: Clone> IntoIterator for GoSlice<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(mut self) -> Self::IntoIter {
+        match self.take_unique() {
+            Some(__elems) => __elems.into_iter(),
+            None => self.as_slice().to_vec().into_iter(),
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a GoSlice<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(__f)
+    }
+}
+
+/// Go's %v of a slice: the elements' %v between brackets.
+impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        __f.write_str("[")?;
+        for (__index, __value) in self.as_slice().iter().enumerate() {
+            if __index > 0 {
+                __f.write_str(" ")?;
+            }
+            write!(__f, "{}", __value)?;
+        }
+        __f.write_str("]")
+    }
+}
+
+impl<T: PartialEq> PartialEq for GoSlice<T> {
+    fn eq(&self, __other: &Self) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
+    fn eq(&self, __other: &[T]) -> bool {
+        self.as_slice() == __other
+    }
+}
+
+impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
+    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: Eq> Eq for GoSlice<T> {}
+
+impl<T: PartialOrd> PartialOrd for GoSlice<T> {
+    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_slice().partial_cmp(__other.as_slice())
+    }
+}
+
+impl<T: Ord> Ord for GoSlice<T> {
+    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(__other.as_slice())
+    }
+}
+
+impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
+    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
+        self.as_slice().hash(__state)
+    }
+}
+
+impl std::io::Write for GoSlice<u8> {
+    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
+        self.extend_from_slice(__bytes);
+        Ok(__bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
 
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
@@ -255,20 +833,21 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i32>() { return "int" }
-    if val.is::<i64>() { return "int64" }
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
-    if val.is::<u32>() { return "uint" }
-    if val.is::<u64>() { return "uint64" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
     if val.is::<u8>() { return "uint8" }
     if val.is::<u16>() { return "uint16" }
     if val.is::<f64>() { return "float64" }
     if val.is::<f32>() { return "float32" }
     if val.is::<bool>() { return "bool" }
     if val.is::<String>() { return "string" }
-    if val.is::<Vec<i32>>() { return "[]int" }
-    if val.is::<Vec<i64>>() { return "[]int64" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
@@ -302,6 +881,8 @@ mod __go_runtime_format {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
+    #[allow(unused_imports)]
+    use super::{GoSlice, Vec};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -680,6 +1261,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -896,21 +1482,27 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
 }
 use __go_runtime_format::go_sprintf;
 
-pub const SUNDAY: i32 = 0;
-pub const MONDAY: i32 = 1;
-pub const TUESDAY: i32 = 2;
+pub const SUNDAY: i64 = 0;
+pub const MONDAY: i64 = 1;
+pub const TUESDAY: i64 = 2;
 
 
-pub const HIGH: i32 = 3;
+pub const HIGH: i64 = 3;
 
 
-#[derive(Debug, Default)]
-pub struct Weekday(pub Arc<Mutex<Option<i32>>>);
+#[derive(Debug)]
+pub struct Weekday(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Weekday {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Weekday(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Weekday {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -928,8 +1520,8 @@ impl PartialEq for Weekday {
     }
 }
 
-impl PartialEq<i32> for Weekday {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Weekday {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -942,19 +1534,19 @@ impl PartialOrd for Weekday {
     }
 }
 
-impl PartialOrd<i32> for Weekday {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Weekday {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Weekday> for i32 {
+impl PartialEq<Weekday> for i64 {
     fn eq(&self, other: &Weekday) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Weekday> for i32 {
+impl PartialOrd<Weekday> for i64 {
     fn partial_cmp(&self, other: &Weekday) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -967,14 +1559,14 @@ impl std::ops::Add for Weekday {
     }
 }
 
-impl std::ops::Add<i32> for Weekday {
+impl std::ops::Add<i64> for Weekday {
     type Output = Weekday;
-    fn add(self, other: i32) -> Weekday {
+    fn add(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Weekday> for i32 {
+impl std::ops::Add<Weekday> for i64 {
     type Output = Weekday;
     fn add(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -988,14 +1580,14 @@ impl std::ops::Sub for Weekday {
     }
 }
 
-impl std::ops::Sub<i32> for Weekday {
+impl std::ops::Sub<i64> for Weekday {
     type Output = Weekday;
-    fn sub(self, other: i32) -> Weekday {
+    fn sub(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Weekday> for i32 {
+impl std::ops::Sub<Weekday> for i64 {
     type Output = Weekday;
     fn sub(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1009,14 +1601,14 @@ impl std::ops::Mul for Weekday {
     }
 }
 
-impl std::ops::Mul<i32> for Weekday {
+impl std::ops::Mul<i64> for Weekday {
     type Output = Weekday;
-    fn mul(self, other: i32) -> Weekday {
+    fn mul(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Weekday> for i32 {
+impl std::ops::Mul<Weekday> for i64 {
     type Output = Weekday;
     fn mul(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1030,14 +1622,14 @@ impl std::ops::Div for Weekday {
     }
 }
 
-impl std::ops::Div<i32> for Weekday {
+impl std::ops::Div<i64> for Weekday {
     type Output = Weekday;
-    fn div(self, other: i32) -> Weekday {
+    fn div(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Weekday> for i32 {
+impl std::ops::Div<Weekday> for i64 {
     type Output = Weekday;
     fn div(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1058,14 +1650,14 @@ impl std::ops::Rem for Weekday {
     }
 }
 
-impl std::ops::Rem<i32> for Weekday {
+impl std::ops::Rem<i64> for Weekday {
     type Output = Weekday;
-    fn rem(self, other: i32) -> Weekday {
+    fn rem(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Weekday> for i32 {
+impl std::ops::Rem<Weekday> for i64 {
     type Output = Weekday;
     fn rem(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1079,14 +1671,14 @@ impl std::ops::BitAnd for Weekday {
     }
 }
 
-impl std::ops::BitAnd<i32> for Weekday {
+impl std::ops::BitAnd<i64> for Weekday {
     type Output = Weekday;
-    fn bitand(self, other: i32) -> Weekday {
+    fn bitand(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Weekday> for i32 {
+impl std::ops::BitAnd<Weekday> for i64 {
     type Output = Weekday;
     fn bitand(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1100,14 +1692,14 @@ impl std::ops::BitOr for Weekday {
     }
 }
 
-impl std::ops::BitOr<i32> for Weekday {
+impl std::ops::BitOr<i64> for Weekday {
     type Output = Weekday;
-    fn bitor(self, other: i32) -> Weekday {
+    fn bitor(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Weekday> for i32 {
+impl std::ops::BitOr<Weekday> for i64 {
     type Output = Weekday;
     fn bitor(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1121,14 +1713,14 @@ impl std::ops::BitXor for Weekday {
     }
 }
 
-impl std::ops::BitXor<i32> for Weekday {
+impl std::ops::BitXor<i64> for Weekday {
     type Output = Weekday;
-    fn bitxor(self, other: i32) -> Weekday {
+    fn bitxor(self, other: i64) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Weekday> for i32 {
+impl std::ops::BitXor<Weekday> for i64 {
     type Output = Weekday;
     fn bitxor(self, other: Weekday) -> Weekday {
         Weekday(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1293,13 +1885,19 @@ impl Ord for Weekday {
 }
 
 
-#[derive(Debug, Default)]
-pub struct Level(pub Arc<Mutex<Option<i32>>>);
+#[derive(Debug)]
+pub struct Level(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Level {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Level(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -1317,8 +1915,8 @@ impl PartialEq for Level {
     }
 }
 
-impl PartialEq<i32> for Level {
-    fn eq(&self, other: &i32) -> bool {
+impl PartialEq<i64> for Level {
+    fn eq(&self, other: &i64) -> bool {
         *self.0.lock().unwrap().as_ref().unwrap() == *other
     }
 }
@@ -1331,19 +1929,19 @@ impl PartialOrd for Level {
     }
 }
 
-impl PartialOrd<i32> for Level {
-    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+impl PartialOrd<i64> for Level {
+    fn partial_cmp(&self, other: &i64) -> Option<std::cmp::Ordering> {
         self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other)
     }
 }
 
-impl PartialEq<Level> for i32 {
+impl PartialEq<Level> for i64 {
     fn eq(&self, other: &Level) -> bool {
         *self == *other.0.lock().unwrap().as_ref().unwrap()
     }
 }
 
-impl PartialOrd<Level> for i32 {
+impl PartialOrd<Level> for i64 {
     fn partial_cmp(&self, other: &Level) -> Option<std::cmp::Ordering> {
         self.partial_cmp(other.0.lock().unwrap().as_ref().unwrap())
     }
@@ -1356,14 +1954,14 @@ impl std::ops::Add for Level {
     }
 }
 
-impl std::ops::Add<i32> for Level {
+impl std::ops::Add<i64> for Level {
     type Output = Level;
-    fn add(self, other: i32) -> Level {
+    fn add(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() + other))))
     }
 }
 
-impl std::ops::Add<Level> for i32 {
+impl std::ops::Add<Level> for i64 {
     type Output = Level;
     fn add(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self + *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1377,14 +1975,14 @@ impl std::ops::Sub for Level {
     }
 }
 
-impl std::ops::Sub<i32> for Level {
+impl std::ops::Sub<i64> for Level {
     type Output = Level;
-    fn sub(self, other: i32) -> Level {
+    fn sub(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() - other))))
     }
 }
 
-impl std::ops::Sub<Level> for i32 {
+impl std::ops::Sub<Level> for i64 {
     type Output = Level;
     fn sub(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self - *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1398,14 +1996,14 @@ impl std::ops::Mul for Level {
     }
 }
 
-impl std::ops::Mul<i32> for Level {
+impl std::ops::Mul<i64> for Level {
     type Output = Level;
-    fn mul(self, other: i32) -> Level {
+    fn mul(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
     }
 }
 
-impl std::ops::Mul<Level> for i32 {
+impl std::ops::Mul<Level> for i64 {
     type Output = Level;
     fn mul(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1419,14 +2017,14 @@ impl std::ops::Div for Level {
     }
 }
 
-impl std::ops::Div<i32> for Level {
+impl std::ops::Div<i64> for Level {
     type Output = Level;
-    fn div(self, other: i32) -> Level {
+    fn div(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
     }
 }
 
-impl std::ops::Div<Level> for i32 {
+impl std::ops::Div<Level> for i64 {
     type Output = Level;
     fn div(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1447,14 +2045,14 @@ impl std::ops::Rem for Level {
     }
 }
 
-impl std::ops::Rem<i32> for Level {
+impl std::ops::Rem<i64> for Level {
     type Output = Level;
-    fn rem(self, other: i32) -> Level {
+    fn rem(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
     }
 }
 
-impl std::ops::Rem<Level> for i32 {
+impl std::ops::Rem<Level> for i64 {
     type Output = Level;
     fn rem(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1468,14 +2066,14 @@ impl std::ops::BitAnd for Level {
     }
 }
 
-impl std::ops::BitAnd<i32> for Level {
+impl std::ops::BitAnd<i64> for Level {
     type Output = Level;
-    fn bitand(self, other: i32) -> Level {
+    fn bitand(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() & other))))
     }
 }
 
-impl std::ops::BitAnd<Level> for i32 {
+impl std::ops::BitAnd<Level> for i64 {
     type Output = Level;
     fn bitand(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self & *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1489,14 +2087,14 @@ impl std::ops::BitOr for Level {
     }
 }
 
-impl std::ops::BitOr<i32> for Level {
+impl std::ops::BitOr<i64> for Level {
     type Output = Level;
-    fn bitor(self, other: i32) -> Level {
+    fn bitor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() | other))))
     }
 }
 
-impl std::ops::BitOr<Level> for i32 {
+impl std::ops::BitOr<Level> for i64 {
     type Output = Level;
     fn bitor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self | *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1510,14 +2108,14 @@ impl std::ops::BitXor for Level {
     }
 }
 
-impl std::ops::BitXor<i32> for Level {
+impl std::ops::BitXor<i64> for Level {
     type Output = Level;
-    fn bitxor(self, other: i32) -> Level {
+    fn bitxor(self, other: i64) -> Level {
         Level(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() ^ other))))
     }
 }
 
-impl std::ops::BitXor<Level> for i32 {
+impl std::ops::BitXor<Level> for i64 {
     type Output = Level;
     fn bitxor(self, other: Level) -> Level {
         Level(Arc::new(Mutex::new(Some(self ^ *other.0.lock().unwrap().as_ref().unwrap()))))
@@ -1691,15 +2289,21 @@ impl Weekday {
 fn main() {
     let mut started = GoChannel::<bool>::new();
     let started_thread = started.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         started_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     started.recv().unwrap_or_default();
 
-    println!("{} {} {} {}", format!("{}", Weekday(Arc::new(Mutex::new(Some(MONDAY as i32))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((TUESDAY as i32 + 0 as i32) as i32))))), format!("{}", Weekday(Arc::new(Mutex::new(Some(0 as i32))))), format!("{}", HIGH));
-    print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[{ let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(TUESDAY as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Level(Arc::new(Mutex::new(Some(HIGH as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
-    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i32))))) as Box<dyn Any + Send + Sync>)));
-    println!("{} {} {}", format!("{}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i32))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i32)))).string().lock().unwrap().as_ref().unwrap())));
-    let mut d = Arc::new(Mutex::new(Some(Weekday(Arc::new(Mutex::new(Some(MONDAY as i32)))))));
-    println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i32)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i32))))]))))));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(SUNDAY as i32))))))))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((TUESDAY as i64 + 0 as i64) as i64))))), format!("{}", Weekday(Arc::new(Mutex::new(Some(0 as i64))))), format!("{}", HIGH));
+    print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[{ let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Level(Arc::new(Mutex::new(Some(HIGH as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>)));
+    println!("{} {} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))).string().lock().unwrap().as_ref().unwrap())));
+    let mut d = Arc::new(Mutex::new(Some(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))))));
+    println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))]))))));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64))))))))).lock().unwrap().as_ref().unwrap())));
 }

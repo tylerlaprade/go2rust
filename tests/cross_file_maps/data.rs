@@ -1,8 +1,16 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -22,9 +30,9 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static Users: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i32>>>>> = GoGlobal::new();
+pub static Users: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
 
-pub static Numbers: GoGlobal<Vec<i32>> = GoGlobal::new();
+pub static Numbers: GoGlobal<Vec<i64>> = GoGlobal::new();
 
 pub static Groups: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Vec<String>>>>>> = GoGlobal::new();
 
@@ -32,49 +40,11 @@ pub static Records: GoGlobal<Vec<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>
 
 
 fn __go_init_globals() {
-    *Users.borrow_mut() = Some(BTreeMap::new());
-    *Numbers.borrow_mut() = Some(vec![]);
-    *Groups.borrow_mut() = Some(BTreeMap::new());
-    *Records.borrow_mut() = Some(vec![]);
-    {
-        let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new();
-        __go_map.insert("alice".to_string(), Rc::new(RefCell::new(Some(1))));
-        __go_map.insert("bob".to_string(), Rc::new(RefCell::new(Some(2))));
-        __go_map.insert("carol".to_string(), Rc::new(RefCell::new(Some(3))));
-        *Users.borrow_mut() = Some(__go_map);
-    }
-    {
-        let mut __go_slice = Vec::<i32>::with_capacity(5);
-        __go_slice.push(10);
-        __go_slice.push(20);
-        __go_slice.push(30);
-        __go_slice.push(40);
-        __go_slice.push(50);
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
-        *Numbers.borrow_mut() = Some(__go_slice);
-    }
-    {
-        let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::new();
-        let __go_map_key_372 = "admins".to_string();
-        let mut __go_map_value_372 = Vec::<String>::new();
-        __go_map_value_372.push("alice".to_string());
-        __go_map_value_372.push("bob".to_string());
-        __go_map.insert(__go_map_key_372, Rc::new(RefCell::new(Some(__go_map_value_372))));
-        let __go_map_key_401 = "users".to_string();
-        let mut __go_map_value_401 = Vec::<String>::new();
-        __go_map_value_401.push("carol".to_string());
-        __go_map_value_401.push("dave".to_string());
-        __go_map_value_401.push("eve".to_string());
-        __go_map.insert(__go_map_key_401, Rc::new(RefCell::new(Some(__go_map_value_401))));
-        *Groups.borrow_mut() = Some(__go_map);
-    }
-    {
-        let mut __go_slice = Vec::<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>::with_capacity(2);
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30) as Box<dyn Any>))))]));
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25) as Box<dyn Any>))))]));
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
-        *Records.borrow_mut() = Some(__go_slice);
-    }
+    self::__go_zero_globals();
+    self::__go_init_order_0();
+    self::__go_init_order_1();
+    self::__go_init_order_2();
+    self::__go_init_order_3();
 }
 
 
@@ -88,7 +58,7 @@ pub(crate) fn __go_zero_globals() {
 
 pub(crate) fn __go_init_order_0() {
     {
-        let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new();
+        let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new();
         __go_map.insert("alice".to_string(), Rc::new(RefCell::new(Some(1))));
         __go_map.insert("bob".to_string(), Rc::new(RefCell::new(Some(2))));
         __go_map.insert("carol".to_string(), Rc::new(RefCell::new(Some(3))));
@@ -99,13 +69,13 @@ pub(crate) fn __go_init_order_0() {
 
 pub(crate) fn __go_init_order_1() {
     {
-        let mut __go_slice = Vec::<i32>::with_capacity(5);
-        __go_slice.push(10);
-        __go_slice.push(20);
-        __go_slice.push(30);
-        __go_slice.push(40);
-        __go_slice.push(50);
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        let mut __go_slice = Vec::<i64>::with_capacity(5);
+        __go_slice.push(10i64);
+        __go_slice.push(20i64);
+        __go_slice.push(30i64);
+        __go_slice.push(40i64);
+        __go_slice.push(50i64);
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Numbers.borrow_mut() = Some(__go_slice);
     }
 }
@@ -133,9 +103,9 @@ pub(crate) fn __go_init_order_2() {
 pub(crate) fn __go_init_order_3() {
     {
         let mut __go_slice = Vec::<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>::with_capacity(2);
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30) as Box<dyn Any>))))]));
-        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25) as Box<dyn Any>))))]));
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30i64) as Box<dyn Any>))))]));
+        __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25i64) as Box<dyn Any>))))]));
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Records.borrow_mut() = Some(__go_slice);
     }
 }

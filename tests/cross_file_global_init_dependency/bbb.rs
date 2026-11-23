@@ -1,5 +1,13 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use crate::{aaa::{A}};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -19,12 +27,12 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static B: GoGlobal<i32> = GoGlobal::new();
+pub static B: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *B.borrow_mut() = Some(0);
-    *B.borrow_mut() = Some((*A.borrow().as_ref().unwrap()) + 1);
+    self::__go_zero_globals();
+    self::__go_init_order_1();
 }
 
 

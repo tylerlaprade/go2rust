@@ -1,0 +1,25 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_stringslite",
+    "vendor/strings",
+]
+
+[package]
+name = "source_stdlib_strings_index_byte"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_strings_index_byte"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+strings = { path = "vendor/strings" }

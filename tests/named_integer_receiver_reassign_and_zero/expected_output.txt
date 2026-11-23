@@ -1,0 +1,13 @@
+#3 (today) apple x30 @ $0.45
+names: [apple gadget widget] value: $90.98
+took 3 widget for $7.50
+short by 3: not enough gadget: have 2, want 5
+missing: take "pear": not found
+took 2 gadget for $39.98
+add widget; add gadget; restock widget; add apple; sold out gadget
+-$12.34 $0.05 30
+8 <nil>
+0 recovered: negative: -1
+food   [apple]
+metal  [widget]
+small  [widget]

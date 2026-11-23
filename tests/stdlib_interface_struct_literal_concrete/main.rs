@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::fmt::{Display, Formatter};
@@ -42,7 +48,7 @@ impl std::fmt::Display for entry {
 
 
 pub fn make_entry() -> Arc<Mutex<Option<entry>>> {
-    let mut tn = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
+    let mut tn = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
     let mut tp = go_types::new_type_param(tn.clone(), Arc::new(Mutex::new(None)));
     return Arc::new(Mutex::new(Some(entry { typ: Arc::new(Mutex::new(Some(Box::new(go_types::typeparam::TypeParamPtr(tp.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
 }

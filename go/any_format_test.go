@@ -192,7 +192,7 @@ func main() {
 }
 `)
 
-	if !strings.Contains(rust, "value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i32>>>>>>>>() {\n        format_map(v)") {
+	if !strings.Contains(rust, "value.downcast_ref::<Rc<RefCell<Option<BTreeMap<bool, Rc<RefCell<Option<i64>>>>>>>>() {\n        format_map(v)") {
 		t.Fatalf("a boxed map[bool]int has no formatting case:\n%s", rust)
 	}
 }

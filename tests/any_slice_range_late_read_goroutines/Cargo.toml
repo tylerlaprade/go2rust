@@ -1,0 +1,11 @@
+[package]
+name = "any_slice_range_late_read_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_slice_range_late_read_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
