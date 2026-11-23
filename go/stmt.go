@@ -48,16 +48,16 @@ func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.Fun
 // would outlive the local it borrows from. Parameters drop after temporaries
 // so they remain safe in tail position; only `let`-declared wrapped locals
 // trigger the rejection.
-func returnExpressionsBorrowWrappedLocals(results []ast.Expr) bool {
+func returnExpressionsBorrowWrappedLocals(results []ast.Expr, fnType *ast.FuncType) bool {
 	for _, expr := range results {
-		if expressionReadsWrappedLocal(expr) {
+		if expressionReadsWrappedLocal(expr, fnType) {
 			return true
 		}
 	}
 	return false
 }
 
-func expressionReadsWrappedLocal(expr ast.Expr) bool {
+func expressionReadsWrappedLocal(expr ast.Expr, fnType *ast.FuncType) bool {
 	found := false
 	ast.Inspect(expr, func(n ast.Node) bool {
 		if found {
@@ -67,7 +67,7 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 		if !ok {
 			return true
 		}
-		if identIsWrappedFunctionLocal(ident) {
+		if identIsWrappedFunctionLocal(ident, fnType) {
 			found = true
 			return false
 		}
@@ -88,7 +88,7 @@ func expressionReadsWrappedLocal(expr ast.Expr) bool {
 // records the rare opt-outs (bare scalar slot from a bare-scalar call, range
 // vars, etc.) as WrapNone. Anything else that's a body-declared local is
 // assumed wrapped.
-func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
+func identIsWrappedFunctionLocal(ident *ast.Ident, fnType *ast.FuncType) bool {
 	if ident == nil || ident.Name == "_" {
 		return false
 	}
@@ -114,7 +114,12 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	if v.Pkg() != nil && v.Parent() == v.Pkg().Scope() {
 		return false
 	}
-	// Names declared at or before the function body's opening brace are
+	// A named result is declared in the Go signature but initialized by a
+	// Rust let inside the function. Its borrow must end before that local drops.
+	if fnType != nil && fnType.Results != nil && v.Pos() >= fnType.Results.Pos() && v.Pos() < fnType.Results.End() {
+		return true
+	}
+	// Other names declared at or before the function body's opening brace are
 	// parameters, receivers, or enclosing-scope variables — they drop after
 	// the tail expression's temporaries, so they are safe.
 	if !currentFunctionBodyLbrace.IsValid() || v.Pos() <= currentFunctionBodyLbrace {
@@ -11940,7 +11945,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// local drops first, rustc rejects the body. Falling back to an
 			// explicit `return <expr>;` keeps the temporaries scoped to
 			// the statement so locals can drop afterward safely.
-			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results) {
+			if len(s.Results) > 0 && returnExpressionsBorrowWrappedLocals(s.Results, fnType) {
 				tailReturn = false
 			} else if len(s.Results) == 0 && namedReturnsUnwrapBareScalar(fnType) {
 				// Naked returns lower named-return locals through the same
