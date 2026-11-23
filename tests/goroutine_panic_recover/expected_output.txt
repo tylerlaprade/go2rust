@@ -1,0 +1,4 @@
+5 true
+recovered: runtime error: integer divide by zero true
+inline recovered: runtime error: index out of range [3] with length 0 true
+arg recovered: true 7 true

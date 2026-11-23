@@ -1503,6 +1503,10 @@ run_xfail_test() {
     run_test "tests/goroutine_function_param_capture"
 }
 
+@test "goroutine_panic_recover" {
+    run_test "tests/goroutine_panic_recover"
+}
+
 @test "goroutine_pointer_capture_alias" {
     run_test "tests/goroutine_pointer_capture_alias"
 }
