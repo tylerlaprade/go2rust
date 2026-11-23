@@ -1463,6 +1463,10 @@ run_xfail_test() {
     run_test "tests/goroutine_pointer_capture_alias"
 }
 
+@test "goroutine_range_channel_argument" {
+    run_test "tests/goroutine_range_channel_argument"
+}
+
 @test "goroutines_basic" {
     run_test "tests/goroutines_basic"
 }
