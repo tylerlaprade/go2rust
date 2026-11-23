@@ -588,7 +588,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -599,7 +599,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -644,6 +644,56 @@ fn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc
     })
 }
 
+fn go_float_string(value: f64, single: bool) -> String {
+    if value.is_nan() {
+        return "NaN".to_string();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let shortest = if single { format!("{:e}", value.abs() as f32) } else { format!("{:e}", value.abs()) };
+    let (mantissa, exponent) = shortest.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    let exponent: i32 = exponent.parse().unwrap();
+    if exponent < -4 || exponent >= 6 {
+        let mut text = String::from(sign);
+        text.push_str(&digits[..1]);
+        if digits.len() > 1 {
+            text.push('.');
+            text.push_str(&digits[1..]);
+        }
+        text.push('e');
+        text.push(if exponent < 0 { '-' } else { '+' });
+        text.push_str(&format!("{:02}", exponent.abs()));
+        return text;
+    }
+    if exponent < 0 {
+        return format!("{}0.{}{}", sign, "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}{}", sign, digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}{}.{}", sign, &digits[..whole], &digits[whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
+    }
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
+    }
+    value.to_string()
+}
+
 #[derive(Debug, Clone)]
 pub struct Basic {
     pub id: Rc<RefCell<Option<String>>>,
@@ -681,7 +731,7 @@ impl Default for Basic {
 impl std::fmt::Display for Basic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.id.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.balance.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = go_float_string(((*self.balance.borrow().as_ref().unwrap())) as f64, false);
         let __go_fmt_2 = format!("{}", format_slice(&self.history));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)
     }
@@ -720,7 +770,7 @@ impl Default for Savings {
 impl std::fmt::Display for Savings {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.basic.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.rate.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = go_float_string(((*self.rate.borrow().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -758,7 +808,7 @@ impl Default for Premium {
 impl std::fmt::Display for Premium {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", { let __guard = self.savings.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
-        let __go_fmt_1 = format!("{}", (*self.bonus.borrow().as_ref().unwrap()));
+        let __go_fmt_1 = go_float_string(((*self.bonus.borrow().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -818,7 +868,7 @@ fn main() {
     };
     (*s.borrow_mut().as_mut().unwrap()).deposit(Rc::new(RefCell::new(Some(100.0))));
     (*s.borrow_mut().as_mut().unwrap()).add_interest();
-    println!("{} {} {}", format!("{}", (*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).id.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).balance.borrow().as_ref().unwrap())), format!("{}", format_slice_values(&(*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).history.borrow().as_ref().unwrap()).clone())));
+    println!("{} {} {}", format!("{}", (*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).id.borrow().as_ref().unwrap()).clone()), { let __text = go_float_string(((*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).balance.borrow().as_ref().unwrap())) as f64, false); __text }, format!("{}", format_slice_values(&(*(*(*s.borrow().as_ref().unwrap()).basic.borrow().as_ref().unwrap()).history.borrow().as_ref().unwrap()).clone())));
     let mut p = {
         let __owner = Rc::new(RefCell::new(Some(Premium { savings: {
             let __owner = Rc::new(RefCell::new(Some(Savings { basic: Rc::new(RefCell::new(Some(Basic { id: Rc::new(RefCell::new(Some("ann".to_string()))), ..Default::default() }))), rate: Rc::new(RefCell::new(Some(0.1))), ..Default::default() })));

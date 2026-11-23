@@ -9,7 +9,7 @@ mod scope;
 use scope::*;
 
 use std::cell::{RefCell};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Formatter};
 use std::rc::{Rc};
 
 #[derive(Debug)]

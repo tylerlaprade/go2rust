@@ -5963,18 +5963,20 @@ func generateGoFloatStringHelper(out *strings.Builder) {
     format!("{}{}.{}", sign, &digits[..whole], &digits[whole..])
 }
 `)
-	TrackImport("Any")
 	TrackImport("Display")
 	out.WriteString("\n// A value inside a slice or a map prints as fmt prints it: a float through\n")
-	out.WriteString("// go_float_string, anything else through its Display.\n")
+	out.WriteString("// go_float_string, anything else through its Display. The element type may\n")
+	out.WriteString("// borrow, so it is recognized by name rather than by TypeId.\n")
 	out.WriteString(visibility)
-	out.WriteString(`fn go_display_value<T: Display + 'static>(value: &T) -> String {
-    let any = value as &dyn Any;
-    if let Some(v) = any.downcast_ref::<f64>() {
-        return go_float_string(*v, false);
+	out.WriteString(`fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
     }
-    if let Some(v) = any.downcast_ref::<f32>() {
-        return go_float_string(*v as f64, true);
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
     }
     value.to_string()
 }

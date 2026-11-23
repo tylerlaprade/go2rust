@@ -27,11 +27,11 @@ func main() {
 `)
 	for _, want := range []string{
 		"fn go_float_string(value: f64, single: bool) -> String",
-		"go_float_string(({ let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }) as f64, false)",
+		"{ let __text = go_float_string(({ let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }",
 		"let __go_fmt_0 = go_float_string(((*self.x.borrow().as_ref().unwrap())) as f64, false);",
 		"let __go_fmt_1 = go_float_string(((*self.y.borrow().as_ref().unwrap())) as f64, true);",
 		`write!(f, "{}", go_float_string(*self.0.borrow().as_ref().unwrap() as f64, false))`,
-		"fn go_display_value<T: Display + 'static>(value: &T) -> String",
+		"fn go_display_value<T: Display>(value: &T) -> String",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q:\n%s", want, rust)

@@ -441,7 +441,10 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 	}
 	if single, ok := printArgIsBasicFloat(arg); ok {
 		NeedGoFloatString()
-		out.WriteString("go_float_string((")
+		// A let releases the operand's lock guards before the next operand
+		// takes them, as format! does; a bare call would keep them to the
+		// end of the print statement.
+		out.WriteString("{ let __text = go_float_string((")
 		transpilePrintArg(out, arg)
 		out.WriteString(") as f64, ")
 		if single {
@@ -449,7 +452,7 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		} else {
 			out.WriteString("false")
 		}
-		out.WriteString(")")
+		out.WriteString("); __text }")
 		return
 	}
 	out.WriteString("format!(\"{}\", ")
@@ -6741,9 +6744,9 @@ func generateMapFormatter(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone + 'static, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display + 'static,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -6771,9 +6774,9 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone + 'static, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
-    V: Display + 'static,
+    V: Display,
 {
     let guard = map.borrow();
     if let Some(ref m) = *guard {
@@ -6810,7 +6813,7 @@ func generateSliceFormatter(out *strings.Builder, includeWrappedValues bool, inc
 		out.WriteString(`fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
-    T: Display + 'static,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -6823,7 +6826,7 @@ where
 
 fn format_slice_values<T>(slice: &[T]) -> String
 where
-    T: Display + 'static,
+    T: Display,
 {
     let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
@@ -6904,7 +6907,7 @@ where
 		out.WriteString(`fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
-    T: Display + 'static,
+    T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
@@ -6917,7 +6920,7 @@ where
 
 fn format_slice_values<T>(slice: &[T]) -> String
 where
-    T: Display + 'static,
+    T: Display,
 {
     let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))

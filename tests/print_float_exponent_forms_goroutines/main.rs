@@ -584,9 +584,9 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
-fn format_map<K: Display + Ord + Clone + 'static, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display + 'static,
+    V: Display,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -613,7 +613,7 @@ where
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
-    T: Display + 'static,
+    T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
@@ -626,7 +626,7 @@ where
 
 fn format_slice_values<T>(slice: &[T]) -> String
 where
-    T: Display + 'static,
+    T: Display,
 {
     let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
@@ -913,14 +913,17 @@ fn go_float_string(value: f64, single: bool) -> String {
 }
 
 // A value inside a slice or a map prints as fmt prints it: a float through
-// go_float_string, anything else through its Display.
-fn go_display_value<T: Display + 'static>(value: &T) -> String {
-    let any = value as &dyn Any;
-    if let Some(v) = any.downcast_ref::<f64>() {
-        return go_float_string(*v, false);
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
     }
-    if let Some(v) = any.downcast_ref::<f32>() {
-        return go_float_string(*v as f64, true);
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
     }
     value.to_string()
 }
@@ -1750,18 +1753,18 @@ impl std::fmt::Display for Point {
 
 fn main() {
     for v in vec![1e10, 1e20, 1e21, 123456.0, 1234567.0, 0.0001, 0.00001, 3.0, 2.5e-7, 100000.0, 1e6, -(4.5e15), 123456789.125].iter().copied() {
-        println!("{}", go_float_string((v) as f64, false));
+        println!("{}", { let __text = go_float_string((v) as f64, false); __text });
     }
     let mut zero = Arc::new(Mutex::new(Some(0.0)));
-    println!("{} {} {} {} {} {} {}", go_float_string(({ let __tmp_x = 1.0; let __tmp_y = { let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }) as f64, false), go_float_string(({ let __tmp_x = -1.0; let __tmp_y = { let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }) as f64, false), go_float_string(({ let __bin_zero = ({ let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_zero / __bin_zero }) as f64, false), go_float_string((-(({ let __v = (*zero.lock().unwrap().as_ref().unwrap()); __v }))) as f64, false), go_float_string(((*Arc::new(Mutex::new(Some(0.1 as f32))).lock().unwrap().as_ref().unwrap())) as f64, true), go_float_string(((*Arc::new(Mutex::new(Some(16777216.0 as f32))).lock().unwrap().as_ref().unwrap())) as f64, true), go_float_string((1e-7) as f64, false));
+    println!("{} {} {} {} {} {} {}", { let __text = go_float_string(({ let __tmp_x = 1.0; let __tmp_y = { let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }) as f64, false); __text }, { let __text = go_float_string(({ let __tmp_x = -1.0; let __tmp_y = { let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }) as f64, false); __text }, { let __text = go_float_string(({ let __bin_zero = ({ let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_zero / __bin_zero }) as f64, false); __text }, { let __text = go_float_string((-(({ let __v = (*zero.lock().unwrap().as_ref().unwrap()); __v }))) as f64, false); __text }, { let __text = go_float_string(((*Arc::new(Mutex::new(Some(0.1 as f32))).lock().unwrap().as_ref().unwrap())) as f64, true); __text }, { let __text = go_float_string(((*Arc::new(Mutex::new(Some(16777216.0 as f32))).lock().unwrap().as_ref().unwrap())) as f64, true); __text }, { let __text = go_float_string((1e-7) as f64, false); __text });
     println!("{}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![1e10, 0.5, 1234567.0]))))));
     println!("{}", format!("{}", Point { x: Arc::new(Mutex::new(Some(1e+09))), y: Arc::new(Mutex::new(Some(-2.5e-08))), name: Arc::new(Mutex::new(Some("p".to_string()))), z: Arc::new(Mutex::new(Some(3e+07))), ..Default::default() }));
     println!("{}", format!("{}", format_map(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<f64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1e21)))), ("b".to_string(), Arc::new(Mutex::new(Some(2.0))))])))))));
     let mut c: Arc<Mutex<Option<Celsius>>> = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(1e+07)))))));
     println!("{} {}", format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Celsius(Arc::new(Mutex::new(Some(21.5 as f64))))));
-    let mut s = Arc::new(Mutex::new(Some(format!("{}{}{}", go_float_string((1e10) as f64, false), format!("{}", " ".to_string()), go_float_string((2.0) as f64, false)))));
-    println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}\n", go_float_string((3e-9) as f64, false))))).lock().unwrap().as_ref().unwrap())));
-    print!("{}{}", go_float_string((4e12) as f64, false), format!("{}", "\n".to_string()));
+    let mut s = Arc::new(Mutex::new(Some(format!("{}{}{}", { let __text = go_float_string((1e10) as f64, false); __text }, format!("{}", " ".to_string()), { let __text = go_float_string((2.0) as f64, false); __text }))));
+    println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}\n", { let __text = go_float_string((3e-9) as f64, false); __text })))).lock().unwrap().as_ref().unwrap())));
+    print!("{}{}", { let __text = go_float_string((4e12) as f64, false); __text }, format!("{}", "\n".to_string()));
     print!("{}", go_sprintf(&"%v %v %g\n".to_string(), &[{ let __go_format_arg = Box::new(Arc::new(Mutex::new(Some(vec![1e10]))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Point { x: Arc::new(Mutex::new(Some(1e+09))), y: Arc::new(Mutex::new(Some(1.0))), name: Arc::new(Mutex::new(Some("q".to_string()))), z: Arc::new(Mutex::new(Some(0.0))), ..Default::default() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1e10) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut arr: Arc<Mutex<Option<[f32; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| 0.0))));
     { let __idx = (0) as usize; let __rhs = 1e+08; (*arr.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
@@ -1778,7 +1781,7 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-        println!("{} {} {}", format!("{}", "goroutine".to_string()), go_float_string((5e-5) as f64, false), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![6e6]))))));;
+        println!("{} {} {}", format!("{}", "goroutine".to_string()), { let __text = go_float_string((5e-5) as f64, false); __text }, format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![6e6]))))));;
         while let Some(f) = __defer_stack.pop() {
             f();
         }

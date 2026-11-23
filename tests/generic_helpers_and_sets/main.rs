@@ -588,7 +588,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -599,7 +599,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -621,6 +621,56 @@ where
     } else {
         "[]".to_string()
     }
+}
+
+fn go_float_string(value: f64, single: bool) -> String {
+    if value.is_nan() {
+        return "NaN".to_string();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let shortest = if single { format!("{:e}", value.abs() as f32) } else { format!("{:e}", value.abs()) };
+    let (mantissa, exponent) = shortest.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    let exponent: i32 = exponent.parse().unwrap();
+    if exponent < -4 || exponent >= 6 {
+        let mut text = String::from(sign);
+        text.push_str(&digits[..1]);
+        if digits.len() > 1 {
+            text.push('.');
+            text.push_str(&digits[1..]);
+        }
+        text.push('e');
+        text.push(if exponent < 0 { '-' } else { '+' });
+        text.push_str(&format!("{:02}", exponent.abs()));
+        return text;
+    }
+    if exponent < 0 {
+        return format!("{}0.{}{}", sign, "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}{}", sign, digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}{}.{}", sign, &digits[..whole], &digits[whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
+    }
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
+    }
+    value.to_string()
 }
 
 #[derive(Debug, Clone)]
@@ -794,7 +844,7 @@ fn main() {
         (*s.borrow().as_ref().unwrap()).add(Rc::new(RefCell::new(Some((*w).clone()))));
     } }
     println!("{} {} {}", format!("{}", (*s.borrow().as_ref().unwrap()).len()), format!("{}", (*s.borrow().as_ref().unwrap()).has(Rc::new(RefCell::new(Some("a".to_string()))))), format!("{}", (*s.borrow().as_ref().unwrap()).has(Rc::new(RefCell::new(Some("z".to_string()))))));
-    println!("{} {} {}", format!("{}", max__int(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(7))))), format!("{}", max__float64(Rc::new(RefCell::new(Some(2.5))), Rc::new(RefCell::new(Some(-1.0))))), format!("{}", (*max__string(Rc::new(RefCell::new(Some("go".to_string()))), Rc::new(RefCell::new(Some("rust".to_string())))).borrow().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", max__int(Rc::new(RefCell::new(Some(3))), Rc::new(RefCell::new(Some(7))))), { let __text = go_float_string((max__float64(Rc::new(RefCell::new(Some(2.5))), Rc::new(RefCell::new(Some(-1.0))))) as f64, false); __text }, format!("{}", (*max__string(Rc::new(RefCell::new(Some("go".to_string()))), Rc::new(RefCell::new(Some("rust".to_string())))).borrow().as_ref().unwrap())));
     let mut evens = filter__int(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64, 6i64]))), Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<i64>>>| -> bool {
         (*n.borrow().as_ref().unwrap()) % 2 == 0
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
