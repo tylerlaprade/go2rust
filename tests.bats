@@ -2469,6 +2469,14 @@ run_xfail_test() {
     run_test "tests/os_args_non_utf8_goroutines"
 }
 
+@test "os_create_remove_non_utf8" {
+    run_test "tests/os_create_remove_non_utf8"
+}
+
+@test "os_create_remove_non_utf8_goroutines" {
+    run_test "tests/os_create_remove_non_utf8_goroutines"
+}
+
 @test "os_environ_non_utf8" {
     run_test "tests/os_environ_non_utf8"
 }

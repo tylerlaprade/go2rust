@@ -8,6 +8,39 @@ import (
 	"testing"
 )
 
+func TestOsCreateAndRemoveUseCanonicalUnixPathBytes(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "os"
+
+func replace(path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Remove(path)
+}
+`)
+
+	for _, want := range []string{
+		"std::ffi::OsString::from_vec(__go_string_bytes(&__path_string))",
+		"#[cfg(not(unix))] { std::path::PathBuf::from(__path_string) }",
+		"GoFile::create(&__path)",
+		"std::fs::remove_file(&__path)",
+		"fn create(path: &std::path::Path)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("os.Create/Remove lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if count := strings.Count(rust, "std::ffi::OsString::from_vec(__go_string_bytes(&__path_string))"); count != 2 {
+		t.Fatalf("os.Create and os.Remove should both decode canonical Unix path bytes; got %d uses:\n%s", count, rust)
+	}
+}
+
 func TestFmtFprintfPointerVerbUsesInterfaceHandleAddress(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

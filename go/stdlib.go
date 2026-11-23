@@ -3107,9 +3107,9 @@ func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	out.WriteString("{ let __path = ")
 	if len(call.Args) > 0 {
-		writeOwnedStringStdlibArg(out, call.Args[0])
+		writeOsPathStdlibArg(out, call.Args[0])
 	} else {
-		out.WriteString("String::new()")
+		out.WriteString("std::path::PathBuf::new()")
 	}
 	out.WriteString("; match GoFile::create(&__path) { Ok(file) => (")
 	WriteWrapperPrefix(out)
@@ -3132,9 +3132,9 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 	TrackImport("Error")
 	out.WriteString("{ let __path = ")
 	if len(call.Args) > 0 {
-		writeOwnedStringStdlibArg(out, call.Args[0])
+		writeOsPathStdlibArg(out, call.Args[0])
 	} else {
-		out.WriteString("String::new()")
+		out.WriteString("std::path::PathBuf::new()")
 	}
 	out.WriteString("; match std::fs::remove_file(&__path) { Ok(()) => ")
 	writeTypedErrorNone(out)
@@ -3143,6 +3143,12 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(rustErrorFromText("e"))
 	WriteWrapperSuffix(out)
 	out.WriteString(" } }")
+}
+
+func writeOsPathStdlibArg(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("{ let __path_string = ")
+	writeOwnedStringStdlibArg(out, expr)
+	out.WriteString("; #[cfg(unix)] { use std::os::unix::ffi::OsStringExt; std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&__path_string))) } #[cfg(not(unix))] { std::path::PathBuf::from(__path_string) } }")
 }
 
 func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
