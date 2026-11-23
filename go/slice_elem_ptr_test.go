@@ -111,8 +111,10 @@ func lookup(r *reader, i int) types.Type {
 	if strings.Contains(rust, "let new_val = (*typ.borrow().as_ref().unwrap())") {
 		t.Fatalf("slice element pointer assignment should store the interface handle, not the boxed payload:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = typ.clone()") {
-		t.Fatalf("slice element pointer assignment should clone the interface handle into the slice element:\n%s", rust)
+	// The element gets a copy of typ's interface value in a handle of its
+	// own, so assigning to typ afterwards leaves the element alone.
+	if !strings.Contains(rust, "let new_val = { let __iface_value = typ.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("slice element pointer assignment should store a copy of the interface value in the slice element:\n%s", rust)
 	}
 }
 
@@ -7345,5 +7347,5 @@ func transpileTypedSliceElemPtrRegressionWithOptions(t *testing.T, src string, u
 		})
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }

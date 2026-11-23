@@ -695,6 +695,28 @@ func rewrite(args []any) []any {
 	}
 }
 
+func TestAnySliceRangeReadsEachElementAtIterationTime(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func visit(values []any) {
+	for i, value := range values {
+		if i == 0 {
+			values[1] = "updated"
+		}
+		_ = value
+	}
+}
+`)
+
+	if strings.Contains(rust, "__v.iter().map(|__e| go_any_clone(__e.as_ref()))") {
+		t.Fatalf("[]any range must not snapshot dynamic payloads before the loop:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __range_values = 0..__range_len") ||
+		!strings.Contains(rust, "go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref())") {
+		t.Fatalf("[]any range should reread the current backing-array element for each iteration:\n%s", rust)
+	}
+}
+
 func TestAnyRangeWritebackMovesSourceMappedInterfaceValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -2612,6 +2634,41 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestMapLiteralAssignmentToEmptyInterfaceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func assign() interface{} {
+	var x interface{}
+	x = map[string]int{"k": 3}
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __moved_val") {
+		t.Fatalf("map literal assigned to interface{} should be boxed, not moved into the interface slot as a map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new") || !strings.Contains(rust, "BTreeMap::<") {
+		t.Fatalf("map literal assigned to interface{} should box the concrete map value:\n%s", rust)
+	}
+}
+
+func TestFunctionAssertionBindingKeepsCallableHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bind(x interface{}) int {
+	f := x.(func() int)
+	return f()
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()") {
+		t.Fatalf("bound function assertion should downcast to and clone the callable handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> i64>>") {
+		t.Fatalf("bound function assertion must not try to clone the boxed callable itself:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceVarInitializerConvertsStructuralInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3028,9 +3085,10 @@ func remember(seen map[Type]Expr, typ Type, nodes []Expr) {
 	if strings.Contains(rust, "Some((*node).clone())") {
 		t.Fatalf("interface map value assignment should not wrap an existing interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __map_value = node.clone();") &&
-		!strings.Contains(rust, "let __map_value = (*node).clone();") {
-		t.Fatalf("interface map value assignment should store the existing interface handle:\n%s", rust)
+	// The range variable refers to the slice's element, so the map gets a
+	// copy of the value in a handle of its own.
+	if !strings.Contains(rust, "let __map_value = { let __iface_value = (*node).borrow().clone(); Rc::new(RefCell::new(__iface_value)) };") {
+		t.Fatalf("interface map value assignment should store a copy of the interface value:\n%s", rust)
 	}
 }
 
@@ -3534,7 +3592,7 @@ func lookupParam(objMap map[Object]*declInfo, obj dependency) bool {
 	if !strings.Contains(rust, "as Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should convert to the expected interface handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __inner: Box<dyn Object") {
+	if !strings.Contains(rust, "let __inner: Option<Box<dyn Object") {
 		t.Fatalf("subinterface map lookup key should use the typed embedded-interface upcast:\n%s", rust)
 	}
 }
@@ -4716,7 +4774,7 @@ func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixS
 		t.Fatalf("NewTypeInfo error = %v", err)
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func transpileTypedConcurrentRegressionWithMapping(t *testing.T, src string, packageMapping map[string]string) string {
@@ -4745,7 +4803,7 @@ func transpileTypedConcurrentPackageWithMapping(t *testing.T, packagePath string
 		SetConcurrencyDetector(prevConcurrencyDetector)
 	})
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, packageMapping)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func firstMutexGuardName(t *testing.T, rust string) string {
@@ -6406,9 +6464,9 @@ func load(v any) []*Type {
 	if strings.Contains(rust, "rts = new_val;") {
 		t.Fatalf("slice type assertion assignment should not replace the slice handle with a bare Vec:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*rts.borrow_mut() = Some(new_val);") &&
-		!strings.Contains(rust, "*rts.lock().unwrap() = Some(new_val);") {
-		t.Fatalf("slice type assertion assignment should store the asserted Vec in the existing handle:\n%s", rust)
+	if !strings.Contains(rust, "*rts.borrow_mut() = __slice_header;") &&
+		!strings.Contains(rust, "*rts.lock().unwrap() = __slice_header;") {
+		t.Fatalf("slice type assertion assignment should store the asserted slice's header in the existing handle:\n%s", rust)
 	}
 }
 
@@ -6615,8 +6673,10 @@ func use(f *file) {
 	if strings.Contains(rust, "let __v = (*") && strings.Contains(rust, "iovecs = new_val") {
 		t.Fatalf("slice assignment from pointer dereference should not assign a raw Vec into the slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iovecs.clone(); iovecs = new_val") {
-		t.Fatalf("slice assignment from pointer dereference should clone the pointee slice handle:\n%s", rust)
+	// Go copies the pointee's header; the local keeps its own cell, so an
+	// append to it does not reach *f.iovecs.
+	if strings.Contains(rust, "iovecs = new_val") || !strings.Contains(rust, "*iovecs.borrow_mut() = __slice_header;") {
+		t.Fatalf("slice assignment from pointer dereference should copy the pointee's header into the local's cell:\n%s", rust)
 	}
 }
 
@@ -8428,9 +8488,10 @@ func get(i int) Type {
 	if strings.Contains(rust, "Some({ let __seq") || strings.Contains(rust, "Some((*types.borrow") {
 		t.Fatalf("returning a local-interface slice element should not wrap the existing handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return (*types.borrow().as_ref().unwrap())") &&
-		!strings.Contains(rust, "return { let __seq") {
-		t.Fatalf("returning a local-interface slice element should return the cloned handle directly:\n%s", rust)
+	// The caller gets a copy of the element in a handle of its own, so
+	// assigning to its variable leaves the element alone.
+	if !strings.Contains(rust, "return { let __iface_value = (*types.borrow().as_ref().unwrap())") {
+		t.Fatalf("returning a local-interface slice element should return a copy of it:\n%s", rust)
 	}
 }
 
@@ -10342,5 +10403,119 @@ func main() {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
 		}
+	}
+}
+
+func TestChannelSendUsesRustIdentifiersAndCaptureNames(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	loop := 7
+	ordinary := make(chan int, 1)
+	ordinary <- loop
+
+	final := make(chan int)
+	go func() {
+		final <- loop
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"ordinary.send((*r#loop.lock().unwrap().as_ref().unwrap()))",
+		"final_thread.send((*loop_thread.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "send((*loop.lock()") {
+		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
+	}
+}
+
+func TestChannelSendCopiesReferenceRangeValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	values := []string{"alpha", "beta"}
+	ch := make(chan string, len(values))
+	for _, value := range values {
+		ch <- value
+	}
+}
+`)
+
+	if !strings.Contains(rust, "ch.send((*value).clone())") {
+		t.Fatalf("range value sent its iterator reference instead of a Go value copy:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsPredeclaredBoolAndLocalCaptureShadows(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	true := 11
+	ints := make(chan int, 1)
+	ints <- true
+
+	bools := make(chan bool, 1)
+	bools <- false
+
+	value := 7
+	variable := 12
+	seen := make(chan int, 4)
+	go func() {
+		seen <- value
+		const value = 9
+		seen <- value
+		seen <- variable
+		variable := 13
+		seen <- variable
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"let mut true_ =",
+		"ints.send((*true_.lock().unwrap().as_ref().unwrap()))",
+		"bools.send(false)",
+		"seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))",
+		"seen_thread.send(value)",
+		"seen_thread.send((*variable_thread.lock().unwrap().as_ref().unwrap()))",
+		"let mut variable =",
+		"seen_thread.send((*variable.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"let mut true =",
+		"let mut variable_thread =",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
+		}
+	}
+}
+
+func TestGoroutineFunctionLiteralCopiesRangeChannelArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(inputs ...<-chan int) {
+	for _, input := range inputs {
+		go func(ch <-chan int) {
+			<-ch
+		}(input)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let __go_arg_0 = (*input).clone()") {
+		t.Fatalf("range channel argument was wrapped instead of copied as a channel handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
+		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
 	}
 }

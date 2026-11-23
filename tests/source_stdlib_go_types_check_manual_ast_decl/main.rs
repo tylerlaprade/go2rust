@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::cell::{RefCell};
@@ -159,7 +165,7 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_previous_panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
@@ -169,7 +175,7 @@ fn main() {
         {
         let mut p = go_recover();;
         if { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "panic:".to_string()), format!("{}", { let __text = format_any(p.lock().unwrap().as_ref().unwrap().as_ref()); __text }));;
+            println!("{} {}", format!("{}", "panic:".to_string()), format!("{}", { let __text = match p.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

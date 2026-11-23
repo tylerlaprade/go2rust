@@ -1,8 +1,16 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 /// Shape is declared here; its only implementor (Circle) lives in circle.go.
 /// The `impl Shape for Circle` must be generated even though they are in
 /// different files of the same package.

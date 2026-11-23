@@ -461,23 +461,19 @@ func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __text = ")
 		defer out.WriteString("; __text }")
 	}
-	out.WriteString("format_any(")
+	// A nil interface value prints as <nil>.
+	out.WriteString("match ")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else if _, ok := arg.(*ast.SelectorExpr); ok {
 		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else {
 		out.WriteString("(")
 		TranspileExpression(out, arg)
 		out.WriteString(")")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	}
-	out.WriteString(")")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() }")
 }
 
 func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
@@ -598,6 +594,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				writeCollectionFormatHandleIdent(out, ident)
 			} else if writeAnyHandleAssertionHandle(out, arg) {
 				// A map asserted out of an interface: the handle it holds.
+			} else if isStructFieldSelection(arg) {
+				// The field's cell, which format_map takes; reading the
+				// field gives the map inside it.
+				TranspileExpressionContext(out, arg, LValue)
 			} else {
 				TranspileExpression(out, arg)
 			}
@@ -605,6 +605,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
 			if writeNamedSlicePrintArg(out, arg, argType) {
+				return
+			}
+			if writeNamedArrayPrintArg(out, arg, argType) {
 				return
 			}
 			if writeNestedBasicSlicePrintArg(out, arg, argType) {
@@ -1408,6 +1411,22 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
 	}
+	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil {
+				if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+					// %T of a nil interface value is <nil>.
+					out.WriteString("match ")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref() { Some(__any_value) => ")
+					out.WriteString(goTypeNameHelperRustName)
+					out.WriteString("(&**__any_value), None => \"<nil>\" }")
+					return
+				}
+			}
+		}
+	}
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(")
 	if ident, ok := arg.(*ast.Ident); ok {
@@ -1434,6 +1453,14 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString(".as_ref().unwrap()")
 			}
 		}
+	} else if _, ok := anySequenceElementIndex(arg); ok {
+		// The element read is a handle of its own; name what it holds, not
+		// the text of the value.
+		out.WriteString("&**(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
 	} else {
 		out.WriteString("&")
 		transpilePrintArg(out, arg)
@@ -1886,6 +1913,29 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 // writeNamedSlicePrintArg prints a value of a named slice type, "type Ints
 // []int", as Go prints the slice: the elements are in the handle inside the
 // newtype, which has no Display of its own.
+// writeNamedArrayPrintArg prints a value of "type d [3]rune", a newtype over
+// the array's cell, through the Display its declaration gives it.
+func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	named, ok := types.Unalias(argType).(*types.Named)
+	if !ok || typeHasGoStringMethod(argType) {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
 func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	_, sliceType, ok := namedSliceTypeForExpr(arg)
 	if !ok || typeHasGoStringMethod(argType) {
@@ -2450,6 +2500,20 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
+	// A pointer variable, parameter or field is the handle of the value it
+	// points to; reading it as a value would read the int instead.
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.Ident:
+			if !isGoPtrIdent(e) {
+				writePointerHandleExpression(out, e)
+				return
+			}
+		case *ast.SelectorExpr:
+			writePointerHandleExpression(out, e)
+			return
+		}
+	}
 	TranspileExpression(out, expr)
 }
 
@@ -4379,7 +4443,7 @@ func transpileJsonMarshal(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString("let __json = format!(\"{{{}}}\", __json_fields.join(\",\")); (")
 	WriteWrapperPrefix(out)
-	out.WriteString("__json.into_bytes()")
+	out.WriteString(goSliceFromStdVec("__json.into_bytes()"))
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	writeTypedErrorNone(out)
@@ -4795,7 +4859,7 @@ func writeUnsafeSliceFromStringData(out *strings.Builder, call *ast.CallExpr) bo
 	} else {
 		writeExpressionAsUsize(out, call.Args[1])
 	}
-	out.WriteString("; __string.as_bytes()[..__len].to_vec() }")
+	out.WriteString("; __string.as_bytes()[..__len]" + sliceToVecMethod() + " }")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -5043,7 +5107,23 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	return true
 }
 
+// writeLocalInterfaceHandleClone writes the handle of an interface value that
+// is stored somewhere new: an element, a map value, a field, a variable. When
+// the value is read from a variable, a field or an element, the new place
+// gets a handle of its own holding a copy of the value. Sharing the handle
+// made a later assignment to the variable change the stored copy too.
 func writeLocalInterfaceHandleClone(out *strings.Builder, expr ast.Expr) {
+	if interfaceValueIsStoredInPlace(expr) {
+		writeLocalInterfaceValueCopy(out, expr)
+		return
+	}
+	writeLocalInterfaceHandleShare(out, expr)
+}
+
+// writeLocalInterfaceHandleShare writes a second handle on the interface
+// value's cell. It is right where the value is read out of the handle at
+// once, as an assignment does.
+func writeLocalInterfaceHandleShare(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok {
 		name := RustIdentForUse(ident)
 		if currentCaptureRenames != nil {
@@ -5089,8 +5169,9 @@ func writeLocalInterfaceWrappedValue(out *strings.Builder, expr ast.Expr, expect
 	if exprType == nil {
 		return false
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(exprType); ok {
-		writeLocalInterfaceHandleClone(out, expr)
+	if writeInterfaceValueForInterfaceSlot(out, expr, ifaceName, expectedType, func() {
+		writeLocalInterfaceHandleShare(out, expr)
+	}) {
 		return true
 	}
 	if types.AssignableTo(exprType, expectedType) {
@@ -5275,6 +5356,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString(".clone()")
 						return
 					}
+					// A channel variable stays usable after it is appended:
+					// the slice gets another handle on the same channel.
+					if _, ok := types.Unalias(elemType).Underlying().(*types.Chan); ok {
+						if _, isCall := unwrapParens(expr).(*ast.CallExpr); !isCall {
+							writeChannelExpression(out, expr)
+							out.WriteString(".clone()")
+							return
+						}
+					}
 				}
 			}
 			if elemRustType, ok := trackedRangeElemRustType(call.Args[0]); ok && writeWrappedRangeValueForRustElemType(out, expr, elemRustType) {
@@ -5385,6 +5475,15 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeExpressionAsUsize(out, indexExpr.Index)
 			out.WriteString("; ")
 			store := writeAppendedValues()
+			if goSliceModeEnabled() {
+				// A new header; the element keeps its own.
+				out.WriteString("let mut __appended = ")
+				writeReadTarget()
+				out.WriteString(".clone(); __appended")
+				out.WriteString(store)
+				out.WriteString("; __appended }")
+				return true
+			}
 			writeMutableTarget()
 			out.WriteString(store)
 			out.WriteString("; ")
@@ -5425,6 +5524,19 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			WriteWrappedNone(out)
 			out.WriteString(") }; ")
 			store := writeAppendedValues()
+			if goSliceModeEnabled() {
+				// A new header in a new cell; the map's value keeps its own.
+				out.WriteString("let mut __appended = (*__slice")
+				WriteBorrowMethod(out, false)
+				out.WriteString(").clone().unwrap_or_default(); __appended")
+				out.WriteString(store)
+				out.WriteString("; ")
+				WriteWrapperPrefix(out)
+				out.WriteString("__appended")
+				WriteWrapperSuffix(out)
+				out.WriteString(" }")
+				return true
+			}
 			out.WriteString("(*__slice")
 			WriteBorrowMethod(out, true)
 			out.WriteString(").get_or_insert_with(Vec::new)")
@@ -5448,6 +5560,31 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		writeAppendTarget(call.Args[0])
 		out.WriteString(".clone(); ")
 		store := writeAppendedValues()
+		if goSliceModeEnabled() {
+			// append returns a new header and leaves its operand as it
+			// was; the two share the backing array while it has room.
+			out.WriteString("let mut __appended")
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if resultType := typeInfo.GetType(call); resultType != nil {
+					if _, ok := types.Unalias(resultType).(*types.Slice); ok {
+						if rustType := goTypesTypeToRust(resultType); strings.HasPrefix(rustType, "Vec<") {
+							out.WriteString(": ")
+							out.WriteString(rustType)
+						}
+					}
+				}
+			}
+			out.WriteString(" = (*__append_target")
+			WriteBorrowMethod(out, false)
+			out.WriteString(").clone().unwrap_or_default(); __appended")
+			out.WriteString(store)
+			out.WriteString("; ")
+			WriteWrapperPrefix(out)
+			out.WriteString("__appended")
+			WriteWrapperSuffix(out)
+			out.WriteString(" }")
+			return
+		}
 		out.WriteString("(*__append_target")
 		WriteBorrowMethod(out, true)
 		out.WriteString(").get_or_insert_with(Vec::new)")
@@ -5581,6 +5718,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writeNamedArrayLen(out, call.Args[0]) {
+			return
+		}
+
 		var namedString strings.Builder
 		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
 			out.WriteString("(")
@@ -5589,11 +5730,23 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
-		// len() returns the length of arrays, slices, maps, strings, or channels
+		// len() returns the length of arrays, slices, maps, strings, or channels.
+		// With goroutines, reading the length locks the value; the block
+		// ends the lock with the length, so another argument of the same
+		// call can lock it again.
+		if NeedsConcurrentWrapper() && !isExpressionResultBare(call.Args[0]) {
+			out.WriteString("({ let __len = ")
+			defer out.WriteString("; __len })")
+		}
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".len()")
+		} else if binary, ok := unwrapParens(call.Args[0]).(*ast.BinaryExpr); ok && binary.Op == token.ADD && typeInfo != nil && typeInfo.IsString(binary) {
+			// len(a + b): the concatenation is a String of its own.
+			out.WriteString("(")
+			TranspileExpression(out, binary)
+			out.WriteString(").len()")
 		} else if typeInfo != nil && (typeInfo.IsSlice(call.Args[0]) || typeInfo.IsMap(call.Args[0])) {
 			if sel, ok := call.Args[0].(*ast.SelectorExpr); ok {
 				out.WriteString("({ let __len_target = ")
@@ -5617,6 +5770,32 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+// writeNamedArrayLen writes len of a value of "type d [3]rune", which is
+// its type's length. Only a variable, field or element: anything else may
+// have effects to keep.
+func writeNamedArrayLen(out *strings.Builder, expr ast.Expr) bool {
+	switch unwrapParens(expr).(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.IndexExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	out.WriteString(strconv.FormatInt(array.Len(), 10))
+	out.WriteString("usize")
+	return true
 }
 
 func writePointerToArrayLen(out *strings.Builder, expr ast.Expr) bool {
@@ -5686,7 +5865,7 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		// Check if it's a channel type
 		if chanType, ok := call.Args[0].(*ast.ChanType); ok {
 			NeedGoChannel()
-			elemType := goTypeToRustBase(chanType.Value)
+			elemType := channelElemTypeExprToRust(chanType.Value)
 			if len(call.Args) > 1 {
 				// Buffered: make(chan T, n)
 				out.WriteString("GoChannel::<")
@@ -5748,7 +5927,9 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			}
 
 			WriteWrapperPrefix(out)
-			if len(call.Args) >= 2 {
+			if len(call.Args) >= 3 && goSliceModeEnabled() {
+				writeGoSliceMakeWithCapacity(out, call.Args, elementType, elementRustType)
+			} else if len(call.Args) >= 2 {
 				// Check if size is 0
 				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
 					// Empty vector with capacity
@@ -5849,7 +6030,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	case *types.Chan:
 		NeedGoChannel()
-		elemType := goTypesTypeToRust(ut.Elem())
+		elemType := goTypesChannelElemTypeToRust(ut.Elem())
 		out.WriteString("GoChannel::<")
 		out.WriteString(elemType)
 		if len(call.Args) > 1 {
@@ -5869,6 +6050,10 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType string, elementRustType string) {
 	if len(args) < 2 {
 		out.WriteString("Vec::new()")
+		return
+	}
+	if len(args) >= 3 && goSliceModeEnabled() {
+		writeGoSliceMakeWithCapacity(out, args, elementType, elementRustType)
 		return
 	}
 	if lit, ok := args[1].(*ast.BasicLit); ok && lit.Value == "0" {
@@ -7654,4 +7839,33 @@ func formatArgsEachInOwnFormat(format string, args []string) (string, []string, 
 		wrapped[i] = "format!(\"" + specs[i] + "\", " + arg + ")"
 	}
 	return "\"" + outer.String() + "\"", wrapped, true
+}
+
+// writeGoSliceMakeWithCapacity writes make([]T, len, cap) in GoSlice mode:
+// a backing array of cap zero values, each made on its own, viewed through
+// a header of length len. Reslicing up to the capacity then reads zeros.
+func writeGoSliceMakeWithCapacity(out *strings.Builder, args []ast.Expr, elementType string, elementRustType string) {
+	out.WriteString("{ let mut v: Vec<")
+	out.WriteString(elementRustType)
+	out.WriteString("> = (0..")
+	writeExpressionAsUsize(out, args[2])
+	out.WriteString(").map(|_| ")
+	out.WriteString(elementType)
+	out.WriteString(").collect(); v.truncate(")
+	writeExpressionAsUsize(out, args[1])
+	out.WriteString("); v }")
+}
+
+// isStructFieldSelection reports whether expr selects a struct field.
+func isStructFieldSelection(expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.FieldVal
 }

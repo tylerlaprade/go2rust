@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 include!("__go2rust_helpers.rs");
 mod scope;
 use scope::*;
@@ -6,13 +12,19 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Pos(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Pos {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Pos(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Pos {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

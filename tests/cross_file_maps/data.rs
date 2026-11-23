@@ -1,8 +1,16 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub(crate) struct GoGlobal<T> {
     value: std::cell::UnsafeCell<Option<T>>,
 }
@@ -50,7 +58,7 @@ fn __go_init_globals() {
         __go_slice.push(30i64);
         __go_slice.push(40i64);
         __go_slice.push(50i64);
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Numbers.borrow_mut() = Some(__go_slice);
     }
     {
@@ -72,7 +80,7 @@ fn __go_init_globals() {
         let mut __go_slice = Vec::<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>::with_capacity(2);
         __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30i64) as Box<dyn Any>))))]));
         __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25i64) as Box<dyn Any>))))]));
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Records.borrow_mut() = Some(__go_slice);
     }
 }
@@ -105,7 +113,7 @@ pub(crate) fn __go_init_order_1() {
         __go_slice.push(30i64);
         __go_slice.push(40i64);
         __go_slice.push(50i64);
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Numbers.borrow_mut() = Some(__go_slice);
     }
 }
@@ -135,7 +143,7 @@ pub(crate) fn __go_init_order_3() {
         let mut __go_slice = Vec::<BTreeMap<String, Rc<RefCell<Option<Box<dyn Any>>>>>>::with_capacity(2);
         __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Alice".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(30i64) as Box<dyn Any>))))]));
         __go_slice.push(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("name".to_string(), Rc::new(RefCell::new(Some(Box::new("Bob".to_string()) as Box<dyn Any>)))), ("age".to_string(), Rc::new(RefCell::new(Some(Box::new(25i64) as Box<dyn Any>))))]));
-        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *Records.borrow_mut() = Some(__go_slice);
     }
 }

@@ -1,0 +1,11 @@
+[package]
+name = "range_rune_arithmetic"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_rune_arithmetic"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

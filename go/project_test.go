@@ -63,7 +63,7 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	}
 
 	helpers := &HelperTracker{needsFormatSlice: true}
-	helperImports := prefixPackageHelperImports("", helpers, false)
+	helperImports := withoutGoSliceUses(prefixPackageHelperImports("", helpers, false))
 	if helperImports != "use crate::{format_slice, format_slice_values, format_slice_wrapped};\n" {
 		t.Fatalf("empty module helper imports should not add a trailing blank line: %q", helperImports)
 	}
@@ -2848,8 +2848,10 @@ func collect(ident dep.Ident) []dep.Node {
 	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("existing imported interface handles should not be cloned into a nested box, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "node: node.clone()") {
-		t.Fatalf("existing imported interface handles should be preserved at struct fields, got:\n%s", mainRS)
+	// The field gets a copy of the parameter's interface value in a handle of
+	// its own.
+	if !strings.Contains(mainRS, "node: { let __iface_value = node.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("existing imported interface values should be copied into struct fields, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, ".push((*ident.borrow().as_ref().unwrap()).clone())") {
 		t.Fatalf("append to imported interface slice should not push the concrete value directly, got:\n%s", mainRS)
@@ -3578,7 +3580,7 @@ func main() {
 	clockRS := mustReadFile(t, filepath.Join(tempDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(tempDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
+		if !strings.Contains(withoutGoSliceUses(code), "use crate::{GoTime, go_time_civil_from_days};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "use crate::*;") {
@@ -3672,7 +3674,7 @@ func main() {}
 	if !strings.Contains(printerRS, "format_any_variadic(&values)") {
 		t.Fatalf("fmt.Println(values...) should call the variadic any formatter, got:\n%s", printerRS)
 	}
-	if !strings.Contains(printerRS, "use crate::{format_any, format_any_slice, format_any_variadic};") {
+	if !strings.Contains(withoutGoSliceUses(printerRS), "use crate::{format_any, format_any_slice, format_any_variadic};") {
 		t.Fatalf("multi-file module should import the crate-root variadic any formatter, got:\n%s", printerRS)
 	}
 
@@ -3867,7 +3869,7 @@ func main() {
 	if strings.Contains(normalizeRS, "use crate::*;") {
 		t.Fatalf("module should not glob-import crate root and shadow termlist type with termlist module, got:\n%s", normalizeRS)
 	}
-	if !strings.Contains(normalizeRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(normalizeRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import only the needed crate-root helper, got:\n%s", normalizeRS)
 	}
 	if !strings.Contains(normalizeRS, "pub terms: Rc<RefCell<Option<termlist>>>") {
@@ -3950,7 +3952,7 @@ func main() {
 	if strings.Contains(typexprRS, "use crate::{go_type_name};") {
 		t.Fatalf("module should not import a helper name that collides with its own function, got:\n%s", typexprRS)
 	}
-	if !strings.Contains(typexprRS, "use crate::{__go_type_name};") {
+	if !strings.Contains(withoutGoSliceUses(typexprRS), "use crate::{__go_type_name};") {
 		t.Fatalf("module should import the internal type-name helper, got:\n%s", typexprRS)
 	}
 	if !strings.Contains(typexprRS, "pub fn go_type_name(") {
@@ -4322,8 +4324,10 @@ func lang(v version) bool {
 	if !strings.Contains(mainRS, "impl PartialEq for version") {
 		t.Fatalf("concurrent comparable struct should get custom PartialEq, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "__left.as_ref() == __right.as_ref()") {
-		t.Fatalf("custom PartialEq should compare locked field values by reference, got:\n%s", mainRS)
+	// Each side is read under its own lock, so two values that share a
+	// field's cell do not lock one mutex twice.
+	if !strings.Contains(mainRS, "let __left = { self.minor.lock().unwrap().as_ref().cloned() }; let __right = { other.minor.lock().unwrap().as_ref().cloned() }; __left == __right") {
+		t.Fatalf("custom PartialEq should compare field values read one lock at a time, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "let __tmp_x = (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }.lock().unwrap().as_ref().unwrap());") {
 		t.Fatalf("string selector comparison should not move String out of a shared reference, got:\n%s", mainRS)

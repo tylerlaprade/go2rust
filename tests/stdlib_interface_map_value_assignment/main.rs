@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -49,5 +55,5 @@ fn main() {
 
     let mut values = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + Sync>>>>>::new())));
     remember(values.clone());
-    println!("{} {}", format!("{}", (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*literal().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", ({ let __len = (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = (*literal().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

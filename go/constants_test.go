@@ -459,10 +459,12 @@ const (
 )
 `)
 
-	if !strings.Contains(rust, "pub const LOG2_E: f64 = 1.0 / LN2;") {
+	// A float constant is written as the value the type checker computed
+	// exactly, as Go evaluates constant expressions.
+	if !strings.Contains(rust, "pub const LOG2_E: f64 = 1.4426950408889634;") {
 		t.Fatalf("untyped float const expression should infer f64:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub const UNDERFLOW: f64 = -7.45133219101941108420e+02;") {
+	if !strings.Contains(rust, "pub const UNDERFLOW: f64 = -745.1332191019411;") {
 		t.Fatalf("unary untyped float const should infer f64:\n%s", rust)
 	}
 	if strings.Contains(rust, "LOG2_E: i32") || strings.Contains(rust, "UNDERFLOW: i32") {
@@ -1120,7 +1122,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 	SetVarTable(nil)
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	return rust
+	return stripGoSliceRuntime(rust)
 }
 
 func TestNoTypeInfoNamedConstComparisonUsesConstPath(t *testing.T) {

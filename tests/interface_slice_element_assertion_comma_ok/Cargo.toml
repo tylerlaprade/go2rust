@@ -1,0 +1,11 @@
+[package]
+name = "interface_slice_element_assertion_comma_ok"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_slice_element_assertion_comma_ok"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

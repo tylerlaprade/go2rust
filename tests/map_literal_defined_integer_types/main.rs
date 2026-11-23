@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::cell::{RefCell};
 use std::cmp::Ord;
@@ -38,13 +44,19 @@ pub(crate) const NAMED: i64 = 3;
 pub(crate) const OFFSET: i64 = 2;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Index(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Index(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Index {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

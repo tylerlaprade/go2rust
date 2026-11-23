@@ -1,3 +1,9 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::error::Error as StdError;
@@ -80,6 +86,8 @@ mod __go_runtime_format {
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
+    #[allow(unused_imports)]
+    use super::{GoSlice, Vec};
 
 // A verb with its flags, as fmt reads it from a format.
 #[derive(Default, Clone, Copy)]
@@ -882,8 +890,8 @@ fn main() {
 
     let mut w = Arc::new(Mutex::new(Some(writer { buffer: Arc::new(Mutex::new(Some(bytes::buffer::Buffer { ..Default::default() }))), ..Default::default() })));
     (*w.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("go".to_string()))));
-    (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("rust".to_string()).as_bytes().to_vec()))));
-    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as i32) as u8))));
+    (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("rust".to_string()).as_bytes().to_go_slice()))));
+    (*w.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('!' as u8) as u8))));
     (*w.lock().unwrap().as_mut().unwrap()).reset();
     let mut length = (*w.lock().unwrap().as_ref().unwrap()).len();
     let mut text = (*w.lock().unwrap().as_ref().unwrap()).string();

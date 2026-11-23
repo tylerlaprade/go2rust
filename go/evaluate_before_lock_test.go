@@ -32,9 +32,9 @@ func main() {
 
 	for what, want := range map[string]string{
 		"s[len(s)-1] = s[0]":          "{ let __idx = (((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = (*s.borrow().as_ref().unwrap())[(0) as usize].clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
-		"append(n, n[0])":             "{ let __append_target = n.clone(); let __append_value = (*n.borrow().as_ref().unwrap())[(0) as usize].clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value); __append_target.clone() }",
-		"append(n, n[0], len(n))":     "let __append_values = vec![(*n.borrow().as_ref().unwrap())[(0) as usize].clone(), (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64]; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values);",
-		"append(n, n...)":             ".iter().cloned().collect(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).extend(__append_values);",
+		"append(n, n[0])":             "{ let __append_target = n.clone(); let __append_value = (*n.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }",
+		"append(n, n[0], len(n))":     "let __append_values = vec![(*n.borrow().as_ref().unwrap())[(0) as usize].clone(), (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values);",
+		"append(n, n...)":             ".iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values);",
 		`m["a"] += m["a"]`:            "{ let __map_holder = m.clone(); let __key = \"a\".to_string(); let __rhs = { let __map_holder = m.clone();",
 		`m["a"] += m["a"], the write`: "let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); }",
 		`m["a"]++`:                    "{ let __map_holder = m.clone(); let __key = \"a\".to_string(); let mut __map_guard = __map_holder.borrow_mut();",
@@ -136,7 +136,7 @@ func main() {
 		"the held map is locked last":              "let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap();",
 		"a package-level map is written in place":  "let mut __map_guard = totals.borrow_mut();",
 		"an element is indexed before the value":   "{ let __append_idx = (0) as usize; let __append_value = ",
-		"the index of the target is evaluated too": "{ let _ = ({ let __f_ptr",
+		"the index of the target is evaluated too": "{ let __idx = ({ let __f_ptr",
 		"a sequence that is a call is held first":  "{ let __seq = { let __f_ptr",
 		"the held sequence is locked last":         "; (*__seq.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",
 		"a plain sequence is not held":             "; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; }",

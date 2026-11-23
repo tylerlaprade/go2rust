@@ -1,9 +1,27 @@
-use crate::{GoTypeParamFieldClone, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
+use crate::{
+    GoSlice,
+    GoSliceAppendBoxed,
+    GoSliceFromSlice,
+    GoSliceHeader,
+    GoTypeParamFieldClone,
+    GoValueClone,
+    Vec,
+    format_slice,
+    format_slice_values,
+    format_slice_wrapped,
+    go_any_clone,
+};
 
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 /// These value types deliberately live in a sibling file that is emitted
 /// before main.rs. Generic-struct copy support must be discovered package-wide
 /// so both receive the required copy-trait implementations.
@@ -39,13 +57,19 @@ impl std::fmt::Display for P {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Number(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Number {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Number(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Number {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

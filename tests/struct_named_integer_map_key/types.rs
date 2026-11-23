@@ -1,15 +1,27 @@
-use crate::{GoChannel};
+use crate::{GoChannel, GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Default)]
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+#[derive(Debug)]
 pub struct Kind(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Kind {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Kind(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Kind {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -392,13 +404,19 @@ impl Ord for Kind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Index(pub Arc<Mutex<Option<i64>>>);
 
 impl Clone for Index {
     fn clone(&self) -> Self {
         let __value = (*self.0.lock().unwrap()).clone();
         Index(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Index {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
     }
 }
 
@@ -820,8 +838,8 @@ impl std::fmt::Display for Entry {
 impl PartialEq for Entry {
     fn eq(&self, other: &Self) -> bool {
         (
-            { let __left = self.kind.lock().unwrap(); let __right = other.kind.lock().unwrap(); __left.as_ref() == __right.as_ref() }
-                && { let __left = self.index.lock().unwrap(); let __right = other.index.lock().unwrap(); __left.as_ref() == __right.as_ref() }
+            { let __left = { self.kind.lock().unwrap().as_ref().cloned() }; let __right = { other.kind.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.index.lock().unwrap().as_ref().cloned() }; let __right = { other.index.lock().unwrap().as_ref().cloned() }; __left == __right }
         )
     }
 }

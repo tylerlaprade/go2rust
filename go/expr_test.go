@@ -128,6 +128,80 @@ func sum(s float64, h float64) float64 {
 	}
 }
 
+func TestNilArgumentToEmptyInterfaceUsesNilInterfaceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) bool { return v == nil }
+
+func main() { describe(nil) }
+`)
+
+	want := "describe(Rc::new(RefCell::new(None::<Box<dyn Any>>)))"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("nil argument should be a nil interface handle; want %q in:\n%s", want, rust)
+	}
+	if strings.Contains(rust, "Box::new(None)") {
+		t.Fatalf("nil argument must not be boxed as an untyped Option:\n%s", rust)
+	}
+}
+
+func TestAssertedCollectionsKeepHandlesForDirectConsumers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(x interface{}, y interface{}) (int, int) {
+	return len(x.([]int)), y.(map[string]int)["k"]
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()") {
+		t.Fatalf("len of asserted slice should consume the boxed slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()") {
+		t.Fatalf("indexing an asserted map should consume the boxed map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __value =") {
+		t.Fatalf("direct consumers should not turn asserted collections into bare temporary values:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementCommaOkAssertionDowncastsInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func read(list []interface{}) (int, bool) {
+	n, ok := list[0].(int)
+	return n, ok
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("comma-ok assertion on []any element must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "any_val.downcast_ref::<i64>()") {
+		t.Fatalf("comma-ok assertion on []any element should downcast the boxed value in place:\n%s", rust)
+	}
+}
+
+func TestAnySliceElementArgumentClonesDynamicValueInPlace(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func describe(v interface{}) {}
+
+func call(list []interface{}) {
+	describe(list[0])
+}
+`)
+
+	if strings.Contains(rust, "].clone().clone()") {
+		t.Fatalf("[]any element passed as any must not clone Box<dyn Any>:\n%s", rust)
+	}
+	if strings.Contains(rust, "expect(\"nil []any in interface argument\")") {
+		t.Fatalf("nil []any indexing should reach the bounds check instead of a custom nil expect:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref())") {
+		t.Fatalf("[]any element passed as any should clone its dynamic value under the slice guard:\n%s", rust)
+	}
+}
+
 func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -1258,13 +1332,13 @@ func record(h *Holder) Pair {
 		strings.Contains(rust, "first: (*h.lock().unwrap().as_ref().unwrap()).first.clone()") {
 		t.Fatalf("local interface selector field should not hold the owner lock in the struct literal:\n%s", rust)
 	}
-	if !strings.Contains(rust, "first: { let __field = (*h.borrow().as_ref().unwrap()).first.clone(); __field }") &&
-		!strings.Contains(rust, "first: { let __field = (*h.lock().unwrap().as_ref().unwrap()).first.clone(); __field }") {
-		t.Fatalf("local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	// Each field gets a copy of the interface value, read inside a block
+	// that drops the owner's guard.
+	if !strings.Contains(rust, "first: { let __iface_value = (*h.borrow().as_ref().unwrap()).first.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
-	if !strings.Contains(rust, "second: { let __field = (*h.borrow().as_ref().unwrap()).second.clone(); __field }") &&
-		!strings.Contains(rust, "second: { let __field = (*h.lock().unwrap().as_ref().unwrap()).second.clone(); __field }") {
-		t.Fatalf("second local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	if !strings.Contains(rust, "second: { let __iface_value = (*h.borrow().as_ref().unwrap()).second.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }") {
+		t.Fatalf("second local interface selector field should be copied inside a guard-dropping block:\n%s", rust)
 	}
 }
 
@@ -2179,8 +2253,10 @@ func withNil(nodes []Node) []Node {
 		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
 		t.Fatalf("append of local interface handle should not clone the boxed trait object out of the handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__values.push(n.clone())") {
-		t.Fatalf("named slice append should keep the existing local interface handle:\n%s", rust)
+	// The element gets a copy of the parameter's interface value in a handle
+	// of its own, so assigning to n afterwards leaves the element alone.
+	if !strings.Contains(rust, "__values.push({ let __iface_value = n.borrow().clone(); Rc::new(RefCell::new(__iface_value)) })") {
+		t.Fatalf("named slice append should store a copy of the local interface value:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __append_value = None;") {
 		t.Fatalf("append nil to local interface slice should push a wrapped None handle:\n%s", rust)
@@ -2231,8 +2307,7 @@ func addEmbedded(ityp *Interface, pos Pos) {
 		t.Fatalf("append through pointer-to-slice field should not unwrap the target to a bare Vec:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".embed_pos.clone(); let __append_value = ") ||
-		(!strings.Contains(rust, "; (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push(__append_value)") &&
-			!strings.Contains(rust, "; (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(__append_value)")) {
+		!strings.Contains(rust, "__appended.push(__append_value)") {
 		t.Fatalf("append through pointer-to-slice field should mutate the slice handle:\n%s", rust)
 	}
 }
@@ -3643,7 +3718,9 @@ func use(hash uint32) uint32 {
 	if strings.Contains(rust, "Rc<RefCell<Option<u8>>>") {
 		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![('m' as i32) as u8, (*") {
+	// The type checker gives the untyped 'm' the byte type of the variadic
+	// element, so the literal is a u8 already.
+	if !strings.Contains(rust, "vec![('m' as u8) as u8, (*") {
 		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
 	}
 }
@@ -4687,6 +4764,35 @@ func text(v time.Duration) string {
 	}
 	if strings.Contains(rust, "time_Duration((*") && strings.Contains(rust, " as i64") {
 		t.Fatalf("same-typed external named integer value should be cloned, not reconstructed through a cast:\n%s", rust)
+	}
+}
+
+func TestExternalNamedIntegerAliasConversionMethodReceiverUsesNewtype(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "os"
+
+func check(raw uint32) bool {
+	converted := os.FileMode(0644)
+	return !os.FileMode(0644).IsDir() &&
+		os.FileMode(os.ModeDir|0755).IsDir() &&
+		os.FileMode(raw).IsDir() &&
+		!converted.IsDir()
+}
+`)
+
+	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
+		t.Fatalf("external named integer alias conversions should construct the newtype before method dispatch:\n%s", rust)
+	}
+	for _, want := range []string{
+		"Some(fs_FileMode(0644 as u32))",
+		"fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode((*raw.borrow().as_ref().unwrap()) as u32)))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in external named integer method receiver lowering:\n%s", want, rust)
+		}
 	}
 }
 
@@ -5980,8 +6086,10 @@ func makeTypes(n int) []Type {
 }
 `)
 
-	if !(strings.Contains(rust, "Vec::<Rc<RefCell<Option<Box<dyn Type") && strings.Contains(rust, ">::with_capacity")) &&
-		!(strings.Contains(rust, "Vec::<Arc<Mutex<Option<Box<dyn Type + Send + Sync") && strings.Contains(rust, ">::with_capacity")) {
+	// The backing array holds the capacity's zero values; the header views
+	// none of them.
+	if !(strings.Contains(rust, "Vec<Rc<RefCell<Option<Box<dyn Type") && strings.Contains(rust, ".collect(); v.truncate(")) &&
+		!(strings.Contains(rust, "Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync") && strings.Contains(rust, ".collect(); v.truncate(")) {
 		t.Fatalf("make([]Type, 0, n) should emit the wrapped interface slice element type:\n%s", rust)
 	}
 }
@@ -6004,7 +6112,7 @@ func take(values []int, h *Header) []int {
 	if !strings.Contains(rust, "let __low = 0;") ||
 		!strings.Contains(rust, "let __max = ((*") ||
 		!strings.Contains(rust, " as usize;") ||
-		!strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+		!strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
 	}
 }
@@ -6022,10 +6130,11 @@ func grow() []byte {
 	if !strings.Contains(rust, "let __source_cap = ") {
 		t.Fatalf("two-index slice should capture source capacity before cloning:\n%s", rust)
 	}
-	if !strings.Contains(rust, "if __seq.len() < __high { __seq.resize_with(__high, Default::default); }") {
-		t.Fatalf("two-index slice should materialize zero values when reslicing within capacity:\n%s", rust)
+	// The new header views the source's backing array up to its capacity.
+	if !strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+		t.Fatalf("two-index slice should reslice within the source's capacity:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+	if !strings.Contains(rust, "let __max = __source_cap;") {
 		t.Fatalf("two-index slice should preserve Go cap(source)-low capacity:\n%s", rust)
 	}
 }
@@ -6269,7 +6378,7 @@ func bytes(s string) []byte {
 	if !strings.Contains(rust, `let __len = __string.len()`) {
 		t.Fatalf("unsafe.Slice string-data path should reuse the borrowed string length:\n%s", rust)
 	}
-	if !strings.Contains(rust, `__string.as_bytes()[..__len].to_vec()`) {
+	if !strings.Contains(rust, `__string.as_bytes()[..__len].to_go_slice()`) {
 		t.Fatalf("unsafe.Slice string-data path should build bytes from the borrowed string:\n%s", rust)
 	}
 }
@@ -9870,7 +9979,7 @@ func makeField(names []*Ident) func() *Field {
 		t.Fatalf("captured struct field value should not move the outer binding into the closure:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let names_closure_clone = names.clone();") ||
-		!strings.Contains(rust, "names: names_closure_clone.clone()") {
+		!strings.Contains(rust, "names: { let __slice_header = GoSliceHeader::go_slice_header(&names_closure_clone);") {
 		t.Fatalf("captured struct field value should use the closure clone:\n%s", rust)
 	}
 }
@@ -10105,5 +10214,23 @@ func main() {
 	}
 	if strings.Contains(rust, "Box::new(dir) as") {
 		t.Fatalf("the range variable must not be boxed as the reference:\n%s", rust)
+	}
+}
+
+func TestAnyAliasSliceLiteralUsesRustAnyTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	list := []any{1, "s"}
+	_, _ = list[0].(int), list[1].(string)
+}
+`)
+
+	if strings.Contains(rust, "Box<dyn any>") {
+		t.Fatalf("Go's any alias must not be emitted as a lowercase Rust trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(1i64) as Box<dyn Any>") ||
+		!strings.Contains(rust, "Box::new(\"s\".to_string()) as Box<dyn Any>") {
+		t.Fatalf("[]any literal elements should use Rust's Any trait:\n%s", rust)
 	}
 }

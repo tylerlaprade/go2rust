@@ -1,14 +1,28 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[derive(Debug, Default)]
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+#[derive(Debug)]
 pub struct Marker(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for Marker {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Marker(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Marker {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

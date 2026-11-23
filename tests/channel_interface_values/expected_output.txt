@@ -1,0 +1,19 @@
+rect:6
+square:9
+<nil shape>
+true
+rect:1
+rect:16 rect:25
+square:100
+rect:6 true
+<nil shape> false
+true
+skip nil
+total 6
+selected rect:2
+selected square:4
+nothing ready
+sent
+rect:49
+rect:3
+square:16

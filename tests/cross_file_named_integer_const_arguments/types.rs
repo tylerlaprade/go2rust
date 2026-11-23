@@ -1,7 +1,15 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub const RELOC_STRING: i32 = 0;
 pub const RELOC_META: i32 = 1;
 
@@ -10,13 +18,19 @@ pub const SYNC_E_O_F: i64 = 0 + 1;
 pub const SYNC_BOOL: i64 = 1 + 1;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RelocKind(pub Rc<RefCell<Option<i32>>>);
 
 impl Clone for RelocKind {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         RelocKind(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for RelocKind {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
@@ -399,13 +413,19 @@ impl Ord for RelocKind {
 }
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SyncMarker(pub Rc<RefCell<Option<i64>>>);
 
 impl Clone for SyncMarker {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         SyncMarker(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for SyncMarker {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 
