@@ -3183,6 +3183,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsReadFileFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_dir" {
 			writeOsReadDirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "remove_all" {
+			writeOsRemoveAllFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
@@ -3203,10 +3205,11 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsOpen := pkg.Functions["open"]
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
+	_, needsRemoveAll := pkg.Functions["remove_all"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsRemoveAll || needsWriteFile || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3395,6 +3398,43 @@ func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "Vec::new()"))
 	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.RemoveAll maps to host filesystem removal, syscall-tied.
+func writeOsRemoveAllFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn remove_all<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let metadata = match std::fs::symlink_metadata(&path) {\n")
+	out.WriteString("            Ok(metadata) => metadata,\n")
+	out.WriteString("            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return no_error(),\n")
+	out.WriteString("            Err(err) => return io_error(err),\n")
+	out.WriteString("        };\n")
+	out.WriteString("        let result = if metadata.file_type().is_symlink() {\n")
+	out.WriteString("            #[cfg(windows)]\n")
+	out.WriteString("            {\n")
+	out.WriteString("                if std::fs::metadata(&path).map(|target| target.is_dir()).unwrap_or(false) {\n")
+	out.WriteString("                    std::fs::remove_dir(&path)\n")
+	out.WriteString("                } else {\n")
+	out.WriteString("                    std::fs::remove_file(&path)\n")
+	out.WriteString("                }\n")
+	out.WriteString("            }\n")
+	out.WriteString("            #[cfg(not(windows))]\n")
+	out.WriteString("            {\n")
+	out.WriteString("                std::fs::remove_file(&path)\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else if metadata.is_dir() {\n")
+	out.WriteString("            std::fs::remove_dir_all(&path)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            std::fs::remove_file(&path)\n")
+	out.WriteString("        };\n")
+	out.WriteString("        match result {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) if err.kind() == std::io::ErrorKind::NotFound => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
