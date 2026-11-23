@@ -1207,6 +1207,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_isregular" {
+    run_test "tests/filemode_isregular"
+}
+
+@test "filemode_isregular_goroutines" {
+    run_test "tests/filemode_isregular_goroutines"
+}
+
 @test "filemode_type" {
     run_test "tests/filemode_type"
 }
@@ -3809,14 +3817,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: filemode_isregular" {
-    run_xfail_test "tests/XFAIL/filemode_isregular"
-}
-
-@test "XFAIL: filemode_isregular_goroutines" {
-    run_xfail_test "tests/XFAIL/filemode_isregular_goroutines"
 }
 
 @test "XFAIL: http_client" {
