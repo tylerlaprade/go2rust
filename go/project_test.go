@@ -5383,7 +5383,9 @@ func main() {}
 
 const alphaMarker = "pub(crate) fn __go_init_all()"
 
-var alphaValue = 2
+var alphaValue = alphaSeed()
+
+func alphaSeed() int { return 2 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "beta.go"), `package main
 
@@ -5423,6 +5425,9 @@ var gammaValue = 4
 	}
 
 	alphaRS := mustReadFile(t, filepath.Join(tempDir, "alpha.rs"))
+	if calls := strings.Count(alphaRS, "= Some(alpha_seed());"); calls != 1 {
+		t.Fatalf("expected one call to the global initializer alphaSeed, got %d:\n%s", calls, alphaRS)
+	}
 	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all_alpha()") {
 		t.Fatalf("alpha module should rename its init helper, got:\n%s", alphaRS)
 	}

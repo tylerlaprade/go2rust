@@ -859,34 +859,17 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 }
 
 func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
-	out.WriteString("fn __go_init_globals() {\n")
-	for _, global := range globals {
-		if global.typ != nil {
-			if _, isFunc := global.typ.Underlying().(*types.Signature); isFunc {
-				continue
-			}
-		}
-		out.WriteString("    *")
-		out.WriteString(rustPackageGlobalName(global.name))
-		WriteBorrowMethod(out, true)
-		out.WriteString(" = ")
-		if isGoErrorType(global.typ) || isInterfaceType(global.typ) {
-			out.WriteString("None;\n")
-			continue
-		}
-		out.WriteString("Some(")
-		if global.goPtrStorage {
-			out.WriteString("GoPtr::nil()")
-		} else if global.typ != nil {
-			out.WriteString(zeroValueForTypesType(global.typ))
-		} else {
-			out.WriteString("Default::default()")
-		}
-		out.WriteString(");\n")
-	}
-
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
+	hasInitOrder := typeInfo != nil && typeInfo.info != nil
+	useHelpers := hasInitOrder && packageWideInitHelpersEnabled()
+
+	out.WriteString("fn __go_init_globals() {\n")
+	if useHelpers {
+		out.WriteString("    self::__go_zero_globals();\n")
+	} else {
+		writePackageGlobalZeroAssignments(out, globals)
+	}
+	if !hasInitOrder {
 		out.WriteString("    /* ERROR: Type information required for package variable initialization order */\n")
 		out.WriteString("    unimplemented!();\n")
 		out.WriteString("}\n")
@@ -897,27 +880,29 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 	for _, global := range globals {
 		globalByName[global.name] = global
 	}
-	for _, init := range typeInfo.info.InitOrder {
-		if len(init.Lhs) == 0 {
+	for i, init := range typeInfo.info.InitOrder {
+		if !initializerHasPackageGlobal(init, globalByName) {
 			continue
 		}
-		if len(init.Lhs) != 1 {
-			if packageGlobalMultiValueInitHasGlobal(init, globalByName) {
-				writePackageGlobalMultiValueInit(out, init, globalByName)
-			}
-			continue
+		if useHelpers {
+			fmt.Fprintf(out, "    self::__go_init_order_%d();\n", i)
+		} else {
+			writePackageGlobalInitializer(out, init, globalByName)
 		}
-		global, ok := globalByName[init.Lhs[0].Name()]
-		if !ok {
-			continue
-		}
-		writePackageGlobalSingleInit(out, global, init.Rhs)
 	}
 	out.WriteString("}\n")
 
-	if packageWideInitHelpersEnabled() {
+	if useHelpers {
 		transpilePackageGlobalZeroHelper(out, globals)
-		transpilePackageGlobalOrderHelpers(out, globals, typeInfo.info.InitOrder)
+		transpilePackageGlobalOrderHelpers(out, globalByName, typeInfo.info.InitOrder)
+	}
+}
+
+func writePackageGlobalInitializer(out *strings.Builder, init *types.Initializer, globalByName map[string]packageGlobal) {
+	if len(init.Lhs) == 1 {
+		writePackageGlobalSingleInit(out, globalByName[init.Lhs[0].Name()], init.Rhs)
+	} else {
+		writePackageGlobalMultiValueInit(out, init, globalByName)
 	}
 }
 
@@ -949,6 +934,11 @@ func packageWideInitHelpersEnabled() bool {
 
 func transpilePackageGlobalZeroHelper(out *strings.Builder, globals []packageGlobal) {
 	out.WriteString("\n\npub(crate) fn __go_zero_globals() {\n")
+	writePackageGlobalZeroAssignments(out, globals)
+	out.WriteString("}\n")
+}
+
+func writePackageGlobalZeroAssignments(out *strings.Builder, globals []packageGlobal) {
 	for _, global := range globals {
 		if global.typ != nil {
 			if _, isFunc := global.typ.Underlying().(*types.Signature); isFunc {
@@ -973,28 +963,17 @@ func transpilePackageGlobalZeroHelper(out *strings.Builder, globals []packageGlo
 		}
 		out.WriteString(");\n")
 	}
-	out.WriteString("}\n")
 }
 
-func transpilePackageGlobalOrderHelpers(out *strings.Builder, globals []packageGlobal, initOrder []*types.Initializer) {
-	globalByName := make(map[string]packageGlobal, len(globals))
-	for _, global := range globals {
-		globalByName[global.name] = global
-	}
+func transpilePackageGlobalOrderHelpers(out *strings.Builder, globalByName map[string]packageGlobal, initOrder []*types.Initializer) {
 	for i, init := range initOrder {
-		if !packageGlobalMultiValueInitHasGlobal(init, globalByName) {
+		if !initializerHasPackageGlobal(init, globalByName) {
 			continue
 		}
 		out.WriteString("\n\npub(crate) fn __go_init_order_")
 		out.WriteString(fmt.Sprintf("%d", i))
 		out.WriteString("() {\n")
-		if len(init.Lhs) == 1 {
-			if global, ok := globalByName[init.Lhs[0].Name()]; ok {
-				writePackageGlobalSingleInit(out, global, init.Rhs)
-			}
-		} else {
-			writePackageGlobalMultiValueInit(out, init, globalByName)
-		}
+		writePackageGlobalInitializer(out, init, globalByName)
 		out.WriteString("}\n")
 	}
 }
@@ -1043,7 +1022,7 @@ func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunction
 	out.WriteString("}\n")
 }
 
-func packageGlobalMultiValueInitHasGlobal(init *types.Initializer, globalByName map[string]packageGlobal) bool {
+func initializerHasPackageGlobal(init *types.Initializer, globalByName map[string]packageGlobal) bool {
 	for _, lhs := range init.Lhs {
 		if _, ok := globalByName[lhs.Name()]; ok {
 			return true
