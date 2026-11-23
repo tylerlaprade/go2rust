@@ -3399,6 +3399,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_strconv_unquote"
 }
 
+@test "source_stdlib_strings_index_byte" {
+    run_test "tests/source_stdlib_strings_index_byte"
+}
+
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
 }
