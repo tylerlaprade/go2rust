@@ -3018,7 +3018,7 @@ func writeFsFileModeIsDirMethod(out *strings.Builder) {
 `)
 }
 
-// PERMANENT: not scaffold — fs.FileMode.Perm is the portable low-nine-bit mask.
+// TEMPORARY: fs-filemode-perm — remove when ordinary io/fs.FileMode callers use the source method.
 func writeFsFileModePermMethod(out *strings.Builder, method externalTypeStubMethod) {
 	out.WriteString("    pub fn perm(&self) -> ")
 	writeExternalStubReturnType(out, method.ReturnTypes)
