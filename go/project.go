@@ -1276,6 +1276,9 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 
 	var mainRust strings.Builder
 	if goSliceModeEnabled() {
+		// The macro goes above the mod declarations so every module sees
+		// it; the copy the file itself starts with would be a second one.
+		mainContent = strings.Replace(mainContent, goSliceVecMacro, "", 1)
 		mainRust.WriteString(goSliceVecMacro)
 	}
 	if pg.packageHelpersNeeded(packageState) {
@@ -1662,7 +1665,7 @@ overflow-checks = false
 			cargoContent += "num = \"0.4\"\n"
 		}
 		if needsSerdeJSON {
-			cargoContent += "serde_json = \"1\"\n"
+			cargoContent += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 		}
 		if needsGosyn {
 			cargoContent += "gosyn = \"0.2.9\"\n"

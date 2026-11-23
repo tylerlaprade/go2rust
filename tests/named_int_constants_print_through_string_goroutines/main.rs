@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -2296,7 +2290,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((TUESDAY as i64 + 0 as i64) as i64))))), format!("{}", Weekday(Arc::new(Mutex::new(Some(0 as i64))))), format!("{}", HIGH));
     print!("{}", go_sprintf(&"%v|%d|%s|%v\n".to_string(), &[{ let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Level(Arc::new(Mutex::new(Some(HIGH as i64))))) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>)));
-    println!("{} {} {}", format!("{}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))).string().lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))).string().lock().unwrap().as_ref().unwrap())));
     let mut d = Arc::new(Mutex::new(Some(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))))));
     println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))]))))));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64))))))))).lock().unwrap().as_ref().unwrap())));

@@ -1,0 +1,7 @@
+true true key not found key not found
+true true pointer 7 pointer 7
+assertion replacement pointer 8
+switch replacement pointer 10
+true true pointer key not found
+true true false
+false false false true

@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1667,7 +1661,7 @@ fn main() {
     println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len })));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{} {}{}{} {} {} {}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3), format!("{}", 4.5), format!("{}", Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }), "<nil>".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
-    print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} {} {} {} {}\n", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", true), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("")))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("\n")))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut parts = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("b".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new(3i64) as Box<dyn Any + Send + Sync>])));
     print!("{}", go_sprintf(&"%q %q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some({ let __sprint_values = parts.clone(); let __sprint_guard = __sprint_values.lock().unwrap(); let mut __sprint_text = String::new(); let mut __sprint_after_string = true; for (__sprint_index, __sprint_value) in __sprint_guard.iter().flatten().enumerate() { let __sprint_is_string = __sprint_value.is::<String>(); if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } __sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } __sprint_text }))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}\n", format_any_variadic(&parts))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));

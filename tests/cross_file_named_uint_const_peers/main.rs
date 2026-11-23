@@ -11,12 +11,6 @@ use types::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub fn decode(ver: Rc<RefCell<Option<u32>>>, flags: Rc<RefCell<Option<u32>>>) -> bool {
     let mut h: Rc<RefCell<Option<Header>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let new_val = Version(Rc::new(RefCell::new(Some((*ver.borrow().as_ref().unwrap()) as u32)))); *(*h.borrow().as_ref().unwrap()).version.borrow_mut() = Some(new_val); };

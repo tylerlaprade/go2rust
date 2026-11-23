@@ -10,12 +10,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -709,7 +703,7 @@ fn main() {
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kept.clone(); let __append_value = { let __any_holder = p.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kept.borrow_mut() = __slice_header; };
     { let new_val = Box::new(4i64) as Box<dyn Any>; *y.borrow_mut() = Some(new_val); };
     println!("{}", format_any_variadic(&kept));
-    println!("{} {}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", format_any(y.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>))))]))));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kept.clone(); let __append_value = { let __any_holder = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) }; let mut __appended: Vec<Box<dyn Any>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kept.borrow_mut() = __slice_header; };
     println!("{}", format!("{}", (*kept.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));

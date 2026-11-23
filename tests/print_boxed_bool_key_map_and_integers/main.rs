@@ -11,12 +11,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1297,14 +1291,14 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 use __go_runtime_format::go_sprintf;
 
 pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    println!("{}", format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 }
 
 fn main() {
     let mut format = Rc::new(RefCell::new(Some("%v\n".to_string())));
     print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<i64>>>>::from([(true, Rc::new(RefCell::new(Some(1i64)))), (false, Rc::new(RefCell::new(Some(0i64))))])))).clone()) as Box<dyn Any>], false));
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<String>>>>::from([(true, Rc::new(RefCell::new(Some("yes".to_string()))))])))).clone()) as Box<dyn Any>)));
-    println!("{}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     show(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<bool, Rc<RefCell<Option<bool>>>>::from([(false, Rc::new(RefCell::new(Some(true))))])))).clone()) as Box<dyn Any>))));
 
     let mut u8: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(7u8) as Box<dyn Any>)));
@@ -1314,9 +1308,9 @@ fn main() {
     let mut u32: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(2147483648u32) as Box<dyn Any>)));
     let mut u64: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(1099511627776u64) as Box<dyn Any>)));
     let mut u: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(9u64) as Box<dyn Any>)));
-    println!("{} {} {} {} {} {} {}", format!("{}", format_any(u8.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(i8.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(i16.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u16.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u32.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u64.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(u.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {} {} {} {} {} {}", format!("{}", match u8.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match i8.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match i16.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match u16.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match u32.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match u64.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match u.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     print!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new(9u64) as Box<dyn Any>], false));
-    print!("{} {}\n", format_any(u8.borrow().as_ref().unwrap().as_ref()), format_any(u64.borrow().as_ref().unwrap().as_ref()));
+    print!("{} {}\n", match u8.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, match u64.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
     show(Rc::new(RefCell::new(Some(Box::new(1i8) as Box<dyn Any>))));
     show(Rc::new(RefCell::new(Some(Box::new(2u16) as Box<dyn Any>))));
 }

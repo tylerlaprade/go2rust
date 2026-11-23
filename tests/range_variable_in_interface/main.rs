@@ -10,12 +10,6 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1324,7 +1318,7 @@ fn main() {
         { let new_val = "%s\n".to_string(); *format.borrow_mut() = Some(new_val); };
         show(Rc::new(RefCell::new(Some(vec![Box::new((*dir).clone()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>]))));
         let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new((*dir).clone()) as Box<dyn Any>)));
-        println!("{}", format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
+        println!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     }
 
     let mut f = Rc::new(RefCell::new(Some("%d:%v\n".to_string())));
@@ -1334,7 +1328,7 @@ fn main() {
         print!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(i) as Box<dyn Any>, Box::new((*it).__go_value_clone()) as Box<dyn Any>], false))))).borrow().as_ref().unwrap())));
         let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new((*it).__go_value_clone()) as Box<dyn Any>)));
         { let new_val = "changed".to_string(); *it.name.borrow_mut() = Some(new_val); };
-        println!("{} {}", format!("{}", format_any(boxed.borrow().as_ref().unwrap().as_ref())), format!("{}", (*it.name.borrow().as_ref().unwrap()).clone()));
+        println!("{} {}", format!("{}", match boxed.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*it.name.borrow().as_ref().unwrap()).clone()));
     }
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
