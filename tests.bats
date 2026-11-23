@@ -695,6 +695,10 @@ run_xfail_test() {
     run_test "tests/channel_receive_closed"
 }
 
+@test "channel_send_nested_shadow" {
+    run_test "tests/channel_send_nested_shadow"
+}
+
 @test "channel_send_range_value" {
     run_test "tests/channel_send_range_value"
 }
