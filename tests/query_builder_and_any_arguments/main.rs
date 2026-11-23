@@ -815,7 +815,7 @@ impl Query {
         if { let __nil_target = self.params.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result } {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([])))); self.params = new_val; };
     }
-        { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, a) in __range_values.iter().enumerate() {
+        { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for (i, a) in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
         { let __map_key = { let __map_key_holder = Rc::new(RefCell::new(Some(format!("p{}", (({ let __len_target = { let __field = self.params.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) + (i as i64))))).clone(); let __map_key_guard = __map_key_holder.borrow(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = Rc::new(RefCell::new(Some(go_any_clone(a.as_ref())))); (*self.params.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
         Rc::new(RefCell::new(Some(self.clone())))
