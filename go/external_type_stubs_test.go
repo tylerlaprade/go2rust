@@ -871,6 +871,34 @@ func TestFsFileModeStubImplementsIsDirMethod(t *testing.T) {
 	}
 }
 
+func TestFsFileModeStubImplementsIsRegularMethod(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"fs_FileMode": true},
+		nil,
+		map[string]string{"fs_FileMode": "u32"},
+		nil,
+		nil,
+		map[string]map[string]externalTypeStubMethod{
+			"fs_FileMode": {
+				"is_regular": {ReturnTypes: []string{"bool"}},
+			},
+		},
+		nil,
+		nil,
+	)
+	if strings.Contains(got, "generic stub method body has no implementation") {
+		t.Fatalf("fs.FileMode IsRegular shim should not use the generic method panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn is_regular(&self) -> bool",
+		"(self.0 & 0x8f28_0000) == 0",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("fs.FileMode IsRegular shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestFsFileModeStubImplementsTypeMethod(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"fs_FileMode": true},

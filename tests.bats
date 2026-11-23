@@ -1207,6 +1207,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_isregular" {
+    run_test "tests/filemode_isregular"
+}
+
+@test "filemode_isregular_goroutines" {
+    run_test "tests/filemode_isregular_goroutines"
+}
+
 @test "filemode_type" {
     run_test "tests/filemode_type"
 }
