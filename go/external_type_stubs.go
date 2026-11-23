@@ -1872,6 +1872,8 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			}
 			if name == "fs_FileMode" && methodName == "is_dir" {
 				writeFsFileModeIsDirMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "r#type" {
+				writeFsFileModeTypeMethod(&out, method)
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -3014,6 +3016,17 @@ func writeFsFileModeIsDirMethod(out *strings.Builder) {
         (self.0 & (1u32 << 31)) != 0
     }
 `)
+}
+
+// TEMPORARY: fs-filemode-type — remove when ordinary io/fs.FileMode callers use the source method.
+func writeFsFileModeTypeMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn r#type(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(self.0 & 0x8f28_0000)"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
 }
 
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.

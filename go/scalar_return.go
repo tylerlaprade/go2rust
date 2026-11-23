@@ -631,8 +631,7 @@ func writeBareScalarBasicLit(out *strings.Builder, lit *ast.BasicLit, expectedTy
 		// Integer literal. For float-typed returns, emit `.0` suffix so the
 		// literal parses as float in Rust.
 		if rustType == "f32" || rustType == "f64" {
-			out.WriteString(lit.Value)
-			out.WriteString(".0")
+			out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 			if rustType == "f32" {
 				out.WriteString("_f32")
 			}
@@ -642,7 +641,7 @@ func writeBareScalarBasicLit(out *strings.Builder, lit *ast.BasicLit, expectedTy
 		// Rust's type inference resolves the literal to the surrounding
 		// scalar return type without an explicit `as <type>` — the cast is
 		// redundant noise that the Twitter critique correctly flagged.
-		out.WriteString(lit.Value)
+		out.WriteString(RustIntegerLiteral(lit.Value))
 		return
 	case token.FLOAT:
 		out.WriteString(lit.Value)

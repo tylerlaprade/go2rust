@@ -242,6 +242,19 @@ before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
 
+### fs-filemode-type
+
+- Location: `go/external_type_stubs.go`, `writeFsFileModeTypeMethod`
+- Go symbol: `io/fs.FileMode.Type`
+- Transpiler gap: ordinary programs import `io/fs.FileMode` as an external
+  named scalar, so its Go-source method body is not emitted and method calls
+  otherwise reach the generic external-method panic.
+- Fixture: `tests/filemode_type/` and
+  `tests/filemode_type_goroutines/`.
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-transpiled
+  `Type` method; delete the custom emitter and this row.
+- Added: 2026-11-23
+
 ### json-marshal-helpers
 
 - Location: `go/external_type_stubs.go:1421`
