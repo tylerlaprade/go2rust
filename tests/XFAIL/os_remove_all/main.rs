@@ -761,7 +761,9 @@ pub mod os {
         if path == "." || path.ends_with("/.") || (cfg!(windows) && path.ends_with("\\.")) {
             return io_error(std::io::Error::from(std::io::ErrorKind::InvalidInput));
         }
-        let metadata = match std::fs::symlink_metadata(&path) {
+        let trimmed = path.trim_end_matches(|c| c == '/' || (cfg!(windows) && c == '\\'));
+        let deletion_path = if trimmed.is_empty() || (cfg!(windows) && trimmed.ends_with(':')) { path.as_str() } else { trimmed };
+        let metadata = match std::fs::symlink_metadata(deletion_path) {
             Ok(metadata) => metadata,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return no_error(),
             Err(err) => return io_error(err),
@@ -769,20 +771,20 @@ pub mod os {
         let result = if metadata.file_type().is_symlink() {
             #[cfg(windows)]
             {
-                if std::fs::metadata(&path).map(|target| target.is_dir()).unwrap_or(false) {
-                    std::fs::remove_dir(&path)
+                if std::os::windows::fs::FileTypeExt::is_symlink_dir(&metadata.file_type()) {
+                    std::fs::remove_dir(deletion_path)
                 } else {
-                    std::fs::remove_file(&path)
+                    std::fs::remove_file(deletion_path)
                 }
             }
             #[cfg(not(windows))]
             {
-                std::fs::remove_file(&path)
+                std::fs::remove_file(deletion_path)
             }
         } else if metadata.is_dir() {
-            std::fs::remove_dir_all(&path)
+            std::fs::remove_dir_all(deletion_path)
         } else {
-            std::fs::remove_file(&path)
+            std::fs::remove_file(deletion_path)
         };
         match result {
             Ok(()) => no_error(),
