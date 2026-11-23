@@ -695,6 +695,10 @@ run_xfail_test() {
     run_test "tests/channel_receive_closed"
 }
 
+@test "channel_send_nested_shadow" {
+    run_test "tests/channel_send_nested_shadow"
+}
+
 @test "channel_send_range_value" {
     run_test "tests/channel_send_range_value"
 }
@@ -1089,6 +1093,14 @@ run_xfail_test() {
 
 @test "embedded_structs" {
     run_test "tests/embedded_structs"
+}
+
+@test "empty_interface_value_copy" {
+    run_test "tests/empty_interface_value_copy"
+}
+
+@test "empty_interface_value_copy_goroutines" {
+    run_test "tests/empty_interface_value_copy_goroutines"
 }
 
 @test "enums_iota" {

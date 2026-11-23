@@ -1,4 +1,13 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec, __go_type_name, go_any_clone};
+use crate::{
+    GoSlice,
+    GoSliceAppendBoxed,
+    GoSliceFromSlice,
+    GoSliceHeader,
+    Vec,
+    __go_type_name,
+    go_any_clone,
+    go_any_try_clone,
+};
 
 use std::any::Any;
 use std::cell::{RefCell};

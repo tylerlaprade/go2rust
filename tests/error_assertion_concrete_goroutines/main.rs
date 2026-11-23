@@ -583,6 +583,69 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<notFound>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<pointerError>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<notFound>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    None
+}
+
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
+}
+
+#[allow(dead_code)]
+fn go_any_handle_copy(handle: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    let __copy = match handle.lock().unwrap().as_ref() {
+        None => None,
+        Some(value) => match go_any_try_clone(&**value) {
+            Some(copy) => Some(copy),
+            None => return handle.clone(),
+        },
+    };
+    Arc::new(Mutex::new(__copy))
+}
+
+/// Stores Go's copy of source's value in target's cell. A source that no
+/// one else holds gives up its value; a value whose type has no copy comes
+/// back for the caller to share instead.
+#[allow(dead_code)]
+fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Option<Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>> {
+    if Arc::ptr_eq(target, &source) {
+        return None;
+    }
+    let __value = if Arc::strong_count(&source) == 1 {
+        source.lock().unwrap().take()
+    } else {
+        let __copy = match source.lock().unwrap().as_ref() {
+            None => None,
+            Some(value) => match go_any_try_clone(&**value) {
+                Some(copy) => Some(copy),
+                None => return Some(source.clone()),
+            },
+        };
+        __copy
+    };
+    *target.lock().unwrap() = __value;
+    None
+}
+
 struct GoPointerError<T> {
     handle: Arc<Mutex<Option<T>>>,
 }
@@ -980,7 +1043,7 @@ pub fn run() {
             (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
-    let (mut valueCase, mut valueText) = error_text(value.clone());
+    let (mut valueCase, mut valueText) = error_text(go_any_handle_copy(&value));
     println!("{} {} {} {}", format!("{}", valueOK), format!("{}", valueCase), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", valueErr.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", ({
         let val = value.clone();
         let guard = val.lock().unwrap();
@@ -1012,7 +1075,7 @@ pub fn run() {
             (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
-    let (mut pointerCase, mut pointerText) = error_text(pointer.clone());
+    let (mut pointerCase, mut pointerText) = error_text(go_any_handle_copy(&pointer));
     println!("{} {} {} {}", format!("{}", pointerOK), format!("{}", pointerCase), format!("{}", { let __v = (*pointerText.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", ({
         let val = pointer.clone();
         let guard = val.lock().unwrap();
@@ -1024,7 +1087,7 @@ pub fn run() {
     }))))).lock().unwrap().as_ref().unwrap())));
     { let new_val = pointerError { code: Arc::new(Mutex::new(Some(8))), ..Default::default() }; *pointerValue.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", "assertion replacement".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", pointerErr.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "switch replacement".to_string()), format!("{}", (*replace_then_error_text(pointer.clone(), pointerValue.clone()).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "switch replacement".to_string()), format!("{}", (*replace_then_error_text(go_any_handle_copy(&pointer), pointerValue.clone()).lock().unwrap().as_ref().unwrap())));
 
     let mut valuePointer: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(notFound { name: Arc::new(Mutex::new(Some("pointer key".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)));
     let (mut valuePointerErr, mut valuePointerOK) = ({
@@ -1046,7 +1109,7 @@ pub fn run() {
             (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
-    let (mut valuePointerCase, _) = error_text(valuePointer.clone());
+    let (mut valuePointerCase, _) = error_text(go_any_handle_copy(&valuePointer));
     println!("{} {} {}", format!("{}", valuePointerOK), format!("{}", valuePointerCase), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", valuePointerErr.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
 
     let mut nilPointer: Arc<Mutex<Option<pointerError>>> = Arc::new(Mutex::new(None));
@@ -1070,7 +1133,7 @@ pub fn run() {
             (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
-    let mut typedNilCase = is_error(typedNil.clone());
+    let mut typedNilCase = is_error(go_any_handle_copy(&typedNil));
     println!("{} {} {}", format!("{}", typedNilOK), format!("{}", typedNilCase), format!("{}", { let __nil_result = (*typedNilErr.lock().unwrap()).is_none(); __nil_result }));
 
     let mut text: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("plain".to_string()) as Box<dyn Any + Send + Sync>)));
@@ -1093,7 +1156,7 @@ pub fn run() {
             (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), false)
         }
     });
-    let (mut textCase, _) = error_text(text.clone());
+    let (mut textCase, _) = error_text(go_any_handle_copy(&text));
     let (mut textErr, mut textErrOK) = ({
         let val = text.clone();
         let guard = val.lock().unwrap();
