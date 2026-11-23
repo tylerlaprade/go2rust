@@ -2597,6 +2597,14 @@ run_xfail_test() {
     run_test "tests/os_symlink_paths_goroutines"
 }
 
+@test "os_tempdir" {
+    run_test "tests/os_tempdir"
+}
+
+@test "os_tempdir_goroutines" {
+    run_test "tests/os_tempdir_goroutines"
+}
+
 @test "os_truncate_paths" {
     run_test "tests/os_truncate_paths"
 }

@@ -1381,6 +1381,30 @@ func TestOsGetpidStubUsesHostProcessID(t *testing.T) {
 	}
 }
 
+func TestOsTempDirStubPreservesCanonicalHostPath(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"temp_dir": {ReturnTypes: []string{wrappedExternalStubType("String")}},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.TempDir should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn temp_dir()",
+		"let path = std::env::temp_dir()",
+		"std::os::unix::ffi::OsStringExt",
+		"__go_string_from_bytes(path.into_os_string().into_vec())",
+		"path.to_string_lossy().into_owned()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.TempDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{

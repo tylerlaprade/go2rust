@@ -3301,6 +3301,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsStatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "symlink" {
 			writeOsSymlinkFunction(out, pkg.Functions[funcName])
+		} else if funcName == "temp_dir" {
+			writeOsTempDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "truncate" {
 			writeOsTruncateFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
@@ -3835,6 +3837,24 @@ func writeOsSymlinkFunction(out *strings.Builder, fn externalPackageStubFunction
         }
     }
 `)
+}
+
+// PERMANENT: not scaffold — os.TempDir resolves the host process temp directory.
+func writeOsTempDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn temp_dir() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        let path = std::env::temp_dir();
+        #[cfg(unix)]
+        let value = {
+            use std::os::unix::ffi::OsStringExt;
+            __go_string_from_bytes(path.into_os_string().into_vec())
+        };
+        #[cfg(not(unix))]
+        let value = path.to_string_lossy().into_owned();
+        `)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString("\n    }\n")
 }
 
 // PERMANENT: not scaffold — os.ReadDir maps to std::fs::read_dir, syscall-tied.
