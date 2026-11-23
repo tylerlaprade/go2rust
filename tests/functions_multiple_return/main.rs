@@ -4,6 +4,10 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::cell::{RefCell};
+use std::error::Error as StdError;
+use std::rc::{Rc};
+
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -581,6 +585,14 @@ pub fn vals() -> (i64, i64) {
     (3, 7)
 }
 
+pub fn count(input: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    let mut n: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
+    let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
+
+    { let new_val = input.borrow().as_ref().unwrap().clone(); *n.borrow_mut() = Some(new_val); };
+    return ((*n.borrow().as_ref().unwrap()), Rc::new(RefCell::new(None)));
+}
+
 fn main() {
     let (mut a, mut b) = vals();
     println!("{}", format!("{}", a));
@@ -588,4 +600,7 @@ fn main() {
 
     let (_, mut c) = vals();
     println!("{}", format!("{}", c));
+
+    let (mut n, mut err) = count(Rc::new(RefCell::new(Some(11))));
+    println!("{} {}", format!("{}", n), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
 }
