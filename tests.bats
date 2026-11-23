@@ -2595,6 +2595,14 @@ run_xfail_test() {
     run_test "tests/print_nil_error_and_pointer_goroutines"
 }
 
+@test "print_nil_interface_value" {
+    run_test "tests/print_nil_interface_value"
+}
+
+@test "print_nil_interface_value_goroutines" {
+    run_test "tests/print_nil_interface_value_goroutines"
+}
+
 @test "print_self_referencing_value_goroutines" {
     run_test "tests/print_self_referencing_value_goroutines"
 }

@@ -461,23 +461,19 @@ func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __text = ")
 		defer out.WriteString("; __text }")
 	}
-	out.WriteString("format_any(")
+	// A nil interface value prints as <nil>.
+	out.WriteString("match ")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else if _, ok := arg.(*ast.SelectorExpr); ok {
 		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else {
 		out.WriteString("(")
 		TranspileExpression(out, arg)
 		out.WriteString(")")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	}
-	out.WriteString(")")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() }")
 }
 
 func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
@@ -1414,6 +1410,22 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
+	}
+	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil {
+				if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+					// %T of a nil interface value is <nil>.
+					out.WriteString("match ")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref() { Some(__any_value) => ")
+					out.WriteString(goTypeNameHelperRustName)
+					out.WriteString("(&**__any_value), None => \"<nil>\" }")
+					return
+				}
+			}
+		}
 	}
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(")

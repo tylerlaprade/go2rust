@@ -6006,6 +6006,32 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+// writeEmptyInterfaceNamedReturnAssignment stores a concrete value that a
+// return statement gives an interface{} result: the value goes into the
+// result's cell boxed, as an assignment to the result would box it.
+func writeEmptyInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if name == nil || name.Name == "_" || typeInfo == nil || resultType == nil {
+		return false
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if resultTyp := typeInfo.GetType(resultType); resultTyp == nil || !isEmptyInterfaceType(resultTyp) {
+		return false
+	}
+	if rhsType := typeInfo.GetType(rhs); rhsType == nil || types.IsInterface(rhsType) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeBareAnyBox(out, rhs)
+	out.WriteString("; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func writeLocalInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
 	if name == nil || name.Name == "_" {
 		return false
@@ -11782,6 +11808,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				resultType := returnResultTypeExpr(fnType, i)
 				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeEmptyInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writePointerNamedReturnAssignment(out, names[i], resultType, result) &&
