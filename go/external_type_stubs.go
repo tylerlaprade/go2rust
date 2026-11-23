@@ -2398,6 +2398,12 @@ impl exec_Cmd {
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
             if !dir.is_empty() {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::ffi::OsStringExt;
+                    command.current_dir(std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(dir))));
+                }
+                #[cfg(not(unix))]
                 command.current_dir(dir);
             }
         }

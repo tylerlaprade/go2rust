@@ -902,12 +902,15 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 
 func TestExecCmdStubUsesCanonicalUnixProgramAndArgumentBytes(t *testing.T) {
 	var out strings.Builder
-	writeExecCmdTypeStub(&out, nil, nil)
+	writeExecCmdTypeStub(&out, map[string]string{
+		"dir": wrappedExternalStubType("String"),
+	}, nil)
 	got := out.String()
 	for _, want := range []string{
 		"std::ffi::OsString::from_vec(__go_string_bytes(&args_view[0]))",
 		"command.args(args_view[1..].iter().map(|arg|",
 		"std::ffi::OsString::from_vec(__go_string_bytes(arg))",
+		"command.current_dir(std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(dir))))",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd process boundary should include %q:\n%s", want, got)

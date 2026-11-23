@@ -1217,6 +1217,14 @@ run_xfail_test() {
     run_test "tests/exec_command_non_utf8_argv_goroutines"
 }
 
+@test "exec_command_non_utf8_dir" {
+    run_test "tests/exec_command_non_utf8_dir"
+}
+
+@test "exec_command_non_utf8_dir_goroutines" {
+    run_test "tests/exec_command_non_utf8_dir_goroutines"
+}
+
 @test "exec_command_output_stub" {
     run_test "tests/exec_command_output_stub"
 }
