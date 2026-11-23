@@ -2557,6 +2557,14 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "os_symlink_paths" {
+    run_test "tests/os_symlink_paths"
+}
+
+@test "os_symlink_paths_goroutines" {
+    run_test "tests/os_symlink_paths_goroutines"
+}
+
 @test "os_truncate_paths" {
     run_test "tests/os_truncate_paths"
 }
