@@ -2331,6 +2331,7 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 	if _, ok := fields["env"]; !ok {
 		fields["env"] = wrappedExternalStubType("Vec<String>")
 	}
+	errorInnerType := externalStubErrorInnerType()
 	out.WriteString("#[derive(Debug, Clone, Default)]\n")
 	out.WriteString("pub struct exec_Cmd {\n")
 	fieldNames := make([]string, 0, len(fields))
@@ -2345,10 +2346,16 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 		out.WriteString(fields[fieldName])
 		out.WriteString(",\n")
 	}
-	errorInnerType := externalStubErrorInnerType()
+	out.WriteString("    pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,\n")
+	out.WriteString("    pub __go_context_error: Option<std::sync::Arc<std::sync::Mutex<Option<")
+	out.WriteString(errorInnerType)
+	out.WriteString(">>>>,\n")
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
 	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
+	fallbackContextError := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "\"context canceled\".to_string()")
+	errorFromIO := rustErrorFromValueFor("StdError", NeedsConcurrentWrapper(), "err")
+	emptyCommandError := rustErrorFromValueFor("StdError", NeedsConcurrentWrapper(), "std::io::Error::new(std::io::ErrorKind::InvalidInput, \"empty command\")")
 	out.WriteString(`}
 
 impl std::fmt::Display for exec_Cmd {
@@ -2385,14 +2392,32 @@ impl exec_Cmd {
 	        %s
 	    }
 
-    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+    fn __go_context_cancellation_error(&self) -> Option<%s> {
+        if self
+            .__go_context_cancelled
+            .as_ref()
+            .is_some_and(|cancelled| cancelled.load(std::sync::atomic::Ordering::SeqCst))
+        {
+            return self
+                .__go_context_error
+                .as_ref()
+                .and_then(|err| err.lock().unwrap().as_ref().cloned())
+                .or_else(|| Some(%s));
+        }
+        None
+    }
+
+    fn __go_run_output(&self) -> Result<std::process::Output, %s> {
+        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
+        }
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+            return Err(%s);
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
-`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
+`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), errorInnerType, fallbackContextError, errorInnerType, externalStubBorrowExpr("self.args"), emptyCommandError)
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
             if !dir.is_empty() {
@@ -2411,11 +2436,14 @@ impl exec_Cmd {
         }
 `, externalStubBorrowExpr("self.env"))
 	}
-	out.WriteString(`        command.output()
+	fmt.Fprintf(out, `        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
+        }
+        command.output().map_err(|err| %s)
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
-`)
+`, errorFromIO)
 	if _, ok := fields["stdout"]; ok {
 		fmt.Fprintf(out, `        if let Some(stdout) = %s.as_ref() {
             stdout.__go_write_bytes(&output.stdout);
@@ -2440,7 +2468,7 @@ impl exec_Cmd {
                 };
                 (%s, err)
             }
-            Err(err) => (%s, Self::__go_error(err.to_string())),
+            Err(err) => (%s, %s),
         }
     }
 
@@ -2458,7 +2486,7 @@ impl exec_Cmd {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
             }
-            Err(err) => Self::__go_error(err.to_string()),
+            Err(err) => %s,
         }
     }
 
@@ -2466,7 +2494,7 @@ impl exec_Cmd {
         %s
     }
 }
-`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
+`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubNoneExpr("Vec<u8>"), wrappedExternalStubExpr(errorInnerType, "err"), errorType, errorType, noneError, wrappedExternalStubExpr(errorInnerType, "err"), errorType, noneError)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
@@ -4006,31 +4034,40 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(")\n    }\n")
 }
 
-// PERMANENT: not scaffold — exec.Command spawns OS processes, runtime-tied.
+// TEMPORARY: exec-command-context — keep the native process boundary, but remove this context bridge once source os/exec lowering owns cancellation.
 func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
 	if hasContext {
-		out.WriteString("    pub fn command_context<T0, T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+		out.WriteString("    pub fn command_context<T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: Arc<Mutex<Option<GoContext>>>, _arg1: T1, _arg2: T2) -> ")
 		writeExternalStubReturnType(out, fn.ReturnTypes)
 		out.WriteString(" {\n")
-		writeExecCommandStubBody(out, "_arg1", "_arg2")
+		writeExecCommandStubBody(out, "_arg1", "_arg2", true)
 		return
 	}
 	out.WriteString("    pub fn command<T0: GoStringArg, T1: GoExecCommandArgs>(_arg0: T0, _arg1: T1) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	writeExecCommandStubBody(out, "_arg0", "_arg1")
+	writeExecCommandStubBody(out, "_arg0", "_arg1", false)
 }
 
 // PERMANENT: not scaffold — exec.Command body construction, runtime-tied.
-func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string) {
+func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string, hasContext bool) {
 	out.WriteString("        let mut args = vec![")
 	out.WriteString(nameArg)
 	out.WriteString(".into_go_string()];\n")
 	out.WriteString("        args.extend(")
 	out.WriteString(argsArg)
 	out.WriteString(".into_exec_args());\n")
+	if hasContext {
+		out.WriteString("        let (__go_context_cancelled, __go_context_error) = _arg0.lock().unwrap().as_ref()\n")
+		out.WriteString("            .map(|ctx| (Some(ctx.cancelled.clone()), Some(ctx.err.clone())))\n")
+		out.WriteString("            .unwrap_or((None, None));\n")
+	}
 	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { args: "+wrappedExternalStubExpr("Vec<String>", "args")+", ..Default::default() }"))
+	cmdFields := "args: " + wrappedExternalStubExpr("Vec<String>", "args") + ", "
+	if hasContext {
+		cmdFields += "__go_context_cancelled, __go_context_error, "
+	}
+	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { "+cmdFields+"..Default::default() }"))
 	out.WriteString("\n    }\n")
 }
 

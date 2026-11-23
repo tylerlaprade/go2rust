@@ -1235,6 +1235,14 @@ run_xfail_test() {
     run_test "tests/exec_command_args_stub"
 }
 
+@test "exec_command_context_cancel" {
+    run_test "tests/exec_command_context_cancel"
+}
+
+@test "exec_command_context_cancel_goroutines" {
+    run_test "tests/exec_command_context_cancel_goroutines"
+}
+
 @test "exec_command_output_stub" {
     run_test "tests/exec_command_output_stub"
 }

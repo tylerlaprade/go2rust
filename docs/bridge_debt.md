@@ -235,6 +235,26 @@ against the `// TEMPORARY:` comments of that one file.
 
 ## Shims
 
+### exec-command-context
+
+- Location: `go/external_type_stubs.go:writeExecCommandStub`,
+  `go/external_type_stubs.go:writeExecCommandStubBody`,
+  `go/external_type_stubs.go:writeExecCmdTypeStub`, and
+  `go/imports.go:generateGoContextHelper` (`cancel_with_message` and
+  `link_parent`)
+- Go symbol: `os/exec.CommandContext`, the cancellation state on `exec.Cmd`,
+  and child propagation for `context.WithCancel` / `context.WithTimeout`
+- Transpiler gap: source-transpiled `os/exec` and `context` do not yet own the
+  native process boundary or the full parent/child cancellation tree, so
+  context state, child propagation, cleanup, and the pre-launch cancellation
+  check are emitted around Rust's host process API.
+- Fixture: `tests/exec_command_context_cancel/`,
+  `tests/exec_command_context_cancel_goroutines/`
+- Removal trigger: source `os/exec` and `context` lowering own parent/child
+  propagation, cleanup, and cancellation around a reviewed native process
+  boundary; then delete the external CommandContext/GoContext bridge.
+- Added: 2026-11-23
+
 The rows below were backfilled on 2026-05-27 from the existing 36
 `// TEMPORARY:` comments. Most have `TODO:` placeholders for the
 transpiler-gap and fixture fields. **When you touch a shim, fill in its row
