@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 func main() {
@@ -11,6 +12,9 @@ func main() {
 	<-ready
 
 	fmt.Println(
+		json.Valid([]byte(strings.Repeat("[", 10000)+"0"+strings.Repeat("]", 10000))),
+		json.Valid([]byte(strings.Repeat("[", 10001)+"0"+strings.Repeat("]", 10001))),
+		json.Valid([]byte(`"`+strings.Repeat("[", 10001)+`"`)),
 		json.Valid([]byte(`{"x":[true,null,"a\\b"]}`)),
 		json.Valid([]byte(" \n [1,2,3] \t")),
 		json.Valid([]byte(`"escaped\u263a"`)),

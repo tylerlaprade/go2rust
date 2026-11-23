@@ -744,13 +744,13 @@ where
     }
 }
 
-impl<V> GoJsonDecode for BTreeMap<String, V>
+impl<V> GoJsonDecode for std::collections::BTreeMap<String, V>
 where
     V: GoJsonDecode,
 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = BTreeMap::new();
+        let mut out = std::collections::BTreeMap::new();
         for (key, value) in object {
             out.insert(key.clone(), V::go_json_decode(value)?);
         }
@@ -791,6 +791,30 @@ pub mod json {
     use super::*;
     pub fn valid<T0: GoJsonInputArg>(_arg0: T0) -> bool {
         let bytes = _arg0.into_go_json_bytes();
+        let mut depth = 0usize;
+        let mut in_string = false;
+        let mut escaped = false;
+        for byte in &bytes {
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if *byte == b'\\' {
+                    escaped = true;
+                } else if *byte == b'"' {
+                    in_string = false;
+                }
+            } else {
+                match *byte {
+                    b'"' => in_string = true,
+                    b'{' | b'[' => {
+                        depth += 1;
+                        if depth > 10_000 { return false; }
+                    }
+                    b'}' | b']' => depth = depth.saturating_sub(1),
+                    _ => {}
+                }
+            }
+        }
         let text = String::from_utf8_lossy(&bytes);
         serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()
     }
@@ -798,5 +822,23 @@ pub mod json {
 
 
 fn main() {
-    println!("{} {} {} {} {} {} {} {} {} {} {} {}", format!("{}", json::valid(Arc::new(Mutex::new(Some(("{\"x\":[true,null,\"a\\\\b\"]}".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some((" \n [1,2,3] \t".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("\"escaped\\u263a\"".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("-1.2e+3".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("1e999".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("\"\\ud800\"".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(vec![('"' as u8), 0xff as u8, ('"' as u8)]))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("{\"x\":".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("true false".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("01".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(Vec::<u8>::new()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(vec![0xff as u8]))))));
+    println!("{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}", format!("{}", json::valid(Arc::new(Mutex::new(Some(({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = "[".to_string(); let __count = 10000; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap())));
+        __s.push_str(&format!("{}", "0".to_string()));
+        __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = "]".to_string(); let __count = 10000; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap())));
+        __s
+    }).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = "[".to_string(); let __count = 10001; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap())));
+        __s.push_str(&format!("{}", "0".to_string()));
+        __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = "]".to_string(); let __count = 10001; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap())));
+        __s
+    }).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", "\"".to_string()));
+        __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = "[".to_string(); let __count = 10001; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap())));
+        __s.push_str(&format!("{}", "\"".to_string()));
+        __s
+    }).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("{\"x\":[true,null,\"a\\\\b\"]}".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some((" \n [1,2,3] \t".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("\"escaped\\u263a\"".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("-1.2e+3".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("1e999".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("\"\\ud800\"".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(vec![('"' as u8), 0xff as u8, ('"' as u8)]))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("{\"x\":".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("true false".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(("01".to_string()).as_bytes().to_go_slice()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(Vec::<u8>::new()))))), format!("{}", json::valid(Arc::new(Mutex::new(Some(vec![0xff as u8]))))));
 }

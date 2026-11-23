@@ -310,9 +310,10 @@ in the first place.
 
 ### json-package
 
-- Location: `go/external_type_stubs.go:5885`
+- Location: `go/external_type_stubs.go:writeJsonPackageStub`
 - Go symbol: `encoding/json` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: the package source is not yet lowered; `writeJsonPackageStub`
+  implements the currently supported JSON entry points, including `Valid`.
+- Fixture: `tests/json_valid/`, `tests/json_valid_goroutines/`
 - Removal trigger: transpiler can lower `encoding/json` source.
 - Added: 2026-05-27 (backfill)
