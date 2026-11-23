@@ -1132,7 +1132,7 @@ fn main() {
     let buffer_thread = buffer.clone(); std::thread::spawn(move || {
         let mut items = Arc::new(Mutex::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string(), "elderberry".to_string()])));;
         { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        buffer_thread.send(item);
+        buffer_thread.send((*item).clone());
     } };
         buffer_thread.close();;;
     });

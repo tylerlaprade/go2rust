@@ -12672,7 +12672,7 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		case AddressOf, LValue:
 			out.WriteString(rustPackageGlobalName(e.Name))
 		}
-	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
+	} else if ((e.Name == "true" || e.Name == "false") && isPredeclaredBoolConstant(e)) || e.Name == "_" {
 		out.WriteString(e.Name)
 	} else if isLocalConstantIdent(e) {
 		if ctx != RValue || !writeNamedScalarConstValue(out, e, varName) {
@@ -13280,7 +13280,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
 		renamedReceiver := ""
-		if renamed, exists := captureRenameForIdent(e); exists {
+		isDefinition := false
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			isDefinition = typeInfo.info.Defs[e] != nil
+		}
+		// A declaration inside the closure may shadow a captured outer name.
+		// Capture aliases apply to uses, never to the defining identifier itself.
+		if renamed, exists := captureRenameForIdent(e); exists && !isDefinition {
 			varName = RustLocalIdent(renamed)
 			if isCurrentReceiverIdent(e) {
 				renamedReceiver = varName
@@ -16986,6 +16992,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		beginPanicRecoverCatch(out, "        ")
 	}
 	if funcLit.Body != nil {
+		var restoreCaptureShadows []func()
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
 			if i == len(funcLit.Body.List)-1 {
@@ -16994,6 +17001,10 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 				TranspileStatementSimple(out, stmt, funcLit.Type, nil)
 			}
 			out.WriteString("\n")
+			restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+		}
+		for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+			restoreCaptureShadows[i]()
 		}
 		writeFuncLitReceiverCaptureStateWritebacks(out, captureRenames, assignedInlineCaptures)
 		if hasClosureDefer {
