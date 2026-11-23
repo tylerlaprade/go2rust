@@ -3,3 +3,5 @@ open
 /definitely/missing/go2rust
 true
 true
+false
+true

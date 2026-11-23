@@ -808,25 +808,26 @@ fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<
     stack.pop()
 }
 
-// Two errors are the same error when they point to the same value, as ==
-// on two errors is written.
-fn go_errors_same(left: &Arc<dyn StdError + Send + Sync>, right: &Arc<dyn StdError + Send + Sync>) -> bool {
-    if std::ptr::addr_eq(&**left, &**right) {
-        return true;
+// Go compares syscall.Errno values by their numeric code. Its Is method
+// additionally recognizes the filesystem sentinel when it is the target.
+fn go_native_error_is(err: &Arc<dyn StdError + Send + Sync>, target: &Arc<dyn StdError + Send + Sync>) -> bool {
+    let (Some(err), Some(target)) = (
+        err.downcast_ref::<std::io::Error>(),
+        target.downcast_ref::<std::io::Error>(),
+    ) else { return false; };
+    if let Some(target_code) = target.raw_os_error() {
+        return err.raw_os_error() == Some(target_code);
     }
-    match (
-        left.downcast_ref::<std::io::Error>(),
-        right.downcast_ref::<std::io::Error>(),
-    ) {
-        (Some(left), Some(right)) => left.kind() == right.kind(),
-        _ => false,
-    }
+    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
+        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
 }
 
+// Two errors are the same error when they point to the same value, as ==
+// on two errors is written.
 fn go_errors_is(err: Option<Arc<dyn StdError + Send + Sync>>, target: Option<Arc<dyn StdError + Send + Sync>>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| go_errors_same(e, &target)),
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target) || go_native_error_is(e, &target)),
         _ => false,
     }
 }
@@ -1076,6 +1077,10 @@ pub fn inspect(done: GoChannel<AnonymousStruct1>) {
         println!("{}", format!("{}", (*{ let __field = (*pathErr.lock().unwrap().as_ref().unwrap()).path.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
         println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = { let __field = (*pathErr.lock().unwrap().as_ref().unwrap()).err.clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = fs::ErrNotExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
         println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = fs::ErrNotExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
+        let mut cause = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })));
+        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = { let __field = fs::ErrNotExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = cause.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
+        let (_, mut another) = os::open("/definitely/missing/go2rust".to_string());
+        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = cause.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = another.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
     }
     done.close();
 }

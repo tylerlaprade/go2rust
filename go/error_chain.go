@@ -87,7 +87,29 @@ func generateGoErrorChainHelper(out *strings.Builder) {
 	concurrent := NeedsConcurrentWrapper()
 	errType := rustErrorPayloadTypeFor("StdError", concurrent)
 	pointer := rustErrorPointerFor("StdError", concurrent)
-	userArms := errorChainUnwrapArms() + externalErrorChainUnwrapArms()
+	externalArms := externalErrorChainUnwrapArms()
+	userArms := errorChainUnwrapArms() + externalArms
+	match := "std::ptr::addr_eq(&**e, &*target)"
+	nativeIs := ""
+	fs := currentExternalPackageStubs()["fs"]
+	if externalArms != "" || (fs != nil && fs.Variables["ErrNotExist"] != "") {
+		match += " || go_native_error_is(e, &target)"
+		nativeIs = `
+// Go compares syscall.Errno values by their numeric code. Its Is method
+// additionally recognizes the filesystem sentinel when it is the target.
+fn go_native_error_is(err: &ERR, target: &ERR) -> bool {
+    let (Some(err), Some(target)) = (
+        err.downcast_ref::<std::io::Error>(),
+        target.downcast_ref::<std::io::Error>(),
+    ) else { return false; };
+    if let Some(target_code) = target.raw_os_error() {
+        return err.raw_os_error() == Some(target_code);
+    }
+    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
+        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+}
+`
+	}
 	code := `
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
 // true when it wraps more than one, and then errors.Unwrap does not see it.
@@ -143,31 +165,18 @@ fn go_errors_unwrap(err: Option<ERR>) -> Option<ERR> {
     let mut stack: Vec<ERR> = Vec::new();
 USER_ARMS    stack.pop()
 }
-
+` + nativeIs + `
 // Two errors are the same error when they point to the same value, as ==
 // on two errors is written.
-fn go_errors_same(left: &ERR, right: &ERR) -> bool {
-    if std::ptr::addr_eq(&**left, &**right) {
-        return true;
-    }
-    match (
-        left.downcast_ref::<std::io::Error>(),
-        right.downcast_ref::<std::io::Error>(),
-    ) {
-        (Some(left), Some(right)) => left.kind() == right.kind(),
-        _ => false,
-    }
-}
-
 fn go_errors_is(err: Option<ERR>, target: Option<ERR>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| go_errors_same(e, &target)),
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| ERROR_MATCH),
         _ => false,
     }
 }
 `
-	out.WriteString(strings.NewReplacer("ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
+	out.WriteString(strings.NewReplacer("ERROR_MATCH", match, "ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
 }
 
 // writeGoErrorOptionValue writes the Option<error> an error expression

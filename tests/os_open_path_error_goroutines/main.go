@@ -18,6 +18,10 @@ func inspect(done chan struct{}) {
 		fmt.Println(pathErr.Path)
 		fmt.Println(errors.Is(pathErr.Err, fs.ErrNotExist))
 		fmt.Println(errors.Is(err, fs.ErrNotExist))
+		cause := errors.Unwrap(err)
+		fmt.Println(errors.Is(fs.ErrNotExist, cause))
+		_, another := os.Open(missingPath)
+		fmt.Println(errors.Is(cause, errors.Unwrap(another)))
 	}
 	close(done)
 }
