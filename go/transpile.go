@@ -1542,8 +1542,15 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		if rustType == "" || seen[rustType] {
 			return
 		}
-		seen[rustType] = true
 		external := typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg
+		if external && rustTypeIsBuiltinValue(rustType) {
+			// A package type the stubs lower to a Rust builtin, such as
+			// strings.Builder as String, has no Rust type of its own: a
+			// downcast to String also matches every Go string, and String
+			// does not implement the program's interface trait.
+			return
+		}
+		seen[rustType] = true
 		candidates = append(candidates, localInterfaceAssertionCandidate{
 			rustType: rustType,
 			external: external,
@@ -1574,6 +1581,17 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		return strings.Compare(a.rustType, b.rustType)
 	})
 	return candidates
+}
+
+// rustTypeIsBuiltinValue reports whether rustType is a Rust builtin that Go's
+// own basic types and slices also lower to.
+func rustTypeIsBuiltinValue(rustType string) bool {
+	switch rustType {
+	case "String", "bool", "char", "i8", "i16", "i32", "i64", "i128", "isize",
+		"u8", "u16", "u32", "u64", "u128", "usize", "f32", "f64":
+		return true
+	}
+	return strings.HasPrefix(rustType, "Vec<") || strings.HasPrefix(rustType, "GoSlice<")
 }
 
 func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm types.Type, sourceType types.Type) string {
