@@ -439,9 +439,47 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("\"<nil>\".to_string()")
 		return
 	}
+	if single, ok := printArgIsBasicFloat(arg); ok {
+		NeedGoFloatString()
+		out.WriteString("go_float_string((")
+		transpilePrintArg(out, arg)
+		out.WriteString(") as f64, ")
+		if single {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
+		out.WriteString(")")
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
+}
+
+// printArgIsBasicFloat reports whether a print operand is a float32 or a
+// float64 that is not of a named type, and whether it is a float32. fmt
+// prints such a value as %v; Rust's Display has no exponent form.
+func printArgIsBasicFloat(arg ast.Expr) (single bool, ok bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false, false
+	}
+	basic, isBasic := types.Unalias(argType).(*types.Basic)
+	if !isBasic {
+		return false, false
+	}
+	switch basic.Kind() {
+	case types.Float32:
+		return true, true
+	case types.Float64, types.UntypedFloat:
+		return false, true
+	}
+	return false, false
 }
 
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
@@ -6703,9 +6741,9 @@ func generateMapFormatter(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
+		out.WriteString(`fn format_map<K: Display + Ord + Clone + 'static, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + 'static,
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
@@ -6717,7 +6755,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6733,9 +6771,9 @@ where
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+		out.WriteString(`fn format_map<K: Display + Ord + Clone + 'static, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + 'static,
 {
     let guard = map.borrow();
     if let Some(ref m) = *guard {
@@ -6747,7 +6785,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6772,11 +6810,11 @@ func generateSliceFormatter(out *strings.Builder, includeWrappedValues bool, inc
 		out.WriteString(`fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
-    T: Display,
+    T: Display + 'static,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6785,9 +6823,9 @@ where
 
 fn format_slice_values<T>(slice: &[T]) -> String
 where
-    T: Display,
+    T: Display + 'static,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -6866,11 +6904,11 @@ where
 		out.WriteString(`fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
-    T: Display,
+    T: Display + 'static,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6879,9 +6917,9 @@ where
 
 fn format_slice_values<T>(slice: &[T]) -> String
 where
-    T: Display,
+    T: Display + 'static,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 

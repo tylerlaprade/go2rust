@@ -1196,6 +1196,13 @@ func NeedGoErrorChain() {
 	}
 }
 
+// NeedGoFloatString marks that a float is printed as fmt's %v prints it.
+func NeedGoFloatString() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatString = true
+	}
+}
+
 func NeedGoTypeName() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTypeName = true
