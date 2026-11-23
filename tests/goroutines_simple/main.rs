@@ -594,16 +594,28 @@ fn main() {
 
         // Use sleep delays inside goroutines to ensure deterministic output order
     std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         std::thread::sleep(std::time::Duration::from_millis(50));;
         f(Arc::new(Mutex::new(Some("goroutine".to_string()))));;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 
     let __go_arg_0 = Arc::new(Mutex::new(Some("going".to_string()))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let __closure = move |msg: Arc<Mutex<Option<String>>>| {
             std::thread::sleep(std::time::Duration::from_millis(10));;
             println!("{}", format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
         };
         __closure(__go_arg_0);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 
         // This runs first among the goroutines (shortest delay)
