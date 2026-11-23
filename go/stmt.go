@@ -16034,6 +16034,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		// Go evaluates each case's channel operand once, on entering the
+		// select. Inside the polling loop a call such as time.After would
+		// make a new timer each round, and the timer would never fire.
+		restoreSelectChannels := hoistSelectChannelOperands(out, commClauses)
+		defer restoreSelectChannels()
 		out.WriteString("loop {\n")
 		restoreSelectBreakTarget := pushBreakTarget("")
 
@@ -16052,7 +16057,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// A closed channel is ready too: it gives the zero
 						// value, and ok is false.
 						out.WriteString("        if let Some(__select_recv) = ")
-						writeChannelExpression(out, unary.X)
+						writeSelectChannelOperand(out, unary.X)
 						out.WriteString(".try_recv_select() {\n")
 						out.WriteString("            let __select_ok = __select_recv.is_some();\n")
 						if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
@@ -16118,7 +16123,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// case <-ch (receive without assignment)
 				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
-					writeChannelExpression(out, unary.X)
+					writeSelectChannelOperand(out, unary.X)
 					out.WriteString(".try_recv_select() {\n")
 
 					var captureShadowRestores []func()
@@ -16139,7 +16144,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case *ast.SendStmt:
 				// case ch <- val (send case) — use try_send for non-blocking
 				out.WriteString("        if ")
-				writeChannelExpression(out, comm.Chan)
+				writeSelectChannelOperand(out, comm.Chan)
 				out.WriteString(".try_send(")
 				if !writeInterfaceChannelSendValue(out, comm.Chan, comm.Value) {
 					transpileChannelValue(out, comm.Value)
@@ -16187,6 +16192,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		restoreSelectBreakTarget()
 		out.WriteString("    }")
+		if selectChannelsHoisted(commClauses) {
+			out.WriteString(" }")
+		}
 		if selectStmtTerminates(s) {
 			out.WriteString("\n    unreachable!()")
 		}
