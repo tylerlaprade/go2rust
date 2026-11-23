@@ -868,6 +868,7 @@ fn main() {
     let mut done = GoChannel::<bool>::new();
 
     let reads_thread = reads.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut state = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<i64>>>>::new())));;
         loop {
         loop {
@@ -889,16 +890,27 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     };;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 
     let mut r = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x < __tmp_y } {
         let done_thread = done.clone(); let readOps_thread = readOps.clone(); let reads_thread = reads.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))), resp: GoChannel::<i64>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
         { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
         Arc::new(Mutex::new(Some({ let __target = readOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
         { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -906,6 +918,7 @@ fn main() {
     let mut w = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
         let done_thread = done.clone(); let writeOps_thread = writeOps.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut write = Arc::new(Mutex::new(Some(writeOp {
             key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))),
             val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i64)))),
@@ -916,6 +929,11 @@ fn main() {
         { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
         Arc::new(Mutex::new(Some({ let __target = writeOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
         done_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

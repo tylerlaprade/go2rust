@@ -586,7 +586,13 @@ pub fn compare_and_swap(state: Arc<Mutex<Option<i32>>>, old: Arc<Mutex<Option<i3
 
 pub fn spin(awoke: Arc<Mutex<Option<bool>>>, old: Arc<Mutex<Option<i32>>>) -> bool {
     std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         ;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     if {
         let __go_cond_0 = {
