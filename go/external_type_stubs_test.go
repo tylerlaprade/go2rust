@@ -179,7 +179,7 @@ func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T)
 		false,
 	)
 
-	RegisterExternalPackageStubFunction("slices", "clip", sig)
+	RegisterExternalPackageStubFunction("slices", "slices", "clip", sig)
 	got := GenerateExternalTypeStubs()
 	for _, want := range []string{
 		"pub fn clip<S, E>(",
