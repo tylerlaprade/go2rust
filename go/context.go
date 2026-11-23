@@ -885,6 +885,16 @@ func NeedPanicRecover() {
 	}
 }
 
+// NeedGoPointerError marks that an error assertion must keep a concrete
+// pointer handle live instead of snapshotting its current pointee.
+func NeedGoPointerError() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoPointerError = true
+		trackWrapperImports()
+		TrackImport("Error")
+	}
+}
+
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
 func NeedGoValueClone() {
 	if helpers := activeHelperTracker(); helpers != nil {

@@ -1107,6 +1107,14 @@ run_xfail_test() {
     run_test "tests/error_argument_clone"
 }
 
+@test "error_assertion_concrete" {
+    run_test "tests/error_assertion_concrete"
+}
+
+@test "error_assertion_concrete_goroutines" {
+    run_test "tests/error_assertion_concrete_goroutines"
+}
+
 @test "error_copy_and_identity" {
     run_test "tests/error_copy_and_identity"
 }
@@ -1121,6 +1129,14 @@ run_xfail_test() {
 
 @test "error_custom_type_in_interface_goroutines" {
     run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
+@test "error_equivalent_interface" {
+    run_test "tests/error_equivalent_interface"
+}
+
+@test "error_equivalent_interface_goroutines" {
+    run_test "tests/error_equivalent_interface_goroutines"
 }
 
 @test "error_field_return" {
@@ -2205,6 +2221,14 @@ run_xfail_test() {
 
 @test "named_integer_unary_minus_returns_interface" {
     run_test "tests/named_integer_unary_minus_returns_interface"
+}
+
+@test "named_interface_struct_equality" {
+    run_test "tests/named_interface_struct_equality"
+}
+
+@test "named_interface_struct_equality_goroutines" {
+    run_test "tests/named_interface_struct_equality_goroutines"
 }
 
 @test "named_map_field_zero_len" {
@@ -3469,6 +3493,10 @@ run_xfail_test() {
 
 @test "stdlib_package_pointer_var_method" {
     run_test "tests/stdlib_package_pointer_var_method"
+}
+
+@test "stdlib_package_test_unicode_utf8_constants" {
+    run_test "tests/stdlib_package_test_unicode_utf8_constants"
 }
 
 @test "stdlib_package_var_comparison" {

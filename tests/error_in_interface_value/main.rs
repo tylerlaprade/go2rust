@@ -681,6 +681,32 @@ fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<O
     None
 }
 
+struct GoPointerError<T> {
+    handle: Rc<RefCell<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Rc<RefCell<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.borrow();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + 'static> std::error::Error for GoPointerError<T> {}
+
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -874,8 +900,8 @@ pub fn kind(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>>
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "string ".to_string(), (*x.borrow().as_ref().unwrap())))));;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {
@@ -899,7 +925,7 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
         drop(_ts_guard);
         return true;;
     }
@@ -937,13 +963,15 @@ fn main() {
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
                 ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
-            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
             } else {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+                (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+            (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });;
         if ok {
@@ -961,13 +989,15 @@ fn main() {
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
                 ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
-            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
             } else {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+                (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+            (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
     println!("{} {}", format!("{}", match boxedAlias.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", aliasIsError));
@@ -984,13 +1014,15 @@ fn main() {
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
                 ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
-            } else if let Some(typed_val) = any_val.downcast_ref::<std::string::String>() {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(typed_val.clone()))))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
             } else {
-                (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+                (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
             }
         } else {
-            (Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(std::string::String::new()))))), false)
+            (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
     println!("{}", format!("{}", numberIsError));

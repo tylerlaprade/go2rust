@@ -9731,15 +9731,35 @@ func f(xs []int) int {
 	if strings.Contains(rust, "0 as usize") || strings.Contains(rust, "1 as usize") {
 		t.Fatalf("range index untyped integer peers should use Go int, not usize:\n%s", rust)
 	}
-	hasComparison := strings.Contains(rust, "i as i64 > 0 as i64") ||
+	hasComparison := strings.Contains(rust, "(i as i64) > (0 as i64)") ||
 		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 0 as i64")
 	if !hasComparison {
 		t.Fatalf("range index comparison should cast the range index and constant to Go int:\n%s", rust)
 	}
-	hasArithmetic := strings.Contains(rust, "i as i64 + 1 as i64") ||
+	hasArithmetic := strings.Contains(rust, "(i as i64) + (1 as i64)") ||
 		strings.Contains(rust, "let __tmp_x = i as i64; let __tmp_y = 1 as i64")
 	if !hasArithmetic {
 		t.Fatalf("range index arithmetic should cast the range index and constant to Go int:\n%s", rust)
+	}
+}
+
+func TestRangeIndexUntypedConstComparisonCastsAreParenthesized(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+func f(xs []int) bool {
+	for i := range xs {
+		if 10 < i {
+			return true
+		}
+		if i < 10 {
+			return true
+		}
+	}
+	return false
+}`, &TypeInfo{})
+
+	if !strings.Contains(rust, "(10 as i64) < (i as i64)") {
+		t.Fatalf("range-index comparison casts must be parenthesized so Rust parses < as comparison:\n%s", rust)
 	}
 }
 

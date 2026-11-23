@@ -3639,6 +3639,17 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString(">()).is_some()")
 		return
 	}
+	if isEmptyInterfaceType(subjectType) && isErrorInterfaceType(typeInfo.GetType(typeExpr)) {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">()).is_some()")
+		for _, candidate := range goErrorAssertionCandidates(subjectType) {
+			out.WriteString(" || _ts_val.and_then(|__v| __v.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">()).is_some()")
+		}
+		return
+	}
 	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(handleType)
@@ -8313,7 +8324,36 @@ func isGoErrorType(typ types.Type) bool {
 	if errorObj == nil {
 		return false
 	}
-	return types.Identical(typ, errorObj.Type())
+	if types.Identical(types.Unalias(typ), types.Unalias(errorObj.Type())) {
+		return true
+	}
+	// Go interfaces are satisfied structurally. A named or anonymous
+	// interface whose complete method set is exactly Error() string accepts
+	// precisely the same values as the predeclared error interface, so it can
+	// use the same run-time representation. Keeping it on the generic local
+	// trait-object path loses errors.New/fmt.Errorf values because those are
+	// carried by the dedicated error handle.
+	iface, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorIface, ok := types.Unalias(errorObj.Type()).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	iface.Complete()
+	errorIface.Complete()
+	if !iface.IsMethodSet() || iface.NumMethods() != errorIface.NumMethods() {
+		return false
+	}
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		errorMethod := errorIface.Method(i)
+		if method.Id() != errorMethod.Id() || !types.Identical(method.Type(), errorMethod.Type()) {
+			return false
+		}
+	}
+	return true
 }
 
 func isConcreteGoErrorValue(typ types.Type) bool {
@@ -16675,11 +16715,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// handle of its own to the same error, so
 							// assigning to it does not change what the
 							// interface value holds.
-							writeErrorHandleCopy(out, func() {
-								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-								out.WriteString(handleType)
-								out.WriteString(">()).unwrap()")
-							})
+							out.WriteString("if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()) { ")
+							writeErrorHandleCopy(out, func() { out.WriteString("__err_handle") })
+							out.WriteString(" }")
+							for _, candidate := range goErrorAssertionCandidates(typeSwitchSubjectType) {
+								out.WriteString(" else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(candidate.rustType)
+								out.WriteString(">()) { ")
+								writeGoErrorHandleFromAssertionCandidate(out, candidate)
+								out.WriteString(" }")
+							}
+							out.WriteString(" else { unreachable!(\"type switch error case matched no error payload\") }")
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.
