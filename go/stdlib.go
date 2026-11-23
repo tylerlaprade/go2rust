@@ -461,23 +461,19 @@ func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __text = ")
 		defer out.WriteString("; __text }")
 	}
-	out.WriteString("format_any(")
+	// A nil interface value prints as <nil>.
+	out.WriteString("match ")
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else if _, ok := arg.(*ast.SelectorExpr); ok {
 		TranspileExpressionContext(out, arg, LValue)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	} else {
 		out.WriteString("(")
 		TranspileExpression(out, arg)
 		out.WriteString(")")
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap().as_ref()")
 	}
-	out.WriteString(")")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() }")
 }
 
 func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
@@ -609,6 +605,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
 			if writeNamedSlicePrintArg(out, arg, argType) {
+				return
+			}
+			if writeNamedArrayPrintArg(out, arg, argType) {
 				return
 			}
 			if writeNestedBasicSlicePrintArg(out, arg, argType) {
@@ -1412,6 +1411,22 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
 	}
+	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(ident); typ != nil {
+				if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+					// %T of a nil interface value is <nil>.
+					out.WriteString("match ")
+					out.WriteString(ident.Name)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref() { Some(__any_value) => ")
+					out.WriteString(goTypeNameHelperRustName)
+					out.WriteString("(&**__any_value), None => \"<nil>\" }")
+					return
+				}
+			}
+		}
+	}
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(")
 	if ident, ok := arg.(*ast.Ident); ok {
@@ -1898,6 +1913,29 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 // writeNamedSlicePrintArg prints a value of a named slice type, "type Ints
 // []int", as Go prints the slice: the elements are in the handle inside the
 // newtype, which has no Display of its own.
+// writeNamedArrayPrintArg prints a value of "type d [3]rune", a newtype over
+// the array's cell, through the Display its declaration gives it.
+func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	named, ok := types.Unalias(argType).(*types.Named)
+	if !ok || typeHasGoStringMethod(argType) {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return false
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
 func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	_, sliceType, ok := namedSliceTypeForExpr(arg)
 	if !ok || typeHasGoStringMethod(argType) {
@@ -2462,6 +2500,20 @@ func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
+	// A pointer variable, parameter or field is the handle of the value it
+	// points to; reading it as a value would read the int instead.
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.Ident:
+			if !isGoPtrIdent(e) {
+				writePointerHandleExpression(out, e)
+				return
+			}
+		case *ast.SelectorExpr:
+			writePointerHandleExpression(out, e)
+			return
+		}
+	}
 	TranspileExpression(out, expr)
 }
 
@@ -5666,6 +5718,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writeNamedArrayLen(out, call.Args[0]) {
+			return
+		}
+
 		var namedString strings.Builder
 		if writeNamedStringNewtypeInnerValue(&namedString, call.Args[0]) {
 			out.WriteString("(")
@@ -5714,6 +5770,32 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+// writeNamedArrayLen writes len of a value of "type d [3]rune", which is
+// its type's length. Only a variable, field or element: anything else may
+// have effects to keep.
+func writeNamedArrayLen(out *strings.Builder, expr ast.Expr) bool {
+	switch unwrapParens(expr).(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.IndexExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return false
+	}
+	array, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return false
+	}
+	out.WriteString(strconv.FormatInt(array.Len(), 10))
+	out.WriteString("usize")
+	return true
 }
 
 func writePointerToArrayLen(out *strings.Builder, expr ast.Expr) bool {

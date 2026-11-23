@@ -152,7 +152,9 @@ type HelperTracker struct {
 	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
+	needsAnyHandleCopy                   bool
 	needsPanicRecover                    bool
+	needsGoPointerError                  bool
 	needsGoValueClone                    bool
 	needsGoTypeParamFieldClone           bool
 	needsGoComparable                    bool
@@ -369,12 +371,16 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateAnyEquality(&result)
 	}
 
-	if ht.needsAnyClone {
-		generateAnyClone(&result, anyCloneTypes)
+	if ht.needsAnyClone || ht.needsAnyHandleCopy {
+		generateAnyClone(&result, anyCloneTypes, ht.needsAnyHandleCopy)
 	}
 
 	if ht.needsPanicRecover {
 		generatePanicRecoverHelper(&result)
+	}
+
+	if ht.needsGoPointerError {
+		generateGoPointerError(&result)
 	}
 
 	if ht.needsGoValueClone {
@@ -540,7 +546,9 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
+		ht.needsAnyHandleCopy ||
 		ht.needsPanicRecover ||
+		ht.needsGoPointerError ||
 		ht.needsGoValueClone ||
 		ht.needsGoTypeParamFieldClone ||
 		ht.needsGoComparable ||
@@ -682,11 +690,17 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsAnyEq {
 		add("go_any_eq")
 	}
-	if ht.needsAnyClone {
-		add("go_any_clone")
+	if ht.needsAnyClone || ht.needsAnyHandleCopy {
+		add("go_any_clone", "go_any_try_clone")
+	}
+	if ht.needsAnyHandleCopy {
+		add("go_any_handle_copy", "go_any_store")
 	}
 	if ht.needsPanicRecover {
-		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text")
+		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_silence_panic_hook", "go_restore_panic_hook")
+	}
+	if ht.needsGoPointerError {
+		add("GoPointerError")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1199,70 +1213,164 @@ func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, 
 		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
-		out.WriteString(">() { return Box::new(v.clone()) as ")
+		out.WriteString(">() { return Some(Box::new(v.clone()) as ")
 		out.WriteString(traitObject)
-		out.WriteString("; }\n")
+		out.WriteString("); }\n")
 	}
 }
 
-func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
+// generateAnyClone writes the copies of interface{} values. go_any_try_clone
+// copies a dynamic value whose type the program boxes; go_any_clone does the
+// same and stops the program for any other type. go_any_handle_copy and
+// go_any_store give a variable Go's copy of an interface value, the same
+// dynamic value in a cell of its own; a value whose type has no copy keeps
+// sharing the source's cell, as every interface copy did before.
+func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool, withHandles bool) {
 	TrackImport("Any")
 	visibility := ""
 	if generatingPublicHelpers {
 		visibility = "pub "
 	}
+	traitObject := "Box<dyn Any>"
+	valueRef := "&dyn Any"
+	handle := "Rc<RefCell<Option<Box<dyn Any>>>>"
+	newCell := "Rc::new(RefCell::new("
+	read := ".borrow()"
+	write := ".borrow_mut()"
+	pointer := "Rc"
 	if NeedsConcurrentWrapper() {
-		out.WriteString("\n")
-		out.WriteString(visibility)
-		out.WriteString(`fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-`)
-		writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any + Send + Sync>")
-		out.WriteString(`
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
-}
-`)
-		return
+		traitObject = "Box<dyn Any + Send + Sync>"
+		valueRef = "&(dyn Any + Send + Sync)"
+		handle = "Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>"
+		newCell = "Arc::new(Mutex::new("
+		read = ".lock().unwrap()"
+		write = ".lock().unwrap()"
+		pointer = "Arc"
+		TrackImport("Arc")
+		TrackImport("Mutex")
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
 	}
 	out.WriteString("\n")
 	out.WriteString(visibility)
-	out.WriteString(`fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
-    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
-    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
-`)
-	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
-	out.WriteString(`
-    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+	out.WriteString("fn go_any_try_clone(value: " + valueRef + ") -> Option<" + traitObject + "> {\n")
+	for _, primitive := range []string{"i32", "i64", "i8", "i16", "u32", "u64", "u8", "u16", "usize", "isize", "f64", "f32", "&'static str", "bool", "char"} {
+		out.WriteString("    if let Some(v) = value.downcast_ref::<" + primitive + ">() { return Some(Box::new(*v) as " + traitObject + "); }\n")
+	}
+	out.WriteString("    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as " + traitObject + "); }\n")
+	writeAnyCloneTypeArms(out, anyCloneTypes, traitObject)
+	out.WriteString("    None\n}\n\n")
+	out.WriteString(visibility)
+	out.WriteString("fn go_any_clone(value: " + valueRef + ") -> " + traitObject + " {\n")
+	out.WriteString("    go_any_try_clone(value).unwrap_or_else(|| panic!(\"go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>\"))\n}\n")
+	if !withHandles {
+		return
+	}
+	out.WriteString("\n#[allow(dead_code)]\n")
+	out.WriteString(visibility)
+	out.WriteString("fn go_any_handle_copy(handle: &" + handle + ") -> " + handle + " {\n")
+	out.WriteString("    let __copy = match handle" + read + ".as_ref() {\n")
+	out.WriteString("        None => None,\n")
+	out.WriteString("        Some(value) => match go_any_try_clone(&**value) {\n")
+	out.WriteString("            Some(copy) => Some(copy),\n")
+	out.WriteString("            None => return handle.clone(),\n")
+	out.WriteString("        },\n")
+	out.WriteString("    };\n")
+	out.WriteString("    " + newCell + "__copy))\n}\n\n")
+	out.WriteString("/// Stores Go's copy of source's value in target's cell. A source that no\n")
+	out.WriteString("/// one else holds gives up its value; a value whose type has no copy comes\n")
+	out.WriteString("/// back for the caller to share instead.\n")
+	out.WriteString("#[allow(dead_code)]\n")
+	out.WriteString(visibility)
+	out.WriteString("fn go_any_store(target: &" + handle + ", source: " + handle + ") -> Option<" + handle + "> {\n")
+	out.WriteString("    if " + pointer + "::ptr_eq(target, &source) {\n        return None;\n    }\n")
+	out.WriteString("    let __value = if " + pointer + "::strong_count(&source) == 1 {\n")
+	out.WriteString("        source" + write + ".take()\n")
+	out.WriteString("    } else {\n")
+	out.WriteString("        let __copy = match source" + read + ".as_ref() {\n")
+	out.WriteString("            None => None,\n")
+	out.WriteString("            Some(value) => match go_any_try_clone(&**value) {\n")
+	out.WriteString("                Some(copy) => Some(copy),\n")
+	out.WriteString("                None => return Some(source.clone()),\n")
+	out.WriteString("            },\n")
+	out.WriteString("        };\n")
+	out.WriteString("        __copy\n")
+	out.WriteString("    };\n")
+	out.WriteString("    *target" + write + " = __value;\n")
+	out.WriteString("    None\n}\n")
 }
+
+// generateGoPointerError emits an error adapter that keeps the original Go
+// pointer handle. Error interface bindings must observe later whole-value
+// replacement through that handle instead of snapshotting the pointee.
+func generateGoPointerError(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString("\n")
+		out.WriteString(visibility)
+		out.WriteString(`struct GoPointerError<T> {
+    handle: Arc<Mutex<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Arc<Mutex<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.lock().unwrap();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + Send + Sync + 'static> std::error::Error for GoPointerError<T> {}
+`)
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`struct GoPointerError<T> {
+    handle: Rc<RefCell<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Rc<RefCell<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.borrow();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + 'static> std::error::Error for GoPointerError<T> {}
 `)
 }
 
@@ -1349,6 +1457,7 @@ func generatePanicRecoverHelper(out *strings.Builder) {
 }
 `)
 	writeGoRuntimeErrorText(out, visibility)
+	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
@@ -1401,6 +1510,7 @@ thread_local! {
 }
 `)
 	writeGoRuntimeErrorText(out, visibility)
+	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
 	out.WriteString(`fn go_resume_unrecovered_panic() {
@@ -1410,6 +1520,47 @@ thread_local! {
             Err(__payload) => std::panic::resume_unwind(__payload),
         }
     }
+}
+`)
+}
+
+// writePanicHookSilencer writes go_silence_panic_hook and
+// go_restore_panic_hook. While a function with a defer runs its body under
+// catch_unwind, Rust's panic hook must not print a panic that a deferred
+// recover() may still stop. The hook is one per process, so swapping it in
+// and out races when goroutines on several threads do it at once: one
+// thread puts the printing hook back while another is panicking. Instead a
+// hook installed once checks a per-thread depth, and each catch raises the
+// depth on its own thread and puts it back afterwards.
+func writePanicHookSilencer(out *strings.Builder, visibility string) {
+	out.WriteString(`
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
 }
 `)
 }
@@ -1952,6 +2103,13 @@ func generateAnyEquality(out *strings.Builder) {
 		TrackImport("Mutex")
 		out.WriteString(`
 fn go_any_eq(left: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, right: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    if Arc::ptr_eq(left, right) {
+        let guard = left.lock().unwrap();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.lock().unwrap();
     let right_guard = right.lock().unwrap();
     match (left_guard.as_ref(), right_guard.as_ref()) {
@@ -1990,6 +2148,13 @@ fn go_any_values_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sy
 	TrackImport("RefCell")
 	out.WriteString(`
 fn go_any_eq(left: &Rc<RefCell<Option<Box<dyn Any>>>>, right: &Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
+    if Rc::ptr_eq(left, right) {
+        let guard = left.borrow();
+        return match guard.as_ref() {
+            None => true,
+            Some(value) => go_any_values_eq(value.as_ref(), value.as_ref()),
+        };
+    }
     let left_guard = left.borrow();
     let right_guard = right.borrow();
     match (left_guard.as_ref(), right_guard.as_ref()) {
@@ -2577,6 +2742,7 @@ func generateGoMutexHelper(out *strings.Builder) {
 	out.WriteString(`
 struct GoMutex {
     inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+    is_nil: bool,
 }
 
 struct GoMutexGuard {
@@ -2588,10 +2754,26 @@ impl GoMutex {
     fn new() -> Self {
         GoMutex {
             inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: false,
         }
     }
 
+    fn nil() -> Self {
+        GoMutex {
+            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: true,
+        }
+    }
+
+    fn go_ptr_eq(left: &Self, right: &Self) -> bool {
+        if left.is_nil || right.is_nil {
+            return left.is_nil && right.is_nil;
+        }
+        std::sync::Arc::ptr_eq(&left.inner, &right.inner)
+    }
+
     fn lock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         while *locked {
@@ -2601,6 +2783,7 @@ impl GoMutex {
     }
 
     fn unlock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         if !*locked {
@@ -2638,6 +2821,7 @@ impl Clone for GoMutex {
     fn clone(&self) -> Self {
         GoMutex {
             inner: self.inner.clone(),
+            is_nil: self.is_nil,
         }
     }
 }
@@ -2958,6 +3142,7 @@ fn `)
 	out.WriteString(`(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }

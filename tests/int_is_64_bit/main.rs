@@ -10,12 +10,6 @@ use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -592,6 +586,7 @@ impl std::io::Write for GoSlice<u8> {
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -694,7 +689,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), false)
         }
     });
-    print!("{} {} {}\n", __go_type_name(&**x.borrow().as_ref().unwrap()), isInt, 5000000000i64);
+    print!("{} {} {}\n", match x.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }, isInt, 5000000000i64);
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     print!("{} {} {}\n", "int32", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }, ({ let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }) as u8 as char);
 }

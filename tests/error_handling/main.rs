@@ -9,12 +9,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -645,10 +639,23 @@ fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
 
 // Two errors are the same error when they point to the same value, as ==
 // on two errors is written.
+fn go_errors_same(left: &Rc<dyn StdError>, right: &Rc<dyn StdError>) -> bool {
+    if std::ptr::addr_eq(&**left, &**right) {
+        return true;
+    }
+    match (
+        left.downcast_ref::<std::io::Error>(),
+        right.downcast_ref::<std::io::Error>(),
+    ) {
+        (Some(left), Some(right)) => left.kind() == right.kind(),
+        _ => false,
+    }
+}
+
 fn go_errors_is(err: Option<Rc<dyn StdError>>, target: Option<Rc<dyn StdError>>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| go_errors_same(e, &target)),
         _ => false,
     }
 }

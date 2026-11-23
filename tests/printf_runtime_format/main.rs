@@ -12,12 +12,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -775,6 +769,7 @@ fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -1201,6 +1196,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
         };
     }
     signed!(i8, i16, i32, i64, isize);
+    // A rune taken from a range over a string can be a Rust char; it is a
+    // Go rune, an int32.
+    if let Some(v) = value.downcast_ref::<char>() {
+        return go_format_integer(&basic, verb, *v as i128);
+    }
     macro_rules! unsigned {
         ($($t:ty),*) => {
             $(if let Some(v) = value.downcast_ref::<$t>() {
@@ -1467,24 +1467,40 @@ impl errors_joinError {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct fs_PathError;
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
+    pub op: Rc<RefCell<Option<String>>>,
+    pub path: Rc<RefCell<Option<String>>>,
+}
 
 impl std::fmt::Display for fs_PathError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<fs_PathError>")
+        let __op_guard = self.op.borrow();
+        let __path_guard = self.path.borrow();
+        let __err_guard = self.err.borrow();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
     }
 }
 
 impl std::error::Error for fs_PathError {}
-
 
 impl fs_PathError {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("fs_PathError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+        Rc::new(RefCell::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+        self.err.clone()
     }
 }
 

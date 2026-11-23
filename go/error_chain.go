@@ -64,9 +64,8 @@ func errorChainUnwrapArms() string {
 	return arms.String()
 }
 
-// externalErrorChainUnwrapArms follows concrete native runtime errors whose
-// Go sources cannot be translated. fs.PathError is the shape returned by OS
-// operations and exposes its cause through Unwrap.
+// externalErrorChainUnwrapArms follows the cause stored by the native os.Open
+// adapter when its consumer uses the external representation of io/fs.PathError.
 func externalErrorChainUnwrapArms() string {
 	needsPathError := currentExternalTypeStubs()["fs_PathError"]
 	if !needsPathError {

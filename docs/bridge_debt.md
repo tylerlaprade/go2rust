@@ -233,53 +233,6 @@ against the `// TEMPORARY:` comments of that one file.
   yet; that waits for the same change.
 - Added: 2026-11-20
 
-## Behavioral bridges in external stubs without TEMPORARY markers
-
-These rows cover existing external-stub behavior that predates the
-`// TEMPORARY:` marker convention. They use named `// BRIDGE:` markers and are
-kept outside "## Shims" because that historical section is counted one-for-one
-against `// TEMPORARY:` comments.
-
-**io-fs-path-error**
-
-- Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
-- Go symbol: `io/fs.PathError`
-- Transpiler gap: ordinary non-source-mapped programs cannot use a
-  source-transpiled `io/fs.PathError`, so the external stub emits its concrete
-  fields and wrapped cause.
-- Fixture: `tests/os_open_path_error/` and
-  `tests/os_open_path_error_goroutines/`
-- Removal trigger: source-transpile and source-map `io/fs.PathError` for
-  ordinary callers, then delete the stub.
-- Added: 2026-11-20 (backfill)
-
-**os-open-path-error**
-
-- Location: `go/external_type_stubs.go`, `writeOsErrorHelpers` and
-  `writeOsOpenFunction`
-- Go symbol: `os.Open`
-- Transpiler gap: the ordinary `os.Open` stub calls Rust `std::fs` and cannot
-  construct the source-transpiled `io/fs.PathError` across that boundary.
-- Fixture: `tests/os_open_path_error/` and
-  `tests/os_open_path_error_goroutines/`
-- Removal trigger: source-transpile the `os.Open`/`io/fs.PathError` boundary
-  and delete the external-stub constructor.
-- Added: 2026-11-20 (backfill)
-
-**io-fs-err-not-exist**
-
-- Location: `go/external_type_stubs.go`,
-  `writeExternalPackageStubVariable`
-- Go symbol: `io/fs.ErrNotExist`
-- Transpiler gap: external package variables cannot refer to the
-  source-transpiled sentinel, so the ordinary stub maps it to Rust
-  `ErrorKind::NotFound`.
-- Fixture: `tests/os_open_path_error/` and
-  `tests/os_open_path_error_goroutines/`
-- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
-  route `errors.Is` through it, then delete the external-stub branch.
-- Added: 2026-11-20 (backfill)
-
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36
@@ -288,6 +241,50 @@ transpiler-gap and fixture fields. **When you touch a shim, fill in its row
 before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
+
+### io-fs-path-error
+
+- Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
+- Go symbol: `io/fs.PathError`
+- Transpiler gap: ordinary non-source-mapped programs cannot use a
+  source-transpiled `io/fs.PathError`, so the external stub emits its concrete
+  fields and wrapped cause. A program that opts into `io/fs` currently has
+  two Rust types for the same Go declaration, so `errors.As` returns false.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile and source-map `io/fs.PathError` for
+  ordinary callers, then delete the stub.
+- Added: 2026-11-20
+
+### os-open-path-error
+
+- Location: `go/external_type_stubs.go`, `writeOsErrorHelpers` and
+  `writeOsOpenFunction`
+- Go symbol: `os.Open`
+- Transpiler gap: the ordinary `os.Open` stub calls Rust `std::fs` and cannot
+  construct the source-transpiled `io/fs.PathError` across that boundary.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile the `os.Open`/`io/fs.PathError` boundary
+  and delete the external-stub constructor.
+- Added: 2026-11-20
+
+### io-fs-err-not-exist
+
+- Location: `go/external_type_stubs.go`,
+  `writeExternalPackageStubVariable`
+- Go symbol: `io/fs.ErrNotExist`
+- Transpiler gap: external package variables cannot refer to the
+  source-transpiled sentinel, so the ordinary stub maps it to Rust
+  `ErrorKind::NotFound`.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
+  route `errors.Is` through it, then delete the external-stub branch.
+- Added: 2026-11-20
 
 ### json-marshal-helpers
 
@@ -357,9 +354,25 @@ in the first place.
 
 ### json-package
 
-- Location: `go/external_type_stubs.go:5885`
+- Location: `go/external_type_stubs.go:writeJsonPackageStub`
 - Go symbol: `encoding/json` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: the package source is not yet lowered; `writeJsonPackageStub`
+  implements the currently supported JSON entry points, including `Valid`.
+- Fixture: `tests/json_valid/`, `tests/json_valid_goroutines/`
 - Removal trigger: transpiler can lower `encoding/json` source.
 - Added: 2026-05-27 (backfill)
+
+### fs-filemode-perm
+
+- Location: `go/external_type_stubs.go`,
+  `writeFsFileModePermMethod`
+- Go symbol: `io/fs.FileMode.Perm`
+- Transpiler gap: non-source-mapped callers still represent `io/fs.FileMode`
+  through the external integer stub, so its Go method body is unavailable and
+  the generic external method emitter panics.
+- Fixture: `tests/filemode_perm/` and
+  `tests/filemode_perm_goroutines/`
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-translated
+  `io/fs` type and method body instead of the external integer stub; then
+  delete `writeFsFileModePermMethod`.
+- Added: 2026-11-23

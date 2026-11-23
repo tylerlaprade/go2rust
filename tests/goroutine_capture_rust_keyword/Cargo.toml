@@ -1,0 +1,11 @@
+[package]
+name = "goroutine_capture_rust_keyword"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goroutine_capture_rust_keyword"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

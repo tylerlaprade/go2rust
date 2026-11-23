@@ -8,12 +8,6 @@ use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -590,6 +584,7 @@ impl std::io::Write for GoSlice<u8> {
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
+    if val.is::<char>() { return "int32" }
     if val.is::<i8>() { return "int8" }
     if val.is::<i16>() { return "int16" }
     if val.is::<u64>() { return "uint" }
@@ -718,7 +713,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     } else {
         let v = _ts_subject.clone();
         drop(_ts_guard);
-        print!("Unknown type: {}\n", __go_type_name(&**v.borrow().as_ref().unwrap()));;
+        print!("Unknown type: {}\n", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });;
     }
     }
 }
