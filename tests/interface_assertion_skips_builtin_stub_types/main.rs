@@ -1035,7 +1035,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "stringer ".to_string(), (*(*x.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() {
-        let x = { let __err_source = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };
+        let x = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}{}", "error ".to_string(), (*Rc::new(RefCell::new(Some(format!("{}", x.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())))));;
     } else {

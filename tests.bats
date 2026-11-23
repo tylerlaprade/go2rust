@@ -807,6 +807,10 @@ run_xfail_test() {
     run_test "tests/concrete_reassigned_to_interface_var"
 }
 
+@test "concurrency_patterns" {
+    run_test "tests/concurrency_patterns"
+}
+
 @test "concurrent_address_composite_method" {
     run_test "tests/concurrent_address_composite_method"
 }
@@ -3973,10 +3977,6 @@ run_xfail_test() {
 
 @test "wrapped_call_argument" {
     run_test "tests/wrapped_call_argument"
-}
-
-@test "XFAIL: concurrency_patterns" {
-    run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
 
 @test "XFAIL: file_operations" {
