@@ -2097,8 +2097,14 @@ func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
 		switch types.Unalias(named.Underlying()).(type) {
-		case *types.Slice, *types.Map:
+		case *types.Slice:
 			return false
+		case *types.Map:
+			out.WriteString(" = ")
+			WriteWrapperPrefix(out)
+			out.WriteString(zeroValueForTypesType(typ))
+			WriteWrapperSuffix(out)
+			return true
 		}
 	}
 	switch types.Unalias(typ).Underlying().(type) {
@@ -12888,7 +12894,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				// Generate the map access code.
-				mapIsBareValue := isExpressionResultBare(indexExpr.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(indexExpr.X))
+				mapIsBareValue := isExpressionResultBare(indexExpr.X)
 				if mapIsBareValue {
 					out.WriteString("match ")
 					TranspileExpression(out, indexExpr.X)
@@ -12929,7 +12935,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(", ")
 				out.WriteString("false")
 				out.WriteString(") }")
-				if !isExpressionResultBare(indexExpr.X) && (NeedsConcurrentWrapper() || !isBareMapSelectorExpression(indexExpr.X)) {
+				if !isExpressionResultBare(indexExpr.X) {
 					out.WriteString(" }")
 				}
 				if s.Tok == token.DEFINE {
@@ -15295,7 +15301,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
 		}
 		writeMapRangeSource := func() {
-			if !isNamedMapExpression(s.X) && (isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X))) {
+			if !isNamedMapExpression(s.X) && isExpressionResultBare(s.X) {
 				out.WriteString("(")
 				TranspileExpression(out, s.X)
 				out.WriteString(").clone()")

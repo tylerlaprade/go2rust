@@ -6600,6 +6600,29 @@ func store() {
 	}
 }
 
+func TestZeroValueMapFieldLookupAndRangeStayNilSafe(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type holder struct { values map[string]int }
+
+func check() {
+	var h holder
+	_ = h.values["plain"]
+	_, _ = h.values["missing"]
+	for range h.values {}
+}
+`)
+
+	if strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone().get") ||
+		strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone()).clone()") {
+		t.Fatalf("nil map field lookup and range must not unwrap the map value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".values.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then") ||
+		!strings.Contains(rust, "let __range_map = __range_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("map field comma-ok lookup and range should use the nil-tolerant handle path:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentCastsBareRangeIndexValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

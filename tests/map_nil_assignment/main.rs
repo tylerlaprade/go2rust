@@ -6,7 +6,9 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::cmp::Ord;
 use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
@@ -581,6 +583,32 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+where
+    V: Display,
+{
+    let guard = map.borrow();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.borrow();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", k, val)
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
 
 fn format_any(value: &dyn Any) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
@@ -657,6 +685,28 @@ fn go_resume_unrecovered_panic() {
         }
     }
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct holder {
+    pub values: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>,
+}
+
+impl holder {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.values.clone();
+        Self {
+            values: __go_clone_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for holder {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", format_map(&self.values));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
 
 pub fn key() -> Rc<RefCell<Option<String>>> {
     println!("{}", format!("{}", "key".to_string()));
@@ -750,10 +800,21 @@ pub fn compound_assignment() {
     }
 }
 
+pub fn field_checks() {
+    let mut h: Rc<RefCell<Option<holder>>> = Rc::new(RefCell::new(Some(Default::default())));
+    let mut plain = Rc::new(RefCell::new(Some({ let __map_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"plain".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) })));
+    let (mut missing, mut ok) = { let __map_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };
+    println!("{} {} {} {} {}", format!("{}", { let __nil_target = (*h.borrow().as_ref().unwrap()).values.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", ({ let __len_target = { let __field = (*h.borrow().as_ref().unwrap()).values.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", { let __v = (*plain.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*missing.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
+    for _ in { let __range_holder = (*h.borrow().as_ref().unwrap()).values.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        println!("{}", format!("{}", "unexpected field range value".to_string()));
+    }
+}
+
 fn main() {
     let mut made = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())));
     { let __map_key = "ok".to_string(); let __map_value = Rc::new(RefCell::new(Some(3))); (*made.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", { let __nil_result = (*made.borrow()).is_none(); __nil_result }), format!("{}", { let __map_holder = made.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"ok".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    field_checks();
     direct_assignment();
     compound_assignment();
 }
