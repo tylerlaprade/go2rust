@@ -1118,6 +1118,7 @@ func TestOsReadDirStubPreservesAndSortsUnixNameBytes(t *testing.T) {
 	})
 	got := out.String()
 	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string());",
 		"std::os::unix::ffi::OsStringExt",
 		"__go_string_from_bytes(entry.file_name().into_vec())",
 		"entry.file_name().to_string_lossy().into_owned()",
@@ -1235,6 +1236,7 @@ func TestOsOpenStubReadsFileBytes(t *testing.T) {
 		t.Fatalf("os.Open should not use the generic stub panic:\n%s", got)
 	}
 	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string());",
 		"std::fs::read(&path)",
 		"os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data))",
 		"None::<os_File>",
@@ -1242,6 +1244,39 @@ func TestOsOpenStubReadsFileBytes(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Open shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsOpenAndReadDirStubsUseCanonicalUnixPathBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsErrorHelpers(&out)
+	writeOsOpenFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("os_File"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	writeOsReadDirFunction(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("Vec<fs_DirEntry>"),
+			wrappedExternalStubType(externalStubErrorInnerType()),
+		},
+	})
+	got := out.String()
+	if count := strings.Count(got, "let path = go_path(_arg0.into_go_string());"); count != 2 {
+		t.Fatalf("os.Open/ReadDir should both decode canonical path bytes; got %d uses:\n%s", count, got)
+	}
+	for _, want := range []string{
+		"fn go_path(path: String) -> std::path::PathBuf",
+		"std::ffi::OsString::from_vec(__go_string_bytes(&path))",
+		"std::fs::read(&path)",
+		"std::fs::read_dir(&path)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Open/ReadDir shims should include %q:\n%s", want, got)
 		}
 	}
 }
