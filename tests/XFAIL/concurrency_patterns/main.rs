@@ -1090,22 +1090,17 @@ fn main() {
     let mut w = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*numWorkers.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
         wg.add(1);
-        let jobs_thread = jobs.clone(); let results_thread = results.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some({ let __arg_holder = w.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); std::thread::spawn(move || {
+        let jobs_thread = jobs.clone(); let results_thread = results.clone(); let wg_thread = wg.clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
-        let mut __closure = move |id: Arc<Mutex<Option<i64>>>| {
-            let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
+        let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            for job in jobs_thread.clone() {
-        print!("Worker {} processing job {}\n", format!("{}", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", job));
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        for job in jobs_thread.clone() {
         results_thread.send({ let __tmp_x = job; let __tmp_y = 2; __tmp_x * __tmp_y });
     };
-            while let Some(f) = __defer_stack.pop() {
-                f();
-            }
+        while let Some(f) = __defer_stack.pop() {
+            f();
         };
-        __closure(__go_arg_0);
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -1125,10 +1120,13 @@ fn main() {
         results_thread.close();;;
     });
 
-        // Collect results
+        // Collect results independently of worker scheduling.
+    let (mut workerCount, mut workerTotal) = (Arc::new(Mutex::new(Some(0i64))), Arc::new(Mutex::new(Some(0i64))));
     for result in results.clone() {
-        print!("Result: {}\n", result);
+        { let mut guard = workerCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __rhs = result; let mut guard = workerTotal.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
+    print!("Worker results: {}, total: {}\n", format!("{}", { let __v = (*workerCount.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*workerTotal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // Producer-Consumer pattern
     println!("{}", format!("{}", "\n=== Producer-Consumer Pattern ===".to_string()));
@@ -1140,9 +1138,7 @@ fn main() {
     let buffer_thread = buffer.clone(); std::thread::spawn(move || {
         let mut items = Arc::new(Mutex::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string(), "elderberry".to_string()])));;
         { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        print!("Producing: {}\n", item);
         buffer_thread.send(item);
-        std::thread::sleep(std::time::Duration::from_millis(50));
     } };
         buffer_thread.close();;;
     });
@@ -1151,7 +1147,6 @@ fn main() {
     let buffer_thread = buffer.clone(); let done_thread = done.clone(); std::thread::spawn(move || {
         for item in buffer_thread.clone() {
         print!("Consuming: {}\n", item);
-        std::thread::sleep(std::time::Duration::from_millis(100));
     };
         done_thread.send(true);;;
     });
@@ -1181,10 +1176,13 @@ fn main() {
         input_thread.close();;;
     });
 
-        // Collect output
+        // Any fan-out worker may process an input.
+    let (mut fanInCount, mut fanInTotal) = (Arc::new(Mutex::new(Some(0i64))), Arc::new(Mutex::new(Some(0i64))));
     for result in output.clone() {
-        print!("Fan-in result: {}\n", result);
+        { let mut guard = fanInCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let __rhs = result; let mut guard = fanInTotal.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
+    print!("Fan-in results: {}, total: {}\n", format!("{}", { let __v = (*fanInCount.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*fanInTotal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // Pipeline pattern
     println!("{}", format!("{}", "\n=== Pipeline Pattern ===".to_string()));
@@ -1248,7 +1246,7 @@ fn main() {
     let mut mutex = GoMutex::new();
     let mut wg2 = WaitGroup::new();
 
-    let mut counter_closure_clone = counter.clone(); let mutex_closure_clone = mutex.clone(); let wg2_closure_clone = wg2.clone(); let mut increment = Arc::new(Mutex::new(Some(Box::new(move |id: Arc<Mutex<Option<i64>>>| {
+    let mut counter_closure_clone = counter.clone(); let mutex_closure_clone = mutex.clone(); let wg2_closure_clone = wg2.clone(); let mut increment = Arc::new(Mutex::new(Some(Box::new(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
@@ -1263,7 +1261,6 @@ fn main() {
         mutex_closure_clone.unlock();
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        print!("Goroutine {} finished\n", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v });
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1285,21 +1282,21 @@ fn main() {
                 ()
             }
         }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>)));
+    }) as Box<dyn FnMut() -> () + Send + Sync>)));
 
         // Start multiple goroutines
     let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         wg2.add(1);
-        let i_thread = Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))); let increment_thread = increment.clone(); std::thread::spawn(move || {
+        let increment_thread = increment.clone(); std::thread::spawn(move || {
         {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
                 let mut __f_guard = increment_thread.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
-                i_thread.clone()
+
             )
         };
     });
@@ -1313,9 +1310,13 @@ fn main() {
     println!("{}", format!("{}", "\n=== Channel-based Synchronization ===".to_string()));
 
     let mut wg3 = WaitGroup::new();
-    let mut barrier = GoChannel::<bool>::new_buffered(3 as usize);
+    const barrierWorkers: i64 = 3;
 
-    let barrier_closure_clone = barrier.clone(); let wg3_closure_clone = wg3.clone(); let mut worker = Arc::new(Mutex::new(Some(Box::new(move |id: Arc<Mutex<Option<i64>>>| {
+    let mut ready = GoChannel::<bool>::new();
+    let mut release = GoChannel::<bool>::new();
+    let mut finished = GoChannel::<bool>::new_buffered((barrierWorkers) as usize);
+
+    let finished_closure_clone = finished.clone(); let ready_closure_clone = ready.clone(); let release_closure_clone = release.clone(); let wg3_closure_clone = wg3.clone(); let mut worker = Arc::new(Mutex::new(Some(Box::new(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
@@ -1323,12 +1324,9 @@ fn main() {
         let wg3_defer_captured = wg3_closure_clone.clone(); __defer_stack.push(Box::new(move || {
         wg3_defer_captured.done();
     }));
-        print!("Worker {}: Phase 1 complete\n", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v });
-        barrier_closure_clone.send(true);
-        barrier_closure_clone.recv().unwrap_or_default();
-        barrier_closure_clone.recv().unwrap_or_default();
-        barrier_closure_clone.recv().unwrap_or_default();
-        print!("Worker {}: Phase 2 complete\n", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        ready_closure_clone.send(true);
+        release_closure_clone.recv().unwrap_or_default();
+        finished_closure_clone.send(true);
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1350,87 +1348,71 @@ fn main() {
                 ()
             }
         }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>)));
+    }) as Box<dyn FnMut() -> () + Send + Sync>)));
 
-        // Do some work
-        // Signal completion of phase 1
-        // Wait for all workers to complete phase 1
-        // Do phase 2 work
-    let mut i = Arc::new(Mutex::new(Some(1i64)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         wg3.add(1);
-        let i_thread = Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))); let worker_thread = worker.clone(); std::thread::spawn(move || {
+        let worker_thread = worker.clone(); std::thread::spawn(move || {
         {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
+            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
                 let mut __f_guard = worker_thread.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
-                i_thread.clone()
+
             )
         };
     });
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        ready.recv().unwrap_or_default();
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    print!("Workers ready: {}\n", barrierWorkers);
+    release.close();
     wg3.wait();
+    print!("Workers finished: {}\n", finished.len());
 
         // Timeout pattern
     println!("{}", format!("{}", "\n=== Timeout Pattern ===".to_string()));
 
-    let mut slowOperation = Arc::new(Mutex::new(Some(Box::new(move || -> GoChannel<String> {
-        let mut result = GoChannel::<String>::new();
-        let result_thread = result.clone(); std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(200));;
+    let mut allowResult = GoChannel::<bool>::new();
+    let mut result = GoChannel::<String>::new();
+    let allowResult_thread = allowResult.clone(); let result_thread = result.clone(); std::thread::spawn(move || {
+        allowResult_thread.recv().unwrap_or_default();;
         result_thread.send("Operation completed".to_string());;;
     });
-        result.clone()
-    }) as Box<dyn FnMut() -> GoChannel<String> + Send + Sync>)));
 
     loop {
-        if let Some(__select_recv) = {
-            let __f_ptr: *mut Box<dyn FnMut() -> GoChannel<String> + Send + Sync> = {
-                let mut __f_guard = slowOperation.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> GoChannel<String> + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
-
-            )
-        }.try_recv_select() {
+        if let Some(__select_recv) = result.try_recv_select() {
             let __select_ok = __select_recv.is_some();
-            let result = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut result = Arc::new(Mutex::new(Some(result)));
-            print!("Success: {}\n", { let __v = (*result.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let value = match __select_recv { Some(__v) => __v, None => Default::default() };
+            let mut value = Arc::new(Mutex::new(Some(value)));
+            print!("Success: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = go_channel_after(std::time::Duration::from_millis(100)).try_recv_select() {
+        if let Some(_) = go_channel_after(std::time::Duration::from_millis(1)).try_recv_select() {
             println!("{}", format!("{}", "Timeout: Operation took too long".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
 
-        // Try again with longer timeout
+        // Make the result available after observing the timeout.
+    allowResult.close();
     loop {
-        if let Some(__select_recv) = {
-            let __f_ptr: *mut Box<dyn FnMut() -> GoChannel<String> + Send + Sync> = {
-                let mut __f_guard = slowOperation.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> GoChannel<String> + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
-
-            )
-        }.try_recv_select() {
+        if let Some(__select_recv) = result.try_recv_select() {
             let __select_ok = __select_recv.is_some();
-            let result = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut result = Arc::new(Mutex::new(Some(result)));
-            print!("Success: {}\n", { let __v = (*result.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let value = match __select_recv { Some(__v) => __v, None => Default::default() };
+            let mut value = Arc::new(Mutex::new(Some(value)));
+            print!("Success: {}\n", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = go_channel_after(std::time::Duration::from_millis(300)).try_recv_select() {
+        if let Some(_) = go_channel_after(std::time::Duration::from_secs(3600)).try_recv_select() {
             println!("{}", format!("{}", "Timeout: Operation took too long".to_string()));
             break;
         }
