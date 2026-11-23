@@ -2517,6 +2517,14 @@ run_xfail_test() {
     run_test "tests/os_getenv_non_utf8_goroutines"
 }
 
+@test "os_getpid" {
+    run_test "tests/os_getpid"
+}
+
+@test "os_getpid_goroutines" {
+    run_test "tests/os_getpid_goroutines"
+}
+
 @test "os_getwd_non_utf8" {
     run_test "tests/os_getwd_non_utf8"
 }

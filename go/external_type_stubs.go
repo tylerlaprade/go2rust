@@ -3271,6 +3271,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "getpid" {
+			writeOsGetpidFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lookup_env" {
 			writeOsLookupEnvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "setenv" {
@@ -3465,6 +3467,15 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        ")
 	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Getpid is supplied by the host process runtime.
+func writeOsGetpidFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn getpid() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        std::process::id() as _\n")
 	out.WriteString("    }\n")
 }
 
