@@ -851,7 +851,7 @@ pub mod exec {
             { file_path.components().count() > 1 }
         };
         let candidates: std::vec::Vec<(std::path::PathBuf, bool)> = if has_separator {
-            vec![(file_path, false)]
+            std::vec![(file_path, false)]
         } else {
             let clean_path = |path: std::path::PathBuf| {
                 let mut cleaned = std::path::PathBuf::new();
@@ -869,7 +869,7 @@ pub mod exec {
                 cleaned
             };
             std::env::var_os("PATH").map(|path| {
-                if path.is_empty() { return vec![]; }
+                if path.is_empty() { return std::vec![]; }
                 std::env::split_paths(&path).map(|dir| {
                     let relative = !dir.is_absolute();
                     (clean_path(dir.join(&file)), relative)
@@ -915,9 +915,9 @@ pub mod exec {
 pub mod os {
     use super::*;
     pub fn getenv<T0: 'static>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
-        let key = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<String>() {
+        let key = if let Some(v) = (&_arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
-        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+        } else if let Some(v) = (&_arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
             v.lock().unwrap().as_ref().cloned().unwrap_or_default()
         } else {
             panic!("os.Getenv bridge: expected string argument")

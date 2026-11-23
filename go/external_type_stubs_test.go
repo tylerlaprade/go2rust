@@ -901,7 +901,8 @@ func TestExecLookPathStubSearchesHostPath(t *testing.T) {
 		"std::env::var_os(\"PATH\")",
 		"file.as_bytes().contains(&b'/')",
 		"std::vec::Vec<(std::path::PathBuf, bool)>",
-		"if path.is_empty() { return vec![]; }",
+		"std::vec![(file_path, false)]",
+		"if path.is_empty() { return std::vec![]; }",
 		"std::env::split_paths(&path)",
 		"clean_path(dir.join(&file))",
 		"std::path::Component::ParentDir",
@@ -1009,6 +1010,7 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::env::var(key).unwrap_or_default()",
+		"&dyn std::any::Any",
 		"downcast_ref::<" + wrappedExternalStubType("String") + ">",
 		externalStubBorrowExpr("v") + ".as_ref().cloned().unwrap_or_default()",
 		"os.Getenv bridge: expected string argument",
