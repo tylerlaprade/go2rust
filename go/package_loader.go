@@ -1201,6 +1201,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			siblingImports = siblingItemImports[module.name]
 		}
 		rustCode := prefixExternalPackageModuleImports(module.rustCode, module.name, modules, helpers, siblingImports, siblingItemImports != nil)
+		rustCode = compactHomogeneousVecLiterals(rustCode, goSliceModeEnabled())
 		if err := os.WriteFile(module.path, []byte(rustCode), 0644); err != nil {
 			return fmt.Errorf("failed to write module %s: %v", module.name, err)
 		}
