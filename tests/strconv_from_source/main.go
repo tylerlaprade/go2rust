@@ -1,5 +1,6 @@
 // strconv is translated from its Go source: parsing with bases, bit sizes
-// and range errors, float formatting in every verb, quoting and appending.
+// and range errors, float formatting in every verb, quoting, unquoting and
+// appending.
 package main
 
 import (
@@ -40,6 +41,10 @@ func main() {
 		fmt.Println(strconv.FormatFloat(v, 'f', -1, 64), strconv.FormatFloat(v, 'e', 3, 64), strconv.FormatFloat(v, 'g', -1, 64), strconv.FormatFloat(v, 'f', 2, 64), strconv.FormatFloat(v, 'g', 4, 32))
 	}
 	fmt.Println(strconv.FormatBool(true), strconv.Quote("hi\n\"there\"\t☺\x00"), strconv.QuoteToASCII("☺ é"), strconv.QuoteRune('☺'), strconv.QuoteRuneToASCII('\n'))
+	for _, q := range []string{`"a\tb"`, "`raw\\n`", `'x'`, `"bad`, `"☺"`} {
+		s, err := strconv.Unquote(q)
+		fmt.Printf("%q %v\n", s, err)
+	}
 	buf := []byte("n=")
 	buf = strconv.AppendInt(buf, -42, 10)
 	buf = append(buf, ' ')

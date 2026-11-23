@@ -2771,6 +2771,14 @@ run_xfail_test() {
     run_test "tests/printf_args_lock_one_value_goroutines"
 }
 
+@test "printf_nil_interface_arguments" {
+    run_test "tests/printf_nil_interface_arguments"
+}
+
+@test "printf_nil_interface_arguments_goroutines" {
+    run_test "tests/printf_nil_interface_arguments_goroutines"
+}
+
 @test "printf_p_verb_receiver" {
     run_test "tests/printf_p_verb_receiver"
 }

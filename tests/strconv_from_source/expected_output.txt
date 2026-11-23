@@ -38,6 +38,11 @@ false strconv.ParseBool: parsing "yes": invalid syntax
 123456789.125 1.235e+08 1.23456789125e+08 123456789.12 1.235e+08
 0.3 3.000e-01 0.3 0.30 0.3
 true "hi\n\"there\"\t☺\x00" "\u263a \u00e9" '☺' '\n'
+"a\tb" <nil>
+"raw\\n" <nil>
+"x" <nil>
+"" invalid syntax
+"☺" <nil>
 n=-42 2.5 "q"false
 func Atoi num 12x err invalid syntax true
 true

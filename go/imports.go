@@ -751,7 +751,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
 	}
 	if ht.needsGoSprintf {
-		add("go_sprintf")
+		add("go_sprintf", "GoFormatNil")
 	}
 	if ht.needsGoSprintfSpread {
 		add("go_sprintf_spread")
