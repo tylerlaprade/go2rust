@@ -8712,9 +8712,7 @@ func packageCallsRecover() bool {
 
 func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
 	out.WriteString(indent)
-	out.WriteString("let __go_previous_panic_hook = std::panic::take_hook();\n")
-	out.WriteString(indent)
-	out.WriteString("std::panic::set_hook(Box::new(|_| {}));\n")
+	out.WriteString("let __go_previous_panic_hook = go_silence_panic_hook();\n")
 	out.WriteString(indent)
 	out.WriteString("let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
 	return indent + "    "
@@ -8739,7 +8737,7 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("    Ok(__go_value) => {\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        go_restore_panic_hook(__go_previous_panic_hook);\n")
 	out.WriteString(indent)
 	out.WriteString("        __go_value\n")
 	out.WriteString(indent)
@@ -8759,7 +8757,7 @@ func finishPanicRecoverCatchWith(out *strings.Builder, indent string, writeZero 
 	out.WriteString(indent)
 	out.WriteString("        }\n")
 	out.WriteString(indent)
-	out.WriteString("        std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString("        go_restore_panic_hook(__go_previous_panic_hook);\n")
 	out.WriteString(indent)
 	out.WriteString("        go_resume_unrecovered_panic();\n")
 	out.WriteString(indent)

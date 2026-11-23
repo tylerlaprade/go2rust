@@ -786,15 +786,27 @@ impl Pool {
 fn main() {
     let mut p = Arc::new(Mutex::new(Some(Pool { jobs: GoChannel::<i64>::new(), results: GoChannel::<i64>::new(), ..Default::default() })));
     let p_thread = p.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         { let __recv = p_thread.clone(); let __recv_ptr: *const Pool = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Pool }; let __result = unsafe { &*__recv_ptr }.worker(); __result };
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     let p_thread = p.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         { let __channel = (*p_thread.lock().unwrap().as_ref().unwrap()).jobs.clone(); __channel }.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     };
         { let __channel = (*p_thread.lock().unwrap().as_ref().unwrap()).jobs.clone(); __channel }.close();;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     let mut sum = Arc::new(Mutex::new(Some(0i64)));
     for r in { let __channel = (*p.lock().unwrap().as_ref().unwrap()).results.clone(); __channel } {
@@ -804,17 +816,29 @@ fn main() {
 
     let mut q = Arc::new(Mutex::new(Some(Pool { jobs: GoChannel::<i64>::new(), results: GoChannel::<i64>::new(), ..Default::default() })));
     let q_thread = q.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         for j in { let __channel = (*q_thread.lock().unwrap().as_ref().unwrap()).jobs.clone(); __channel } {
         { let __channel = (*q_thread.lock().unwrap().as_ref().unwrap()).results.clone(); __channel }.send({ let __tmp_x = j; let __tmp_y = 100; __tmp_x + __tmp_y });
     };;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     let q_thread = q.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         { let __channel = (*q_thread.lock().unwrap().as_ref().unwrap()).jobs.clone(); __channel }.send((*i.lock().unwrap().as_ref().unwrap()));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     };
         { let __channel = (*q_thread.lock().unwrap().as_ref().unwrap()).jobs.clone(); __channel }.close();;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     let mut total = Arc::new(Mutex::new(Some(0i64)));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
@@ -827,10 +851,16 @@ fn main() {
     let mut lanes = Arc::new(Mutex::new(Some(vec![GoChannel::<String>::new(), GoChannel::<String>::new()])));
     for i in 0..(({ let __range_holder = lanes.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let lanes_thread = lanes.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(i as i64))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let __closure = move |n: Arc<Mutex<Option<i64>>>| {
             { let __channel = { let __seq = { let __seq_holder = lanes_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); __channel }.send((*Arc::new(Mutex::new(Some(format!("lane {}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap()).clone());;
         };
         __closure(__go_arg_0);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
     }
     println!("{}", format!("{}", { let __channel = { let __seq = { let __seq_holder = lanes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); __channel }.recv().unwrap_or_default()));
