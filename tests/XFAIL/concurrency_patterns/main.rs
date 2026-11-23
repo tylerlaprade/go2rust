@@ -1132,7 +1132,7 @@ fn main() {
     let buffer_thread = buffer.clone(); std::thread::spawn(move || {
         let mut items = Arc::new(Mutex::new(Some(vec!["apple".to_string(), "banana".to_string(), "cherry".to_string(), "date".to_string(), "elderberry".to_string()])));;
         { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
-        buffer_thread.send(item);
+        buffer_thread.send((*item).clone());
     } };
         buffer_thread.close();;;
     });
@@ -1439,7 +1439,7 @@ pub fn fan_in(inputs: Arc<Mutex<Option<Vec<GoChannel<i64>>>>>) -> GoChannel<i64>
 
     { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for input in __range_values.iter() {
         wg.add(1);
-        let output_thread = output.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone()))); std::thread::spawn(move || {
+        let output_thread = output.clone(); let wg_thread = wg.clone(); let __go_arg_0 = (*input).clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |ch: GoChannel<i64>| {
             let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {

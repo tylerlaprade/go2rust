@@ -675,6 +675,18 @@ run_xfail_test() {
     run_test "tests/channel_receive_closed"
 }
 
+@test "channel_send_range_value" {
+    run_test "tests/channel_send_range_value"
+}
+
+@test "channel_send_rust_keyword" {
+    run_test "tests/channel_send_rust_keyword"
+}
+
+@test "channel_send_shadowed_identifiers" {
+    run_test "tests/channel_send_shadowed_identifiers"
+}
+
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
 }
@@ -1457,6 +1469,10 @@ run_xfail_test() {
 
 @test "goroutine_pointer_capture_alias" {
     run_test "tests/goroutine_pointer_capture_alias"
+}
+
+@test "goroutine_range_channel_argument" {
+    run_test "tests/goroutine_range_channel_argument"
 }
 
 @test "goroutines_basic" {
@@ -3873,6 +3889,10 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
+}
+
+@test "XFAIL: os_file_handle_reassignment" {
+    run_xfail_test "tests/XFAIL/os_file_handle_reassignment"
 }
 
 @test "XFAIL: source_stdlib_io_fs_os_stat" {
