@@ -18677,7 +18677,7 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	if !typeInfo.IsTypeConversion(call) {
 		return nil, "", false
 	}
-	named, ok := typeInfo.GetType(call).(*types.Named)
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
 	if !ok {
 		return nil, "", false
 	}
