@@ -19,6 +19,8 @@ fn main() {
     ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
     ::slices::__go_init_all();
     ::strconv::__go_init_all();

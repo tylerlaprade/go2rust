@@ -8,6 +8,7 @@ members = [
     "vendor/internal_filepathlite",
     "vendor/internal_stringslite",
     "vendor/path_filepath",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -29,3 +30,4 @@ internal_cpu = { path = "vendor/internal_cpu" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 path_filepath = { path = "vendor/path_filepath" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }
