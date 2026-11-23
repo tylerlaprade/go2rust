@@ -753,8 +753,10 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsGoTypeName {
 		add(goTypeNameHelperRustName)
 	}
-	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
-		add("go_float_string", "go_display_value")
+	// format_any and the slice and map formatters call these themselves; a
+	// module only names go_float_string when it prints a float directly.
+	if ht.needsGoFloatString {
+		add("go_float_string")
 	}
 	if ht.needsGoErrorChain {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
