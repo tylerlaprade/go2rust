@@ -687,17 +687,22 @@ fn main() {
     ::example_com_importedembed_base::__go_init_all();
 
     force_concurrent_wrappers();
+
     let mut r = Arc::new(Mutex::new(Some(Reader { decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::Decoder { value: Arc::new(Mutex::new(Some(3))), ..Default::default() }))), name: Arc::new(Mutex::new(Some("reader".to_string()))), ..Default::default() })));
+
     (*r.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(4))));
     println!("{}", format!("{}", (*(*r.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("reader".to_string())))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*r.lock().unwrap().as_ref().unwrap()).snapshot()));
+
     let mut copied = Arc::new(Mutex::new(Some(Reader { decoder: (*r.lock().unwrap().as_ref().unwrap()).clone(), name: Arc::new(Mutex::new(Some("copy".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", (*(*copied.lock().unwrap().as_ref().unwrap()).label(Arc::new(Mutex::new(Some("copy".to_string())))).lock().unwrap().as_ref().unwrap())));
+
     let mut pr = Arc::new(Mutex::new(Some(pkgReader { pkg_decoder: Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::PkgDecoder { base: Arc::new(Mutex::new(Some(10))), ..Default::default() }))), ..Default::default() })));
     let mut fromPkg = (*pr.lock().unwrap().as_ref().unwrap()).new_reader(Arc::new(Mutex::new(Some(5))));
     println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("frompkg".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
     (*pr.lock().unwrap().as_ref().unwrap()).retire_reader(fromPkg.clone());
     println!("{}", format!("{}", (*{ let __recv = fromPkg.clone(); let __recv_ptr: *const Reader = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Reader }; let __result = unsafe { &*__recv_ptr }.label(Arc::new(Mutex::new(Some("retired".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
+
     let mut idx = Arc::new(Mutex::new(Some(example_com_importedembed_base::r#mod::Index(Arc::new(Mutex::new(Some(1 as i32)))))));
     println!("{}", format!("{}", (*pick_name(
         Arc::new(Mutex::new(Some(vec!["zero".to_string(), "one".to_string(), "two".to_string()]))),

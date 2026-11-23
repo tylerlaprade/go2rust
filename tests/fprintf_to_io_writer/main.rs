@@ -55,7 +55,7 @@ fn main() {
     let mut p = Arc::new(Mutex::new(Some(printer { output: Arc::new(Mutex::new(Some(Box::new(bytes::buffer::BufferPtr(buf.clone().clone())) as Box<dyn io::r#mod::Writer + Send + Sync>))), ..Default::default() })));
     let (mut n, mut err) = { let __recv = p.clone(); let __recv_ptr: *const printer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const printer }; let __result = unsafe { &*__recv_ptr }.write(Arc::new(Mutex::new(Some("hello".to_string())))); __result };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
     println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));

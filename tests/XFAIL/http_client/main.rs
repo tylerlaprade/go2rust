@@ -960,7 +960,7 @@ fn main() {
         let mut raw = Arc::new(Mutex::new(Some(format!("{}{}", "HTTP/1.1 200 OK\r\nContent-Length: 57\r\n\r\n".to_string(), { let __v = (*payload.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
         let (mut resp, mut err) = http::read_response(bufio::new_reader(strings::new_reader({ let __arg_holder = raw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })), ());
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

@@ -606,6 +606,65 @@ impl std::fmt::Debug for wrappedError {
         write!(f, "{}", self)
     }
 }
+impl PartialEq for wrappedError {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = self.error.borrow().clone(); let __right = other.error.borrow().clone(); match (__left.as_ref(), __right.as_ref()) { (Some(__l), Some(__r)) => if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<codeError>(), __r.downcast_ref::<codeError>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_codeError>(), __r.downcast_ref::<__go_error_ptr_codeError>()) { let __go_left_nil = { __go_left.0.borrow().is_none() }; let __go_right_nil = { __go_right.0.borrow().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&__go_left.0, &__go_right.0) } } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<wrappedError>(), __r.downcast_ref::<wrappedError>()) { __go_left == __go_right } else if let (Some(__go_left), Some(__go_right)) = (__l.downcast_ref::<__go_error_ptr_wrappedError>(), __r.downcast_ref::<__go_error_ptr_wrappedError>()) { let __go_left_nil = { __go_left.0.borrow().is_none() }; let __go_right_nil = { __go_right.0.borrow().is_none() }; if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&__go_left.0, &__go_right.0) } } else if std::ptr::addr_eq(&**__l, &**__r) { true } else { false }, (None, None) => true, _ => false } }
+        )
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct codeError {
+    pub code: Rc<RefCell<Option<i64>>>,
+}
+
+impl codeError {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.code.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            code: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for codeError {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            code: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for codeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", (*self.error().borrow().as_ref().unwrap()))
+    }
+}
+
+
+impl codeError {
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some("code".to_string())))
+    }
+}
+
+impl StdError for codeError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_codeError(pub Rc<RefCell<Option<codeError>>>);
+
+impl std::fmt::Display for __go_error_ptr_codeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_codeError {}
 
 
 impl wrappedError {
@@ -616,6 +675,18 @@ impl wrappedError {
 
 impl StdError for wrappedError {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_wrappedError(pub Rc<RefCell<Option<wrappedError>>>);
+
+impl std::fmt::Display for __go_error_ptr_wrappedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_wrappedError {}
+
 
 pub fn build() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
     Rc::new(RefCell::new(Some(Rc::new(wrappedError { error: Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped {}", "boom".to_string())))))), ..Default::default() }) as Rc<dyn StdError>)))
@@ -623,5 +694,10 @@ pub fn build() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
 
 fn main() {
     let mut err = build();
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    let mut a = Rc::new(RefCell::new(Some(wrappedError { error: Rc::new(RefCell::new(Some(Rc::new(codeError { code: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(wrappedError { error: Rc::new(RefCell::new(Some(Rc::new(codeError { code: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() })));
+    let mut c = Rc::new(RefCell::new(Some(wrappedError { error: Rc::new(RefCell::new(Some(Rc::new(codeError { code: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Rc<dyn StdError>))), ..Default::default() })));
+    let mut empty: Rc<RefCell<Option<wrappedError>>> = Rc::new(RefCell::new(Some(Default::default())));
+    println!("{} {} {} {}", format!("{}", (*a.borrow().as_ref().unwrap()) == (*b.borrow().as_ref().unwrap())), format!("{}", (*a.borrow().as_ref().unwrap()) == (*c.borrow().as_ref().unwrap())), format!("{}", (*a.borrow().as_ref().unwrap()) == (*empty.borrow().as_ref().unwrap())), format!("{}", (*empty.borrow().as_ref().unwrap()) == wrappedError { error: Default::default() }));
 }

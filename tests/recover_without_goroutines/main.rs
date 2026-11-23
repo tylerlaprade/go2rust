@@ -1066,9 +1066,9 @@ fn main() {
         safe();
         safe_line();
         let (mut q, mut err) = divide(Rc::new(RefCell::new(Some(10))), Rc::new(RefCell::new(Some(2))));
-        println!("{} {}", format!("{}", q), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", q), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         { let (__tmp_0, __tmp_1) = divide(Rc::new(RefCell::new(Some(1))), Rc::new(RefCell::new(Some(0)))); q = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-        println!("{} {}", format!("{}", q), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", q), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         let (mut v, mut ok) = element(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))), Rc::new(RefCell::new(Some(5))));
         println!("{} {}", format!("{}", v), format!("{}", ok));
         println!("{}", format!("{}", with_error()));

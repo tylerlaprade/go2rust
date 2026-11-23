@@ -759,7 +759,7 @@ fn main() {
         println!("{} {}", format!("{}", "a is".to_string()), format!("{}", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
         print!("{}|{}\n", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, match a.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });
         let mut e: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
-        println!("{} {}", format!("{}", "e is".to_string()), format!("{}", { let __text = match e.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "e is".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(e); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {}", format!("{}", "deferred recover:".to_string()), format!("{}", match (go_recover()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));

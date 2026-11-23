@@ -583,6 +583,38 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 /// GAP: a type switch/assertion whose case is a NON-NAMED anonymous interface
 /// with methods (interface{ Unwrap() error }). goTypesTypeToRust falls through
 /// to Box<dyn Any> and goTypeToRustBase emits the literal "Unknown" placeholder
@@ -631,6 +663,24 @@ impl wrapped {
 
 impl StdError for wrapped {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_wrapped(pub Rc<RefCell<Option<wrapped>>>);
+
+impl std::fmt::Display for __go_error_ptr_wrapped {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_wrapped_error(Rc::new(RefCell::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_wrapped {}
+
 
 pub fn describe(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> Rc<RefCell<Option<String>>> {
     {
@@ -638,7 +688,7 @@ pub fn describe(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> Rc<RefCell<Option
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val = _ts_guard.as_ref();
-    if _ts_val.and_then(|__v| __v.downcast_ref::<wrapped>()).is_some() {
+    if _ts_val.and_then(|__v| __v.downcast_ref::<__go_error_ptr_wrapped>()).is_some() {
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some("unwrappable".to_string())));;
     } else {
@@ -650,6 +700,14 @@ pub fn describe(err: Rc<RefCell<Option<Rc<dyn StdError>>>>) -> Rc<RefCell<Option
 }
 
 fn main() {
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Rc::new(wrapped { msg: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }) as Rc<dyn StdError>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_wrapped(Rc::new(RefCell::new(Some(wrapped { msg: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }))).clone())) as Rc<dyn StdError>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("plain"))))))).borrow().as_ref().unwrap())));
+}
+
+pub fn __go_nil_recv_wrapped_error(w: Rc<RefCell<Option<wrapped>>>) -> Rc<RefCell<Option<String>>> {
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*w.borrow().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+}
+
+pub fn __go_nil_recv_wrapped_unwrap(w: Rc<RefCell<Option<wrapped>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    Rc::new(RefCell::new(None))
 }

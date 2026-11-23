@@ -721,7 +721,9 @@ impl Reader for counterPtr {
     }
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -777,7 +779,9 @@ impl Valuer for numberPtr {
     }
     fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<numberPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }

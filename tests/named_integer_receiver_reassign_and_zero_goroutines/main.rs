@@ -1092,18 +1092,23 @@ fn go_errors_join(errs: Vec<Option<Arc<dyn StdError + Send + Sync>>>) -> Option<
     Some(Arc::new(GoWrapError { msg, wrapped: errs, many: true }) as Arc<dyn StdError + Send + Sync>)
 }
 
-// err and every error it wraps, depth first, in the order errors.Is and
-// errors.As visit them.
-fn go_error_chain(err: Option<Arc<dyn StdError + Send + Sync>>) -> Vec<Arc<dyn StdError + Send + Sync>> {
-    let mut out = Vec::new();
+// Visit err and every error it wraps, depth first, in the order errors.Is and
+// errors.As use. Stop before unwrapping the first value accepted by visit.
+fn go_error_chain_visit<F>(err: Option<Arc<dyn StdError + Send + Sync>>, mut visit: F) -> bool
+where
+    F: FnMut(&Arc<dyn StdError + Send + Sync>) -> bool,
+{
     let mut stack: Vec<Arc<dyn StdError + Send + Sync>> = err.into_iter().collect();
     while let Some(e) = stack.pop() {
+        if visit(&e) {
+            return true;
+        }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
             stack.extend(w.wrapped.iter().rev().cloned());
         }
-        out.push(e);
+
     }
-    out
+    false
 }
 
 fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<dyn StdError + Send + Sync>> {
@@ -1121,7 +1126,7 @@ fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<
 fn go_errors_is(err: Option<Arc<dyn StdError + Send + Sync>>, target: Option<Arc<dyn StdError + Send + Sync>>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain_visit(Some(err), |e| std::ptr::addr_eq(&**e, &*target)),
         _ => false,
     }
 }
@@ -2362,6 +2367,15 @@ impl std::fmt::Display for StockError {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for StockError {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.have.lock().unwrap().as_ref().cloned() }; let __right = { other.have.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.want.lock().unwrap().as_ref().cloned() }; let __right = { other.want.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 pub static ErrNotFound: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn StdError + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
@@ -2416,6 +2430,18 @@ impl StockError {
 }
 
 impl StdError for StockError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_StockError(pub Arc<Mutex<Option<StockError>>>);
+
+impl std::fmt::Display for __go_error_ptr_StockError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_StockError {}
 
 
 impl Inventory {
@@ -2585,11 +2611,11 @@ fn main() {
         let (mut cost, mut err) = { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.take(Arc::new(Mutex::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
         let mut se: Arc<Mutex<Option<StockError>>> = Arc::new(Mutex::new(Some(Default::default())));
         if (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap()) {
-            println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-        } else if (*Arc::new(Mutex::new(Some({ let mut __as_found = None; for __as_err in go_error_chain({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }) { if let Some(__as_value) = __as_err.downcast_ref::<StockError>() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { *se.lock().unwrap() = Some(__as_value); true } None => false } }))).lock().unwrap().as_ref().unwrap()) {
-            print!("short by {}: {}\n", format!("{}", { let __tmp_x = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).want.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).have.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        } else if (*Arc::new(Mutex::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<StockError>() { __as_found = Some(__as_value.clone()); true } else { false } }); match __as_found { Some(__as_value) => { *se.lock().unwrap() = Some(__as_value); true } None => false } }))).lock().unwrap().as_ref().unwrap()) {
+            print!("short by {}: {}\n", format!("{}", { let __tmp_x = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).want.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*se.lock().unwrap().as_ref().unwrap()).have.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         } else if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "other:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            println!("{} {}", format!("{}", "other:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         } else {
             print!("took {} {} for {}\n", format!("{}", (*req.qty.lock().unwrap().as_ref().unwrap())), format!("{}", (*req.name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __v = (*cost.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         }
@@ -2598,7 +2624,7 @@ fn main() {
     print!("{} {} {}\n", format!("{}", Money(Arc::new(Mutex::new(Some(-1234 as i64))))), format!("{}", Money(Arc::new(Mutex::new(Some(5 as i64))))), format!("{}", (*(*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"apple".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).qty.lock().unwrap().as_ref().unwrap())));
     for n in vec![4i64, (-1i64)].iter().copied() {
         let (mut r, mut err) = must_positive(Arc::new(Mutex::new(Some(n.clone()))));
-        println!("{} {}", format!("{}", r), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", r), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     let mut byTag = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<String>>>>>::from([]))));
     { let __range_holder = { let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.names(); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {

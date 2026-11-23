@@ -458,11 +458,9 @@ func has(err error) bool {
 
 `)
 
-	if strings.Contains(rust, "downcast_ref::<multiPtr>()") {
-		t.Fatalf("type switch on error should downcast to the boxed concrete error value, not a pointer wrapper:\n%s", rust)
-	}
-	if !strings.Contains(rust, "downcast_ref::<multi>()") {
-		t.Fatalf("type switch on error should downcast to the boxed concrete error value:\n%s", rust)
+	if !strings.Contains(rust, "_ts_val.and_then(|__v| __v.downcast_ref::<__go_error_ptr_multi>())") ||
+		!strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface") {
+		t.Fatalf("type switch must match the boxed pointer error and bind its original handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "let x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = unimplemented!(\"type info required: type switch on interface case with 0 concrete implementors") ||
 		strings.Contains(rust, "let x: Rc<RefCell<Option<Box<dyn Any>>>> = unimplemented!(\"type info required: type switch on interface case with 0 concrete implementors") {
@@ -1993,6 +1991,12 @@ func classify(t Type) string {
 	if !strings.Contains(rust, "__go_eq_type_(") {
 		t.Fatalf("interface switch concrete case should use the interface equality helper:\n%s", rust)
 	}
+	if strings.Contains(rust, "match (__left_guard.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should not reference an undeclared left guard:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match (__left_value.as_ref(), __right_guard.as_ref())") {
+		t.Fatalf("interface switch condition should compare the captured left value:\n%s", rust)
+	}
 }
 
 func TestExpressionSwitchOnEmptyInterfaceKeepsHandle(t *testing.T) {
@@ -2285,6 +2289,31 @@ func collect(values []Value) map[string]bool {
 	}
 	if !strings.Contains(rust, "let __map_key = (*name).clone();") {
 		t.Fatalf("string map assignment should clone the range ref key:\n%s", rust)
+	}
+}
+
+func TestStructMapAssignmentCopiesRangeKeyByGoValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type key struct {
+	tag int
+}
+
+func copyKey(src map[key]bool) map[key]int {
+	dst := map[key]int{}
+	for k := range src {
+		dst[k] = k.tag
+		k.tag = 2
+	}
+	return dst
+}
+`)
+
+	if strings.Contains(rust, "let __map_key = k.clone();") {
+		t.Fatalf("struct map assignment should copy a range key by Go value, not share its field cells:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = k.__go_value_clone();") {
+		t.Fatalf("struct map assignment should use the generated Go value-copy helper:\n%s", rust)
 	}
 }
 
@@ -7491,7 +7520,7 @@ func caller(s string) int {
 	}
 }
 
-func TestConcreteErrorPointerCallReturnBoxesPointee(t *testing.T) {
+func TestConcreteErrorPointerCallReturnPreservesPointerHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type NumError struct{}
@@ -7505,12 +7534,11 @@ func parse() (bool, error) {
 }
 `)
 
-	if strings.Contains(rust, "Rc::new(syntax_error()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should not box the pointer handle:\n%s", rust)
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_NumError(syntax_error().clone())) as Rc<dyn StdError") {
+		t.Fatalf("pointer error call result should box an identity-preserving wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new((*syntax_error()") ||
-		!strings.Contains(rust, ".as_ref().unwrap()).clone()) as Rc<dyn StdError") {
-		t.Fatalf("pointer error call result should box the pointee clone:\n%s", rust)
+	if strings.Contains(rust, "Rc::new((*syntax_error()") {
+		t.Fatalf("pointer error call result must not clone the pointee:\n%s", rust)
 	}
 }
 
@@ -8565,7 +8593,7 @@ func parse() (ok bool, err error) {
 		strings.Contains(rust, "*err.lock().unwrap() = __moved_val") {
 		t.Fatalf("named error return should not assign a concrete error option into the error slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(parseError") ||
+	if !strings.Contains(rust, "Rc::new(__go_error_ptr_parseError") ||
 		!strings.Contains(rust, "as Rc<dyn StdError") {
 		t.Fatalf("named error return should box the concrete error value:\n%s", rust)
 	}
@@ -9601,13 +9629,9 @@ func parse(filename string) (err error) {
 	if !strings.Contains(rust, "err_defer_captured") {
 		t.Fatalf("deferred closure should clone the named error result:\n%s", rust)
 	}
-	if strings.Contains(rust, "match err.borrow") ||
-		strings.Contains(rust, "match err.lock") {
-		t.Fatalf("fmt.Errorf inside deferred closure should not format the outer err binding:\n%s", rust)
-	}
-	if !strings.Contains(rust, "match err_defer_captured.borrow") &&
-		!strings.Contains(rust, "match err_defer_captured.lock") {
-		t.Fatalf("fmt.Errorf inside deferred closure should format the captured err clone:\n%s", rust)
+	if strings.Contains(rust, "let __go_print_handle = &(err);") ||
+		!strings.Contains(rust, "let __go_print_handle = &(err_defer_captured);") {
+		t.Fatalf("fmt.Errorf must format the captured error handle inside the deferred closure:\n%s", rust)
 	}
 }
 
@@ -10022,7 +10046,7 @@ func underlyingErrorIs(err, target error) bool {
 	}
 }
 
-func TestPointerErrorAssertionDowncastsConcretePayload(t *testing.T) {
+func TestPointerErrorAssertionDowncastsIdentityWrapper(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
 type parseError struct {
@@ -10044,16 +10068,11 @@ func code() int {
 }
 `)
 
-	if strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<parseError>>>>") ||
-		strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<parseError>>>>") {
-		t.Fatalf("error assertion to *parseError should not downcast to the wrapper handle:\n%s", rust)
+	if !strings.Contains(rust, "downcast_ref::<__go_error_ptr_parseError>()") {
+		t.Fatalf("error assertion to *parseError should downcast the identity-preserving error wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "downcast_ref::<parseError>()") {
-		t.Fatalf("error assertion to *parseError should downcast the concrete error payload:\n%s", rust)
-	}
-	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(typed_val.clone())))") &&
-		!strings.Contains(rust, "Rc::new(RefCell::new(Some(typed_val.clone())))") {
-		t.Fatalf("error assertion to *parseError should rebuild the pointer handle from the payload:\n%s", rust)
+	if !strings.Contains(rust, "typed_val.0.clone()") {
+		t.Fatalf("error assertion to *parseError should return the original pointer handle:\n%s", rust)
 	}
 }
 

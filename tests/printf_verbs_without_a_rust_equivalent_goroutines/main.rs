@@ -1715,7 +1715,9 @@ impl Shape for RectPtr {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = { self.0.lock().unwrap().is_none() };
+            let __go_right_nil = { __other.0.lock().unwrap().is_none() };
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -1744,7 +1746,7 @@ fn main() {
     let mut s = Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%6.2f|%g|%g|%.3d|%q".to_string(), &[{ let __go_format_arg = Box::new(3.14159) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1e21) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(0.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(7i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("a\"b".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));
     println!("{}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut err = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("{}", go_sprintf(&"value %8.3f out of range [%d, %d]".to_string(), &[{ let __go_format_arg = Box::new(12.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(0i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(10i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], true)))))));
-    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[{ let __go_format_arg = Box::new("name".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = 2.0; let __tmp_y = 3.0; __tmp_x / __tmp_y }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut c: Arc<Mutex<Option<Celsius>>> = Arc::new(Mutex::new(Some(Celsius(Arc::new(Mutex::new(Some(21.5)))))));
     print!("{}", go_sprintf(&"%v %s %8.2v|\n".to_string(), &[{ let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1.5) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));

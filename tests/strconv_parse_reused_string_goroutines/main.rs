@@ -767,7 +767,7 @@ fn main() {
         { let new_val = (*Arc::new(Mutex::new(Some({ let __s = field.clone(); __s.trim().to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); field = new_val; };
         let (mut n, mut err) = { let __atoi_input = field.clone(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Arc::new(Mutex::new(None))), Err(_) => (0 as i64, Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {} {}", format!("{}", "skip".to_string()), format!("{}", field), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {} {}", format!("{}", "skip".to_string()), format!("{}", field), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         continue
     }
         { let __rhs = n; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -775,7 +775,7 @@ fn main() {
     } }
     for word in &vec!["true".to_string(), "nope".to_string()] {
         let (mut b, mut err) = { let __parse_bool_input = word.clone(); match __parse_bool_input.as_str() { "1" | "t" | "T" | "TRUE" | "true" | "True" => (true, Arc::new(Mutex::new(None))), "0" | "f" | "F" | "FALSE" | "false" | "False" => (false, Arc::new(Mutex::new(None))), _ => (false, Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("strconv.ParseBool: parsing \"{}\": invalid syntax", __parse_bool_input))))))) } };
-        println!("{} {} {}", format!("{}", word), format!("{}", b), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {} {}", format!("{}", word), format!("{}", b), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

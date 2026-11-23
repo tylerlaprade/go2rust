@@ -775,7 +775,9 @@ impl Named for RectPtr {
     }
     fn __go_eq_named(&self, other: &dyn Named) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -801,7 +803,9 @@ impl NamedShape for RectPtr {
     }
     fn __go_eq_named_shape(&self, other: &dyn NamedShape) -> bool {
         if let Some(__other) = Shape::__go_as_any(other).downcast_ref::<RectPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -841,7 +845,9 @@ impl Shape for RectPtr {
     }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -901,7 +907,9 @@ impl Named for SquarePtr {
     }
     fn __go_eq_named(&self, other: &dyn Named) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<SquarePtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -927,7 +935,9 @@ impl NamedShape for SquarePtr {
     }
     fn __go_eq_named_shape(&self, other: &dyn NamedShape) -> bool {
         if let Some(__other) = Shape::__go_as_any(other).downcast_ref::<SquarePtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -967,7 +977,9 @@ impl Shape for SquarePtr {
     }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<SquarePtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }

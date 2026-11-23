@@ -990,14 +990,14 @@ fn main() {
 
     let (mut result, mut err) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(2.0))));
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("10 / 2 = {:.2}\n", result);
     }
 
     { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Result: {:.2}\n", result);
     }
@@ -1008,14 +1008,14 @@ fn main() {
 
     let (mut value, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(2)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("numbers[2] = {}\n", value);
     }
 
     { let (__tmp_0, __tmp_1) = process_slice(numbers.clone(), Rc::new(RefCell::new(Some(10)))); value = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Value: {}\n", value);
     }

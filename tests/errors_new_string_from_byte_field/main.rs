@@ -624,7 +624,7 @@ fn main() {
     });;
         if ok && (({ let __len_target = { let __field = (*ee.borrow().as_ref().unwrap()).stderr.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) > (0 as i64) {
             { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from((*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __slice_holder = (*ee.borrow().as_ref().unwrap()).stderr.clone(); let __slice_guard = __slice_holder.borrow(); (*__slice_guard.as_ref().unwrap()).clone() })).unwrap()))).borrow().as_ref().unwrap()).clone()))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };;
-            println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
+            println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         }
     }
     }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -45,7 +47,7 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		for _, method := range methodList {
 			fn := methodFuncForDecl(method, typeInfo)
 			key := methodOverrideKey(fn)
-			if key != "" && methodComparesReceiverWithNil(method, typeInfo) {
+			if key != "" && (methodComparesReceiverWithNil(method, typeInfo) || pointerErrorMethodNeedsNilDispatch(fn)) {
 				helpers[key] = nilPointerReceiverMethodHelperName(fn)
 				nilAwareMethodHelpers[key] = true
 			}
@@ -76,6 +78,18 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		return nil
 	}
 	return helpers
+}
+
+// Pointer-receiver Error and Unwrap methods are invoked through interface
+// dispatch even when the dynamic pointer is nil. Keep a helper for them even
+// when the method body does not explicitly compare its receiver with nil:
+// Error may be nil-safe, and Unwrap must either return its result or panic in
+// the method body just as the original Go call does.
+func pointerErrorMethodNeedsNilDispatch(method *types.Func) bool {
+	if method == nil || !methodHasPointerReceiver(method) {
+		return false
+	}
+	return method.Name() == "Error" || method.Name() == "Unwrap"
 }
 
 // nilAwareMethodHelpers holds the methods whose helper every call on a
@@ -208,14 +222,108 @@ func methodHasPointerReceiver(method *types.Func) bool {
 
 func nilPointerReceiverMethodHelperName(method *types.Func) string {
 	receiverName := "receiver"
+	var receiverNamed *types.Named
 	if sig, ok := method.Type().(*types.Signature); ok && sig.Recv() != nil {
 		receiverType := types.Unalias(sig.Recv().Type())
 		if pointer, ok := receiverType.(*types.Pointer); ok {
 			receiverType = types.Unalias(pointer.Elem())
 		}
-		receiverName = goTypesTypeToRust(receiverType)
+		if named, ok := receiverType.(*types.Named); ok && named.Obj() != nil {
+			receiverNamed = named
+			receiverName = RustTypeNameForUse(named.Obj().Name())
+		} else {
+			receiverName = goTypesTypeToRust(receiverType)
+		}
 	}
-	return "__go_nil_recv_" + rustIdentFragment(receiverName) + "_" + rustIdentFragment(rustMethodNameForTypesFunc(method))
+	receiverFragment := rustIdentFragment(receiverName)
+	if nilReceiverTypeNameNeedsDisambiguation(receiverNamed, receiverFragment) {
+		receiverFragment += "_" + fmt.Sprintf("%x", receiverNamed.Obj().Name())
+	}
+	methodFragment := rustIdentFragment(rustMethodNameForTypesFunc(method))
+	if nilReceiverMethodNameNeedsDisambiguation(receiverNamed, method, methodFragment) {
+		methodFragment += "_" + fmt.Sprintf("%x", method.Name())
+	}
+	return "__go_nil_recv_" + receiverFragment + "_" + methodFragment
+}
+
+func nilReceiverTypeNameNeedsDisambiguation(named *types.Named, fragment string) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	for _, name := range named.Obj().Pkg().Scope().Names() {
+		if name == named.Obj().Name() {
+			continue
+		}
+		obj, ok := named.Obj().Pkg().Scope().Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		if rustIdentFragment(RustTypeNameForUse(obj.Name())) == fragment {
+			return true
+		}
+	}
+	return false
+}
+
+func nilReceiverMethodNameNeedsDisambiguation(named *types.Named, method *types.Func, fragment string) bool {
+	if named == nil || method == nil {
+		return false
+	}
+	for i := 0; i < named.NumMethods(); i++ {
+		other := named.Method(i)
+		if other == nil || other == method {
+			continue
+		}
+		if rustIdentFragment(rustMethodNameForTypesFunc(other)) == fragment {
+			return true
+		}
+	}
+	return false
+}
+
+func nilPointerReceiverMethodHelperNameForUse(method *types.Func, fromCrateRoot bool) string {
+	name := nilPointerReceiverMethodHelperName(method)
+	module, known := nilPointerReceiverMethodModuleName(method)
+	if !known {
+		return name
+	}
+	ctx := GetTranspileContext()
+	if module == "" {
+		if fromCrateRoot || ctx == nil || ctx.CurrentModuleName == "" {
+			return name
+		}
+		return "crate::" + name
+	}
+	if !fromCrateRoot && ctx != nil && module == ctx.CurrentModuleName {
+		return name
+	}
+	return "crate::" + module + "::" + name
+}
+
+func nilPointerReceiverMethodModuleName(method *types.Func) (string, bool) {
+	ctx := GetTranspileContext()
+	if method == nil || ctx == nil || ctx.File == nil || ctx.File.FileSet == nil {
+		return "", false
+	}
+	// Standalone and single-file output emits the helper beside every caller at
+	// the crate root. Its parser filename (for example TranspileSource's
+	// input.go) is not a generated Rust module.
+	if !ctx.UsePackageHelpers {
+		return "", true
+	}
+	filename := ctx.File.FileSet.PositionFor(method.Pos(), false).Filename
+	if filename == "" {
+		return "", false
+	}
+	base := strings.TrimSuffix(filepath.Base(filename), ".go")
+	typeInfo := GetTypeInfo()
+	if base == "main" && typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" {
+		return "", true
+	}
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() == "main" && strings.HasPrefix(base, "lib") && strings.TrimLeft(base[3:], "_") == "" {
+		base += "_"
+	}
+	return SanitizeRustModuleName(base), true
 }
 
 func rustIdentFragment(name string) string {
@@ -245,20 +353,16 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 	}
 	method := selectedMethodFuncFromTypeInfo(typeInfo, sel)
 	key := methodOverrideKey(method)
-	helperName, ok := currentNilPointerReceiverMethodHelpers[key]
+	_, ok := currentNilPointerReceiverMethodHelpers[key]
 	if !ok {
 		return false
 	}
+	helperName := nilPointerReceiverMethodHelperNameForUse(method, false)
 	typedNil := isTypedNilPointerReceiverMethodCall(typeInfo, sel, method)
 	if !typedNil && !isPointerReceiverExprMethodCall(typeInfo, sel, method) {
 		return false
 	}
 
-	out.WriteString(helperName)
-	out.WriteString("(")
-	if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
-		TranspileExpression(out, sel.X)
-	}
 	var args strings.Builder
 	if !writeMethodCallArguments(&args, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
 		for i, arg := range call.Args {
@@ -267,6 +371,47 @@ func writeNilPointerReceiverMethodCall(out *strings.Builder, sel *ast.SelectorEx
 			}
 			writeRegularMethodCallArgument(&args, sel, call, arg, i)
 		}
+	}
+
+	if fields, promotedMethod, promoted := promotedMethodCallInfo(sel); promoted && methodOverrideKey(promotedMethod) == key {
+		out.WriteString("{ let __go_promoted_root = ")
+		if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
+			TranspileExpression(out, sel.X)
+		}
+		out.WriteString("; ")
+		handle := "__go_promoted_root"
+		for i, field := range fields {
+			optionName := fmt.Sprintf("__go_promoted_%d_option", i)
+			handleName := fmt.Sprintf("__go_promoted_%d", i)
+			out.WriteString("let ")
+			out.WriteString(optionName)
+			out.WriteString(" = { let __go_guard = ")
+			out.WriteString(handle)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; __go_guard.as_ref().map(|__value| __value.")
+			out.WriteString(field)
+			out.WriteString(".clone()) }; let ")
+			out.WriteString(handleName)
+			out.WriteString(" = ")
+			out.WriteString(optionName)
+			out.WriteString(".expect(\"nil pointer dereference\"); ")
+			handle = handleName
+		}
+		out.WriteString(helperName)
+		out.WriteString("(")
+		out.WriteString(handle)
+		if args.Len() > 0 {
+			out.WriteString(", ")
+			out.WriteString(args.String())
+		}
+		out.WriteString(") }")
+		return true
+	}
+
+	out.WriteString(helperName)
+	out.WriteString("(")
+	if typedNil || !writePointerHandleCallArgument(out, sel.X, typeInfo.GetType(sel.X)) {
+		TranspileExpression(out, sel.X)
 	}
 	if args.Len() > 0 {
 		out.WriteString(", ")

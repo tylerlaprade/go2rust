@@ -647,6 +647,11 @@ impl std::fmt::Display for alphaErr {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for alphaErr {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
 
 
 #[derive(Debug, Clone, Default)]
@@ -663,6 +668,11 @@ impl betaErr {
 impl std::fmt::Display for betaErr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
+    }
+}
+impl PartialEq for betaErr {
+    fn eq(&self, other: &Self) -> bool {
+        true
     }
 }
 
@@ -683,6 +693,11 @@ impl std::fmt::Display for gammaErr {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for gammaErr {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
 
 
 #[derive(Debug, Clone, Default)]
@@ -701,6 +716,11 @@ impl std::fmt::Display for deltaErr {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for deltaErr {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
 
 
 impl alphaErr {
@@ -711,6 +731,18 @@ impl alphaErr {
 
 impl StdError for alphaErr {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_alphaErr(pub Arc<Mutex<Option<alphaErr>>>);
+
+impl std::fmt::Display for __go_error_ptr_alphaErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_alphaErr {}
+
 
 impl betaErr {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
@@ -719,6 +751,18 @@ impl betaErr {
 }
 
 impl StdError for betaErr {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_betaErr(pub Arc<Mutex<Option<betaErr>>>);
+
+impl std::fmt::Display for __go_error_ptr_betaErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_betaErr {}
 
 
 impl gammaErr {
@@ -729,6 +773,18 @@ impl gammaErr {
 
 impl StdError for gammaErr {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_gammaErr(pub Arc<Mutex<Option<gammaErr>>>);
+
+impl std::fmt::Display for __go_error_ptr_gammaErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_gammaErr {}
+
 
 impl deltaErr {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
@@ -737,6 +793,18 @@ impl deltaErr {
 }
 
 impl StdError for deltaErr {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_deltaErr(pub Arc<Mutex<Option<deltaErr>>>);
+
+impl std::fmt::Display for __go_error_ptr_deltaErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_deltaErr {}
 
 
 pub fn as_any(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {

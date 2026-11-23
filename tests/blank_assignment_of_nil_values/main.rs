@@ -754,7 +754,7 @@ fn main() {
 
     { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("kept".to_string()))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *lastErr.borrow_mut() = new_val; };
     let _ = &lastErr;
-    println!("{} {} {}", format!("{}", { let __text = match lastErr.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.borrow().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
+    println!("{} {} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(lastErr); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.borrow().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
 
     let mut count = Rc::new(RefCell::new(Some(0i64)));
     let mut count_closure_clone = count.clone(); let mut bump = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {

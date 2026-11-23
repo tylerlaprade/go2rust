@@ -199,8 +199,12 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// which have the proper type information
 		astFiles = loader.GetMainAST()
 		astFilesByPath = loader.GetMainASTByPath()
+		fileSet = loader.GetMainFileSet()
 		if len(astFilesByPath) == 0 {
 			return fmt.Errorf("no AST files from package loader")
+		}
+		if fileSet == nil {
+			return fmt.Errorf("no file set from package loader")
 		}
 
 		// Set up imports for the main package once the package-scoped context exists.
@@ -298,6 +302,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 	}
 	packageState := NewPackageState()
+	packageState.PointerErrorImplTypes = collectPackagePointerErrorImplTypes(pg.typeInfo)
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	packageState.PointerComparablePointeeTypes = packageAnalysis.pointerComparablePointees
@@ -403,6 +408,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		var fileExternalPkgs map[string]bool
 
 		runCtx.CurrentModuleName = outputName
+		runCtx.SiblingTypeModuleName = outputName
 		if pg.packageMapping != nil {
 			rustCode, fileImports, fileExternalPkgs = TranspileWithMapping(file, fileSet, pg.typeInfo, pg.packageMapping)
 		} else {
@@ -1217,6 +1223,15 @@ func (pg *ProjectGenerator) hasMainFile() bool {
 }
 
 func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPath map[string]*ast.File, packageState *PackageState) error {
+	// Non-main files are transpiled first and leave their module name in the
+	// shared run context. main.rs is the crate root, so clear that state before
+	// resolving cross-file helper locations for main.go.
+	if runCtx := GetTranspileContext(); runCtx != nil {
+		runCtx.CurrentModuleName = ""
+		runCtx.SiblingTypeModuleName = pg.moduleNameForBase("main")
+		defer func() { runCtx.SiblingTypeModuleName = "" }()
+	}
+
 	var (
 		mainGoFile *ast.File
 		mainPath   string

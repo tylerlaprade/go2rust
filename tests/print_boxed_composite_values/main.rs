@@ -876,7 +876,7 @@ impl std::fmt::Display for Status {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NotFound {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -981,7 +981,7 @@ impl std::fmt::Display for Label {
 
 
 /// Missing does the same from its Error method.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Missing {
     pub line: Rc<RefCell<Option<i64>>>,
 }
@@ -1092,6 +1092,18 @@ impl NotFound {
 
 impl StdError for NotFound {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_NotFound(pub Rc<RefCell<Option<NotFound>>>);
+
+impl std::fmt::Display for __go_error_ptr_NotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_NotFound {}
+
 
 impl Label {
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
@@ -1106,6 +1118,18 @@ impl Missing {
 }
 
 impl StdError for Missing {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Missing(pub Rc<RefCell<Option<Missing>>>);
+
+impl std::fmt::Display for __go_error_ptr_Missing {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Missing {}
 
 
 pub fn render(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {

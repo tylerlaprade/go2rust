@@ -767,6 +767,11 @@ impl std::fmt::Display for plainErr {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for plainErr {
+    fn eq(&self, other: &Self) -> bool {
+        true
+    }
+}
 
 
 impl plainErr {
@@ -776,6 +781,18 @@ impl plainErr {
 }
 
 impl StdError for plainErr {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_plainErr(pub Arc<Mutex<Option<plainErr>>>);
+
+impl std::fmt::Display for __go_error_ptr_plainErr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_plainErr {}
 
 
 pub fn classify(mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {

@@ -631,7 +631,7 @@ pub fn divmod(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64,
 pub fn parse_number(s: Rc<RefCell<Option<String>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let (mut num, mut err) = { let __atoi_input = (*s.borrow().as_ref().unwrap()).clone(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i64, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        return (0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))));
+        return (0, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("failed to parse '{}': {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }, { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))));
     }
     (num, Rc::new(RefCell::new(None)))
 }
@@ -727,14 +727,14 @@ fn main() {
     println!("{}", format!("{}", "\n=== Multiple returns with errors ===".to_string()));
     let (mut num, mut err) = parse_number(Rc::new(RefCell::new(Some("123".to_string()))));
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Parsed number: {}\n", num);
     }
 
     { let (__tmp_0, __tmp_1) = parse_number(Rc::new(RefCell::new(Some("abc".to_string())))); num = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Parsed number: {}\n", num);
     }
@@ -784,14 +784,14 @@ fn main() {
     println!("{}", format!("{}", "\n=== Safe division ===".to_string()));
     let (mut result, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(3.0)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("10.0 / 3.0 = {:.2}\n", result);
     }
 
     { let (__tmp_0, __tmp_1) = safe_divide(Rc::new(RefCell::new(Some(10.0))), Rc::new(RefCell::new(Some(0.0)))); result = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        print!("Error: {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+        print!("Error: {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     } else {
         print!("Result: {:.2}\n", result);
     }

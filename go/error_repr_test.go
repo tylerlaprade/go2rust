@@ -53,6 +53,60 @@ func main() {
 	}
 }
 
+// Standalone transpilation must allocate pointer-error wrapper names with the
+// full package set in view. Otherwise E and E_1 both choose
+// __go_error_ptr_E_1 when the source already declares __go_error_ptr_E.
+func TestStandalonePointerErrorWrapperNamesDoNotCollide(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type E struct{}
+func (*E) Error() string { return "e" }
+
+type E_1 struct{}
+func (*E_1) Error() string { return "e1" }
+
+type __go_error_ptr_E struct{}
+
+func first() error { return &E{} }
+func second() error { return &E_1{} }
+`)
+
+	if got := strings.Count(rust, "struct __go_error_ptr_E_1("); got != 1 {
+		t.Fatalf("generated pointer-error wrapper name must be unique, got %d definitions:\n%s", got, rust)
+	}
+	if !strings.Contains(rust, "struct __go_error_ptr_E_1_1(") {
+		t.Fatalf("second pointer-error wrapper should advance past the allocated name:\n%s", rust)
+	}
+}
+
+func TestPointerErrorDisplayDispatchesTypedNilReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Safe struct{}
+func (*Safe) Error() string { return "custom" }
+
+func main() {
+	var p *Safe
+	var err error = p
+	fmt.Println(err)
+}
+`)
+
+	for _, want := range []string{
+		"go_silent_catch_unwind(|| __go_nil_recv_safe_error(Rc::new(RefCell::new(None))))",
+		"Err(_) => write!(f, \"<nil>\")",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("typed-nil pointer error formatting missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "let __go_previous_panic_hook") {
+		t.Fatalf("typed-nil formatting should not swap the process-wide panic hook per call:\n%s", rust)
+	}
+}
+
 // "last = err" leaves err as it was. It used to empty it.
 func TestAssigningAnErrorLeavesTheSource(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
@@ -125,9 +179,9 @@ func main() {
 	}
 }
 
-// Two errors are equal when they are the same error: both nil, or both
-// pointers to one allocation. Two variables holding one error have two
-// handles, so comparing the handles is not enough.
+// Two errors.New values are equal only when both interface values retain the
+// same dynamic error allocation. Two variables holding one error have two
+// outer handles, so comparing those handles is not enough.
 func TestErrorsAreComparedByIdentity(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -144,9 +198,14 @@ func main() {
 }
 `)
 
-	want := "match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false }"
-	if !strings.Contains(rust, want) {
-		t.Fatalf("missing %q in:\n%s", want, rust)
+	for _, want := range []string{
+		"match (__left_value.as_ref(), __right_value.as_ref())",
+		"std::ptr::addr_eq(&**__l, &**__r)",
+		"(None, None) => true",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
 	}
 }
 
@@ -233,7 +292,7 @@ func main() {
 		// A struct error is boxed as the struct.
 		`if let Some(typed_val) = __err.downcast_ref::<Missing>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) }`,
 		// A pointer error is boxed as a pointer handle, as any pointer is.
-		`if let Some(typed_val) = __err.downcast_ref::<NotFound>() { go_box_any_with_metadata(Rc::new(RefCell::new(Some(typed_val.clone()))), "pointer", true) }`,
+		`if let Some(typed_val) = __err.downcast_ref::<__go_error_ptr_NotFound>() { go_box_any_with_metadata(typed_val.0.clone(), "pointer", true) }`,
 		// The box holds the value and nothing else.
 		"go_register_any_type::<T>(kind, comparable);\n    Box::new(value) as Box<dyn Any>",
 		// Both types are known to the readers of an interface value.

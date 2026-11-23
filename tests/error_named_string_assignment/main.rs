@@ -673,6 +673,18 @@ impl internalError {
 
 impl StdError for internalError {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_internalError(pub Rc<RefCell<Option<internalError>>>);
+
+impl std::fmt::Display for __go_error_ptr_internalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_internalError {}
+
 
 pub fn assigned() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
@@ -686,6 +698,6 @@ pub fn direct() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
 }
 
 fn main() {
-    println!("{}", format!("{}", { let __text = match assigned().borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", { let __text = match direct().borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(assigned()); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(direct()); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

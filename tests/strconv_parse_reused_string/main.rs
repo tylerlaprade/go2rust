@@ -587,7 +587,7 @@ fn main() {
         { let new_val = (*Rc::new(RefCell::new(Some({ let __s = field.clone(); __s.trim().to_string() }))).borrow().as_ref().unwrap()).clone(); field = new_val; };
         let (mut n, mut err) = { let __atoi_input = field.clone(); match __atoi_input.parse::<i64>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i64, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input))))))) } };
         if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{} {} {}", format!("{}", "skip".to_string()), format!("{}", field), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {} {}", format!("{}", "skip".to_string()), format!("{}", field), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         continue
     }
         { let __rhs = n; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -595,7 +595,7 @@ fn main() {
     } }
     for word in &vec!["true".to_string(), "nope".to_string()] {
         let (mut b, mut err) = { let __parse_bool_input = word.clone(); match __parse_bool_input.as_str() { "1" | "t" | "T" | "TRUE" | "true" | "True" => (true, Rc::new(RefCell::new(None))), "0" | "f" | "F" | "FALSE" | "false" | "False" => (false, Rc::new(RefCell::new(None))), _ => (false, Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("strconv.ParseBool: parsing \"{}\": invalid syntax", __parse_bool_input))))))) } };
-        println!("{} {} {}", format!("{}", word), format!("{}", b), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {} {}", format!("{}", word), format!("{}", b), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 }

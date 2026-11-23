@@ -869,7 +869,7 @@ fn main() {
     print!("{}\n", (*l.borrow().as_ref().unwrap()));
     let mut s = Rc::new(RefCell::new(Some(format!("p={:#} n={:#} i={:#} d={:+} str={:#}", (*p.borrow().as_ref().unwrap()), Named { n: Rc::new(RefCell::new(Some(3))), ..Default::default() }, 5, 6, "x".to_string()))));
     println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
-    print!("{:#}\n", { let __text = match Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+    print!("{:#}\n", { let __go_print_value = { let __go_print_handle = &(Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string())))))); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
     let mut pts = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }])));
     print!("{:#} {}\n", { let __plus_holder = pts.clone(); let __plus_guard = __plus_holder.borrow(); match __plus_guard.as_ref() { Some(__s) => format!("[{}]", __s.iter().map(|__v| format!("{:#}", __v)).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } }, format_slice(&pts));
     let mut pp = p.clone();

@@ -1432,7 +1432,7 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"%6.2f|%g|%g|%.3d|%q".to_string(), &[Box::new(3.14159) as Box<dyn Any>, Box::new(1e21) as Box<dyn Any>, Box::new(0.5) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>, Box::new("a\"b".to_string()) as Box<dyn Any>], false)))));
     println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
     let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf(&"value %8.3f out of range [%d, %d]".to_string(), &[Box::new(12.5) as Box<dyn Any>, Box::new(0i64) as Box<dyn Any>, Box::new(10i64) as Box<dyn Any>], true)))))));
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[Box::new("name".to_string()) as Box<dyn Any>, Box::new(2.0 / 3.0) as Box<dyn Any>], false));
     let mut c: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(21.5)))))));
     print!("{}", go_sprintf(&"%v %s %8.2v|\n".to_string(), &[Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(1.5) as Box<dyn Any>], false));

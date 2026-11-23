@@ -582,6 +582,38 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 #[derive(Debug, Clone)]
 pub struct Point {
     pub x: Rc<RefCell<Option<i64>>>,
@@ -717,7 +749,7 @@ impl std::fmt::Display for Broken {
 
 
 /// Timeout is an error through its value.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Timeout {
     pub seconds: Rc<RefCell<Option<i64>>>,
 }
@@ -768,6 +800,24 @@ impl Broken {
 
 impl StdError for Broken {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Broken(pub Rc<RefCell<Option<Broken>>>);
+
+impl std::fmt::Display for __go_error_ptr_Broken {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_broken_error(Rc::new(RefCell::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_Broken {}
+
 
 impl Timeout {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
@@ -776,6 +826,18 @@ impl Timeout {
 }
 
 impl StdError for Timeout {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Timeout(pub Rc<RefCell<Option<Timeout>>>);
+
+impl std::fmt::Display for __go_error_ptr_Timeout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Timeout {}
 
 
 pub fn find(ok: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
@@ -796,20 +858,20 @@ fn main() {
         // A nil error prints as <nil>, whichever print call it reaches and
         // whether it comes from a variable or straight from a call.
     let mut err = find(Rc::new(RefCell::new(Some(true))));
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
-    print!("{} and {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, 3);
-    println!("{}", format!("{}", { let __text = match find(Rc::new(RefCell::new(Some(true)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("got {}", { let __text = match find(Rc::new(RefCell::new(Some(true)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    print!("{}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+    print!("{} and {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, 3);
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(find(Rc::new(RefCell::new(Some(true))))); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("got {}", { let __go_print_value = { let __go_print_handle = &(find(Rc::new(RefCell::new(Some(true))))); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).borrow().as_ref().unwrap())));
 
         // An error that is not nil prints its message, as before.
     { let __rhs_holder = find(Rc::new(RefCell::new(Some(false)))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err.borrow_mut() = new_val; };
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{} {}\n", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
-    println!("{}", format!("{}", { let __text = match find(Rc::new(RefCell::new(Some(false)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    print!("{} {}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }, { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(find(Rc::new(RefCell::new(Some(false))))); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // A nil pointer prints as <nil>.
     let mut p: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(None));
@@ -839,11 +901,15 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }) as Rc<dyn StdError>)));
-    println!("{}", format!("{}", { let __text = match declared.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    let mut declared: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_Broken(Rc::new(RefCell::new(Some(Broken { why: Rc::new(RefCell::new(Some("declared".to_string()))), ..Default::default() }))).clone())) as Rc<dyn StdError>)));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(declared); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut plain: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(Timeout { seconds: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Rc<dyn StdError>)));
-    println!("{}", format!("{}", { let __text = match plain.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(plain); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", { let __nil_result = (*declared.borrow()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*plain.borrow()).is_some(); __nil_result }));
     let mut unset: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
-    println!("{} {}", format!("{}", { let __text = match unset.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(unset); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.borrow()).is_none(); __nil_result }));
+}
+
+pub fn __go_nil_recv_broken_error(b: Rc<RefCell<Option<Broken>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{}{}", "broken: ".to_string(), (*(*b.borrow().as_ref().unwrap()).why.borrow().as_ref().unwrap()).clone()))))
 }

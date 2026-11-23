@@ -919,7 +919,7 @@ fn main() {
 
     { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("kept".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *lastErr.lock().unwrap() = new_val; };
     let _ = &lastErr;
-    println!("{} {} {}", format!("{}", { let __text = match lastErr.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.lock().unwrap().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(lastErr); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.lock().unwrap().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
 
     let mut count = Arc::new(Mutex::new(Some(0i64)));
     let mut count_closure_clone = count.clone(); let mut bump = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {

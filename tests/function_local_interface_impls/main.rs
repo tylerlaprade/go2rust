@@ -832,7 +832,9 @@ impl namer for animalPtr {
     }
     fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<animalPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -896,7 +898,9 @@ impl namer for dogPtr {
     }
     fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<dogPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -944,7 +948,9 @@ impl speaker for dogPtr {
     }
     fn __go_eq_speaker(&self, other: &dyn speaker) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<dogPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -1008,7 +1014,9 @@ impl namer for catPtr {
     }
     fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<catPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -1056,7 +1064,9 @@ impl speaker for catPtr {
     }
     fn __go_eq_speaker(&self, other: &dyn speaker) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<catPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -1112,7 +1122,9 @@ impl incer for counterPtr {
     }
     fn __go_eq_incer(&self, other: &dyn incer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }

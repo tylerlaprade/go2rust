@@ -646,6 +646,38 @@ fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source:
     None
 }
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 struct GoPointerError<T> {
     handle: Arc<Mutex<Option<T>>>,
 }
@@ -895,6 +927,13 @@ impl std::fmt::Display for notFound {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for notFound {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -936,6 +975,18 @@ impl notFound {
 
 impl StdError for notFound {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_notFound(pub Arc<Mutex<Option<notFound>>>);
+
+impl std::fmt::Display for __go_error_ptr_notFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_notFound {}
+
 
 impl pointerError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
@@ -944,6 +995,24 @@ impl pointerError {
 }
 
 impl StdError for pointerError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_pointerError(pub Arc<Mutex<Option<pointerError>>>);
+
+impl std::fmt::Display for __go_error_ptr_pointerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.lock().unwrap().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.lock().unwrap();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_pointer_error_error(Arc::new(Mutex::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_pointerError {}
 
 
 pub fn error_text(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (bool, Arc<Mutex<Option<String>>>) {
@@ -1196,6 +1265,10 @@ fn main() {
     }
     });
     done.recv().unwrap_or_default();
+}
+
+pub fn __go_nil_recv_pointer_error_error(e: Arc<Mutex<Option<pointerError>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some(format!("pointer {}", (*{ let __field = (*e.lock().unwrap().as_ref().unwrap()).code.clone(); __field }.lock().unwrap().as_ref().unwrap())))))
 }
 
 #[derive(Debug, Clone, Default)]

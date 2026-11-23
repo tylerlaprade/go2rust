@@ -25,13 +25,42 @@ func main() {
 	fmt.Println(errors.Is(err, ErrNotFound), errors.As(err, &pe), errors.Unwrap(err), errors.Join(err, nil))
 }
 `)
-	for _, want := range []string{"go_error_wrap(format!(", "go_errors_is(", "go_error_chain(", ".downcast_ref::<PE>()", "go_errors_unwrap(", "go_errors_join(vec!["} {
+	for _, want := range []string{"go_error_wrap(format!(", "go_errors_is(", "go_error_chain_visit(", ".downcast_ref::<__go_error_ptr_PE>()", "go_errors_unwrap(", "go_errors_join(vec!["} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}
 	}
 	if strings.Contains(rust, "is bridge: generic stub") {
 		t.Fatalf("errors.Is went to the panicking stub:\n%s", rust)
+	}
+}
+
+func TestTypedNilUnwrapDispatchAndLazyErrorChain(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "errors"
+
+type Safe struct{}
+func (*Safe) Error() string { return "safe" }
+func (*Safe) Unwrap() error { return errors.New("inner") }
+
+func use(err error) bool {
+	var target *Safe
+	return errors.Is(err, err) && errors.As(err, &target) && errors.Unwrap(err) != nil
+}
+`)
+
+	for _, want := range []string{
+		"go_error_chain_visit(Some(err)",
+		"go_error_chain_visit(",
+		"__go_nil_recv_safe_unwrap(__v.0.clone())",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("typed-nil/lazy error chain lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "go_error_chain(err: ") {
+		t.Fatalf("errors.Is/As must not eagerly build the full chain:\n%s", rust)
 	}
 }
 

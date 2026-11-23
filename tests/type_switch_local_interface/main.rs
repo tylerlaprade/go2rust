@@ -712,7 +712,9 @@ impl namer for alphaPtr {
     }
     fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<alphaPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -768,7 +770,9 @@ impl namer for betaPtr {
     }
     fn __go_eq_namer(&self, other: &dyn namer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<betaPtr>() {
-            Rc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = self.0.borrow().is_none();
+            let __go_right_nil = __other.0.borrow().is_none();
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Rc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }

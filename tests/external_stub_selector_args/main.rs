@@ -88,6 +88,7 @@ fn main() {
     }
     });
     done.recv().unwrap_or_default();
+
     let mut inputs = Arc::new(Mutex::new(Some(checkerInputs {
         fset: go_token::new_file_set().clone(),
         pkg: go_types::new_package(Arc::new(Mutex::new(Some("example.com/p".to_string()))), Arc::new(Mutex::new(Some("p".to_string())))).clone(),

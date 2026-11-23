@@ -2570,6 +2570,49 @@ func used(items []item) bool {
 	}
 }
 
+func TestSingleThreadedComparableErrorStructPointerFieldUsesIdentity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type item struct { n int }
+type pointerFieldError struct { p *item; label string }
+func (pointerFieldError) Error() string { return "pointer field" }
+
+func equal(left, right error) bool { return left == right }
+`)
+
+	if !strings.Contains(rust, "impl PartialEq for pointerFieldError") {
+		t.Fatalf("single-threaded comparable error with a pointer field needs custom PartialEq:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::ptr_eq(&self.p, &other.p)") {
+		t.Fatalf("pointer field equality should compare Rc handles by identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.label.borrow().as_ref().cloned()") {
+		t.Fatalf("non-pointer fields should retain value equality in custom PartialEq:\n%s", rust)
+	}
+}
+
+func TestTypedNilPointerLocalInterfaceValuesCompareEqual(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type valued interface { Value() int }
+type item struct { n int }
+func (item) Value() int { return 1 }
+
+func equal(left, right valued) bool { return left == right }
+`)
+
+	for _, want := range []string{
+		"let __go_left_nil = self.0.borrow().is_none()",
+		"let __go_right_nil = __other.0.borrow().is_none()",
+		"__go_left_nil && __go_right_nil",
+		"Rc::ptr_eq(&self.0, &__other.0)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("typed-nil interface equality missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3356,7 +3399,7 @@ func (check *Checker) newAlias() *Alias {
 	if !strings.Contains(rust, "__go_nil_recv_checker_new_alias") {
 		t.Fatalf("typed nil pointer receiver call should dispatch through an explicit receiver helper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "if (*check.borrow()).is_some()") {
+	if !strings.Contains(rust, "(*check.borrow()).is_some()") {
 		t.Fatalf("typed nil pointer receiver helper should preserve the receiver nil check:\n%s", rust)
 	}
 }

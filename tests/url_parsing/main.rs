@@ -622,7 +622,7 @@ impl url_URL {
 fn main() {
     let (mut u, mut err) = { let __url_input = "https://example.com/path?key=value".to_string(); (Arc::new(Mutex::new(Some(go_url_parse(&__url_input)))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))) };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
 

@@ -883,18 +883,23 @@ fn go_errors_join(errs: Vec<Option<Rc<dyn StdError>>>) -> Option<Rc<dyn StdError
     Some(Rc::new(GoWrapError { msg, wrapped: errs, many: true }) as Rc<dyn StdError>)
 }
 
-// err and every error it wraps, depth first, in the order errors.Is and
-// errors.As visit them.
-fn go_error_chain(err: Option<Rc<dyn StdError>>) -> Vec<Rc<dyn StdError>> {
-    let mut out = Vec::new();
+// Visit err and every error it wraps, depth first, in the order errors.Is and
+// errors.As use. Stop before unwrapping the first value accepted by visit.
+fn go_error_chain_visit<F>(err: Option<Rc<dyn StdError>>, mut visit: F) -> bool
+where
+    F: FnMut(&Rc<dyn StdError>) -> bool,
+{
     let mut stack: Vec<Rc<dyn StdError>> = err.into_iter().collect();
     while let Some(e) = stack.pop() {
+        if visit(&e) {
+            return true;
+        }
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
             stack.extend(w.wrapped.iter().rev().cloned());
         }
-        out.push(e);
+
     }
-    out
+    false
 }
 
 fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
@@ -912,7 +917,7 @@ fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
 fn go_errors_is(err: Option<Rc<dyn StdError>>, target: Option<Rc<dyn StdError>>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain_visit(Some(err), |e| std::ptr::addr_eq(&**e, &*target)),
         _ => false,
     }
 }
@@ -2114,7 +2119,7 @@ impl std::fmt::Display for Inventory {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StockError {
     pub name: Rc<RefCell<Option<String>>>,
     pub have: Rc<RefCell<Option<i64>>>,
@@ -2226,6 +2231,18 @@ impl StockError {
 }
 
 impl StdError for StockError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_StockError(pub Rc<RefCell<Option<StockError>>>);
+
+impl std::fmt::Display for __go_error_ptr_StockError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_StockError {}
 
 
 impl Inventory {
@@ -2355,11 +2372,11 @@ fn main() {
         let (mut cost, mut err) = (*inv.borrow_mut().as_mut().unwrap()).take(Rc::new(RefCell::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         let mut se: Rc<RefCell<Option<StockError>>> = Rc::new(RefCell::new(Some(Default::default())));
         if (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap()) {
-            println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-        } else if (*Rc::new(RefCell::new(Some({ let mut __as_found = None; for __as_err in go_error_chain({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }) { if let Some(__as_value) = __as_err.downcast_ref::<StockError>() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { *se.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap()) {
-            print!("short by {}: {}\n", (*(*se.borrow().as_ref().unwrap()).want.borrow().as_ref().unwrap()) - (*(*se.borrow().as_ref().unwrap()).have.borrow().as_ref().unwrap()), { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+            println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        } else if (*Rc::new(RefCell::new(Some({ let mut __as_found = None; go_error_chain_visit({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, |__as_err| { if let Some(__as_value) = __as_err.downcast_ref::<StockError>() { __as_found = Some(__as_value.clone()); true } else { false } }); match __as_found { Some(__as_value) => { *se.borrow_mut() = Some(__as_value); true } None => false } }))).borrow().as_ref().unwrap()) {
+            print!("short by {}: {}\n", (*(*se.borrow().as_ref().unwrap()).want.borrow().as_ref().unwrap()) - (*(*se.borrow().as_ref().unwrap()).have.borrow().as_ref().unwrap()), { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
         } else if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "other:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+            println!("{} {}", format!("{}", "other:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         } else {
             print!("took {} {} for {}\n", (*req.qty.borrow().as_ref().unwrap()), (*req.name.borrow().as_ref().unwrap()).clone(), { let __v = (*cost.borrow().as_ref().unwrap()).clone(); __v });
         }
@@ -2368,7 +2385,7 @@ fn main() {
     print!("{} {} {}\n", Money(Rc::new(RefCell::new(Some(-1234 as i64)))), Money(Rc::new(RefCell::new(Some(5 as i64)))), (*(*(*(*inv.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().get(&"apple".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).qty.borrow().as_ref().unwrap()));
     for n in vec![4i64, (-1i64)].iter().copied() {
         let (mut r, mut err) = must_positive(Rc::new(RefCell::new(Some(n.clone()))));
-        println!("{} {}", format!("{}", r), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", r), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     let mut byTag = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([]))));
     { let __range_holder = (*inv.borrow().as_ref().unwrap()).names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {

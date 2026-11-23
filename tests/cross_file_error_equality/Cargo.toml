@@ -1,0 +1,11 @@
+[package]
+name = "cross_file_error_equality"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_error_equality"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

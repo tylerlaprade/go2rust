@@ -618,7 +618,7 @@ fn main() {
         println!("{}", format!("{}", "unset".to_string()));
     }
     if { let __nil_result = (*ErrBoom.borrow()).is_some(); __nil_result } {
-        println!("{}", format!("{}", { let __text = match ErrBoom.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(ErrBoom); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
 }
 

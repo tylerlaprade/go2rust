@@ -52,6 +52,7 @@ fn main() {
     }
     });
     done.recv().unwrap_or_default();
+
     println!("{}", format!("{}", {
         let __left = (*go_types::Unsafe.lock().unwrap().as_ref().unwrap()).clone();
         let __right = (*go_types::Unsafe.lock().unwrap().as_ref().unwrap()).clone();

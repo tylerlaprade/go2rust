@@ -152,6 +152,7 @@ type HelperTracker struct {
 	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
+	needsSilentPanicCatch                bool
 	needsAnyHandleCopy                   bool
 	needsPanicRecover                    bool
 	needsGoPointerError                  bool
@@ -375,6 +376,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateAnyClone(&result, anyCloneTypes, ht.needsAnyHandleCopy)
 	}
 
+	if ht.needsSilentPanicCatch {
+		generateSilentPanicCatch(&result)
+	}
+
 	if ht.needsPanicRecover {
 		generatePanicRecoverHelper(&result)
 	}
@@ -546,6 +551,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
+		ht.needsSilentPanicCatch ||
 		ht.needsAnyHandleCopy ||
 		ht.needsPanicRecover ||
 		ht.needsGoPointerError ||
@@ -696,6 +702,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsAnyHandleCopy {
 		add("go_any_handle_copy", "go_any_store")
 	}
+	if ht.needsSilentPanicCatch {
+		add("go_silent_catch_unwind")
+	}
 	if ht.needsPanicRecover {
 		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_silence_panic_hook", "go_restore_panic_hook")
 	}
@@ -748,7 +757,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add(goTypeNameHelperRustName)
 	}
 	if ht.needsGoErrorChain {
-		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
+		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain_visit", "go_errors_unwrap", "go_errors_is")
 	}
 	if ht.needsGoSprintf {
 		add("go_sprintf")
@@ -1371,6 +1380,48 @@ impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
 }
 
 impl<T: std::fmt::Display + 'static> std::error::Error for GoPointerError<T> {}
+`)
+}
+
+func generateSilentPanicCatch(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(`std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+`)
+	out.WriteString(visibility)
+	out.WriteString(`fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
 `)
 }
 

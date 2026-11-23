@@ -646,6 +646,38 @@ fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<O
     None
 }
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -697,7 +729,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct notFound {
     pub name: Rc<RefCell<Option<String>>>,
 }
@@ -767,6 +799,18 @@ impl notFound {
 
 impl StdError for notFound {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_notFound(pub Rc<RefCell<Option<notFound>>>);
+
+impl std::fmt::Display for __go_error_ptr_notFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_notFound {}
+
 
 impl pointerError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
@@ -775,6 +819,24 @@ impl pointerError {
 }
 
 impl StdError for pointerError {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_pointerError(pub Rc<RefCell<Option<pointerError>>>);
+
+impl std::fmt::Display for __go_error_ptr_pointerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_pointer_error_error(Rc::new(RefCell::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_pointerError {}
 
 
 pub fn error_text(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> (bool, Rc<RefCell<Option<String>>>) {
@@ -1009,4 +1071,8 @@ fn main() {
 
     let _ = &valueText;
     let _ = &pointerErr;
+}
+
+pub fn __go_nil_recv_pointer_error_error(e: Rc<RefCell<Option<pointerError>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("pointer {}", (*(*e.borrow().as_ref().unwrap()).code.borrow().as_ref().unwrap())))))
 }

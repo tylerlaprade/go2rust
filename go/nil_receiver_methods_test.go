@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -38,6 +39,87 @@ func main() {
 	}
 	if strings.Contains(rust, "__go_nil_recv_node_first") {
 		t.Fatalf("a method that does not test its receiver keeps its call:\n%s", rust)
+	}
+}
+
+func TestTranspileSourceNilReceiverHelperStaysAtCrateRoot(t *testing.T) {
+	rust, err := TranspileSource(`package main
+
+type E struct{}
+
+func (e *E) Error() string {
+	if e == nil {
+		return "nil"
+	}
+	return "e"
+}
+
+func main() {
+	var e *E
+	_ = e.Error()
+}
+`)
+	if err != nil {
+		t.Fatalf("TranspileSource() error = %v", err)
+	}
+	if strings.Contains(rust, "crate::input::__go_nil_recv_e_error") {
+		t.Fatalf("standalone output should call its crate-root helper without an input module:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_nil_recv_e_error(e.clone())") {
+		t.Fatalf("standalone output should call its emitted nil-receiver helper:\n%s", rust)
+	}
+}
+
+func TestPromotedNilReceiverHelperUsesEmbeddedPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Inner struct{}
+
+func (inner *Inner) Error() string {
+	if inner == nil {
+		return "nil"
+	}
+	return "inner"
+}
+
+type Outer struct{ *Inner }
+
+func main() {
+	outer := &Outer{}
+	_ = outer.Error()
+}
+`)
+	if !strings.Contains(rust, "let __go_promoted_root = outer.clone()") ||
+		!strings.Contains(rust, "__value.inner.clone()") ||
+		!strings.Contains(rust, "__go_nil_recv_inner_error(__go_promoted_0)") {
+		t.Fatalf("promoted nil-receiver call should pass the embedded pointer handle to its helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "__go_nil_recv_inner_error(outer.clone())") {
+		t.Fatalf("promoted nil-receiver call must not pass the outer pointer handle to its helper:\n%s", rust)
+	}
+}
+
+func TestNilReceiverHelpersDisambiguateCaseDistinctReceivers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type E struct{}
+type e struct{}
+
+func (*E) Error() string { return "E" }
+func (*e) Error() string { return "e" }
+
+func main() {
+	var upper *E
+	var lower *e
+	_, _ = upper.Error(), lower.Error()
+}
+`)
+	names := regexp.MustCompile(`pub fn (__go_nil_recv_[^(]+)`).FindAllStringSubmatch(rust, -1)
+	if len(names) != 2 {
+		t.Fatalf("got %d nil-receiver helpers, want 2:\n%s", len(names), rust)
+	}
+	if names[0][1] == names[1][1] {
+		t.Fatalf("case-distinct receiver types must use distinct helper names, both used %q:\n%s", names[0][1], rust)
 	}
 }
 

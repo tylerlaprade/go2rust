@@ -921,7 +921,7 @@ fn main() {
 
     let mut err = fail(ctx.clone());
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
     println!("{}", format!("{}", "no error".to_string()));

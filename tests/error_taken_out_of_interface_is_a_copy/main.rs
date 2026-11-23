@@ -742,7 +742,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    println!("{} {}", format!("{}", ok), format!("{}", { let __text = match got.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", ok), format!("{}", { let __go_print_value = { let __go_print_handle = &(got); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     *got.borrow_mut() = None;
     let (mut again, mut ok) = ({
         let val = boxed.clone();
@@ -761,7 +761,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", ok), format!("{}", { let __text = match again.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match got.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {} {}", format!("{}", ok), format!("{}", { let __go_print_value = { let __go_print_handle = &(again); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(got); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     let mut single = Rc::new(RefCell::new(Some(({
         let val = boxed.clone();
@@ -772,7 +772,7 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
-    println!("{}", format!("{}", { let __text = match single.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(single); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("replaced".to_string()))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *single.borrow_mut() = new_val; };
     let (mut third, mut ok) = ({
         let val = boxed.clone();
@@ -791,7 +791,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", ok), format!("{}", { let __text = match third.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match single.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {} {}", format!("{}", ok), format!("{}", { let __go_print_value = { let __go_print_handle = &(third); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(single); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     {
     let _ts_subject = boxed.clone();
@@ -807,7 +807,7 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
         let mut v = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
         drop(_ts_guard);
-        println!("{} {}", format!("{}", "case error:".to_string()), format!("{}", { let __text = match v.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
+        println!("{} {}", format!("{}", "case error:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(v); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         *v.borrow_mut() = None;;
         println!("{}", format!("{}", { let __nil_result = (*v.borrow()).is_none(); __nil_result }));;
     }
@@ -829,7 +829,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    println!("{} {}", format!("{}", ok), format!("{}", { let __text = match fourth.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", ok), format!("{}", { let __go_print_value = { let __go_print_handle = &(fourth); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // The copy is still the same error.
     let mut sentinel = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("sentinel".to_string())))));
@@ -843,7 +843,7 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
-    println!("{} {}", format!("{}", { let __left = back.clone(); let __right = sentinel.clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }), format!("{}", { let __text = match back.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __left = back.clone(); let __right = sentinel.clone(); let __left_value = { (*__left.borrow()).clone() }; let __right_value = { (*__right.borrow()).clone() }; let __eq = match (__left_value.as_ref(), __right_value.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false }; __eq }), format!("{}", { let __go_print_value = { let __go_print_handle = &(back); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // A formatted error takes the same paths.
     let mut wrapped: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped: {}", 7)))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
@@ -873,7 +873,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", { let __text = match w.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match w2.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", ok));
+    println!("{} {} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(w); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(w2); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", ok));
     *w.borrow_mut() = None;
     let mut w3 = Rc::new(RefCell::new(Some(({
         let val = wrapped.clone();
@@ -884,5 +884,5 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "error")
         }
     }))));
-    println!("{} {}", format!("{}", { let __nil_result = (*w.borrow()).is_none(); __nil_result }), format!("{}", { let __text = match w3.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __nil_result = (*w.borrow()).is_none(); __nil_result }), format!("{}", { let __go_print_value = { let __go_print_handle = &(w3); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

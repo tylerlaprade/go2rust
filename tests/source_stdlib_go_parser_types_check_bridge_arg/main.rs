@@ -101,7 +101,9 @@ impl localDecl for localVarDeclPtr {
     }
     fn __go_eq_local_decl(&self, other: &(dyn localDecl + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<localVarDeclPtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = { self.0.lock().unwrap().is_none() };
+            let __go_right_nil = { __other.0.lock().unwrap().is_none() };
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }
@@ -270,7 +272,7 @@ fn main() {
         __result
     }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     println!("{} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
 }

@@ -582,6 +582,38 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 #[derive(Debug, Clone)]
 pub struct argError {
     pub arg: Rc<RefCell<Option<i64>>>,
@@ -626,6 +658,24 @@ impl argError {
 
 impl StdError for argError {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_argError(pub Rc<RefCell<Option<argError>>>);
+
+impl std::fmt::Display for __go_error_ptr_argError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.borrow().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.borrow();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_arg_error_error(Rc::new(RefCell::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.borrow(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_argError {}
+
 
 pub fn f1(arg: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
@@ -636,7 +686,7 @@ pub fn f1(arg: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdEr
 
 pub fn f2(arg: Rc<RefCell<Option<i64>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     if (*arg.borrow().as_ref().unwrap()) == 42 {
-        return (-(1), Rc::new(RefCell::new(Some(Rc::new(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }) as Rc<dyn StdError>))));
+        return (-(1), Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_argError(Rc::new(RefCell::new(Some(argError { arg: Rc::new(RefCell::new(Some((*arg.borrow().as_ref().unwrap())))), prob: Rc::new(RefCell::new(Some("can't work with it".to_string()))), ..Default::default() }))).clone())) as Rc<dyn StdError>))));
     }
     ((*arg.borrow().as_ref().unwrap()) + 3, Rc::new(RefCell::new(None)))
 }
@@ -646,7 +696,7 @@ fn main() {
         {
         let (mut r, mut e) = f1(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", { let __text = match e.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
+            println!("{} {}", format!("{}", "f1 failed:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(e); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         } else {
             println!("{} {}", format!("{}", "f1 worked:".to_string()), format!("{}", r));;
         }
@@ -656,7 +706,7 @@ fn main() {
         {
         let (mut r, mut e) = f2(Rc::new(RefCell::new(Some(i.clone()))));;
         if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", { let __text = match e.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
+            println!("{} {}", format!("{}", "f2 failed:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(e); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
         } else {
             println!("{} {}", format!("{}", "f2 worked:".to_string()), format!("{}", r));;
         }
@@ -669,8 +719,8 @@ fn main() {
         let val = e.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<argError>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = any_val.downcast_ref::<__go_error_ptr_argError>() {
+                (typed_val.0.clone(), true)
             } else {
                 (Rc::new(RefCell::new(None::<argError>)), false)
             }
@@ -683,4 +733,8 @@ fn main() {
             println!("{}", format!("{}", (*(*ae.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone()));;
         }
     }
+}
+
+pub fn __go_nil_recv_arg_error_error(e: Rc<RefCell<Option<argError>>>) -> Rc<RefCell<Option<String>>> {
+    Rc::new(RefCell::new(Some(format!("{} - {}", (*(*e.borrow().as_ref().unwrap()).arg.borrow().as_ref().unwrap()), (*(*e.borrow().as_ref().unwrap()).prob.borrow().as_ref().unwrap()).clone()))))
 }

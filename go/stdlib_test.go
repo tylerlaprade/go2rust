@@ -76,9 +76,9 @@ func wrap() error {
 		strings.Contains(rust, "ErrNotFound.borrow().as_ref().unwrap()).clone()).borrow()") {
 		t.Fatalf("fmt.Errorf should not clone the boxed error before formatting it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match os_exec::ErrNotFound.lock().unwrap().as_ref() { Some(__value) => format!(\"{}\", __value)") &&
-		!strings.Contains(rust, "match os_exec::ErrNotFound.borrow().as_ref() { Some(__value) => format!(\"{}\", __value)") {
-		t.Fatalf("fmt.Errorf should format the package-global error handle directly:\n%s", rust)
+	if !strings.Contains(rust, "let __go_print_handle = &(os_exec::ErrNotFound);") ||
+		!strings.Contains(rust, "match __go_print_value.as_ref() { Some(__value) => format!(") {
+		t.Fatalf("fmt.Errorf must borrow the package global and format its error after releasing the guard:\n%s", rust)
 	}
 }
 

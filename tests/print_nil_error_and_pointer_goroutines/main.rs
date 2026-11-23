@@ -582,6 +582,38 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+std::thread_local! {
+    static __GO_SILENT_PANIC_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+static __GO_SILENT_PANIC_HOOK_INIT: std::sync::Once = std::sync::Once::new();
+
+fn go_silent_catch_unwind<F, R>(f: F) -> Result<R, Box<dyn std::any::Any + Send>>
+where
+    F: FnOnce() -> R,
+{
+    __GO_SILENT_PANIC_HOOK_INIT.call_once(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let suppressed = __GO_SILENT_PANIC_DEPTH.with(|depth| depth.get() > 0);
+            if !suppressed {
+                previous(info);
+            }
+        }));
+    });
+
+    struct SilentPanicGuard;
+    impl Drop for SilentPanicGuard {
+        fn drop(&mut self) {
+            __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+        }
+    }
+
+    __GO_SILENT_PANIC_DEPTH.with(|depth| depth.set(depth.get().saturating_add(1)));
+    let _guard = SilentPanicGuard;
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -915,6 +947,13 @@ impl std::fmt::Display for Timeout {
         write!(f, "{}", (*self.error().lock().unwrap().as_ref().unwrap()))
     }
 }
+impl PartialEq for Timeout {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.seconds.lock().unwrap().as_ref().cloned() }; let __right = { other.seconds.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
+}
 
 
 impl Status {
@@ -937,6 +976,24 @@ impl Broken {
 
 impl StdError for Broken {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Broken(pub Arc<Mutex<Option<Broken>>>);
+
+impl std::fmt::Display for __go_error_ptr_Broken {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_is_nil = self.0.lock().unwrap().is_none();
+        if !__go_is_nil {
+            let __guard = self.0.lock().unwrap();
+            std::fmt::Display::fmt(__guard.as_ref().unwrap(), f)
+        } else {
+            let __go_error_result = go_silent_catch_unwind(|| __go_nil_recv_broken_error(Arc::new(Mutex::new(None))));
+            match __go_error_result { Ok(__text) => { let __guard = __text.lock().unwrap(); match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") } }, Err(_) => write!(f, "<nil>") }
+        }
+    }
+}
+
+impl StdError for __go_error_ptr_Broken {}
+
 
 impl Timeout {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
@@ -945,6 +1002,18 @@ impl Timeout {
 }
 
 impl StdError for Timeout {}
+
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_Timeout(pub Arc<Mutex<Option<Timeout>>>);
+
+impl std::fmt::Display for __go_error_ptr_Timeout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_Timeout {}
 
 
 pub fn find(ok: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
@@ -978,20 +1047,20 @@ fn main() {
         // A nil error prints as <nil>, whichever print call it reaches and
         // whether it comes from a variable or straight from a call.
     let mut err = find(Arc::new(Mutex::new(Some(true))));
-    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}\n", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
-    print!("{} and {}\n", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", 3));
-    println!("{}", format!("{}", { let __text = match find(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("got {}", { let __text = match find(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    print!("{}\n", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
+    print!("{} and {}\n", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", 3));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(find(Arc::new(Mutex::new(Some(true))))); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("got {}", { let __go_print_value = { let __go_print_handle = &(find(Arc::new(Mutex::new(Some(true))))); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))).lock().unwrap().as_ref().unwrap())));
 
         // An error that is not nil prints its message, as before.
     { let __rhs_holder = find(Arc::new(Mutex::new(Some(false)))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
-    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{} {}\n", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", { let __text = match find(Arc::new(Mutex::new(Some(false)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", "result:".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    print!("{} {}\n", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(find(Arc::new(Mutex::new(Some(false))))); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // A nil pointer prints as <nil>.
     let mut p: Arc<Mutex<Option<Point>>> = Arc::new(Mutex::new(None));
@@ -1021,11 +1090,15 @@ fn main() {
 
         // A struct or a pointer that implements error can start an error
         // variable, and prints as the error it is.
-    let mut declared: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
-    println!("{}", format!("{}", { let __text = match declared.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    let mut declared: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_Broken(Arc::new(Mutex::new(Some(Broken { why: Arc::new(Mutex::new(Some("declared".to_string()))), ..Default::default() }))).clone())) as Arc<dyn StdError + Send + Sync>)));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(declared); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut plain: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(Timeout { seconds: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)));
-    println!("{}", format!("{}", { let __text = match plain.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(plain); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {}", format!("{}", { let __nil_result = (*declared.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*plain.lock().unwrap()).is_some(); __nil_result }));
     let mut unset: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    println!("{} {}", format!("{}", { let __text = match unset.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(unset); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*unset.lock().unwrap()).is_none(); __nil_result }));
+}
+
+pub fn __go_nil_recv_broken_error(b: Arc<Mutex<Option<Broken>>>) -> Arc<Mutex<Option<String>>> {
+    return Arc::new(Mutex::new(Some(format!("{}{}", "broken: ".to_string(), (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).why.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()))));
 }

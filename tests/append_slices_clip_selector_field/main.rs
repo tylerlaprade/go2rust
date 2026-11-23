@@ -111,6 +111,7 @@ fn main() {
     }
     });
     done.recv().unwrap_or_default();
+
     let mut cfg = Arc::new(Mutex::new(Some(Config { env: Arc::new(Mutex::new(Some(vec!["A=1".to_string()]))), dir: Arc::new(Mutex::new(Some("/tmp/work".to_string()))), ..Default::default() })));
     let mut env = build_env(cfg.clone());
     let mut env = { let __slice_header = GoSliceHeader::go_slice_header(&env); Arc::new(Mutex::new(__slice_header)) };

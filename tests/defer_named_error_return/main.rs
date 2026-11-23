@@ -606,5 +606,5 @@ pub fn compute() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
 fn main() {
     let (mut result, mut err) = compute();
     println!("{}", format!("{}", result));
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 }

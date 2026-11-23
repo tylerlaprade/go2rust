@@ -1654,7 +1654,9 @@ impl Shape for SquarePtr {
     }
     fn __go_eq_shape(&self, other: &(dyn Shape + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<SquarePtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
+            let __go_left_nil = { self.0.lock().unwrap().is_none() };
+            let __go_right_nil = { __other.0.lock().unwrap().is_none() };
+            if __go_left_nil || __go_right_nil { __go_left_nil && __go_right_nil } else { Arc::ptr_eq(&self.0, &__other.0) }
         } else {
             false
         }

@@ -23,6 +23,7 @@ fn main() {
         std::process::exit(2);
     }
     });
+
     let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
     println!("{}", format!("{}", { let __tmp_x = (*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y }));
 }

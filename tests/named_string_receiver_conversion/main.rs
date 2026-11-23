@@ -673,6 +673,18 @@ impl internalError {
 
 impl StdError for internalError {}
 
+#[derive(Debug, Clone)]
+pub struct __go_error_ptr_internalError(pub Rc<RefCell<Option<internalError>>>);
+
+impl std::fmt::Display for __go_error_ptr_internalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => std::fmt::Display::fmt(__v, f), None => write!(f, "<nil>") }
+    }
+}
+
+impl StdError for __go_error_ptr_internalError {}
+
 
 fn main() {
     let mut err = Rc::new(RefCell::new(Some(internalError(Rc::new(RefCell::new(Some("bad import data".to_string())))))));

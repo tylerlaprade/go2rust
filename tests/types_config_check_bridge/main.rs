@@ -81,9 +81,10 @@ fn main() {
     let mut fset = go_token::new_file_set();
     let (mut file, mut err) = go_parser::parse_file(fset.clone(), Arc::new(Mutex::new(Some("p.go".to_string()))), Arc::new(Mutex::new(Some(Box::new("package p\nvar x int\nvar y = x\n".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(go_parser::interface::Mode(Arc::new(Mutex::new(Some(go_parser::PARSE_COMMENTS as u64))))))));
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "parse".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+        println!("{} {}", format!("{}", "parse".to_string()), format!("{}", { let __go_print_value = { let __go_print_handle = &(err); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
+
     let mut info = Arc::new(Mutex::new(Some(go_types::api::Info { types: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::r#mod::Expr + Send + Sync>>, Arc<Mutex<Option<go_types::api::TypeAndValue>>>>::from([])))), ..Default::default() })));
     let (mut pkg, __tmp_1) = {
         let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default())));
@@ -96,6 +97,7 @@ fn main() {
         __result
     }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
     println!("{} {} {}", format!("{}", { let __nil_result = (*pkg.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len = ({ let __len_target = { let __field = (*info.lock().unwrap().as_ref().unwrap()).types.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 0; __tmp_x > __tmp_y }));
+
     let (mut nilInfoPkg, mut nilInfoErr) = {
         let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default())));
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(
