@@ -8793,6 +8793,8 @@ func writeTypedNilPointerAnyBox(out *strings.Builder, call *ast.CallExpr) bool {
 		return false
 	}
 	NeedGoAnyTypeMetadata()
+	// A copy of the interface value copies the nil pointer, the handle.
+	RegisterAnyCloneType(targetType)
 	out.WriteString("{ let __boxed = Box::new(")
 	TranspileExpression(out, call)
 	out.WriteString(") as ")

@@ -643,6 +643,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<i64>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<point>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
@@ -685,6 +686,54 @@ fn go_any_store(target: &Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, source:
     };
     *target.lock().unwrap() = __value;
     None
+}
+
+#[derive(Clone, Copy)]
+struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &(dyn Any + Send + Sync)) -> usize {
+    value as *const (dyn Any + Send + Sync) as *const () as usize
+}
+
+fn go_register_any_type<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
+fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any + Send + Sync>
+}
+
+fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
 struct GoChannel<T> {
@@ -856,6 +905,29 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+fn __go_type_name(val: &dyn Any) -> &'static str {
+    if val.is::<i64>() { return "int" }
+    if val.is::<i32>() { return "int32" }
+    if val.is::<i8>() { return "int8" }
+    if val.is::<i16>() { return "int16" }
+    if val.is::<u64>() { return "uint" }
+    if val.is::<u32>() { return "uint32" }
+    if val.is::<u8>() { return "uint8" }
+    if val.is::<u16>() { return "uint16" }
+    if val.is::<f64>() { return "float64" }
+    if val.is::<f32>() { return "float32" }
+    if val.is::<bool>() { return "bool" }
+    if val.is::<String>() { return "string" }
+    if val.is::<Vec<i64>>() { return "[]int" }
+    if val.is::<Vec<i32>>() { return "[]int32" }
+    if val.is::<Vec<f64>>() { return "[]float64" }
+    if val.is::<Vec<String>>() { return "[]string" }
+    if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Arc<Mutex<Option<i64>>>>() { return "*int" }
+    if val.is::<point>() { return "main.point" }
+    std::any::type_name_of_val(val)
+}
+
 #[derive(Debug, Clone)]
 pub struct point {
     pub x: Arc<Mutex<Option<i64>>>,
@@ -973,6 +1045,18 @@ fn main() {
         )
     };
     println!("{} {}", format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*r.lock().unwrap()).is_none(); __nil_result }));
+
+    let mut typedNil: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<i64>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<i64>>>>("pointer", true, "basic", true); __boxed })));
+    reassign(go_any_handle_copy(&typedNil));
+    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*({
+        let val = typedNil.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Arc<Mutex<Option<i64>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "*int")).clone()
+        } else {
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "*int")
+        }
+    }).lock().unwrap()).is_none(); __nil_result }));
 }
 
 #[derive(Clone, Default)]

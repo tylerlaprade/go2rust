@@ -46,4 +46,8 @@ func main() {
 	h := func() { r = point{5, 6} }
 	h()
 	fmt.Println(r, r == nil)
+
+	var typedNil any = (*int)(nil)
+	reassign(typedNil)
+	fmt.Println(typedNil == nil, typedNil.(*int) == nil)
 }
