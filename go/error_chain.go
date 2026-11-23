@@ -85,9 +85,8 @@ func writeErrorChainUnwrapArmsForPackage(arms *strings.Builder, pkg *types.Packa
 }
 
 func generateGoErrorChainHelper(out *strings.Builder) {
-	concurrent := NeedsConcurrentWrapper()
-	errType := rustErrorPayloadTypeFor("StdError", concurrent)
-	pointer := rustErrorPointerFor("StdError", concurrent)
+	errType := rustErrorPayloadType()
+	pointer := rustErrorPointer()
 	userArms := errorChainUnwrapArms()
 	code := `
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
