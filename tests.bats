@@ -2131,6 +2131,14 @@ run_xfail_test() {
     run_test "tests/multi_file_method_interface_impl"
 }
 
+@test "multi_value_call_as_arguments" {
+    run_test "tests/multi_value_call_as_arguments"
+}
+
+@test "multi_value_call_as_arguments_goroutines" {
+    run_test "tests/multi_value_call_as_arguments_goroutines"
+}
+
 @test "multiple_returns" {
     run_test "tests/multiple_returns"
 }
@@ -2725,6 +2733,14 @@ run_xfail_test() {
 
 @test "print_boxed_composite_values" {
     run_test "tests/print_boxed_composite_values"
+}
+
+@test "print_float_exponent_forms" {
+    run_test "tests/print_float_exponent_forms"
+}
+
+@test "print_float_exponent_forms_goroutines" {
+    run_test "tests/print_float_exponent_forms_goroutines"
 }
 
 @test "print_interface_value_twice_goroutines" {

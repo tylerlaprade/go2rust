@@ -111,6 +111,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		goPtrArray                bool
 		interfaceSlice            bool
 		zeroLenArray              bool
+		// floatKind is 64 or 32 for a float64 or float32 field, which
+		// fmt prints as %v does, and 0 otherwise.
+		floatKind int
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -138,6 +141,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isPointer := structDisplayFieldIsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		zeroLenArray := structDisplayFieldIsZeroLenArray(field.Type)
+		floatKind := structDisplayFieldFloatKind(field.Type)
 		if isChannel {
 			continue
 		}
@@ -172,6 +176,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					goPtrArray:                goPtrArrayField,
 					interfaceSlice:            interfaceSlice,
 					zeroLenArray:              zeroLenArray,
+					floatKind:                 floatKind,
 				})
 			}
 		} else {
@@ -329,6 +334,17 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	for i, f := range fields {
 		out.WriteString("        let __go_fmt_")
 		out.WriteString(fmt.Sprintf("%d", i))
+		if f.floatKind != 0 && plainField(f) {
+			NeedGoFloatString()
+			out.WriteString(" = go_float_string((")
+			writeDisplayFieldValue(f)
+			if f.floatKind == 32 {
+				out.WriteString(") as f64, true);\n")
+			} else {
+				out.WriteString(") as f64, false);\n")
+			}
+			continue
+		}
 		if plusV && plainField(f) {
 			out.WriteString(" = if __go_plus { format!(\"{:#}\", ")
 			writeDisplayFieldValue(f)
@@ -6360,9 +6376,21 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())\n")
+				if floatKind := structDisplayFieldFloatKind(t); floatKind != 0 {
+					// A type defined as a float prints as fmt's %v.
+					NeedGoFloatString()
+					out.WriteString("        write!(f, \"{}\", go_float_string(*self.0")
+					WriteBorrowMethod(out, false)
+					if floatKind == 32 {
+						out.WriteString(".as_ref().unwrap() as f64, true))\n")
+					} else {
+						out.WriteString(".as_ref().unwrap() as f64, false))\n")
+					}
+				} else {
+					out.WriteString("        write!(f, \"{}\", self.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())\n")
+				}
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			}
@@ -9991,4 +10019,24 @@ func setCurrentReceiverFromIdent(ident *ast.Ident) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
 		currentReceiverObject = typeInfo.info.Defs[ident]
 	}
+}
+
+// structDisplayFieldFloatKind is 64 or 32 for a struct field of type float64
+// or float32, not of a named type, and 0 otherwise.
+func structDisplayFieldFloatKind(fieldType ast.Expr) int {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return 0
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(fieldType)).(*types.Basic)
+	if !ok {
+		return 0
+	}
+	switch basic.Kind() {
+	case types.Float64:
+		return 64
+	case types.Float32:
+		return 32
+	}
+	return 0
 }
