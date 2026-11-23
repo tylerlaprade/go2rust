@@ -5400,7 +5400,7 @@ struct GoFile {
 }
 
 impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
+    fn create(path: &std::path::Path) -> Result<Self, std::io::Error> {
         std::fs::OpenOptions::new()
             .create(true)
             .truncate(true)
@@ -5444,7 +5444,7 @@ struct GoFile {
 }
 
 impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
+    fn create(path: &std::path::Path) -> Result<Self, std::io::Error> {
         std::fs::OpenOptions::new()
             .create(true)
             .truncate(true)
