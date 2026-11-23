@@ -1823,4 +1823,2430 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			out.WriteString(" {\n")
 			fieldNames := make([]string, 0, len(fields))
 			for fieldName := range fields {
-	µç[h‘éì¶»§q«^uÑåÁ•Ì¹9•ÝQåÁ•A…É…´‰É¥‘”ˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰¼½ÑåÁ•Ì½¹ÍÑÉÕÑ½È•áÑ•É¹…°‰É¥‘”µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}QÕÁ±”ˆ°($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}QåÁ•9…µ”ˆ°($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}QåÁ•A…É…´ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ½¹ÍÑÉÕÑ½ÉÌµÕÍÐ¹½ÐÉ•µ½Ù”•áÑ•É¹…°ÑåÁ”¥‘•¹Ñ¥Ñä€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑQåÁ•Í	…Í¥	•¡…Ù¥½ÉM¡¥µ%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì($$$‰ÑåÁ•Í}	…Í¥Œˆè€€€€ÑÉÕ”°($$$‰ÑåÁ•Í}	…Í¥%¹™¼ˆèÑÉÕ”°($$$‰ÑåÁ•Í}	…Í¥-¥¹ˆèÑÉÕ”°($%ô°($%¹¥°°($%µ…ÁmÍÑÉ¥¹uÍÑÉ¥¹ì($$$‰ÑåÁ•Í}	…Í¥%¹™¼ˆè€‰¤ÌÈˆ°($$$‰ÑåÁ•Í}	…Í¥-¥¹ˆè€‰¤ÌÈˆ°($%ô°($%¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹uµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±QåÁ•MÑÕ‰5•Ñ¡½‘ì($$$‰ÑåÁ•Í}	…Í¥Œˆèì($$$$‰¥¹™¼ˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}	…Í¥%¹™¼øøø‰ô°($$$%ô°($$$$‰­¥¹ˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}	…Í¥-¥¹øøø‰ô°($$$%ô°($$$$‰¹…µ”ˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø‰ô°($$$%ô°($$%ô°($%ô°($%¹¥°°¹¥°°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}	…Í¥Œìˆ°($$‰}}½}­¥¹ˆ°($$‰}}½}¥¹™¼ˆ°($$‰}}½}¹…µ”ˆ°($$‰Í•±˜¹}}½}­¥¹ˆ°($$‰Í•±˜¹}}½}¥¹™¼ˆ°($$‰Í•±˜¹}}½}¹…µ”ˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰¼½ÑåÁ•Ì¹	…Í¥Œ•áÑ•É¹…°‰•¡…Ù¥½ÈÍ¡¥´µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}	…Í¥Œìˆ°($$‰ÑåÁ•Í}	…Í¥Œ¹­¥¹‰É¥‘”è•¹•É¥ŒÍÑÕˆµ•Ñ¡½‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°($$‰ÑåÁ•Í}	…Í¥Œ¹¥¹™¼‰É¥‘”è•¹•É¥ŒÍÑÕˆµ•Ñ¡½‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°($$‰ÑåÁ•Í}	…Í¥Œ¹¹…µ”‰É¥‘”è•¹•É¥ŒÍÑÕˆµ•Ñ¡½‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ	…Í¥Œ‰•¡…Ù¥½ÈµÕÍÐ­••À±½ÕÁ±…•¡½±‘•È€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑQ½­•¹Q½­•¹	•¡…Ù¥½ÉM¡¥µ%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰Ñ½­•¹}Q½­•¸ˆèÑÉÕ•ô°($%¹¥°°($%µ…ÁmÍÑÉ¥¹uÍÑÉ¥¹ì‰Ñ½­•¹}Q½­•¸ˆè€‰¤ÌÈ‰ô°($%¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹uµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±QåÁ•MÑÕ‰5•Ñ¡½‘ì($$$‰Ñ½­•¹}Q½­•¸ˆèì($$$$‰ÍÑÉ¥¹œˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø‰ô°($$$%ô°($$%ô°($%ô°($%¹¥°°¹¥°°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰Ñ½­•¹}ÍÑÉ¥¹}Ù…±Õ”ˆ°($%€‰™Õ¹Œ‰€°($%€‰%110‰€°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰¼½Ñ½­•¸¹Q½­•¸•áÑ•É¹…°‰•¡…Ù¥½ÈÍ¡¥´µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐÑ½­•¹}Q½­•¸¡ÁÕˆ¤ÌÈ¤ìˆ°($%ÝÉ¥Ñ”„¡˜°€ˆñÑ½­•¹}Q½­•¸øˆ¥€°($$‰Ñ½­•¹}Q½­•¸¹ÍÑÉ¥¹œ‰É¥‘”è•¹•É¥ŒÍÑÕˆµ•Ñ¡½‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œQ½­•¸‰•¡…Ù¥½ÈµÕÍÐ­••À±½ÕÁ±…•¡½±‘•È€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑÍÑ9•Ý%‘•¹Ñ	•¡…Ù¥½ÉM¡¥µ%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰…ÍÑ}%‘•¹ÐˆèÑÉÕ•ô°($%¹¥°°¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹uµ…ÁmÍÑÉ¥¹uÍÑÉ¥¹ì($$$‰…ÍÑ}%‘•¹Ðˆèì($$$$‰¹…µ”ˆè€‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøøˆ°($$%ô°($%ô°($%¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹t©•áÑ•É¹…±A…­…•MÑÕ‰ì($$$‰…ÍÐˆèì($$$%Õ¹Ñ¥½¹Ìèµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±A…­…•MÑÕ‰Õ¹Ñ¥½¹ì($$$$$‰¹•Ý}¥‘•¹Ðˆèì($$$$$%A…É…µ½Õ¹Ðè€€Ä°($$$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ…ÍÑ}%‘•¹Ðøøø‰ô°($$$$%ô°($$$%ô°($$%ô°($%ô°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰½MÑÉ¥¹Éœø¡}…ÉœÀˆ°($$‰…ÍÑ}%‘•¹Ðì¹…µ”èˆ°($$‰}…ÉœÀ¹¥¹Ñ½}½}ÍÑÉ¥¹œ ¤ˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰…ÍÐ¹9•Ý%‘•¹Ð•áÑ•É¹…°‰•¡…Ù¥½ÈÍ¡¥´µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐ…ÍÑ}%‘•¹Ðˆ°($$‰ÁÕˆ™¸¹•Ý}¥‘•¹ÐñPÀø¡}…ÉœÀèPÀ¤€´øÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ…ÍÑ}%‘•¹Ðøøøˆ°($$‰¹•Ý}¥‘•¹Ð‰É¥‘”è•¹•É¥ŒÍÑÕˆ™Õ¹Ñ¥½¸‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ…ÍÐ¹9•Ý%‘•¹Ð‰•¡…Ù¥½ÈµÕÍÐ­••À±½ÕÁ±…•¡½±‘•È€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑÍÑ%¹ÍÁ•Ñ	•¡…Ù¥½ÉM¡¥µ%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰…ÍÑ}9½‘”ˆèÑÉÕ•ô°($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰…ÍÑ}9½‘”ˆèÑÉÕ•ô°($%¹¥°°¹¥°°¹¥°°¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹t©•áÑ•É¹…±A…­…•MÑÕ‰ì($$$‰…ÍÐˆèì($$$%Õ¹Ñ¥½¹Ìèµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±A…­…•MÑÕ‰Õ¹Ñ¥½¹ì($$$$$‰¥¹ÍÁ•Ðˆèì($$$$$%A…É…µ½Õ¹Ðè€È°($$$$%ô°($$$%ô°($$%ô°($%ô°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰%¹ÍÁ•ÑI½½Ðˆ°($$‰Ù¥Í¥Ñ}¹½‘”ˆ°($$‰…±±}¥¹ÍÁ•Ñ}…±±‰…¬ˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰…ÍÐ¹%¹ÍÁ•Ð•áÑ•É¹…°‰•¡…Ù¥½ÈÍ¡¥´µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆ™¸¥¹ÍÁ•ÐñPÀ°PÄø¡}…ÉœÀèPÀ°}…ÉœÄèPÄ¤ˆ°($$‰¥¹ÍÁ•Ð‰É¥‘”è•¹•É¥ŒÍÑÕˆ™Õ¹Ñ¥½¸‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ…ÍÐ¹%¹ÍÁ•Ð‰•¡…Ù¥½ÈµÕÍÐ­••À±½ÕÁ±…•¡½±‘•È€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑA…ÉÍ•ÉA…­…•	•¡…Ù¥½ÉM¡¥µÍÉ•I•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰…ÍÑ}¥±”ˆèÑÉÕ•ô°($%¹¥°°($%µ…ÁmÍÑÉ¥¹uÍÑÉ¥¹ì‰Á…ÉÍ•É}5½‘”ˆè€‰¤ÌÈ‰ô°($%¹¥°°¹¥°°¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹t©•áÑ•É¹…±A…­…•MÑÕ‰ì($$$‰Á…ÉÍ•Èˆèì($$$%½¹ÍÑ…¹ÑÌèµ…ÁmÍÑÉ¥¹uÍÑÉ¥¹ì($$$$$‰M}-}%}A}=	)Q}IM=1UQ%=8ˆè€‰Á…ÉÍ•É}5½‘”ˆ°($$$%ô°($$$%Õ¹Ñ¥½¹Ìèµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±A…­…•MÑÕ‰Õ¹Ñ¥½¹ì($$$$$‰Á…ÉÍ•}™¥±”ˆèì($$$$$%A…É…µ½Õ¹Ðè€Ð°($$$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì($$$$$$$‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ…ÍÑ}¥±”øøøˆ°($$$$$$$‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ	½àñ‘å¸MÑ‘ÉÉ½È€¬M•¹€¬Må¹Œøøøøˆ°($$$$$%ô°($$$$%ô°($$$%ô°($$%ô°($%ô°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰½A…ÉÍ•É¥±•¹…µ•Éœˆ°($$‰½A…ÉÍ•ÉM½ÕÉ•Éœˆ°($$‰½}Á…ÉÍ•É|ˆ°($$‰½Íå¸èèˆ°($$‰…ÍÑ}µÁÑåMÑµÐˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰Á…ÉÍ•È•áÑ•É¹…°‰•¡…Ù¥½ÈÍ¡¥µÌµÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆ½¹ÍÐM}-}%}A}=	)Q}IM=1UQ%=8èÁ…ÉÍ•É}5½‘”ˆ°($$‰ÁÕˆ™¸Á…ÉÍ•}™¥±”ñPÀ°PÄ°PÈ°PÌø¡}…ÉœÀèPÀ°}…ÉœÄèPÄ°}…ÉœÈèPÈ°}…ÉœÌèPÌ¤€´ø€¡ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ…ÍÑ}¥±”øøø°ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ	½àñ‘å¸MÑ‘ÉÉ½È€¬M•¹€¬Må¹Œøøøø¤ˆ°($$‰Á…ÉÍ•}™¥±”‰É¥‘”è•¹•É¥ŒÍÑÕˆ™Õ¹Ñ¥½¸‰½‘ä¡…Ì¹¼¥µÁ±•µ•¹Ñ…Ñ¥½¸ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œÁ…ÉÍ•È‰•¡…Ù¥½ÈµÕÍÐ­••À•¹•É¥ŒÁ±…•¡½±‘•È€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑQåÁ•Í9•ÝA½¥¹Ñ•É	É¥‘•%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰ÑåÁ•Í}A½¥¹Ñ•ÈˆèÑÉÕ•ô°($%¹¥°°¹¥°°¹¥°°¹¥°°($%¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹t©•áÑ•É¹…±A…­…•MÑÕ‰ì($$$‰ÑåÁ•Ìˆèì($$$%Õ¹Ñ¥½¹Ìèµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±A…­…•MÑÕ‰Õ¹Ñ¥½¹ì($$$$$‰¹•Ý}Á½¥¹Ñ•Èˆèì($$$$$%A…É…µ½Õ¹Ðè€€Ä°($$$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}A½¥¹Ñ•Èøøø‰ô°($$$$%ô°($$$%ô°($$%ô°($%ô°($¤(%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°€‰ÁÕˆ™¸¹•Ý}Á½¥¹Ñ•Èˆ¤ì($%Ð¹…Ñ…±˜ ‰¼½ÑåÁ•Ì¹9•ÝA½¥¹Ñ•È•áÑ•É¹…°Á…­…”µ™Õ¹Ñ¥½¸‰É¥‘”µÕÍÐ‰”É•Ñ¥É•éq¸•Ìˆ°½Ð¤(%ô(%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°€‰ÁÕˆÍÑÉÕÐÑåÁ•Í}A½¥¹Ñ•Èˆ¤ì($%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ9•ÝA½¥¹Ñ•ÈµÕÍÐ¹½ÐÉ•µ½Ù”•áÑ•É¹…°Á½¥¹Ñ•ÈÑåÁ”¥‘•¹Ñ¥Ñäéq¸•Ìˆ°½Ð¤(%ô)ô()™Õ¹ŒQ•ÍÑQåÁ•Í9•ÝA…­…•¡•­•É	É¥‘•ÍÉ•I•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì($$$‰ÑåÁ•Í}¡•­•ÈˆèÑÉÕ”°($$$‰ÑåÁ•Í}%¹™¼ˆè€€€ÑÉÕ”°($$$‰ÑåÁ•Í}A…­…”ˆèÑÉÕ”°($%ô°($%¹¥°°¹¥°°¹¥°°¹¥°°($%¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹t©•áÑ•É¹…±A…­…•MÑÕ‰ì($$$‰ÑåÁ•Ìˆèì($$$%Õ¹Ñ¥½¹Ìèµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±A…­…•MÑÕ‰Õ¹Ñ¥½¹ì($$$$$‰¹•Ý}Á…­…”ˆèì($$$$$%A…É…µ½Õ¹Ðè€€È°($$$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}A…­…”øøø‰ô°($$$$%ô°($$$$$‰¹•Ý}¡•­•Èˆèì($$$$$%A…É…µ½Õ¹Ðè€€Ð°($$$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}¡•­•Èøøø‰ô°($$$$%ô°($$$%ô°($$%ô°($%ô°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆ™¸¹•Ý}Á…­…”ˆ°($$‰ÁÕˆ™¸¹•Ý}¡•­•Èˆ°($$‰¹•Ý}Á…­…”‰É¥‘”ˆ°($$‰¹•Ý}¡•­•È‰É¥‘”ˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰¼½ÑåÁ•Ì9•ÝA…­…”½9•Ý¡•­•È•áÑ•É¹…°Á…­…”µ™Õ¹Ñ¥½¸‰É¥‘•ÌµÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô(%™½È|°Ý…¹Ð€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}¡•­•Èˆ°($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}%¹™¼ˆ°($$‰ÁÕˆÍÑÉÕÐÑåÁ•Í}A…­…”ˆ°(%ôì($%¥˜€…ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Ý…¹Ð¤ì($$%Ð¹…Ñ…±˜ ‰É•Ñ¥É¥¹œ9•ÝA…­…”½9•Ý¡•­•ÈµÕÍÐ¹½ÐÉ•µ½Ù”•áÑ•É¹…°ÑåÁ”¥‘•¹Ñ¥Ñä€•Äéq¸•Ìˆ°Ý…¹Ð°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑQåÁ•Í¡•­•É¥±•ÍMÑÕ‰%ÍI•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰ÑåÁ•Í}¡•­•ÈˆèÑÉÕ•ô°($%¹¥°°¹¥°°¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹uµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±QåÁ•MÑÕ‰5•Ñ¡½‘ì($$$‰ÑåÁ•Í}¡•­•Èˆèì($$$$‰™¥±•Ìˆèì($$$$%A…É…µ½Õ¹Ðè€€Ä°($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñ	½àñ‘å¸MÑ‘ÉÉ½È€¬M•¹€¬Må¹Œøøøø‰ô°($$$%ô°($$%ô°($%ô°($%¹¥°°¹¥°°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì‰ÁÕˆ™¸™¥±•Ìˆ°€‰}}½}ÑåÁ•Í}¡•­•É}™¥±•Ì‰ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰ÑåÁ•Ì¹¡•­•È¥±•ÌÍ¡½Õ±ÕÍ”Í½ÕÉ”µÑÉ…¹ÍÁ¥±•¼½ÑåÁ•Ì°¹½Ð…¸•áÑ•É¹…°ÍÑÕˆµ•Ñ¡½ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô)ô()™Õ¹ŒQ•ÍÑQåÁ•ÍQåÁ•MÑÉ¥¹U¹‘•É±å¥¹	É¥‘•5•Ñ¡½‘ÍÉ•I•Ñ¥É•¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%½Ð€èô•¹•É…Ñ•áÑ•É¹…±MÑÕ‰Ì ($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰ÑåÁ•Í}QåÁ”ˆèÑÉÕ•ô°($%µ…ÁmÍÑÉ¥¹u‰½½±ì‰ÑåÁ•Í}QåÁ”ˆèÑÉÕ•ô°($%¹¥°°¹¥°°¹¥°°($%µ…ÁmÍÑÉ¥¹uµ…ÁmÍÑÉ¥¹u•áÑ•É¹…±QåÁ•MÑÕ‰5•Ñ¡½‘ì($$$‰ÑåÁ•Í}QåÁ”ˆèì($$$$‰ÍÑÉ¥¹œˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñMÑÉ¥¹œøøø‰ô°($$$%ô°($$$$‰Õ¹‘•É±å¥¹œˆèì($$$$%I•ÑÕÉ¹QåÁ•ÌèmuÍÑÉ¥¹ì‰ÉŒñ5ÕÑ•àñ=ÁÑ¥½¸ñÑåÁ•Í}QåÁ”øøø‰ô°($$$%ô°($$%ô°($%ô°($%¹¥°°¹¥°°($¤(%™½È|°Õ¹Ý…¹Ñ•€èôÉ…¹”muÍÑÉ¥¹ì($$‰ÁÕˆ™¸ÍÑÉ¥¹œˆ°($$‰ÁÕˆ™¸Õ¹‘•É±å¥¹œˆ°($$‰ÑåÁ•Ì¹QåÁ”¹MÑÉ¥¹œ ¤‰É¥‘”ˆ°($$‰ÑåÁ•Ì¹QåÁ”¹U¹‘•É±å¥¹œ ¤‰É¥‘”ˆ°($$‰‘½Ý¹…ÍÑ}É•˜èèñÑåÁ•Í}	…Í¥Œøˆ°(%ôì($%¥˜ÍÑÉ¥¹Ì¹½¹Ñ…¥¹Ì¡½Ð°Õ¹Ý…¹Ñ•¤ì($$%Ð¹…Ñ…±˜ ‰ÑåÁ•Ì¹QåÁ”MÑÉ¥¹œ½U¹‘•É±å¥¹œ•áÑ•É¹…°‰É¥‘”µÕÍÐ‰”É•Ñ¥É•ì™½Õ¹€•Äéq¸•Ìˆ°Õ¹Ý…¹Ñ•°½Ð¤($%ô(%ô)ô((¼¼Q•ÍÑ	É¥‘••‰ÑI•¥ÍÑÉå½Ù•ÉÍ±±M¡¥µÌ¥ÌÑ¡”ÑÉ¥ÁÝ¥É”Ñ¡…Ð•¹™½É•Ì(¼¼9QL¹µƒŠH€‰MÑÉ…Ñ•äèQÉ…¹ÍÁ¥±”ÍÑ‘±¥ˆ°‘½¸Ð‰É¥‘”¥Ðˆ¸Ù•Éä(¼¼€¼¼Q5A=IIdé€½µµ•¹Ð¥¸•áÑ•É¹…±}ÑåÁ•}ÍÑÕ‰Ì¹¼µÕÍÐ¡…Ù”„µ…Ñ¡¥¹œ(¼¼É½Ü¥¸‘½Ì½‰É¥‘•}‘•‰Ð¹µ¸‘‘¥¹œ„Í¡¥´Ý¥Ñ¡½ÕÐ„É½Ü°½ÈÉ•µ½Ù¥¹œ„(¼¼É½ÜÝ¥Ñ¡½ÕÐÉ•µ½Ù¥¹œÑ¡”Í¡¥´°™…¥±ÌÑ¡¥ÌÑ•ÍÐ¸(¼¼(¼¼Q¼µ…­”Ñ¡¥ÌÑ•ÍÐÁ…ÍÌÝ¡•¸å½Ô±•¥Ñ¥µ…Ñ•±ä¹••Ñ¼…‘„Í¡¥´°•‘¥Ð(¼¼‘½Ì½‰É¥‘•}‘•‰Ð¹µ€©™¥ÉÍÐ¨…¹…‘„É½ÜÑ¡…Ð¹…µ•ÌÑ¡”¼Íåµ‰½°°Ñ¡”(¼¼ÑÉ…¹ÍÁ¥±•È…À°…¹„™¥áÑÕÉ”¸Q¡”Í¡¥´½‘”½•Ì¥¸…™Ñ•È¸M•”9QL¹µ(¼¼™½ÈÑ¡”™Õ±°¡•­±¥ÍÐ¸)™Õ¹ŒQ•ÍÑ	É¥‘••‰ÑI•¥ÍÑÉå½Ù•ÉÍ±±M¡¥µÌ¡Ð€©Ñ•ÍÑ¥¹œ¹P¤ì(%ÍÑÕ‰ÍA…Ñ €èô€‰•áÑ•É¹…±}ÑåÁ•}ÍÑÕ‰Ì¹¼ˆ(%É•¥ÍÑÉåA…Ñ €èô™¥±•Á…Ñ ¹)½¥¸ ˆ¸¸ˆ°€‰‘½Ìˆ°€‰‰É¥‘•}‘•‰Ð¹µˆ¤((%ÍÑÕ‰Í	åÑ•Ì°•ÉÈ€èô½Ì¹I•…‘¥±”¡ÍÑÕ‰ÍA…Ñ ¤(%¥˜•ÉÈ€„ô¹¥°ì($%Ð¹…Ñ…±˜ ‰É•…€•Ìè€•Øˆ°ÍÑÕ‰ÍA…Ñ °•ÉÈ¤(%ô(%É•¥ÍÑÉå	åÑ•Ì°•ÉÈ€èô½Ì¹I•…‘¥±”¡É•¥ÍÑÉåA…Ñ ¤(%¥˜•ÉÈ€„ô¹¥°ì($%Ð¹…Ñ…±˜ ‰É•…€•Ìè€•Øˆ°É•¥ÍÑÉåA…Ñ °•ÉÈ¤(%ô((%Í¡¥µ1¥¹•Ì€èômu¥¹Ñíô(%™½È¤°±¥¹”€èôÉ…¹”ÍÑÉ¥¹Ì¹MÁ±¥Ð¡ÍÑÉ¥¹œ¡ÍÑÕ‰Í	åÑ•Ì¤°€‰q¸ˆ¤ì($%¥˜ÍÑÉ¥¹Ì¹!…ÍAÉ•™¥à¡ÍÑÉ¥¹Ì¹QÉ¥µMÁ…”¡±¥¹”¤°€ˆ¼¼Q5A=IIdèˆ¤ì($$%Í¡¥µ1¥¹•Ì€ô…ÁÁ•¹¡Í¡¥µ1¥¹•Ì°¤¬Ä¤($%ô(%ô((%É•¥ÍÑÉä€èôÍÑÉ¥¹œ¡É•¥ÍÑÉå	åÑ•Ì¤(%Í¡¥µÍ!•…‘•È€èô€ˆŒŒM¡¥µÌˆ(%¥‘à€èôÍÑÉ¥¹Ì¹%¹‘•à¡É•¥ÍÑÉä°Í¡¥µÍ!•…‘•È¤(%¥˜¥‘à€ð€Àì($%Ð¹…Ñ…±˜ ˆ•Ì¥Ìµ¥ÍÍ¥¹œÑ¡”€•ÄÍ•Ñ¥½¸Ñ¡…Ð¡½±‘ÌÍ¡¥´É½ÝÌˆ°É•¥ÍÑÉåA…Ñ °Í¡¥µÍ!•…‘•È¤(%ô(%É•¥ÍÑÉåI½Ý½Õ¹Ð€èô€À(%™½È|°±¥¹”€èôÉ…¹”ÍÑÉ¥¹Ì¹MÁ±¥Ð¡É•¥ÍÑÉåm¥‘à­±•¸¡Í¡¥µÍ!•…‘•È¤ét°€‰q¸ˆ¤ì($%¥˜ÍÑÉ¥¹Ì¹!…ÍAÉ•™¥à¡±¥¹”°€ˆŒŒŒ€ˆ¤ì($$%É•¥ÍÑÉåI½Ý½Õ¹Ð¬¬($%ô(%ô((%¥˜±•¸¡Í¡¥µ1¥¹•Ì¤€„ôÉ•¥ÍÑÉåI½Ý½Õ¹Ðì($%Ð¹…Ñ…±˜¡‰É¥‘”‘•‰Ð‘É¥™Ð‘•Ñ•Ñ•¸((•Ì¡…Ì€•€¬‰€¼¼Q5A=IIdé€ˆ­€Í¡¥´½µµ•¹ÑÌ€¡±¥¹•Ìè€•Ø¤¸(•Ì¡…Ì€•±•Ù•°´ÌÉ½ÝÌÕ¹‘•È€•Ä¸()Ù•ÉäÍ¡¥´µÕÍÐ¡…Ù”„É•¥ÍÑÉäÉ½Ü¸M•”9QL¹µƒŠH€‰MÑÉ…Ñ•äèQÉ…¹ÍÁ¥±”)ÍÑ‘±¥ˆ°‘½¸Ð‰É¥‘”¥Ðˆ¸Q¼É•Í½±Ù”è((´%˜å½Ô…‘‘•„Í¡¥´è…‘„É½ÜÑ¼€•Ì™¥ÉÍÐ°Ñ¡•¸É”µÉÕ¸Ñ¡¥ÌÑ•ÍÐ¸(´%˜å½Ô‘•±•Ñ•„Í¡¥´è…±Í¼‘•±•Ñ”¥ÑÌÉ½Ü¸(´%˜å½Ôµ½Ù•„Í¡¥´èÕÁ‘…Ñ”¥ÑÌÉ½ÜÌ1½…Ñ¥½¸™¥•±¸)€°($$%ÍÑÕ‰ÍA…Ñ °±•¸¡Í¡¥µ1¥¹•Ì¤°Í¡¥µ1¥¹•Ì°($$%É•¥ÍÑÉåA…Ñ °É•¥ÍÑÉåI½Ý½Õ¹Ð°Í¡¥µÍ!•…‘•È°($$%É•¥ÍÑÉåA…Ñ ¤(%ô)ô(
+				fieldNames = append(fieldNames, fieldName)
+			}
+			slices.Sort(fieldNames)
+			for _, fieldName := range fieldNames {
+				out.WriteString("    pub ")
+				out.WriteString(fieldName)
+				out.WriteString(": ")
+				out.WriteString(fields[fieldName])
+				out.WriteString(",\n")
+			}
+			out.WriteString("}\n\n")
+			if customDefault {
+				writeExternalStubStructDefault(&out, name, fields)
+			}
+		}
+		out.WriteString("impl std::fmt::Display for ")
+		out.WriteString(name)
+		out.WriteString(" {\n")
+		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+		out.WriteString("        write!(f, \"<")
+		out.WriteString(name)
+		out.WriteString(">\")\n")
+		out.WriteString("    }\n")
+		out.WriteString("}\n")
+		methods := methodsByType[name]
+		if externalTypeStubHasErrorMethod(methods) {
+			out.WriteString("\nimpl std::error::Error for ")
+			out.WriteString(name)
+			out.WriteString(" {}\n")
+		}
+		out.WriteString("\n\nimpl ")
+		out.WriteString(name)
+		out.WriteString(" {\n")
+		writeExternalTypeStubDowncastMethod(&out)
+		methodNames := make([]string, 0, len(methods))
+		for methodName := range methods {
+			methodNames = append(methodNames, methodName)
+		}
+		slices.Sort(methodNames)
+		for _, methodName := range methodNames {
+			method := methods[methodName]
+			if name == "types_Checker" && methodName == "files" {
+				continue
+			}
+			if name == "types_Config" && methodName == "check" {
+				continue
+			}
+			if name == "token_Pos" && methodName == "is_valid" {
+				continue
+			}
+			if name == "fs_FileMode" && methodName == "is_dir" {
+				writeFsFileModeIsDirMethod(&out)
+			} else {
+				writeExternalTypeStubMethod(&out, name, methodName, method)
+			}
+		}
+		out.WriteString("}\n")
+	}
+	writeExternalTypeStubConversions(&out, conversions, interfaceTypes)
+	writeExternalPackageStubs(&out, packageStubs, integerTypes, stubs, len(names) > 0)
+	return out.String()
+}
+
+func externalPackageStubsNeedGoTimer(packageStubs map[string]*externalPackageStub) bool {
+	for _, pkg := range packageStubs {
+		if pkg == nil {
+			continue
+		}
+		for _, fn := range pkg.Functions {
+			for _, returnType := range fn.ReturnTypes {
+				if strings.Contains(returnType, "GoTimer") {
+					return true
+				}
+			}
+		}
+		for _, rustType := range pkg.Variables {
+			if strings.Contains(rustType, "GoTimer") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func externalStubNeedsInterfaceHelper(names []string, interfaceTypes map[string]bool) bool {
+	for _, name := range names {
+		if interfaceTypes[name] {
+			return true
+		}
+	}
+	return false
+}
+
+func externalStubBorrowExpr(expr string) string {
+	if NeedsConcurrentWrapper() {
+		return expr + ".lock().unwrap()"
+	}
+	return expr + ".borrow()"
+}
+
+func externalStubErrorInnerType() string {
+	return rustErrorPayloadTypeFor("StdError", NeedsConcurrentWrapper())
+}
+
+// TEMPORARY: hand-written Rust shim for io.Writer trait bridging.
+// Long-term fix: transpile io package interfaces (pure Go).
+func writeIoWriterStub(out *strings.Builder) {
+	holderType := "Rc<dyn std::any::Any>"
+	fromBound := "T: 'static"
+	newValue := "Rc::new(value)"
+	defaultValue := "Rc::new(())"
+	if NeedsConcurrentWrapper() {
+		holderType = "Arc<dyn std::any::Any + Send + Sync>"
+		fromBound = "T: 'static + Send + Sync"
+		newValue = "Arc::new(value)"
+		defaultValue = "Arc::new(())"
+	}
+	vecType := wrappedExternalStubType("Vec<u8>")
+	// Predeclared Copy scalar return slots stay bare to match the widened
+	// signatures user-defined io.Writer impls and direct callers use.
+	intType := rustIntType()
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	vecBorrow := externalStubBorrowExpr("v")
+	out.WriteString(`#[derive(Clone)]
+pub struct io_Writer {
+    pub __go_id: usize,
+    pub __go_value: `)
+	out.WriteString(holderType)
+	out.WriteString(`,
+}
+
+impl io_Writer {
+    pub fn __go_from<`)
+	out.WriteString(fromBound)
+	out.WriteString(`>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: `)
+	out.WriteString(newValue)
+	fmt.Fprintf(out, ` }
+    }
+
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        let _ = data;
+        panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md and docs/bridge_debt.md#io-writer-trait-bridging")
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i64;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+}
+
+impl Default for io_Writer {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, "n", noneError)
+	out.WriteString(defaultValue)
+	out.WriteString(` }
+    }
+}
+
+impl std::fmt::Debug for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl std::fmt::Display for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl PartialEq for io_Writer {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for io_Writer {}
+
+impl PartialOrd for io_Writer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(std::cmp::Ord::cmp(self, other))
+    }
+}
+
+impl Ord for io_Writer {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+`)
+}
+
+// PERMANENT: not scaffold â€” Rust std::sync::atomic is the long-term implementation;
+// Go's sync/atomic semantics cannot be transpiled from Go source (runtime-tied).
+func writeAtomicInt32Stub(out *strings.Builder) {
+	// Predeclared Copy scalar return slots stay bare to match the rest of
+	// the transpiler's signature shape â€” callers expect a raw value.
+	intType := "i32"
+	boolType := "bool"
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct atomic_Int32 {
+    __go_value: std::sync::Arc<std::sync::atomic::AtomicI32>,
+}
+
+impl Default for atomic_Int32 {
+    fn default() -> Self {
+        Self { __go_value: std::sync::Arc::new(std::sync::atomic::AtomicI32::new(0)) }
+    }
+}
+
+impl std::fmt::Display for atomic_Int32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<atomic_Int32>")
+    }
+}
+
+fn __go_atomic_i32_arg<T: 'static>(arg: &T) -> i32 {
+    let any = arg as &dyn std::any::Any;
+    if let Some(v) = any.downcast_ref::<i32>() {
+        *v
+    } else if let Some(v) = any.downcast_ref::<i64>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<u32>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<u64>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<usize>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<isize>() {
+        *v as i32
+    } else if let Some(v) = any.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<i32>>>>() {
+        v.lock().unwrap().as_ref().copied().unwrap_or_default()
+    } else if let Some(v) = any.downcast_ref::<std::rc::Rc<std::cell::RefCell<Option<i32>>>>() {
+        v.borrow().as_ref().copied().unwrap_or_default()
+    } else {
+        0
+    }
+}
+
+impl atomic_Int32 {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn add<T0: 'static>(&self, arg0: T0) -> %s {
+        let delta = __go_atomic_i32_arg(&arg0);
+        let previous = self.__go_value.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
+        %s
+    }
+
+    pub fn load(&self) -> %s {
+        %s
+    }
+
+    pub fn store<T0: 'static>(&self, arg0: T0) {
+        self.__go_value.store(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn swap<T0: 'static>(&self, arg0: T0) -> %s {
+        %s
+    }
+
+    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> %s {
+        let old = __go_atomic_i32_arg(&old);
+        let new = __go_atomic_i32_arg(&new);
+        %s
+    }
+}
+`,
+		intType, "previous.wrapping_add(delta)",
+		intType, "self.__go_value.load(std::sync::atomic::Ordering::SeqCst)",
+		intType, "self.__go_value.swap(__go_atomic_i32_arg(&arg0), std::sync::atomic::Ordering::SeqCst)",
+		boolType, "self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()")
+}
+
+// PERMANENT: not scaffold - Rust std::sync::atomic is the long-term implementation;
+// Go's sync/atomic semantics cannot be transpiled from Go source (runtime-tied).
+func writeAtomicUint64Stub(out *strings.Builder) {
+	out.WriteString(`#[derive(Debug, Clone)]
+pub struct atomic_Uint64 {
+    __go_value: std::sync::Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl Default for atomic_Uint64 {
+    fn default() -> Self {
+        Self { __go_value: std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)) }
+    }
+}
+
+impl std::fmt::Display for atomic_Uint64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<atomic_Uint64>")
+    }
+}
+
+fn __go_atomic_u64_arg<T: 'static>(arg: &T) -> u64 {
+    let any = arg as &dyn std::any::Any;
+    if let Some(v) = any.downcast_ref::<u64>() {
+        *v
+    } else if let Some(v) = any.downcast_ref::<u32>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<usize>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<i32>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<i64>() {
+        *v as u64
+    } else if let Some(v) = any.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<u64>>>>() {
+        v.lock().unwrap().as_ref().copied().unwrap_or_default()
+    } else if let Some(v) = any.downcast_ref::<std::rc::Rc<std::cell::RefCell<Option<u64>>>>() {
+        v.borrow().as_ref().copied().unwrap_or_default()
+    } else {
+        panic!("atomic_Uint64 helper: unsupported argument type; use a typed sync/atomic.Uint64 value")
+    }
+}
+
+impl atomic_Uint64 {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn add<T0: 'static>(&self, arg0: T0) -> u64 {
+        let delta = __go_atomic_u64_arg(&arg0);
+        let previous = self.__go_value.fetch_add(delta, std::sync::atomic::Ordering::SeqCst);
+        previous.wrapping_add(delta)
+    }
+
+    pub fn load(&self) -> u64 {
+        self.__go_value.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    pub fn store<T0: 'static>(&self, arg0: T0) {
+        self.__go_value.store(__go_atomic_u64_arg(&arg0), std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> bool {
+        let old = __go_atomic_u64_arg(&old);
+        let new = __go_atomic_u64_arg(&new);
+        self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()
+    }
+}
+`)
+}
+
+// PERMANENT: not scaffold â€” Rust std::fs::File is the long-term implementation;
+// os.File wraps OS file handles, no transpilable Go source equivalent.
+func writeOsFileStub(out *strings.Builder) {
+	vecType := wrappedExternalStubType("Vec<u8>")
+	int64Type := wrappedExternalStubType("i64")
+	stringType := wrappedExternalStubType("String")
+	intType := wrappedExternalStubType(rustIntType())
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	vecBorrow := externalStubBorrowExpr("v")
+	stringBorrow := externalStubBorrowExpr("v")
+	int64Borrow := ".borrow()"
+	vecMutBorrow := ".borrow_mut()"
+	if NeedsConcurrentWrapper() {
+		int64Borrow = ".lock().unwrap()"
+		vecMutBorrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `#[derive(Debug, Clone)]
+pub struct os_File {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub __go_wait_for_close: bool,
+}
+
+impl Default for os_File {
+    fn default() -> Self {
+        Self {
+            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            __go_wait_for_close: false,
+        }
+    }
+}
+
+impl std::fmt::Display for os_File {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<os_File>")
+    }
+}
+
+impl PartialEq for os_File {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
+    }
+}
+
+impl Eq for os_File {}
+
+impl os_File {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn close(&self) -> %s {
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        %s
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i64;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            %s.as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i64;
+        self.__go_write_bytes(&bytes);
+        (%s, %s)
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
+            v%s.as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i64;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+                    let mut guard = v%s;
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i64;
+                    }
+                }
+            }
+        }
+        (%s, %s)
+    }
+}
+`,
+		errorType, noneError,
+		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
+		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
+		intType, errorType, wrappedExternalStubExpr(rustIntType(), "0"), noneError,
+		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError)
+}
+
+// PERMANENT: not scaffold â€” Rust std::process::Command is the long-term implementation;
+// exec.Cmd is OS process layer, no transpilable Go source equivalent.
+func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, methods map[string]externalTypeStubMethod) {
+	if fields == nil {
+		fields = make(map[string]string)
+	}
+	if _, ok := fields["args"]; !ok {
+		fields["args"] = wrappedExternalStubType("Vec<String>")
+	}
+	if _, ok := fields["env"]; !ok {
+		fields["env"] = wrappedExternalStubType("Vec<String>")
+	}
+	out.WriteString("#[derive(Debug, Clone, Default)]\n")
+	out.WriteString("pub struct exec_Cmd {\n")
+	fieldNames := make([]string, 0, len(fields))
+	for fieldName := range fields {
+		fieldNames = append(fieldNames, fieldName)
+	}
+	slices.Sort(fieldNames)
+	for _, fieldName := range fieldNames {
+		out.WriteString("    pub ")
+		out.WriteString(fieldName)
+		out.WriteString(": ")
+		out.WriteString(fields[fieldName])
+		out.WriteString(",\n")
+	}
+	errorInnerType := externalStubErrorInnerType()
+	errorType := wrappedExternalStubType(errorInnerType)
+	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
+	out.WriteString(`}
+
+impl std::fmt::Display for exec_Cmd {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<exec_Cmd>")
+    }
+}
+
+impl exec_Cmd {
+	    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+	        None
+	    }
+
+	`)
+	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
+        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
+        if let Some(cmd_env) = %s.as_ref() {
+            env.extend(cmd_env.iter().cloned());
+        }
+        %s
+    }
+
+`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"), wrappedExternalStubExpr("Vec<String>", "env"))
+	if method, ok := methods["stderr_pipe"]; ok && len(method.ReturnTypes) == 2 {
+		fmt.Fprintf(out, `    pub fn stderr_pipe(&mut self) -> (%s, %s) {
+        let file = os_File::default();
+        (%s, %s)
+    }
+
+`, method.ReturnTypes[0], method.ReturnTypes[1],
+			wrappedExternalStubExpr("io_ReadCloser", "io_ReadCloser::__go_from(file)"), noneError)
+	}
+	fmt.Fprintf(out, `    fn __go_error(message: String) -> %s {
+	        %s
+	    }
+
+    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+        let args = %s.as_ref().cloned().unwrap_or_default();
+        if args.is_empty() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+        }
+        let mut command = std::process::Command::new(&args[0]);
+        command.args(&args[1..]);
+`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
+	if _, ok := fields["dir"]; ok {
+		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
+            if !dir.is_empty() {
+                command.current_dir(dir);
+            }
+        }
+`, externalStubBorrowExpr("self.dir"))
+	}
+	if _, ok := fields["env"]; ok {
+		fmt.Fprintf(out, `        if let Some(env) = %s.as_ref() {
+            for item in env {
+                if let Some((key, value)) = item.split_once('=') {
+                    command.env(key, value);
+                }
+            }
+        }
+`, externalStubBorrowExpr("self.env"))
+	}
+	out.WriteString(`        command.output()
+    }
+
+    fn __go_write_output(&self, output: &std::process::Output) {
+`)
+	if _, ok := fields["stdout"]; ok {
+		fmt.Fprintf(out, `        if let Some(stdout) = %s.as_ref() {
+            stdout.__go_write_bytes(&output.stdout);
+        }
+`, externalStubBorrowExpr("self.stdout"))
+	}
+	if _, ok := fields["stderr"]; ok {
+		fmt.Fprintf(out, `        if let Some(stderr) = %s.as_ref() {
+            stderr.__go_write_bytes(&output.stderr);
+        }
+`, externalStubBorrowExpr("self.stderr"))
+	}
+	fmt.Fprintf(out, `    }
+
+    pub fn output(&self) -> (%s, %s) {
+        match self.__go_run_output() {
+            Ok(output) => {
+                let err = if output.status.success() {
+                    %s
+                } else {
+                    Self::__go_error(format!("exit status {}", output.status))
+                };
+                (%s, err)
+            }
+            Err(err) => (%s, Self::__go_error(err.to_string())),
+        }
+    }
+
+    pub fn run(&self) -> %s {
+        self.start()
+    }
+
+    pub fn start(&self) -> %s {
+        match self.__go_run_output() {
+            Ok(output) => {
+                self.__go_write_output(&output);
+                if output.status.success() {
+                    %s
+                } else {
+                    Self::__go_error(format!("exit status {}", output.status))
+                }
+            }
+            Err(err) => Self::__go_error(err.to_string()),
+        }
+    }
+
+    pub fn wait(&self) -> %s {
+        %s
+    }
+}
+`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
+}
+
+func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {
+	if methods == nil {
+		return false
+	}
+	method, ok := methods["error"]
+	return ok && len(method.ReturnTypes) == 1 && strings.Contains(method.ReturnTypes[0], "String")
+}
+
+// MACHINERY: emission framework for integer-stub operations, not a stdlib shim.
+func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType string) {
+	out.WriteString("impl PartialEq<")
+	out.WriteString(integerType)
+	out.WriteString("> for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &")
+	out.WriteString(integerType)
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        self.0 == *other\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl PartialEq<")
+	out.WriteString(name)
+	out.WriteString("> for ")
+	out.WriteString(integerType)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &")
+	out.WriteString(name)
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        *self == other.0\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::ops::BitAnd for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    type Output = ")
+	out.WriteString(name)
+	out.WriteString(";\n")
+	out.WriteString("    fn bitand(self, other: Self) -> ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(name)
+	out.WriteString("(self.0 & other.0)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::ops::BitOr for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    type Output = ")
+	out.WriteString(name)
+	out.WriteString(";\n")
+	out.WriteString("    fn bitor(self, other: Self) -> ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(name)
+	out.WriteString("(self.0 | other.0)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+}
+
+// MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
+func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	holderType := "Rc<dyn std::any::Any>"
+	fromBound := "T: 'static"
+	newValue := "Rc::new(value)"
+	defaultValue := "Rc::new(())"
+	if NeedsConcurrentWrapper() {
+		holderType = "Arc<dyn std::any::Any + Send + Sync>"
+		fromBound = "T: 'static + Send + Sync"
+		newValue = "Arc::new(value)"
+		defaultValue = "Arc::new(())"
+	}
+
+	out.WriteString("#[derive(Clone)]\n")
+	out.WriteString("pub struct ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    pub __go_id: usize,\n")
+	if externalInterfaceCarriesSourcePos(name) {
+		out.WriteString("    pub __go_pos: i32,\n")
+	}
+	out.WriteString("    pub __go_value: ")
+	out.WriteString(holderType)
+	out.WriteString(",\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    pub fn __go_from<")
+	out.WriteString(fromBound)
+	out.WriteString(">(value: T) -> Self {\n")
+	out.WriteString("        Self { __go_id: __go_next_external_interface_id(), ")
+	if externalInterfaceCarriesSourcePos(name) {
+		out.WriteString("__go_pos: 0, ")
+	}
+	out.WriteString("__go_value: ")
+	out.WriteString(newValue)
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	if externalInterfaceCarriesSourcePos(name) {
+		out.WriteString("    pub fn __go_from_with_pos<")
+		out.WriteString(fromBound)
+		out.WriteString(">(value: T, pos: i32) -> Self {\n")
+		out.WriteString("        Self { __go_id: __go_next_external_interface_id(), __go_pos: pos, __go_value: ")
+		out.WriteString(newValue)
+		out.WriteString(" }\n")
+		out.WriteString("    }\n")
+	}
+	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
+	out.WriteString("        self.__go_value.as_ref().downcast_ref::<T>()\n")
+	out.WriteString("    }\n")
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		if name == "types_Type" && (methodName == "string" || methodName == "underlying") {
+			continue
+		}
+		if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
+			writeExternalInterfacePosMethod(out)
+		} else if name == "io_ReadCloser" && methodName == "close" {
+			writeIoReadCloserCloseMethod(out, methods[methodName])
+		} else {
+			writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
+		}
+	}
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl Default for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn default() -> Self {\n")
+	out.WriteString("        Self { __go_id: 0, ")
+	if externalInterfaceCarriesSourcePos(name) {
+		out.WriteString("__go_pos: 0, ")
+	}
+	out.WriteString("__go_value: ")
+	out.WriteString(defaultValue)
+	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::fmt::Debug for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<")
+	out.WriteString(name)
+	out.WriteString(">\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl std::fmt::Display for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        write!(f, \"<")
+	out.WriteString(name)
+	out.WriteString(">\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+
+	out.WriteString("impl PartialEq for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        self.__go_id == other.__go_id\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl Eq for ")
+	out.WriteString(name)
+	out.WriteString(" {}\n\n")
+	out.WriteString("impl PartialOrd for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+	out.WriteString("impl Ord for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
+	out.WriteString("        self.__go_id.cmp(&other.__go_id)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func externalInterfaceCarriesSourcePos(name string) bool {
+	switch name {
+	case "ast_Decl", "ast_Expr", "ast_Node", "ast_Spec", "ast_Stmt":
+		return true
+	default:
+		return false
+	}
+}
+
+// MACHINERY: shared Pos() method emitter used by interface-stub framework.
+func writeExternalInterfacePosMethod(out *strings.Builder) {
+	out.WriteString("    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {\n")
+	out.WriteString("        Arc::new(Mutex::new(Some(token_Pos(self.__go_pos))))\n")
+	out.WriteString("    }\n")
+}
+
+// TEMPORARY: hand-written Rust shim for io.ReadCloser close dispatch.
+// Long-term fix: source-map io/os and delete the external io_ReadCloser bridge.
+// Registry row: docs/bridge_debt.md#io-readcloser-close-dispatch.
+// Interface dispatch bridge for io.ReadCloser backed by os.File.
+// Unsupported concrete receivers panic loudly instead of synthesizing success.
+func writeIoReadCloserCloseMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn close(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        if let Some(file) = self.downcast_ref::<os_File>() {\n")
+	out.WriteString("            return file.close();\n")
+	out.WriteString("        }\n")
+	out.WriteString("        panic!(\"io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source instead - see AGENTS.md and docs/bridge_debt.md#io-readcloser-close-dispatch\")\n")
+	out.WriteString("    }\n")
+}
+
+// MACHINERY: framework for emitting From/Into impls between external stub types.
+func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool, interfaceTypes map[string]bool) {
+	if len(conversions) == 0 {
+		return
+	}
+	targetNames := make([]string, 0, len(conversions))
+	for targetName, sourceNames := range conversions {
+		if len(sourceNames) == 0 {
+			continue
+		}
+		targetNames = append(targetNames, targetName)
+	}
+	slices.Sort(targetNames)
+	for _, targetName := range targetNames {
+		sourceNames := make([]string, 0, len(conversions[targetName]))
+		for sourceName := range conversions[targetName] {
+			sourceNames = append(sourceNames, sourceName)
+		}
+		slices.Sort(sourceNames)
+		for _, sourceName := range sourceNames {
+			if out.Len() > 0 {
+				out.WriteString("\n\n")
+			}
+			out.WriteString("impl From<")
+			out.WriteString(sourceName)
+			out.WriteString("> for ")
+			out.WriteString(targetName)
+			out.WriteString(" {\n")
+			out.WriteString("    fn from(_value: ")
+			out.WriteString(sourceName)
+			out.WriteString(") -> Self {\n")
+			if interfaceTypes[targetName] && interfaceTypes[sourceName] {
+				out.WriteString("        Self { __go_id: _value.__go_id, ")
+				if externalInterfaceCarriesSourcePos(targetName) {
+					if externalInterfaceCarriesSourcePos(sourceName) {
+						out.WriteString("__go_pos: _value.__go_pos, ")
+					} else {
+						out.WriteString("__go_pos: 0, ")
+					}
+				}
+				out.WriteString("__go_value: _value.__go_value.clone() }\n")
+			} else if interfaceTypes[targetName] {
+				out.WriteString("        Self::__go_from(_value)\n")
+			} else {
+				// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it":
+				// From<X> for Y impls between two concrete stub types have no
+				// meaningful conversion. Returning Self::default() silently
+				// synthesizes type facts. Panic instead so callers fail loudly.
+				out.WriteString("        panic!(\"From<")
+				out.WriteString(sourceName)
+				out.WriteString("> for ")
+				out.WriteString(targetName)
+				out.WriteString(" bridge: concrete-to-concrete stub conversion has no implementation; transpile the underlying Go source or remove the conversion â€” see AGENTS.md and docs/bridge_debt.md\")\n")
+			}
+			out.WriteString("    }\n")
+			out.WriteString("}\n")
+		}
+	}
+}
+
+// MACHINERY: interface identity helper for the emission framework.
+func writeExternalInterfaceIdHelper(out *strings.Builder) {
+	out.WriteString("fn __go_next_external_interface_id() -> usize {\n")
+	out.WriteString("    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);\n")
+	out.WriteString("    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)\n")
+	out.WriteString("}\n\n")
+}
+
+// MACHINERY: downcast helper for the external-stub interface framework.
+func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
+	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
+	out.WriteString("        None\n")
+	out.WriteString("    }\n")
+}
+
+// MACHINERY: generic method emitter for external-stub framework.
+//
+// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it", the body
+// MUST panic instead of returning a default value. A bridge method that
+// silently returns Default::default() synthesizes type facts and re-enacts
+// the 2026 fallback incident one layer deeper. Methods that need real
+// behavior get a custom emitter. Generic methods exist for type-system
+// completeness only â€” calling them at runtime is a bug to be fixed by
+// source-transpiling the Go package that defines the method.
+func writeExternalTypeStubMethod(out *strings.Builder, typeName string, methodName string, method externalTypeStubMethod) {
+	out.WriteString("    pub fn ")
+	out.WriteString(methodName)
+	if method.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < method.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(&self")
+	for i := 0; i < method.ParamCount; i++ {
+		out.WriteString(", _arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(")")
+	if len(method.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		if len(method.ReturnTypes) == 1 {
+			out.WriteString(method.ReturnTypes[0])
+		} else {
+			out.WriteString("(")
+			for i, returnType := range method.ReturnTypes {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(returnType)
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        panic!(\"")
+	out.WriteString(typeName)
+	out.WriteString(".")
+	out.WriteString(methodName)
+	out.WriteString(" bridge: generic stub method body has no implementation; add a custom emitter or remove the call â€” see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
+	out.WriteString("    }\n")
+}
+
+// MACHINERY: top-level dispatcher that emits all package stub blocks.
+func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*externalPackageStub, integerTypes map[string]string, stubs map[string]bool, needsSeparator bool) {
+	if len(packageStubs) == 0 {
+		return
+	}
+	pkgNames := make([]string, 0, len(packageStubs))
+	for pkgName := range packageStubs {
+		pkgNames = append(pkgNames, pkgName)
+	}
+	slices.Sort(pkgNames)
+	for _, pkgName := range pkgNames {
+		pkg := packageStubs[pkgName]
+		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0 && len(pkg.Variables) == 0) {
+			continue
+		}
+		if needsSeparator || out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		needsSeparator = true
+		if pkgName == "exec" {
+			writeExecPackageStub(out, pkg, integerTypes)
+			continue
+		}
+		if pkgName == "json" {
+			writeJsonPackageStub(out, pkg)
+			continue
+		}
+		if pkgName == "os" {
+			writeOsPackageStub(out, pkg, integerTypes)
+			continue
+		}
+		if pkgName == "filepath" {
+			writeFilepathPackageStub(out, pkg, integerTypes)
+			continue
+		}
+		out.WriteString("pub mod ")
+		out.WriteString(ToSnakeCase(pkgName))
+		out.WriteString(" {\n")
+		out.WriteString("    use super::*;\n")
+		constNames := make([]string, 0, len(pkg.Constants))
+		for constName := range pkg.Constants {
+			constNames = append(constNames, constName)
+		}
+		slices.Sort(constNames)
+		for _, constName := range constNames {
+			out.WriteString("    pub const ")
+			out.WriteString(constName)
+			out.WriteString(": ")
+			out.WriteString(pkg.Constants[constName])
+			out.WriteString(" = ")
+			writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
+			out.WriteString(";\n")
+		}
+		if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
+			out.WriteString("\n")
+		}
+		varNames := make([]string, 0, len(pkg.Variables))
+		for varName := range pkg.Variables {
+			varNames = append(varNames, varName)
+		}
+		slices.Sort(varNames)
+		for i, varName := range varNames {
+			if i > 0 {
+				out.WriteString("\n")
+			}
+			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		}
+		if len(varNames) > 0 && len(pkg.Functions) > 0 {
+			out.WriteString("\n")
+		}
+		funcNames := make([]string, 0, len(pkg.Functions))
+		for funcName := range pkg.Functions {
+			funcNames = append(funcNames, funcName)
+		}
+		slices.Sort(funcNames)
+		for i, funcName := range funcNames {
+			if i > 0 {
+				out.WriteString("\n")
+			}
+			writeExternalPackageStubFunction(out, pkgName, funcName, pkg.Functions[funcName])
+		}
+		out.WriteString("}\n")
+	}
+}
+
+func wrappedExternalStubType(innerType string) string {
+	return fmt.Sprintf("%s<%s<Option<%s>>>", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType)
+}
+
+func wrappedExternalStubExpr(innerType string, expr string) string {
+	if goSliceModeEnabled() && strings.HasPrefix(innerType, "Vec<") {
+		// The value may be the standard library's Vec, from a std API.
+		expr = "Vec::from(" + expr + ")"
+	}
+	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType, expr)
+}
+
+func writeExternalStubReturnValue(out *strings.Builder, rustType string, innerType string, expr string) {
+	if rustType == innerType {
+		out.WriteString(expr)
+		return
+	}
+	out.WriteString(wrappedExternalStubExpr(innerType, expr))
+}
+
+func singleExternalReturnType(returnTypes []string) string {
+	if len(returnTypes) != 1 {
+		return ""
+	}
+	return returnTypes[0]
+}
+
+func wrappedExternalStubSomeExpr(innerType string, expr string) string {
+	return wrappedExternalStubExpr(innerType, expr)
+}
+
+func wrappedExternalStubNoneExpr(innerType string) string {
+	return fmt.Sprintf("%s::new(%s::new(None::<%s>))", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType)
+}
+
+func externalStubInnerWrapperType() string {
+	if usePackageExternalStubs() && NeedsConcurrentWrapper() {
+		return "Mutex"
+	}
+	return GetInnerWrapperType()
+}
+
+// PERMANENT: not scaffold â€” io/fs.FileInfo is OS-tied; Rust std::fs::Metadata is the long-term implementation.
+func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	stringType := wrappedExternalStubType("String")
+	// Predeclared Copy scalar return slots stay bare to match the widened
+	// signatures callers use.
+
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct %s {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: i64,
+}
+
+impl std::fmt::Display for %s {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<%s>")
+    }
+}
+
+
+impl %s {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn name(&self) -> %s {
+        %s
+    }
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
+    }
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
+	if method, ok := methods["mode"]; ok && len(method.ReturnTypes) == 1 {
+		fmt.Fprintf(out, `    pub fn mode(&self) -> %s {
+        if self.is_dir {
+            %s
+        } else {
+            %s
+        }
+    }
+`, method.ReturnTypes[0],
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+	}
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "name" || methodName == "size" || methodName == "is_dir" || methodName == "mode" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
+}
+
+// PERMANENT: not scaffold â€” io/fs.FileMode is OS-tied; Rust std::fs::Metadata is the long-term implementation.
+func writeFsFileModeIsDirMethod(out *strings.Builder) {
+	out.WriteString(`    pub fn is_dir(&self) -> bool {
+        (self.0 & (1u32 << 31)) != 0
+    }
+`)
+}
+
+// PERMANENT: not scaffold â€” io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
+func writeFsDirEntryStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	stringType := wrappedExternalStubType("String")
+
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct %s {
+    pub name: String,
+    pub is_dir: bool,
+}
+
+impl std::fmt::Display for %s {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<%s>")
+    }
+}
+
+
+impl %s {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn name(&self) -> %s {
+        %s
+    }
+	    pub fn is_dir(&self) -> bool {
+	        self.is_dir
+	    }
+`, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
+	if method, ok := methods["r#type"]; ok && len(method.ReturnTypes) == 1 {
+		fmt.Fprintf(out, `    pub fn r#type(&self) -> %s {
+        if self.is_dir {
+            %s
+        } else {
+            %s
+        }
+    }
+`, method.ReturnTypes[0],
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+	}
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "name" || methodName == "is_dir" || methodName == "r#type" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
+}
+
+// TEMPORARY: hand-written Rust shim for encoding/json package.
+// Long-term fix: transpile encoding/json source.
+func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
+	out.WriteString("pub mod json {\n")
+	out.WriteString("    use super::*;\n")
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		switch funcName {
+		case "new_decoder":
+			out.WriteString("    pub fn new_decoder<T0: GoJsonInputArg>(_arg0: T0) -> ")
+			writeExternalStubReturnType(out, pkg.Functions[funcName].ReturnTypes)
+			out.WriteString(" {\n")
+			out.WriteString("        ")
+			out.WriteString(wrappedExternalStubExpr("json_Decoder", "json_Decoder::__go_from_input(_arg0)"))
+			out.WriteString("\n")
+			out.WriteString("    }\n")
+		case "unmarshal":
+			errorInnerType := externalStubErrorInnerType()
+			out.WriteString("    pub fn unmarshal<T0: GoJsonInputArg, T1: GoJsonDecodeTarget>(_arg0: T0, _arg1: T1) -> ")
+			out.WriteString(wrappedExternalStubType(errorInnerType))
+			out.WriteString(" {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        match serde_json::from_slice::<serde_json::Value>(&bytes) {\n")
+			out.WriteString("            Ok(value) => match _arg1.assign_go_json(&value) {\n")
+			out.WriteString("                Ok(()) => go_json_no_error(),\n")
+			out.WriteString("                Err(err) => go_json_error(err),\n")
+			out.WriteString("            },\n")
+			out.WriteString("            Err(err) => go_json_error(err.to_string()),\n")
+			out.WriteString("        }\n")
+			out.WriteString("    }\n")
+		case "valid":
+			out.WriteString("    pub fn valid<T0: GoJsonInputArg>(_arg0: T0) -> bool {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        let mut depth = 0usize;\n")
+			out.WriteString("        let mut in_string = false;\n")
+			out.WriteString("        let mut escaped = false;\n")
+			out.WriteString("        for byte in &bytes {\n")
+			out.WriteString("            if in_string {\n")
+			out.WriteString("                if escaped {\n")
+			out.WriteString("                    escaped = false;\n")
+			out.WriteString("                } else if *byte == b'\\\\' {\n")
+			out.WriteString("                    escaped = true;\n")
+			out.WriteString("                } else if *byte == b'\"' {\n")
+			out.WriteString("                    in_string = false;\n")
+			out.WriteString("                }\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                match *byte {\n")
+			out.WriteString("                    b'\"' => in_string = true,\n")
+			out.WriteString("                    b'{' | b'[' => {\n")
+			out.WriteString("                        depth += 1;\n")
+			out.WriteString("                        if depth > 10_000 { return false; }\n")
+			out.WriteString("                    }\n")
+			out.WriteString("                    b'}' | b']' => depth = depth.saturating_sub(1),\n")
+			out.WriteString("                    _ => {}\n")
+			out.WriteString("                }\n")
+			out.WriteString("            }\n")
+			out.WriteString("        }\n")
+			out.WriteString("        let text = String::from_utf8_lossy(&bytes);\n")
+			out.WriteString("        serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()\n")
+			out.WriteString("    }\n")
+		default:
+			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+// PERMANENT: not scaffold â€” os.* is the syscall/OS layer; Rust std::env / std::process are the long-term implementation.
+func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod os {\n")
+	out.WriteString("    use super::*;\n")
+	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	if needsFilesystemHelpers {
+		out.WriteString("    use std::path::Path;\n\n")
+		writeGoStringArgTrait(out)
+		if _, ok := pkg.Functions["write_file"]; ok {
+			writeGoBytesArgTrait(out)
+		}
+		writeOsErrorHelpers(out)
+	}
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for _, varName := range varNames {
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 || len(varNames) > 0 {
+			out.WriteString("\n")
+		}
+		if funcName == "exit" {
+			writeOsExitFunction(out)
+		} else if funcName == "getwd" {
+			writeOsGetwdFunction(out, pkg.Functions[funcName])
+		} else if funcName == "getenv" {
+			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "is_path_separator" {
+			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
+		} else if funcName == "lstat" {
+			writeOsLstatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "mkdir_all" {
+			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
+		} else if funcName == "open" {
+			writeOsOpenFunction(out, pkg.Functions[funcName])
+		} else if funcName == "read_file" {
+			writeOsReadFileFunction(out, pkg.Functions[funcName])
+		} else if funcName == "read_dir" {
+			writeOsReadDirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "stat" {
+			writeOsStatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "write_file" {
+			writeOsWriteFileFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, "os", funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
+	if pkg == nil {
+		return false
+	}
+	_, needsStat := pkg.Functions["stat"]
+	_, needsMkdirAll := pkg.Functions["mkdir_all"]
+	_, needsOpen := pkg.Functions["open"]
+	_, needsReadDir := pkg.Functions["read_dir"]
+	_, needsReadFile := pkg.Functions["read_file"]
+	_, needsWriteFile := pkg.Functions["write_file"]
+	_, needsGetwd := pkg.Functions["getwd"]
+	_, needsLstat := pkg.Functions["lstat"]
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+}
+
+// PERMANENT: not scaffold â€” OS error types map to Rust std::io::Error, no transpilable Go source.
+func writeOsErrorHelpers(out *strings.Builder) {
+	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
+	fmt.Fprintf(out, `    type GoError = %s;
+
+    fn no_error() -> GoError {
+        %s::new(%s::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        %s::new(%s::new(Some(%s)))
+    }
+
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
+}
+
+// PERMANENT: not scaffold â€” os.Exit maps to std::process::exit, runtime-tied.
+func writeOsExitFunction(out *strings.Builder) {
+	out.WriteString("    pub fn exit<T0: Into<i64>>(_arg0: T0) {\n")
+	out.WriteString("        std::process::exit(_arg0.into() as i32);\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Getenv maps to std::env::var in the host process environment.
+func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	stringType := wrappedExternalStubType("String")
+	stringBorrow := externalStubBorrowExpr("v")
+
+	out.WriteString("    pub fn getenv<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let key = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<String>() {\n")
+	out.WriteString("            v.clone()\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(stringType)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(stringBorrow)
+	out.WriteString(".as_ref().cloned().unwrap_or_default()\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os.Getenv bridge: expected string argument\")\n")
+	out.WriteString("        };\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Getwd maps to std::env::current_dir in the host process environment.
+func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn getwd() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        match std::env::current_dir() {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.IsPathSeparator follows host OS path separator rules.
+func writeOsIsPathSeparatorFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	u8Wrapper := wrappedExternalStubType("u8")
+	u8Borrow := externalStubBorrowExpr("v")
+	i32Wrapper := wrappedExternalStubType("i32")
+	i32Borrow := externalStubBorrowExpr("v")
+
+	out.WriteString("    pub fn is_path_separator<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let c = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<u8>() {\n")
+	out.WriteString("            *v\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<i32>() {\n")
+	out.WriteString("            *v as u8\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(u8Wrapper)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(u8Borrow)
+	out.WriteString(".as_ref().copied().unwrap_or_default()\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(i32Wrapper)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(i32Borrow)
+	out.WriteString(".as_ref().copied().unwrap_or_default() as u8\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os.IsPathSeparator bridge: expected byte argument\")\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(windows)]\n")
+	out.WriteString("        { c == b'/' || c == b'\\\\' }\n")
+	out.WriteString("        #[cfg(not(windows))]\n")
+	out.WriteString("        { c == b'/' }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.MkdirAll maps to std::fs::create_dir_all, syscall-tied.
+func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn mkdir_all<T0: GoStringArg, T1>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::create_dir_all(&path) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Stat maps to std::fs::metadata, syscall-tied.
+func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn stat<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::metadata(&path) {\n")
+	out.WriteString("            Ok(metadata) => {\n")
+	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Lstat maps to std::fs::symlink_metadata, syscall-tied.
+func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::symlink_metadata(&path) {\n")
+	out.WriteString("            Ok(metadata) => {\n")
+	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Open maps to std::fs::read for the read-oriented os.File stub.
+func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn open<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::read(&path) {\n")
+	out.WriteString("            Ok(data) => {\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.ReadFile maps to std::fs::read, syscall-tied.
+func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::read(&path) {\n")
+	out.WriteString("            Ok(data) => (")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "data"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.WriteFile maps to std::fs::write, syscall-tied.
+func writeOsWriteFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn write_file<T0: GoStringArg, T1: GoBytesArg, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let data = _arg1.into_go_bytes();\n")
+	out.WriteString("        match std::fs::write(&path, data) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.ReadDir maps to std::fs::read_dir, syscall-tied.
+func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn read_dir<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let entries = match std::fs::read_dir(&path) {\n")
+	out.WriteString("            Ok(entries) => entries,\n")
+	out.WriteString("            Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        };\n")
+	out.WriteString("        let mut result = Vec::new();\n")
+	out.WriteString("        for entry in entries {\n")
+	out.WriteString("            match entry {\n")
+	out.WriteString("                Ok(entry) => {\n")
+	out.WriteString("                    let name = entry.file_name().to_string_lossy().into_owned();\n")
+	out.WriteString("                    let is_dir = entry.file_type().map(|file_type| file_type.is_dir()).unwrap_or(false);\n")
+	out.WriteString("                    result.push(fs_DirEntry { name, is_dir });\n")
+	out.WriteString("                }\n")
+	out.WriteString("                Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("            }\n")
+	out.WriteString("        }\n")
+	out.WriteString("        result.sort_by(|left, right| left.name.cmp(&right.name));\n")
+	out.WriteString("        (")
+	out.WriteString(wrappedExternalStubExpr("Vec<fs_DirEntry>", "result"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("    }\n")
+}
+
+// MIXED: top-level path/filepath emitter. Pure path-manipulation functions are
+// source-transpiled; Abs/EvalSymlinks are PERMANENT (OS-tied).
+func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod filepath {\n")
+	out.WriteString("    use super::*;\n")
+	out.WriteString("    use std::path::PathBuf;\n\n")
+	writeGoStringArgTrait(out)
+	writeFilepathErrorHelpers(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		if constName == "SEPARATOR" {
+			out.WriteString("    pub const SEPARATOR: i32 = 47;\n")
+		} else if constName == "LIST_SEPARATOR" {
+			out.WriteString("    pub const LIST_SEPARATOR: i32 = 58;\n")
+		} else {
+			out.WriteString("    pub const ")
+			out.WriteString(constName)
+			out.WriteString(": ")
+			out.WriteString(pkg.Constants[constName])
+			out.WriteString(" = ")
+			writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
+			out.WriteString(";\n")
+		}
+	}
+	if len(constNames) > 0 && len(pkg.Functions) > 0 {
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	wroteFunction := false
+	for _, funcName := range funcNames {
+		switch funcName {
+		case "base", "clean", "dir", "is_abs", "join":
+			continue
+		}
+		if wroteFunction {
+			out.WriteString("\n")
+		}
+		wroteFunction = true
+		if funcName == "abs" {
+			writeFilepathAbsFunction(out, pkg.Functions[funcName])
+		} else if funcName == "eval_symlinks" {
+			writeFilepathEvalSymlinksFunction(out, pkg.Functions[funcName])
+		} else {
+			writeExternalPackageStubFunction(out, "filepath", funcName, pkg.Functions[funcName])
+		}
+	}
+	out.WriteString("}\n")
+}
+
+// MACHINERY: cross-package helper trait for string-argument coercion.
+func writeGoStringArgTrait(out *strings.Builder) {
+	stringType := wrappedExternalStubType("String")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for %s {
+        fn into_go_string(self) -> String {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+`, stringType, borrow)
+}
+
+// MACHINERY: cross-package helper trait for byte-argument coercion.
+func writeGoBytesArgTrait(out *strings.Builder) {
+	vecType := wrappedExternalStubType("Vec<u8>")
+	stringType := wrappedExternalStubType("String")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoBytesArg {
+        fn into_go_bytes(self) -> Vec<u8>;
+    }
+
+    impl GoBytesArg for Vec<u8> {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self
+        }
+    }
+
+    impl<'a> GoBytesArg for &'a [u8] {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.to_vec()
+        }
+    }
+
+    impl GoBytesArg for String {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.into_bytes()
+        }
+    }
+
+    impl<'a> GoBytesArg for &'a str {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self.as_bytes().to_vec()
+        }
+    }
+
+    impl GoBytesArg for %s {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    impl GoBytesArg for %s {
+        fn into_go_bytes(self) -> Vec<u8> {
+            self%s.as_ref().map(|value| value.as_bytes().to_vec()).unwrap_or_default()
+        }
+    }
+
+`, vecType, borrow, stringType, borrow)
+}
+
+// PERMANENT: not scaffold â€” filepath error helpers map to std::io::Error, OS-tied.
+func writeFilepathErrorHelpers(out *strings.Builder) {
+	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
+	fmt.Fprintf(out, `    type GoError = %s;
+
+    fn no_error() -> GoError {
+        %s::new(%s::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        %s::new(%s::new(Some(%s)))
+    }
+
+    fn normalize_path(path: PathBuf) -> String {
+        path.components().collect::<PathBuf>().to_string_lossy().into_owned()
+    }
+
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
+}
+
+// PERMANENT: not scaffold â€” filepath.Abs requires CWD resolution, OS-tied.
+func writeFilepathAbsFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn abs<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = PathBuf::from(_arg0.into_go_string());\n")
+	out.WriteString("        let absolute = if path.is_absolute() {\n")
+	out.WriteString("            path\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            match std::env::current_dir() {\n")
+	out.WriteString("                Ok(current) => current.join(path),\n")
+	out.WriteString("                Err(err) => return (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("            }\n")
+	out.WriteString("        };\n")
+	out.WriteString("        (")
+	out.WriteString(wrappedExternalStubExpr("String", "normalize_path(absolute)"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” filepath.EvalSymlinks requires syscall, OS-tied.
+func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn eval_symlinks<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::canonicalize(&path) {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// MACHINERY: variable-declaration emitter for stub packages.
+func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
+	out.WriteString("    pub fn ")
+	out.WriteString(varName)
+	out.WriteString("() -> ")
+	out.WriteString(rustType)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	writeExternalStubDefaultValue(out, rustType)
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” os/exec.* is the process layer; Rust std::process is the long-term implementation.
+func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
+	out.WriteString("pub mod exec {\n")
+	out.WriteString("    use super::*;\n\n")
+	writeGoStringArgTrait(out)
+	writeExecCommandArgsTrait(out)
+
+	constNames := make([]string, 0, len(pkg.Constants))
+	for constName := range pkg.Constants {
+		constNames = append(constNames, constName)
+	}
+	slices.Sort(constNames)
+	for _, constName := range constNames {
+		out.WriteString("    pub const ")
+		out.WriteString(constName)
+		out.WriteString(": ")
+		out.WriteString(pkg.Constants[constName])
+		out.WriteString(" = ")
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
+		out.WriteString(";\n")
+	}
+	if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
+		out.WriteString("\n")
+	}
+
+	varNames := make([]string, 0, len(pkg.Variables))
+	for varName := range pkg.Variables {
+		varNames = append(varNames, varName)
+	}
+	slices.Sort(varNames)
+	for i, varName := range varNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+	}
+	if len(varNames) > 0 && len(pkg.Functions) > 0 {
+		out.WriteString("\n")
+	}
+
+	funcNames := make([]string, 0, len(pkg.Functions))
+	for funcName := range pkg.Functions {
+		funcNames = append(funcNames, funcName)
+	}
+	slices.Sort(funcNames)
+	for i, funcName := range funcNames {
+		if i > 0 {
+			out.WriteString("\n")
+		}
+		writeExternalPackageStubFunction(out, "exec", funcName, pkg.Functions[funcName])
+	}
+	out.WriteString("}\n")
+}
+
+// MACHINERY: generic stub function emitter dispatch.
+//
+// Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it", the
+// generic body emits a panic instead of returning defaults. Functions
+// whose stubs need real behavior (exec.Command, os.Pipe, etc.)
+// have custom emitters dispatched above. Anything routing through the
+// generic body has no implementation â€” calling it at runtime is a bug
+// to be fixed at the call site or by adding a custom emitter.
+func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, funcName string, fn externalPackageStubFunction) {
+	if funcName == "command" && len(fn.ReturnTypes) == 1 {
+		writeExecCommandStub(out, fn, false)
+		return
+	}
+	if funcName == "command_context" && len(fn.ReturnTypes) == 1 {
+		writeExecCommandStub(out, fn, true)
+		return
+	}
+	if funcName == "look_path" && len(fn.ReturnTypes) == 2 {
+		writeExecLookPathStub(out, fn)
+		return
+	}
+	if funcName == "pipe" && len(fn.ReturnTypes) == 3 {
+		writeOsPipeStub(out, fn)
+		return
+	}
+	if funcName == "g_o_m_a_x_p_r_o_c_s" && len(fn.ReturnTypes) == 1 {
+		writeRuntimeGOMAXPROCSStub(out, fn)
+		return
+	}
+	if funcName == "g_o_r_o_o_t" && len(fn.ReturnTypes) == 1 {
+		writeRuntimeGOROOTStub(out, fn)
+		return
+	}
+	if funcName == "new_tuple" || funcName == "new_type_name" || funcName == "new_type_param" {
+		return
+	}
+	if pkgName == "types" && funcName == "new_pointer" {
+		return
+	}
+	if pkgName == "types" && (funcName == "new_package" || funcName == "new_checker") {
+		return
+	}
+	if funcName == "new_term" {
+		return
+	}
+	out.WriteString("    pub fn ")
+	out.WriteString(funcName)
+	if len(fn.GenericParamNames) > 0 {
+		out.WriteString("<")
+		for i, name := range fn.GenericParamNames {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(name)
+		}
+		out.WriteString(">")
+	} else if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": ")
+		if len(fn.GenericParamNames) > 0 && i < len(fn.ParamTypes) && fn.ParamTypes[i] != "" {
+			out.WriteString(fn.ParamTypes[i])
+		} else {
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+	}
+	out.WriteString(")")
+	if len(fn.ReturnTypes) > 0 {
+		out.WriteString(" -> ")
+		writeExternalStubReturnType(out, fn.ReturnTypes)
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        panic!(\"")
+	out.WriteString(funcName)
+	out.WriteString(" bridge: generic stub function body has no implementation; add a custom emitter or remove the call â€” see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold â€” runtime.GOMAXPROCS is runtime-tied; Rust has no direct equivalent.
+func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn g_o_m_a_x_p_r_o_c_s")
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(") -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        ")
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], rustIntType(), "std::thread::available_parallelism().map(|n| n.get() as i64).unwrap_or(1).max(1)")
+	out.WriteString("\n    }\n")
+}
+
+// PERMANENT: not scaffold â€” runtime.GOROOT is runtime-tied; use the host Go toolchain root.
+func writeRuntimeGOROOTStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn g_o_r_o_o_t() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        ")
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "String", `{
+            static GOROOT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+            GOROOT.get_or_init(|| {
+                if let Ok(value) = std::env::var("GOROOT") {
+                    if !value.is_empty() {
+                        return value;
+                    }
+                }
+                std::process::Command::new("go")
+                    .args(["env", "GOROOT"])
+                    .output()
+                    .ok()
+                    .and_then(|output| if output.status.success() { String::from_utf8(output.stdout).ok() } else { None })
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_default()
+            }).clone()
+        }`)
+	out.WriteString("\n    }\n")
+}
+
+// PERMANENT: not scaffold â€” os.Pipe maps to OS pipe syscalls, runtime-tied.
+func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn pipe() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString(`        let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true };
+        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true };
+        (`)
+	out.WriteString(wrappedExternalStubExpr("os_File", "read"))
+	out.WriteString(", ")
+	out.WriteString(wrappedExternalStubExpr("os_File", "write"))
+	out.WriteString(", ")
+	writeExternalStubDefaultValue(out, fn.ReturnTypes[2])
+	out.WriteString(")\n    }\n")
+}
+
+// PERMANENT: not scaffold â€” exec.Command spawns OS processes, runtime-tied.
+func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
+	if hasContext {
+		out.WriteString("    pub fn command_context<T0, T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+		writeExternalStubReturnType(out, fn.ReturnTypes)
+		out.WriteString(" {\n")
+		writeExecCommandStubBody(out, "_arg1", "_arg2")
+		return
+	}
+	out.WriteString("    pub fn command<T0: GoStringArg, T1: GoExecCommandArgs>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	writeExecCommandStubBody(out, "_arg0", "_arg1")
+}
+
+// PERMANENT: not scaffold â€” exec.Command body construction, runtime-tied.
+func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string) {
+	out.WriteString("        let mut args = vec![")
+	out.WriteString(nameArg)
+	out.WriteString(".into_go_string()];\n")
+	out.WriteString("        args.extend(")
+	out.WriteString(argsArg)
+	out.WriteString(".into_exec_args());\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { args: "+wrappedExternalStubExpr("Vec<String>", "args")+", ..Default::default() }"))
+	out.WriteString("\n    }\n")
+}
+
+// PERMANENT: not scaffold â€” exec.Command variadic-args coercion trait, paired with PERMANENT exec stubs.
+func writeExecCommandArgsTrait(out *strings.Builder) {
+	sliceType := wrappedExternalStubType("Vec<String>")
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `    pub trait GoExecCommandArgs {
+        fn into_exec_args(self) -> Vec<String>;
+    }
+
+    impl GoExecCommandArgs for () {
+        fn into_exec_args(self) -> Vec<String> {
+            Vec::new()
+        }
+    }
+
+    impl GoExecCommandArgs for %s {
+        fn into_exec_args(self) -> Vec<String> {
+            self%s.as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    impl<T0: GoStringArg> GoExecCommandArgs for (T0,) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg> GoExecCommandArgs for (T0, T1) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg> GoExecCommandArgs for (T0, T1, T2) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg, T4: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3, T4) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string(), self.4.into_go_string()]
+        }
+    }
+
+    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg, T3: GoStringArg, T4: GoStringArg, T5: GoStringArg> GoExecCommandArgs for (T0, T1, T2, T3, T4, T5) {
+        fn into_exec_args(self) -> Vec<String> {
+            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string(), self.3.into_go_string(), self.4.into_go_string(), self.5.into_go_string()]
+        }
+    }
+
+`, sliceType, borrow)
+}
+
+// PERMANENT: not scaffold â€” exec.LookPath walks $PATH, syscall/env-tied.
+func writeExecLookPathStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn look_path")
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(") -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        (")
+	writeExternalStubDefaultValue(out, fn.ReturnTypes[0])
+	out.WriteString(", ")
+	errorType := rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())
+	out.WriteString(wrappedExternalStubExpr(errorType, rustErrorFromTextFor("std::error::Error", NeedsConcurrentWrapper(), "\"executable file not found\"")))
+	out.WriteString(")\n    }\n")
+}
+
+func externalStubFieldsCanDeriveDebug(fields map[string]string) bool {
+	for _, fieldType := range fields {
+		if strings.Contains(fieldType, "dyn Fn") {
+			return false
+		}
+	}
+	return true
+}
+
+func externalStubStructNeedsCustomDefault(name string) bool {
+	return name == "types_Config"
+}
+
+// MACHINERY: Default impl emitter for stub structs.
+func writeExternalStubStructDefault(out *strings.Builder, name string, fields map[string]string) {
+	out.WriteString("impl Default for ")
+	out.WriteString(name)
+	out.WriteString(" {\n")
+	out.WriteString("    fn default() -> Self {\n")
+	out.WriteString("        Self {\n")
+	fieldNames := make([]string, 0, len(fields))
+	for fieldName := range fields {
+		fieldNames = append(fieldNames, fieldName)
+	}
+	slices.Sort(fieldNames)
+	for _, fieldName := range fieldNames {
+		out.WriteString("            ")
+		out.WriteString(fieldName)
+		out.WriteString(": ")
+		out.WriteString(externalStubStructFieldDefault(name, fieldName))
+		out.WriteString(",\n")
+	}
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+}
+
+func externalStubStructFieldDefault(typeName, fieldName string) string {
+	if typeName == "types_Config" {
+		switch fieldName {
+		case "fake_import_c", "ignore_func_bodies":
+			return "Arc::new(Mutex::new(Some(false)))"
+		case "go_version":
+			return "Arc::new(Mutex::new(Some(String::new())))"
+		}
+	}
+	return "Default::default()"
+}
+
+// MACHINERY: return-type signature emitter.
+func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
+	if len(returnTypes) == 1 {
+		out.WriteString(returnTypes[0])
+		return
+	}
+	out.WriteString("(")
+	for i, returnType := range returnTypes {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(returnType)
+	}
+	out.WriteString(")")
+}
+
+// MACHINERY: default-value emitter for stub return types.
+func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := externalStubInnerWrapperType()
+	wrappedPrefix := outerWrapper + "<" + innerWrapper + "<Option<"
+	if strings.HasPrefix(rustType, wrappedPrefix) && strings.HasSuffix(rustType, ">>>") {
+		innerType := strings.TrimSuffix(strings.TrimPrefix(rustType, wrappedPrefix), ">>>")
+		if rustTypeStartsWithErrorPayload(innerType) || strings.HasPrefix(innerType, "Box<dyn Any") || strings.HasPrefix(innerType, "Box<dyn std::any::Any") {
+			out.WriteString(outerWrapper)
+			out.WriteString("::new(")
+			out.WriteString(innerWrapper)
+			out.WriteString("::new(None::<")
+			out.WriteString(innerType)
+			out.WriteString(">))")
+			return
+		}
+		out.WriteString(outerWrapper)
+		out.WriteString("::new(")
+		out.WriteString(innerWrapper)
+		out.WriteString("::new(Some::<")
+		out.WriteString(innerType)
+		out.WriteString(">(Default::default())))")
+		return
+	}
+	out.WriteString("Default::default()")
+}
+
+func writeExternalPackageStubConstValue(out *strings.Builder, pkg *externalPackageStub, constName string, integerTypes map[string]string) {
+	if writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
+		return
+	}
+	rustType := ""
+	if pkg != nil && pkg.Constants != nil {
+		rustType = pkg.Constants[constName]
+	}
+	writeExternalStubConstDefaultValue(out, rustType, integerTypes)
+}
+
+func writeExternalPackageStubConstLiteral(out *strings.Builder, pkg *externalPackageStub, constName string, integerTypes map[string]string) bool {
+	rustType := ""
+	if pkg != nil && pkg.Constants != nil {
+		rustType = pkg.Constants[constName]
+	}
+	if constValue := externalPackageStubConstValue(pkg, constName); constValue != nil {
+		return writeExternalStubConstLiteral(out, rustType, constValue, integerTypes)
+	}
+	return false
+}
+
+func externalPackageStubConstValue(pkg *externalPackageStub, constName string) constant.Value {
+	if pkg == nil || pkg.ConstantValues == nil {
+		return nil
+	}
+	return pkg.ConstantValues[constName]
+}
+
+func writeExternalStubConstLiteral(out *strings.Builder, rustType string, constValue constant.Value, integerTypes map[string]string) bool {
+	if constValue == nil {
+		return false
+	}
+	if integerTypes[rustType] != "" {
+		intValue := constant.ToInt(constValue)
+		if intValue.Kind() != constant.Int {
+			return false
+		}
+		out.WriteString(rustType)
+		out.WriteString("(")
+		out.WriteString(intValue.String())
+		out.WriteString(")")
+		return true
+	}
+	switch rustType {
+	case "String", "&'static str":
+		if constValue.Kind() != constant.String {
+			return false
+		}
+		out.WriteString(strconv.Quote(constant.StringVal(constValue)))
+		return true
+	case "bool":
+		if constValue.Kind() != constant.Bool {
+			return false
+		}
+		out.WriteString(strconv.FormatBool(constant.BoolVal(constValue)))
+		return true
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize":
+		intValue := constant.ToInt(constValue)
+		if intValue.Kind() != constant.Int {
+			return false
+		}
+		out.WriteString(intValue.String())
+		return true
+	case "f32":
+		floatValue, ok := constant.Float32Val(constant.ToFloat(constValue))
+		if !ok {
+			return false
+		}
+		out.WriteString(rustFloatConstLiteral(float64(floatValue), 32))
+		return true
+	case "f64":
+		floatValue, ok := constant.Float64Val(constant.ToFloat(constValue))
+		if !ok {
+			return false
+		}
+		out.WriteString(rustFloatConstLiteral(floatValue, 64))
+		return true
+	default:
+		return false
+	}
+}
+
+func rustFloatConstLiteral(value float64, bitSize int) string {
+	lit := strconv.FormatFloat(value, 'g', -1, bitSize)
+	if !strings.ContainsAny(lit, ".eE") {
+		lit += ".0"
+	}
+	return lit
+}
+
+// MACHINERY: const default-value emitter for stub variable declarations.
+func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, integerTypes map[string]string) {
+	if integerTypes[rustType] != "" {
+		out.WriteString(rustType)
+		out.WriteString("(0)")
+		return
+	}
+	switch rustType {
+	case "&'static str":
+		out.WriteString("\"\"")
+	case "String":
+		out.WriteString("String::new()")
+	case "bool":
+		out.WriteString("false")
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize":
+		out.WriteString("0")
+	case "f32", "f64":
+		out.WriteString("0.0")
+	default:
+		out.WriteString(rustType)
+	}
+}

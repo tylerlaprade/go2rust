@@ -483,11 +483,27 @@ func TestJsonValidStubChecksCompleteJsonInput(t *testing.T) {
 	for _, want := range []string{
 		"pub fn valid<T0: GoJsonInputArg>",
 		"let bytes = _arg0.into_go_json_bytes()",
+		"let mut depth = 0usize",
+		"if depth > 10_000 { return false; }",
 		"let text = String::from_utf8_lossy(&bytes)",
 		"serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("json.Valid shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestJsonSupportHelpersFullyQualifyBTreeMap(t *testing.T) {
+	var out strings.Builder
+	writeJsonSupportHelpers(&out)
+	got := out.String()
+	for _, want := range []string{
+		"impl<V> GoJsonDecode for std::collections::BTreeMap<String, V>",
+		"let mut out = std::collections::BTreeMap::new()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("JSON support helpers should include %q:\n%s", want, got)
 		}
 	}
 }
