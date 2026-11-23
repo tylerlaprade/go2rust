@@ -1141,17 +1141,17 @@ fn main() {
 
         let mut operationDone = go_channel_after(std::time::Duration::from_millis(500));
 
-        loop {
+        { let __select_chan_1 = (*ctx.lock().unwrap().as_ref().unwrap()).done(); loop {
         if let Some(_) = operationDone.try_recv_select() {
             println!("{}", format!("{}", "Operation completed".to_string()));
             break;
         }
-        if let Some(_) = (*ctx.lock().unwrap().as_ref().unwrap()).done().try_recv_select() {
+        if let Some(_) = __select_chan_1.try_recv_select() {
             println!("{} {}", format!("{}", "Context cancelled:".to_string()), format!("{}", { let __text = match (*ctx.lock().unwrap().as_ref().unwrap()).err().lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
-    }
+    } }
 
         let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
         {
