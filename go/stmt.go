@@ -2096,12 +2096,13 @@ func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast
 		return false
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+		switch types.Unalias(named.Underlying()).(type) {
+		case *types.Slice, *types.Map:
 			return false
 		}
 	}
 	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map:
 		out.WriteString(" = ")
 		WriteWrappedNone(out)
 		return true
@@ -2120,12 +2121,13 @@ func writeWrappedZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr
 		return false
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+		switch types.Unalias(named.Underlying()).(type) {
+		case *types.Slice, *types.Map:
 			return false
 		}
 	}
 	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map:
 		return false
 	}
 	out.WriteString(" = ")
@@ -2607,12 +2609,14 @@ func pushFunctionLocalSyntaxInfo() func() {
 	prevMapKeyRustTypes := localMapKeyRustTypes
 	prevMapValueRustTypes := localMapValueRustTypes
 	prevMapValueKeepHandle := localMapValueKeepHandle
+	prevZeroMapVars := localZeroMapVars
 	prevBareStructAliases := bareStructAliases
 	localRangeElemRustTypes = make(map[string]string)
 	localCollectionKinds = make(map[string]string)
 	localMapKeyRustTypes = make(map[string]string)
 	localMapValueRustTypes = make(map[string]string)
 	localMapValueKeepHandle = make(map[string]bool)
+	localZeroMapVars = make(map[string]bool)
 	bareStructAliases = make(map[string]bool)
 	for name := range packageGlobalNames {
 		if rustType, ok := prevRangeElemRustTypes[name]; ok {
@@ -2637,8 +2641,38 @@ func pushFunctionLocalSyntaxInfo() func() {
 		localMapKeyRustTypes = prevMapKeyRustTypes
 		localMapValueRustTypes = prevMapValueRustTypes
 		localMapValueKeepHandle = prevMapValueKeepHandle
+		localZeroMapVars = prevZeroMapVars
 		bareStructAliases = prevBareStructAliases
 	}
+}
+
+func registerZeroValueLocalMap(name *ast.Ident, typeExpr ast.Expr, hasInitializer bool) {
+	if name == nil || name.Name == "_" || hasInitializer || typeExpr == nil {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return
+	}
+	typ := types.Unalias(typeInfo.GetType(typeExpr))
+	if typ == nil {
+		return
+	}
+	if _, named := typ.(*types.Named); named {
+		return
+	}
+	if _, isMap := typ.Underlying().(*types.Map); isMap {
+		localZeroMapVars[name.Name] = true
+	}
+}
+
+func writeMapMutationUnwrap(out *strings.Builder, mapExpr ast.Expr) {
+	ident, isIdent := unwrapParens(mapExpr).(*ast.Ident)
+	if isIdent && !isPackageGlobalIdent(ident) && localZeroMapVars[ident.Name] {
+		out.WriteString(".as_mut().unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
+		return
+	}
+	out.WriteString(".as_mut().unwrap()")
 }
 
 func localMapKeyRustType(expr ast.Expr) (string, bool) {
@@ -8617,7 +8651,9 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 		writeMapHandleForOp(out, indexExpr.X)
 	}
 	WriteBorrowMethod(out, true)
-	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key")
+	out.WriteString("; let __map = __map_guard")
+	writeMapMutationUnwrap(out, indexExpr.X)
+	out.WriteString("; let __entry = __map.entry(__key")
 	out.WriteString(").or_insert_with(|| ")
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
@@ -12563,7 +12599,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// For map access, we need the raw identifier, not the unwrapped value
 				writeMapHandleForOp(out, indexExpr.X)
 				WriteBorrowMethod(out, true)
-				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
+				writeMapMutationUnwrap(out, indexExpr.X)
+				out.WriteString(").insert(__map_key, __map_value); }")
 			}
 		} else if writeGoSliceHeaderAssignment(out, s) {
 			// A slice variable keeps its cell and takes the new header.
@@ -14087,6 +14124,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						for i, name := range valueSpec.Names {
 							registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
+							registerZeroValueLocalMap(name, valueSpec.Type, i < len(valueSpec.Values))
 							if rustType, ok := functionTypeRustNameFromTypeExpr(valueSpec.Type); ok {
 								if vt := GetVarTable(); vt != nil {
 									vt.Register(name.Name, &VarInfo{
@@ -14509,12 +14547,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											WriteWrapperSuffix(out)
 										}
 									case *ast.MapType:
-										// Initialize map variable with empty map (Go nil map)
-										TrackImport("BTreeMap")
+										// A map's zero value is nil, unlike an empty map literal.
 										out.WriteString(" = ")
-										WriteWrapperPrefix(out)
-										out.WriteString("BTreeMap::new()")
-										WriteWrapperSuffix(out)
+										WriteWrappedNone(out)
 									case *ast.FuncType:
 										// Function variables have a nil zero value in Go.
 										out.WriteString(" = ")

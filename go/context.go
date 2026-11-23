@@ -105,6 +105,7 @@ type FileState struct {
 	LocalMapKeyRustTypes         map[string]string
 	LocalMapValueRustTypes       map[string]string
 	LocalMapValueKeepHandle      map[string]bool
+	LocalZeroMapVars             map[string]bool
 	LocalConstants               map[string]string
 	LocalInterfaces              map[string]bool
 	CurrentReceiver              string
@@ -250,6 +251,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		LocalMapKeyRustTypes:         make(map[string]string),
 		LocalMapValueRustTypes:       make(map[string]string),
 		LocalMapValueKeepHandle:      make(map[string]bool),
+		LocalZeroMapVars:             make(map[string]bool),
 		LocalConstants:               make(map[string]string),
 		LocalInterfaces:              make(map[string]bool),
 		ExternalTypeStubs:            make(map[string]bool),
@@ -542,6 +544,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.LocalMapValueKeepHandle == nil {
 			ctx.File.LocalMapValueKeepHandle = make(map[string]bool)
 		}
+		if ctx.File.LocalZeroMapVars == nil {
+			ctx.File.LocalZeroMapVars = make(map[string]bool)
+		}
 		if ctx.File.LocalConstants == nil {
 			ctx.File.LocalConstants = make(map[string]string)
 		}
@@ -633,6 +638,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.LocalMapKeyRustTypes = localMapKeyRustTypes
 		ctx.File.LocalMapValueRustTypes = localMapValueRustTypes
 		ctx.File.LocalMapValueKeepHandle = localMapValueKeepHandle
+		ctx.File.LocalZeroMapVars = localZeroMapVars
 		ctx.File.LocalConstants = localConstants
 		ctx.File.LocalInterfaces = localInterfaces
 		ctx.File.CurrentReceiver = currentReceiver
@@ -703,6 +709,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		localMapKeyRustTypes = ctx.File.LocalMapKeyRustTypes
 		localMapValueRustTypes = ctx.File.LocalMapValueRustTypes
 		localMapValueKeepHandle = ctx.File.LocalMapValueKeepHandle
+		localZeroMapVars = ctx.File.LocalZeroMapVars
 		localConstants = ctx.File.LocalConstants
 		localInterfaces = ctx.File.LocalInterfaces
 		currentReceiver = ctx.File.CurrentReceiver
