@@ -1759,7 +1759,7 @@ pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("other {}", format_any(x.borrow().as_ref().unwrap().as_ref())))));;
+        return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
     unreachable!()
@@ -1788,7 +1788,7 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("other {}", format_any(x.borrow().as_ref().unwrap().as_ref())))));;
+        return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
     unreachable!()
@@ -1817,7 +1817,7 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("other {}", format_any(x.borrow().as_ref().unwrap().as_ref())))));;
+        return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
     unreachable!()

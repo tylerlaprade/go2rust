@@ -1700,6 +1700,9 @@ func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interf
 	if !targetOK {
 		targetType = typeInfo.GetType(e.Type)
 	}
+	if isGoErrorType(targetType) {
+		return "", nil, nil, nil, false
+	}
 	sourceType := typeInfo.GetType(e.X)
 	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(targetType)
 	if !ok && isNonEmptyInterfaceType(sourceType) {
@@ -1744,6 +1747,9 @@ func anonInterfaceMethodSet(typeExpr ast.Expr) (*types.Interface, bool) {
 	}
 	typ := typeInfo.GetType(typeExpr)
 	if typ == nil {
+		return nil, false
+	}
+	if isGoErrorType(typ) {
 		return nil, false
 	}
 	// A non-named interface literal has no *types.Named wrapper; its type is the

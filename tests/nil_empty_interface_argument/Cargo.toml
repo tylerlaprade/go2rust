@@ -1,0 +1,11 @@
+[package]
+name = "nil_empty_interface_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nil_empty_interface_argument"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

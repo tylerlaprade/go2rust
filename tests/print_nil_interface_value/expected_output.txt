@@ -1,0 +1,8 @@
+a is <nil>
+<nil>|<nil>|1
+recover in defer: <nil>
+returned unchanged false
+a is 42
+42|int
+e is <nil>
+deferred recover: <nil>

@@ -34,6 +34,43 @@ func TestGoTypesTypeToRustMapsComplexBasics(t *testing.T) {
 	}
 }
 
+func TestErrorEquivalentInterfacesUseGoErrorRepresentation(t *testing.T) {
+	result := types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String]))
+	errorMethod := types.NewFunc(
+		token.NoPos,
+		nil,
+		"Error",
+		types.NewSignatureType(nil, nil, nil, types.NewTuple(), result, false),
+	)
+	iface := types.NewInterfaceType([]*types.Func{errorMethod}, nil).Complete()
+	embedded := types.NewInterfaceType(nil, []types.Type{types.Universe.Lookup("error").Type()}).Complete()
+	pkg := types.NewPackage("example.com/p", "p")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, pkg, "failer", nil), iface, nil)
+
+	for name, typ := range map[string]types.Type{
+		"anonymous": iface,
+		"embedded":  embedded,
+		"named":     named,
+	} {
+		if !isGoErrorType(typ) {
+			t.Fatalf("%s Error() string interface should be error-equivalent", name)
+		}
+		if got, want := goTypesTypeToRust(typ), rustErrorPayloadType(); got != want {
+			t.Fatalf("goTypesTypeToRust(%s) = %q, want %q", name, got, want)
+		}
+	}
+
+	extraMethod := types.NewFunc(
+		token.NoPos,
+		nil,
+		"Temporary",
+		types.NewSignatureType(nil, nil, nil, types.NewTuple(), types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.Bool])), false),
+	)
+	if withExtra := types.NewInterfaceType([]*types.Func{errorMethod, extraMethod}, nil).Complete(); isGoErrorType(withExtra) {
+		t.Fatal("interface with Error plus another method must not be error-equivalent")
+	}
+}
+
 func TestGoTypesTypeToRustUsesAnyForUnnamedInterfaces(t *testing.T) {
 	method := types.NewFunc(
 		token.NoPos,

@@ -688,7 +688,7 @@ fn main() {
             (Rc::new(RefCell::new(Some(0))), false)
         }
     });
-    print!("{} {} {}\n", __go_type_name(&**x.borrow().as_ref().unwrap()), isInt, 5000000000i64);
+    print!("{} {} {}\n", match x.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }, isInt, 5000000000i64);
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     print!("{} {} {}\n", "int32", { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }, ({ let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }) as u8 as char);
 }

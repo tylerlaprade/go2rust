@@ -1,0 +1,11 @@
+[package]
+name = "channel_send_shadowed_identifiers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "channel_send_shadowed_identifiers"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

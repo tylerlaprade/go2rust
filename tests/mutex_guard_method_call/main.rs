@@ -583,6 +583,7 @@ impl std::io::Write for GoSlice<u8> {
 
 struct GoMutex {
     inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+    is_nil: bool,
 }
 
 struct GoMutexGuard {
@@ -594,10 +595,26 @@ impl GoMutex {
     fn new() -> Self {
         GoMutex {
             inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: false,
         }
     }
 
+    fn nil() -> Self {
+        GoMutex {
+            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: true,
+        }
+    }
+
+    fn go_ptr_eq(left: &Self, right: &Self) -> bool {
+        if left.is_nil || right.is_nil {
+            return left.is_nil && right.is_nil;
+        }
+        std::sync::Arc::ptr_eq(&left.inner, &right.inner)
+    }
+
     fn lock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         while *locked {
@@ -607,6 +624,7 @@ impl GoMutex {
     }
 
     fn unlock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         if !*locked {
@@ -644,6 +662,7 @@ impl Clone for GoMutex {
     fn clone(&self) -> Self {
         GoMutex {
             inner: self.inner.clone(),
+            is_nil: self.is_nil,
         }
     }
 }

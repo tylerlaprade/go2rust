@@ -1014,7 +1014,7 @@ fn main() {
         print!("Module {}: enabled={}\n", name, (*(*module.borrow().as_ref().unwrap()).enabled.borrow().as_ref().unwrap()));
         { let __range_holder = (*(*module.borrow().as_ref().unwrap()).settings.borrow().as_ref().unwrap()).options.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for opt in __range_values.iter() {
         let opt = &opt.__go_value_clone();
-        print!("  - {}: {}\n", (*opt.key.borrow().as_ref().unwrap()).clone(), format_any(opt.value.borrow().as_ref().unwrap().as_ref()));
+        print!("  - {}: {}\n", (*opt.key.borrow().as_ref().unwrap()).clone(), match opt.value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
     } }
     }
 }

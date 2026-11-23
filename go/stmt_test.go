@@ -455,6 +455,7 @@ func has(err error) bool {
 		return false
 	}
 }
+
 `)
 
 	if strings.Contains(rust, "downcast_ref::<multiPtr>()") {
@@ -476,6 +477,31 @@ func has(err error) bool {
 	}
 	if !strings.Contains(rust, "None::<Box<dyn GoAnonymousInterface") {
 		t.Fatalf("anonymous interface type-switch binding should initialize unreachable cases with typed nil:\n%s", rust)
+	}
+}
+
+func TestErrorAssertionPointerCandidateKeepsOriginalHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type pointerError struct{ code int }
+func (e *pointerError) Error() string { return "" }
+
+func text(v any, p *pointerError) string {
+	switch err := v.(type) {
+	case error:
+		*p = pointerError{code: 8}
+		return err.Error()
+	}
+	return ""
+}
+`)
+
+	if !strings.Contains(rust, "GoPointerError::new(typed_val.clone())") {
+		t.Fatalf("pointer error binding should retain the original pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::new(__typed_error.clone()) as Rc<dyn StdError>") ||
+		strings.Contains(rust, "Arc::new(__typed_error.clone()) as Arc<dyn StdError + Send + Sync>") {
+		t.Fatalf("pointer error binding should not snapshot the pointee:\n%s", rust)
 	}
 }
 
@@ -666,6 +692,28 @@ func rewrite(args []any) []any {
 	}
 	if !strings.Contains(rust, "let _ts_ref = &arg;") {
 		t.Fatalf("type switch on bare any range value should borrow the subject for downcasts:\n%s", rust)
+	}
+}
+
+func TestAnySliceRangeReadsEachElementAtIterationTime(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func visit(values []any) {
+	for i, value := range values {
+		if i == 0 {
+			values[1] = "updated"
+		}
+		_ = value
+	}
+}
+`)
+
+	if strings.Contains(rust, "__v.iter().map(|__e| go_any_clone(__e.as_ref()))") {
+		t.Fatalf("[]any range must not snapshot dynamic payloads before the loop:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __range_values = 0..__range_len") ||
+		!strings.Contains(rust, "go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref())") {
+		t.Fatalf("[]any range should reread the current backing-array element for each iteration:\n%s", rust)
 	}
 }
 
@@ -2586,6 +2634,41 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestMapLiteralAssignmentToEmptyInterfaceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func assign() interface{} {
+	var x interface{}
+	x = map[string]int{"k": 3}
+	return x
+}
+`)
+
+	if strings.Contains(rust, "let __moved_val") {
+		t.Fatalf("map literal assigned to interface{} should be boxed, not moved into the interface slot as a map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new") || !strings.Contains(rust, "BTreeMap::<") {
+		t.Fatalf("map literal assigned to interface{} should box the concrete map value:\n%s", rust)
+	}
+}
+
+func TestFunctionAssertionBindingKeepsCallableHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bind(x interface{}) int {
+	f := x.(func() int)
+	return f()
+}
+`)
+
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()") {
+		t.Fatalf("bound function assertion should downcast to and clone the callable handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> i64>>") {
+		t.Fatalf("bound function assertion must not try to clone the boxed callable itself:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceVarInitializerConvertsStructuralInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3333,7 +3416,15 @@ func BoxCommented(file *ast.File, comments []*ast.CommentGroup) any {
 		"go/ast":     "go_ast",
 		"go/printer": "go_printer",
 	})
-	if strings.Contains(rust, "Option<go_printer::CommentedNode>") {
+	// go_any_try_clone names the boxed pointer type in its arms; the slot of
+	// node itself must not hold the concrete struct.
+	var withoutCloneArms []string
+	for _, line := range strings.Split(rust, "\n") {
+		if !strings.Contains(line, "downcast_ref::<") {
+			withoutCloneArms = append(withoutCloneArms, line)
+		}
+	}
+	if strings.Contains(strings.Join(withoutCloneArms, "\n"), "Option<go_printer::CommentedNode>") {
 		t.Fatalf("assignment to any should not store the concrete source-mapped struct slot directly:\n%s", rust)
 	}
 	if strings.Contains(rust, "__moved_val") {
@@ -7588,8 +7679,10 @@ func load(ptr unsafe.Pointer) any {
 	if strings.Contains(rust, "as_mut().unwrap()).clone()") {
 		t.Fatalf("assignment from temporary unsafe any dereference should not clone Box<dyn Any>:\n%s", rust)
 	}
-	if !strings.Contains(rust, "eface = Rc::new(RefCell::new({") &&
-		!strings.Contains(rust, "eface = Arc::new(Mutex::new({") {
+	// The temporary handle is the only holder of its value, so go_any_store
+	// moves the value into eface's cell.
+	if !strings.Contains(rust, "go_any_store(&eface, Rc::new(RefCell::new({") &&
+		!strings.Contains(rust, "go_any_store(&eface, Arc::new(Mutex::new({") {
 		t.Fatalf("assignment from temporary unsafe any dereference should move the temporary interface handle:\n%s", rust)
 	}
 }
@@ -9976,51 +10069,11 @@ func normalize(err any) error {
 	if !strings.Contains(rust, "Box::<dyn StdError") {
 		t.Fatalf("asserting any to error should rebuild an error interface value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "if let Some(__err_handle) = any_val.downcast_ref::<") {
 		t.Fatalf("error assertion used as an error result should be stored in a wrapped error handle:\n%s", rust)
 	}
-}
-
-func TestEmptyInterfaceAssignmentCopiesPayloadIntoIndependentCells(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-func get() any { return 7 }
-func replace(value any) { value = 9 }
-
-func use() {
-	var outer any = "first"
-	f := func() { outer = get() }
-	f()
-
-	var source any = "x"
-	short := source
-	var declared any = source
-	source = 9
-	replace(source)
-	_, _, _ = short, declared, outer
-}
-`)
-
-	for _, want := range []string{
-		"let mut short = Rc::new(RefCell::new({ let __any_source = source.clone();",
-		"let mut declared: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new({ let __any_source = source.clone();",
-		"*outer_closure_clone.borrow_mut() = __any_value",
-		"replace(Rc::new(RefCell::new({ let __any_source = source.clone();",
-		"go_any_clone(__value.as_ref())",
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("expected independent any-value copy %q:\n%s", want, rust)
-		}
-	}
-	for _, unwanted := range []string{
-		"let mut short = source.clone()",
-		"let mut declared: Rc<RefCell<Option<Box<dyn Any>>>> = source.clone()",
-		"outer_closure_clone = get().clone()",
-		"replace(source.clone())",
-	} {
-		if strings.Contains(rust, unwanted) {
-			t.Fatalf("interface copy still shares or rebinds a cell via %q:\n%s", unwanted, rust)
-		}
+	if strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+		t.Fatalf("a plain string must not satisfy an assertion to error:\n%s", rust)
 	}
 }
 
@@ -10111,7 +10164,7 @@ func use() string {
 		t.Fatalf("case error should look for the error handle in the interface value:\n%s", rust)
 	}
 	// The case variable is a copy: a handle of its own to the same error.
-	if !strings.Contains(rust, "let x = { let __err_source = _ts_val.and_then(|__v| "+handle+").unwrap(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };") {
+	if !strings.Contains(rust, "let x = if let Some(__err_handle) = _ts_val.and_then(|__v| "+handle+") { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else") {
 		t.Fatalf("the case variable should get its own handle to the error the interface value holds:\n%s", rust)
 	}
 	if strings.Contains(rust, "__v.downcast_ref::<Box<dyn StdError>>()") {
@@ -10360,5 +10413,164 @@ func main() {
 		if strings.Contains(rust, unwanted) {
 			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
 		}
+	}
+}
+
+func TestChannelSendUsesRustIdentifiersAndCaptureNames(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	loop := 7
+	ordinary := make(chan int, 1)
+	ordinary <- loop
+
+	final := make(chan int)
+	go func() {
+		final <- loop
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"ordinary.send((*r#loop.lock().unwrap().as_ref().unwrap()))",
+		"final_thread.send((*loop_thread.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "send((*loop.lock()") {
+		t.Fatalf("channel send used the raw Go identifier instead of its Rust binding:\n%s", rust)
+	}
+}
+
+func TestChannelSendCopiesReferenceRangeValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	values := []string{"alpha", "beta"}
+	ch := make(chan string, len(values))
+	for _, value := range values {
+		ch <- value
+	}
+}
+`)
+
+	if !strings.Contains(rust, "ch.send((*value).clone())") {
+		t.Fatalf("range value sent its iterator reference instead of a Go value copy:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsPredeclaredBoolAndLocalCaptureShadows(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	true := 11
+	ints := make(chan int, 1)
+	ints <- true
+
+	bools := make(chan bool, 1)
+	bools <- false
+
+	value := 7
+	variable := 12
+	seen := make(chan int, 4)
+	go func() {
+		seen <- value
+		const value = 9
+		seen <- value
+		seen <- variable
+		variable := 13
+		seen <- variable
+	}()
+}
+`)
+
+	for _, want := range []string{
+		"let mut true_ =",
+		"ints.send((*true_.lock().unwrap().as_ref().unwrap()))",
+		"bools.send(false)",
+		"seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))",
+		"seen_thread.send(value)",
+		"seen_thread.send((*variable_thread.lock().unwrap().as_ref().unwrap()))",
+		"let mut variable =",
+		"seen_thread.send((*variable.lock().unwrap().as_ref().unwrap()))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{
+		"let mut true =",
+		"let mut variable_thread =",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unexpected %q:\n%s", unwanted, rust)
+		}
+	}
+}
+
+func TestGoroutineFunctionLiteralCopiesRangeChannelArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(inputs ...<-chan int) {
+	for _, input := range inputs {
+		go func(ch <-chan int) {
+			<-ch
+		}(input)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let __go_arg_0 = (*input).clone()") {
+		t.Fatalf("range channel argument was wrapped instead of copied as a channel handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
+		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
+	}
+}
+
+func TestChannelSendRespectsCaptureShadowsInNestedControlFlow(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func main() {
+	value := 7
+	seen := make(chan int, 11)
+	go func() {
+		seen <- value
+		if true {
+			value := 9
+			seen <- value
+		}
+		seen <- value
+		for i := 0; i < 1; i++ {
+			value := 10
+			seen <- value
+		}
+		seen <- value
+		if value := 11; value == 11 {
+			seen <- value
+		}
+		seen <- value
+		for value := 12; value < 13; value++ {
+			seen <- value
+		}
+		seen <- value
+		switch value := 14; {
+		case value == 14:
+			seen <- value
+		}
+		seen <- value
+	}()
+}
+`)
+
+	outerSend := "seen_thread.send((*value_thread.lock().unwrap().as_ref().unwrap()))"
+	localSend := "seen_thread.send((*value.lock().unwrap().as_ref().unwrap()))"
+	if count := strings.Count(rust, outerSend); count != 6 {
+		t.Fatalf("expected six sends of the captured outer value, got %d:\n%s", count, rust)
+	}
+	if count := strings.Count(rust, localSend); count != 5 {
+		t.Fatalf("expected five sends of nested local values, got %d:\n%s", count, rust)
 	}
 }
