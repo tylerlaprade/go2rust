@@ -370,8 +370,18 @@ func goElementCopyIter(sliceExpr ast.Expr) string {
 // by the translator and unknown to the type checker, so the type the loop
 // recorded for it comes first. known is false when neither has a type.
 func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
-	if typ := rangeLoopVarGoTypes[ident.Name]; typ != nil {
+	if typ := rangeVarGoType(ident); typ != nil {
 		return goValueCopyCallForType(typ), true
 	}
-	return goValueCopyCallForExpr(ident)
+	return "", false
+}
+
+func rangeVarGoType(ident *ast.Ident) types.Type {
+	if typ := rangeLoopVarGoTypes[ident.Name]; typ != nil {
+		return typ
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		return typeInfo.GetType(ident)
+	}
+	return nil
 }

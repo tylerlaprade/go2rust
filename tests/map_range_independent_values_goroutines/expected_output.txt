@@ -1,0 +1,8 @@
+int 5 1
+aggregate 1 1
+weight 3.75
+string one! one
+struct 2 1
+slice 2
+pointer 4
+nil-pointer true

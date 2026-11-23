@@ -263,6 +263,8 @@ const structRangeAndMapReadProgram = `package main
 
 type Point struct{ X int }
 
+func (p *Point) Inc() { p.X++ }
+
 type Registry struct{ byName map[string]Point }
 
 func main() {
@@ -274,6 +276,7 @@ func main() {
 	m := map[string]Point{"a": {1}}
 	for _, v := range m {
 		v.X = 3
+		v.Inc()
 	}
 	var w Point
 	for _, w = range m {
@@ -283,6 +286,10 @@ func main() {
 	var r Point
 	r, ok = m["a"]
 	counts := map[string]int{"a": 1}
+	for _, count := range counts {
+		count = 5
+		_ = count
+	}
 	n, ok := counts["a"]
 	lists := map[string][]int{"a": {1}}
 	var l []int
@@ -304,15 +311,18 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 	rust := transpileTypedRegression(t, structRangeAndMapReadProgram)
 
 	for what, want := range map[string]string{
-		"for _, p = range s":         "{ let new_val = (*__range_p).__go_value_clone(); *p.borrow_mut() = Some(new_val); }",
-		"for _, v := range m":        "let v = Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone())));",
-		"for _, w = range m":         "{ let new_val = __range_w.borrow().as_ref().unwrap().__go_value_clone(); *w.borrow_mut() = Some(new_val); }",
-		`q, ok := m["a"]`:            "let (mut q, mut ok) = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
-		`n, ok := counts["a"]`:       "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
-		`l, ok = lists["a"]`:         "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
-		`pp, ok := ptrs["a"]`:        "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
-		`f, ok := reg.byName["a"]`:   ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
-		"the map's cell is not kept": "*r.borrow_mut() = __moved_tmp_0;",
+		"for _, p = range s":          "{ let new_val = (*__range_p).__go_value_clone(); *p.borrow_mut() = Some(new_val); }",
+		"for _, v := range m":         "let v = Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone())));",
+		"pointer method on map value": "(*v.borrow_mut().as_mut().unwrap()).inc();",
+		"scalar map range value":      "let count = Rc::new(RefCell::new(Some(count.borrow().as_ref().unwrap().clone())));",
+		"assign scalar map value":     "{ let new_val = 5; *count.borrow_mut() = Some(new_val); }",
+		"for _, w = range m":          "{ let new_val = __range_w.borrow().as_ref().unwrap().__go_value_clone(); *w.borrow_mut() = Some(new_val); }",
+		`q, ok := m["a"]`:             "let (mut q, mut ok) = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		`n, ok := counts["a"]`:        "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
+		`l, ok = lists["a"]`:          "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
+		`pp, ok := ptrs["a"]`:         "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
+		`f, ok := reg.byName["a"]`:    ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		"the map's cell is not kept":  "*r.borrow_mut() = __moved_tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("%s: missing %q", what, want)
@@ -320,6 +330,51 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 	}
 	if strings.Contains(rust, ".get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true), None => (Rc::new(RefCell::new(Some(Default::default()))), false) };\n    {") {
 		t.Errorf("the two-result read of a map held by value closes one parenthesis too many")
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
+	}
+}
+
+// Reference-shaped map values are already the Go handle that a range value
+// copies. Shadowing that handle with a fresh wrapper copies a slice's Vec,
+// loses pointer identity, and tries to unwrap nil pointers.
+func TestMapRangeReferenceValuesKeepTheirHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	lists := map[string][]int{"a": {1}}
+	for _, list := range lists {
+		list[0] = 2
+	}
+	n := 3
+	ptrs := map[string]*int{"a": &n}
+	for _, p := range ptrs {
+		*p = 4
+	}
+	nilPtrs := map[string]*int{"a": nil}
+	for _, p := range nilPtrs {
+		_ = p
+	}
+}
+`)
+
+	for what, unwanted := range map[string]string{
+		"slice value deep copy": "let list = Rc::new(RefCell::new(Some(list.borrow().as_ref().unwrap().clone())))",
+		"pointer pointee copy":  "let p = Rc::new(RefCell::new(Some(p.borrow().as_ref().unwrap().clone())))",
+		"nil pointer unwrap":    "p.borrow().as_ref().unwrap().clone()",
+	} {
+		if strings.Contains(rust, unwanted) {
+			t.Errorf("%s: found %q", what, unwanted)
+		}
+	}
+	for what, want := range map[string]string{
+		"slice mutation uses the stored handle": "(*list.borrow_mut().as_mut().unwrap())[(0) as usize] = 2;",
+		"pointer mutation uses the pointee":     "*p.borrow_mut() = Some(new_val);",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("%s: missing %q", what, want)
+		}
 	}
 	if t.Failed() {
 		t.Logf("generated Rust:\n%s", rust)
@@ -340,6 +395,35 @@ func main() {
 `)
 	if want := "ch.send((*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone());"; !strings.Contains(rust, want) {
 		t.Fatalf("ch <- s[0] should send Go's copy of the element, missing %q:\n%s", want, rust)
+	}
+}
+
+// A pointer received while ranging over a channel is already the Go pointer
+// handle. The range variable uses the historical "channel_val" marker rather
+// than the wrapped-value marker used by map ranges, but method dispatch still
+// has to unwrap the pointer handle before calling the pointee's method.
+func TestChannelRangePointerMethodUnwrapsTheReceivedHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Point struct{ X int }
+
+func (p *Point) Inc() { p.X++ }
+
+func use(ch chan *Point) {
+	done := make(chan bool, 1)
+	go func() { done <- true }()
+	<-done
+	for p := range ch {
+		p.Inc()
+	}
+}
+`)
+
+	if strings.Contains(rust, "p.inc();") {
+		t.Fatalf("channel-range pointer method called on the wrapper:\n%s", rust)
+	}
+	if want := "{ let __recv = p.clone(); let __recv_ptr: *mut Point"; !strings.Contains(rust, want) {
+		t.Fatalf("channel-range pointer method did not unwrap the received handle, missing %q:\n%s", want, rust)
 	}
 }
 
