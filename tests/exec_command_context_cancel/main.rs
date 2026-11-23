@@ -869,14 +869,18 @@ impl GoContext {
         children: &std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<dyn Fn(String) + Send + Sync>>>>,
         message: String,
     ) {
-        if !cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-            *err.lock().unwrap() = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from(message.clone())));
-            done.send(true);
-            done.close();
-            let callbacks = children.lock().unwrap().clone();
-            for callback in callbacks {
-                callback(message.clone());
-            }
+        let mut err_guard = err.lock().unwrap();
+        if err_guard.is_some() {
+            return;
+        }
+        *err_guard = Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from(message.clone())));
+        cancelled.store(true, std::sync::atomic::Ordering::SeqCst);
+        drop(err_guard);
+        done.send(true);
+        done.close();
+        let callbacks = children.lock().unwrap().clone();
+        for callback in callbacks {
+            callback(message.clone());
         }
     }
 
@@ -1070,29 +1074,28 @@ impl exec_Cmd {
 	        Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(message)))))
 	    }
 
-    fn __go_context_cancellation_error(&self) -> Option<std::io::Error> {
+    fn __go_context_cancellation_error(&self) -> Option<Arc<dyn StdError + Send + Sync>> {
         if self
             .__go_context_cancelled
             .as_ref()
             .is_some_and(|cancelled| cancelled.load(std::sync::atomic::Ordering::SeqCst))
         {
-            let message = self
+            return self
                 .__go_context_error
                 .as_ref()
-                .and_then(|err| err.lock().unwrap().as_ref().map(|err| err.to_string()))
-                .unwrap_or_else(|| "context canceled".to_string());
-            return Some(std::io::Error::new(std::io::ErrorKind::Interrupted, message));
+                .and_then(|err| err.lock().unwrap().as_ref().cloned())
+                .or_else(|| Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("context canceled".to_string()))));
         }
         None
     }
 
-    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+    fn __go_run_output(&self) -> Result<std::process::Output, Arc<dyn StdError + Send + Sync>> {
         if let Some(err) = self.__go_context_cancellation_error() {
             return Err(err);
         }
         let args = self.args.lock().unwrap().as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+            return Err(Arc::new(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command")) as Arc<dyn StdError + Send + Sync>);
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
@@ -1106,7 +1109,7 @@ impl exec_Cmd {
         if let Some(err) = self.__go_context_cancellation_error() {
             return Err(err);
         }
-        command.output()
+        command.output().map_err(|err| Arc::new(err) as Arc<dyn StdError + Send + Sync>)
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
@@ -1122,7 +1125,7 @@ impl exec_Cmd {
                 };
                 (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(output.stdout)))), err)
             }
-            Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), Self::__go_error(err.to_string())),
+            Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(err)))),
         }
     }
 
@@ -1140,7 +1143,7 @@ impl exec_Cmd {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
             }
-            Err(err) => Self::__go_error(err.to_string()),
+            Err(err) => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(err))),
         }
     }
 
@@ -1324,6 +1327,7 @@ fn main() {
         let (mut data, mut readErr) = os::read_file({ let __arg_holder = marker.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
         let mut data = { let __slice_header = GoSliceHeader::go_slice_header(&data); Arc::new(Mutex::new(__slice_header)) };
         println!("{} {} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*readErr.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y }));
+        println!("{}", format!("{}", { let __left = err.clone(); let __right = (*ctx.lock().unwrap().as_ref().unwrap()).err().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));
 
         let (mut deadlineCtx, mut deadlineCancel) = GoContext::with_timeout(Arc::new(Mutex::new(Some(GoContext::background()))).clone(), std::time::Duration::from_nanos(0 as u64));
         let deadlineCancel_defer_captured = deadlineCancel.clone(); __defer_stack.push(Box::new(move || {
@@ -1342,6 +1346,7 @@ fn main() {
         { let __rhs_holder = { let __recv = cmd.clone(); let __recv_ptr: *mut exec_Cmd = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut exec_Cmd }; let __result = unsafe { &mut *__recv_ptr }.run(); __result }.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         { let (__tmp_0, __tmp_1) = os::read_file({ let __arg_holder = marker.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *readErr.lock().unwrap() = __moved_tmp_1; };
         println!("{} {} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*readErr.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y }));
+        println!("{}", format!("{}", { let __left = err.clone(); let __right = (*deadlineCtx.lock().unwrap().as_ref().unwrap()).err().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));
 
         let (mut parent, mut parentCancel) = GoContext::with_cancel(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
         let (mut child, mut childCancel) = GoContext::with_cancel(parent.clone());
@@ -1371,6 +1376,7 @@ fn main() {
         { let __rhs_holder = { let __recv = cmd.clone(); let __recv_ptr: *mut exec_Cmd = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut exec_Cmd }; let __result = unsafe { &mut *__recv_ptr }.run(); __result }.clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
         { let (__tmp_0, __tmp_1) = os::read_file({ let __arg_holder = marker.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *data.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *readErr.lock().unwrap() = __moved_tmp_1; };
         println!("{} {} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*readErr.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y }));
+        println!("{}", format!("{}", { let __left = err.clone(); let __right = (*child.lock().unwrap().as_ref().unwrap()).err().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));
 
         { let __rhs_holder = {
             let __recv = exec::command_context(Arc::new(Mutex::new(Some(GoContext::background()))), "sh".to_string(), ("-c".to_string(), "printf live-ran > \"$1\"".to_string(), "sh".to_string(), marker.clone()));

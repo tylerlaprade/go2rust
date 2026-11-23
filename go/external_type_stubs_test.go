@@ -913,8 +913,8 @@ func TestExecCmdStubChecksContextBeforeSpawn(t *testing.T) {
 		"pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>",
 		"fn __go_context_cancellation_error(&self)",
 		"cancelled.load(std::sync::atomic::Ordering::SeqCst)",
-		"std::io::ErrorKind::Interrupted",
-		"unwrap_or_else(|| \"context canceled\".to_string())",
+		"err.lock().unwrap().as_ref().cloned()",
+		"command.output().map_err",
 		"if let Some(err) = self.__go_context_cancellation_error()",
 	} {
 		if !strings.Contains(got, want) {
@@ -931,6 +931,9 @@ func TestGoContextHelperPropagatesParentAndExpiresZeroSynchronously(t *testing.T
 		"fn link_parent(",
 		"parent_ctx.children.lock().unwrap().push(propagate.clone())",
 		"if parent_ctx.cancelled.load(std::sync::atomic::Ordering::SeqCst)",
+		"let mut err_guard = err.lock().unwrap()",
+		"*err_guard = Some(",
+		"cancelled.store(true, std::sync::atomic::Ordering::SeqCst)",
 		"if duration.is_zero()",
 		"GoContext::cancel_with_message(&done, &err, &cancelled, &children, \"context deadline exceeded\".to_string())",
 	} {

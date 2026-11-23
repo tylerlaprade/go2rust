@@ -2347,6 +2347,9 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
 	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
+	fallbackContextError := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "\"context canceled\".to_string()")
+	errorFromIO := rustErrorFromValueFor("StdError", NeedsConcurrentWrapper(), "err")
+	emptyCommandError := rustErrorFromValueFor("StdError", NeedsConcurrentWrapper(), "std::io::Error::new(std::io::ErrorKind::InvalidInput, \"empty command\")")
 	out.WriteString(`}
 
 impl std::fmt::Display for exec_Cmd {
@@ -2383,33 +2386,32 @@ impl exec_Cmd {
 	        %s
 	    }
 
-    fn __go_context_cancellation_error(&self) -> Option<std::io::Error> {
+    fn __go_context_cancellation_error(&self) -> Option<%s> {
         if self
             .__go_context_cancelled
             .as_ref()
             .is_some_and(|cancelled| cancelled.load(std::sync::atomic::Ordering::SeqCst))
         {
-            let message = self
+            return self
                 .__go_context_error
                 .as_ref()
-                .and_then(|err| err.lock().unwrap().as_ref().map(|err| err.to_string()))
-                .unwrap_or_else(|| "context canceled".to_string());
-            return Some(std::io::Error::new(std::io::ErrorKind::Interrupted, message));
+                .and_then(|err| err.lock().unwrap().as_ref().cloned())
+                .or_else(|| Some(%s));
         }
         None
     }
 
-    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+    fn __go_run_output(&self) -> Result<std::process::Output, %s> {
         if let Some(err) = self.__go_context_cancellation_error() {
             return Err(err);
         }
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
+            return Err(%s);
         }
         let mut command = std::process::Command::new(&args[0]);
         command.args(&args[1..]);
-`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
+`, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), errorInnerType, fallbackContextError, errorInnerType, externalStubBorrowExpr("self.args"), emptyCommandError)
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
             if !dir.is_empty() {
@@ -2428,14 +2430,14 @@ impl exec_Cmd {
         }
 `, externalStubBorrowExpr("self.env"))
 	}
-	out.WriteString(`        if let Some(err) = self.__go_context_cancellation_error() {
+	fmt.Fprintf(out, `        if let Some(err) = self.__go_context_cancellation_error() {
             return Err(err);
         }
-        command.output()
+        command.output().map_err(|err| %s)
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
-`)
+`, errorFromIO)
 	if _, ok := fields["stdout"]; ok {
 		fmt.Fprintf(out, `        if let Some(stdout) = %s.as_ref() {
             stdout.__go_write_bytes(&output.stdout);
@@ -2460,7 +2462,7 @@ impl exec_Cmd {
                 };
                 (%s, err)
             }
-            Err(err) => (%s, Self::__go_error(err.to_string())),
+            Err(err) => (%s, %s),
         }
     }
 
@@ -2478,7 +2480,7 @@ impl exec_Cmd {
                     Self::__go_error(format!("exit status {}", output.status))
                 }
             }
-            Err(err) => Self::__go_error(err.to_string()),
+            Err(err) => %s,
         }
     }
 
@@ -2486,7 +2488,7 @@ impl exec_Cmd {
         %s
     }
 }
-`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), errorType, errorType, noneError, errorType, noneError)
+`, wrappedExternalStubType("Vec<u8>"), errorType, noneError, wrappedExternalStubExpr("Vec<u8>", "output.stdout"), wrappedExternalStubExpr("Vec<u8>", "Vec::new()"), wrappedExternalStubExpr(errorInnerType, "err"), errorType, errorType, noneError, wrappedExternalStubExpr(errorInnerType, "err"), errorType, noneError)
 }
 
 func externalTypeStubHasErrorMethod(methods map[string]externalTypeStubMethod) bool {

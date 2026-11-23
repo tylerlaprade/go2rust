@@ -5126,14 +5126,18 @@ impl GoContext {
         children: &std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<dyn Fn(String) + Send + Sync>>>>,
         message: String,
     ) {
-        if !cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-            *err.lock().unwrap() = Some(GO_ERROR_FROM(message.clone()));
-            done.send(true);
-            done.close();
-            let callbacks = children.lock().unwrap().clone();
-            for callback in callbacks {
-                callback(message.clone());
-            }
+        let mut err_guard = err.lock().unwrap();
+        if err_guard.is_some() {
+            return;
+        }
+        *err_guard = Some(GO_ERROR_FROM(message.clone()));
+        cancelled.store(true, std::sync::atomic::Ordering::SeqCst);
+        drop(err_guard);
+        done.send(true);
+        done.close();
+        let callbacks = children.lock().unwrap().clone();
+        for callback in callbacks {
+            callback(message.clone());
         }
     }
 
