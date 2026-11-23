@@ -249,8 +249,8 @@ in the first place.
 - Transpiler gap: ordinary programs import `io/fs.FileMode` as an external
   named scalar, so its Go-source method body is not emitted and method calls
   otherwise reach the generic external-method panic.
-- Fixture: `tests/XFAIL/filemode_type/` and
-  `tests/XFAIL/filemode_type_goroutines/`.
+- Fixture: `tests/filemode_type/` and
+  `tests/filemode_type_goroutines/`.
 - Removal trigger: ordinary `io/fs.FileMode` callers use the source-transpiled
   `Type` method; delete the custom emitter and this row.
 - Added: 2026-11-23
@@ -262,8 +262,8 @@ in the first place.
 - Transpiler gap: ordinary programs import `io/fs.FileMode` as an external
   named scalar, so its Go-source method body is not emitted and method calls
   otherwise reach the generic external-method panic.
-- Fixture: `tests/XFAIL/filemode_isregular/` and
-  `tests/XFAIL/filemode_isregular_goroutines/`.
+- Fixture: `tests/filemode_isregular/` and
+  `tests/filemode_isregular_goroutines/`.
 - Removal trigger: ordinary `io/fs.FileMode` callers use the source-transpiled
   `IsRegular` method; delete the custom emitter and this row.
 - Added: 2026-11-23
