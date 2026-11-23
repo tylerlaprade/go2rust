@@ -3799,6 +3799,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: named_scalar_conversion_method_receiver" {
+    run_xfail_test "tests/XFAIL/named_scalar_conversion_method_receiver"
+}
+
+@test "XFAIL: named_scalar_conversion_method_receiver_goroutines" {
+    run_xfail_test "tests/XFAIL/named_scalar_conversion_method_receiver_goroutines"
+}
+
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
 }
