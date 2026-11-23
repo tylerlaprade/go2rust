@@ -1091,7 +1091,7 @@ path = "lib.rs"
 gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
 	if strings.Contains(stubCode, "serde_json::") || strings.Contains(stubCode, "pub use serde_json") {
-		cargoToml += "serde_json = \"1\"\n"
+		cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 	}
 	for _, depCrate := range sourceMappedDeps {
 		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
@@ -1396,6 +1396,9 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 			return true
 		}
 		if _, ok := pkg.Functions["unmarshal"]; ok {
+			return true
+		}
+		if _, ok := pkg.Functions["valid"]; ok {
 			return true
 		}
 	}
@@ -3106,6 +3109,12 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 			out.WriteString("            },\n")
 			out.WriteString("            Err(err) => go_json_error(err.to_string()),\n")
 			out.WriteString("        }\n")
+			out.WriteString("    }\n")
+		case "valid":
+			out.WriteString("    pub fn valid<T0: GoJsonInputArg>(_arg0: T0) -> bool {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        let text = String::from_utf8_lossy(&bytes);\n")
+			out.WriteString("        serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()\n")
 			out.WriteString("    }\n")
 		default:
 			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName])

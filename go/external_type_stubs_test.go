@@ -464,6 +464,34 @@ func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	}
 }
 
+func TestJsonValidStubChecksCompleteJsonInput(t *testing.T) {
+	pkg := &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"valid": {ParamCount: 1, ReturnTypes: []string{"bool"}},
+		},
+	}
+	if !externalStubsNeedJsonSupport(nil, map[string]*externalPackageStub{"json": pkg}) {
+		t.Fatal("json.Valid should request the existing JSON input helpers")
+	}
+
+	var out strings.Builder
+	writeJsonPackageStub(&out, pkg)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("json.Valid should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn valid<T0: GoJsonInputArg>",
+		"let bytes = _arg0.into_go_json_bytes()",
+		"let text = String::from_utf8_lossy(&bytes)",
+		"serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("json.Valid shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestPackageExternalStubsDoNotEmitJsonSupportByDefault(t *testing.T) {
 	pkg := NewPackageState()
 	pkg.ExternalPackageStubs["path"] = &externalPackageStub{
@@ -544,7 +572,7 @@ func TestSharedStdlibStubCrateIncludesSerdeJsonWhenJsonDecodeNeeded(t *testing.T
 	if err != nil {
 		t.Fatalf("ReadFile(Cargo.toml) error = %v", err)
 	}
-	if !strings.Contains(string(cargoToml), "serde_json = \"1\"") {
+	if !strings.Contains(string(cargoToml), "serde_json = { version = \"1\", features = [\"raw_value\"] }") {
 		t.Fatalf("JSON shared stdlib stub crate should depend on serde_json:\n%s", cargoToml)
 	}
 }

@@ -1,0 +1,14 @@
+[package]
+name = "json_valid"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "json_valid"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+serde_json = { version = "1", features = ["raw_value"] }
