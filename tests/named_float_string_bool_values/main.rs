@@ -597,7 +597,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -616,7 +616,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -627,7 +627,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -657,9 +657,9 @@ fn format_any(value: &dyn Any) -> String {
     } else if let Some(v) = value.downcast_ref::<i64>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<f64>() {
-        v.to_string()
+        go_float_string(*v, false)
     } else if let Some(v) = value.downcast_ref::<f32>() {
-        v.to_string()
+        go_float_string(*v as f64, true)
     } else if let Some(v) = value.downcast_ref::<String>() {
         v.clone()
     } else if let Some(v) = value.downcast_ref::<&str>() {
@@ -713,6 +713,56 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Celsius>() { return "main.Celsius" }
     if val.is::<Status>() { return "main.Status" }
     std::any::type_name_of_val(val)
+}
+
+fn go_float_string(value: f64, single: bool) -> String {
+    if value.is_nan() {
+        return "NaN".to_string();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let shortest = if single { format!("{:e}", value.abs() as f32) } else { format!("{:e}", value.abs()) };
+    let (mantissa, exponent) = shortest.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    let exponent: i32 = exponent.parse().unwrap();
+    if exponent < -4 || exponent >= 6 {
+        let mut text = String::from(sign);
+        text.push_str(&digits[..1]);
+        if digits.len() > 1 {
+            text.push('.');
+            text.push_str(&digits[1..]);
+        }
+        text.push('e');
+        text.push(if exponent < 0 { '-' } else { '+' });
+        text.push_str(&format!("{:02}", exponent.abs()));
+        return text;
+    }
+    if exponent < 0 {
+        return format!("{}0.{}{}", sign, "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}{}", sign, digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}{}.{}", sign, &digits[..whole], &digits[whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
+    }
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
+    }
+    value.to_string()
 }
 
 // Whether value has a String or an Error method. fmt prints such a value as
@@ -1522,7 +1572,7 @@ impl Default for Fahrenheit {
 
 impl Display for Fahrenheit {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+        write!(f, "{}", go_float_string(*self.0.borrow().as_ref().unwrap() as f64, false))
     }
 }
 
@@ -1911,7 +1961,7 @@ impl Default for Meters {
 
 impl Display for Meters {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+        write!(f, "{}", go_float_string(*self.0.borrow().as_ref().unwrap() as f64, false))
     }
 }
 
@@ -2119,7 +2169,7 @@ pub fn describe(e: Rc<RefCell<Option<Enabled>>>) -> Rc<RefCell<Option<String>>> 
 fn main() {
     let mut boiling = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(100.0 as f64)))))));
     println!("{} {} {}", format!("{}", { let __v = (*boiling.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*c_to_f(Rc::new(RefCell::new(Some({ let __arg_holder = boiling.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", (*f_to_c(Rc::new(RefCell::new(Some(Fahrenheit(Rc::new(RefCell::new(Some(212.0)))))))).borrow().as_ref().unwrap())));
-    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
+    println!("{} {} {} {}", { let __text = go_float_string(((*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).sqrt()))).borrow().as_ref().unwrap())) as f64, false); __text }, format!("{}", (*Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i64))).borrow().as_ref().unwrap()) / 3), format!("{}", Celsius(Rc::new(RefCell::new(Some(-(*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))), format!("{}", Celsius(Rc::new(RefCell::new(Some((*(*boiling.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))));
     let mut temps = Rc::new(RefCell::new(Some(vec![Celsius(Rc::new(RefCell::new(Some(20.5)))), Celsius(Rc::new(RefCell::new(Some(18.0)))), Celsius(Rc::new(RefCell::new(Some(25.25))))])));
     println!("{}", format!("{}", (*average(temps.clone()).borrow().as_ref().unwrap())));
     let temps_closure_clone = temps.clone(); { let __sort_target = temps_closure_clone.clone(); let __sort_less = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>, j: Rc<RefCell<Option<i64>>>| -> bool {
@@ -2152,7 +2202,7 @@ fn main() {
         print!("{}{}{}", format!("{}", (*x.place.borrow().as_ref().unwrap()).clone()), format!("{}", (*x.temp.borrow().as_ref().unwrap()).clone()), format!("{}", " ".to_string()));
     } }
     println!();
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(0) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).max((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(2) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64)))).borrow().as_ref().unwrap())));
+    println!("{}", { let __text = go_float_string(((*Rc::new(RefCell::new(Some(((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(0) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64).max((*Rc::new(RefCell::new(Some((*(*(*rs.borrow().as_ref().unwrap())[(2) as usize].clone().temp.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as f64))).borrow().as_ref().unwrap()) as f64)))).borrow().as_ref().unwrap())) as f64, false); __text });
     let mut byPlace = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Celsius>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.25))))))))]))));
     { let __map_key = "y".to_string(); let __map_value = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(((*{ let __map_holder = byPlace.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Rc::new(RefCell::new(Some(0.0))))) }.0.borrow().as_ref().unwrap()) * 2.0)))))))); (*byPlace.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", { let __map_holder = byPlace.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| Celsius(Rc::new(RefCell::new(Some(0.0))))) }), format!("{}", (*byPlace.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));

@@ -170,6 +170,7 @@ type HelperTracker struct {
 	needsGoOnce                          bool
 	needsGoAtomicPointer                 bool
 	needsGoTypeName                      bool
+	needsGoFloatString                   bool
 	needsGoErrorChain                    bool
 	needsGoSprintf                       bool
 	needsGoSprintfSpread                 bool
@@ -443,6 +444,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoTypeNameHelper(&result, anyTypeNames)
 	}
 
+	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
+		generateGoFloatStringHelper(&result)
+	}
+
 	if ht.needsGoErrorChain {
 		generateGoErrorChainHelper(&result)
 	}
@@ -564,6 +569,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoOnce ||
 		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
+		ht.needsGoFloatString ||
 		ht.needsGoErrorChain ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
@@ -746,6 +752,11 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoTypeName {
 		add(goTypeNameHelperRustName)
+	}
+	// format_any and the slice and map formatters call these themselves; a
+	// module only names go_float_string when it prints a float directly.
+	if ht.needsGoFloatString {
+		add("go_float_string")
 	}
 	if ht.needsGoErrorChain {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
@@ -1153,9 +1164,9 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f64>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_float_string(*v, false)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f32>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_float_string(*v as f64, true)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<String>() {\n")
 	out.WriteString("        v.clone()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<&str>() {\n")
@@ -5903,6 +5914,71 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
         }
     }
     value
+}
+`)
+}
+
+// generateGoFloatStringHelper writes go_float_string, which prints a float
+// as fmt's %v does: strconv's shortest %g, with an exponent when the
+// exponent is below -4 or at least 6, and +Inf, -Inf and NaN. single prints
+// the shortest digits of the float32 the value was widened from.
+func generateGoFloatStringHelper(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_float_string(value: f64, single: bool) -> String {
+    if value.is_nan() {
+        return "NaN".to_string();
+    }
+    if value.is_infinite() {
+        return if value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let sign = if value.is_sign_negative() { "-" } else { "" };
+    let shortest = if single { format!("{:e}", value.abs() as f32) } else { format!("{:e}", value.abs()) };
+    let (mantissa, exponent) = shortest.split_once('e').unwrap();
+    let digits: String = mantissa.chars().filter(|c| c.is_ascii_digit()).collect();
+    let exponent: i32 = exponent.parse().unwrap();
+    if exponent < -4 || exponent >= 6 {
+        let mut text = String::from(sign);
+        text.push_str(&digits[..1]);
+        if digits.len() > 1 {
+            text.push('.');
+            text.push_str(&digits[1..]);
+        }
+        text.push('e');
+        text.push(if exponent < 0 { '-' } else { '+' });
+        text.push_str(&format!("{:02}", exponent.abs()));
+        return text;
+    }
+    if exponent < 0 {
+        return format!("{}0.{}{}", sign, "0".repeat((-exponent - 1) as usize), digits);
+    }
+    let whole = (exponent + 1) as usize;
+    if digits.len() <= whole {
+        return format!("{}{}{}", sign, digits, "0".repeat(whole - digits.len()));
+    }
+    format!("{}{}.{}", sign, &digits[..whole], &digits[whole..])
+}
+`)
+	TrackImport("Display")
+	out.WriteString("\n// A value inside a slice or a map prints as fmt prints it: a float through\n")
+	out.WriteString("// go_float_string, anything else through its Display. The element type may\n")
+	out.WriteString("// borrow, so it is recognized by name rather than by TypeId.\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_display_value<T: Display>(value: &T) -> String {
+    let name = std::any::type_name::<T>();
+    if name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(value as *const T as *const f64) }, false);
+    }
+    if name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(value as *const T as *const f32) } as f64, true);
+    }
+    value.to_string()
 }
 `)
 }
