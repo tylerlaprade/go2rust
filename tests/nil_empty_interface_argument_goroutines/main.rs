@@ -818,11 +818,17 @@ pub fn is_nil(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
 fn main() {
     let mut results = GoChannel::<bool>::new_buffered(3 as usize);
     let results_thread = results.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         results_thread.send(is_nil(Arc::new(Mutex::new(None::<Box<dyn Any + Send + Sync>>))));;
         let mut empty: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));;
         results_thread.send(is_nil(go_any_handle_copy(&empty)));;
         let mut pointer: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(None));;
         results_thread.send(is_nil(Arc::new(Mutex::new(Some(Box::new(pointer.clone()) as Box<dyn Any + Send + Sync>)))));;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
     });
 
     println!("{}", format!("{}", results.recv().unwrap_or_default()));

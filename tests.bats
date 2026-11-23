@@ -1523,6 +1523,10 @@ run_xfail_test() {
     run_test "tests/goroutine_function_param_capture"
 }
 
+@test "goroutine_panic_recover" {
+    run_test "tests/goroutine_panic_recover"
+}
+
 @test "goroutine_pointer_capture_alias" {
     run_test "tests/goroutine_pointer_capture_alias"
 }
@@ -3383,6 +3387,10 @@ run_xfail_test() {
     run_test "tests/star_pointer_incdec"
 }
 
+@test "stateful_goroutines" {
+    run_test "tests/stateful_goroutines"
+}
+
 @test "statement_reads_what_it_writes" {
     run_test "tests/statement_reads_what_it_writes"
 }
@@ -4013,10 +4021,6 @@ run_xfail_test() {
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
-}
-
-@test "XFAIL: stateful_goroutines" {
-    run_xfail_test "tests/XFAIL/stateful_goroutines"
 }
 
 @test "XFAIL: type_conversions" {
