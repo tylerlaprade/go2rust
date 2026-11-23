@@ -886,6 +886,41 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	}
 }
 
+func TestExecCommandContextStubRetainsCancellationState(t *testing.T) {
+	var out strings.Builder
+	writeExecCommandStub(&out, externalPackageStubFunction{
+		ParamCount:  3,
+		ReturnTypes: []string{wrappedExternalStubType("exec_Cmd")},
+	}, true)
+	got := out.String()
+	for _, want := range []string{
+		"_arg0: Arc<Mutex<Option<GoContext>>>",
+		"Some(ctx.cancelled.clone())",
+		"Some(ctx.err.clone())",
+		"__go_context_cancelled, __go_context_error",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.CommandContext shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestExecCmdStubChecksContextBeforeSpawn(t *testing.T) {
+	var out strings.Builder
+	writeExecCmdTypeStub(&out, nil, nil)
+	got := out.String()
+	for _, want := range []string{
+		"pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>",
+		"cancelled.load(std::sync::atomic::Ordering::SeqCst)",
+		"std::io::ErrorKind::Interrupted",
+		"unwrap_or_else(|| \"context canceled\".to_string())",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.Cmd shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestExecCmdStubImplementsStderrPipeMethod(t *testing.T) {
 	var out strings.Builder
 	writeExecCmdTypeStub(&out, nil, map[string]externalTypeStubMethod{

@@ -2325,6 +2325,7 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 	if _, ok := fields["env"]; !ok {
 		fields["env"] = wrappedExternalStubType("Vec<String>")
 	}
+	errorInnerType := externalStubErrorInnerType()
 	out.WriteString("#[derive(Debug, Clone, Default)]\n")
 	out.WriteString("pub struct exec_Cmd {\n")
 	fieldNames := make([]string, 0, len(fields))
@@ -2339,7 +2340,10 @@ func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, method
 		out.WriteString(fields[fieldName])
 		out.WriteString(",\n")
 	}
-	errorInnerType := externalStubErrorInnerType()
+	out.WriteString("    pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,\n")
+	out.WriteString("    pub __go_context_error: Option<std::sync::Arc<std::sync::Mutex<Option<")
+	out.WriteString(errorInnerType)
+	out.WriteString(">>>>,\n")
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
 	errorFromMessage := rustErrorFromTextFor("StdError", NeedsConcurrentWrapper(), "message")
@@ -2380,6 +2384,18 @@ impl exec_Cmd {
 	    }
 
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+        if self
+            .__go_context_cancelled
+            .as_ref()
+            .is_some_and(|cancelled| cancelled.load(std::sync::atomic::Ordering::SeqCst))
+        {
+            let message = self
+                .__go_context_error
+                .as_ref()
+                .and_then(|err| err.lock().unwrap().as_ref().map(|err| err.to_string()))
+                .unwrap_or_else(|| "context canceled".to_string());
+            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, message));
+        }
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
@@ -3891,28 +3907,37 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 // PERMANENT: not scaffold — exec.Command spawns OS processes, runtime-tied.
 func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
 	if hasContext {
-		out.WriteString("    pub fn command_context<T0, T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+		out.WriteString("    pub fn command_context<T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: Arc<Mutex<Option<GoContext>>>, _arg1: T1, _arg2: T2) -> ")
 		writeExternalStubReturnType(out, fn.ReturnTypes)
 		out.WriteString(" {\n")
-		writeExecCommandStubBody(out, "_arg1", "_arg2")
+		writeExecCommandStubBody(out, "_arg1", "_arg2", true)
 		return
 	}
 	out.WriteString("    pub fn command<T0: GoStringArg, T1: GoExecCommandArgs>(_arg0: T0, _arg1: T1) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	writeExecCommandStubBody(out, "_arg0", "_arg1")
+	writeExecCommandStubBody(out, "_arg0", "_arg1", false)
 }
 
 // PERMANENT: not scaffold — exec.Command body construction, runtime-tied.
-func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string) {
+func writeExecCommandStubBody(out *strings.Builder, nameArg string, argsArg string, hasContext bool) {
 	out.WriteString("        let mut args = vec![")
 	out.WriteString(nameArg)
 	out.WriteString(".into_go_string()];\n")
 	out.WriteString("        args.extend(")
 	out.WriteString(argsArg)
 	out.WriteString(".into_exec_args());\n")
+	if hasContext {
+		out.WriteString("        let (__go_context_cancelled, __go_context_error) = _arg0.lock().unwrap().as_ref()\n")
+		out.WriteString("            .map(|ctx| (Some(ctx.cancelled.clone()), Some(ctx.err.clone())))\n")
+		out.WriteString("            .unwrap_or((None, None));\n")
+	}
 	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { args: "+wrappedExternalStubExpr("Vec<String>", "args")+", ..Default::default() }"))
+	cmdFields := "args: " + wrappedExternalStubExpr("Vec<String>", "args") + ", "
+	if hasContext {
+		cmdFields += "__go_context_cancelled, __go_context_error, "
+	}
+	out.WriteString(wrappedExternalStubExpr("exec_Cmd", "exec_Cmd { "+cmdFields+"..Default::default() }"))
 	out.WriteString("\n    }\n")
 }
 
