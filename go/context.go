@@ -1045,6 +1045,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		}
 		return handleType, true
 	}
+	if array, ok := typ.(*types.Array); ok && anyArrayHasCloneableScalars(array) {
+		return goTypesTypeToRust(array), true
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -1057,6 +1060,17 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		return qualified, true
 	}
 	return rustType, true
+}
+
+// Rust's array Clone copies these elements by value, including when the
+// arrays are nested. Struct and interface elements need their own copy paths.
+func anyArrayHasCloneableScalars(array *types.Array) bool {
+	elem := types.Unalias(array.Elem())
+	for nested, ok := elem.(*types.Array); ok; nested, ok = elem.(*types.Array) {
+		elem = types.Unalias(nested.Elem())
+	}
+	basic, ok := elem.(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
 func currentPackageHelperRustTypePath(named *types.Named, rustType string) (string, bool) {

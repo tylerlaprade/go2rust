@@ -455,6 +455,10 @@ run_xfail_test() {
     run_test "tests/any_field_handle_reuse"
 }
 
+@test "any_fixed_array_copy" {
+    run_test "tests/any_fixed_array_copy"
+}
+
 @test "any_interface_static_assertion" {
     run_test "tests/any_interface_static_assertion"
 }
