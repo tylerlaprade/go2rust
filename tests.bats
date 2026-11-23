@@ -3875,6 +3875,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: os_file_handle_reassignment" {
+    run_xfail_test "tests/XFAIL/os_file_handle_reassignment"
+}
+
 @test "XFAIL: source_stdlib_io_fs_os_stat" {
     run_xfail_test "tests/XFAIL/source_stdlib_io_fs_os_stat"
 }
