@@ -2613,6 +2613,14 @@ run_xfail_test() {
     run_test "tests/os_truncate_paths_goroutines"
 }
 
+@test "os_user_home_dir" {
+    run_test "tests/os_user_home_dir"
+}
+
+@test "os_user_home_dir_goroutines" {
+    run_test "tests/os_user_home_dir_goroutines"
+}
+
 @test "package_any_value_from_caller" {
     run_test "tests/package_any_value_from_caller"
 }

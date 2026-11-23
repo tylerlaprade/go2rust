@@ -1405,6 +1405,40 @@ func TestOsTempDirStubPreservesCanonicalHostPath(t *testing.T) {
 	}
 }
 
+func TestOsUserHomeDirStubPreservesCanonicalEnvironmentBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"user_home_dir": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.UserHomeDir should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn user_home_dir()",
+		"std::env::var_os(\"HOME\")",
+		"__go_string_from_bytes(value.into_vec())",
+		"std::env::var(\"USERPROFILE\")",
+		"$HOME is not defined",
+		"%userprofile% is not defined",
+		"let value = value.filter(|value| !value.is_empty())",
+		"#[cfg(target_os = \"android\")]",
+		"Some(\"/sdcard\".to_string())",
+		"#[cfg(target_os = \"ios\")]",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.UserHomeDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
