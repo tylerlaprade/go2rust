@@ -1337,6 +1337,29 @@ func TestOsChdirStubChangesToCanonicalHostDirectory(t *testing.T) {
 	}
 }
 
+func TestOsClearenvStubRemovesCollectedHostKeys(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"clearenv": {ParamCount: 0},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Clearenv should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn clearenv()",
+		"let keys: Vec<std::ffi::OsString> = std::env::vars_os()",
+		"for key in keys",
+		"std::env::remove_var(key)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Clearenv shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
