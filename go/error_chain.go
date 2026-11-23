@@ -84,9 +84,8 @@ func externalErrorChainUnwrapArms() string {
 }
 
 func generateGoErrorChainHelper(out *strings.Builder) {
-	concurrent := NeedsConcurrentWrapper()
-	errType := rustErrorPayloadTypeFor("StdError", concurrent)
-	pointer := rustErrorPointerFor("StdError", concurrent)
+	errType := rustErrorPayloadType()
+	pointer := rustErrorPointer()
 	externalArms := externalErrorChainUnwrapArms()
 	userArms := errorChainUnwrapArms() + externalArms
 	match := "std::ptr::addr_eq(&**e, &*target)"
