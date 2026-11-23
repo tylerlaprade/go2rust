@@ -855,7 +855,22 @@ impl exec_Cmd {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
         }
         let args_view = args.as_slice();
-        let mut command = std::process::Command::new(&args_view[0]);
+        #[cfg(unix)]
+        let __program = {
+            use std::os::unix::ffi::OsStringExt;
+            std::ffi::OsString::from_vec(__go_string_bytes(&args_view[0]))
+        };
+        #[cfg(not(unix))]
+        let __program = args_view[0].clone();
+        let mut command = std::process::Command::new(__program);
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            command.args(args_view[1..].iter().map(|arg| {
+                std::ffi::OsString::from_vec(__go_string_bytes(arg))
+            }));
+        }
+        #[cfg(not(unix))]
         command.args(&args_view[1..]);
         if let Some(dir) = self.dir.lock().unwrap().as_ref() {
             if !dir.is_empty() {
@@ -1067,9 +1082,30 @@ pub mod os {
         Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
+    fn go_path(path: String) -> std::path::PathBuf {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&path)))
+        }
+        #[cfg(not(unix))]
+        {
+            std::path::PathBuf::from(path)
+        }
+    }
+
     pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         match std::env::current_dir() {
-            Ok(path) => (Arc::new(Mutex::new(Some::<String>(path.to_string_lossy().into_owned()))), no_error()),
+            Ok(path) => {
+                #[cfg(unix)]
+                let value = {
+                    use std::os::unix::ffi::OsStringExt;
+                    __go_string_from_bytes(path.into_os_string().into_vec())
+                };
+                #[cfg(not(unix))]
+                let value = path.to_string_lossy().into_owned();
+                (Arc::new(Mutex::new(Some::<String>(value))), no_error())
+            },
             Err(err) => (Arc::new(Mutex::new(Some::<String>(String::new()))), io_error(err)),
         }
     }
