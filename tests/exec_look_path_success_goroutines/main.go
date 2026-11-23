@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -10,6 +11,12 @@ func main() {
 	go func() {
 		goPath, goErr := exec.LookPath("go")
 		fmt.Println(goErr == nil, goPath != "")
+		firstDir := os.Getenv("GO2RUST_TEST_PATH_FIRST")
+		secondDir := os.Getenv("GO2RUST_TEST_PATH_SECOND")
+		firstPath, firstErr := exec.LookPath("go2rust-path-first")
+		fmt.Println(firstErr == nil, firstPath == firstDir+"/go2rust-path-first")
+		fallbackPath, fallbackErr := exec.LookPath("go2rust-path-fallback")
+		fmt.Println(fallbackErr == nil, fallbackPath == secondDir+"/go2rust-path-fallback")
 
 		shPath, shErr := exec.LookPath("/bin/sh")
 		fmt.Println(shErr == nil, shPath == "/bin/sh")

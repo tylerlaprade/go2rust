@@ -586,6 +586,21 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+pub mod os {
+    use super::*;
+    pub fn getenv<T0: 'static>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
+        let key = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            panic!("os.Getenv bridge: expected string argument")
+        };
+        Arc::new(Mutex::new(Some::<String>(std::env::var(key).unwrap_or_default())))
+    }
+}
+
+
 pub mod runner {
     use super::*;
     pub trait GoStringArg {
@@ -692,6 +707,12 @@ pub mod runner {
 fn main() {
     let (mut goPath, mut goErr) = runner::look_path("go".to_string());
     println!("{} {}", format!("{}", { let __nil_result = (*goErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*goPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x != __tmp_y }));
+    let mut firstDir = os::getenv("GO2RUST_TEST_PATH_FIRST".to_string());
+    let mut secondDir = os::getenv("GO2RUST_TEST_PATH_SECOND".to_string());
+    let (mut firstPath, mut firstErr) = runner::look_path("go2rust-path-first".to_string());
+    println!("{} {}", format!("{}", { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*firstPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = format!("{}{}", { let __v = (*firstDir.lock().unwrap().as_ref().unwrap()).clone(); __v }, "/go2rust-path-first".to_string()); __tmp_x == __tmp_y }));
+    let (mut fallbackPath, mut fallbackErr) = runner::look_path("go2rust-path-fallback".to_string());
+    println!("{} {}", format!("{}", { let __nil_result = (*fallbackErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*fallbackPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = format!("{}{}", { let __v = (*secondDir.lock().unwrap().as_ref().unwrap()).clone(); __v }, "/go2rust-path-fallback".to_string()); __tmp_x == __tmp_y }));
 
     let (mut shPath, mut shErr) = runner::look_path("/bin/sh".to_string());
     println!("{} {}", format!("{}", { let __nil_result = (*shErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*shPath.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "/bin/sh".to_string(); __tmp_x == __tmp_y }));

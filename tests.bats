@@ -258,7 +258,7 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
+    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
