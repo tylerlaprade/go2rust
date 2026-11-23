@@ -2095,6 +2095,14 @@ run_xfail_test() {
     run_test "tests/named_pointer_defer_return"
 }
 
+@test "named_scalar_conversion_method_receiver" {
+    run_test "tests/named_scalar_conversion_method_receiver"
+}
+
+@test "named_scalar_conversion_method_receiver_goroutines" {
+    run_test "tests/named_scalar_conversion_method_receiver_goroutines"
+}
+
 @test "named_scalar_copies_are_values" {
     run_test "tests/named_scalar_copies_are_values"
 }
@@ -3797,14 +3805,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: named_scalar_conversion_method_receiver" {
-    run_xfail_test "tests/XFAIL/named_scalar_conversion_method_receiver"
-}
-
-@test "XFAIL: named_scalar_conversion_method_receiver_goroutines" {
-    run_xfail_test "tests/XFAIL/named_scalar_conversion_method_receiver_goroutines"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
