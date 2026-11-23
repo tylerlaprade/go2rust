@@ -97,7 +97,7 @@ pub fn get_greeting() -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some("Hello, World!".to_string())))
 }
 
-pub fn get_year() -> i32 {
+pub fn get_year() -> i64 {
     2024
 }
 

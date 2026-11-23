@@ -1431,6 +1431,10 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "goroutine_capture_rust_keyword" {
+    run_test "tests/goroutine_capture_rust_keyword"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -2097,6 +2101,14 @@ run_xfail_test() {
 
 @test "named_pointer_defer_return" {
     run_test "tests/named_pointer_defer_return"
+}
+
+@test "named_scalar_conversion_method_receiver" {
+    run_test "tests/named_scalar_conversion_method_receiver"
+}
+
+@test "named_scalar_conversion_method_receiver_goroutines" {
+    run_test "tests/named_scalar_conversion_method_receiver_goroutines"
 }
 
 @test "named_scalar_copies_are_values" {
