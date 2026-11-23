@@ -856,8 +856,9 @@ func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -868,8 +869,9 @@ func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	writeConstExpressionCastValue(out, expr)
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -14406,6 +14408,23 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				yIsStringLit = true
 			}
 		}
+		writeConstOperand := func(write func(*strings.Builder, ast.Expr, ast.Expr) bool, expr ast.Expr, other ast.Expr, isLeft bool) bool {
+			var rendered strings.Builder
+			if !write(&rendered, expr, other) {
+				return false
+			}
+			// Rust parses `LIMIT as i32 < value` as generic arguments on
+			// `i32`, not as a comparison. A cast on the left of an ordered
+			// comparison therefore needs explicit grouping.
+			if isComparison && isLeft && strings.Contains(rendered.String(), " as ") {
+				out.WriteString("(")
+				out.WriteString(rendered.String())
+				out.WriteString(")")
+			} else {
+				out.WriteString(rendered.String())
+			}
+			return true
+		}
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
@@ -14448,10 +14467,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeConstShiftLeftOperandForResult(out, expr, e) {
 				return
 			}
-			if writeConstExpressionForSyntaxPeer(out, expr, other) {
+			if writeConstOperand(writeConstExpressionForSyntaxPeer, expr, other, expr == e.X) {
 				return
 			}
-			if writeConstExpressionForBinaryPeer(out, expr, other) {
+			if writeConstOperand(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 				return
 			}
 			if writeLenCapBinaryOperand(out, expr, other) {
@@ -14517,7 +14536,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeConstShiftLeftOperandForResult(out, expr, e) {
 					return
 				}
-				if writeConstExpressionForBinaryPeer(out, expr, other) {
+				if writeConstOperand(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
@@ -14575,7 +14594,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Handle X operand
 			if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
 				out.WriteString(xLit.Value)
@@ -14589,7 +14608,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Handle Y operand
 			if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
 				out.WriteString(yLit.Value)
@@ -14625,9 +14644,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForSyntaxPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.X) {
 				// Reference-style range value cloned or copied for comparison.
@@ -14676,9 +14695,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForSyntaxPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.Y) {
 				// Reference-style range value cloned or copied for comparison.
