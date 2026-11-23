@@ -48,4 +48,15 @@ func main() {
 	var argument any = "keep"
 	replace(argument)
 	fmt.Println(argument)
+
+	var typedNil any = (*int)(nil)
+	replace(typedNil)
+	fmt.Println(typedNil == nil, typedNil.(*int) == nil)
+
+	var stored any = 1
+	holder := struct{ Value any }{Value: stored}
+	values := map[string]any{"value": stored}
+	stored = 2
+	fmt.Println(holder.Value, values["value"], stored)
+
 }

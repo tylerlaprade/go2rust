@@ -8722,6 +8722,7 @@ func writeTypedNilPointerAnyBox(out *strings.Builder, call *ast.CallExpr) bool {
 		return false
 	}
 	NeedGoAnyTypeMetadata()
+	RegisterAnyCloneType(targetType)
 	out.WriteString("{ let __boxed = Box::new(")
 	TranspileExpression(out, call)
 	out.WriteString(") as ")
@@ -9795,7 +9796,7 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 	}
 
 	if (fieldExpr != nil && isEmptyInterfaceExpr(fieldExpr)) || isEmptyInterfaceType(expectedFieldType) {
-		if writeEmptyInterfaceHandleClone(out, value) {
+		if writeEmptyInterfaceValueCopy(out, value) {
 			return
 		}
 		WriteWrapperPrefix(out)
@@ -11572,7 +11573,7 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if writeFunctionMapValue(out, value, valueExpr, valueType) {
 		return
 	}
-	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceHandleClone(out, value) {
+	if (isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType)) && writeEmptyInterfaceValueCopy(out, value) {
 		return
 	}
 	if isPointerFieldExpr(valueExpr) || isPointerFieldType(valueType) {

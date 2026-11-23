@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -596,6 +597,12 @@ fn format_any(value: &dyn Any) -> String {
     format_any_at(value, false)
 }
 
+// Prints a value held inside the one being printed: a struct's interface
+// field, an element of a []interface{}.
+fn format_any_nested(value: &dyn Any) -> String {
+    format_any_at(value, true)
+}
+
 fn format_any_at(value: &dyn Any, nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
@@ -654,10 +661,59 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<i64>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<record>>>>() { return Box::new(v.clone()) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<record>() { return Box::new(v.clone()) as Box<dyn Any>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+
+#[derive(Clone, Copy)]
+struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &dyn Any) -> usize {
+    value as *const dyn Any as *const () as usize
+}
+
+fn go_register_any_type<T: Any + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
+fn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any>
+}
+
+fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
@@ -679,6 +735,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>() { return "func() int" }
+    if val.is::<Rc<RefCell<Option<i64>>>>() { return "*int" }
     if val.is::<Rc<RefCell<Option<record>>>>() { return "*main.record" }
     if val.is::<record>() { return "main.record" }
     std::any::type_name_of_val(val)
@@ -816,4 +873,43 @@ fn main() {
     let mut argument: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("keep".to_string()) as Box<dyn Any>)));
     replace(Rc::new(RefCell::new({ let __any_source = argument.clone(); let __any_guard = __any_source.borrow(); __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) })));
     println!("{}", format!("{}", format_any(argument.borrow().as_ref().unwrap().as_ref())));
+
+    let mut typedNil: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __boxed = Box::new(Rc::new(RefCell::new(None::<i64>))) as Box<dyn Any>; go_register_any_type_with_elem::<Rc<RefCell<Option<i64>>>>("pointer", true, "basic", true); __boxed })));
+    replace(Rc::new(RefCell::new({ let __any_source = typedNil.clone(); let __any_guard = __any_source.borrow(); __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) })));
+    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*({
+        let val = typedNil.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Rc<RefCell<Option<i64>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "*int")).clone()
+        } else {
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "*int")
+        }
+    }).borrow()).is_none(); __nil_result }));
+
+    let mut stored: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>)));
+    let mut holder = Rc::new(RefCell::new(Some(AnonymousStruct1 { value: Rc::new(RefCell::new({ let __any_source = stored.clone(); let __any_guard = __any_source.borrow(); __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) })) })));
+    let mut values = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("value".to_string(), Rc::new(RefCell::new({ let __any_source = stored.clone(); let __any_guard = __any_source.borrow(); __any_guard.as_ref().map(|__value| go_any_clone(__value.as_ref())) })))]))));
+    { let new_val = Box::new(2i64) as Box<dyn Any>; *stored.borrow_mut() = Some(new_val); };
+    println!("{} {} {}", format!("{}", format_any((*holder.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(({ let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"value".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).borrow().as_ref().unwrap().as_ref())), format!("{}", format_any(stored.borrow().as_ref().unwrap().as_ref())));
+}
+
+#[derive(Clone, Default)]
+pub struct AnonymousStruct1 {
+    pub value: Rc<RefCell<Option<Box<dyn Any>>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.value.clone();
+        Self {
+            value: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", match self.value.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
 }

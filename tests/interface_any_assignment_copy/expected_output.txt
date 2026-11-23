@@ -6,3 +6,5 @@ from closure x
 5 4
 6 7
 keep
+false true
+1 1 2
