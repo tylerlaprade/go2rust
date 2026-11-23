@@ -876,7 +876,7 @@ fn main() {
             let __select_ok = __select_recv.is_some();
             let read = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut read = Arc::new(Mutex::new(Some(read)));
-            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             break;
         }
         if let Some(__select_recv) = writes_thread.try_recv_select() {

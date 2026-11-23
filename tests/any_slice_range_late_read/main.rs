@@ -696,7 +696,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 fn main() {
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new(7i64) as Box<dyn Any>, Box::new("before".to_string()) as Box<dyn Any>, Box::new(9i64) as Box<dyn Any>])));
-    { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for (i, value) in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for (i, value) in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
         if i as i64 == 0 {
         { let __idx = (1) as usize; let __rhs = Box::new("after".to_string()) as Box<dyn Any>; (*values.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }

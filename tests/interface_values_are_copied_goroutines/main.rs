@@ -986,7 +986,7 @@ fn main() {
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(6.0))), h: Arc::new(Mutex::new(Some(6.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     println!("{} {}", { let __text = go_float_string(({
         let __recv = {
-            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
             __seq[(0) as usize].clone()
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -997,7 +997,7 @@ fn main() {
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(8.0))), h: Arc::new(Mutex::new(Some(8.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     println!("{} {}", { let __text = go_float_string(({
         let __recv = {
-            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
             __seq[(0) as usize].clone()
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1007,17 +1007,17 @@ fn main() {
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::from([]))));
     { let __map_key = 1; let __map_value = { let __iface_value = x.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }; (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(9.0))), h: Arc::new(Mutex::new(Some(9.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
-    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut lit = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::from([("a".to_string(), { let __iface_value = x.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) })]))));
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(10.0))), h: Arc::new(Mutex::new(Some(10.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
-    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = lit.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = lit.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
 
-    let mut e = { let __iface_value = { let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
+    let mut e = { let __iface_value = { let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(11.0))), h: Arc::new(Mutex::new(Some(11.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *e.lock().unwrap() = __iface_value; };
     println!("{} {}", { let __text = go_float_string(({
         let __recv = {
-            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            let __seq = { let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
             __seq[(0) as usize].clone()
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1028,9 +1028,9 @@ fn main() {
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(12.0))), h: Arc::new(Mutex::new(Some(12.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *g.lock().unwrap() = __iface_value; };
     println!("{} {}", { let __text = go_float_string(((*(*h.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text }, { let __text = go_float_string(((*g.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
 
-    let mut v = { let __iface_value = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
+    let mut v = { let __iface_value = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(13.0))), h: Arc::new(Mutex::new(Some(13.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *v.lock().unwrap() = __iface_value; };
-    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*v.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*v.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut list = Arc::new(Mutex::new(Some(Vec::<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::new())));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = list.clone(); let __append_values = vec![{ let __iface_value = x.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }, { let __iface_value = (*h.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }]; let mut __appended: Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *list.lock().unwrap() = __slice_header; };
@@ -1038,14 +1038,14 @@ fn main() {
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(15.0))), h: Arc::new(Mutex::new(Some(15.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*h.lock().unwrap().as_mut().unwrap()).s.lock().unwrap() = __iface_value; };
     println!("{} {}", { let __text = go_float_string(({
         let __recv = {
-            let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
             __seq[(0) as usize].clone()
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
         __result
     }) as f64, false); __text }, { let __text = go_float_string(({
         let __recv = {
-            let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
             __seq[(1) as usize].clone()
         };
         let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1055,5 +1055,5 @@ fn main() {
     let mut none: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut keep = Arc::new(Mutex::new(Some(vec![{ let __iface_value = none.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }])));
     { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(1.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *none.lock().unwrap() = __iface_value; };
-    println!("{} {}", format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = keep.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*none.lock().unwrap()).is_some(); __nil_result }));
+    println!("{} {}", format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = keep.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*none.lock().unwrap()).is_some(); __nil_result }));
 }

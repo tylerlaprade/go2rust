@@ -1157,5 +1157,5 @@ fn main() {
     println!("{}", format!("{}", (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).count.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     { let new_val = 42; *(*alt.as_ref().unwrap().borrow().as_ref().unwrap()).count.lock().unwrap() = Some(new_val); };
-    println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = infos.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.count.lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = infos.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.count.lock().unwrap().as_ref().unwrap())));
 }

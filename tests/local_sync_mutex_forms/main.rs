@@ -762,7 +762,7 @@ fn __go_init_globals() {
 pub fn bump(mu: GoMutex, n: Rc<RefCell<Option<i64>>>) {
     let __mutex_guard_source_374 = mu.clone(); let __mutex_guard_374 = __mutex_guard_source_374.guard();
     { let new_val = { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v } + 1; *n.borrow_mut() = Some(new_val); };
-    drop(__mutex_guard_374);
+    std::mem::drop(__mutex_guard_374);
 }
 
 pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i64>>>) -> i64 {
@@ -793,12 +793,12 @@ fn main() {
     let mut a = GoMutex { ..Default::default() };
     let __mutex_guard_source_620 = a.clone(); let __mutex_guard_620 = __mutex_guard_source_620.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_620);
+    std::mem::drop(__mutex_guard_620);
 
     let mut b = GoMutex { ..Default::default() };
     let __mutex_guard_source_670 = b.clone(); let __mutex_guard_670 = __mutex_guard_source_670.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_670);
+    std::mem::drop(__mutex_guard_670);
 
     let mut c = GoMutex { ..Default::default() };
     bump(c.clone(), n.clone());
@@ -809,7 +809,7 @@ fn main() {
 
     let __mutex_guard_source_804 = (*global.borrow().as_ref().unwrap()).clone(); let __mutex_guard_804 = __mutex_guard_source_804.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_804);
+    std::mem::drop(__mutex_guard_804);
 
     let mut rw = GoRWMutex::new();
     rw.r_lock();

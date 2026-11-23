@@ -1786,7 +1786,7 @@ fn main() {
     let mut pair = Rc::new(RefCell::new(Some("%s=%d".to_string())));
     let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
     (*b.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.borrow().as_ref().unwrap()).clone(), &[Box::new("k".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>], false)));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }))).borrow().as_ref().unwrap())));
 
         // A constant format is known when the program is translated.
     const layout: &'static str = "%s has %d items\n";

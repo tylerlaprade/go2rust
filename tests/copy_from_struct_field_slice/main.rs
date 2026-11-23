@@ -758,7 +758,7 @@ fn main() {
         }
         Rc::new(RefCell::new(Some(_n as i64)))
     }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    { let __range_holder = combined.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = combined.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         println!("{}", format!("{}", (*(*it.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
     } }
 }

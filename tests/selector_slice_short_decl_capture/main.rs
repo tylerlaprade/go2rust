@@ -727,7 +727,7 @@ impl reader {
         let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
         let mut tparams = { let __slice_header = GoSliceHeader::go_slice_header(&tparams); Rc::new(RefCell::new(__slice_header)) };
         let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
+        { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         { let __idx = (i) as usize; let __rhs = val; (*tparams_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
     }) as Box<dyn FnMut() -> ()>))); let mut __appended: Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.later.borrow_mut() = __slice_header; };

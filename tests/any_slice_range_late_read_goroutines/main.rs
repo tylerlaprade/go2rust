@@ -868,7 +868,7 @@ fn main() {
     let done_thread = done.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut values = Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("before".to_string()) as Box<dyn Any + Send + Sync>, Box::new(9i64) as Box<dyn Any + Send + Sync>])));;
-        { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for (i, value) in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
+        { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for (i, value) in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
         if { let __tmp_x = i as i64; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __idx = (1) as usize; let __rhs = Box::new("after".to_string()) as Box<dyn Any + Send + Sync>; (*values.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }

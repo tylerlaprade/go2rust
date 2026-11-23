@@ -1435,7 +1435,7 @@ fn main() {
     let mut counters = Rc::new(RefCell::new(Some(vec![Counter(Rc::new(RefCell::new(Some(1 as i64)))), Counter(Rc::new(RefCell::new(Some(2 as i64)))), Counter(Rc::new(RefCell::new(Some(3 as i64))))])));
     let mut first = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some((*(*counters.borrow().as_ref().unwrap())[(0) as usize].clone().0.borrow().as_ref().unwrap()))))))));
     (*first.borrow_mut().as_mut().unwrap()).inc();
-    { let __range_holder = counters.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut c in __range_values.iter().cloned() {
+    { let __range_holder = counters.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut c in __range_values.iter().cloned() {
         c.inc();
     } }
     println!("{} {}", format!("{}", format_slice(&counters)), format!("{}", { let __v = (*first.borrow().as_ref().unwrap()).clone(); __v }));

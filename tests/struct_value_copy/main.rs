@@ -922,7 +922,7 @@ impl Config {
 
 impl User {
     pub fn location(&self) -> Rc<RefCell<Option<Location>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.l.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.l.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = __selector_guard.as_ref().unwrap().__go_value_clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 }
 
@@ -964,7 +964,7 @@ fn main() {
     { let new_val = 50; *(*e.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice element".to_string()), format!("{}", format_slice(&points)), format!("{}", (*e.borrow().as_ref().unwrap())));
 
-    { let __range_holder = points.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = points.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         let p = &p.__go_value_clone();
         { let new_val = 60; *p.x.borrow_mut() = Some(new_val); };
     } }
@@ -1004,7 +1004,7 @@ fn main() {
         // sees a field that the loop itself wrote. The loop variable is still a
         // copy: writing to it does not change the slice.
     let mut seen = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    { let __range_holder = seen.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = seen.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         let p = &p.__go_value_clone();
         { let new_val = 9; *(*seen.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
         println!("{} {}", format!("{}", "range over a slice, field written in the loop".to_string()), format!("{}", (*p.x.borrow().as_ref().unwrap())));
@@ -1014,7 +1014,7 @@ fn main() {
 
         // A range over an array works on a copy of the array.
     let mut fixed = Rc::new(RefCell::new(Some([Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    { let __range_holder = fixed.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = fixed.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         let p = &p.__go_value_clone();
         { let new_val = 9; *(*fixed.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
         println!("{} {}", format!("{}", "range over an array, field written in the loop".to_string()), format!("{}", (*p.x.borrow().as_ref().unwrap())));

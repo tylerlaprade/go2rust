@@ -646,7 +646,7 @@ impl node {
 /// not unwrap it to a bare Ident. go/parser's resolver.declare(..., idents
 /// ...*ast.Ident) called with n.Label / spec.Names hit this.
 pub fn declare(idents: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Ident>>>>>>>) {
-    { let __range_holder = idents.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for id in __range_values.iter() {
+    { let __range_holder = idents.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for id in __range_values.iter() {
         println!("{}", format!("{}", (*(*id.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
     } }
 }

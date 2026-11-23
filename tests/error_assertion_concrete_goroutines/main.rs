@@ -960,14 +960,14 @@ pub fn error_text(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (bool, A
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<notFound>>>>()).is_some() {
         let err = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()) { Arc::new(Mutex::new(Some(Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<pointerError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<notFound>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return (
             true,
             Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))))
         );;
     } else {
         let err = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return (false, Arc::new(Mutex::new(Some("".to_string()))));;
     }
     }
@@ -988,12 +988,12 @@ pub fn replace_then_error_text(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<notFound>>>>()).is_some() {
         let err = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()) { Arc::new(Mutex::new(Some(Arc::new(typed_val.clone()) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<pointerError>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<notFound>>>>()) { Arc::new(Mutex::new(Some(Arc::new(GoPointerError::new(typed_val.clone())) as Arc<dyn StdError + Send + Sync>))) } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = pointerError { code: Arc::new(Mutex::new(Some(10))), ..Default::default() }; *p.lock().unwrap() = Some(new_val); };;
         return Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));;
     } else {
         let err = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Arc::new(Mutex::new(Some("not error".to_string())));;
     }
     }
@@ -1013,10 +1013,10 @@ pub fn is_error(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<notFound>>>>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return true;;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return false;;
     }
     }

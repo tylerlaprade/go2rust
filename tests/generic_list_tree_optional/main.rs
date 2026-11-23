@@ -1695,7 +1695,7 @@ impl List__int {
     pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>>>>) {
         let mut n = self.head.clone();
     while { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
         { let new_val = (*n.borrow().as_ref().unwrap()).next.clone(); n = new_val; };
     }
     }
@@ -1718,7 +1718,7 @@ impl List__string {
     pub fn each(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>) {
         let mut n = self.head.clone();
     while { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*n.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
         { let new_val = (*n.borrow().as_ref().unwrap()).next.clone(); n = new_val; };
     }
     }
@@ -1750,7 +1750,7 @@ impl Tree__int {
         return;
     }
         __go_nil_recv_tree__int_walk({ let __field = self.left.clone(); __field }, visit.clone());
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
         __go_nil_recv_tree__int_walk({ let __field = self.right.clone(); __field }, visit.clone());
     }
 }
@@ -1773,7 +1773,7 @@ impl Tree__string {
         return;
     }
         __go_nil_recv_tree__string_walk({ let __field = self.left.clone(); __field }, visit.clone());
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
         __go_nil_recv_tree__string_walk({ let __field = self.right.clone(); __field }, visit.clone());
     }
 }
@@ -1793,12 +1793,12 @@ impl Optional__int {
 
 impl Optional__string {
     pub fn get(&self) -> (Rc<RefCell<Option<String>>>, bool) {
-        return ({ let __return_value_0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*self.ok.borrow().as_ref().unwrap()));
+        return ({ let __return_value_0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); __return_value_0 }, (*self.ok.borrow().as_ref().unwrap()));
     }
 
     pub fn or_else(&self, d: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
         if (*self.ok.clone().borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
         { let __owned = d.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
     }
@@ -1826,15 +1826,15 @@ pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
     } else {
         let x = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
@@ -1855,15 +1855,15 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
     } else {
         let x = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
@@ -1884,15 +1884,15 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("int {}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
         let x = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<String>()).unwrap().clone())));
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&"string %q".to_string(), &[Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))));;
     } else {
         let x = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
@@ -1958,7 +1958,7 @@ pub fn __go_nil_recv_tree__int_walk(t: Rc<RefCell<Option<Tree__int>>>, visit: Rc
         return;
     }
     __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, visit.clone());
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
     __go_nil_recv_tree__int_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, visit.clone());
 }
 
@@ -1979,6 +1979,6 @@ pub fn __go_nil_recv_tree__string_walk(t: Rc<RefCell<Option<Tree__string>>>, vis
         return;
     }
     __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, visit.clone());
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) };
     __go_nil_recv_tree__string_walk({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, visit.clone());
 }

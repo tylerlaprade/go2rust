@@ -804,7 +804,7 @@ impl Visitor for collectorPtr {
 
 pub fn walk(mut v: Rc<RefCell<Option<Box<dyn Visitor>>>>, nodes: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Node>>>>>>>>) {
     let mut v: Rc<RefCell<Option<Box<dyn Visitor>>>> = Rc::new(RefCell::new(v.borrow().as_ref().map(|__v| Visitor::__go_clone_box_visitor(__v.as_ref()))));
-    { let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
+    { let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for n in __range_values.iter() {
         { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).visit(n.clone()).clone(); __result }; let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *v.borrow_mut() = __iface_value; };
         if { let __nil_result = (*v.borrow()).is_none(); __nil_result } {
         return;

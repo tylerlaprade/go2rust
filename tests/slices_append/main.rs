@@ -691,6 +691,6 @@ fn main() {
     };
     println!("{} {}", format!("{}", "copy:".to_string()), format!("{}", format_slice(&c)));
 
-    let mut l = Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })));
+    let mut l = Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })));
     println!("{} {}", format!("{}", "slice[1:3]:".to_string()), format!("{}", format_slice(&l)));
 }

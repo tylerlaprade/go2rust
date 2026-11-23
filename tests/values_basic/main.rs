@@ -634,7 +634,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 fn main() {
     println!("{}", format!("{}", format!("{}{}", "go".to_string(), "lang".to_string())));
     println!("{} {}", format!("{}", "1+1 =".to_string()), format!("{}", 1 + 1));
-    println!("{} {}", format!("{}", "7.0/3.0 =".to_string()), { let __text = go_float_string((2.3333333333333335) as f64, false); __text });
+    println!("{} {}", format!("{}", "7.0/3.0 =".to_string()), { let __text = go_float_string((7.0 / 3.0) as f64, false); __text });
     println!("{}", format!("{}", true && false));
     println!("{}", format!("{}", true || false));
     println!("{}", format!("{}", !true));

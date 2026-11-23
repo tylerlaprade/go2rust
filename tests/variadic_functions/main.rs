@@ -635,7 +635,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 pub fn sum(numbers: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     let mut total = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap());
@@ -646,7 +646,7 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
         return 0.0;
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*total.borrow().as_ref().unwrap()) / (*Rc::new(RefCell::new(Some((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as f64))).borrow().as_ref().unwrap());
@@ -654,7 +654,7 @@ pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
 
 pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) {
     print!("{}: ", { let __v = (*prefix.borrow().as_ref().unwrap()).clone(); __v });
-    { let __range_holder = strings.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, str) in __range_values.iter().enumerate() {
+    { let __range_holder = strings.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, str) in __range_values.iter().enumerate() {
         if i as i64 > 0 {
         print!("{}", format!("{}", ", ".to_string()));
     }
@@ -665,7 +665,7 @@ pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Op
 
 pub fn min(first: Rc<RefCell<Option<i64>>>, rest: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     let mut minimum = { let __owned = first.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
+    { let __range_holder = rest.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for num in __range_values.iter().copied() {
         if num < (*minimum.borrow().as_ref().unwrap()) {
         { let new_val = num; *minimum.borrow_mut() = Some(new_val); };
     }
@@ -678,7 +678,7 @@ pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));
-    for str in &{ let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) } {
+    for str in &{ let __seq_holder = strings.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) } {
         { (*result.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*separator.borrow().as_ref().unwrap()), str)); };
     }
     return { let __owned = result.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };

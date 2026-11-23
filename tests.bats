@@ -1523,6 +1523,10 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "go_names_drop" {
+    run_test "tests/go_names_drop"
+}
+
 @test "goroutine_capture_rust_keyword" {
     run_test "tests/goroutine_capture_rust_keyword"
 }
@@ -2133,6 +2137,14 @@ run_xfail_test() {
 
 @test "multi_file_method_interface_impl" {
     run_test "tests/multi_file_method_interface_impl"
+}
+
+@test "multi_value_call_as_arguments" {
+    run_test "tests/multi_value_call_as_arguments"
+}
+
+@test "multi_value_call_as_arguments_goroutines" {
+    run_test "tests/multi_value_call_as_arguments_goroutines"
 }
 
 @test "multiple_returns" {

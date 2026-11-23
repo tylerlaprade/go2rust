@@ -1367,7 +1367,7 @@ impl pool {
         std::panic::panic_any(Box::new("nil pool".to_string()) as Box<dyn Any + Send + Sync>);
     }
         (
-            index_local(Arc::new(Mutex::new(Some({ let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0)))),
+            index_local(Arc::new(Mutex::new(Some({ let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0)))),
             0
         )
     }
@@ -1423,7 +1423,7 @@ pub fn __go_nil_recv_pool_pin(p: Arc<Mutex<Option<pool>>>) -> (GoPtr<local>, i64
         std::panic::panic_any(Box::new("nil pool".to_string()) as Box<dyn Any + Send + Sync>);
     }
     (
-        index_local(Arc::new(Mutex::new(Some({ let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0)))),
+        index_local(Arc::new(Mutex::new(Some({ let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0)))),
         0
     )
 }

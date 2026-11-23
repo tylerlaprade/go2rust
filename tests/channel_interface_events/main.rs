@@ -1293,7 +1293,7 @@ impl Event for ClickPtr {
 
 impl Key {
     pub fn kind(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("{}{}", "key ".to_string(), (*Arc::new(Mutex::new(Some(char::from_u32(({ let __selector_holder = self.code.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())))));
+        return Arc::new(Mutex::new(Some(format!("{}{}", "key ".to_string(), (*Arc::new(Mutex::new(Some(char::from_u32(({ let __selector_holder = self.code.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())))));
     }
 }
 
@@ -1359,7 +1359,7 @@ impl Bus {
     pub fn publish(&self, topic: Arc<Mutex<Option<String>>>, e: Arc<Mutex<Option<Box<dyn Event + Send + Sync>>>>) {
         let __mutex_guard_source_713 = self.mu.clone(); let __mutex_guard_713 = __mutex_guard_source_713.guard();
         // mu.Unlock() handled by RAII guard
-        { let __range_holder = { let __map = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*topic.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for ch in __range_values.iter() {
+        { let __range_holder = { let __map = { let __map_holder = self.handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*topic.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for ch in __range_values.iter() {
         ch.send({ let __iface_handle = { let __iface_value = e.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) }; let __iface_value = (*__iface_handle.lock().unwrap()).clone(); __iface_value });
     } }
     }
@@ -1367,8 +1367,8 @@ impl Bus {
     pub fn close(&self) {
         let __mutex_guard_source_827 = self.mu.clone(); let __mutex_guard_827 = __mutex_guard_source_827.guard();
         // mu.Unlock() handled by RAII guard
-        for (_, chans) in { let __range_holder = self.handlers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        { let __range_holder = chans.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for ch in __range_values.iter() {
+        for (_, chans) in { let __range_holder = self.handlers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        { let __range_holder = chans.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for ch in __range_values.iter() {
         ch.close();
     } }
     }

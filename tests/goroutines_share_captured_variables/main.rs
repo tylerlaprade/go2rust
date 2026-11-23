@@ -1105,7 +1105,7 @@ impl tally {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+        return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
     }
         }));
         match __go_panic_result {
@@ -1139,7 +1139,7 @@ pub fn square(i: Arc<Mutex<Option<i64>>>, results: Arc<Mutex<Option<Vec<i64>>>>,
         { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }; (*results.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         let __mutex_guard_source_663 = mu.clone(); let __mutex_guard_663 = __mutex_guard_source_663.guard();
         { let __rhs = (*i.lock().unwrap().as_ref().unwrap()); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        drop(__mutex_guard_663);
+        std::mem::drop(__mutex_guard_663);
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1219,7 +1219,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
         // Each iteration has its own i.
     wg.wait();
-    println!("{} {} {}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"n".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_slice(&results)));
+    println!("{} {} {}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"n".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", format_slice(&results)));
 
         // A plain function as the goroutine: its arguments are evaluated when
         // the go statement runs, and the slice and the pointers are shared.

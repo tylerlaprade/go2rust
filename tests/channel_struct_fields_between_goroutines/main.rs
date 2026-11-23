@@ -853,7 +853,7 @@ fn main() {
         let lanes_thread = lanes.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some(i as i64))); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let __closure = move |n: Arc<Mutex<Option<i64>>>| {
-            { let __channel = { let __seq = { let __seq_holder = lanes_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); __channel }.send((*Arc::new(Mutex::new(Some(format!("lane {}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap()).clone());;
+            { let __channel = { let __seq = { let __seq_holder = lanes_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); __channel }.send((*Arc::new(Mutex::new(Some(format!("lane {}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap()).clone());;
         };
         __closure(__go_arg_0);
     })) {
@@ -863,6 +863,6 @@ fn main() {
     }
     });
     }
-    println!("{}", format!("{}", { let __channel = { let __seq = { let __seq_holder = lanes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); __channel }.recv().unwrap_or_default()));
-    println!("{}", format!("{}", { let __channel = { let __seq = { let __seq_holder = lanes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); __channel }.recv().unwrap_or_default()));
+    println!("{}", format!("{}", { let __channel = { let __seq = { let __seq_holder = lanes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); __channel }.recv().unwrap_or_default()));
+    println!("{}", format!("{}", { let __channel = { let __seq = { let __seq_holder = lanes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); __channel }.recv().unwrap_or_default()));
 }

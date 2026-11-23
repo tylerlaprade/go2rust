@@ -2932,7 +2932,7 @@ impl GoOnce {
         let mut done = self.done.lock().unwrap();
         if !*done {
             *done = true;
-            drop(done);
+            std::mem::drop(done);
             f();
         }
     }
@@ -2966,7 +2966,7 @@ impl GoOnce {
         let mut done = self.done.borrow_mut();
         if !*done {
             *done = true;
-            drop(done);
+            std::mem::drop(done);
             f();
         }
     }

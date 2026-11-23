@@ -623,7 +623,7 @@ pub fn read(n: Rc<RefCell<Option<node>>>) -> i64 {
 fn main() {
     let mut nodes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(node { value: Rc::new(RefCell::new(Some(3))), ..Default::default() })))])));
     let mut sum = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
+    { let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for n in __range_values.iter() {
         if { let __nil_result = (*n.borrow()).is_some(); __nil_result } {
         { let __rhs = (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         println!("{}", format!("{}", read((*n).clone())));

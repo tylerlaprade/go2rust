@@ -615,7 +615,7 @@ fn main() {
         }
         Rc::new(RefCell::new(Some(_n as i64)))
     };
-    println!("{} {}", format!("{}", { let __v = (*n3.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*Rc::new(RefCell::new(Some({ let __seq_holder = fingerprint.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", { let __v = (*n3.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*Rc::new(RefCell::new(Some({ let __seq_holder = fingerprint.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
 
     let mut buf3 = Rc::new(RefCell::new(Some(vec![0; (4) as usize])));
     {
@@ -629,7 +629,7 @@ fn main() {
     let mut n4 = {
         let _dst_start = (1) as usize;
         let _dst_len = ((3) as usize) - _dst_start;
-        let _src = (*Rc::new(RefCell::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (0) as usize; let __high = (2) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone();
+        let _src = (*Rc::new(RefCell::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (0) as usize; let __high = (2) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone();
         let _n = std::cmp::min(_dst_len, _src.len());
         for _i in 0.._n {
             (*buf3.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();

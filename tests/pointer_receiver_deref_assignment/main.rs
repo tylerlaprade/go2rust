@@ -709,7 +709,7 @@ impl Package {
     pub fn reset(&mut self, id: Rc<RefCell<Option<String>>>, name: Rc<RefCell<Option<String>>>) {
         { let new_val = Package { i_d: Rc::new(RefCell::new(Some({ let __arg_holder = id.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; *self = new_val; };
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Package>>>>::new()))); self.imports = new_val; };
-        { let __map_key = "self".to_string(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))); (*self.imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = "self".to_string(); let __map_value = Rc::new(RefCell::new(Some(Package { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))); (*self.imports.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 }
 

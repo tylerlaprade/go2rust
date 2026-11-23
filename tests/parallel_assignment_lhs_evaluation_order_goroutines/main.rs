@@ -891,7 +891,7 @@ fn main() {
         let __go_lhs_index_1 = (index(Arc::new(Mutex::new(Some("right index".to_string()))), Arc::new(Mutex::new(Some(1))))) as usize;
         let __tmp_0 = result(
             Arc::new(Mutex::new(Some("left result".to_string()))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = __go_lhs_sequence_0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*__go_lhs_index_0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = __go_lhs_sequence_0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*__go_lhs_index_0.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
         );
         let __tmp_1 = result(Arc::new(Mutex::new(Some("right result".to_string()))), Arc::new(Mutex::new(Some(20))));
         (*__go_lhs_sequence_0_.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0_] = __tmp_0;

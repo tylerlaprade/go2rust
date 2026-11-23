@@ -927,7 +927,7 @@ pub fn pad_exprs(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>, length: Arc<Mutex<Opti
 }
 
 pub fn pad_named_exprs(elts: Arc<Mutex<Option<ExprList>>>) -> Arc<Mutex<Option<ExprList>>> {
-    { let __base = { let __named_slice = (*elts.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(Default::default()); Arc::new(Mutex::new(Some(ExprList(Arc::new(Mutex::new(Some(__values))))))) }
+    { let __base = { let __named_slice = (*elts.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push(Default::default()); Arc::new(Mutex::new(Some(ExprList(Arc::new(Mutex::new(Some(__values))))))) }
 }
 
 pub fn nil_literal() -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
