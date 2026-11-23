@@ -1427,6 +1427,10 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "goroutine_capture_rust_keyword" {
+    run_test "tests/goroutine_capture_rust_keyword"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }

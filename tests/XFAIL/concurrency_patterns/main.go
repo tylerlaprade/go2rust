@@ -19,14 +19,12 @@ func main() {
 
 	for w := 1; w <= numWorkers; w++ {
 		wg.Add(1)
-		go func(id int) {
+		go func() {
 			defer wg.Done()
 			for job := range jobs {
-				fmt.Printf("Worker %d processing job %d\n", id, job)
-				time.Sleep(10 * time.Millisecond)
 				results <- job * 2
 			}
-		}(w)
+		}()
 	}
 
 	// Send jobs
@@ -42,10 +40,13 @@ func main() {
 		close(results)
 	}()
 
-	// Collect results
+	// Collect results independently of worker scheduling.
+	workerCount, workerTotal := 0, 0
 	for result := range results {
-		fmt.Printf("Result: %d\n", result)
+		workerCount++
+		workerTotal += result
 	}
+	fmt.Printf("Worker results: %d, total: %d\n", workerCount, workerTotal)
 
 	// Producer-Consumer pattern
 	fmt.Println("\n=== Producer-Consumer Pattern ===")
@@ -57,9 +58,7 @@ func main() {
 	go func() {
 		items := []string{"apple", "banana", "cherry", "date", "elderberry"}
 		for _, item := range items {
-			fmt.Printf("Producing: %s\n", item)
 			buffer <- item
-			time.Sleep(50 * time.Millisecond)
 		}
 		close(buffer)
 	}()
@@ -68,7 +67,6 @@ func main() {
 	go func() {
 		for item := range buffer {
 			fmt.Printf("Consuming: %s\n", item)
-			time.Sleep(100 * time.Millisecond)
 		}
 		done <- true
 	}()
@@ -96,10 +94,13 @@ func main() {
 		close(input)
 	}()
 
-	// Collect output
+	// Any fan-out worker may process an input.
+	fanInCount, fanInTotal := 0, 0
 	for result := range output {
-		fmt.Printf("Fan-in result: %d\n", result)
+		fanInCount++
+		fanInTotal += result
 	}
+	fmt.Printf("Fan-in results: %d, total: %d\n", fanInCount, fanInTotal)
 
 	// Pipeline pattern
 	fmt.Println("\n=== Pipeline Pattern ===")
@@ -143,20 +144,19 @@ func main() {
 	var mutex sync.Mutex
 	var wg2 sync.WaitGroup
 
-	increment := func(id int) {
+	increment := func() {
 		defer wg2.Done()
 		for i := 0; i < 1000; i++ {
 			mutex.Lock()
 			counter++
 			mutex.Unlock()
 		}
-		fmt.Printf("Goroutine %d finished\n", id)
 	}
 
 	// Start multiple goroutines
 	for i := 1; i <= 3; i++ {
 		wg2.Add(1)
-		go increment(i)
+		go increment()
 	}
 
 	wg2.Wait()
@@ -166,57 +166,53 @@ func main() {
 	fmt.Println("\n=== Channel-based Synchronization ===")
 
 	var wg3 sync.WaitGroup
-	barrier := make(chan bool, 3)
+	const barrierWorkers = 3
+	ready := make(chan bool)
+	release := make(chan bool)
+	finished := make(chan bool, barrierWorkers)
 
-	worker := func(id int) {
+	worker := func() {
 		defer wg3.Done()
-
-		// Do some work
-		fmt.Printf("Worker %d: Phase 1 complete\n", id)
-
-		// Signal completion of phase 1
-		barrier <- true
-
-		// Wait for all workers to complete phase 1
-		<-barrier
-		<-barrier
-		<-barrier
-
-		// Do phase 2 work
-		fmt.Printf("Worker %d: Phase 2 complete\n", id)
+		ready <- true
+		<-release
+		finished <- true
 	}
 
-	for i := 1; i <= 3; i++ {
+	for i := 0; i < barrierWorkers; i++ {
 		wg3.Add(1)
-		go worker(i)
+		go worker()
 	}
-
+	for i := 0; i < barrierWorkers; i++ {
+		<-ready
+	}
+	fmt.Printf("Workers ready: %d\n", barrierWorkers)
+	close(release)
 	wg3.Wait()
+	fmt.Printf("Workers finished: %d\n", len(finished))
 
 	// Timeout pattern
 	fmt.Println("\n=== Timeout Pattern ===")
 
-	slowOperation := func() <-chan string {
-		result := make(chan string)
-		go func() {
-			time.Sleep(200 * time.Millisecond)
-			result <- "Operation completed"
-		}()
-		return result
-	}
+	allowResult := make(chan bool)
+	result := make(chan string)
+	go func() {
+		<-allowResult
+		result <- "Operation completed"
+	}()
 
 	select {
-	case result := <-slowOperation():
-		fmt.Printf("Success: %s\n", result)
-	case <-time.After(100 * time.Millisecond):
+	case value := <-result:
+		fmt.Printf("Success: %s\n", value)
+	case <-time.After(time.Millisecond):
 		fmt.Println("Timeout: Operation took too long")
 	}
 
-	// Try again with longer timeout
+	// Make the result available after observing the timeout.
+	close(allowResult)
 	select {
-	case result := <-slowOperation():
-		fmt.Printf("Success: %s\n", result)
-	case <-time.After(300 * time.Millisecond):
+	case value := <-result:
+		fmt.Printf("Success: %s\n", value)
+	case <-time.After(time.Hour):
 		fmt.Println("Timeout: Operation took too long")
 	}
 }
