@@ -8,12 +8,6 @@ use go2rust_stdlib_stubs::*;
 use std::any::Any;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 
 fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
@@ -63,5 +57,5 @@ fn main() {
     let mut m: Arc<Mutex<Option<sync::hashtriemap::Map>>> = Arc::new(Mutex::new(Some(Default::default())));
     (*m.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new("value".to_string()) as Box<dyn Any + Send + Sync>))));
     let (mut value, mut ok) = (*m.lock().unwrap().as_ref().unwrap()).load(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))));
-    println!("{} {}", format!("{}", { let __text = format_any(value.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", ok));
+    println!("{} {}", format!("{}", { let __text = match value.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", ok));
 }

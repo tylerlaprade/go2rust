@@ -76,9 +76,9 @@ func wrap() error {
 		strings.Contains(rust, "ErrNotFound.borrow().as_ref().unwrap()).clone()).borrow()") {
 		t.Fatalf("fmt.Errorf should not clone the boxed error before formatting it:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match os_exec::ErrNotFound.lock().unwrap().as_ref() { Some(__value) => format!(\"{}\", __value)") &&
-		!strings.Contains(rust, "match os_exec::ErrNotFound.borrow().as_ref() { Some(__value) => format!(\"{}\", __value)") {
-		t.Fatalf("fmt.Errorf should format the package-global error handle directly:\n%s", rust)
+	if !strings.Contains(rust, "let __go_print_handle = &(os_exec::ErrNotFound);") ||
+		!strings.Contains(rust, "match __go_print_value.as_ref() { Some(__value) => format!(") {
+		t.Fatalf("fmt.Errorf must borrow the package global and format its error after releasing the guard:\n%s", rust)
 	}
 }
 
@@ -252,7 +252,6 @@ func typeName(flag *Flag) string {
 		"fn kind(&self)",
 		"fn elem(&self)",
 		"reflect_Kind(20)",
-		"self.fields.borrow().as_ref().unwrap().as_slice()[index].clone()",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("reflect.TypeOf should emit kind/elem metadata %q:\n%s", want, rust)
@@ -360,7 +359,7 @@ func contains(values []int, target int) bool {
 	for _, want := range []string{
 		"let mut i = { let mut __sort_i: i64 = 0;",
 		"i <",
-		".get_cloned((i) as usize)",
+		"[(i) as usize]",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("sort.Search short-decl lowering missing %q:\n%s", want, rust)
@@ -1519,7 +1518,7 @@ func fill(dst nat, src nat, d int) int {
 	if !strings.Contains(rust, "let _dst_holder = { let __named_slice = (*dst.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
 		t.Fatalf("copy named-slice destination slice should use the inner slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".set(_dst_start + _i,") {
+	if !strings.Contains(rust, "[_dst_start + _i]") {
 		t.Fatalf("copy named-slice destination slice should write with the slice offset:\n%s", rust)
 	}
 }
@@ -1654,8 +1653,7 @@ func clearValue(x int) int {
 		t.Fatalf("clear(named slice) should write the typed element zero value:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __clear_start = (1) as usize") ||
-		!strings.Contains(rust, "let mut __clear_window = __clear_seq.as_mut_slice()") ||
-		!strings.Contains(rust, "__clear_window[__clear_i] = 0;") {
+		!strings.Contains(rust, "__clear_seq[__clear_i] = 0;") {
 		t.Fatalf("clear(slice expr) should zero the selected byte range:\n%s", rust)
 	}
 }
@@ -1673,7 +1671,7 @@ func Delete[S ~[]E, E any](s S, i int, j int) S {
 		t.Fatalf("clear on generic slice constraint should use the go/types core slice type:\n%s", rust)
 	}
 	if !strings.Contains(rust, "for __clear_i in __clear_start..__clear_end") ||
-		!strings.Contains(rust, "__clear_window[__clear_i] = Default::default();") {
+		!strings.Contains(rust, "__clear_seq[__clear_i] = Default::default();") {
 		t.Fatalf("clear on generic slice constraint should zero the selected range:\n%s", rust)
 	}
 }
@@ -1804,7 +1802,7 @@ func main() {
 	describe(5)
 }
 `)
-	if !strings.Contains(plain, `print!("{}|{}\n", format_any(v.borrow().as_ref().unwrap().as_ref()), format_any(v.borrow().as_ref().unwrap().as_ref()));`) {
+	if !strings.Contains(plain, `print!("{}|{}\n", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }, match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });`) {
 		t.Fatalf("the sequential form should not change:\n%s", plain)
 	}
 
@@ -1816,16 +1814,16 @@ func main() {
 	describe(5)
 }
 `)
-	want := `print!("{}|{}\n", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	want := `print!("{}|{}\n", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));`
 	if !strings.Contains(locked, want) {
 		t.Fatalf("missing %q in:\n%s", want, locked)
 	}
 	// %T reads the variable as well.
-	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = __go_type_name(&**v.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));`
+	wantType := `print!("{}: {}\n", format!("{}", { let __type_name = match v.lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }), format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));`
 	if !strings.Contains(locked, wantType) {
 		t.Fatalf("missing %q in:\n%s", wantType, locked)
 	}
-	if strings.Contains(locked, "format_any(v.lock().unwrap().as_ref().unwrap().as_ref()), ") {
+	if strings.Contains(locked, "match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => \"<nil>\".to_string() }, ") {
 		t.Fatalf("an interface argument must not hold its lock past the argument:\n%s", locked)
 	}
 }

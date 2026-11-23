@@ -4,7 +4,6 @@ use crate::{
     GoSliceAppendBoxed,
     GoSliceFromSlice,
     GoSliceHeader,
-    GoSliceView,
     GoTypeParamFieldClone,
     GoValueClone,
     Vec,
@@ -12,6 +11,7 @@ use crate::{
     format_slice_values,
     format_slice_wrapped,
     go_any_clone,
+    go_any_try_clone,
 };
 
 use std::fmt::{Display, Formatter};

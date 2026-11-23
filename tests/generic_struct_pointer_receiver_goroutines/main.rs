@@ -11,12 +11,6 @@ use p::*;
 use std::fmt::{Formatter};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub struct C<T: Any + Send + Sync + 'static> {
     pub p: Arc<Mutex<Option<P>>>,
     pub items: Arc<Mutex<Option<[P; 2]>>>,
@@ -252,10 +246,10 @@ fn main() {
     let mut originalSlicePtr = Arc::new(Mutex::new(Some(C::<Vec<i64>> { v: Arc::new(Mutex::new(Some(vec![13i64]))), ..Default::default() })));
     let mut originalSlice = Arc::new(Mutex::new(Some({ let __v = (*originalSlicePtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
     let mut copiedSlice = { let __owned = originalSlice.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let __idx = (0) as usize; let __rhs = 14; (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
-    println!("{} {} {}", format!("{}", "type parameter slice elements".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }));
+    { let __idx = (0) as usize; let __rhs = 14; (*(*copiedSlice.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "type parameter slice elements".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
     { let new_val = Arc::new(Mutex::new(Some(vec![15i64]))); (*copiedSlice.lock().unwrap().as_mut().unwrap()).v = new_val; };
-    println!("{} {} {}", format!("{}", "type parameter slice field".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }));
+    println!("{} {} {}", format!("{}", "type parameter slice field".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = (*copiedSlice.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
 
         // Arrays remain Go values when they instantiate the type parameter.
     let mut originalArrayPtr = Arc::new(Mutex::new(Some(C::<[i64; 2]> { v: Arc::new(Mutex::new(Some([16i64, 17i64]))), ..Default::default() })));
@@ -285,8 +279,8 @@ fn main() {
     let mut originalSliceArrayPtr = Arc::new(Mutex::new(Some(C::<[Vec<i64>; 1]> { v: Arc::new(Mutex::new(Some([{ let __slice_holder = shared.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))), ..Default::default() })));
     let mut originalSliceArray = Arc::new(Mutex::new(Some({ let __v = (*originalSliceArrayPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
     let mut copiedSliceArray = { let __owned = originalSliceArray.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __rhs = 24; (*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()[__outer_idx].clone().set(__idx, __rhs); };
-    println!("{} {} {}", format!("{}", "type parameter array slice backing".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.get_cloned((0) as usize)), format!("{}", { let __seq = { let __seq_holder = (*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.get_cloned((0) as usize)));
+    { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __rhs = 24; (*(*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "type parameter array slice backing".to_string()), format!("{}", { let __seq = { let __seq_holder = (*originalSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()), format!("{}", { let __seq = { let __seq_holder = (*copiedSliceArray.lock().unwrap().as_ref().unwrap()).v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()));
 
     let mut valueReceiverPtr = Arc::new(Mutex::new(Some(C::<i64> { n: Arc::new(Mutex::new(Some(25))), ..Default::default() })));
     let mut valueReceiver = Arc::new(Mutex::new(Some({ let __v = (*valueReceiverPtr.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));

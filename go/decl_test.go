@@ -34,6 +34,37 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 }
 
+func TestComparableStructWithNamedInterfaceUsesGoEqualityForOtherComparableFields(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Value interface { Value() float64 }
+type Holder struct {
+	Value Value
+	Extra any
+	Values [1]Value
+	Lock *sync.Mutex
+}
+
+func equal(left, right Holder) bool { return left == right }
+`)
+
+	for _, want := range []string{
+		"go_any_eq(&self.extra, &other.extra)",
+		"__left_values.iter().zip(__right_values.iter())",
+		"__go_eq_value",
+		"GoMutex::go_ptr_eq(&self.lock, &other.lock)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q from mixed-field struct equality:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "self.lock.borrow()") {
+		t.Fatalf("bare *sync.Mutex storage must not use the wrapped-pointer comparator:\n%s", rust)
+	}
+}
+
 func TestCryptoBoringSigBodylessFunctionsEmitNoOps(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "sig.go", `package sig
@@ -1374,6 +1405,39 @@ func used(p *Pointer) bool {
 	}
 	if !strings.Contains(rust, "__left.as_ref().__go_eq_type_(__right.as_ref())") {
 		t.Fatalf("comparable struct with interface field should use interface equality helper:\n%s", rust)
+	}
+}
+
+func TestComparableStructWithInterfaceFieldGetsCustomPartialEq(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface {
+	Value() float64
+}
+
+type Number struct {
+	value float64
+}
+
+func (n Number) Value() float64 { return n.value }
+
+type Holder struct {
+	value Value
+}
+
+func equal(left, right Holder) bool {
+	return left == right
+}
+`)
+
+	if !strings.Contains(rust, "impl PartialEq for Holder") {
+		t.Fatalf("ordinary comparable struct with interface field should get custom PartialEq:\n%s", rust)
+	}
+	if strings.Contains(rust, "#[derive(Clone, Default, PartialEq)]") {
+		t.Fatalf("ordinary comparable struct with interface field should not derive PartialEq over trait fields:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__left.as_ref().__go_eq_value(__right.as_ref())") {
+		t.Fatalf("ordinary comparable struct with interface field should use interface equality helper:\n%s", rust)
 	}
 }
 

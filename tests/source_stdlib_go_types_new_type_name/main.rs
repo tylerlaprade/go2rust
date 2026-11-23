@@ -7,12 +7,6 @@ macro_rules! vec {
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
     ::bytes::__go_init_all();
     ::cmp::__go_init_all();
@@ -45,7 +39,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
-    let mut basic = { let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(2usize) }.clone();
+    let mut basic = { let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[2usize].clone() }.clone();
     println!("{} {} {} {}", format!("{}", (*{ let __recv = obj.clone(); let __recv_ptr: *const go_types::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __recv = basic.clone(); let __recv_ptr: *const go_types::basic::Basic = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::basic::Basic }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())), format!("{}", {
         let __tmp_x = (*{ let __recv = basic.clone(); let __recv_ptr: *const go_types::basic::Basic = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::basic::Basic }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone();
         let __tmp_y = go_types::basic::BasicKind(Arc::new(Mutex::new(Some(go_types::INT as i64))));

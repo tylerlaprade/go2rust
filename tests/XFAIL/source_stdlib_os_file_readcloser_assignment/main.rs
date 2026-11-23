@@ -9,12 +9,6 @@ use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
     ::cmp::__go_init_all();
     ::errors::__go_init_all();
@@ -54,7 +48,7 @@ fn main() {
     ::time::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let (mut file, mut err) = os::open(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = os::Args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }))));
+    let (mut file, mut err) = os::open(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = os::Args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))));
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     }

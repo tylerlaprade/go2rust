@@ -1234,7 +1234,7 @@ path = "lib.rs"
 			cargoToml += "num = \"0.4\"\n"
 		}
 		if needsSerdeJSON {
-			cargoToml += "serde_json = \"1\"\n"
+			cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 		}
 		if needsGosyn {
 			cargoToml += "gosyn = \"0.2.9\"\n"

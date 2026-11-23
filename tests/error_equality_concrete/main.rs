@@ -13,12 +13,6 @@ use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 #[derive(Debug, Clone, PartialEq)]
 pub struct valueError {
     pub code: Rc<RefCell<Option<String>>>,
@@ -633,7 +627,7 @@ fn main() {
 
     let mut nilSafe: Rc<RefCell<Option<nilSafeError>>> = Rc::new(RefCell::new(None));
     let mut nilSafeAsError: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_nilSafeError(nilSafe.clone())) as Rc<dyn StdError>)));
-    println!("{} {}", format!("{}", { let __go_print_handle = nilSafeAsError.clone(); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_handle = Rc::new(RefCell::new(go_errors_unwrap({ let __err_handle = { let __err_source = nilSafeAsError.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }))); let __go_print_value = { let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(nilSafeAsError); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(Rc::new(RefCell::new(go_errors_unwrap({ let __err_handle = { let __err_source = nilSafeAsError.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))); let __go_guard = __go_print_handle.borrow(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     let mut cycle = Rc::new(RefCell::new(Some(cycleError { next: Default::default() })));
     let mut cycleAsError: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(Some(Rc::new(__go_error_ptr_cycleError(cycle.clone())) as Rc<dyn StdError>)));

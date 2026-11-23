@@ -27,28 +27,6 @@ func main() {
 	}
 }
 
-func TestFmtSprintVariadicAnyIteratesInsideSliceGuard(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
-
-import "fmt"
-
-func render(values ...any) string { return fmt.Sprint(values...) }
-`)
-
-	for _, want := range []string{
-		"if let Some(__sprint_values) = __sprint_guard.as_ref()",
-		"let __sprint_slice = __sprint_values.as_slice()",
-		"__sprint_slice.iter().enumerate()",
-	} {
-		if !strings.Contains(rust, want) {
-			t.Fatalf("fmt.Sprint variadic slice must iterate inside its guard; missing %q:\n%s", want, rust)
-		}
-	}
-	if strings.Contains(rust, "__sprint_guard.iter().flatten()") {
-		t.Fatalf("fmt.Sprint cannot require borrowed IntoIterator for GoSlice:\n%s", rust)
-	}
-}
-
 func TestFmtFprintWritesPrintOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

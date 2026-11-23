@@ -1,0 +1,11 @@
+[package]
+name = "channel_send_nested_shadow"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "channel_send_nested_shadow"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

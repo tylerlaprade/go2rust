@@ -11,12 +11,6 @@ use data::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
     __go_init_all();
 
@@ -35,14 +29,14 @@ fn main() {
     }
 
         // Access slice - transpiler needs to know Numbers is a slice
-    print!("First number: {}\n", Numbers.borrow().as_ref().unwrap().get_cloned((0) as usize));
-    print!("Last number: {}\n", Numbers.borrow().as_ref().unwrap().get_cloned((((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize));
+    print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = { let __map_holder = Groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"admins".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     let mut admins = { let __slice_header = GoSliceHeader::go_slice_header(&admins); Rc::new(RefCell::new(__slice_header)) };
     print!("Admin count: {}\n", (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
-    print!("First admin: {}\n", admins.borrow().as_ref().unwrap().get_cloned((0) as usize));
+    print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
         // Iterate over map - requires knowing the type
         // Note: map iteration order is non-deterministic, so we'll just count
@@ -53,7 +47,7 @@ fn main() {
     print!("User count: {}\n", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
 
         // Access slice of maps - another complex case
-    let mut firstRecord = Rc::new(RefCell::new(Some(Records.borrow().as_ref().unwrap().get_cloned((0) as usize))));
+    let mut firstRecord = Rc::new(RefCell::new(Some((*Records.borrow().as_ref().unwrap())[(0) as usize].clone())));
     {
         let (mut name, mut ok) = ({
         if let Some(__v) = (*firstRecord.borrow().as_ref().unwrap()).get(&"name".to_string()) {

@@ -1091,7 +1091,7 @@ path = "lib.rs"
 gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
 	if strings.Contains(stubCode, "serde_json::") || strings.Contains(stubCode, "pub use serde_json") {
-		cargoToml += "serde_json = \"1\"\n"
+		cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 	}
 	for _, depCrate := range sourceMappedDeps {
 		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
@@ -1213,6 +1213,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatAnyNested = dst.needsFormatAnyNested || src.needsFormatAnyNested
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
+	dst.needsAnyHandleCopy = dst.needsAnyHandleCopy || src.needsAnyHandleCopy
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
@@ -1398,6 +1399,9 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 		if _, ok := pkg.Functions["unmarshal"]; ok {
 			return true
 		}
+		if _, ok := pkg.Functions["valid"]; ok {
+			return true
+		}
 	}
 	return false
 }
@@ -1574,13 +1578,13 @@ where
     }
 }
 
-impl<V> GoJsonDecode for BTreeMap<String, V>
+impl<V> GoJsonDecode for std::collections::BTreeMap<String, V>
 where
     V: GoJsonDecode,
 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = BTreeMap::new();
+        let mut out = std::collections::BTreeMap::new();
         for (key, value) in object {
             out.insert(key.clone(), V::go_json_decode(value)?);
         }
@@ -1872,6 +1876,8 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			}
 			if name == "fs_FileMode" && methodName == "is_dir" {
 				writeFsFileModeIsDirMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "perm" {
+				writeFsFileModePermMethod(&out, method)
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -2360,7 +2366,7 @@ impl exec_Cmd {
 	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
         let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
         if let Some(cmd_env) = %s.as_ref() {
-            env.extend(cmd_env.as_slice().iter().cloned());
+            env.extend(cmd_env.iter().cloned());
         }
         %s
     }
@@ -2384,9 +2390,8 @@ impl exec_Cmd {
         if args.is_empty() {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "empty command"));
         }
-        let args_view = args.as_slice();
-        let mut command = std::process::Command::new(&args_view[0]);
-        command.args(&args_view[1..]);
+        let mut command = std::process::Command::new(&args[0]);
+        command.args(&args[1..]);
 `, errorType, wrappedExternalStubExpr(errorInnerType, errorFromMessage), externalStubBorrowExpr("self.args"))
 	if _, ok := fields["dir"]; ok {
 		fmt.Fprintf(out, `        if let Some(dir) = %s.as_ref() {
@@ -2398,8 +2403,7 @@ impl exec_Cmd {
 	}
 	if _, ok := fields["env"]; ok {
 		fmt.Fprintf(out, `        if let Some(env) = %s.as_ref() {
-            let env_values = env.as_slice();
-            for item in env_values.iter() {
+            for item in env {
                 if let Some((key, value)) = item.split_once('=') {
                     command.env(key, value);
                 }
@@ -3018,6 +3022,17 @@ func writeFsFileModeIsDirMethod(out *strings.Builder) {
 `)
 }
 
+// TEMPORARY: fs-filemode-perm — remove when ordinary io/fs.FileMode callers use the source method.
+func writeFsFileModePermMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn perm(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(self.0 & 0o777)"))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
 func writeFsDirEntryStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	stringType := wrappedExternalStubType("String")
@@ -3109,6 +3124,36 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 			out.WriteString("            Err(err) => go_json_error(err.to_string()),\n")
 			out.WriteString("        }\n")
 			out.WriteString("    }\n")
+		case "valid":
+			out.WriteString("    pub fn valid<T0: GoJsonInputArg>(_arg0: T0) -> bool {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        let mut depth = 0usize;\n")
+			out.WriteString("        let mut in_string = false;\n")
+			out.WriteString("        let mut escaped = false;\n")
+			out.WriteString("        for byte in &bytes {\n")
+			out.WriteString("            if in_string {\n")
+			out.WriteString("                if escaped {\n")
+			out.WriteString("                    escaped = false;\n")
+			out.WriteString("                } else if *byte == b'\\\\' {\n")
+			out.WriteString("                    escaped = true;\n")
+			out.WriteString("                } else if *byte == b'\"' {\n")
+			out.WriteString("                    in_string = false;\n")
+			out.WriteString("                }\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                match *byte {\n")
+			out.WriteString("                    b'\"' => in_string = true,\n")
+			out.WriteString("                    b'{' | b'[' => {\n")
+			out.WriteString("                        depth += 1;\n")
+			out.WriteString("                        if depth > 10_000 { return false; }\n")
+			out.WriteString("                    }\n")
+			out.WriteString("                    b'}' | b']' => depth = depth.saturating_sub(1),\n")
+			out.WriteString("                    _ => {}\n")
+			out.WriteString("                }\n")
+			out.WriteString("            }\n")
+			out.WriteString("        }\n")
+			out.WriteString("        let text = String::from_utf8_lossy(&bytes);\n")
+			out.WriteString("        serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()\n")
+			out.WriteString("    }\n")
 		default:
 			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName])
 		}
@@ -3121,12 +3166,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsExecutable := pkg.Functions["executable"]
+	_, needsHostname := pkg.Functions["hostname"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
 		if _, ok := pkg.Functions["write_file"]; ok {
 			writeGoBytesArgTrait(out)
 		}
+	}
+	if needsFilesystemHelpers || needsExecutable || needsHostname {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3169,10 +3218,14 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "executable" {
+			writeOsExecutableFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getwd" {
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "hostname" {
+			writeOsHostnameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
@@ -3259,6 +3312,22 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("    }\n")
 }
 
+// PERMANENT: not scaffold — os.Executable is a host OS/runtime query.
+func writeOsExecutableFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn executable() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        match std::env::current_exe() {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
 // PERMANENT: not scaffold — os.Getwd maps to std::env::current_dir in the host process environment.
 func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn getwd() -> ")
@@ -3273,6 +3342,53 @@ func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Hostname is a host OS/runtime query.
+// Linux reads the kernel's node name from /proc/sys/kernel/hostname, the same
+// value Go's uname and /proc lookups return. Windows reads COMPUTERNAME. Other
+// systems ask the host's hostname command.
+func writeOsHostnameFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn hostname() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        #[cfg(windows)]
+        let bytes = std::env::var("COMPUTERNAME")
+            .map(String::into_bytes)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::NotFound, err.to_string()));
+
+        #[cfg(target_os = "linux")]
+        let bytes = std::fs::read("/proc/sys/kernel/hostname");
+
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let bytes = std::process::Command::new("hostname").output().and_then(|output| {
+            if !output.status.success() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("hostname exited with {}", output.status),
+                ));
+            }
+            Ok(output.stdout)
+        });
+
+        let result = bytes.and_then(|mut bytes| {
+            while matches!(bytes.last(), Some(b'\n' | b'\r')) {
+                bytes.pop();
+            }
+            String::from_utf8(bytes)
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err))
+        });
+
+        match result {
+            Ok(value) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`, no_error()),
+            Err(err) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(`, io_error(err)),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.IsPathSeparator follows host OS path separator rules.

@@ -13,22 +13,16 @@ use std::error::Error as StdError;
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
     let guard = map.borrow();
     if let Some(ref m) = *guard {
-        let mut items: std::vec::Vec<_> = m.iter().collect();
+        let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
 
-        let formatted: std::vec::Vec<String> = items
+        let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();
@@ -47,36 +41,34 @@ where
 }
 fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
-    C: GoSliceView<T>,
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
     }
 }
 
-fn format_slice_values<T, C>(slice: &C) -> String
+fn format_slice_values<T>(slice: &[T]) -> String
 where
-    C: GoSliceView<T> + ?Sized,
     T: Display,
 {
-    let __view = slice.go_slice_view();
-    let formatted: std::vec::Vec<String> = __view.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
     format!("[{}]", formatted.join(" "))
 }
 
 fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
 where
-    C: GoSliceView<Rc<RefCell<Option<T>>>>,
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
     T: Display,
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
             let inner = v.borrow();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
@@ -158,7 +150,7 @@ fn main() {
 
         // The other direction: a value created over there, printed here.
     let mut numbers: Rc<RefCell<Option<Box<dyn Any>>>> = example_com_anyfromcaller_logger::numbers().clone();
-    println!("{}", format!("{}", format_any(numbers.borrow().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", match numbers.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 
     example_com_anyfromcaller_logger::show(Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>))));
 }

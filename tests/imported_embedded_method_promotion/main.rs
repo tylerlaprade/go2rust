@@ -10,12 +10,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 
 #[derive(Clone)]
 pub struct GoSliceElemPtr<T> {
@@ -172,7 +166,7 @@ impl<T: Clone> GoSliceElemPtr<T> {
     pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemRef {
-            value: guard.as_ref().map(|values| values.get_cloned(self.index)),
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
@@ -181,7 +175,7 @@ impl<T: Clone> GoSliceElemPtr<T> {
         GoSliceElemMutRef {
             slice: self.slice.clone(),
             index: self.index,
-            value: guard.as_ref().map(|values| values.get_cloned(self.index)),
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 }
@@ -267,7 +261,7 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     fn drop(&mut self) {
         if let Some(value) = self.value.clone() {
             if let Some(values) = self.slice.lock().unwrap().as_mut() {
-                values.set(self.index, value);
+                values[self.index] = value;
             }
         }
     }
@@ -441,7 +435,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::Local(value) => value.lock().unwrap().is_none(),
             GoPtr::SliceElem(value) => {
                 let guard = value.slice.lock().unwrap();
-                guard.as_ref().map(|values| value.index >= values.len()).unwrap_or(true)
+                guard.as_ref().and_then(|values| values.get(value.index)).is_none()
             }
             GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
         }
@@ -458,7 +452,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::SliceElem(slot) => {
                 let mut guard = slot.slice.lock().unwrap();
                 let values = guard.as_mut().expect("nil pointer dereference");
-                values.with_mut(slot.index, f)
+                f(values.get_mut(slot.index).expect("nil pointer dereference"))
             }
             GoPtr::ArrayElem(slot) => {
                 let mut result = None;
@@ -676,7 +670,7 @@ pub fn force_concurrent_wrappers() {
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize) })))
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
 }
 
 pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) {

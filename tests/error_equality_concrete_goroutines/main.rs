@@ -14,12 +14,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 #[derive(Debug, Clone)]
 pub struct valueError {
     pub code: Arc<Mutex<Option<String>>>,
@@ -715,7 +709,7 @@ fn main() {
 
     let mut nilSafe: Arc<Mutex<Option<nilSafeError>>> = Arc::new(Mutex::new(None));
     let mut nilSafeAsError: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_nilSafeError(nilSafe.clone())) as Arc<dyn StdError + Send + Sync>)));
-    println!("{} {}", format!("{}", { let __go_print_handle = nilSafeAsError.clone(); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_handle = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = nilSafeAsError.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))); let __go_print_value = { let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", { let __go_print_value = { let __go_print_handle = &(nilSafeAsError); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __go_print_value = { let __go_print_handle = &(Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = nilSafeAsError.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))); let __go_guard = __go_print_handle.lock().unwrap(); (*__go_guard).clone() }; let __text = match __go_print_value.as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     let mut cycle = Arc::new(Mutex::new(Some(cycleError { next: Default::default() })));
     let mut cycleAsError: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::new(__go_error_ptr_cycleError(cycle.clone())) as Arc<dyn StdError + Send + Sync>)));

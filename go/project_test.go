@@ -56,6 +56,45 @@ import . "internal/types/errors"
 	}
 }
 
+func TestGeneratedMainImportsDotImportedTranspiledCrate(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const Value = 7
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import . "example.com/dep"
+
+func main() {
+	println(Value)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use example_com_dep::*;") {
+		t.Fatalf("generated main.rs must import names from its dot-imported transpiled crate:\n%s", mainRS)
+	}
+}
+
 func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	sibling := prefixSiblingModuleImports("", "compiletype", []string{"compiletype", "escape"})
 	if sibling != "use crate::escape::*;\n" {
@@ -3509,11 +3548,11 @@ func main() {
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	// The elements are structs, so each loop value is Go's copy of its element.
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e.__go_value_clone()).collect::<std::vec::Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: GoSliceView<T>") {
-		t.Fatalf("format_slice should accept arrays and guarded slices through GoSliceView, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
+		t.Fatalf("format_slice should accept arrays and slices through AsRef, got:\n%s", mainRS)
 	}
 }
 

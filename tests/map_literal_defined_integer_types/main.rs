@@ -11,22 +11,16 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
     let guard = map.borrow();
     if let Some(ref m) = *guard {
-        let mut items: std::vec::Vec<_> = m.iter().collect();
+        let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
 
-        let formatted: std::vec::Vec<String> = items
+        let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();

@@ -9,12 +9,6 @@ use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
     ::cmp::__go_init_all();
     ::example_com_source_stdlib_parser_decl_cross_package_walker::__go_init_all();
@@ -40,5 +34,5 @@ fn main() {
         println!("{}", format!("{}", "parse failed".to_string()));
         return;
     }
-    println!("{}", format!("{}", (*example_com_source_stdlib_parser_decl_cross_package_walker::decl_kind({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.clone()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*example_com_source_stdlib_parser_decl_cross_package_walker::decl_kind({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone()).lock().unwrap().as_ref().unwrap())));
 }

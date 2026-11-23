@@ -97,7 +97,10 @@ func identIsWrappedFunctionLocal(ident *ast.Ident) bool {
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return false
+		// Syntax-only callers cannot distinguish a shadow from the universe
+		// constant. Preserve the long-standing literal behavior; production
+		// translation installs go/types information before lowering.
+		return true
 	}
 	obj := typeInfo.info.Uses[ident]
 	if obj == nil {
@@ -996,21 +999,6 @@ func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token
 	// The index is parenthesised before the cast: "s[len(s)-1]++" cast only
 	// the 1, and did not compile.
 	out.WriteString("{ ")
-	if writeGoSliceIndexedMutationSequence(out, indexExpr.X, func() {
-		out.WriteString("let __idx = ")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString("; ")
-	}) {
-		out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
-		if op == token.INC {
-			out.WriteString("+ ")
-		} else {
-			out.WriteString("- ")
-		}
-		out.WriteString(incDecStepForType(elemType))
-		out.WriteString("); }")
-		return true
-	}
 	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
 		out.WriteString("let __idx = ")
 		writeExpressionAsUsize(out, indexExpr.Index)
@@ -1802,30 +1790,7 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("; let __rhs = ")
 	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
-	out.WriteString("; ")
-	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
-		if holdsSequence {
-			out.WriteString("__seq")
-		} else {
-			TranspileExpressionContext(out, root, LValue)
-		}
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()")
-		for i, sliceContainer := range nestedSequenceContainerKinds(indexExpr.X) {
-			if sliceContainer {
-				out.WriteString(".get_cloned(")
-				out.WriteString(outerIndexTempName(i))
-				out.WriteString(")")
-			} else {
-				out.WriteString("[")
-				out.WriteString(outerIndexTempName(i))
-				out.WriteString("].clone()")
-			}
-		}
-		out.WriteString(".set(__idx, __rhs); }")
-		return true
-	}
-	out.WriteString("(*")
+	out.WriteString("; (*")
 	if holdsSequence {
 		out.WriteString("__seq")
 	} else {
@@ -1840,53 +1805,6 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	}
 	out.WriteString("[__idx] = __rhs; }")
 	return true
-}
-
-// nestedSequenceChainUsesOnlySlices reports whether every container traversed
-// by seq (a[i][j] in a[i][j][k]) is a Go slice rather than an array. A copied
-// inner GoSlice is still the same header/backing pair, so it can safely perform
-// the final mutation without borrowing a Rust reference out of an outer guard.
-func nestedSequenceChainUsesOnlySlices(seq ast.Expr) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	cur := unwrapParens(seq)
-	for {
-		index, ok := cur.(*ast.IndexExpr)
-		if !ok {
-			return typeInfo.IsSlice(cur)
-		}
-		if !typeInfo.IsSlice(index.X) {
-			return false
-		}
-		cur = unwrapParens(index.X)
-	}
-}
-
-// nestedSequenceContainerKinds reports whether each container traversed from
-// the root of seq to its innermost value is a slice. Its order matches the
-// index list returned by nestedSequenceIndexChain.
-func nestedSequenceContainerKinds(seq ast.Expr) []bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return nil
-	}
-	var reversed []*ast.IndexExpr
-	cur := unwrapParens(seq)
-	for {
-		index, ok := cur.(*ast.IndexExpr)
-		if !ok {
-			break
-		}
-		reversed = append(reversed, index)
-		cur = unwrapParens(index.X)
-	}
-	kinds := make([]bool, 0, len(reversed))
-	for i := len(reversed) - 1; i >= 0; i-- {
-		kinds = append(kinds, typeInfo.IsSlice(reversed[i].X))
-	}
-	return kinds
 }
 
 func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
@@ -2078,9 +1996,6 @@ func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.Index
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
 func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
-	if rangeTargetUsesGoSliceGuard(expr) {
-		defer out.WriteString(".as_slice()")
-	}
 	needsStrip := false
 	switch expr.(type) {
 	case *ast.CompositeLit:
@@ -2118,18 +2033,6 @@ func writeUnwrappedRangeTarget(out *strings.Builder, expr ast.Expr) {
 	} else {
 		TranspileExpressionContext(out, expr, RValue)
 	}
-}
-
-func rangeTargetUsesGoSliceGuard(expr ast.Expr) bool {
-	if !goSliceModeEnabled() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	_, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Slice)
-	return ok
 }
 
 func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
@@ -3736,6 +3639,17 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString(">()).is_some()")
 		return
 	}
+	if isEmptyInterfaceType(subjectType) && isErrorInterfaceType(typeInfo.GetType(typeExpr)) {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">()).is_some()")
+		for _, candidate := range goErrorAssertionCandidates(subjectType) {
+			out.WriteString(" || _ts_val.and_then(|__v| __v.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">()).is_some()")
+		}
+		return
+	}
 	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(handleType)
@@ -4068,7 +3982,7 @@ func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType t
 }
 
 func writeSwitchEmptyInterfaceTagHandle(out *strings.Builder, tag ast.Expr) {
-	if !writeEmptyInterfaceHandleClone(out, tag) {
+	if !writeEmptyInterfaceHandleShare(out, tag) {
 		out.WriteString(`unimplemented!("type info required for empty-interface switch tag")`)
 	}
 }
@@ -6112,6 +6026,32 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+// writeEmptyInterfaceNamedReturnAssignment stores a concrete value that a
+// return statement gives an interface{} result: the value goes into the
+// result's cell boxed, as an assignment to the result would box it.
+func writeEmptyInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if name == nil || name.Name == "_" || typeInfo == nil || resultType == nil {
+		return false
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if resultTyp := typeInfo.GetType(resultType); resultTyp == nil || !isEmptyInterfaceType(resultTyp) {
+		return false
+	}
+	if rhsType := typeInfo.GetType(rhs); rhsType == nil || types.IsInterface(rhsType) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeBareAnyBox(out, rhs)
+	out.WriteString("; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func writeLocalInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
 	if name == nil || name.Name == "_" {
 		return false
@@ -7605,23 +7545,13 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	}
 	out.WriteString("let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; ")
-	isGoSlice := goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X)
-	if !isGoSlice {
-		out.WriteString("(*")
-	}
+	out.WriteString("; (*")
 	if holdsSequence {
 		out.WriteString("__seq")
 	} else {
 		writeSequenceHandle()
 	}
 	WriteBorrowMethod(out, true)
-	if isGoSlice {
-		out.WriteString(".as_mut().unwrap().set(__idx, ")
-		writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-		out.WriteString("); }")
-		return true
-	}
 	out.WriteString(".as_mut().unwrap())[__idx] = ")
 	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
 	out.WriteString("; }")
@@ -8130,8 +8060,9 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 // writeRangeValuesMaterialization emits the `let __range_values = ...;
 // drop(__range_guard);` slice-range snapshot. A []any slice holds Box<dyn Any>
 // elements, which aren't Clone. When the loop writes each value back to its
-// indexed slot, move the element out of the slice; otherwise clone through
-// go_any_clone so ordinary range-copy semantics remain explicit.
+// indexed slot, move the element out of the slice. Otherwise retain the
+// original length and reread each element when its iteration begins, matching
+// Go slice-range semantics when the loop mutates a later backing-array slot.
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
@@ -8143,9 +8074,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<")
-		out.WriteString(stdVecPath())
-		out.WriteString("<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
@@ -8159,18 +8088,10 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		// Go copies an array before it ranges over it, so the loop does not
 		// see writes made to the array while it runs. Cloning the array
 		// would clone each struct's handles and let those writes through.
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| __e")
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
 		out.WriteString(copyCall)
-		out.WriteString(").collect::<")
-		out.WriteString(stdVecPath())
-		out.WriteString("<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
 		return
-	}
-	if goSliceModeEnabled() {
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(rangeExpr) {
-			out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.as_slice().to_vec()).unwrap_or_default(); drop(__range_guard); ")
-			return
-		}
 	}
 	// A slice is not copied: each element is read when its turn comes. The
 	// snapshot holds second handles on the elements, so a field written
@@ -8240,12 +8161,20 @@ func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type,
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
-// loop values from a materialized range snapshot. A []any snapshot holds
-// Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
-// clones each element. enumerate adds the (index, value) pairing.
-func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
+// loop values from a materialized range snapshot. A normal []any slice stores
+// its original index range, then rereads and clones the current element at the
+// start of each iteration. The indexed-writeback special case owns a Vec of
+// moved Box<dyn Any> values and consumes it instead. enumerate adds the
+// (index, value) pairing.
+func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, moveEmptyInterfaceValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
-		out.WriteString(".into_iter()")
+		if moveEmptyInterfaceValues {
+			out.WriteString(".into_iter()")
+		} else {
+			out.WriteString(".map(|__range_index| { let __range_guard = __range_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) })")
+		}
 	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
 		// The loop variable is Go's copy of the element, taken when the
 		// iteration starts: the map runs once for each step of the loop.
@@ -8401,7 +8330,36 @@ func isGoErrorType(typ types.Type) bool {
 	if errorObj == nil {
 		return false
 	}
-	return types.Identical(typ, errorObj.Type())
+	if types.Identical(types.Unalias(typ), types.Unalias(errorObj.Type())) {
+		return true
+	}
+	// Go interfaces are satisfied structurally. A named or anonymous
+	// interface whose complete method set is exactly Error() string accepts
+	// precisely the same values as the predeclared error interface, so it can
+	// use the same run-time representation. Keeping it on the generic local
+	// trait-object path loses errors.New/fmt.Errorf values because those are
+	// carried by the dedicated error handle.
+	iface, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorIface, ok := types.Unalias(errorObj.Type()).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	iface.Complete()
+	errorIface.Complete()
+	if !iface.IsMethodSet() || iface.NumMethods() != errorIface.NumMethods() {
+		return false
+	}
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		errorMethod := errorIface.Method(i)
+		if method.Id() != errorMethod.Id() || !types.Identical(method.Type(), errorMethod.Type()) {
+			return false
+		}
+	}
+	return true
 }
 
 func isConcreteGoErrorValue(typ types.Type) bool {
@@ -9312,22 +9270,6 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 
 	out.WriteString("{ ")
-	if writeGoSliceIndexedMutationSequence(out, indexExpr.X, func() {
-		out.WriteString("let __idx = ")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString("; let __rhs = ")
-		writeBareCompoundAssignValueForOp(out, rhs, elemType, op)
-		out.WriteString("; ")
-	}) {
-		out.WriteString("let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current ")
-		writeCompoundAssignOperator(out, op)
-		if op == token.ADD_ASSIGN && elemType != nil && isStringTypesType(elemType) {
-			out.WriteString(" &__rhs); }")
-		} else {
-			out.WriteString(" __rhs); }")
-		}
-		return true
-	}
 	writeIndexedSequenceElementPlace(out, indexExpr.X, func() {
 		out.WriteString("let __idx = ")
 		writeExpressionAsUsize(out, indexExpr.Index)
@@ -9345,66 +9287,6 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 	} else {
 		out.WriteString(" __rhs; }")
 	}
-	return true
-}
-
-// writeGoSliceIndexedMutationSequence evaluates the container and its outer
-// indexes in Go order, then binds __seq to a copied GoSlice header for the
-// innermost slice. The copy shares the backing array, so a later set mutates
-// the same elements without allowing a Rust reference to escape a lock guard.
-func writeGoSliceIndexedMutationSequence(out *strings.Builder, seq ast.Expr, idx func()) bool {
-	if !goSliceModeEnabled() {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsSlice(seq) {
-		return false
-	}
-	root, outer, nested := nestedSequenceIndexChain(seq)
-	if !nested {
-		root = seq
-		outer = nil
-	}
-	holdsSequence := expressionCallsOrReceives(root) || isNamedSliceExpression(root)
-	if holdsSequence {
-		out.WriteString("let __go_slice_holder = ")
-		if isNamedSliceExpression(root) {
-			writeNamedSliceInnerHandleClone(out, root)
-		} else {
-			TranspileExpressionContext(out, root, LValue)
-			out.WriteString(".clone()")
-		}
-		out.WriteString("; ")
-	}
-	for i, index := range outer {
-		out.WriteString("let ")
-		out.WriteString(outerIndexTempName(i))
-		out.WriteString(" = ")
-		writeExpressionAsUsize(out, index)
-		out.WriteString("; ")
-	}
-	idx()
-	out.WriteString("let __seq = { let __go_slice_guard = ")
-	if holdsSequence {
-		out.WriteString("__go_slice_holder")
-	} else {
-		TranspileExpressionContext(out, root, LValue)
-	}
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __go_slice_guard.as_ref().unwrap()")
-	for i, sliceContainer := range nestedSequenceContainerKinds(seq) {
-		if sliceContainer {
-			out.WriteString(".get_cloned(")
-			out.WriteString(outerIndexTempName(i))
-			out.WriteString(")")
-		} else {
-			out.WriteString("[")
-			out.WriteString(outerIndexTempName(i))
-			out.WriteString("].clone()")
-		}
-	}
-	out.WriteString(".clone() }")
-	out.WriteString("; ")
 	return true
 }
 
@@ -9903,11 +9785,7 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 	}
 
 	out.WriteString(indent)
-	useNestedGoSliceSet := target.nestedRoot != nil && nestedSequenceChainUsesOnlySlices(target.indexExpr.X)
-	useGoSliceSet := goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(target.indexExpr.X) && (target.nestedRoot == nil || useNestedGoSliceSet)
-	if !useGoSliceSet {
-		out.WriteString("(*")
-	}
+	out.WriteString("(*")
 	if target.holdsSequence {
 		out.WriteString(target.sequenceName)
 	} else if target.nestedRoot != nil {
@@ -9926,22 +9804,6 @@ func writeParallelAssignmentPreparedIndexTargetLine(out *strings.Builder, target
 		TranspileExpressionContext(out, target.indexExpr.X, LValue)
 	}
 	WriteBorrowMethod(out, true)
-	if useGoSliceSet {
-		out.WriteString(".as_mut().unwrap()")
-		if useNestedGoSliceSet {
-			for _, name := range target.outerIndexNames {
-				out.WriteString(".get_cloned(")
-				out.WriteString(name)
-				out.WriteString(")")
-			}
-		}
-		out.WriteString(".set(")
-		out.WriteString(target.indexName)
-		out.WriteString(", ")
-		writeIndexedSequenceTempAssignmentValue(out, target.indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
-		out.WriteString(");\n")
-		return
-	}
 	out.WriteString(".as_mut().unwrap())")
 	for _, name := range target.outerIndexNames {
 		out.WriteString("[")
@@ -10871,6 +10733,19 @@ func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 	return true
 }
 
+func isPredeclaredBoolConstant(ident *ast.Ident) bool {
+	if ident == nil || (ident.Name != "true" && ident.Name != "false") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		// Without type information only a declared local can shadow the
+		// predeclared constant.
+		return lookupVarInfo(ident.Name) == nil
+	}
+	return typeInfo.GetObject(ident) == types.Universe.Lookup(ident.Name)
+}
+
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
@@ -10885,9 +10760,11 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 
-	// For boolean identifiers (true/false), output directly
+	// Only the predeclared boolean constants are Rust boolean literals. Go
+	// permits local variables named true and false; those use ordinary Rust
+	// bindings (renamed to true_/false_ because Rust reserves the literals).
 	if ident, ok := expr.(*ast.Ident); ok {
-		if ident.Name == "true" || ident.Name == "false" {
+		if isPredeclaredBoolConstant(ident) {
 			out.WriteString(ident.Name)
 			return
 		}
@@ -10930,28 +10807,38 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	// For identifiers that are wrapped, unwrap them
 	if ident, ok := expr.(*ast.Ident); ok {
-		// Check if it's a range loop variable, constant, or bare variable
-		if _, isRange := rangeLoopVars[ident.Name]; isRange {
-			out.WriteString(ident.Name)
+		// A local constant can shadow a captured outer variable with the same
+		// spelling. Its go/types object, rather than the name-only capture map,
+		// determines that this use names the local constant.
+		if isLocalConstantIdent(ident) {
+			out.WriteString(RustIdentForUse(ident))
 			return
 		}
-		if _, isConst := localConstants[ident.Name]; isConst {
-			out.WriteString(ident.Name)
+		rustName := rustIdentForUseWithCapture(ident)
+		// Check if it's a range loop variable, constant, or bare variable
+		if _, isRange := rangeLoopVars[ident.Name]; isRange {
+			// A range over a slice or array can bind a reference to the
+			// iterator element. Sending the range variable still copies its
+			// Go value into the channel rather than sending that reference.
+			if writeOwnedRangeValue(out, ident) {
+				return
+			}
+			out.WriteString(rustName)
 			return
 		}
 		if isVarBare(ident.Name) {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			return
 		}
 		// Wrapped variable — unwrap and copy if needed. A value sent on a
 		// channel is a copy of the variable.
 		if isCopyType {
 			out.WriteString("(*")
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 		} else if copyCall, known := goValueCopyCallForExpr(ident); known {
-			out.WriteString(ident.Name)
+			out.WriteString(rustName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(copyCall)
@@ -11193,11 +11080,14 @@ func transpileElseBranch(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTy
 			vt.PushScope()
 			popElseBodyScope = vt.PopScope
 		}
+		var captureShadowRestores []func()
 		for _, stmt := range block.List {
 			out.WriteString("            ")
 			TranspileStatementSimple(out, stmt, fnType, fileSet)
 			out.WriteString(";\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		popElseBodyScope()
 		out.WriteString("        }")
 	}
@@ -11214,6 +11104,8 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	}()
 	out.WriteString("{\n        ")
 	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
+	restoreInitCaptureShadow := suppressCaptureRenamesDeclaredBy(stmt.Init)
+	defer restoreInitCaptureShadow()
 	restoreRangeLoopVars = shadowRangeLoopVars(shortDeclNames(stmt.Init))
 	out.WriteString(";\n        if ")
 	transpileCondition(out, stmt.Cond)
@@ -11225,11 +11117,14 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 		vt.PushScope()
 		popIfBodyScope = vt.PopScope
 	}
+	var captureShadowRestores []func()
 	for _, bodyStmt := range stmt.Body.List {
 		out.WriteString("            ")
 		TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 		out.WriteString(";\n")
+		trackCaptureShadows(&captureShadowRestores, bodyStmt)
 	}
+	restoreCaptureShadows(captureShadowRestores)
 	popIfBodyScope()
 	thenGuards := cloneMutexGuards(activeMutexGuards)
 	out.WriteString("        }")
@@ -12013,6 +11908,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				resultType := returnResultTypeExpr(fnType, i)
 				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeEmptyInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writePointerNamedReturnAssignment(out, names[i], resultType, result) &&
@@ -13410,25 +13306,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 									}
 
-									out.WriteString("; ")
-									isGoSlice := false
-									if typeInfo := GetTypeInfo(); goSliceModeEnabled() && typeInfo != nil && typeInfo.IsSlice(indexExpr.X) {
-										isGoSlice = true
-									}
-									if !isGoSlice {
-										out.WriteString("(*")
-									}
+									out.WriteString("; (*")
 									if holdsSequence {
 										out.WriteString("__seq")
 									} else {
 										writeSequenceHandle()
 									}
 									WriteBorrowMethod(out, true)
-									if isGoSlice {
-										out.WriteString(".as_mut().unwrap().set(__idx, __rhs); }")
-									} else {
-										out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
-									}
+									out.WriteString(".as_mut().unwrap())[__idx] = __rhs; }")
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.
@@ -13601,6 +13486,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(" = Some(new_val); }")
 										}
 									}
+								} else if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Self-wrapping values such as map/slice literals still need boxing
+									// when the assignment target is interface{}.
 								} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 									writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
@@ -14758,11 +14646,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 		restoreRangeLoopVars := func() {}
+		restoreInitCaptureShadow := func() {}
 		if wrapForScope {
 			out.WriteString("{\n    ")
 		}
 		if s.Init != nil {
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			restoreInitCaptureShadow = suppressCaptureRenamesDeclaredBy(s.Init)
 			restoreRangeLoopVars = shadowRangeLoopVars(shortNames)
 			out.WriteString("\n    ")
 		}
@@ -14791,6 +14681,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		currentLoopDepth++
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		if stmtListHasPlannedGoto(s.Body.List) {
 			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
 		} else {
@@ -14804,10 +14695,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
 				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
 				out.WriteString("\n")
+				trackCaptureShadows(&captureShadowRestores, stmt)
 
 				prevStmt = stmt
 			}
 		}
+		restoreCaptureShadows(captureShadowRestores)
 
 		// Add the post statement (increment) if present
 		if s.Post != nil {
@@ -14832,11 +14725,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if popForInitScope != nil {
 			popForInitScope()
 		}
+		restoreInitCaptureShadow()
 
 	case *ast.BlockStmt:
 		out.WriteString("{\n")
 		var prevStmt ast.Stmt
 		var blockLastPos token.Pos = s.Lbrace
+		var captureShadowRestores []func()
 		for i, stmt := range s.List {
 			// Add blank line if there was one in the source
 			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
@@ -14849,9 +14744,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &blockLastPos, indent+"    ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.List)-1)
 			out.WriteString("\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 
 			prevStmt = stmt
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		out.WriteString(indent)
 		out.WriteString("}")
 
@@ -15031,12 +14928,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			currentLoopDepth++
 			var rangeBodyLastPos token.Pos = s.Body.Lbrace
+			var captureShadowRestores []func()
 			for i, stmt := range s.Body.List {
 				out.WriteString("        ")
 				TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
 				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 				out.WriteString("\n")
+				trackCaptureShadows(&captureShadowRestores, stmt)
 			}
+			restoreCaptureShadows(captureShadowRestores)
 			currentLoopDepth--
 
 			out.WriteString("    }")
@@ -15553,14 +15453,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							valCopied = true
 						}
 					}
-					if valCloned {
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						out.WriteString(" in ")
+						out.WriteString(rangeValuesVar)
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+					} else if valCloned {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -15576,14 +15480,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 							out.WriteString(".iter()")
-						} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
+						} else if isReferenceRangeTarget(s.X) {
 							writeUnwrappedRangeTarget(out, s.X)
 							out.WriteString(".iter()")
 						} else {
@@ -15605,12 +15509,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					if needsCloned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, true)
+					} else if needsCloned {
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else if valueAssigned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(".iter().enumerate()")
@@ -15630,14 +15536,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valCopied2 = true
 					}
 				}
-				if valCloned2 {
+				if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+					out.WriteString(" in ")
+					out.WriteString(rangeValuesVar)
+					writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+				} else if valCloned2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -15653,14 +15563,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else {
 					rangeValueBoundByReference = valueBindingTemp == ""
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 						out.WriteString(".iter()")
-					} else if isReferenceRangeTarget(s.X) || rangeTargetUsesGoSliceGuard(s.X) {
+					} else if isReferenceRangeTarget(s.X) {
 						writeUnwrappedRangeTarget(out, s.X)
 						out.WriteString(".iter()")
 					} else {
@@ -15704,12 +15614,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		currentLoopDepth++
 		var rangeBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &rangeBodyLastPos, "        ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		currentLoopDepth--
 
 		out.WriteString("    }")
@@ -15756,12 +15669,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			popIfBodyScope = vt.PopScope
 		}
 		var ifBodyLastPos token.Pos = s.Body.Lbrace
+		var captureShadowRestores []func()
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
 			TranspileStatement(out, stmt, fnType, fileSet, comments, &ifBodyLastPos, "        ")
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
+			trackCaptureShadows(&captureShadowRestores, stmt)
 		}
+		restoreCaptureShadows(captureShadowRestores)
 		popIfBodyScope()
 		thenGuards := cloneMutexGuards(activeMutexGuards)
 
@@ -15788,12 +15704,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					popElseBodyScope = vt.PopScope
 				}
 				var elseBodyLastPos token.Pos = block.Lbrace
+				var captureShadowRestores []func()
 				for i, stmt := range block.List {
 					out.WriteString("        ")
 					TranspileStatement(out, stmt, fnType, fileSet, comments, &elseBodyLastPos, "        ")
 					writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(block.List)-1)
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, stmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				popElseBodyScope()
 				out.WriteString("    }")
 			}
@@ -15803,8 +15722,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.SwitchStmt:
 		// Handle init statement if present
+		restoreInitCaptureShadow := func() {}
 		if s.Init != nil {
 			TranspileStatementSimple(out, s.Init, fnType, fileSet)
+			restoreInitCaptureShadow = suppressCaptureRenamesDeclaredBy(s.Init)
 			out.WriteString("\n    ")
 		}
 
@@ -15918,6 +15839,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					// Case body — replace fallthrough with flag set
 					var caseBodyLastPos token.Pos = caseClause.Colon
+					var captureShadowRestores []func()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -15929,7 +15851,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }\n")
 				}
@@ -15998,6 +15922,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(" {\n")
 
 					var caseBodyLastPos token.Pos = caseClause.Colon
+					var captureShadowRestores []func()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -16005,7 +15930,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("            ")
 						TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }")
 					emittedCase = true
@@ -16019,6 +15946,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("{\n")
 				}
 				var caseBodyLastPos token.Pos = defaultClause.Colon
+				var captureShadowRestores []func()
 				for _, bodyStmt := range defaultClause.Body {
 					if isUnlabeledBreakStmt(bodyStmt) {
 						break
@@ -16026,7 +15954,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("            ")
 					TranspileStatement(out, bodyStmt, fnType, fileSet, comments, &caseBodyLastPos, "            ")
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				out.WriteString("        }")
 			}
 
@@ -16038,6 +15968,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n        break;\n    }")
 			restoreBreakTarget()
 		}
+		restoreInitCaptureShadow()
 
 	case *ast.BranchStmt:
 		switch s.Tok {
@@ -16162,12 +16093,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 
 						// Body
+						var captureShadowRestores []func()
 						for _, bodyStmt := range cc.Body {
 							out.WriteString("            ")
 							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 							writeSelectBranchTerminator(out, bodyStmt)
 							out.WriteString("\n")
+							trackCaptureShadows(&captureShadowRestores, bodyStmt)
 						}
+						restoreCaptureShadows(captureShadowRestores)
 						if !stmtListTerminates(cc.Body) {
 							out.WriteString("            break;\n")
 						}
@@ -16182,12 +16116,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeChannelExpression(out, unary.X)
 					out.WriteString(".try_recv_select() {\n")
 
+					var captureShadowRestores []func()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("            ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("            break;\n")
 					}
@@ -16204,12 +16141,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString(") {\n")
 
+				var captureShadowRestores []func()
 				for _, bodyStmt := range cc.Body {
 					out.WriteString("            ")
 					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 					writeSelectBranchTerminator(out, bodyStmt)
 					out.WriteString("\n")
+					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				restoreCaptureShadows(captureShadowRestores)
 				if !stmtListTerminates(cc.Body) {
 					out.WriteString("            break;\n")
 				}
@@ -16221,12 +16161,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if hasDefault {
 			for _, cc := range commClauses {
 				if cc.Comm == nil {
+					var captureShadowRestores []func()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("        ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
 						writeSelectBranchTerminator(out, bodyStmt)
 						out.WriteString("\n")
+						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("        break;\n")
 					}
@@ -16423,6 +16366,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		assignedCaptured := assignedCapturedVarsInCall(s.Call, captured)
 		for _, varName := range capturedVars {
+			source := RustLocalIdent(varName)
 			out.WriteString("let ")
 			if assignedCaptured[varName] || currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("mut ")
@@ -16434,18 +16378,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(".clone(); ")
 			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || goStmtCapturedNameIsFunctionHandle(s.Call, varName) {
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
-				out.WriteString(varName)
+				out.WriteString(source)
 				out.WriteString(".clone(); ")
 			} else if goStmtSharesCapturedVariable(s.Call, varName) {
 				// The goroutine works on the variable itself, as a closure does.
-				out.WriteString(varName)
+				out.WriteString(source)
 				out.WriteString(".clone(); ")
 			} else {
 				// A loop variable, or a value passed as an argument: Go copies
 				// it when the go statement runs.
 				WriteWrapperPrefix(out)
 				out.WriteString("(*")
-				out.WriteString(varName)
+				out.WriteString(source)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
 				WriteWrapperSuffix(out)
@@ -16515,12 +16459,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Body
 				popParamScope := pushFuncLitParamVarScope(funcLit)
 				restoreRangeShadows := shadowRangeLoopVars(funcLitParamNames(funcLit))
+				var restoreCaptureShadows []func()
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
 						out.WriteString("\n            ")
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+					restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+				}
+				for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+					restoreCaptureShadows[i]()
 				}
 				restoreRangeShadows()
 				popParamScope()
@@ -16544,12 +16493,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(")")
 			} else {
 				// No arguments - just inline the body
+				var restoreCaptureShadows []func()
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
 						out.WriteString("\n        ")
 					}
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
+					restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+				}
+				for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+					restoreCaptureShadows[i]()
 				}
 				if hasClosureDefer {
 					out.WriteString("\n        while let Some(f) = __defer_stack.pop() {\n")
@@ -16824,11 +16778,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// handle of its own to the same error, so
 							// assigning to it does not change what the
 							// interface value holds.
-							writeErrorHandleCopy(out, func() {
-								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-								out.WriteString(handleType)
-								out.WriteString(">()).unwrap()")
-							})
+							out.WriteString("if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()) { ")
+							writeErrorHandleCopy(out, func() { out.WriteString("__err_handle") })
+							out.WriteString(" }")
+							for _, candidate := range goErrorAssertionCandidates(typeSwitchSubjectType) {
+								out.WriteString(" else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(candidate.rustType)
+								out.WriteString(">()) { ")
+								writeGoErrorHandleFromAssertionCandidate(out, candidate)
+								out.WriteString(" }")
+							}
+							out.WriteString(" else { unreachable!(\"type switch error case matched no error payload\") }")
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.
@@ -17591,6 +17553,67 @@ func suppressCaptureRename(name string) func() {
 	delete(currentCaptureRenames, name)
 	return func() {
 		currentCaptureRenames[name] = renamed
+	}
+}
+
+// suppressCaptureRenamesDeclaredBy removes name-only outer capture aliases
+// after a statement introduces block-local bindings with the same spelling.
+// go/types Defs distinguishes new bindings in a short declaration from names
+// that the statement merely assigns. The returned function restores aliases
+// when the lexical block ends.
+func suppressCaptureRenamesDeclaredBy(stmt ast.Stmt) func() {
+	if stmt == nil || currentCaptureRenames == nil {
+		return func() {}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return func() {}
+	}
+
+	var names []*ast.Ident
+	switch s := stmt.(type) {
+	case *ast.AssignStmt:
+		if s.Tok == token.DEFINE {
+			for _, lhs := range s.Lhs {
+				if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" && typeInfo.info.Defs[ident] != nil {
+					names = append(names, ident)
+				}
+			}
+		}
+	case *ast.DeclStmt:
+		if decl, ok := s.Decl.(*ast.GenDecl); ok && (decl.Tok == token.VAR || decl.Tok == token.CONST) {
+			for _, spec := range decl.Specs {
+				if values, ok := spec.(*ast.ValueSpec); ok {
+					for _, ident := range values.Names {
+						if ident.Name != "_" && typeInfo.info.Defs[ident] != nil {
+							names = append(names, ident)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	var restores []func()
+	for _, ident := range names {
+		if _, captured := currentCaptureRenames[ident.Name]; captured {
+			restores = append(restores, suppressCaptureRename(ident.Name))
+		}
+	}
+	return func() {
+		for i := len(restores) - 1; i >= 0; i-- {
+			restores[i]()
+		}
+	}
+}
+
+func trackCaptureShadows(restores *[]func(), stmt ast.Stmt) {
+	*restores = append(*restores, suppressCaptureRenamesDeclaredBy(stmt))
+}
+
+func restoreCaptureShadows(restores []func()) {
+	for i := len(restores) - 1; i >= 0; i-- {
+		restores[i]()
 	}
 }
 

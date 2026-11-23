@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 
 thread_local! {
     static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
@@ -30,7 +24,7 @@ fn main() {
 
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let (mut f, mut err) = os::open(go_os_args().borrow().as_ref().unwrap().get_cloned((0) as usize));
+    let (mut f, mut err) = os::open((*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone());
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }

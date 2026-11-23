@@ -232,9 +232,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<")
-			out.WriteString(stdVecPath())
-			out.WriteString("<_>>().join(\" \")), None => \"[]\".to_string() } }")
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.isMap && f.mapOpaque {
 			out.WriteString("\"<map>\"")
 		} else if f.isMap {
@@ -272,13 +270,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
-			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v")
-			if f.goPtrSlice && goSliceModeEnabled() {
-				out.WriteString(".as_slice()")
-			}
-			out.WriteString(".iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<")
-			out.WriteString(stdVecPath())
-			out.WriteString("<_>>().join(\" \")), None => \"[]\".to_string() } }")
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v.iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.ptrToPtrSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice_wrapped(&self.")
@@ -968,7 +960,7 @@ func currentMapKeyStructTypes() map[string]bool {
 
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
 	return structName != "" && structType != nil && comparableStructTypes[structName] &&
-		(NeedsConcurrentWrapper() || structHasPointerComparableField(structType))
+		(NeedsConcurrentWrapper() || structHasTraitField(structType) || structHasPointerComparableField(structType))
 }
 
 func structHasPointerComparableField(structType *ast.StructType) bool {
@@ -1062,14 +1054,44 @@ func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation 
 	out.WriteString(")")
 }
 
-func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField) {
+func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
+	ptr, ok := types.Unalias(typ).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || !isGoSyncNamedType(named) || isSourceMappedGoSyncNamedType(named) || named.Obj() == nil {
+		return "", false
+	}
+	switch named.Obj().Name() {
+	case "Mutex":
+		return "GoMutex", true
+	default:
+		return "", false
+	}
+}
+
+func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField, typ types.Type) {
+	if helper, ok := structComparableBareSyncPointerHelper(typ); ok {
+		out.WriteString(helper)
+		out.WriteString("::go_ptr_eq(&self.")
+		out.WriteString(field.name)
+		out.WriteString(", &other.")
+		out.WriteString(field.name)
+		out.WriteString(")")
+		return
+	}
 	outerWrapper := GetOuterWrapperType()
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
 	out.WriteString("{ let __left_some = self.")
 	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
+	out.WriteString(borrow)
 	out.WriteString(".is_some(); let __right_some = other.")
 	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
+	out.WriteString(borrow)
 	out.WriteString(".is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && ")
 	out.WriteString(outerWrapper)
 	out.WriteString("::ptr_eq(&self.")
@@ -1209,7 +1231,7 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 			writeStructComparableGoPtrFieldEq(out, field)
 			return
 		}
-		writeStructComparablePointerFieldEq(out, field)
+		writeStructComparablePointerFieldEq(out, field, typ)
 		return
 	}
 	if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok && comparableTypeContainsPointer(array.Elem()) {
@@ -1220,24 +1242,62 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 	// can share a field's cell (an interface value and its copy share the
 	// fields of the struct they hold), and holding both locks at once would
 	// then lock one mutex twice.
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	if isGoErrorType(typ) {
+		fmt.Fprintf(out, "{ let __left = self.%s%s.clone(); let __right = other.%s%s.clone(); ", field.name, borrow, field.name, borrow)
+		out.WriteString("match (__left.as_ref(), __right.as_ref()) { (Some(__l), Some(__r)) => ")
+		writeGoErrorPayloadEquality(out, "__l", "__r")
+		out.WriteString(", (None, None) => true, _ => false } }")
+		return
+	}
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("{ let __left = { self.")
 		out.WriteString(field.name)
-		WriteBorrowMethod(out, false)
+		out.WriteString(borrow)
 		out.WriteString(".clone() }; let __right = { other.")
 		out.WriteString(field.name)
-		WriteBorrowMethod(out, false)
+		out.WriteString(borrow)
 		out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 		out.WriteString(traitMethodSuffix(ifaceName))
 		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
 		return
 	}
+	if isEmptyInterfaceType(typ) {
+		NeedAnyEq()
+		out.WriteString("go_any_eq(&self.")
+		out.WriteString(field.name)
+		out.WriteString(", &other.")
+		out.WriteString(field.name)
+		out.WriteString(")")
+		return
+	}
+	if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok {
+		if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(array.Elem()); ok {
+			out.WriteString("{ let __left_array = { self.")
+			out.WriteString(field.name)
+			out.WriteString(borrow)
+			out.WriteString(".as_ref().cloned() }; let __right_array = { other.")
+			out.WriteString(field.name)
+			out.WriteString(borrow)
+			out.WriteString(".as_ref().cloned() }; match (__left_array.as_ref(), __right_array.as_ref()) { (Some(__left_values), Some(__right_values)) => __left_values.iter().zip(__right_values.iter()).all(|(__left_cell, __right_cell)| { let __left = { __left_cell")
+			out.WriteString(borrow)
+			out.WriteString(".clone() }; let __right = { __right_cell")
+			out.WriteString(borrow)
+			out.WriteString(".clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+			out.WriteString(traitMethodSuffix(ifaceName))
+			out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }), (None, None) => true, _ => false } }")
+			return
+		}
+	}
 	out.WriteString("{ let __left = { self.")
 	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
+	out.WriteString(borrow)
 	out.WriteString(".as_ref().cloned() }; let __right = { other.")
 	out.WriteString(field.name)
-	WriteBorrowMethod(out, false)
+	out.WriteString(borrow)
 	out.WriteString(".as_ref().cloned() }; __left == __right }")
 }
 
@@ -1614,6 +1674,10 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 			return
 		}
 		out.WriteString(goTypeToRustBase(fieldType))
+		if _, isPointer := fieldType.(*ast.StarExpr); isPointer {
+			out.WriteString("::nil()")
+			return
+		}
 		out.WriteString("::new()")
 		return
 	}
@@ -5691,8 +5755,6 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	out.WriteString("let __count = __haystack.as_ref().map(|__v| __v")
 	if stringInput {
 		out.WriteString(".as_bytes()")
-	} else if goSliceModeEnabled() {
-		out.WriteString(".as_slice()")
 	}
 	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as " + rustIntType() + ";\n")
 	out.WriteString(indent)

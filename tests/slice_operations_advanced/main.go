@@ -2,8 +2,6 @@ package main
 
 import "fmt"
 
-type words []int
-
 func main() {
 	// Slice with capacity
 	s := make([]int, 3, 10)
@@ -26,12 +24,4 @@ func main() {
 	var s4 []int
 	s5 := []int{}
 	fmt.Printf("s4==nil: %v, s5==nil: %v\n", s4 == nil, s5 == nil)
-
-	// clear must hold a backing-wide write guard for both named slices and
-	// sliced views while preserving the original header.
-	w := words{7, 8, 9, 10}
-	clear(w[1:3])
-	fmt.Printf("partial clear: len=%d cap=%d %v\n", len(w), cap(w), w)
-	clear(w)
-	fmt.Printf("full clear: len=%d cap=%d %v\n", len(w), cap(w), w)
 }

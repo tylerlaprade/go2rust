@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -509,11 +510,20 @@ func writeShiftCountPrimitiveOperand(out *strings.Builder, expr ast.Expr, shift 
 	if writeNamedIntegerShiftCountLiteral(out, expr, shift, typeInfo) {
 		return true
 	}
-	if !isConstantExpression(expr) {
-		return false
+	if isConstantExpression(expr) {
+		TranspileExpression(out, expr)
+		return true
 	}
-	TranspileExpression(out, expr)
-	return true
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok && isUnwrappedBasicIntegerType(typeInfo.GetType(expr)) {
+		var value strings.Builder
+		if writeBareBasicNumericConversionValue(&value, call) {
+			out.WriteByte('(')
+			out.WriteString(value.String())
+			out.WriteByte(')')
+			return true
+		}
+	}
+	return false
 }
 
 func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr, typeInfo *TypeInfo) bool {
@@ -846,8 +856,9 @@ func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	out.WriteString(RustIdentForUse(ident))
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -858,8 +869,9 @@ func writeIntegerConstantForRangeIndexPeer(out *strings.Builder, expr ast.Expr, 
 	if expressionsHaveTypeInfo(expr, peer) {
 		return false
 	}
+	out.WriteString("(")
 	writeConstExpressionCastValue(out, expr)
-	out.WriteString(" as " + rustIntType())
+	out.WriteString(" as " + rustIntType() + ")")
 	return true
 }
 
@@ -1870,6 +1882,9 @@ func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bo
 }
 
 func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
+	if writeAnySliceElementBoxClone(out, arg) {
+		return true
+	}
 	if writeBareAnyReferenceBoxClone(out, arg) {
 		return true
 	}
@@ -3044,11 +3059,7 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	writeExpressionAsUsize(out, index)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	if goSliceModeEnabled() {
-		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq.get_cloned(__seq_index) }")
-	} else {
-		out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
-	}
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }")
 	return true
 }
 
@@ -8441,11 +8452,76 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 }
 
 func isErrorInterfaceType(typ types.Type) bool {
-	if typ == nil {
-		return false
+	return isGoErrorType(typ)
+}
+
+// goErrorAssertionCandidates are the concrete error implementations a value
+// of sourceType can carry in an interface box. Opaque errors such as the value
+// returned by errors.New use rustGoErrorHandleType instead; these candidates
+// cover user-defined value and pointer error types boxed under their own type.
+func goErrorAssertionCandidates(sourceType types.Type) []localInterfaceAssertionCandidate {
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		return nil
 	}
-	named, ok := types.Unalias(typ).(*types.Named)
-	return ok && named.Obj() != nil && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
+	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
+	candidates := localInterfaceAssertionCandidates(errorIface, sourceType)
+	if sourceType == nil || isEmptyInterfaceType(sourceType) {
+		// A value-receiver Error method belongs to both T and *T. The generic
+		// candidate collector deliberately chooses one implementing form per
+		// named type, but an any box uses distinct Rust payloads for T and *T,
+		// so error assertions must probe both.
+		baseCandidates := slices.Clone(candidates)
+		for _, candidate := range baseCandidates {
+			named, ok := types.Unalias(candidate.typ).(*types.Named)
+			if !ok {
+				continue
+			}
+			ptr := types.NewPointer(named)
+			if types.Implements(ptr, errorIface) {
+				candidates = append(candidates, localInterfaceAssertionCandidate{
+					external: candidate.external,
+					typ:      ptr,
+				})
+			}
+		}
+		seen := make(map[string]bool)
+		filtered := candidates[:0]
+		for i := range candidates {
+			if handleType, ok := anyBoxedHandleRustType(candidates[i].typ); ok {
+				candidates[i].rustType = handleType
+			}
+			if candidates[i].rustType == "" || seen[candidates[i].rustType] {
+				continue
+			}
+			seen[candidates[i].rustType] = true
+			filtered = append(filtered, candidates[i])
+		}
+		candidates = filtered
+	}
+	return candidates
+}
+
+func writeGoErrorPayloadFromAssertionCandidate(out *strings.Builder, candidate localInterfaceAssertionCandidate) {
+	if _, ok := types.Unalias(candidate.typ).(*types.Pointer); ok {
+		// Keep the pointer handle itself. Replacing *p after the assertion must
+		// be visible through the bound error, just as it is in Go. The adapter
+		// also retains the existing typed-nil behavior without dereferencing it.
+		NeedGoPointerError()
+		out.WriteString(rustErrorFromValueStart())
+		out.WriteString("GoPointerError::new(typed_val.clone())")
+		out.WriteString(rustErrorFromValueEnd())
+		return
+	}
+	out.WriteString(rustErrorFromValueStart())
+	out.WriteString("typed_val.clone()")
+	out.WriteString(rustErrorFromValueEnd())
+}
+
+func writeGoErrorHandleFromAssertionCandidate(out *strings.Builder, candidate localInterfaceAssertionCandidate) {
+	WriteWrapperPrefix(out)
+	writeGoErrorPayloadFromAssertionCandidate(out, candidate)
+	WriteWrapperSuffix(out)
 }
 
 func writeMaybeUnwrappedExpression(out *strings.Builder, expr ast.Expr) {
@@ -8832,6 +8908,8 @@ func writeTypedNilPointerAnyBox(out *strings.Builder, call *ast.CallExpr) bool {
 		return false
 	}
 	NeedGoAnyTypeMetadata()
+	// A copy of the interface value copies the nil pointer, the handle.
+	RegisterAnyCloneType(targetType)
 	out.WriteString("{ let __boxed = Box::new(")
 	TranspileExpression(out, call)
 	out.WriteString(") as ")
@@ -9557,12 +9635,38 @@ func writeAnyHandleAssertionExpectBareValue(out *strings.Builder, receiver strin
 }
 
 func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool {
+	var value strings.Builder
+	if writeAnySliceElementBoxClone(&value, expr) {
+		WriteWrapperPrefix(out)
+		out.WriteString(value.String())
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if !isBareAnyReferenceExpr(expr) {
 		return false
 	}
 	WriteWrapperPrefix(out)
 	writeBareAnyReferenceBoxClone(out, expr)
 	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeAnySliceElementBoxClone clones the dynamic value in items[i], where
+// items is []any. Its element is a bare Box<dyn Any>, not an interface cell,
+// so callers must keep the slice guard alive and clone through go_any_clone.
+func writeAnySliceElementBoxClone(out *strings.Builder, expr ast.Expr) bool {
+	index, ok := anySliceElementAssertionSource(expr)
+	if !ok {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("{ let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize; let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone(); let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }")
 	return true
 }
 
@@ -9646,7 +9750,7 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
@@ -9670,13 +9774,32 @@ func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
 }
 
 func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	return writeEmptyInterfaceHandle(out, expr, false)
+}
+
+// writeEmptyInterfaceHandleShare writes the handle of an interface{} value
+// for a reader that only looks at it, such as a switch tag: no copy.
+func writeEmptyInterfaceHandleShare(out *strings.Builder, expr ast.Expr) bool {
+	return writeEmptyInterfaceHandle(out, expr, true)
+}
+
+func writeEmptyInterfaceHandle(out *strings.Builder, expr ast.Expr, shareOnly bool) bool {
 	if !isEmptyInterfaceValueExpr(expr) {
 		return false
+	}
+	if writeBareAnyReferenceWrappedClone(out, expr) {
+		return true
 	}
 	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
 		return true
 	}
-	if writeBareAnyReferenceWrappedClone(out, expr) {
+	if interfaceValueIsStoredInPlace(expr) && !shareOnly {
+		// Go copies the interface value: the copy must not share the cell
+		// that a later assignment to the source overwrites.
+		NeedAnyHandleCopy()
+		out.WriteString("go_any_handle_copy(&")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(")")
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -9769,9 +9892,19 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		return false
 	}
 	if _, ok := lhs.(*ast.Ident); ok {
-		TranspileExpressionContext(out, lhs, LValue)
-		out.WriteString(" = ")
+		// The value goes into the variable's own cell, which a closure that
+		// captured the variable shares; only a value with no copy replaces
+		// the cell.
+		NeedAnyHandleCopy()
+		var target strings.Builder
+		TranspileExpressionContext(&target, lhs, LValue)
+		out.WriteString("if let Some(__shared) = go_any_store(&")
+		out.WriteString(target.String())
+		out.WriteString(", ")
 		writeEmptyInterfaceHandleClone(out, rhs)
+		out.WriteString(") { ")
+		out.WriteString(target.String())
+		out.WriteString(" = __shared; }")
 		return true
 	}
 	if sel, ok := lhs.(*ast.SelectorExpr); ok {
@@ -11352,29 +11485,12 @@ func writeMultilineGenericConcurrentSequenceIndexValue(out *strings.Builder, ind
 	writeClonedWrappedExpression(out, indexExpr.X, "__seq_holder", "__seq_guard")
 	out.WriteString(";\n")
 	out.WriteString(indent)
-	if goSliceIndexExpression(indexExpr.X) {
-		out.WriteString("    __seq.get_cloned(")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString(")\n")
-	} else {
-		out.WriteString("    __seq[")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString("].clone()\n")
-	}
+	out.WriteString("    __seq[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].clone()\n")
 	out.WriteString(indent)
 	out.WriteString("}")
 	return true
-}
-
-func goSliceIndexExpression(expr ast.Expr) bool {
-	if !goSliceModeEnabled() {
-		return false
-	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(expr) {
-		return true
-	}
-	kind, ok := localCollectionKind(expr)
-	return ok && kind == "slice"
 }
 
 func genericConcurrentSequenceIndexShouldUseMultiline(indexExpr *ast.IndexExpr) bool {
@@ -12671,16 +12787,10 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 
 func writeClonedValueFromGuard(out *strings.Builder, expr ast.Expr, guardName string) {
 	if unnamedSliceExpression(expr) {
-		if goSliceModeEnabled() {
-			// GoSlice<T>::clone copies only the slice header, including when T is
-			// Box<dyn Any> and therefore is not Clone.  Deep-copying []any here
-			// breaks the shared-backing semantics of a reslice before append.
-			out.WriteString(guardName)
-			out.WriteString(".as_ref().cloned().unwrap_or_default()")
-		} else if rangeSliceElementIsEmptyInterface(expr) {
+		if rangeSliceElementIsEmptyInterface(expr) {
 			NeedAnyClone()
 			out.WriteString(guardName)
-			out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
+			out.WriteString(".as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
 		} else {
 			out.WriteString(guardName)
 			out.WriteString(".as_ref().cloned().unwrap_or_default()")
@@ -12811,7 +12921,7 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		case AddressOf, LValue:
 			out.WriteString(rustPackageGlobalName(e.Name))
 		}
-	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
+	} else if ((e.Name == "true" || e.Name == "false") && isPredeclaredBoolConstant(e)) || e.Name == "_" {
 		out.WriteString(e.Name)
 	} else if isLocalConstantIdent(e) {
 		if ctx != RValue || !writeNamedScalarConstValue(out, e, varName) {
@@ -13419,7 +13529,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Check if this variable has been renamed (captured in closure)
 		varName := RustIdentForUse(e)
 		renamedReceiver := ""
-		if renamed, exists := captureRenameForIdent(e); exists {
+		isDefinition := false
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+			isDefinition = typeInfo.info.Defs[e] != nil
+		}
+		// A declaration inside the closure may shadow a captured outer name.
+		// Capture aliases apply to uses, never to the defining identifier itself.
+		if renamed, exists := captureRenameForIdent(e); exists && !isDefinition {
 			varName = RustLocalIdent(renamed)
 			if isCurrentReceiverIdent(e) {
 				renamedReceiver = varName
@@ -14444,6 +14560,23 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				yIsStringLit = true
 			}
 		}
+		writeConstOperand := func(write func(*strings.Builder, ast.Expr, ast.Expr) bool, expr ast.Expr, other ast.Expr, isLeft bool) bool {
+			var rendered strings.Builder
+			if !write(&rendered, expr, other) {
+				return false
+			}
+			// Rust parses `LIMIT as i32 < value` as generic arguments on
+			// `i32`, not as a comparison. A cast on the left of an ordered
+			// comparison therefore needs explicit grouping.
+			if isComparison && isLeft && strings.Contains(rendered.String(), " as ") {
+				out.WriteString("(")
+				out.WriteString(rendered.String())
+				out.WriteString(")")
+			} else {
+				out.WriteString(rendered.String())
+			}
+			return true
+		}
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
@@ -14486,10 +14619,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeConstShiftLeftOperandForResult(out, expr, e) {
 				return
 			}
-			if writeConstExpressionForSyntaxPeer(out, expr, other) {
+			if writeConstOperand(writeConstExpressionForSyntaxPeer, expr, other, expr == e.X) {
 				return
 			}
-			if writeConstExpressionForBinaryPeer(out, expr, other) {
+			if writeConstOperand(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 				return
 			}
 			if writeLenCapBinaryOperand(out, expr, other) {
@@ -14555,7 +14688,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeConstShiftLeftOperandForResult(out, expr, e) {
 					return
 				}
-				if writeConstExpressionForBinaryPeer(out, expr, other) {
+				if writeConstOperand(writeConstExpressionForBinaryPeer, expr, other, expr == e.X) {
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
@@ -14613,7 +14746,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Handle X operand
 			if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
 				out.WriteString(xLit.Value)
@@ -14627,7 +14760,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Handle Y operand
 			if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
 				out.WriteString(yLit.Value)
@@ -14663,9 +14796,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeConstShiftLeftOperandForResult(out, e.X, e) {
 				// Left operand of a shift uses the shift result type, not the count type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForSyntaxPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.X) {
 				// Reference-style range value cloned or copied for comparison.
@@ -14714,9 +14847,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Character literal emitted as byte.
 			} else if writeShiftCountPrimitiveOperand(out, e.Y, e) {
 				// Shift counts stay primitive; they do not adopt the left operand's named type.
-			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForSyntaxPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's syntax-proven representation.
-			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if isComparison && writeReferenceRangeValue(out, e.Y) {
 				// Reference-style range value cloned or copied for comparison.
@@ -14741,20 +14874,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Use type information to determine if this is a map access
 		typeInfo := GetTypeInfo()
 		isMap := false
-		isSlice := false
 		hasIndexType := false
 
 		if typeInfo != nil {
 			if typ := typeInfo.GetType(e.X); typ != nil {
 				hasIndexType = true
 				isMap = typeInfo.IsMap(e.X)
-				isSlice = typeInfo.IsSlice(e.X)
 			}
 		}
 		if !hasIndexType {
 			if kind, ok := localCollectionKind(e.X); ok {
 				isMap = kind == "map"
-				isSlice = kind == "slice"
 			} else {
 				// Type info not available - add error comment
 				out.WriteString("/* ERROR: Cannot determine if map or slice access - type information required */ ")
@@ -14763,6 +14893,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 		}
+
 		if isMap {
 			// Map read access - need to clone the value
 			defaultValue := "Default::default()"
@@ -14858,53 +14989,31 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// An interface{} element is copied with go_any_clone.
 			} else {
 				// Array/slice indexing
-				isGoSlice := goSliceModeEnabled() && isSlice
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
-					// Don't add borrow/unwrap. GoSlice reads clone while its backing
-					// guard is alive; arrays can still index directly.
+					// Don't add borrow/unwrap - just index directly
 					TranspileExpressionContext(out, e.X, LValue)
-					if isGoSlice {
-						out.WriteString(".get_cloned(")
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString(")")
-					} else {
-						out.WriteString("[")
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString("]")
-						out.WriteString(".clone()")
-					}
+					out.WriteString("[")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("]")
+					out.WriteString(".clone()")
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __seq = ")
 					writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-					if isGoSlice {
-						out.WriteString("; __seq.get_cloned(")
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString(") }")
-					} else {
-						out.WriteString("; __seq[")
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString("].clone() }")
-					}
+					out.WriteString("; __seq[")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("].clone() }")
 				} else {
-					if !isGoSlice {
-						out.WriteString("(*")
-					}
+					out.WriteString("(*")
 					// Use LValue context so identifiers don't unwrap themselves
 					TranspileExpressionContext(out, e.X, LValue)
 					WriteBorrowMethod(out, false)
-					if isGoSlice {
-						out.WriteString(".as_ref().unwrap().get_cloned(")
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString(")")
-					} else {
-						out.WriteString(".as_ref().unwrap())[")
-						// Index handling - identifiers will unwrap themselves in RValue context
-						writeExpressionAsUsize(out, e.Index)
-						out.WriteString("]")
-						// Array/slice elements are wrapped, so we need to clone
-						out.WriteString(".clone()")
-					}
+					out.WriteString(".as_ref().unwrap())[")
+					// Index handling - identifiers will unwrap themselves in RValue context
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("]")
+					// Array/slice elements are wrapped, so we need to clone
+					out.WriteString(".clone()")
 				}
 			}
 		}
@@ -15982,6 +16091,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 				rustType = aliasRustType
 			}
+			if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(e.Type)) {
+				TrackImport("Error")
+				rustType = "std::string::String"
+				targetIsError = true
+				assertionReturnsPointer = false
+			}
 
 			// Generate type assertion that panics on failure (for single-value context)
 			// The comma-ok form is handled specially in assignment statements
@@ -16801,6 +16916,65 @@ func isPredeclaredTypeConversionTarget(fun ast.Expr) bool {
 	return obj == nil || isTypeName
 }
 
+// blockEndsDiverging reports whether the last statement of block never
+// finishes: a call to panic, os.Exit or log.Fatal*, or a for loop with no
+// condition and no break.
+func blockEndsDiverging(block *ast.BlockStmt) bool {
+	if block == nil || len(block.List) == 0 {
+		return false
+	}
+	switch last := block.List[len(block.List)-1].(type) {
+	case *ast.ExprStmt:
+		call, ok := unwrapParens(last.X).(*ast.CallExpr)
+		if !ok {
+			return false
+		}
+		switch fun := unwrapParens(call.Fun).(type) {
+		case *ast.Ident:
+			return fun.Name == "panic" && isBuiltinIdent(fun)
+		case *ast.SelectorExpr:
+			pkg, ok := fun.X.(*ast.Ident)
+			if !ok {
+				return false
+			}
+			typeInfo := GetTypeInfo()
+			if typeInfo == nil || typeInfo.info == nil {
+				return false
+			}
+			pkgName, ok := typeInfo.info.Uses[pkg].(*types.PkgName)
+			if !ok || pkgName.Imported() == nil {
+				return false
+			}
+			switch pkgName.Imported().Path() {
+			case "os":
+				return fun.Sel.Name == "Exit"
+			case "log":
+				return strings.HasPrefix(fun.Sel.Name, "Fatal") || strings.HasPrefix(fun.Sel.Name, "Panic")
+			}
+		}
+	case *ast.ForStmt:
+		if last.Cond != nil {
+			return false
+		}
+		hasBreak := false
+		ast.Inspect(last.Body, func(n ast.Node) bool {
+			switch n := n.(type) {
+			case *ast.FuncLit:
+				return false
+			case *ast.BranchStmt:
+				if n.Tok == token.BREAK || n.Tok == token.GOTO {
+					hasBreak = true
+				}
+			}
+			return !hasBreak
+		})
+		return !hasBreak
+	case *ast.BlockStmt:
+		return blockEndsDiverging(last)
+	}
+	return false
+}
+
 // TranspileFuncLit transpiles a function literal (closure)
 func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Wrap the closure in Arc<Mutex<Option<Box<dyn Fn>>>
@@ -16986,6 +17160,11 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 			out.WriteString("(" + strings.Join(retTypes, ", ") + ")")
 		}
 		out.WriteString(" ")
+	} else if blockEndsDiverging(funcLit.Body) {
+		// A body that ends in panic has type !, and since Rust 1.100 a
+		// closure with no annotation infers ! as its return type, which is
+		// not FnMut(). The annotation keeps it a closure returning ().
+		out.WriteString("-> () ")
 	}
 
 	if vt := GetVarTable(); vt != nil {
@@ -17085,6 +17264,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		beginPanicRecoverCatch(out, "        ")
 	}
 	if funcLit.Body != nil {
+		var restoreCaptureShadows []func()
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
 			if i == len(funcLit.Body.List)-1 {
@@ -17093,6 +17273,10 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 				TranspileStatementSimple(out, stmt, funcLit.Type, nil)
 			}
 			out.WriteString("\n")
+			restoreCaptureShadows = append(restoreCaptureShadows, suppressCaptureRenamesDeclaredBy(stmt))
+		}
+		for i := len(restoreCaptureShadows) - 1; i >= 0; i-- {
+			restoreCaptureShadows[i]()
 		}
 		writeFuncLitReceiverCaptureStateWritebacks(out, captureRenames, assignedInlineCaptures)
 		if hasClosureDefer {
@@ -17464,7 +17648,14 @@ func writeFunctionPointerDerefCallTarget(out *strings.Builder, star *ast.StarExp
 	boxType := functionBoxTypeForCallTarget(star)
 	out.WriteString("{ let __f_holder = ")
 	TranspileExpressionContext(out, star.X, LValue)
-	out.WriteString(".clone(); let __f_ptr: *mut ")
+	if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isGoPtrIdent(ident) {
+		// A GoPtr to the function's cell, as from (*F)(unsafe.Pointer):
+		// the call goes through the cell it points to.
+		out.WriteString(".borrow().expect(\"invalid memory address or nil pointer dereference\")")
+	} else {
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __f_ptr: *mut ")
 	out.WriteString(boxType)
 	out.WriteString(" = { let mut __f_guard = __f_holder")
 	WriteBorrowMethod(out, true)
@@ -17759,8 +17950,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())")
-				writeRuneSliceIteratorToString(out)
+				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
 				WriteWrapperSuffix(out)
 				return
 			case "u8":
@@ -18850,7 +19040,7 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	if !typeInfo.IsTypeConversion(call) {
 		return nil, "", false
 	}
-	named, ok := typeInfo.GetType(call).(*types.Named)
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
 	if !ok {
 		return nil, "", false
 	}
@@ -18984,9 +19174,6 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {
-	if goSliceModeEnabled() {
-		out.WriteString(".as_slice()")
-	}
 	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
 }
 
@@ -19990,15 +20177,9 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	writeUnsafePointerIndexedSequenceHolder(out, indexExpr.X)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	if goSliceModeEnabled() && typeInfo.IsSlice(indexExpr.X) {
-		out.WriteString("; let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); &__slice_guard[")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString("] as *const _ as usize }")
-	} else {
-		out.WriteString("; &__seq_guard.as_ref().unwrap()[")
-		writeExpressionAsUsize(out, indexExpr.Index)
-		out.WriteString("] as *const _ as usize }")
-	}
+	out.WriteString("; &__seq_guard.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] as *const _ as usize }")
 	return true
 }
 
@@ -20449,8 +20630,7 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
-	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
 	out.WriteString("        ")
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
@@ -20466,6 +20646,40 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 		WriteWrapperSuffix(out)
 	}
 	out.WriteString("\n")
+	out.WriteString("    })")
+	return true
+}
+
+// writeAnySliceElementAssertionCommaOk writes "v, ok := items[i].(T)" for
+// an ordinary value stored in []any. The slice element is a bare Box<dyn Any>,
+// not an interface cell, so it must be downcast in place rather than cloned.
+func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">() {\n")
+	out.WriteString("            (")
+	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	out.WriteString(", true)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
 	out.WriteString("    })")
 	return true
 }
@@ -20508,7 +20722,20 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 			out.WriteString(rustGoErrorHandleType())
 			out.WriteString(">() { (*__err_handle")
 			WriteBorrowMethod(out, false)
-			out.WriteString(").clone().expect(\"type assertion failed\") } else { ")
+			out.WriteString(").clone().expect(\"type assertion failed\") }")
+			for _, candidate := range goErrorAssertionCandidates(nil) {
+				out.WriteString(" else if let Some(typed_val) = ")
+				out.WriteString(receiver)
+				out.WriteString(".downcast_ref::<")
+				out.WriteString(candidate.rustType)
+				out.WriteString(">() { ")
+				writeGoErrorPayloadFromAssertionCandidate(out, candidate)
+				out.WriteString(" }")
+			}
+			out.WriteString(" else { ")
+			writeTypeAssertionFailurePanic(out)
+			out.WriteString(" } }")
+			return
 		}
 		out.WriteString("let typed_val = ")
 		out.WriteString(receiver)
@@ -20593,6 +20820,24 @@ func writeTypeAssertionFailedUnwrap(out *strings.Builder) {
 	out.WriteString("), ")
 	out.WriteString(RustStringLiteral(strconv.Quote(failure.target)))
 	out.WriteString("))")
+}
+
+func writeTypeAssertionFailurePanic(out *strings.Builder) {
+	failure := currentTypeAssertionFailure
+	if failure == nil {
+		out.WriteString("panic!(\"type assertion failed\")")
+		return
+	}
+	NeedGoTypeName()
+	out.WriteString("panic!(\"interface conversion: {} is {}, not {}\", ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.source)))
+	out.WriteString(", ")
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
+	out.WriteString(failure.dynamicValue)
+	out.WriteString("), ")
+	out.WriteString(RustStringLiteral(strconv.Quote(failure.target)))
+	out.WriteString(")")
 }
 
 // typeAssertionNilPanic is the panic of "x.(T)" when x is a nil interface.
@@ -20829,8 +21074,7 @@ func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *as
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
-	out.WriteString("        let any_val = __slice_guard[__idx].as_ref();\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
 	out.WriteString("        ")
 	withTypeAssertionFailure(e, "any_val", func() {
 		writePointerHandleAssertionExpectValue(out, "any_val", handleType)
@@ -20859,8 +21103,7 @@ func writeAnySliceElementHandleAssertionCommaOk(out *strings.Builder, e *ast.Typ
 	out.WriteString("        let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
-	out.WriteString("        let __slice_guard = __seq_guard.as_ref().expect(\"nil []any in type assertion\").as_slice();\n")
-	out.WriteString("        match __slice_guard[__idx].downcast_ref::<")
+	out.WriteString("        match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<")
 	out.WriteString(handleType)
 	out.WriteString(">() {\n")
 	out.WriteString("            Some(typed_val) => (typed_val.clone(), true),\n")
@@ -21655,6 +21898,16 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
 		rustType = aliasRustType
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(e.Type)) {
+		TrackImport("Error")
+		rustType = "std::string::String"
+		defaultValue = rustErrorFromText("std::string::String::new()")
+		targetIsError = true
+		targetIsInterface = false
+	}
+	if writeAnySliceElementAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsInterface, targetIsError) {
+		return
+	}
 
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
@@ -21853,7 +22106,32 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("                (")
 		writeErrorHandleCopy(out, func() { out.WriteString("typed_val") })
 		out.WriteString(", true)\n")
-		out.WriteString("            } else ")
+		out.WriteString("            }")
+		var assertionSourceType types.Type
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			assertionSourceType = typeInfo.GetType(e.X)
+		}
+		for _, candidate := range goErrorAssertionCandidates(assertionSourceType) {
+			out.WriteString(" else if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">() {\n")
+			out.WriteString("                (")
+			writeGoErrorHandleFromAssertionCandidate(out, candidate)
+			out.WriteString(", true)\n")
+			out.WriteString("            }")
+		}
+		out.WriteString(" else {\n")
+		out.WriteString("                (")
+		writeEmptyErrorHandle(out)
+		out.WriteString(", false)\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeEmptyErrorHandle(out)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
 	}
 	out.WriteString("if let Some(typed_val) = any_val.downcast_ref::<")
 	out.WriteString(rustType)
@@ -22749,13 +23027,21 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			WriteWrapperPrefix(out)
 			out.WriteString("format!(\"{}\", ")
 			receiverExpr := sel.X
-			if ident, ok := sel.X.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
-				out.WriteString(rustPackageGlobalName(ident.Name))
+			if asserted, ok := unwrapParens(sel.X).(*ast.TypeAssertExpr); ok && typeInfo != nil && isGoErrorType(typeInfo.GetType(asserted)) {
+				// The one-value form x.(error) yields the error payload;
+				// unlike an error variable it has no outer variable handle
+				// to borrow before invoking Error.
+				TranspileExpression(out, receiverExpr)
 			} else {
-				TranspileExpressionContext(out, receiverExpr, LValue)
+				if ident, ok := sel.X.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
+					out.WriteString(rustPackageGlobalName(ident.Name))
+				} else {
+					TranspileExpressionContext(out, receiverExpr, LValue)
+				}
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
 			}
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(")")
 			WriteWrapperSuffix(out)
 			return
 		}
@@ -23643,6 +23929,11 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 
 			// Check if this parameter expects interface{} (Box<dyn Any>)
 			if expectsEmptyInterface {
+				if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+					writeEmptyInterfaceCallArgumentValue(out, arg)
+					continue
+				}
+
 				// Check if the argument already has type interface{} (Box<dyn Any>)
 				argIsInterface := isEmptyInterfaceValueExpr(arg)
 				typeInfo := GetTypeInfo()
@@ -24608,6 +24899,11 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeOrderedTypeParamCallArgument(out, nil, 0, arg, expected) {
 		return
 	}
+	if ident, ok := arg.(*ast.Ident); ok && isChannelFieldType(expected) {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) && writeOwnedRangeValue(out, ident) {
+			return
+		}
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
@@ -24826,7 +25122,7 @@ func writeTypeParamSliceHandleFromConcreteHolder(out *strings.Builder, holderNam
 	out.WriteString(GetInnerWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(guardName)
-	out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| ")
+	out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__elem")
 	WriteWrapperSuffix(out)
@@ -24903,7 +25199,7 @@ func writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out *strings.Builder,
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __converted_guard_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
+		out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()) }; *__slice_holder_")
 		out.WriteString(index)
@@ -24956,7 +25252,7 @@ func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *as
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.as_slice().iter().cloned().map(|__elem| (*__elem")
+	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }")
 	return true

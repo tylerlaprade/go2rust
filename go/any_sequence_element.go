@@ -48,19 +48,11 @@ func writeAnySequenceElementClone(out *strings.Builder, expr ast.Expr) bool {
 	WriteWrapperPrefix(out)
 	defer WriteWrapperSuffix(out)
 	if isExpressionResultBare(index.X) {
-		if goSliceModeEnabled() {
-			out.WriteString("{ let __idx = ")
-			writeExpressionAsUsize(out, index.Index)
-			out.WriteString("; let __seq = ")
-			TranspileExpressionContext(out, index.X, LValue)
-			out.WriteString("; let __slice_guard = __seq.as_slice(); go_any_clone(__slice_guard[__idx].as_ref()) }")
-		} else {
-			out.WriteString("go_any_clone(")
-			TranspileExpressionContext(out, index.X, LValue)
-			out.WriteString("[")
-			writeExpressionAsUsize(out, index.Index)
-			out.WriteString("].as_ref())")
-		}
+		out.WriteString("go_any_clone(")
+		TranspileExpressionContext(out, index.X, LValue)
+		out.WriteString("[")
+		writeExpressionAsUsize(out, index.Index)
+		out.WriteString("].as_ref())")
 		return true
 	}
 	out.WriteString("{ let __idx = ")
@@ -69,10 +61,6 @@ func writeAnySequenceElementClone(out *strings.Builder, expr ast.Expr) bool {
 	TranspileExpressionContext(out, index.X, LValue)
 	out.WriteString(".clone(); let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	if goSliceModeEnabled() {
-		out.WriteString("; let __slice_guard = __seq_guard.as_ref().unwrap().as_slice(); go_any_clone(__slice_guard[__idx].as_ref()) }")
-	} else {
-		out.WriteString("; go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }")
-	}
+	out.WriteString("; go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }")
 	return true
 }

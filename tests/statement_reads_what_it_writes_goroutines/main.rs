@@ -10,95 +10,18 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
 pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::sync::RwLock<std::vec::Vec<T>>>,
+    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
     off: usize,
     len: usize,
     cap: usize,
 }
 
-pub struct GoSliceReadGuard<'a, T> {
-    guard: std::sync::RwLockReadGuard<'a, std::vec::Vec<T>>,
-    off: usize,
-    len: usize,
-}
-
-impl<T> std::ops::Deref for GoSliceReadGuard<'_, T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        &self.guard[self.off..self.off + self.len]
-    }
-}
-
-impl<T> AsRef<[T]> for GoSliceReadGuard<'_, T> {
-    fn as_ref(&self) -> &[T] {
-        self
-    }
-}
-
-pub struct GoSliceWriteGuard<'a, T> {
-    guard: std::sync::RwLockWriteGuard<'a, std::vec::Vec<T>>,
-    off: usize,
-    len: usize,
-}
-
-impl<T> std::ops::Deref for GoSliceWriteGuard<'_, T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        &self.guard[self.off..self.off + self.len]
-    }
-}
-
-impl<T> std::ops::DerefMut for GoSliceWriteGuard<'_, T> {
-    fn deref_mut(&mut self) -> &mut [T] {
-        &mut self.guard[self.off..self.off + self.len]
-    }
-}
-
-pub trait GoSliceView<T> {
-    type Guard<'a>: std::ops::Deref<Target = [T]> + AsRef<[T]>
-    where
-        Self: 'a,
-        T: 'a;
-    fn go_slice_view(&self) -> Self::Guard<'_>;
-}
-
-impl<T> GoSliceView<T> for GoSlice<T> {
-    type Guard<'a> = GoSliceReadGuard<'a, T> where T: 'a;
-    fn go_slice_view(&self) -> Self::Guard<'_> {
-        self.as_slice()
-    }
-}
-
-impl<T> GoSliceView<T> for std::vec::Vec<T> {
-    type Guard<'a> = &'a [T] where T: 'a;
-    fn go_slice_view(&self) -> Self::Guard<'_> {
-        self.as_slice()
-    }
-}
-
-impl<T, const N: usize> GoSliceView<T> for [T; N] {
-    type Guard<'a> = &'a [T] where T: 'a;
-    fn go_slice_view(&self) -> Self::Guard<'_> {
-        self.as_slice()
-    }
-}
-
-impl<T> GoSliceView<T> for [T] {
-    type Guard<'a> = &'a [T] where T: 'a;
-    fn go_slice_view(&self) -> Self::Guard<'_> {
-        self
-    }
-}
+unsafe impl<T: Send> Send for GoSlice<T> {}
+unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
 
 /// The prelude's Vec and vec! are Go slices in generated code.
 pub type Vec<T> = GoSlice<T>;
@@ -117,63 +40,25 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
     }
 
-    pub fn len(&self) -> usize {
-        self.len
+    fn backing_ref(&self) -> &std::vec::Vec<T> {
+        unsafe { &*self.backing.get() }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
+    #[allow(clippy::mut_from_ref)]
+    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
+        unsafe { &mut *self.backing.get() }
     }
 
-    pub fn get_cloned(&self, __index: usize) -> T
-    where
-        T: Clone,
-    {
-        self.as_slice()[__index].clone()
+    pub fn as_slice(&self) -> &[T] {
+        &self.backing_ref()[self.off..self.off + self.len]
     }
 
-    pub fn set(&self, __index: usize, __value: T) {
-        let mut __guard = self.backing.write().unwrap();
-        __guard[self.off + __index] = __value;
-    }
-
-    pub fn with_mut<R>(&self, __index: usize, __f: impl FnOnce(&mut T) -> R) -> R {
-        let mut __guard = self.backing.write().unwrap();
-        __f(&mut __guard[self.off + __index])
-    }
-
-    pub fn swap(&self, __left: usize, __right: usize) {
-        let mut __guard = self.backing.write().unwrap();
-        __guard.swap(self.off + __left, self.off + __right);
-    }
-
-    pub fn reverse(&mut self) {
-        self.as_mut_slice().reverse();
-    }
-
-    pub fn sort(&mut self)
-    where
-        T: Ord,
-    {
-        self.as_mut_slice().sort();
-    }
-
-    pub fn sort_by<F>(&mut self, __compare: F)
-    where
-        F: FnMut(&T, &T) -> std::cmp::Ordering,
-    {
-        self.as_mut_slice().sort_by(__compare);
-    }
-
-    pub fn as_slice(&self) -> GoSliceReadGuard<'_, T> {
-        GoSliceReadGuard { guard: self.backing.read().unwrap(), off: self.off, len: self.len }
-    }
-
-    pub fn as_mut_slice(&mut self) -> GoSliceWriteGuard<'_, T> {
-        GoSliceWriteGuard { guard: self.backing.write().unwrap(), off: self.off, len: self.len }
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
     }
 
     /// Go's cap(s).
@@ -186,37 +71,12 @@ impl<T> GoSlice<T> {
         std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
     }
 
-    fn with_pair<R>(&self, __other: &Self, __f: impl FnOnce(&[T], &[T]) -> R) -> R {
-        if self.shares_backing_with(__other) {
-            let __guard = self.backing.read().unwrap();
-            let __left = &__guard[self.off..self.off + self.len];
-            let __right = &__guard[__other.off..__other.off + __other.len];
-            return __f(__left, __right);
-        }
-        let __self_first = std::sync::Arc::as_ptr(&self.backing) < std::sync::Arc::as_ptr(&__other.backing);
-        if __self_first {
-            let __left_guard = self.backing.read().unwrap();
-            let __right_guard = __other.backing.read().unwrap();
-            __f(
-                &__left_guard[self.off..self.off + self.len],
-                &__right_guard[__other.off..__other.off + __other.len],
-            )
-        } else {
-            let __right_guard = __other.backing.read().unwrap();
-            let __left_guard = self.backing.read().unwrap();
-            __f(
-                &__left_guard[self.off..self.off + self.len],
-                &__right_guard[__other.off..__other.off + __other.len],
-            )
-        }
-    }
-
     /// Go's s[lo:hi].
     pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
         if __lo > __hi || __hi > self.cap {
             panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
         }
-        if self.off + __hi > self.backing.read().unwrap().len() {
+        if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
         GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
@@ -251,7 +111,7 @@ impl<T> GoSlice<T> {
     pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
         let mut __kept = 0;
         {
-            let mut __window = self.as_mut_slice();
+            let __window = self.as_mut_slice();
             for __index in 0..__window.len() {
                 if __keep(&__window[__index]) {
                     __window.swap(__kept, __index);
@@ -266,7 +126,7 @@ impl<T> GoSlice<T> {
     fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
         let (__off, __len) = (self.off, self.len);
         let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut().unwrap());
+        let mut __elems = std::mem::take(__backing.get_mut());
         __elems.truncate(__off + __len);
         __elems.drain(..__off);
         Some(__elems)
@@ -274,7 +134,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -300,7 +160,7 @@ impl<T> GoSlice<T> {
     /// pushing onto it never moves elements other slices are reading.
     fn store_at_end(&mut self, __value: T) {
         let __at = self.off + self.len;
-        let mut __backing = self.backing.write().unwrap();
+        let __backing = self.backing_mut();
         if __at < __backing.len() {
             __backing[__at] = __value;
         } else {
@@ -309,13 +169,26 @@ impl<T> GoSlice<T> {
         self.len += 1;
     }
 
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
+    }
 }
 
 impl<T: Clone> GoSlice<T> {
-    pub fn to_vec(&self) -> std::vec::Vec<T> {
-        self.as_slice().to_vec()
-    }
-
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
     pub fn push(&mut self, __value: T) {
@@ -443,15 +316,44 @@ impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
     }
 }
 
+impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => panic!("append of interface values held by another slice"),
+        }
+    }
+}
+
 /// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, its existing values are copied into
-/// a fresh backing array before the new values are written.
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
 pub trait GoSliceAppendBoxed<T> {
     fn push(&mut self, __value: T);
     fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
 }
 
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
 
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
 
 /// Reads the header of a slice value, whichever form the value has.
 pub trait GoSliceHeader<T> {
@@ -502,7 +404,7 @@ impl<T> Default for GoSlice<T> {
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::sync::RwLock::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
     }
 }
 
@@ -542,6 +444,43 @@ impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
     }
 }
 
+impl<T> std::ops::Deref for GoSlice<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSlice<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> AsRef<[T]> for GoSlice<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> AsMut<[T]> for GoSlice<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
 impl<T> std::iter::FromIterator<T> for GoSlice<T> {
     fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
         Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
@@ -559,10 +498,25 @@ impl<T: Clone> IntoIterator for GoSlice<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a GoSlice<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
 impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
     fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let __guard = self.as_slice();
-        __guard.fmt(__f)
+        self.as_slice().fmt(__f)
     }
 }
 
@@ -580,29 +534,21 @@ impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
     }
 }
 
-impl GoSlice<String> {
-    pub fn join(&self, __separator: &str) -> String {
-        self.as_slice().join(__separator)
-    }
-}
-
 impl<T: PartialEq> PartialEq for GoSlice<T> {
     fn eq(&self, __other: &Self) -> bool {
-        self.with_pair(__other, |__left, __right| __left == __right)
+        self.as_slice() == __other.as_slice()
     }
 }
 
 impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
     fn eq(&self, __other: &[T]) -> bool {
-        let __guard = self.as_slice();
-        &*__guard == __other
+        self.as_slice() == __other
     }
 }
 
 impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
     fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
-        let __guard = self.as_slice();
-        &*__guard == __other.as_slice()
+        self.as_slice() == __other.as_slice()
     }
 }
 
@@ -610,20 +556,19 @@ impl<T: Eq> Eq for GoSlice<T> {}
 
 impl<T: PartialOrd> PartialOrd for GoSlice<T> {
     fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
-        self.with_pair(__other, |__left, __right| __left.partial_cmp(__right))
+        self.as_slice().partial_cmp(__other.as_slice())
     }
 }
 
 impl<T: Ord> Ord for GoSlice<T> {
     fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
-        self.with_pair(__other, |__left, __right| __left.cmp(__right))
+        self.as_slice().cmp(__other.as_slice())
     }
 }
 
 impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
     fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
-        let __guard = self.as_slice();
-        __guard.hash(__state)
+        self.as_slice().hash(__state)
     }
 }
 
@@ -643,10 +588,10 @@ where
 {
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
-        let mut items: std::vec::Vec<_> = m.iter().collect();
+        let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
 
-        let formatted: std::vec::Vec<String> = items
+        let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
@@ -665,36 +610,34 @@ where
 }
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: GoSliceView<T>,
+    C: AsRef<[T]>,
     T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
     }
 }
 
-fn format_slice_values<T, C>(slice: &C) -> String
+fn format_slice_values<T>(slice: &[T]) -> String
 where
-    C: GoSliceView<T> + ?Sized,
     T: Display,
 {
-    let __view = slice.go_slice_view();
-    let formatted: std::vec::Vec<String> = __view.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
     format!("[{}]", formatted.join(" "))
 }
 
 fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: GoSliceView<Arc<Mutex<Option<T>>>>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: std::vec::Vec<String> = s.go_slice_view().iter().map(|v| {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
             let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
@@ -932,7 +875,7 @@ impl std::fmt::Display for Pt {
 
 impl Box_ {
     pub fn dup(&mut self) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.items.clone(); let __append_value = { let __seq = { let __seq_holder = self.items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __tmp_x = (({ let __len = ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize) }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.items.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.items.clone(); let __append_value = { let __seq = { let __seq_holder = self.items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.items.lock().unwrap() = __slice_header; };
     }
 }
 
@@ -948,53 +891,53 @@ fn main() {
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 
     let mut s = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
-    { let __idx = ({ let __tmp_x = (({ let __len = (*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 5; s.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
+    { let __idx = ({ let __tmp_x = (({ let __len = (*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 5; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "index reads the slice".to_string()), format!("{}", format_slice(&s)));
-    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }; s.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
+    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "value reads the slice".to_string()), format!("{}", format_slice(&s)));
     { let __idx = ({
-        let __tmp_x = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) };
+        let __tmp_x = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
         let __tmp_y = 1;
         __tmp_x - __tmp_y
-    }) as usize; let __rhs = 7; s.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
+    }) as usize; let __rhs = 7; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "index is an element".to_string()), format!("{}", format_slice(&s)));
-    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }; let __seq = { let __go_slice_guard = s.lock().unwrap(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
-    { let __idx = (1) as usize; let __seq = { let __go_slice_guard = s.lock().unwrap(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1); }
+    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let mut __seq_guard = s.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
+    { let __idx = (1) as usize; let mut __seq_guard = s.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     {
         let __go_lhs_sequence_0 = s.clone();
         let __go_lhs_index_0 = (0) as usize;
         let __go_lhs_sequence_1 = s.clone();
         let __go_lhs_index_1 = (2) as usize;
-        let __tmp_0 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((2) as usize) };
-        let __tmp_1 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) };
-        __go_lhs_sequence_0.lock().unwrap().as_mut().unwrap().set(__go_lhs_index_0, __tmp_0);
-        __go_lhs_sequence_1.lock().unwrap().as_mut().unwrap().set(__go_lhs_index_1, __tmp_1);
+        let __tmp_0 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     println!("{} {}", format!("{}", "compound, increment, swap".to_string()), format!("{}", format_slice(&s)));
 
     let mut s2 = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
-    { let __idx = ({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __seq = { let __go_slice_guard = s2.lock().unwrap(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + 1); }
-    { let __idx = ({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }; let __seq = { let __go_slice_guard = s2.lock().unwrap(); __go_slice_guard.as_ref().unwrap().clone() }; let __current = __seq.get_cloned(__idx); __seq.set(__idx, __current + __rhs); };
+    { let __idx = ({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
+    { let __idx = ({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __seq_guard = s2.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = s2.clone();
         let __go_lhs_index_0 = ({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
         let __go_lhs_sequence_1 = s2.clone();
         let __go_lhs_index_1 = (0) as usize;
-        let __tmp_0 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) };
-        let __tmp_1 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize) };
-        __go_lhs_sequence_0.lock().unwrap().as_mut().unwrap().set(__go_lhs_index_0, __tmp_0);
-        __go_lhs_sequence_1.lock().unwrap().as_mut().unwrap().set(__go_lhs_index_1, __tmp_1);
+        let __tmp_0 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_1 = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*s2.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+        (*__go_lhs_sequence_0.lock().unwrap().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
+        (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     println!("{} {}", format!("{}", "index reads the slice in an increment, a compound assignment and a swap".to_string()), format!("{}", format_slice(&s2)));
 
     let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }.get_cloned((0) as usize); grid.lock().unwrap().as_ref().unwrap().get_cloned(__outer_idx).set(__idx, __rhs); };
-    { let __outer_idx = ({ let __tmp_x = (({ let __len = (*grid.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __idx = (0) as usize; let __rhs = 5; grid.lock().unwrap().as_ref().unwrap().get_cloned(__outer_idx).set(__idx, __rhs); };
-    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.get_cloned((1) as usize)), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }.get_cloned((0) as usize)));
+    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone(); (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    { let __outer_idx = ({ let __tmp_x = (({ let __len = (*grid.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(1) as usize].clone()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone()));
 
     let mut pts = Arc::new(Mutex::new(Some(vec![Pt { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Pt { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
-    { let __idx = ({ let __tmp_x = (({ let __len = (*pts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }.__go_value_clone(); pts.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
-    println!("{} {}", format!("{}", "struct element".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }.x.lock().unwrap().as_ref().unwrap())));
+    { let __idx = ({ let __tmp_x = (({ let __len = (*pts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.__go_value_clone(); (*pts.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {}", format!("{}", "struct element".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
     let mut arr = Arc::new(Mutex::new(Some([1i64, 2i64, 3i64])));
     let mut p = arr.clone();
@@ -1002,7 +945,7 @@ fn main() {
     println!("{} {}", format!("{}", "through a pointer to an array".to_string()), format!("{}", format_slice(&arr)));
 
     let mut w = Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()])));
-    { let __idx = ({ let __tmp_x = (({ let __len = (*w.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = format!("{}{}", { let __seq = { let __seq_holder = w.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }, "!".to_string()); w.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
+    { let __idx = ({ let __tmp_x = (({ let __len = (*w.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = format!("{}{}", { let __seq = { let __seq_holder = w.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }, "!".to_string()); (*w.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "strings".to_string()), format!("{}", format_slice(&w)));
 
     let mut a = Arc::new(Mutex::new(Some([1i64, 2i64, 3i64])));
@@ -1010,8 +953,8 @@ fn main() {
     println!("{} {}", format!("{}", "array".to_string()), format!("{}", format_slice(&a)));
 
     let mut b = Arc::new(Mutex::new(Some(Box_ { items: Arc::new(Mutex::new(Some(vec![1i64, 2i64]))), ..Default::default() })));
-    { let __idx = ({ let __tmp_x = (({ let __len = ({ let __len_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 9; (*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
-    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) }; (*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap().set(__idx, __rhs); };
+    { let __idx = ({ let __tmp_x = (({ let __len = ({ let __len_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = 9; (*(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = (0) as usize; let __rhs = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; (*(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "slice in a field".to_string()), format!("{}", format_slice_values(&(*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64)))), ("b".to_string(), Arc::new(Mutex::new(Some(2i64))))]))));
@@ -1020,14 +963,14 @@ fn main() {
     println!("{} {}", format!("{}", "map".to_string()), format!("{}", format_map(&m)));
 
     let mut n = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = ({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values = vec![
-        { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((1) as usize) },
-        { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((2) as usize) },
+        { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() },
+        { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() },
     ]; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
     println!("{} {}", format!("{}", "append reads the slice".to_string()), format!("{}", format_slice(&n)));
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values: Vec<_> = { let __slice_holder = n.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.as_slice().iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values: Vec<_> = { let __slice_holder = n.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
     println!("{} {} {}", format!("{}", "append the slice to itself".to_string()), format!("{}", format_slice(&n)), format!("{}", ({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values: Vec<_> = { let __slice_holder = Arc::new(Mutex::new(Some({
         let __seq_holder = n.clone();
@@ -1039,10 +982,10 @@ fn main() {
         let __high = __seq.len();
         let __max = __source_cap;
         __seq.reslice3(__low, __high, __max)
-    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.as_slice().iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
-    println!("{} {} {} {}", format!("{}", "append a part of the slice".to_string()), format!("{}", ({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((12) as usize) }), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((13) as usize) }));
+    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
+    println!("{} {} {} {}", format!("{}", "append a part of the slice".to_string()), format!("{}", ({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(12) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(13) as usize].clone() }));
 
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __append_value = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __append_value = { let __seq = { let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *(*b.lock().unwrap().as_ref().unwrap()).items.lock().unwrap() = __slice_header; };
     (*b.lock().unwrap().as_mut().unwrap()).dup();
     println!("{} {}", format!("{}", "append to a field".to_string()), format!("{}", format_slice_values(&(*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
@@ -1059,10 +1002,10 @@ fn main() {
 
         )
     }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
-    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned(({ let __tmp_x = (({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize) }));
+    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }));
 
     let mut byKey = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1i64]))))]))));
-    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = { let __seq = { let __seq_holder = { let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq.get_cloned((0) as usize) }; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = { let __seq = { let __seq_holder = { let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = ({ let __len = (*{ let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byKey.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "append to a slice in a map".to_string()), format!("{}", format_slice(&{ let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 }

@@ -4,7 +4,6 @@ use crate::{
     GoSliceAppendBoxed,
     GoSliceFromSlice,
     GoSliceHeader,
-    GoSliceView,
     GoWrapError,
     Vec,
     go_error_chain_visit,
