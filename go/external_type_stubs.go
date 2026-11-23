@@ -3048,6 +3048,7 @@ func writeFsFileInfoStub(out *strings.Builder, name string, methods map[string]e
 pub struct %s {
     pub name: String,
     pub is_dir: bool,
+    pub is_symlink: bool,
     pub size: i64,
 }
 
@@ -3074,15 +3075,17 @@ impl %s {
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
 	if method, ok := methods["mode"]; ok && len(method.ReturnTypes) == 1 {
 		fmt.Fprintf(out, `    pub fn mode(&self) -> %s {
+        let mut mode = 0u32;
         if self.is_dir {
-            %s
-        } else {
-            %s
+            mode |= 1u32 << 31;
         }
+        if self.is_symlink {
+            mode |= 1u32 << 27;
+        }
+        %s
     }
 `, method.ReturnTypes[0],
-			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
-			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(mode)"))
 	}
 	methodNames := make([]string, 0, len(methods))
 	for methodName := range methods {
@@ -3283,6 +3286,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsOpenFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
 			writeOsReadFileFunction(out, pkg.Functions[funcName])
+		} else if funcName == "readlink" {
+			writeOsReadlinkFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_dir" {
 			writeOsReadDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
@@ -3327,10 +3332,11 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsOpen := pkg.Functions["open"]
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
+	_, needsReadlink := pkg.Functions["readlink"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsReadlink || needsWriteFile || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3370,6 +3376,18 @@ func writeOsErrorHelpers(out *strings.Builder) {
             path.file_name()
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_else(|| path.to_string_lossy().into_owned())
+        }
+    }
+
+    fn go_path_string(path: std::path::PathBuf) -> String {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStringExt;
+            __go_string_from_bytes(path.into_os_string().into_vec())
+        }
+        #[cfg(not(unix))]
+        {
+            path.to_string_lossy().into_owned()
         }
     }
 
@@ -3594,7 +3612,7 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = go_path_name(&path);\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), is_symlink: false, size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
@@ -3614,7 +3632,7 @@ func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = go_path_name(&path);\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), is_symlink: metadata.file_type().is_symlink(), size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
@@ -3656,6 +3674,23 @@ func writeOsReadFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString(", no_error()),\n")
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubExpr("Vec<u8>", "Vec::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Readlink maps to std::fs::read_link, syscall-tied.
+func writeOsReadlinkFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn readlink<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
+	out.WriteString("        match std::fs::read_link(&path) {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "go_path_string(path)"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")

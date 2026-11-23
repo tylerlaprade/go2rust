@@ -1261,6 +1261,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filepath_eval_symlinks_non_utf8" {
+    run_test "tests/filepath_eval_symlinks_non_utf8"
+}
+
+@test "filepath_eval_symlinks_non_utf8_goroutines" {
+    run_test "tests/filepath_eval_symlinks_non_utf8_goroutines"
+}
+
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
 }

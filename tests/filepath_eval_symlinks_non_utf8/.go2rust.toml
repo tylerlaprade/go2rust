@@ -1,0 +1,3 @@
+raw_cwd_hex = "44"
+raw_cwd_entry_hex = "fa54"
+raw_cwd_symlink_hex = "fe4c=fa54"
