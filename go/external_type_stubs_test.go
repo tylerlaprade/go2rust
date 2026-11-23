@@ -1360,6 +1360,27 @@ func TestOsClearenvStubRemovesCollectedHostKeys(t *testing.T) {
 	}
 }
 
+func TestOsGetpidStubUsesHostProcessID(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"getpid": {ReturnTypes: []string{rustIntType()}},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Getpid should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn getpid() -> " + rustIntType(),
+		"std::process::id() as _",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Getpid shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
