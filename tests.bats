@@ -1211,6 +1211,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_perm" {
+    run_test "tests/filemode_perm"
+}
+
+@test "filemode_perm_goroutines" {
+    run_test "tests/filemode_perm_goroutines"
+}
+
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
 }
@@ -3813,14 +3821,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: filemode_perm" {
-    run_xfail_test "tests/XFAIL/filemode_perm"
-}
-
-@test "XFAIL: filemode_perm_goroutines" {
-    run_xfail_test "tests/XFAIL/filemode_perm_goroutines"
 }
 
 @test "XFAIL: http_client" {

@@ -325,8 +325,8 @@ in the first place.
 - Transpiler gap: non-source-mapped callers still represent `io/fs.FileMode`
   through the external integer stub, so its Go method body is unavailable and
   the generic external method emitter panics.
-- Fixture: `tests/XFAIL/filemode_perm/` and
-  `tests/XFAIL/filemode_perm_goroutines/`
+- Fixture: `tests/filemode_perm/` and
+  `tests/filemode_perm_goroutines/`
 - Removal trigger: ordinary `io/fs.FileMode` callers use the source-translated
   `io/fs` type and method body instead of the external integer stub; then
   delete `writeFsFileModePermMethod`.
