@@ -5101,6 +5101,7 @@ struct GoContext {
     done: GoChannel<bool>,
     err: std::sync::Arc<std::sync::Mutex<Option<GO_ERROR_PAYLOAD>>>,
     cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    children: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<dyn Fn(String) + Send + Sync>>>>,
     label: String,
 }
 
@@ -5113,7 +5114,52 @@ impl GoContext {
             done: GoChannel::<bool>::new(),
             err: std::sync::Arc::new(std::sync::Mutex::new(None)),
             cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            children: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             label: "context.Background".to_string(),
+        }
+    }
+
+    fn cancel_with_message(
+        done: &GoChannel<bool>,
+        err: &std::sync::Arc<std::sync::Mutex<Option<GO_ERROR_PAYLOAD>>>,
+        cancelled: &std::sync::Arc<std::sync::atomic::AtomicBool>,
+        children: &std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<dyn Fn(String) + Send + Sync>>>>,
+        message: String,
+    ) {
+        if !cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            *err.lock().unwrap() = Some(GO_ERROR_FROM(message.clone()));
+            done.send(true);
+            done.close();
+            let callbacks = children.lock().unwrap().clone();
+            for callback in callbacks {
+                callback(message.clone());
+            }
+        }
+    }
+
+    fn link_parent(
+        parent: &Arc<Mutex<Option<GoContext>>>,
+        done: GoChannel<bool>,
+        err: std::sync::Arc<std::sync::Mutex<Option<GO_ERROR_PAYLOAD>>>,
+        cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
+        children: std::sync::Arc<std::sync::Mutex<Vec<std::sync::Arc<dyn Fn(String) + Send + Sync>>>>,
+    ) {
+        let propagate: std::sync::Arc<dyn Fn(String) + Send + Sync> = std::sync::Arc::new(move |message| {
+            GoContext::cancel_with_message(&done, &err, &cancelled, &children, message);
+        });
+        let parent_guard = parent.lock().unwrap();
+        if let Some(parent_ctx) = parent_guard.as_ref() {
+            parent_ctx.children.lock().unwrap().push(propagate.clone());
+            if parent_ctx.cancelled.load(std::sync::atomic::Ordering::SeqCst) {
+                let message = parent_ctx
+                    .err
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .map(|err| err.to_string())
+                    .unwrap_or_else(|| "context canceled".to_string());
+                propagate(message);
+            }
         }
     }
 
@@ -5131,35 +5177,36 @@ impl GoContext {
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let children = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
 
         let context = GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            children: children.clone(),
             label,
         };
 
-        let timeout_done = done.clone();
-        let timeout_err = err.clone();
-        let timeout_cancelled = cancelled.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(duration);
-            if !timeout_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *timeout_err.lock().unwrap() = Some(GO_ERROR_FROM("context deadline exceeded".to_string()));
-                timeout_done.send(true);
-                timeout_done.close();
-            }
-        });
+        GoContext::link_parent(&parent, done.clone(), err.clone(), cancelled.clone(), children.clone());
+        if duration.is_zero() {
+            GoContext::cancel_with_message(&done, &err, &cancelled, &children, "context deadline exceeded".to_string());
+        } else {
+            let timeout_done = done.clone();
+            let timeout_err = err.clone();
+            let timeout_cancelled = cancelled.clone();
+            let timeout_children = children.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(duration);
+                GoContext::cancel_with_message(&timeout_done, &timeout_err, &timeout_cancelled, &timeout_children, "context deadline exceeded".to_string());
+            });
+        }
 
         let cancel_done = done.clone();
         let cancel_err = err.clone();
         let cancel_cancelled = cancelled.clone();
+        let cancel_children = children.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
+            GoContext::cancel_with_message(&cancel_done, &cancel_err, &cancel_cancelled, &cancel_children, "context canceled".to_string());
         });
 
         (
@@ -5173,23 +5220,23 @@ impl GoContext {
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let children = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
 
         let context = GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            children: children.clone(),
             label,
         };
 
+        GoContext::link_parent(&parent, done.clone(), err.clone(), cancelled.clone(), children.clone());
         let cancel_done = done.clone();
         let cancel_err = err.clone();
         let cancel_cancelled = cancelled.clone();
+        let cancel_children = children.clone();
         let cancel: GoCancelFunc = std::sync::Arc::new(move || {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
+            GoContext::cancel_with_message(&cancel_done, &cancel_err, &cancel_cancelled, &cancel_children, "context canceled".to_string());
         });
 
         (
@@ -5203,23 +5250,23 @@ impl GoContext {
         let done = GoChannel::<bool>::new_buffered(1);
         let err = std::sync::Arc::new(std::sync::Mutex::new(None::<GO_ERROR_PAYLOAD>));
         let cancelled = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let children = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
 
         let context = GoContext {
             done: done.clone(),
             err: err.clone(),
             cancelled: cancelled.clone(),
+            children: children.clone(),
             label,
         };
 
+        GoContext::link_parent(&parent, done.clone(), err.clone(), cancelled.clone(), children.clone());
         let cancel_done = done.clone();
         let cancel_err = err.clone();
         let cancel_cancelled = cancelled.clone();
+        let cancel_children = children.clone();
         let cancel: GoCancelCauseFunc = Box::new(move |_cause| {
-            if !cancel_cancelled.swap(true, std::sync::atomic::Ordering::SeqCst) {
-                *cancel_err.lock().unwrap() = Some(GO_ERROR_FROM("context canceled".to_string()));
-                cancel_done.send(true);
-                cancel_done.close();
-            }
+            GoContext::cancel_with_message(&cancel_done, &cancel_err, &cancel_cancelled, &cancel_children, "context canceled".to_string());
         });
 
         (

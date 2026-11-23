@@ -911,12 +911,31 @@ func TestExecCmdStubChecksContextBeforeSpawn(t *testing.T) {
 	got := out.String()
 	for _, want := range []string{
 		"pub __go_context_cancelled: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>",
+		"fn __go_context_cancellation_error(&self)",
 		"cancelled.load(std::sync::atomic::Ordering::SeqCst)",
 		"std::io::ErrorKind::Interrupted",
 		"unwrap_or_else(|| \"context canceled\".to_string())",
+		"if let Some(err) = self.__go_context_cancellation_error()",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("exec.Cmd shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestGoContextHelperPropagatesParentAndExpiresZeroSynchronously(t *testing.T) {
+	var out strings.Builder
+	generateGoContextHelper(&out)
+	got := out.String()
+	for _, want := range []string{
+		"fn link_parent(",
+		"parent_ctx.children.lock().unwrap().push(propagate.clone())",
+		"if parent_ctx.cancelled.load(std::sync::atomic::Ordering::SeqCst)",
+		"if duration.is_zero()",
+		"GoContext::cancel_with_message(&done, &err, &cancelled, &children, \"context deadline exceeded\".to_string())",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("GoContext helper should include %q:\n%s", want, got)
 		}
 	}
 }

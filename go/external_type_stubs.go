@@ -2383,7 +2383,7 @@ impl exec_Cmd {
 	        %s
 	    }
 
-    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+    fn __go_context_cancellation_error(&self) -> Option<std::io::Error> {
         if self
             .__go_context_cancelled
             .as_ref()
@@ -2394,7 +2394,14 @@ impl exec_Cmd {
                 .as_ref()
                 .and_then(|err| err.lock().unwrap().as_ref().map(|err| err.to_string()))
                 .unwrap_or_else(|| "context canceled".to_string());
-            return Err(std::io::Error::new(std::io::ErrorKind::Interrupted, message));
+            return Some(std::io::Error::new(std::io::ErrorKind::Interrupted, message));
+        }
+        None
+    }
+
+    fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
+        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
         }
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
@@ -2421,7 +2428,10 @@ impl exec_Cmd {
         }
 `, externalStubBorrowExpr("self.env"))
 	}
-	out.WriteString(`        command.output()
+	out.WriteString(`        if let Some(err) = self.__go_context_cancellation_error() {
+            return Err(err);
+        }
+        command.output()
     }
 
     fn __go_write_output(&self, output: &std::process::Output) {
@@ -3904,7 +3914,7 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(")\n    }\n")
 }
 
-// PERMANENT: not scaffold — exec.Command spawns OS processes, runtime-tied.
+// TEMPORARY: exec-command-context — keep the native process boundary, but remove this context bridge once source os/exec lowering owns cancellation.
 func writeExecCommandStub(out *strings.Builder, fn externalPackageStubFunction, hasContext bool) {
 	if hasContext {
 		out.WriteString("    pub fn command_context<T1: GoStringArg, T2: GoExecCommandArgs>(_arg0: Arc<Mutex<Option<GoContext>>>, _arg1: T1, _arg2: T2) -> ")
