@@ -1299,6 +1299,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "float_constant_expressions_fold" {
+    run_test "tests/float_constant_expressions_fold"
+}
+
 @test "fmt_errorf_interface_field" {
     run_test "tests/fmt_errorf_interface_field"
 }
@@ -1851,6 +1855,10 @@ run_xfail_test() {
     run_test "tests/local_large_fixed_array_zero"
 }
 
+@test "local_shadows_package_constant" {
+    run_test "tests/local_shadows_package_constant"
+}
+
 @test "local_sync_mutex_forms" {
     run_test "tests/local_sync_mutex_forms"
 }
@@ -2037,6 +2045,10 @@ run_xfail_test() {
 
 @test "maps_operations" {
     run_test "tests/maps_operations"
+}
+
+@test "math_from_source" {
+    run_test "tests/math_from_source"
 }
 
 @test "method_address_local_pointer_arg" {
@@ -3885,6 +3897,10 @@ run_xfail_test() {
 
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
+}
+
+@test "unicode_utf8_from_source" {
+    run_test "tests/unicode_utf8_from_source"
 }
 
 @test "unsafe_float_bits" {

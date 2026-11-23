@@ -41,10 +41,21 @@ type PackageLoader struct {
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
 const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 
+// defaultSourceStdlibPackages are the standard-library packages a program
+// gets translated from their Go source without opting in. strconv returns
+// *NumError values that errors.As can find and parses and formats numbers
+// with Go's own algorithms; math and math/bits are Go's code, loaded with the
+// generic path in place of assembly (stdlibNoAsmOverlays); unicode and
+// unicode/utf8 carry Go's tables and rules instead of stubs.
 var defaultSourceStdlibPackages = map[string]bool{
 	"path/filepath":         true,
 	"internal/filepathlite": true,
 	"internal/stringslite":  true,
+	"math":                  true,
+	"math/bits":             true,
+	"strconv":               true,
+	"unicode":               true,
+	"unicode/utf8":          true,
 }
 
 // NewPackageLoader creates a new package loader

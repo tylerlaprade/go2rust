@@ -365,8 +365,15 @@ func constExpressionValue(expr ast.Expr) (constant.Value, bool) {
 		return tv.Value, true
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
-		if obj, ok := typeInfo.GetObject(ident).(*types.Const); ok && obj.Val() != nil {
+		resolved := typeInfo.GetObject(ident)
+		if obj, ok := resolved.(*types.Const); ok && obj.Val() != nil {
 			return obj.Val(), true
+		}
+		// A name go/types resolved to something else, such as a local
+		// that shadows a package constant of the same name, is not that
+		// constant. The package scope only answers for unresolved names.
+		if resolved != nil {
+			return nil, false
 		}
 		if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
 			if obj, ok := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Const); ok && obj.Val() != nil {
