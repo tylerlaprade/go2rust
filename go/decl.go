@@ -7991,6 +7991,8 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			} else {
 				out.WriteString(e.Value)
 			}
+		} else if e.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(e.Value))
 		} else {
 			out.WriteString(e.Value)
 		}

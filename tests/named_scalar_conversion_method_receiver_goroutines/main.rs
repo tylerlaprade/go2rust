@@ -806,10 +806,10 @@ fn main() {
     let mut done = GoChannel::<AnonymousStruct1>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        let mut rawDir = Arc::new(Mutex::new(Some((((((os::MODE_DIR).0 as u32) | 0755))) as u32)));;
-        let mut converted = Arc::new(Mutex::new(Some(fs_FileMode(0644 as u32))));;
-        println!("{}", format!("{}", !fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))));;
-        println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))));;
+        let mut rawDir = Arc::new(Mutex::new(Some((((((os::MODE_DIR).0 as u32) | 0o755))) as u32)));;
+        let mut converted = Arc::new(Mutex::new(Some(fs_FileMode(0o644 as u32))));;
+        println!("{}", format!("{}", !fs_FileMode::is_dir(&(fs_FileMode(0o644 as u32)))));;
+        println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o755)) as u32)))));;
         println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode(({ let __v = (*rawDir.lock().unwrap().as_ref().unwrap()); __v }) as u32)))));;
         println!("{}", format!("{}", !fs_FileMode::is_dir(&(*converted.lock().unwrap().as_ref().unwrap()))));;
         done_thread.close();;;
