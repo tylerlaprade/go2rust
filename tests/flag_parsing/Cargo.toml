@@ -15,6 +15,9 @@ edition = "2021"
 name = "flag_parsing"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 flag = { path = "vendor/flag" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

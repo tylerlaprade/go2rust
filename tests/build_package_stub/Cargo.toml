@@ -31,6 +31,9 @@ edition = "2021"
 name = "build_package_stub"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

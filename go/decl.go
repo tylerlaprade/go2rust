@@ -1105,21 +1105,25 @@ func writeStructComparableFieldEq(out *strings.Builder, structName string, field
 		writeStructComparablePointerFieldEq(out, field)
 		return
 	}
+	// Each side is read under its own lock, one after the other. Two values
+	// can share a field's cell (an interface value and its copy share the
+	// fields of the struct they hold), and holding both locks at once would
+	// then lock one mutex twice.
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		out.WriteString("{ let __left = self.")
+		out.WriteString("{ let __left = { self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); let __right = other.")
+		out.WriteString(".lock().unwrap().clone() }; let __right = { other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap(); match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
+		out.WriteString(".lock().unwrap().clone() }; match (__left.as_ref(), __right.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 		out.WriteString(traitMethodSuffix(ifaceName))
 		out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }")
 		return
 	}
-	out.WriteString("{ let __left = self.")
+	out.WriteString("{ let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); let __right = other.")
+	out.WriteString(".lock().unwrap().as_ref().cloned() }; let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
+	out.WriteString(".lock().unwrap().as_ref().cloned() }; __left == __right }")
 }
 
 func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
@@ -1245,7 +1249,7 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	out.WriteString("\n")
 	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
@@ -2769,6 +2773,12 @@ func localInterfaceNamedTypeByName(name string) (*types.Named, *types.Interface)
 	}
 	obj := typeInfo.pkg.Scope().Lookup(name)
 	if obj == nil {
+		// An interface declared inside a function body is hoisted to a
+		// top-level trait, so its implementors need the same trait impls as
+		// those of a package-level interface.
+		if named := typeInfo.functionLocalInterfaceNamedByName(name); named != nil {
+			return named, named.Underlying().(*types.Interface)
+		}
 		return nil, nil
 	}
 	typeName, ok := obj.(*types.TypeName)
@@ -3003,7 +3013,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3036,7 +3048,9 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 		out.WriteString("            None => (0, String::new()),\n")
 		out.WriteString("            Some(__v) => {\n")
 		out.WriteString("                let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
-		out.WriteString("                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);\n")
+		out.WriteString("                std::hash::Hash::hash(&")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "__v.as_ref()", "__v.as_ref()"))
+		out.WriteString(".type_id(), &mut __hasher);\n")
 		out.WriteString("                (std::hash::Hasher::finish(&__hasher), format!(\"{}\", __v))\n")
 		out.WriteString("            }\n")
 		out.WriteString("        }\n")
@@ -3069,7 +3083,7 @@ func writeLocalInterfaceMapKeyType(out *strings.Builder, ifaceName, traitSnake s
 	out.WriteString("impl PartialOrd for ")
 	out.WriteString(keyType)
 	out.WriteString(" {\n")
-	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }\n")
+	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(std::cmp::Ord::cmp(self, other)) }\n")
 	out.WriteString("}\n")
 	out.WriteString("impl Ord for ")
 	out.WriteString(keyType)
@@ -3136,7 +3150,9 @@ func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedNa
 	writeEmbeddedTraitObjectClone(out, embeddedName)
 	if !interfaceTypeHasNamedEmbedded(embeddedIface) {
 		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
-		out.WriteString("        (**self).__go_as_any()\n")
+		out.WriteString("        ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(ifaceName), "(**self)", "&**self"))
+		out.WriteString("\n")
 		out.WriteString("    }\n")
 	}
 	writeEmbeddedTraitObjectEq(out, ifaceName, embeddedName, delegateEquality)
@@ -3801,7 +3817,9 @@ func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrap
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(wrapperName)
 	out.WriteString(">() {\n")
 	if NeedsConcurrentWrapper() {
@@ -4255,10 +4273,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	// Initialize defer stack if needed
 	if hasDefer {
-		out.WriteString("    let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+		out.WriteString("    " + deferStackDecl() + "\n")
 		// We'll execute defers before each return statement
 		out.WriteString("\n")
 	}
+	writeGoSliceParamHeaderCopies(out, fn, "    ")
 
 	// Declare named return values as mutable variables
 	hasNamedReturns := false
@@ -5165,11 +5184,11 @@ func writeInternalABIKindAssignment(out *strings.Builder, indent string, sliceHa
 		kind     string
 	}{
 		{"bool", "BOOL"},
-		{"i32", "INT"},
+		{"i64", "INT"},
 		{"isize", "INT"},
 		{"i8", "INT8"},
 		{"i16", "INT16"},
-		{"i64", "INT64"},
+		{"i32", "INT32"},
 		{"u8", "UINT8"},
 		{"u16", "UINT16"},
 		{"u32", "UINT32"},
@@ -5355,7 +5374,7 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	if stringInput {
 		out.WriteString(".as_bytes()")
 	}
-	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as i32;\n")
+	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as " + rustIntType() + ";\n")
 	out.WriteString(indent)
 	if runtimeLinkedSingleResultReturnsBareScalar(fn) {
 		out.WriteString("__count\n")
@@ -5395,7 +5414,7 @@ func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncD
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone();\n")
 	out.WriteString(indent)
-	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as i32).unwrap_or(-1)\n")
+	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
 }
 
 func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -5404,7 +5423,7 @@ func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl,
 	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
 	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
 	out.WriteString(indent)
-	out.WriteString("__a.find(&__b).map(|__i| __i as i32).unwrap_or(-1)\n")
+	out.WriteString("__a.find(&__b).map(|__i| __i as " + rustIntType() + ").unwrap_or(-1)\n")
 }
 
 func writeInternalBytealgCompareStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -6168,6 +6187,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("}\n")
 			}
 			writeNamedArrayValueClone(out, typeSpec, rustTypeName)
+			writeNamedArrayPartialEq(out, typeSpec, rustTypeName)
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {
@@ -6313,7 +6333,9 @@ func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName stri
 		out.WriteString("(&self, other: ")
 		out.WriteString(paramBare)
 		out.WriteString(") -> bool {\n")
-		out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+		out.WriteString("        if let Some(__other) = ")
+		out.WriteString(goAsAnyCall(goAsAnyQualifyingTraitByName(rustTypeName), "other", "other"))
+		out.WriteString(".downcast_ref::<")
 		out.WriteString(primitive)
 		out.WriteString(">() {\n")
 		out.WriteString("            self == __other\n")
@@ -6467,6 +6489,25 @@ func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) 
 	}
 }
 
+// typeDefinitionWrapsPredeclaredBasic reports whether typeSpec is "type T
+// int64" or the like: a newtype over the wrapped cell of a predeclared
+// number, string or bool.
+func typeDefinitionWrapsPredeclaredBasic(typeSpec *ast.TypeSpec) bool {
+	ident, ok := typeSpec.Type.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeName, ok := types.Universe.Lookup(ident.Name).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	basic, ok := typeName.Type().(*types.Basic)
+	if !ok || basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) == 0 {
+		return false
+	}
+	return strings.HasPrefix(GoTypeToRust(typeSpec.Type), GetOuterWrapperType()+"<")
+}
+
 func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	if typeSpec == nil || typeSpec.Name == nil {
 		return "", false
@@ -6482,6 +6523,17 @@ func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 	named, ok := types.Unalias(obj.Type()).(*types.Named)
 	if !ok {
 		return "", false
+	}
+	if typeDefinitionWrapsPredeclaredBasic(typeSpec) {
+		// The zero value of "type Money int64" holds 0. A derived Default
+		// would hold an empty cell, and reading it panics.
+		var zero strings.Builder
+		zero.WriteString("Self(")
+		WriteWrapperPrefix(&zero)
+		zero.WriteString("Default::default()")
+		WriteWrapperSuffix(&zero)
+		zero.WriteString(")")
+		return zero.String(), true
 	}
 	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
 		return "", false
@@ -6751,7 +6803,7 @@ func writeScalarTypeDefinitionStringOps(out *strings.Builder, typeName string) {
 
 	out.WriteString("\nimpl PartialOrd for " + rustTypeName + " {\n")
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
-	out.WriteString("        Some(self.cmp(other))\n")
+	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 	writeScalarTypeDefinitionOrd(out, typeName)
@@ -7152,7 +7204,9 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
 	out.WriteString(") -> bool {\n")
-	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString("        if let Some(__other) = ")
+	out.WriteString(goAsAnyCall(localInterfaceSupportQualifyingTrait(ifaceName, ifaceType), "other", "other"))
+	out.WriteString(".downcast_ref::<")
 	out.WriteString(RustTypeNameForUse(typeName))
 	out.WriteString(">() {\n")
 	if localConcreteTypeCanUsePartialEq(typeName) {
@@ -7170,6 +7224,39 @@ func writeLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, typeName st
 
 func TranspileConstDecl(out *strings.Builder, genDecl *ast.GenDecl) {
 	transpileConstDeclWithCase(out, genDecl, true)
+}
+
+// floatConstLiteral returns the value of a float constant as a Rust float
+// literal, when the constant's Rust type is a float and its value is known.
+func floatConstLiteral(name *ast.Ident, rustType string) (string, bool) {
+	if rustType != "f64" && rustType != "f32" {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.info.Defs[name].(*types.Const)
+	if !ok || obj.Val() == nil {
+		return "", false
+	}
+	value := constant.ToFloat(obj.Val())
+	if value.Kind() != constant.Float {
+		return "", false
+	}
+	f, _ := constant.Float64Val(value)
+	if math.IsInf(f, 0) || math.IsNaN(f) {
+		return "", false
+	}
+	format := byte('f')
+	if math.Abs(f) >= 1e21 || (f != 0 && math.Abs(f) < 1e-6) {
+		format = 'g'
+	}
+	literal := strconv.FormatFloat(f, format, -1, 64)
+	if !strings.ContainsAny(literal, ".eE") {
+		literal += ".0"
+	}
+	return literal, true
 }
 
 func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUpper bool) {
@@ -7231,7 +7318,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
 					constType = inferConstType(lastExpressions[i])
 				} else {
-					constType = "i32"
+					constType = rustIntType()
 				}
 				if constType == "&'static str" && constExpr != nil && constStringNeedsByteSlice(constExpr) {
 					constType = "&'static [u8]"
@@ -7255,7 +7342,12 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				out.WriteString(" = ")
 
 				// Handle value
-				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+				if literal, ok := floatConstLiteral(name, constType); ok {
+					// "KB Size = 1 << (10 * iota)" is an integer expression
+					// for a float constant; write the value the type
+					// checker computed.
+					out.WriteString(literal)
+				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
 						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)
@@ -7379,7 +7471,7 @@ func constExprContainsIota(expr ast.Expr) bool {
 }
 
 func writeOutOfRangeGoIntConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
-	if rustType != "i32" || expr == nil {
+	if rustType != rustIntType() || expr == nil {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -7576,7 +7668,12 @@ func rustConstTypeForConstObject(name *ast.Ident, expr ast.Expr) (string, bool) 
 	if constStringValueNeedsByteSlice(obj.Val()) {
 		return "&'static [u8]", true
 	}
-	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && (basic.Kind() == types.UntypedInt || basic.Kind() == types.UntypedRune) {
+	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedRune {
+		if rustType, ok := rustConstTypeForUntypedRuneValue(expr, obj.Val()); ok {
+			return rustType, true
+		}
+	}
+	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && basic.Kind() == types.UntypedInt {
 		if rustType, ok := rustConstTypeForUntypedIntegerValue(expr, obj.Val()); ok {
 			return rustType, true
 		}
@@ -7673,17 +7770,14 @@ func inferConstType(expr ast.Expr) string {
 	case *ast.BasicLit:
 		switch e.Kind {
 		case token.INT:
-			// Check if the value might overflow i32
-			if val, err := strconv.ParseInt(e.Value, 0, 64); err == nil {
-				if val > math.MaxInt32 || val < math.MinInt32 {
-					return "i64"
-				}
-			} else if val, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
-				if val > math.MaxInt32 {
+			// An untyped integer constant's default type is int; one too
+			// big for it is a uint64.
+			if _, err := strconv.ParseInt(e.Value, 0, 64); err != nil {
+				if _, err := strconv.ParseUint(e.Value, 0, 64); err == nil {
 					return "u64"
 				}
 			}
-			return "i32"
+			return rustIntType()
 		case token.FLOAT:
 			return "f64"
 		case token.STRING:
@@ -7709,10 +7803,10 @@ func inferConstType(expr ast.Expr) string {
 		}
 		// For bit shift operations that might overflow, use i64
 		if e.Op == token.SHL {
-			// If we can constant-fold and the result fits in i32, prefer i32.
+			// If we can constant-fold and the result fits in int, prefer int.
 			if v, ok := evalIntConstExpr(e); ok {
-				if v >= int64(math.MinInt32) && v <= int64(math.MaxInt32) {
-					return "i32"
+				if v >= int64(math.MinInt64) && v <= int64(math.MaxInt64) {
+					return rustIntType()
 				}
 			}
 			return "i64"
@@ -7721,10 +7815,10 @@ func inferConstType(expr ast.Expr) string {
 		if leftType == "i64" || rightType == "i64" {
 			return "i64"
 		}
-		// Default to i32 for other numeric operations
-		return "i32"
+		// Default to int for other numeric operations
+		return rustIntType()
 	}
-	return "i32" // default
+	return rustIntType() // default
 }
 
 // Helper function to check if an expression is a string constant
@@ -9053,6 +9147,9 @@ func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
 				concreteTypes = append(concreteTypes, named)
 			}
 		}
+		// Interfaces declared inside function bodies become top-level traits
+		// too, so their methods need the same receiver mutability.
+		ifaceTypes = append(ifaceTypes, functionLocalInterfaceTypes(pkg)...)
 	}
 	for _, ifaceNamed := range ifaceTypes {
 		iface, _ := ifaceNamed.Underlying().(*types.Interface)
@@ -9376,6 +9473,12 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 			}
 			called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
 			if called == nil {
+				// A method promoted from an embedded field, s.Deposit with
+				// Deposit declared on Basic, mutates the receiver when it
+				// mutates its own.
+				called = promotedMethodDecl(sel, methodsByReceiver, typeInfo)
+			}
+			if called == nil {
 				return true
 			}
 			if methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
@@ -9386,6 +9489,40 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 		return true
 	})
 	return mutates
+}
+
+// promotedMethodDeclInContext is promotedMethodDecl over the methods of the
+// package being transpiled.
+func promotedMethodDeclInContext(sel *ast.SelectorExpr) *ast.FuncDecl {
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return nil
+	}
+	return promotedMethodDecl(sel, ctx.Package.MethodsByType, GetTypeInfo())
+}
+
+// promotedMethodDecl returns the declaration of the method sel selects
+// through an embedded field, when the package declares it.
+func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) *ast.FuncDecl {
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.MethodVal || len(selection.Index()) < 2 {
+		return nil
+	}
+	method, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return nil
+	}
+	for _, methods := range methodsByReceiver {
+		for _, decl := range methods {
+			if methodFuncForDecl(decl, typeInfo) == method {
+				return decl
+			}
+		}
+	}
+	return nil
 }
 
 func callArgumentMayMutateReceiver(arg ast.Expr, receiverName string) bool {
@@ -9459,6 +9596,10 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiv
 				return true
 			}
 			called := methodDeclByName(methodsForReceiverType(receiverType), sel.Sel.Name)
+			if called == nil {
+				// A method promoted from an embedded field.
+				called = promotedMethodDeclInContext(sel)
+			}
 			if called == nil {
 				return true
 			}
@@ -9568,8 +9709,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		activeMutexGuards = make(map[string]string)
 		defer func() { activeMutexGuards = oldActiveMutexGuards }()
 		if hasDefer {
-			out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n\n")
+			out.WriteString("        " + deferStackDecl() + "\n\n")
 		}
+		writeGoSliceParamHeaderCopies(out, fn, "        ")
 		writeNamedReturnDeclarations(out, fn.Type)
 	}
 

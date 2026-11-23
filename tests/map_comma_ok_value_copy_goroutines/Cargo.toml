@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "map_comma_ok_value_copy_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

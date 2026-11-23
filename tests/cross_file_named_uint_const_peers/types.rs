@@ -1,23 +1,37 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 pub const V0: u32 = 0;
 pub const V1: u32 = 1;
 pub const V2: u32 = 2;
-pub(crate) const NUM_VERSIONS: i32 = 3;
+pub(crate) const NUM_VERSIONS: i64 = 3;
 
 
-pub(crate) const FLAG_SYNC_MARKERS: i32 = 1 << 0;
+pub(crate) const FLAG_SYNC_MARKERS: i64 = 1 << 0;
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Version(pub Rc<RefCell<Option<u32>>>);
 
 impl Clone for Version {
     fn clone(&self) -> Self {
         let __value = (*self.0.borrow()).clone();
         Version(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
     }
 }
 

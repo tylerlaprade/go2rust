@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "named_float_string_bool_values_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

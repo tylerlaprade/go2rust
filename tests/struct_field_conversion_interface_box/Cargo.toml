@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "struct_field_conversion_interface_box"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -31,6 +31,9 @@ edition = "2021"
 name = "source_stdlib_parser_decl_cross_package"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 cmp = { path = "vendor/cmp" }
 example_com_source_stdlib_parser_decl_cross_package_walker = { path = "vendor/example_com_source_stdlib_parser_decl_cross_package_walker" }

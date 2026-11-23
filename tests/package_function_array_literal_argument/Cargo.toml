@@ -15,6 +15,9 @@ edition = "2021"
 name = "package_function_array_literal_argument"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_arrayarg_dep = { path = "vendor/example_com_arrayarg_dep" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

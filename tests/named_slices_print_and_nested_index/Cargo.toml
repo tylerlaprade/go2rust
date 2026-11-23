@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "named_slices_print_and_nested_index"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

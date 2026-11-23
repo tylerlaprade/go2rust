@@ -14,5 +14,8 @@ edition = "2021"
 name = "external_packages"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 github_com_stretchr_testify_assert = { path = "external_stubs/github_com_stretchr_testify_assert" }

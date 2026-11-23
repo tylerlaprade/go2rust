@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "selector_nil_comparison_drops_owner_lock"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

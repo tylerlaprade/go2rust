@@ -20,8 +20,8 @@ func main() {
 `)
 
 	for _, want := range []string{
-		`print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42) as Box<dyn Any>], false))`,
-		`format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43) as Box<dyn Any>], false))`,
+		`print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42i64) as Box<dyn Any>], false))`,
+		`format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43i64) as Box<dyn Any>], false))`,
 		"fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"fn format_any(value: &dyn Any) -> String {",
 		"fn __go_type_name(val: &dyn Any) -> &'static str {",

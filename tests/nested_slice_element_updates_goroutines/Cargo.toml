@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "nested_slice_element_updates_goroutines"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

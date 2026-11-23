@@ -1,0 +1,11 @@
+[package]
+name = "integer_overflow_wraps"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "integer_overflow_wraps"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

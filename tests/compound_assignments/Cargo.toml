@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "compound_assignments"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "map_range_string_value_compare"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

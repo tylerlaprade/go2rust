@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "struct_range_copy"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

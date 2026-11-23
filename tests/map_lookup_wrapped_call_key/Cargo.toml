@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "map_lookup_wrapped_call_key"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

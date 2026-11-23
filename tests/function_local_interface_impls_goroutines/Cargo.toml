@@ -1,0 +1,11 @@
+[package]
+name = "function_local_interface_impls_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "function_local_interface_impls_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

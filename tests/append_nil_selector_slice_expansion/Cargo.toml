@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "append_nil_selector_slice_expansion"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

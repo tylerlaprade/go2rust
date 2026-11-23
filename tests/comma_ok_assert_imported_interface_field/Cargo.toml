@@ -15,6 +15,9 @@ edition = "2021"
 name = "comma_ok_assert_imported_interface_field"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_commaok_ast = { path = "vendor/example_com_commaok_ast" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

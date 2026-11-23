@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "concrete_reassigned_to_interface_var"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "error_any_many_candidates"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

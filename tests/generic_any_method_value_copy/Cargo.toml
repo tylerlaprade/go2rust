@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "generic_any_method_value_copy"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

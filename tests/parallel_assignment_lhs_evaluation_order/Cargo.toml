@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "parallel_assignment_lhs_evaluation_order"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

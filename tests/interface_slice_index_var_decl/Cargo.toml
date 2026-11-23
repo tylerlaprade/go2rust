@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "interface_slice_index_var_decl"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

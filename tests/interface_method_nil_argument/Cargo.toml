@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "interface_method_nil_argument"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -45,6 +45,9 @@ edition = "2021"
 name = "stdlib_function_field_stub"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 bytes = { path = "vendor/bytes" }
 cmp = { path = "vendor/cmp" }

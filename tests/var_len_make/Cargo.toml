@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "var_len_make"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

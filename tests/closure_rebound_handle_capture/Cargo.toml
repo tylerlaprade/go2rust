@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "closure_rebound_handle_capture"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

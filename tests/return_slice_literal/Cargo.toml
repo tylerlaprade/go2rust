@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "return_slice_literal"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

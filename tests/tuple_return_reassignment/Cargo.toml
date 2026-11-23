@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "tuple_return_reassignment"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

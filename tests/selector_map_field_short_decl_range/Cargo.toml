@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "selector_map_field_short_decl_range"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

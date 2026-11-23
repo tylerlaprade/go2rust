@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "len_string_literal_slice_bounds"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

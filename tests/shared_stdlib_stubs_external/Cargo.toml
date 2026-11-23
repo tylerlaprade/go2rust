@@ -16,6 +16,9 @@ edition = "2021"
 name = "shared_stdlib_stubs_external"
 path = "main.rs"
 
+[profile.dev]
+overflow-checks = false
+
 [dependencies]
 example_com_sharedstubmain_aliases = { path = "vendor/example_com_sharedstubmain_aliases" }
 example_com_sharedstubmain_typeparams = { path = "vendor/example_com_sharedstubmain_typeparams" }

@@ -25,7 +25,7 @@ func main() {
 	if strings.Contains(rust, "- as") {
 		t.Fatalf("negative constant lost its operand:\n%s", rust)
 	}
-	for _, want := range []string{"Some(-2 as i8)", "Some(-4 as i32)"} {
+	for _, want := range []string{"Some(-2 as i8)", "Some(-4 as i64)"} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}

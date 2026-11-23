@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "string_range_var_repeated_index"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -1,3 +1,5 @@
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+
 use crate::{shape::{Shape}};
 
 use std::any::Any;
@@ -5,9 +7,15 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
 #[derive(Debug, Clone)]
 pub struct Circle {
-    pub r: Rc<RefCell<Option<i32>>>,
+    pub r: Rc<RefCell<Option<i64>>>,
 }
 
 impl Circle {
@@ -38,13 +46,13 @@ impl std::fmt::Display for Circle {
 
 
 impl Circle {
-    pub fn area(&self) -> i32 {
+    pub fn area(&self) -> i64 {
         return (*self.r.borrow().as_ref().unwrap()) * (*self.r.borrow().as_ref().unwrap());
     }
 }
 
 impl Shape for Circle {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         Circle::area(self)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {
@@ -73,7 +81,7 @@ impl std::fmt::Display for CirclePtr {
 }
 
 impl Shape for CirclePtr {
-    fn area(&self) -> i32 {
+    fn area(&self) -> i64 {
         let __recv_guard = self.0.borrow();
         let __recv = __recv_guard.as_ref().unwrap();
         Circle::area(__recv)
@@ -93,6 +101,6 @@ impl Shape for CirclePtr {
     }
 }
 
-pub fn new_circle(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<Box<dyn Shape>>>> {
+pub fn new_circle(r: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Box<dyn Shape>>>> {
     Rc::new(RefCell::new(Some(Box::new(Circle { r: Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Box<dyn Shape>)))
 }

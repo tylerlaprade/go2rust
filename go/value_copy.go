@@ -57,6 +57,48 @@ func namedArrayHasGoValueClone(named *types.Named) bool {
 // copy. The newtype holds the array in a cell and derives Clone, so a clone
 // shares the array: "b := a; b[0] = 9" changed a. The copy is a new cell
 // holding Go's copy of each element.
+// writeNamedArrayPartialEq gives "type d [3]rune" Go's ==, which compares
+// the elements. Each side is read under its own borrow or lock, one after
+// the other, as the struct equality does.
+func writeNamedArrayPartialEq(out *strings.Builder, typeSpec *ast.TypeSpec, rustTypeName string) {
+	arrayAST, ok := typeSpec.Type.(*ast.ArrayType)
+	if !ok || arrayAST.Len == nil {
+		return
+	}
+	if typeSpec.TypeParams != nil && len(typeSpec.TypeParams.List) > 0 {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	obj := typeInfo.info.Defs[typeSpec.Name]
+	if obj == nil {
+		return
+	}
+	array, ok := obj.Type().Underlying().(*types.Array)
+	if !ok {
+		return
+	}
+	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
+	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+		return
+	}
+	out.WriteString("\nimpl PartialEq for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(" {\n")
+	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        let __left = self.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __right = other.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".clone();\n")
+	out.WriteString("        __left == __right\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func writeNamedArrayValueClone(out *strings.Builder, typeSpec *ast.TypeSpec, rustTypeName string) {
 	arrayAST, ok := typeSpec.Type.(*ast.ArrayType)
 	if !ok || arrayAST.Len == nil {

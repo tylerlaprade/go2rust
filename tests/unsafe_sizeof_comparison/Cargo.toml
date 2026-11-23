@@ -6,3 +6,6 @@ edition = "2021"
 [[bin]]
 name = "unsafe_sizeof_comparison"
 path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
