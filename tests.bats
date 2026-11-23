@@ -1527,6 +1527,14 @@ run_xfail_test() {
     run_test "tests/interface_arg_wrapped_struct_field"
 }
 
+@test "interface_assertion_skips_builtin_stub_types" {
+    run_test "tests/interface_assertion_skips_builtin_stub_types"
+}
+
+@test "interface_assertion_skips_builtin_stub_types_goroutines" {
+    run_test "tests/interface_assertion_skips_builtin_stub_types_goroutines"
+}
+
 @test "interface_basic" {
     run_test "tests/interface_basic"
 }
