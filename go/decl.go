@@ -7219,18 +7219,23 @@ func writeScalarTypeDefinitionShiftOp(out *strings.Builder, rustTypeName string,
 	out.WriteString(rustTypeName)
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" ")
-	if rhsWrapped {
-		out.WriteString("*other.0")
+	shiftOp := token.SHL
+	if op == ">>" {
+		shiftOp = token.SHR
+	}
+	writeGoShiftBlock(out, shiftOp, func(out *strings.Builder) {
+		out.WriteString("*self.0")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()")
-	} else {
-		out.WriteString("other")
-	}
+	}, func(out *strings.Builder) {
+		if rhsWrapped {
+			out.WriteString("*other.0")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+		} else {
+			out.WriteString("other")
+		}
+	})
 	WriteWrapperSuffix(out)
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
