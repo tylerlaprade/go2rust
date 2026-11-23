@@ -945,7 +945,7 @@ fn main() {
         (*__f)(
 
         )
-    }]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+    }]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
     println!("{}", format!("{}", { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
 

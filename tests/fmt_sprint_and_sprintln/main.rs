@@ -1464,7 +1464,7 @@ impl std::fmt::Display for upper {
 
 impl upper {
     pub fn write(&mut self, p: Rc<RefCell<Option<Vec<u8>>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        { let __range_holder = p.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut b in __range_values.iter().copied() {
+        { let __range_holder = p.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut b in __range_values.iter().copied() {
         if b >= ('a' as u8) && b <= ('z' as u8) {
         { let __rhs = (('a' as i32) - ('A' as i32)) as u8; b = b - __rhs; };
     }
@@ -1478,7 +1478,7 @@ pub fn fprint() {
     print!("{}{} {}{}", format!("{}", "a".to_string()), format!("{}", 1), format!("{}", 2), format!("{}", "b\n".to_string()));
     let mut sb: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
     (*sb.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("{} {}{}{}", format!("{}", 1), format!("{}", 2), format!("{}", "x".to_string()), format!("{}", 3)));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = sb.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = sb.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }))).borrow().as_ref().unwrap())));
     let mut u = Rc::new(RefCell::new(Some(upper { data: Default::default() })));
     { let __s = format!("{}{}", format!("{}", "hi ".to_string()), format!("{}", 7)); (*u.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __slice_holder = (*u.borrow().as_ref().unwrap()).data.clone(); let __slice_guard = __slice_holder.borrow(); (*__slice_guard.as_ref().unwrap()).clone() })).unwrap()))).borrow().as_ref().unwrap())));

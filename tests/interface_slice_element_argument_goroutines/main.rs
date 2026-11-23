@@ -828,7 +828,7 @@ fn main() {
     done.recv().unwrap_or_default();
 
     let mut list = Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("x".to_string()) as Box<dyn Any + Send + Sync>])));
-    { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
+    { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         describe(Arc::new(Mutex::new(Some(go_any_clone(item.as_ref())))));
     } }
     describe(Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().map(Vec::as_slice).unwrap_or(&[])[__idx].as_ref()) }))));

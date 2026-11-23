@@ -607,10 +607,10 @@ pub fn typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>
         __any
     });
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = "simple".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }
@@ -651,14 +651,14 @@ pub fn nested_typed(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         if true {
         { let new_val = "int".to_string(); *result.borrow_mut() = Some(new_val); };
         break '__go_switch_2
     };
         { let new_val = "bad".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     };

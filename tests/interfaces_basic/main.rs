@@ -819,7 +819,7 @@ fn main() {
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = rect.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = circle.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>)))])));
     println!("{}", format!("{}", "All shapes:".to_string()));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, shape) in __range_values.iter().enumerate() {
         print!("Shape {}: ", i as i64 + 1);
         print_shape_info(shape.clone());
     } }

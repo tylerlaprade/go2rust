@@ -1328,8 +1328,8 @@ pub fn show(format: Rc<RefCell<Option<String>>>, text: Rc<RefCell<Option<String>
 fn main() {
     let mut intFormats = Rc::new(RefCell::new(Some(vec!["%d".to_string(), "%5d".to_string(), "%-5d|".to_string(), "%05d".to_string(), "%+d".to_string(), "% d".to_string(), "%x".to_string(), "%X".to_string(), "%#x".to_string(), "%o".to_string(), "%#o".to_string(), "%O".to_string(), "%b".to_string(), "%c".to_string(), "%q".to_string(), "%U".to_string(), "%#U".to_string(), "%v".to_string(), "%3v".to_string(), "%.3d".to_string(), "%8.3d".to_string(), "%08.3d".to_string(), "%-8.3d|".to_string(), "%+05d".to_string(), "%.0d".to_string(), "%s".to_string(), "%t".to_string(), "%f".to_string(), "%e".to_string(), "%T".to_string()])));
     let mut ints = Rc::new(RefCell::new(Some(vec![0i64, 7i64, (-42i64), 65i64, 255i64, 123456789i64])));
-    { let __range_holder = intFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
-        { let __range_holder = ints.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+    { let __range_holder = intFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = ints.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
     } }
     } }
@@ -1338,13 +1338,13 @@ fn main() {
 
     let mut floatFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%g".to_string(), "%G".to_string(), "%e".to_string(), "%E".to_string(), "%f".to_string(), "%F".to_string(), "%.2f".to_string(), "%8.2f|".to_string(), "%-8.2f|".to_string(), "%08.2f".to_string(), "%+.2f".to_string(), "% .2f".to_string(), "%.0f".to_string(), "%.3e".to_string(), "%.3g".to_string(), "%.10g".to_string(), "%.1g".to_string(), "%10.3g|".to_string(), "%6.2f".to_string(), "%d".to_string(), "%s".to_string(), "%T".to_string(), "%5v|".to_string(), "%.0e".to_string(), "%.0g".to_string()])));
     let mut floats = Rc::new(RefCell::new(Some(vec![0.0, 1.0, 2.5, -(2.5), 0.1, 100000.0, 1000000.0, 1234567.0, 123456789.0, 1e20, 1e21, 1e-4, 1e-5, 0.000123456, 3.141592653589793, 1e100, 123.456, 0.5, 1.5, 2.675, 99.995])));
-    { let __range_holder = floatFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
-        { let __range_holder = floats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+    { let __range_holder = floatFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = floats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
     } }
     } }
     let mut narrowFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%g".to_string(), "%f".to_string(), "%.2f".to_string(), "%e".to_string(), "%T".to_string()])));
-    { let __range_holder = narrowFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+    { let __range_holder = narrowFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(0.1 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(2.5 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new({ let __v = Rc::new(RefCell::new(Some(16777216.0 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>])))));
@@ -1355,7 +1355,7 @@ fn main() {
 
     let mut stringFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%s".to_string(), "%q".to_string(), "%10s|".to_string(), "%-10s|".to_string(), "%.2s".to_string(), "%10.2s|".to_string(), "%x".to_string(), "%X".to_string(), "% x".to_string(), "%#x".to_string(), "%d".to_string(), "%t".to_string(), "%T".to_string(), "%05s".to_string(), "%#q".to_string(), "%c".to_string()])));
     let mut texts = Rc::new(RefCell::new(Some(vec!["hi".to_string(), "".to_string(), "h\u{e9}llo w\u{f6}rld".to_string(), "tab\there".to_string(), "quote\"d".to_string(), "back\\slash".to_string(), "new\nline".to_string(), "bell\u{7}".to_string(), "`tick`".to_string()])));
-    { let __range_holder = stringFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+    { let __range_holder = stringFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
         let mut i = Rc::new(RefCell::new(Some(0i64)));
     while ((*i.borrow().as_ref().unwrap()) as i64) < ((*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new((*texts.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()) as Box<dyn Any>])))));
@@ -1364,7 +1364,7 @@ fn main() {
     } }
 
     let mut boolFormats = Rc::new(RefCell::new(Some(vec!["%v".to_string(), "%t".to_string(), "%5t|".to_string(), "%-6t|".to_string(), "%d".to_string(), "%s".to_string(), "%T".to_string(), "%q".to_string()])));
-    { let __range_holder = boolFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
+    { let __range_holder = boolFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>])))));
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(false) as Box<dyn Any>])))));
     } }
@@ -1422,8 +1422,8 @@ fn main() {
         // nothing for zero.
     let mut prefixFormats = Rc::new(RefCell::new(Some(vec!["%#08x".to_string(), "%#08X".to_string(), "%#08b".to_string(), "%#08o".to_string(), "%08O".to_string(), "%#8x|".to_string(), "%#-8x|".to_string(), "%#-08x|".to_string(), "%#.3o".to_string(), "%#.1o".to_string(), "%#.3x".to_string(), "%#8.3x|".to_string(), "%+08d".to_string(), "% 08d".to_string(), "%+.0d|".to_string(), "%#.0x|".to_string(), "%5.0d|".to_string(), "%#o".to_string(), "%#b".to_string(), "%O".to_string(), "%#O".to_string(), "%#.3O".to_string(), "%#08O".to_string()])));
     let mut prefixValues = Rc::new(RefCell::new(Some(vec![0i64, 7i64, 8i64, (-42i64), 255i64])));
-    { let __range_holder = prefixFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
-        { let __range_holder = prefixValues.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+    { let __range_holder = prefixFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = prefixValues.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
     } }
     } }
@@ -1499,8 +1499,8 @@ fn main() {
     let mut zero: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.0)));
     let mut edges = Rc::new(RefCell::new(Some(vec![1.0 / (*zero.borrow().as_ref().unwrap()), -1.0 / (*zero.borrow().as_ref().unwrap()), { let __bin_zero = (*zero.borrow().as_ref().unwrap()).clone(); __bin_zero / __bin_zero }])));
     let mut edgeFormats = Rc::new(RefCell::new(Some(vec!["%f".to_string(), "%+f".to_string(), "% f".to_string(), "%+ f".to_string(), "%8.2f|".to_string(), "%-8.2f|".to_string(), "%08.2f|".to_string(), "% 08.2f|".to_string(), "%v".to_string(), "%+v".to_string(), "%g".to_string(), "%e".to_string(), "%E".to_string(), "%G".to_string(), "%.0f".to_string()])));
-    { let __range_holder = edgeFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for format in __range_values.iter() {
-        { let __range_holder = edges.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter().copied() {
+    { let __range_holder = edgeFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
+        { let __range_holder = edges.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter().copied() {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new(value) as Box<dyn Any>])))));
     } }
     } }

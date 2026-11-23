@@ -674,7 +674,7 @@ impl cache {
     }
 
     pub fn remember(&mut self, p: Rc<RefCell<Option<position>>>) -> u64 {
-        let mut file = Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        let mut file = Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
         return self.off(Rc::new(RefCell::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 }

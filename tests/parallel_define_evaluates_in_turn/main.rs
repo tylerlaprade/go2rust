@@ -672,13 +672,13 @@ pub struct Matrix(pub Rc<RefCell<Option<Vec<Vec<f64>>>>>);
 
 impl Stack {
     pub fn push(&mut self, v: Rc<RefCell<Option<i64>>>) {
-        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push((*v.borrow().as_ref().unwrap()).clone()); Rc::new(RefCell::new(Some(Stack(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
+        { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push((*v.borrow().as_ref().unwrap()).clone()); Rc::new(RefCell::new(Some(Stack(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
     }
 
     pub fn pop(&mut self) -> i64 {
         let mut old = Rc::new(RefCell::new(Some((*self).clone())));
         let mut v = Rc::new(RefCell::new(Some({ let __seq_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (({ let __slice_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64) - (1 as i64)) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })));
-        { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard); let __low = 0; let __high = (({ let __slice_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64) - (1 as i64)) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })))); *self = new_val; };
+        { let new_val = Stack(Rc::new(RefCell::new(Some({ let __slice_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard); let __low = 0; let __high = (({ let __slice_holder = { let __named_slice = (*old.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i64) - (1 as i64)) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })))); *self = new_val; };
         return (*v.borrow().as_ref().unwrap());
     }
 }
@@ -698,7 +698,7 @@ impl Matrix {
 
 pub fn eval_r_p_n(expr: Rc<RefCell<Option<String>>>) -> i64 {
     let mut st: Rc<RefCell<Option<Stack>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = (*expr.borrow().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = (*expr.borrow().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         { let _switch_val = (*t).clone();
     if _switch_val == ("+".to_string()) || _switch_val == ("*".to_string()) {
             let (mut b, mut a) = ({ let __tuple_value = (*st.borrow_mut().as_mut().unwrap()).pop(); __tuple_value }, { let __tuple_value = (*st.borrow_mut().as_mut().unwrap()).pop(); __tuple_value });
@@ -725,7 +725,7 @@ fn main() {
     let (mut p, mut q) = ({ let __owned = v.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }, { let __owned = v.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) });
     println!("{} {}", format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }));
     let mut byLen = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = "go is fun to use".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for w in __range_values.iter() {
+    { let __range_holder = Rc::new(RefCell::new(Some({ let __s = "go is fun to use".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
         { let __map_key = w.len() as i64; let __map_value = { let __slice = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(w.len() as i64)).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*w).clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byLen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     println!("{} {}", format!("{}", format_slice(&{ let __map_holder = byLen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&{ let __map_holder = byLen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&3)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));

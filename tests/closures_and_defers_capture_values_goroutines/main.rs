@@ -934,7 +934,7 @@ fn main() {
     }) as Box<dyn FnMut() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *funcs.lock().unwrap() = __slice_header; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    { let __range_holder = funcs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter().cloned() {
+    { let __range_holder = funcs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         print!("{}{}", format!("{}", {
             let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
                 let mut __f_guard = f.lock().unwrap();
@@ -961,7 +961,7 @@ fn main() {
             *s.lock().unwrap() = Some(__tmp_1);
         };
     }
-    { let __range_holder = printers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter().cloned() {
+    { let __range_holder = printers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter().cloned() {
         {
             let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
                 let mut __f_guard = p.lock().unwrap();

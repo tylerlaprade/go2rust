@@ -3741,7 +3741,7 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpressionContext(out, call.Args[1], LValue)
 				out.WriteString(".clone(); let __value_guard = __value_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); std::mem::drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; match (__item_guard.as_ref(), __value_option.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
@@ -5636,7 +5636,7 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 	writeNamedSliceInnerHandleClone(out, call.Args[0])
 	out.WriteString("; let __base_guard = __base")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); ")
+	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); ")
 	if call.Ellipsis.IsValid() {
 		if isNamedSliceExpression(call.Args[1]) {
 			out.WriteString("let __src = ")

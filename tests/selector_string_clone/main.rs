@@ -620,7 +620,7 @@ impl std::fmt::Display for Parts {
 
 
 pub fn left_of(parts: Rc<RefCell<Option<Parts>>>) -> Rc<RefCell<Option<String>>> {
-    return Rc::new(RefCell::new(Some({ let __selector_holder = (*parts.borrow().as_ref().unwrap()).left.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    return Rc::new(RefCell::new(Some({ let __selector_holder = (*parts.borrow().as_ref().unwrap()).left.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
 }
 
 pub fn echo(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
@@ -630,5 +630,5 @@ pub fn echo(value: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 fn main() {
     let mut parts = Rc::new(RefCell::new(Some(Parts { left: Rc::new(RefCell::new(Some("go".to_string()))), right: Rc::new(RefCell::new(Some("rust".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", (*left_of(Rc::new(RefCell::new(Some({ let __arg_holder = parts.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() })))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*echo(Rc::new(RefCell::new(Some({ let __selector_holder = (*parts.borrow().as_ref().unwrap()).right.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*echo(Rc::new(RefCell::new(Some({ let __selector_holder = (*parts.borrow().as_ref().unwrap()).right.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))).borrow().as_ref().unwrap())));
 }
