@@ -1041,7 +1041,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("other {}", format_any(x.borrow().as_ref().unwrap().as_ref())))));;
+        return Rc::new(RefCell::new(Some(format!("other {}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))));;
     }
     }
     unreachable!()

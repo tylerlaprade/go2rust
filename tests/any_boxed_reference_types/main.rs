@@ -999,14 +999,14 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     } else {
         let v = _ts_subject.clone();
         drop(_ts_guard);
-        return Rc::new(RefCell::new(Some(format!("other {}", __go_type_name(&**v.borrow().as_ref().unwrap())))));;
+        return Rc::new(RefCell::new(Some(format!("other {}", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }))));;
     }
     }
     unreachable!()
 }
 
 pub fn type_name(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}", __go_type_name(&**value.borrow().as_ref().unwrap())))))
+    Rc::new(RefCell::new(Some(format!("{}", match value.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }))))
 }
 
 pub fn box_slice(xs: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {

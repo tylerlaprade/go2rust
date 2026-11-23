@@ -636,7 +636,7 @@ fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String
 }
 
 pub fn print_any(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 }
 
 fn main() {
@@ -644,15 +644,15 @@ fn main() {
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
 
     { let new_val = Box::new(42i64) as Box<dyn Any>; *x.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {}", format!("{}", "x is int:".to_string()), format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     print_any(x.clone());
 
     { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *x.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "x is string:".to_string()), format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {}", format!("{}", "x is string:".to_string()), format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     print_any(x.clone());
 
     { let new_val = Box::new(3.14) as Box<dyn Any>; *x.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "x is float:".to_string()), format!("{}", format_any(x.borrow().as_ref().unwrap().as_ref())));
+    println!("{} {}", format!("{}", "x is float:".to_string()), format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     print_any(x.clone());
 
         // interface{} in slice

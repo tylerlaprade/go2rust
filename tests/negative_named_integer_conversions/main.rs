@@ -2288,7 +2288,7 @@ fn main() {
     let mut b = Rc::new(RefCell::new(Some(Level(Rc::new(RefCell::new(Some(-3 as i64)))))));
     let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Level(Rc::new(RefCell::new(Some(-4 as i64))))) as Box<dyn Any>)));
     let mut levels = Rc::new(RefCell::new(Some(vec![Level(Rc::new(RefCell::new(Some(-5 as i64 as i64)))), Level(Rc::new(RefCell::new(Some(-6 as i64))))])));
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_any(c.borrow().as_ref().unwrap().as_ref())), format!("{}", format_slice(&levels)));
+    println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", match c.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", format_slice(&levels)));
 
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Rc::new(RefCell::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Rc::new(RefCell::new(Some(-128 as i8))))), format!("{}", Level(Rc::new(RefCell::new(Some(!0 as i64))))), format!("{}", Level(Rc::new(RefCell::new(Some(-STEP as i64))))), format!("{}", Big(Rc::new(RefCell::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Rc::new(RefCell::new(Some(7 as i64))))), format!("{}", U8(Rc::new(RefCell::new(Some(!0 as u8 as u8))))));
 

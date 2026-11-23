@@ -829,7 +829,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 }
 
 pub fn show(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-    println!("{}", format!("{}", { let __text = format_any(v.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+    println!("{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 }
 
 fn main() {
@@ -844,7 +844,7 @@ fn main() {
     } }
     { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().enumerate() {
         let mut copy: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(go_any_clone(val.as_ref()))));
-        println!("{} {}", format!("{}", i), format!("{}", { let __text = format_any(copy.lock().unwrap().as_ref().unwrap().as_ref()); __text }));
+        println!("{} {}", format!("{}", i), format!("{}", { let __text = match copy.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     } }
     { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for val in __range_values.iter() {
         {

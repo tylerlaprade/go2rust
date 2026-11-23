@@ -658,7 +658,7 @@ impl Cell__any {
 
 pub fn r#use(c: Rc<RefCell<Option<Cell__any>>>) {
     (*c.borrow_mut().as_mut().unwrap()).store(Rc::new(RefCell::new(Some(Box::new("value".to_string()) as Box<dyn Any>))));
-    println!("{}", format!("{}", format_any(((*c.borrow().as_ref().unwrap()).load()).borrow().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", match ((*c.borrow().as_ref().unwrap()).load()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 }
 
 fn main() {

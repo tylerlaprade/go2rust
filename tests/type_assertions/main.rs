@@ -1002,7 +1002,7 @@ pub fn process_value(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         }
     }
 
-    print!("Unknown type: {} with value: {}\n", __go_type_name(&**value.borrow().as_ref().unwrap()), format_any(value.borrow().as_ref().unwrap().as_ref()));
+    print!("Unknown type: {} with value: {}\n", match value.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }, match value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
 }
 
 pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
@@ -1017,7 +1017,7 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            print!("Panic recovered: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+            print!("Panic recovered: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

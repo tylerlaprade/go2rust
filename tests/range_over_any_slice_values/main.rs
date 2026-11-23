@@ -660,7 +660,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 }
 
 pub fn show(v: Rc<RefCell<Option<Box<dyn Any>>>>) {
-    println!("{}", format!("{}", format_any(v.borrow().as_ref().unwrap().as_ref())));
+    println!("{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 }
 
 fn main() {
@@ -670,7 +670,7 @@ fn main() {
     } }
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, val) in __range_values.iter().enumerate() {
         let mut copy: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(go_any_clone(val.as_ref()))));
-        println!("{} {}", format!("{}", i), format!("{}", format_any(copy.borrow().as_ref().unwrap().as_ref())));
+        println!("{} {}", format!("{}", i), format!("{}", match copy.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     } }
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for val in __range_values.iter() {
         {

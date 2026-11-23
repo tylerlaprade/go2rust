@@ -712,7 +712,7 @@ pub fn type_switch(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     } else {
         let v = _ts_subject.clone();
         drop(_ts_guard);
-        print!("Unknown type: {}\n", __go_type_name(&**v.borrow().as_ref().unwrap()));;
+        print!("Unknown type: {}\n", match v.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });;
     }
     }
 }

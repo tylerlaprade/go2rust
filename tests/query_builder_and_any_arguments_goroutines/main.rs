@@ -1139,7 +1139,7 @@ fn main() {
     }
     { let __sort_target = keys.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
     { let __range_holder = keys.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for k in __range_values.iter() {
-        print!("{}{}{}{}", format!("{}", k), format!("{}", "=".to_string()), format!("{}", { let __text = format_any(({ let __map = { let __map_holder = (*q.lock().unwrap().as_ref().unwrap()).params.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", " ".to_string()));
+        print!("{}{}{}{}", format!("{}", k), format!("{}", "=".to_string()), format!("{}", { let __text = match ({ let __map = { let __map_holder = (*q.lock().unwrap().as_ref().unwrap()).params.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(k)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", " ".to_string()));
     } }
     println!();
 
