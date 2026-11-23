@@ -3819,6 +3819,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: source_stdlib_io_fs_os_stat" {
+    run_xfail_test "tests/XFAIL/source_stdlib_io_fs_os_stat"
+}
+
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
 }
