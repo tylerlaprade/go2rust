@@ -1661,7 +1661,7 @@ overflow-checks = false
 			cargoContent += "num = \"0.4\"\n"
 		}
 		if needsSerdeJSON {
-			cargoContent += "serde_json = \"1\"\n"
+			cargoContent += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 		}
 		if needsGosyn {
 			cargoContent += "gosyn = \"0.2.9\"\n"

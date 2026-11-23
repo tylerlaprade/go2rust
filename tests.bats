@@ -1619,6 +1619,14 @@ run_xfail_test() {
     run_test "tests/json_marshal_map_field"
 }
 
+@test "json_valid" {
+    run_test "tests/json_valid"
+}
+
+@test "json_valid_goroutines" {
+    run_test "tests/json_valid_goroutines"
+}
+
 @test "keyed_array_literal" {
     run_test "tests/keyed_array_literal"
 }

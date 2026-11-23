@@ -1091,7 +1091,7 @@ path = "lib.rs"
 gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
 	if strings.Contains(stubCode, "serde_json::") || strings.Contains(stubCode, "pub use serde_json") {
-		cargoToml += "serde_json = \"1\"\n"
+		cargoToml += "serde_json = { version = \"1\", features = [\"raw_value\"] }\n"
 	}
 	for _, depCrate := range sourceMappedDeps {
 		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
@@ -1398,6 +1398,9 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 		if _, ok := pkg.Functions["unmarshal"]; ok {
 			return true
 		}
+		if _, ok := pkg.Functions["valid"]; ok {
+			return true
+		}
 	}
 	return false
 }
@@ -1574,13 +1577,13 @@ where
     }
 }
 
-impl<V> GoJsonDecode for BTreeMap<String, V>
+impl<V> GoJsonDecode for std::collections::BTreeMap<String, V>
 where
     V: GoJsonDecode,
 {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = BTreeMap::new();
+        let mut out = std::collections::BTreeMap::new();
         for (key, value) in object {
             out.insert(key.clone(), V::go_json_decode(value)?);
         }
@@ -3119,6 +3122,36 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 			out.WriteString("            },\n")
 			out.WriteString("            Err(err) => go_json_error(err.to_string()),\n")
 			out.WriteString("        }\n")
+			out.WriteString("    }\n")
+		case "valid":
+			out.WriteString("    pub fn valid<T0: GoJsonInputArg>(_arg0: T0) -> bool {\n")
+			out.WriteString("        let bytes = _arg0.into_go_json_bytes();\n")
+			out.WriteString("        let mut depth = 0usize;\n")
+			out.WriteString("        let mut in_string = false;\n")
+			out.WriteString("        let mut escaped = false;\n")
+			out.WriteString("        for byte in &bytes {\n")
+			out.WriteString("            if in_string {\n")
+			out.WriteString("                if escaped {\n")
+			out.WriteString("                    escaped = false;\n")
+			out.WriteString("                } else if *byte == b'\\\\' {\n")
+			out.WriteString("                    escaped = true;\n")
+			out.WriteString("                } else if *byte == b'\"' {\n")
+			out.WriteString("                    in_string = false;\n")
+			out.WriteString("                }\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                match *byte {\n")
+			out.WriteString("                    b'\"' => in_string = true,\n")
+			out.WriteString("                    b'{' | b'[' => {\n")
+			out.WriteString("                        depth += 1;\n")
+			out.WriteString("                        if depth > 10_000 { return false; }\n")
+			out.WriteString("                    }\n")
+			out.WriteString("                    b'}' | b']' => depth = depth.saturating_sub(1),\n")
+			out.WriteString("                    _ => {}\n")
+			out.WriteString("                }\n")
+			out.WriteString("            }\n")
+			out.WriteString("        }\n")
+			out.WriteString("        let text = String::from_utf8_lossy(&bytes);\n")
+			out.WriteString("        serde_json::from_str::<Box<serde_json::value::RawValue>>(&text).is_ok()\n")
 			out.WriteString("    }\n")
 		default:
 			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName])
