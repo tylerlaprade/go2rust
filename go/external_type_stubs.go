@@ -3211,6 +3211,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
 	_, needsSetenv := pkg.Functions["setenv"]
 	_, needsUnsetenv := pkg.Functions["unsetenv"]
+	_, needsUserHomeDir := pkg.Functions["user_home_dir"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
 		writeGoStringArgTrait(out)
@@ -3218,7 +3219,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeGoBytesArgTrait(out)
 		}
 	}
-	if needsFilesystemHelpers || needsSetenv || needsUnsetenv {
+	if needsFilesystemHelpers || needsSetenv || needsUnsetenv || needsUserHomeDir {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3305,6 +3306,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsTempDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "truncate" {
 			writeOsTruncateFunction(out, pkg.Functions[funcName])
+		} else if funcName == "user_home_dir" {
+			writeOsUserHomeDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
 			writeOsWriteFileFunction(out, pkg.Functions[funcName])
 		} else {
@@ -3855,6 +3858,46 @@ func writeOsTempDirFunction(out *strings.Builder, fn externalPackageStubFunction
         `)
 	out.WriteString(wrappedExternalStubExpr("String", "value"))
 	out.WriteString("\n    }\n")
+}
+
+// PERMANENT: not scaffold — os.UserHomeDir resolves the host process home-directory environment.
+func writeOsUserHomeDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn user_home_dir() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        #[cfg(unix)]
+        let (value, missing) = {
+            use std::os::unix::ffi::OsStringExt;
+            (
+                std::env::var_os("HOME").map(|value| __go_string_from_bytes(value.into_vec())),
+                "$HOME is not defined",
+            )
+        };
+        #[cfg(windows)]
+        let (value, missing) = (
+            std::env::var("USERPROFILE").ok(),
+            "%userprofile% is not defined",
+        );
+        #[cfg(not(any(unix, windows)))]
+        let (value, missing) = (
+            std::env::var("HOME").ok(),
+            "$HOME is not defined",
+        );
+        let value = value.filter(|value| !value.is_empty());
+        #[cfg(target_os = "android")]
+        let value = value.or_else(|| Some("/sdcard".to_string()));
+        #[cfg(target_os = "ios")]
+        let value = value.or_else(|| Some("/".to_string()));
+        match value {
+            Some(value) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`, no_error()),
+            None => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(`, io_error(std::io::Error::new(std::io::ErrorKind::NotFound, missing))),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.ReadDir maps to std::fs::read_dir, syscall-tied.
