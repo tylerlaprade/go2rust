@@ -33,10 +33,9 @@ pub static C: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *A.borrow_mut() = Some(0);
-    *C.borrow_mut() = Some(0);
-    *A.borrow_mut() = Some(1);
-    *C.borrow_mut() = Some((*B.borrow().as_ref().unwrap()) + 1);
+    self::__go_zero_globals();
+    self::__go_init_order_0();
+    self::__go_init_order_2();
 }
 
 
