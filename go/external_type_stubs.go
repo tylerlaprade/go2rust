@@ -3275,6 +3275,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsUnsetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
+		} else if funcName == "link" {
+			writeOsLinkFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
 			writeOsLstatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
@@ -3331,9 +3333,10 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsRename := pkg.Functions["rename"]
+	_, needsLink := pkg.Functions["link"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3671,6 +3674,20 @@ func writeOsRenameFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        let old_path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        let new_path = go_path(_arg1.into_go_string());\n")
 	out.WriteString("        match std::fs::rename(&old_path, &new_path) {\n")
+	out.WriteString("            Ok(()) => no_error(),\n")
+	out.WriteString("            Err(err) => io_error(err),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Link maps to std::fs::hard_link, syscall-tied.
+func writeOsLinkFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn link<T0: GoStringArg, T1: GoStringArg>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let old_path = go_path(_arg0.into_go_string());\n")
+	out.WriteString("        let new_path = go_path(_arg1.into_go_string());\n")
+	out.WriteString("        match std::fs::hard_link(&old_path, &new_path) {\n")
 	out.WriteString("            Ok(()) => no_error(),\n")
 	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
