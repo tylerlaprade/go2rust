@@ -6101,6 +6101,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					continue
 				}
 
+				registerAnonymousStructTypesInFuncType(funcType)
+
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
 				out.WriteString("(")
