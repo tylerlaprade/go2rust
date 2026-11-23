@@ -3907,6 +3907,10 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unicode_classification" {
+    run_test "tests/unicode_classification"
+}
+
 @test "unicode_utf8_from_source" {
     run_test "tests/unicode_utf8_from_source"
 }
