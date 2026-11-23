@@ -11,12 +11,6 @@ use p::*;
 use std::fmt::{Formatter};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub struct C<T: Any + Send + Sync + 'static> {
     pub p: Arc<Mutex<Option<P>>>,
     pub items: Arc<Mutex<Option<[P; 2]>>>,

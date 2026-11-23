@@ -8,12 +8,6 @@ use go2rust_stdlib_stubs::*;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub fn accept(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", "ok".to_string()));

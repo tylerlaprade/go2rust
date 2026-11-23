@@ -10,12 +10,6 @@ use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub trait positioner: std::fmt::Display + Any {
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
