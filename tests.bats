@@ -3819,6 +3819,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/filemode_isregular_goroutines"
 }
 
+@test "XFAIL: filemode_string" {
+    run_xfail_test "tests/XFAIL/filemode_string"
+}
+
+@test "XFAIL: filemode_string_goroutines" {
+    run_xfail_test "tests/XFAIL/filemode_string_goroutines"
+}
+
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
 }
