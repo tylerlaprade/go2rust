@@ -2509,6 +2509,14 @@ run_xfail_test() {
     run_test "tests/os_getwd_non_utf8_goroutines"
 }
 
+@test "os_link_paths" {
+    run_test "tests/os_link_paths"
+}
+
+@test "os_link_paths_goroutines" {
+    run_test "tests/os_link_paths_goroutines"
+}
+
 @test "os_lookup_env_non_utf8" {
     run_test "tests/os_lookup_env_non_utf8"
 }
