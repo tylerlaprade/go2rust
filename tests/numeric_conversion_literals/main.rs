@@ -581,11 +581,11 @@ impl std::io::Write for GoSlice<u8> {
 
 
 pub fn byte_bit(i: Rc<RefCell<Option<i64>>>) -> u8 {
-    (1 as u8) << ((*i.borrow().as_ref().unwrap()) % 8)
+    { let __shift_x = 1u8; let __shift_c = ((((*i.borrow().as_ref().unwrap()) % 8))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }
 }
 
 pub fn uint64_mask(i: Rc<RefCell<Option<u64>>>) -> u64 {
-    (1 as u64) << (*i.borrow().as_ref().unwrap())
+    { let __shift_x = 1u64; let __shift_c = ((*i.borrow().as_ref().unwrap())) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }
 }
 
 pub fn byte_from_expr(v: Rc<RefCell<Option<u8>>>) -> u8 {
