@@ -2215,6 +2215,14 @@ run_xfail_test() {
     run_test "tests/named_integer_unary_minus_returns_interface"
 }
 
+@test "named_interface_struct_equality" {
+    run_test "tests/named_interface_struct_equality"
+}
+
+@test "named_interface_struct_equality_goroutines" {
+    run_test "tests/named_interface_struct_equality_goroutines"
+}
+
 @test "named_map_field_zero_len" {
     run_test "tests/named_map_field_zero_len"
 }
