@@ -4252,7 +4252,9 @@ func clear(x uint64) uint64 {
 }
 `)
 
-	if strings.Contains(rust, "as u32") {
+	// The checked shift's own count and width are u32; the uint values are not.
+	withoutShiftCheck := strings.NewReplacer("(__shift_c as u32)", "", "* 8) as u32", "").Replace(rust)
+	if strings.Contains(withoutShiftCheck, "as u32") {
 		t.Fatalf("uint conversion in uint64 bitmask path should not narrow to u32 on this target:\n%s", rust)
 	}
 	if !strings.Contains(rust, "as u64") {
@@ -7426,8 +7428,10 @@ func main() {
 	if strings.Contains(rust, "as u8 <<") {
 		t.Fatalf("shift LHS with as-cast must be parenthesized to avoid Rust precedence collision:\n%s", rust)
 	}
-	if !strings.Contains(rust, "as u8) <<") {
-		t.Fatalf("expected shift LHS with as-cast to be wrapped in parens:\n%s", rust)
+	// byte(1) is a constant, written with its type, and the count is
+	// checked, so the shifted value is a binding of its own.
+	if !strings.Contains(rust, "let __shift_x = 1u8;") {
+		t.Fatalf("expected the shifted byte(1) to be a u8 binding:\n%s", rust)
 	}
 }
 

@@ -3199,6 +3199,14 @@ run_xfail_test() {
     run_test "tests/shared_stdlib_stubs_external"
 }
 
+@test "shift_count_semantics" {
+    run_test "tests/shift_count_semantics"
+}
+
+@test "shift_count_semantics_goroutines" {
+    run_test "tests/shift_count_semantics_goroutines"
+}
+
 @test "simple_embedding" {
     run_test "tests/simple_embedding"
 }

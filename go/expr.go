@@ -202,6 +202,22 @@ func writeNamedIntegerBinaryPrimitiveExpressionForNamed(out *strings.Builder, ex
 	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
 	}
+	if (expr.Op == token.SHL || expr.Op == token.SHR) && shiftNeedsGoCountCheck(named, expr.Y) {
+		writeGoShiftBlock(out, expr.Op, func(out *strings.Builder) {
+			out.WriteString("(")
+			writeNamedIntegerPrimitiveOperand(out, expr.X, primitiveType)
+			out.WriteString(")")
+			if primitiveType != "" {
+				out.WriteString(" as ")
+				out.WriteString(primitiveType)
+			}
+		}, func(out *strings.Builder) {
+			if !writeShiftCountPrimitiveOperand(out, expr.Y, expr) {
+				writeGoShiftCount(out, expr.Y)
+			}
+		})
+		return true
+	}
 	out.WriteString("(")
 	var left strings.Builder
 	writeNamedIntegerPrimitiveOperand(&left, expr.X, primitiveType)
@@ -14203,6 +14219,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeGoSemanticsShift(out, e) {
+			return
+		}
 		if writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
