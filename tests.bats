@@ -2247,6 +2247,14 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_executable" {
+    run_test "tests/os_executable"
+}
+
+@test "os_executable_goroutines" {
+    run_test "tests/os_executable_goroutines"
+}
+
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
 }

@@ -3132,6 +3132,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("pub mod os {\n")
 	out.WriteString("    use super::*;\n")
 	needsFilesystemHelpers := osPackageStubNeedsFilesystemHelpers(pkg)
+	_, needsExecutable := pkg.Functions["executable"]
 	_, needsHostname := pkg.Functions["hostname"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
@@ -3140,7 +3141,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeGoBytesArgTrait(out)
 		}
 	}
-	if needsFilesystemHelpers || needsHostname {
+	if needsFilesystemHelpers || needsExecutable || needsHostname {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3183,6 +3184,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "executable" {
+			writeOsExecutableFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getwd" {
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
@@ -3272,6 +3275,22 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        ")
 	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Executable is a host OS/runtime query.
+func writeOsExecutableFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn executable() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        match std::env::current_exe() {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
 

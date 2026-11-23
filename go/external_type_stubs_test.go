@@ -1024,6 +1024,34 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	}
 }
 
+func TestOsExecutableStubUsesCurrentExe(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"executable": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Executable should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn executable()",
+		"std::env::current_exe()",
+		"path.to_string_lossy().into_owned()",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Executable shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsHostnameStubUsesHostRuntime(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
