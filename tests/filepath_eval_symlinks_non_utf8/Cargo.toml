@@ -1,0 +1,27 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_filepathlite",
+    "vendor/internal_stringslite",
+    "vendor/path_filepath",
+]
+
+[package]
+name = "filepath_eval_symlinks_non_utf8"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "filepath_eval_symlinks_non_utf8"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+path_filepath = { path = "vendor/path_filepath" }

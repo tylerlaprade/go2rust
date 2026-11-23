@@ -834,8 +834,9 @@ func TestFsFileInfoStubImplementsModeMethod(t *testing.T) {
 	}
 	for _, want := range []string{
 		"pub fn mode(&self) -> " + wrappedExternalStubType("fs_FileMode"),
-		"fs_FileMode(1u32 << 31)",
-		"fs_FileMode(0)",
+		"mode |= 1u32 << 31;",
+		"mode |= 1u32 << 27;",
+		"fs_FileMode(mode)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("fs.FileInfo Mode shim should include %q:\n%s", want, got)
@@ -1210,12 +1211,43 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 		"let name = go_path_name(&path);",
 		"__go_string_from_bytes(name.as_bytes().to_vec())",
 		"std::fs::symlink_metadata(&path)",
-		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
+		"fs_FileInfo { name, is_dir: metadata.is_dir(), is_symlink: metadata.file_type().is_symlink(), size: metadata.len() as i64 }",
 		"fs_FileInfo::default()",
 		"io_error(err)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Lstat shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsReadlinkStubPreservesCanonicalUnixPathBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"readlink": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Readlink should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string());",
+		"std::fs::read_link(&path)",
+		"fn go_path_string(path: std::path::PathBuf) -> String",
+		"__go_string_from_bytes(path.into_os_string().into_vec())",
+		"go_path_string(path)",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Readlink shim should include %q:\n%s", want, got)
 		}
 	}
 }

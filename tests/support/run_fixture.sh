@@ -109,6 +109,49 @@ if [[ -n "$raw_cwd_entry_hex" ]]; then
     touch -- "$GO2RUST_TEST_RAW_CWD/$raw_cwd_entry"
 fi
 
+# A symlink-boundary fixture can request one raw-byte relative link as
+# LINK_HEX=TARGET_HEX. The runner creates it after the optional raw entry so
+# both executables resolve the same read-only external filesystem state.
+raw_cwd_symlink_spec=$(fixture_config_value "$test_dir" "raw_cwd_symlink_hex")
+if [[ -n "$raw_cwd_symlink_spec" ]]; then
+    raw_cwd_symlink_name_hex=${raw_cwd_symlink_spec%%=*}
+    raw_cwd_symlink_target_hex=${raw_cwd_symlink_spec#*=}
+    if [[ -z "${GO2RUST_TEST_RAW_CWD:-}" ]] ||
+       [[ -z "$raw_cwd_symlink_name_hex" ]] ||
+       [[ -z "$raw_cwd_symlink_target_hex" ]] ||
+       [[ "$raw_cwd_symlink_target_hex" == "$raw_cwd_symlink_spec" ]] ||
+       [[ "$raw_cwd_symlink_name_hex" =~ [^0-9A-Fa-f] ]] ||
+       [[ "$raw_cwd_symlink_target_hex" =~ [^0-9A-Fa-f] ]] ||
+       (( ${#raw_cwd_symlink_name_hex} % 2 != 0 )) ||
+       (( ${#raw_cwd_symlink_target_hex} % 2 != 0 )); then
+        echo "Invalid raw_cwd_symlink_hex fixture config: $raw_cwd_symlink_spec"
+        exit 1
+    fi
+    raw_cwd_symlink_name=""
+    while [[ -n "$raw_cwd_symlink_name_hex" ]]; do
+        raw_cwd_symlink_name_pair=${raw_cwd_symlink_name_hex:0:2}
+        if [[ "${raw_cwd_symlink_name_pair,,}" == "00" || "${raw_cwd_symlink_name_pair,,}" == "2f" ]]; then
+            echo "Invalid raw_cwd_symlink_hex fixture config: $raw_cwd_symlink_spec"
+            exit 1
+        fi
+        printf -v raw_cwd_symlink_name_byte '%b' "\\x$raw_cwd_symlink_name_pair"
+        raw_cwd_symlink_name+="$raw_cwd_symlink_name_byte"
+        raw_cwd_symlink_name_hex=${raw_cwd_symlink_name_hex:2}
+    done
+    raw_cwd_symlink_target=""
+    while [[ -n "$raw_cwd_symlink_target_hex" ]]; do
+        raw_cwd_symlink_target_pair=${raw_cwd_symlink_target_hex:0:2}
+        if [[ "${raw_cwd_symlink_target_pair,,}" == "00" || "${raw_cwd_symlink_target_pair,,}" == "2f" ]]; then
+            echo "Invalid raw_cwd_symlink_hex fixture config: $raw_cwd_symlink_spec"
+            exit 1
+        fi
+        printf -v raw_cwd_symlink_target_byte '%b' "\\x$raw_cwd_symlink_target_pair"
+        raw_cwd_symlink_target+="$raw_cwd_symlink_target_byte"
+        raw_cwd_symlink_target_hex=${raw_cwd_symlink_target_hex:2}
+    done
+    ln -s -- "$raw_cwd_symlink_target" "$GO2RUST_TEST_RAW_CWD/$raw_cwd_symlink_name"
+fi
+
 if [[ -f "$test_dir/go.mod" ]]; then
     note_fixture_phase "go mod download"
     if ! mod_download_output=$(cd "$test_dir" && go mod download 2>&1); then
