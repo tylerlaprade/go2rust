@@ -24465,6 +24465,11 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeOrderedTypeParamCallArgument(out, nil, 0, arg, expected) {
 		return
 	}
+	if ident, ok := arg.(*ast.Ident); ok && isChannelFieldType(expected) {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) && writeOwnedRangeValue(out, ident) {
+			return
+		}
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.

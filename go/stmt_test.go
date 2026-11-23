@@ -10319,3 +10319,23 @@ func main() {
 		}
 	}
 }
+
+func TestGoroutineFunctionLiteralCopiesRangeChannelArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func launch(inputs ...<-chan int) {
+	for _, input := range inputs {
+		go func(ch <-chan int) {
+			<-ch
+		}(input)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let __go_arg_0 = (*input).clone()") {
+		t.Fatalf("range channel argument was wrapped instead of copied as a channel handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone())))") {
+		t.Fatalf("range channel argument received an incompatible concurrent value wrapper:\n%s", rust)
+	}
+}
