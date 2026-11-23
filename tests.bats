@@ -1087,6 +1087,14 @@ run_xfail_test() {
     run_test "tests/embedded_structs"
 }
 
+@test "empty_interface_value_copy" {
+    run_test "tests/empty_interface_value_copy"
+}
+
+@test "empty_interface_value_copy_goroutines" {
+    run_test "tests/empty_interface_value_copy_goroutines"
+}
+
 @test "enums_iota" {
     run_test "tests/enums_iota"
 }

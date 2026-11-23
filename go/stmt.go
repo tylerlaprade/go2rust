@@ -3971,7 +3971,7 @@ func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType t
 }
 
 func writeSwitchEmptyInterfaceTagHandle(out *strings.Builder, tag ast.Expr) {
-	if !writeEmptyInterfaceHandleClone(out, tag) {
+	if !writeEmptyInterfaceHandleShare(out, tag) {
 		out.WriteString(`unimplemented!("type info required for empty-interface switch tag")`)
 	}
 }

@@ -3390,7 +3390,15 @@ func BoxCommented(file *ast.File, comments []*ast.CommentGroup) any {
 		"go/ast":     "go_ast",
 		"go/printer": "go_printer",
 	})
-	if strings.Contains(rust, "Option<go_printer::CommentedNode>") {
+	// go_any_try_clone names the boxed pointer type in its arms; the slot of
+	// node itself must not hold the concrete struct.
+	var withoutCloneArms []string
+	for _, line := range strings.Split(rust, "\n") {
+		if !strings.Contains(line, "downcast_ref::<") {
+			withoutCloneArms = append(withoutCloneArms, line)
+		}
+	}
+	if strings.Contains(strings.Join(withoutCloneArms, "\n"), "Option<go_printer::CommentedNode>") {
 		t.Fatalf("assignment to any should not store the concrete source-mapped struct slot directly:\n%s", rust)
 	}
 	if strings.Contains(rust, "__moved_val") {
@@ -7645,8 +7653,10 @@ func load(ptr unsafe.Pointer) any {
 	if strings.Contains(rust, "as_mut().unwrap()).clone()") {
 		t.Fatalf("assignment from temporary unsafe any dereference should not clone Box<dyn Any>:\n%s", rust)
 	}
-	if !strings.Contains(rust, "eface = Rc::new(RefCell::new({") &&
-		!strings.Contains(rust, "eface = Arc::new(Mutex::new({") {
+	// The temporary handle is the only holder of its value, so go_any_store
+	// moves the value into eface's cell.
+	if !strings.Contains(rust, "go_any_store(&eface, Rc::new(RefCell::new({") &&
+		!strings.Contains(rust, "go_any_store(&eface, Arc::new(Mutex::new({") {
 		t.Fatalf("assignment from temporary unsafe any dereference should move the temporary interface handle:\n%s", rust)
 	}
 }

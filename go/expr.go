@@ -9583,6 +9583,16 @@ func isEmptyInterfaceValueExpr(expr ast.Expr) bool {
 }
 
 func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	return writeEmptyInterfaceHandle(out, expr, false)
+}
+
+// writeEmptyInterfaceHandleShare writes the handle of an interface{} value
+// for a reader that only looks at it, such as a switch tag: no copy.
+func writeEmptyInterfaceHandleShare(out *strings.Builder, expr ast.Expr) bool {
+	return writeEmptyInterfaceHandle(out, expr, true)
+}
+
+func writeEmptyInterfaceHandle(out *strings.Builder, expr ast.Expr, shareOnly bool) bool {
 	if !isEmptyInterfaceValueExpr(expr) {
 		return false
 	}
@@ -9590,6 +9600,15 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
+		return true
+	}
+	if interfaceValueIsStoredInPlace(expr) && !shareOnly {
+		// Go copies the interface value: the copy must not share the cell
+		// that a later assignment to the source overwrites.
+		NeedAnyHandleCopy()
+		out.WriteString("go_any_handle_copy(&")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(")")
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -9682,9 +9701,19 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		return false
 	}
 	if _, ok := lhs.(*ast.Ident); ok {
-		TranspileExpressionContext(out, lhs, LValue)
-		out.WriteString(" = ")
+		// The value goes into the variable's own cell, which a closure that
+		// captured the variable shares; only a value with no copy replaces
+		// the cell.
+		NeedAnyHandleCopy()
+		var target strings.Builder
+		TranspileExpressionContext(&target, lhs, LValue)
+		out.WriteString("if let Some(__shared) = go_any_store(&")
+		out.WriteString(target.String())
+		out.WriteString(", ")
 		writeEmptyInterfaceHandleClone(out, rhs)
+		out.WriteString(") { ")
+		out.WriteString(target.String())
+		out.WriteString(" = __shared; }")
 		return true
 	}
 	if sel, ok := lhs.(*ast.SelectorExpr); ok {
