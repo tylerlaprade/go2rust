@@ -1207,6 +1207,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_type" {
+    run_test "tests/filemode_type"
+}
+
+@test "filemode_type_goroutines" {
+    run_test "tests/filemode_type_goroutines"
+}
+
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
 }
@@ -1613,6 +1621,14 @@ run_xfail_test() {
 
 @test "late_address_of" {
     run_test "tests/late_address_of"
+}
+
+@test "legacy_octal_literals" {
+    run_test "tests/legacy_octal_literals"
+}
+
+@test "legacy_octal_literals_goroutines" {
+    run_test "tests/legacy_octal_literals_goroutines"
 }
 
 @test "len_call_argument" {
@@ -3795,24 +3811,8 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
-@test "XFAIL: filemode_type" {
-    run_xfail_test "tests/XFAIL/filemode_type"
-}
-
-@test "XFAIL: filemode_type_goroutines" {
-    run_xfail_test "tests/XFAIL/filemode_type_goroutines"
-}
-
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: legacy_octal_literals" {
-    run_xfail_test "tests/XFAIL/legacy_octal_literals"
-}
-
-@test "XFAIL: legacy_octal_literals_goroutines" {
-    run_xfail_test "tests/XFAIL/legacy_octal_literals_goroutines"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
