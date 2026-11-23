@@ -1043,6 +1043,7 @@ func TestOsHostnameStubUsesHostRuntime(t *testing.T) {
 	for _, want := range []string{
 		"pub fn hostname()",
 		"std::env::var(\"COMPUTERNAME\")",
+		"std::fs::read(\"/proc/sys/kernel/hostname\")",
 		"std::process::Command::new(\"hostname\").output()",
 		"while matches!(bytes.last(), Some(b'\\n' | b'\\r'))",
 		"String::from_utf8(bytes)",

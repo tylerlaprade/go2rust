@@ -600,18 +600,25 @@ pub mod os {
 
     pub fn hostname() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         #[cfg(windows)]
-        let result = std::env::var("COMPUTERNAME")
+        let bytes = std::env::var("COMPUTERNAME")
+            .map(String::into_bytes)
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::NotFound, err.to_string()));
 
-        #[cfg(not(windows))]
-        let result = std::process::Command::new("hostname").output().and_then(|output| {
+        #[cfg(target_os = "linux")]
+        let bytes = std::fs::read("/proc/sys/kernel/hostname");
+
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let bytes = std::process::Command::new("hostname").output().and_then(|output| {
             if !output.status.success() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("hostname exited with {}", output.status),
                 ));
             }
-            let mut bytes = output.stdout;
+            Ok(output.stdout)
+        });
+
+        let result = bytes.and_then(|mut bytes| {
             while matches!(bytes.last(), Some(b'\n' | b'\r')) {
                 bytes.pop();
             }
