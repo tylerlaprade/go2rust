@@ -1439,6 +1439,39 @@ func TestOsUserHomeDirStubPreservesCanonicalEnvironmentBytes(t *testing.T) {
 	}
 }
 
+func TestOsUserCacheDirStubPreservesCanonicalEnvironmentBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"user_cache_dir": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.UserCacheDir should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn user_cache_dir()",
+		"std::env::var_os(key)",
+		"read_env(\"LocalAppData\")",
+		"__go_string_concat(&home, \"/Library/Caches\")",
+		"read_env(\"XDG_CACHE_HOME\")",
+		"__go_string_bytes(&dir)",
+		"path.is_absolute()",
+		"path in $XDG_CACHE_HOME is relative",
+		"__go_string_concat(&home, \"/.cache\")",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.UserCacheDir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
