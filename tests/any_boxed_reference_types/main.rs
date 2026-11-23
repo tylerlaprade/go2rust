@@ -1026,7 +1026,7 @@ pub fn box_named_result(xs: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<RefCell<Option<
 
 pub fn classify_all(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<String>>> {
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
-    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
+    { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = arg;
     let _ts_is_nil = false;
@@ -1117,7 +1117,7 @@ fn main() {
     println!("{} {} {} {}", format!("{}", "map value:".to_string()), format!("{}", (*classify({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"xs".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()).borrow().as_ref().unwrap())), format!("{}", "|".to_string()), format!("{}", (*classify({ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"p".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone()).borrow().as_ref().unwrap())));
 
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(xs.clone()) as Box<dyn Any>, Box::new(counts.clone()) as Box<dyn Any>, Box::new(p.clone()) as Box<dyn Any>, Box::new((*pv.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*list.borrow()).clone().unwrap_or_default()) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>])));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for item in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = item;
     let _ts_is_nil = false;
