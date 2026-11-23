@@ -1220,6 +1220,35 @@ func TestOsLinkStubCreatesHardLinkForCanonicalUnixPaths(t *testing.T) {
 	}
 }
 
+func TestOsTruncateStubResizesCanonicalUnixPath(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"truncate": {
+				ParamCount: 2,
+				ReturnTypes: []string{
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Truncate should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string())",
+		"downcast_ref::<i64>()",
+		"if size < 0",
+		"std::fs::OpenOptions::new().write(true).open(&path)",
+		"file.set_len(size as u64)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Truncate shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{

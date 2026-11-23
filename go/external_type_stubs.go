@@ -3291,6 +3291,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsRenameFunction(out, pkg.Functions[funcName])
 		} else if funcName == "stat" {
 			writeOsStatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "truncate" {
+			writeOsTruncateFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
 			writeOsWriteFileFunction(out, pkg.Functions[funcName])
 		} else {
@@ -3334,9 +3336,10 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsRename := pkg.Functions["rename"]
 	_, needsLink := pkg.Functions["link"]
+	_, needsTruncate := pkg.Functions["truncate"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsTruncate || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3692,6 +3695,32 @@ func writeOsLinkFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Truncate maps to File::set_len, syscall-tied.
+func writeOsTruncateFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	i64Type := wrappedExternalStubType("i64")
+	i64Borrow := externalStubBorrowExpr("v")
+	out.WriteString("    pub fn truncate<T0: GoStringArg, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	fmt.Fprintf(out, ` {
+        let path = go_path(_arg0.into_go_string());
+        let size = if let Some(v) = (&_arg1 as &dyn Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&_arg1 as &dyn Any).downcast_ref::<%s>() {
+            %s.as_ref().copied().unwrap_or_default()
+        } else {
+            return io_error(std::io::Error::new(std::io::ErrorKind::InvalidInput, "truncate: invalid size"));
+        };
+        if size < 0 {
+            return io_error(std::io::Error::new(std::io::ErrorKind::InvalidInput, "truncate: invalid argument"));
+        }
+        match std::fs::OpenOptions::new().write(true).open(&path).and_then(|file| file.set_len(size as u64)) {
+            Ok(()) => no_error(),
+            Err(err) => io_error(err),
+        }
+    }
+`, i64Type, i64Borrow)
 }
 
 // PERMANENT: not scaffold — os.ReadDir maps to std::fs::read_dir, syscall-tied.
