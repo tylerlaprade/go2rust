@@ -875,6 +875,10 @@ run_xfail_test() {
     run_test "tests/context_usage"
 }
 
+@test "converted_shift_counts" {
+    run_test "tests/converted_shift_counts"
+}
+
 @test "copy_compound_assign" {
     run_test "tests/copy_compound_assign"
 }
@@ -3149,6 +3153,10 @@ run_xfail_test() {
 
 @test "source_stdlib_io_copy" {
     run_test "tests/source_stdlib_io_copy"
+}
+
+@test "source_stdlib_io_fs_filemode" {
+    run_test "tests/source_stdlib_io_fs_filemode"
 }
 
 @test "source_stdlib_parser_decl_cross_package" {
