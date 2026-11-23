@@ -1,0 +1,11 @@
+[package]
+name = "os_mkdir_paths"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_mkdir_paths"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -3279,6 +3279,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsLinkFunction(out, pkg.Functions[funcName])
 		} else if funcName == "lstat" {
 			writeOsLstatFunction(out, pkg.Functions[funcName])
+		} else if funcName == "mkdir" {
+			writeOsMkdirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
 		} else if funcName == "open" {
@@ -3342,7 +3344,8 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsSymlink := pkg.Functions["symlink"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsTruncate || needsSymlink || needsGetwd || needsLstat
+	_, needsMkdir := pkg.Functions["mkdir"]
+	return needsStat || needsMkdirAll || needsMkdir || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsRename || needsLink || needsTruncate || needsSymlink || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -3579,6 +3582,39 @@ func writeOsMkdirAllFunction(out *strings.Builder, fn externalPackageStubFunctio
 	out.WriteString("            Err(err) => io_error(err),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Mkdir maps to one host directory-creation operation.
+func writeOsMkdirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn mkdir<T0: GoStringArg, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        let path = go_path(_arg0.into_go_string());
+        let mode = if let Some(v) = (&_arg1 as &dyn Any).downcast_ref::<fs_FileMode>() {
+            v.0
+        } else if let Some(v) = (&_arg1 as &dyn Any).downcast_ref::<u32>() {
+            *v
+        } else {
+            panic!("os.Mkdir bridge: expected fs.FileMode argument")
+        };
+        #[cfg(unix)]
+        let result = {
+            use std::os::unix::fs::DirBuilderExt;
+            let mut builder = std::fs::DirBuilder::new();
+            builder.mode(mode & 0o7777);
+            builder.create(&path)
+        };
+        #[cfg(not(unix))]
+        let result = {
+            let _ = mode;
+            std::fs::create_dir(&path)
+        };
+        match result {
+            Ok(()) => no_error(),
+            Err(err) => io_error(err),
+        }
+    }
+`)
 }
 
 // PERMANENT: not scaffold — os.Stat maps to std::fs::metadata, syscall-tied.
