@@ -10,12 +10,6 @@ use std::cell::{RefCell};
 use std::fmt::{Display};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -793,8 +787,8 @@ fn main() {
     println!("{}", format!("{}", "\n=== Interface conversions ===".to_string()));
 
     let mut any: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
-    print!("interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("interface{{}} type: {}\n", __go_type_name(&**any.borrow().as_ref().unwrap()));
+    print!("interface{{}} value: {}\n", match any.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
+    print!("interface{{}} type: {}\n", match any.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });
 
         // Type assertion
     {
@@ -818,8 +812,8 @@ fn main() {
 
         // Change interface value
     { let new_val = Box::new("hello".to_string()) as Box<dyn Any>; *any.borrow_mut() = Some(new_val); };
-    print!("new interface{{}} value: {}\n", format_any(any.borrow().as_ref().unwrap().as_ref()));
-    print!("new interface{{}} type: {}\n", __go_type_name(&**any.borrow().as_ref().unwrap()));
+    print!("new interface{{}} value: {}\n", match any.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });
+    print!("new interface{{}} type: {}\n", match any.borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });
 
     {
         let (mut strVal, mut ok) = ({

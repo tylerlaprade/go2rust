@@ -35,9 +35,9 @@ jobs:
 
       - name: Check formatting
         run: |
-          if [ -n "$(gofmt -l ./go)" ]; then
-            echo "Please run 'gofmt -w ./go'"
-            gofmt -d ./go
+          if [ -n "$(gofmt -l ./go ./tools)" ]; then
+            echo "Please run 'gofmt -w ./go ./tools'"
+            gofmt -d ./go ./tools
             exit 1
           fi
 
@@ -46,6 +46,13 @@ jobs:
           # Vet main package only, skip tests directory
           # (Don't lint test files since we want to support any valid Go code)
           go vet ./go
+
+      - name: Run Go unit-test ratchet
+        run: |
+          go test ./tools/go-test-ratchet
+          go run ./tools/go-test-ratchet \
+            -known .github/go-test-known-failures.txt \
+            -package ./go
 
       - name: Build
         run: go build -o go2rust ./go

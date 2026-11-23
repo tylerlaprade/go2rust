@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -2469,7 +2463,7 @@ fn main() {
     let mut b = Arc::new(Mutex::new(Some(Level(Arc::new(Mutex::new(Some(-3 as i64)))))));
     let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Level(Arc::new(Mutex::new(Some(-4 as i64))))) as Box<dyn Any + Send + Sync>)));
     let mut levels = Arc::new(Mutex::new(Some(vec![Level(Arc::new(Mutex::new(Some(-5 as i64 as i64)))), Level(Arc::new(Mutex::new(Some(-6 as i64))))])));
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = format_any(c.lock().unwrap().as_ref().unwrap().as_ref()); __text }), format!("{}", format_slice(&levels)));
+    println!("{} {} {} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = match c.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", format_slice(&levels)));
 
     println!("{} {} {} {} {} {} {}", format!("{}", Level(Arc::new(Mutex::new(Some(((-3 + 1)) as i64))))), format!("{}", I8(Arc::new(Mutex::new(Some(-128 as i8))))), format!("{}", Level(Arc::new(Mutex::new(Some(!0 as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(-STEP as i64))))), format!("{}", Big(Arc::new(Mutex::new(Some(-(((1 as i64) << (40 as i64))) as i64))))), format!("{}", Level(Arc::new(Mutex::new(Some(7 as i64))))), format!("{}", U8(Arc::new(Mutex::new(Some(!0 as u8 as u8))))));
 
@@ -2479,7 +2473,7 @@ fn main() {
     print!("{} {} {}\n", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "main.I8"));
     let mut vals = Arc::new(Mutex::new(Some(vec![Box::new(I8(Arc::new(Mutex::new(Some(-2 as i8))))) as Box<dyn Any + Send + Sync>, Box::new(Level(Arc::new(Mutex::new(Some(-9 as i64))))) as Box<dyn Any + Send + Sync>, Box::new(Big(Arc::new(Mutex::new(Some(-1 as i64))))) as Box<dyn Any + Send + Sync>])));
     println!("{}", format_any_variadic(&vals));
-    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
+    { let __range_holder = vals.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}|", format_any(v.as_ref()));
     } }
     println!();

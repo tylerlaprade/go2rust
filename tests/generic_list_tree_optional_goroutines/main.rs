@@ -9,12 +9,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1974,7 +1968,7 @@ pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -2003,7 +1997,7 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()
@@ -2032,7 +2026,7 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     } else {
         let x = _ts_subject.clone();
         drop(_ts_guard);
-        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = format_any(x.lock().unwrap().as_ref().unwrap().as_ref()); __text }))));;
+        return Arc::new(Mutex::new(Some(format!("other {}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))));;
     }
     }
     unreachable!()

@@ -13,12 +13,6 @@ use types::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
         // Test Counter methods - transpiler needs to know Counter has these methods
     let mut c = Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(10))), ..Default::default() })));

@@ -8,12 +8,6 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -873,6 +867,14 @@ impl Default for Nums {
 impl Nums {
     pub fn __go_value_clone(&self) -> Self {
         Nums(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for Nums {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.lock().unwrap().clone();
+        let __right = other.0.lock().unwrap().clone();
+        __left == __right
     }
 }
 

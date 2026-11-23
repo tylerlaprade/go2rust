@@ -7,12 +7,6 @@ macro_rules! vec {
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub fn kind() -> Arc<Mutex<Option<types_BasicKind>>> {
     Arc::new(Mutex::new(Some(types::INT)))
 }

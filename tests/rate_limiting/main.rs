@@ -8,12 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -891,7 +885,7 @@ fn main() {
 
     let burstyLimiter_thread = burstyLimiter.clone(); std::thread::spawn(move || {
         for t in go_tick(std::time::Duration::from_millis(100)).clone() {
-        burstyLimiter_thread.send(t);
+        burstyLimiter_thread.send(t.clone());
     };;
     });
 

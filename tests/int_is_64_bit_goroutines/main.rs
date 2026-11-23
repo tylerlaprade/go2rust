@@ -10,12 +10,6 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -849,7 +843,7 @@ fn main() {
             (Arc::new(Mutex::new(Some(0))), false)
         }
     });
-    print!("{} {} {}\n", format!("{}", { let __type_name = __go_type_name(&**x.lock().unwrap().as_ref().unwrap()); __type_name }), format!("{}", isInt), format!("{}", 5000000000i64));
+    print!("{} {} {}\n", format!("{}", { let __type_name = match x.lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }), format!("{}", isInt), format!("{}", 5000000000i64));
     let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(('A' as i32))));
     print!("{} {} {}\n", format!("{}", "int32"), format!("{}", { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as u8 as char));
 }

@@ -9,12 +9,6 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -679,7 +673,7 @@ pub fn safe() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
+            println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -720,7 +714,7 @@ pub fn safe_line() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = go_recover();
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "recovered too:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));
+        println!("{} {}", format!("{}", "recovered too:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
@@ -759,7 +753,7 @@ pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64,
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("caught: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("caught: {}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -807,7 +801,7 @@ pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "element:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
+            println!("{} {}", format!("{}", "element:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -890,7 +884,7 @@ pub fn replaced() {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        println!("{} {}", format!("{}", "last:".to_string()), format!("{}", format_any((go_recover()).borrow().as_ref().unwrap().as_ref())));
+        println!("{} {}", format!("{}", "last:".to_string()), format!("{}", match (go_recover()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         __defer_stack.push(Box::new(move || {
@@ -899,7 +893,7 @@ pub fn replaced() {
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || -> () {
         panic!("second");
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
@@ -936,12 +930,12 @@ pub fn nested() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "outer:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
+            println!("{} {}", format!("{}", "outer:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || -> () {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
@@ -951,7 +945,7 @@ pub fn nested() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            println!("{} {}", format!("{}", "inner:".to_string()), format!("{}", format_any(r.borrow().as_ref().unwrap().as_ref())));;
+            println!("{} {}", format!("{}", "inner:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
             panic!("again");;
         }
     }

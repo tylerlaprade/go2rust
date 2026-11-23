@@ -12,12 +12,6 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 fn main() {
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
