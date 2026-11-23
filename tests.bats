@@ -2525,6 +2525,14 @@ run_xfail_test() {
     run_test "tests/os_lookup_env_non_utf8_goroutines"
 }
 
+@test "os_mkdir_paths" {
+    run_test "tests/os_mkdir_paths"
+}
+
+@test "os_mkdir_paths_goroutines" {
+    run_test "tests/os_mkdir_paths_goroutines"
+}
+
 @test "os_readdir_filepath" {
     run_test "tests/os_readdir_filepath"
 }

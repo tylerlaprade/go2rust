@@ -1279,6 +1279,36 @@ func TestOsSymlinkStubCreatesCanonicalHostLink(t *testing.T) {
 	}
 }
 
+func TestOsMkdirStubCreatesOneCanonicalHostDirectory(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"mkdir": {
+				ParamCount: 2,
+				ReturnTypes: []string{
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Mkdir should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string())",
+		"downcast_ref::<fs_FileMode>()",
+		"std::os::unix::fs::DirBuilderExt",
+		"builder.mode(mode & 0o7777)",
+		"builder.create(&path)",
+		"std::fs::create_dir(&path)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Mkdir shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	var out strings.Builder
 	writeOsPackageStub(&out, &externalPackageStub{
