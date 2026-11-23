@@ -955,6 +955,10 @@ run_xfail_test() {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
 
+@test "cross_file_error_chain_imports" {
+    run_test "tests/cross_file_error_chain_imports"
+}
+
 @test "cross_file_func_vars" {
     run_test "tests/cross_file_func_vars"
 }
@@ -3201,6 +3205,14 @@ run_xfail_test() {
 
 @test "shared_stdlib_stubs_external" {
     run_test "tests/shared_stdlib_stubs_external"
+}
+
+@test "shift_count_semantics" {
+    run_test "tests/shift_count_semantics"
+}
+
+@test "shift_count_semantics_goroutines" {
+    run_test "tests/shift_count_semantics_goroutines"
 }
 
 @test "simple_embedding" {
