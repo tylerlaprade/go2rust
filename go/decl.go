@@ -8283,6 +8283,12 @@ func writeConstUnsafeOffsetofCall(out *strings.Builder, call *ast.CallExpr) bool
 	if ptr, ok := types.Unalias(containerType).(*types.Pointer); ok {
 		containerType = ptr.Elem()
 	}
+	// A stdlib stub can omit fields and does not describe the Go target's layout.
+	if offset := typeInfo.info.Types[call].Value; offset != nil && isStdlibStubBackedType(containerType) {
+		out.WriteString(offset.ExactString())
+		out.WriteString("usize")
+		return true
+	}
 	containerRustType := goTypesTypeToRust(containerType)
 	if containerRustType == "/* unknown struct */" {
 		if rustType, ok := importedPackageGlobalTypePath(sel.X, typeInfo); ok {
