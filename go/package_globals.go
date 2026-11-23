@@ -815,21 +815,28 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 		return
 	}
 	if !NeedsConcurrentWrapper() {
-		out.WriteString("pub(crate) struct GoGlobal<T> {\n")
+		// Another crate reads the exported globals of a translated package
+		// through these methods, so a package's GoGlobal is public; a
+		// program's stays within its crate.
+		vis := "pub(crate) "
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() != "main" {
+			vis = "pub "
+		}
+		out.WriteString(vis + "struct GoGlobal<T> {\n")
 		out.WriteString("    value: std::cell::UnsafeCell<Option<T>>,\n")
 		out.WriteString("}\n")
 		out.WriteString("unsafe impl<T> Sync for GoGlobal<T> {}\n")
 		out.WriteString("impl<T> GoGlobal<T> {\n")
-		out.WriteString("    pub(crate) const fn new() -> Self {\n")
+		out.WriteString("    " + vis + "const fn new() -> Self {\n")
 		out.WriteString("        Self { value: std::cell::UnsafeCell::new(None) }\n")
 		out.WriteString("    }\n")
-		out.WriteString("    pub(crate) fn borrow(&'static self) -> &'static Option<T> {\n")
+		out.WriteString("    " + vis + "fn borrow(&'static self) -> &'static Option<T> {\n")
 		out.WriteString("        unsafe { &*self.value.get() }\n")
 		out.WriteString("    }\n")
-		out.WriteString("    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {\n")
+		out.WriteString("    " + vis + "fn borrow_mut(&'static self) -> &'static mut Option<T> {\n")
 		out.WriteString("        unsafe { &mut *self.value.get() }\n")
 		out.WriteString("    }\n")
-		out.WriteString("    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {\n")
+		out.WriteString("    " + vis + "fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {\n")
 		out.WriteString("        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))\n")
 		out.WriteString("    }\n")
 		out.WriteString("}\n\n")
