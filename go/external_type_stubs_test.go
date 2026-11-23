@@ -1206,6 +1206,9 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 		t.Fatalf("os.Lstat should not use the generic stub panic:\n%s", got)
 	}
 	for _, want := range []string{
+		"let path = go_path(_arg0.into_go_string());",
+		"let name = go_path_name(&path);",
+		"__go_string_from_bytes(name.as_bytes().to_vec())",
 		"std::fs::symlink_metadata(&path)",
 		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
 		"fs_FileInfo::default()",
@@ -1213,6 +1216,39 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Lstat shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsStatAndLstatStubsPreserveCanonicalUnixPathAndNameBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"stat": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType("fs_FileInfo"), wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+			"lstat": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType("fs_FileInfo"), wrappedExternalStubType(externalStubErrorInnerType())},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if count := strings.Count(got, "let path = go_path(_arg0.into_go_string());"); count != 2 {
+		t.Fatalf("os.Stat/Lstat should both decode canonical path bytes; got %d uses:\n%s", count, got)
+	}
+	if count := strings.Count(got, "let name = go_path_name(&path);"); count != 2 {
+		t.Fatalf("os.Stat/Lstat should both preserve canonical name bytes; got %d uses:\n%s", count, got)
+	}
+	for _, want := range []string{
+		"fn go_path_name(path: &Path) -> String",
+		"__go_string_from_bytes(name.as_bytes().to_vec())",
+		"std::fs::metadata(&path)",
+		"std::fs::symlink_metadata(&path)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Stat/Lstat shims should include %q:\n%s", want, got)
 		}
 	}
 }

@@ -2541,6 +2541,14 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "os_stat_lstat_non_utf8" {
+    run_test "tests/os_stat_lstat_non_utf8"
+}
+
+@test "os_stat_lstat_non_utf8_goroutines" {
+    run_test "tests/os_stat_lstat_non_utf8_goroutines"
+}
+
 @test "package_any_value_from_caller" {
     run_test "tests/package_any_value_from_caller"
 }

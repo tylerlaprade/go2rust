@@ -3358,6 +3358,21 @@ func writeOsErrorHelpers(out *strings.Builder) {
         }
     }
 
+    fn go_path_name(path: &Path) -> String {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            let name = path.file_name().unwrap_or_else(|| path.as_os_str());
+            __go_string_from_bytes(name.as_bytes().to_vec())
+        }
+        #[cfg(not(unix))]
+        {
+            path.file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.to_string_lossy().into_owned())
+        }
+    }
+
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
 }
 
@@ -3574,10 +3589,10 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("    pub fn stat<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        match std::fs::metadata(&path) {\n")
 	out.WriteString("            Ok(metadata) => {\n")
-	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                let name = go_path_name(&path);\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
@@ -3594,10 +3609,10 @@ func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString("    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> ")
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let path = go_path(_arg0.into_go_string());\n")
 	out.WriteString("        match std::fs::symlink_metadata(&path) {\n")
 	out.WriteString("            Ok(metadata) => {\n")
-	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                let name = go_path_name(&path);\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
 	out.WriteString(", no_error())\n")
