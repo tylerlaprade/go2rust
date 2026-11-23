@@ -4,7 +4,7 @@ The last Go program you'll ever need!
 
 <p align="center">
   <img alt="gopher2ferris" src="gopher2ferris.png" /></a>
-    <i>Artwork by <a href="https://linktr.ee/bwh.art">Bonnie Hansen</a></i>
+    <i>Artwork by <a href="https://bwh-art.carrd.co/">Bonnie Hansen</a></i>
 </p>
 
 A conservative Go-to-Rust transpiler that prioritizes correctness over performance.
