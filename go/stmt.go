@@ -10649,7 +10649,9 @@ func isPredeclaredBoolConstant(ident *ast.Ident) bool {
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return false
+		// Without type information only a declared local can shadow the
+		// predeclared constant.
+		return lookupVarInfo(ident.Name) == nil
 	}
 	return typeInfo.GetObject(ident) == types.Universe.Lookup(ident.Name)
 }
