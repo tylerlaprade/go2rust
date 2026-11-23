@@ -1221,7 +1221,7 @@ fn main() {
 
         // Stage 3: Add 10 to each
     let mut r#final = GoChannel::<i64>::new();
-    let final_thread = final.clone(); let squares_thread = squares.clone(); std::thread::spawn(move || {
+    let final_thread = r#final.clone(); let squares_thread = squares.clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(move || {
         final_defer_captured.close();
