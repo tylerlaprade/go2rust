@@ -779,18 +779,6 @@ fn go_rand_float64() -> f64 {
     ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
 }
 
-pub mod atomic {
-    use super::*;
-    pub fn add_uint64<T0, T1>(_arg0: T0, _arg1: T1) -> u64 {
-        panic!("add_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn load_uint64<T0>(_arg0: T0) -> u64 {
-        panic!("load_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 #[derive(Debug, Clone)]
 pub struct readOp {
     pub key: Arc<Mutex<Option<i64>>>,
@@ -909,7 +897,7 @@ fn main() {
         let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))), resp: GoChannel::<i64>::new(), ..Default::default() })));;
         reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
         { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        atomic::add_uint64(readOps_thread.clone(), 1 as u64);;
+        Arc::new(Mutex::new(Some({ let __target = readOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
         done_thread.send(true);;;
     });
         { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -926,7 +914,7 @@ fn main() {
         })));;
         writes_thread.send(write.lock().unwrap().as_ref().unwrap().__go_value_clone());;
         { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        atomic::add_uint64(writeOps_thread.clone(), 1 as u64);;
+        Arc::new(Mutex::new(Some({ let __target = writeOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
         done_thread.send(true);;;
     });
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -938,8 +926,8 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
 
-    let mut readOpsFinal = atomic::load_uint64(readOps.clone());
-    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", readOpsFinal));
-    let mut writeOpsFinal = atomic::load_uint64(writeOps.clone());
-    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", writeOpsFinal));
+    let mut readOpsFinal = Arc::new(Mutex::new(Some({ let __target = readOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
+    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", { let __v = (*readOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    let mut writeOpsFinal = Arc::new(Mutex::new(Some({ let __target = writeOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
+    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", { let __v = (*writeOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

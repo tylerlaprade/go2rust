@@ -885,7 +885,7 @@ fn main() {
 
     let burstyLimiter_thread = burstyLimiter.clone(); std::thread::spawn(move || {
         for t in go_tick(std::time::Duration::from_millis(100)).clone() {
-        burstyLimiter_thread.send(t);
+        burstyLimiter_thread.send(t.clone());
     };;
     });
 

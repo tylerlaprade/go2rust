@@ -3639,6 +3639,17 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 		out.WriteString(">()).is_some()")
 		return
 	}
+	if isEmptyInterfaceType(subjectType) && isErrorInterfaceType(typeInfo.GetType(typeExpr)) {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(rustGoErrorHandleType())
+		out.WriteString(">()).is_some()")
+		for _, candidate := range goErrorAssertionCandidates(subjectType) {
+			out.WriteString(" || _ts_val.and_then(|__v| __v.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">()).is_some()")
+		}
+		return
+	}
 	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
 		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 		out.WriteString(handleType)
@@ -3971,7 +3982,7 @@ func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType t
 }
 
 func writeSwitchEmptyInterfaceTagHandle(out *strings.Builder, tag ast.Expr) {
-	if !writeEmptyInterfaceHandleClone(out, tag) {
+	if !writeEmptyInterfaceHandleShare(out, tag) {
 		out.WriteString(`unimplemented!("type info required for empty-interface switch tag")`)
 	}
 }
@@ -6009,6 +6020,32 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+// writeEmptyInterfaceNamedReturnAssignment stores a concrete value that a
+// return statement gives an interface{} result: the value goes into the
+// result's cell boxed, as an assignment to the result would box it.
+func writeEmptyInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if name == nil || name.Name == "_" || typeInfo == nil || resultType == nil {
+		return false
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if resultTyp := typeInfo.GetType(resultType); resultTyp == nil || !isEmptyInterfaceType(resultTyp) {
+		return false
+	}
+	if rhsType := typeInfo.GetType(rhs); rhsType == nil || types.IsInterface(rhsType) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeBareAnyBox(out, rhs)
+	out.WriteString("; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func writeLocalInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
 	if name == nil || name.Name == "_" {
 		return false
@@ -8017,8 +8054,9 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 // writeRangeValuesMaterialization emits the `let __range_values = ...;
 // drop(__range_guard);` slice-range snapshot. A []any slice holds Box<dyn Any>
 // elements, which aren't Clone. When the loop writes each value back to its
-// indexed slot, move the element out of the slice; otherwise clone through
-// go_any_clone so ordinary range-copy semantics remain explicit.
+// indexed slot, move the element out of the slice. Otherwise retain the
+// original length and reread each element when its iteration begins, matching
+// Go slice-range semantics when the loop mutates a later backing-array slot.
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
@@ -8030,7 +8068,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
@@ -8117,12 +8155,20 @@ func writeMapRangeValueIterationCopy(out *strings.Builder, valueType types.Type,
 }
 
 // writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
-// loop values from a materialized range snapshot. A []any snapshot holds
-// Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
-// clones each element. enumerate adds the (index, value) pairing.
-func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
+// loop values from a materialized range snapshot. A normal []any slice stores
+// its original index range, then rereads and clones the current element at the
+// start of each iteration. The indexed-writeback special case owns a Vec of
+// moved Box<dyn Any> values and consumes it instead. enumerate adds the
+// (index, value) pairing.
+func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, moveEmptyInterfaceValues bool, enumerate bool) {
 	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
-		out.WriteString(".into_iter()")
+		if moveEmptyInterfaceValues {
+			out.WriteString(".into_iter()")
+		} else {
+			out.WriteString(".map(|__range_index| { let __range_guard = __range_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) })")
+		}
 	} else if copyCall, known := elementGoValueCopyCall(rangeExpr); known && copyCall != ".clone()" {
 		// The loop variable is Go's copy of the element, taken when the
 		// iteration starts: the map runs once for each step of the loop.
@@ -8278,7 +8324,36 @@ func isGoErrorType(typ types.Type) bool {
 	if errorObj == nil {
 		return false
 	}
-	return types.Identical(typ, errorObj.Type())
+	if types.Identical(types.Unalias(typ), types.Unalias(errorObj.Type())) {
+		return true
+	}
+	// Go interfaces are satisfied structurally. A named or anonymous
+	// interface whose complete method set is exactly Error() string accepts
+	// precisely the same values as the predeclared error interface, so it can
+	// use the same run-time representation. Keeping it on the generic local
+	// trait-object path loses errors.New/fmt.Errorf values because those are
+	// carried by the dedicated error handle.
+	iface, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	errorIface, ok := types.Unalias(errorObj.Type()).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	iface.Complete()
+	errorIface.Complete()
+	if !iface.IsMethodSet() || iface.NumMethods() != errorIface.NumMethods() {
+		return false
+	}
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		errorMethod := errorIface.Method(i)
+		if method.Id() != errorMethod.Id() || !types.Identical(method.Type(), errorMethod.Type()) {
+			return false
+		}
+	}
+	return true
 }
 
 func isConcreteGoErrorValue(typ types.Type) bool {
@@ -11818,6 +11893,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				resultType := returnResultTypeExpr(fnType, i)
 				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeEmptyInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writePointerNamedReturnAssignment(out, names[i], resultType, result) &&
@@ -13395,6 +13471,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(" = Some(new_val); }")
 										}
 									}
+								} else if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Self-wrapping values such as map/slice literals still need boxing
+									// when the assignment target is interface{}.
 								} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 									writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
@@ -15359,14 +15438,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							valCopied = true
 						}
 					}
-					if valCloned {
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						out.WriteString(" in ")
+						out.WriteString(rangeValuesVar)
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+					} else if valCloned {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
 							out.WriteString(rangeValuesVar)
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -15382,7 +15465,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(" in ")
@@ -15411,12 +15494,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					if needsCloned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+					if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+						writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, true)
+					} else if needsCloned {
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else if valueAssigned {
-						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, true)
 					} else {
 						rangeValueBoundByReference = valueBindingTemp == ""
 						out.WriteString(".iter().enumerate()")
@@ -15436,14 +15521,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valCopied2 = true
 					}
 				}
-				if valCloned2 {
+				if rangeValuesVar != "" && rangeSliceElementIsEmptyInterface(s.X) {
+					out.WriteString(" in ")
+					out.WriteString(rangeValuesVar)
+					writeRangeOwnedValuesAdapter(out, s.X, true, moveEmptyInterfaceRangeValues, false)
+				} else if valCloned2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
 						out.WriteString(rangeValuesVar)
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -15459,7 +15548,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", moveEmptyInterfaceRangeValues, false)
 				} else {
 					rangeValueBoundByReference = valueBindingTemp == ""
 					out.WriteString(" in ")
@@ -16674,11 +16763,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// handle of its own to the same error, so
 							// assigning to it does not change what the
 							// interface value holds.
-							writeErrorHandleCopy(out, func() {
-								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-								out.WriteString(handleType)
-								out.WriteString(">()).unwrap()")
-							})
+							out.WriteString("if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(handleType)
+							out.WriteString(">()) { ")
+							writeErrorHandleCopy(out, func() { out.WriteString("__err_handle") })
+							out.WriteString(" }")
+							for _, candidate := range goErrorAssertionCandidates(typeSwitchSubjectType) {
+								out.WriteString(" else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(candidate.rustType)
+								out.WriteString(">()) { ")
+								writeGoErrorHandleFromAssertionCandidate(out, candidate)
+								out.WriteString(" }")
+							}
+							out.WriteString(" else { unreachable!(\"type switch error case matched no error payload\") }")
 						} else if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
 							// The box holds the handle itself, so the case
 							// variable shares it with every other holder.

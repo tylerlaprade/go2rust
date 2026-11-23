@@ -1,0 +1,11 @@
+[package]
+name = "any_alias_slice_literal_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_alias_slice_literal_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

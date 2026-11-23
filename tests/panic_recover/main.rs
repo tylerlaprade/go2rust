@@ -672,7 +672,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("panic occurred: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("panic occurred: {}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
             { let new_val = 0.0; *result_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
@@ -726,7 +726,7 @@ pub fn process_slice(slice: Rc<RefCell<Option<Vec<i64>>>>, index: Rc<RefCell<Opt
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("index out of bounds: {}", format_any(r.borrow().as_ref().unwrap().as_ref()))))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
+            { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("index out of bounds: {}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
             { let new_val = -1; *value_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
@@ -773,7 +773,7 @@ pub fn nested_panic() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            print!("Recovered from nested panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+            print!("Recovered from nested panic: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -789,7 +789,7 @@ pub fn nested_panic() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            print!("Inner recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+            print!("Inner recovery: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
             panic!("re-panicking from inner function");;
         }
     }
@@ -855,7 +855,7 @@ pub fn demonstrate_panic_types() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            print!("Recovered string panic: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+            print!("Recovered string panic: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -915,7 +915,7 @@ pub fn chained_defers() {
         {
         let mut r = go_recover();;
         if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
-            print!("Final recovery: {}\n", format_any(r.borrow().as_ref().unwrap().as_ref()));;
+            print!("Final recovery: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
         }
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };

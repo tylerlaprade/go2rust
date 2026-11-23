@@ -1,0 +1,11 @@
+[package]
+name = "goroutine_range_channel_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goroutine_range_channel_argument"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

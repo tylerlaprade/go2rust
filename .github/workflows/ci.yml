@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [master]
 
+# A new push makes the runs of the branch's older commits useless; cancel
+# them so they do not hold runners while every other branch waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest

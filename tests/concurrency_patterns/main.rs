@@ -891,6 +891,7 @@ impl std::fmt::Debug for WaitGroup {
 
 struct GoMutex {
     inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+    is_nil: bool,
 }
 
 struct GoMutexGuard {
@@ -902,10 +903,26 @@ impl GoMutex {
     fn new() -> Self {
         GoMutex {
             inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: false,
         }
     }
 
+    fn nil() -> Self {
+        GoMutex {
+            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
+            is_nil: true,
+        }
+    }
+
+    fn go_ptr_eq(left: &Self, right: &Self) -> bool {
+        if left.is_nil || right.is_nil {
+            return left.is_nil && right.is_nil;
+        }
+        std::sync::Arc::ptr_eq(&left.inner, &right.inner)
+    }
+
     fn lock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         while *locked {
@@ -915,6 +932,7 @@ impl GoMutex {
     }
 
     fn unlock(&self) {
+        if self.is_nil { panic!("nil *sync.Mutex"); }
         let (state, ready) = &*self.inner;
         let mut locked = state.lock().unwrap();
         if !*locked {
@@ -952,6 +970,7 @@ impl Clone for GoMutex {
     fn clone(&self) -> Self {
         GoMutex {
             inner: self.inner.clone(),
+            is_nil: self.is_nil,
         }
     }
 }
@@ -1439,7 +1458,7 @@ pub fn fan_in(inputs: Arc<Mutex<Option<Vec<GoChannel<i64>>>>>) -> GoChannel<i64>
 
     { let __range_holder = inputs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for input in __range_values.iter() {
         wg.add(1);
-        let output_thread = output.clone(); let wg_thread = wg.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some((*input).clone()))); std::thread::spawn(move || {
+        let output_thread = output.clone(); let wg_thread = wg.clone(); let __go_arg_0 = (*input).clone(); std::thread::spawn(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |ch: GoChannel<i64>| {
             let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
