@@ -1872,6 +1872,8 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			}
 			if name == "fs_FileMode" && methodName == "is_dir" {
 				writeFsFileModeIsDirMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "is_regular" {
+				writeFsFileModeIsRegularMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "r#type" {
 				writeFsFileModeTypeMethod(&out, method)
 			} else {
@@ -3014,6 +3016,14 @@ impl %s {
 func writeFsFileModeIsDirMethod(out *strings.Builder) {
 	out.WriteString(`    pub fn is_dir(&self) -> bool {
         (self.0 & (1u32 << 31)) != 0
+    }
+`)
+}
+
+// TEMPORARY: fs-filemode-isregular — remove when ordinary io/fs.FileMode callers use the source method.
+func writeFsFileModeIsRegularMethod(out *strings.Builder) {
+	out.WriteString(`    pub fn is_regular(&self) -> bool {
+        (self.0 & 0x8f28_0000) == 0
     }
 `)
 }

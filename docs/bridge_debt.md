@@ -255,6 +255,19 @@ in the first place.
   `Type` method; delete the custom emitter and this row.
 - Added: 2026-11-23
 
+### fs-filemode-isregular
+
+- Location: `go/external_type_stubs.go`, `writeFsFileModeIsRegularMethod`
+- Go symbol: `io/fs.FileMode.IsRegular`
+- Transpiler gap: ordinary programs import `io/fs.FileMode` as an external
+  named scalar, so its Go-source method body is not emitted and method calls
+  otherwise reach the generic external-method panic.
+- Fixture: `tests/XFAIL/filemode_isregular/` and
+  `tests/XFAIL/filemode_isregular_goroutines/`.
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-transpiled
+  `IsRegular` method; delete the custom emitter and this row.
+- Added: 2026-11-23
+
 ### json-marshal-helpers
 
 - Location: `go/external_type_stubs.go:1421`
