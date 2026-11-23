@@ -316,3 +316,19 @@ in the first place.
 - Fixture: TODO: add
 - Removal trigger: transpiler can lower `encoding/json` source.
 - Added: 2026-05-27 (backfill)
+
+### os-remove-all
+
+- Location: `go/external_type_stubs.go`, `writeOsRemoveAllFunction`
+- Go symbol: `os.RemoveAll`
+- Transpiler gap: source-translated `os.RemoveAll` depends on Unix
+  `unlinkat`/directory-descriptor traversal and platform-specific Windows
+  removal behavior that the transpiler cannot lower into a portable Rust
+  filesystem implementation.
+- Fixture: `tests/XFAIL/os_remove_all/` and
+  `tests/XFAIL/os_remove_all_goroutines/`
+- Removal trigger: the source-tier `os` package can lower `RemoveAll` and
+  its platform files through the stdlib pipeline with equivalent non-following
+  symlink and recursive-removal semantics; then delete
+  `writeOsRemoveAllFunction`.
+- Added: 2026-11-23

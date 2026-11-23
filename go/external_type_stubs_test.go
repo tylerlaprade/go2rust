@@ -1080,6 +1080,43 @@ func TestOsOpenStubReadsFileBytes(t *testing.T) {
 	}
 }
 
+func TestOsRemoveAllStubRemovesFilesTreesAndLinks(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"remove_all": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.RemoveAll should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"path == \".\"",
+		"path.ends_with(\"/.\")",
+		"path.ends_with(\"\\\\.\")",
+		"std::io::ErrorKind::InvalidInput",
+		"path.trim_end_matches",
+		"let deletion_path = if trimmed.is_empty()",
+		"std::fs::symlink_metadata(deletion_path)",
+		"metadata.file_type().is_symlink()",
+		"FileTypeExt::is_symlink_dir(&metadata.file_type())",
+		"std::fs::remove_dir_all(deletion_path)",
+		"std::fs::remove_file(deletion_path)",
+		"err.kind() == std::io::ErrorKind::NotFound",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.RemoveAll shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoReadCloserCloseDispatchesToOsFile(t *testing.T) {
 	var out strings.Builder
 	writeExternalInterfaceStub(&out, "io_ReadCloser", map[string]externalTypeStubMethod{

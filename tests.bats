@@ -3799,6 +3799,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: os_remove_all" {
+    run_xfail_test "tests/XFAIL/os_remove_all"
+}
+
+@test "XFAIL: os_remove_all_goroutines" {
+    run_xfail_test "tests/XFAIL/os_remove_all_goroutines"
+}
+
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
 }
