@@ -875,6 +875,10 @@ run_xfail_test() {
     run_test "tests/context_usage"
 }
 
+@test "converted_shift_counts" {
+    run_test "tests/converted_shift_counts"
+}
+
 @test "copy_compound_assign" {
     run_test "tests/copy_compound_assign"
 }
@@ -1207,6 +1211,14 @@ run_xfail_test() {
     run_test "tests/file_io"
 }
 
+@test "filemode_perm" {
+    run_test "tests/filemode_perm"
+}
+
+@test "filemode_perm_goroutines" {
+    run_test "tests/filemode_perm_goroutines"
+}
+
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
 }
@@ -1427,6 +1439,10 @@ run_xfail_test() {
     run_test "tests/global_pointer_argument_lock_lifetime"
 }
 
+@test "goroutine_capture_rust_keyword" {
+    run_test "tests/goroutine_capture_rust_keyword"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -1601,6 +1617,14 @@ run_xfail_test() {
 
 @test "json_marshal_map_field" {
     run_test "tests/json_marshal_map_field"
+}
+
+@test "json_valid" {
+    run_test "tests/json_valid"
+}
+
+@test "json_valid_goroutines" {
+    run_test "tests/json_valid_goroutines"
 }
 
 @test "keyed_array_literal" {
@@ -2095,6 +2119,14 @@ run_xfail_test() {
     run_test "tests/named_pointer_defer_return"
 }
 
+@test "named_scalar_conversion_method_receiver" {
+    run_test "tests/named_scalar_conversion_method_receiver"
+}
+
+@test "named_scalar_conversion_method_receiver_goroutines" {
+    run_test "tests/named_scalar_conversion_method_receiver_goroutines"
+}
+
 @test "named_scalar_copies_are_values" {
     run_test "tests/named_scalar_copies_are_values"
 }
@@ -2223,12 +2255,28 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_executable" {
+    run_test "tests/os_executable"
+}
+
+@test "os_executable_goroutines" {
+    run_test "tests/os_executable_goroutines"
+}
+
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
 }
 
 @test "os_file_readcloser_assignment" {
     run_test "tests/os_file_readcloser_assignment"
+}
+
+@test "os_hostname" {
+    run_test "tests/os_hostname"
+}
+
+@test "os_hostname_goroutines" {
+    run_test "tests/os_hostname_goroutines"
 }
 
 @test "os_readdir_filepath" {
@@ -3151,6 +3199,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_io_copy"
 }
 
+@test "source_stdlib_io_fs_filemode" {
+    run_test "tests/source_stdlib_io_fs_filemode"
+}
+
 @test "source_stdlib_parser_decl_cross_package" {
     run_test "tests/source_stdlib_parser_decl_cross_package"
 }
@@ -3797,6 +3849,10 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
+}
+
+@test "XFAIL: source_stdlib_io_fs_os_stat" {
+    run_xfail_test "tests/XFAIL/source_stdlib_io_fs_os_stat"
 }
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {

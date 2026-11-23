@@ -1,0 +1,30 @@
+=== Worker Pool Pattern ===
+Worker results: 9, total: 90
+
+=== Producer-Consumer Pattern ===
+Consuming: apple
+Consuming: banana
+Consuming: cherry
+Consuming: date
+Consuming: elderberry
+
+=== Fan-out/Fan-in Pattern ===
+Fan-in results: 6, total: 91
+
+=== Pipeline Pattern ===
+Pipeline result: 11
+Pipeline result: 14
+Pipeline result: 19
+Pipeline result: 26
+Pipeline result: 35
+
+=== Mutex and Shared State ===
+Final counter value: 3000
+
+=== Channel-based Synchronization ===
+Workers ready: 3
+Workers finished: 3
+
+=== Timeout Pattern ===
+Timeout: Operation took too long
+Success: Operation completed

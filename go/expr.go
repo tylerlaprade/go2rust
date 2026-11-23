@@ -509,11 +509,20 @@ func writeShiftCountPrimitiveOperand(out *strings.Builder, expr ast.Expr, shift 
 	if writeNamedIntegerShiftCountLiteral(out, expr, shift, typeInfo) {
 		return true
 	}
-	if !isConstantExpression(expr) {
-		return false
+	if isConstantExpression(expr) {
+		TranspileExpression(out, expr)
+		return true
 	}
-	TranspileExpression(out, expr)
-	return true
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok && isUnwrappedBasicIntegerType(typeInfo.GetType(expr)) {
+		var value strings.Builder
+		if writeBareBasicNumericConversionValue(&value, call) {
+			out.WriteByte('(')
+			out.WriteString(value.String())
+			out.WriteByte(')')
+			return true
+		}
+	}
+	return false
 }
 
 func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr, typeInfo *TypeInfo) bool {
@@ -18748,7 +18757,7 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	if !typeInfo.IsTypeConversion(call) {
 		return nil, "", false
 	}
-	named, ok := typeInfo.GetType(call).(*types.Named)
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
 	if !ok {
 		return nil, "", false
 	}
