@@ -1097,6 +1097,10 @@ func TestOsRemoveAllStubRemovesFilesTreesAndLinks(t *testing.T) {
 		t.Fatalf("os.RemoveAll should not use the generic stub panic:\n%s", got)
 	}
 	for _, want := range []string{
+		"path == \".\"",
+		"path.ends_with(\"/.\")",
+		"path.ends_with(\"\\\\.\")",
+		"std::io::ErrorKind::InvalidInput",
 		"std::fs::symlink_metadata(&path)",
 		"metadata.file_type().is_symlink()",
 		"std::fs::remove_dir_all(&path)",

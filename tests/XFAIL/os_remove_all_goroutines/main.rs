@@ -928,6 +928,9 @@ pub mod os {
 
     pub fn remove_all<T0: GoStringArg>(_arg0: T0) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         let path = _arg0.into_go_string();
+        if path == "." || path.ends_with("/.") || (cfg!(windows) && path.ends_with("\\.")) {
+            return io_error(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+        }
         let metadata = match std::fs::symlink_metadata(&path) {
             Ok(metadata) => metadata,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return no_error(),
@@ -991,6 +994,9 @@ pub fn exercise_remove_all() {
 
     let mut mkdirErr = os::mkdir_all("go2rust-remove-all-tree-goroutine/nested".to_string(), fs_FileMode(0o700 as u32));
     let mut writeTreeErr = os::write_file("go2rust-remove-all-tree-goroutine/nested/payload".to_string(), Arc::new(Mutex::new(Some(("tree".to_string()).as_bytes().to_go_slice()))), fs_FileMode(0o600 as u32));
+    let mut dotErr = os::remove_all("go2rust-remove-all-tree-goroutine/.".to_string());
+    let (_, mut dotStatErr) = os::stat("go2rust-remove-all-tree-goroutine/nested/payload".to_string());
+    println!("{} {}", format!("{}", { let __nil_result = (*dotErr.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __nil_result = (*dotStatErr.lock().unwrap()).is_none(); __nil_result }));
     let mut removeTreeErr = os::remove_all("go2rust-remove-all-tree-goroutine".to_string());
     let (_, mut treeStatErr) = os::stat("go2rust-remove-all-tree-goroutine".to_string());
     println!("{} {} {} {}", format!("{}", { let __nil_result = (*mkdirErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*writeTreeErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*removeTreeErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*treeStatErr.lock().unwrap()).is_some(); __nil_result }));

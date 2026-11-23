@@ -14,6 +14,9 @@ func exerciseRemoveAll() {
 
 	mkdirErr := os.MkdirAll(tree+"/nested", 0o700)
 	writeTreeErr := os.WriteFile(tree+"/nested/payload", []byte("tree"), 0o600)
+	dotErr := os.RemoveAll(tree + "/.")
+	_, dotStatErr := os.Stat(tree + "/nested/payload")
+	fmt.Println(dotErr != nil, dotStatErr == nil)
 	removeTreeErr := os.RemoveAll(tree)
 	_, treeStatErr := os.Stat(tree)
 	fmt.Println(mkdirErr == nil, writeTreeErr == nil, removeTreeErr == nil, treeStatErr != nil)
