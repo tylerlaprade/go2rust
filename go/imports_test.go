@@ -69,6 +69,27 @@ func TestEmbeddedOwnerRegistryLivesInSharedStdlibHelpers(t *testing.T) {
 	}
 }
 
+func TestErrorChainHelperModuleImportsErrorAndPointer(t *testing.T) {
+	previous := GetConcurrencyDetector()
+	t.Cleanup(func() { SetConcurrencyDetector(previous) })
+
+	for _, concurrent := range []bool{false, true} {
+		detector := NewConcurrencyDetector()
+		detector.hasChannels = concurrent
+		SetConcurrencyDetector(detector)
+		helper := (&HelperTracker{needsGoErrorChain: true}).GenerateHelperModule()
+		pointerImport := "use std::rc::{Rc};"
+		if concurrent {
+			pointerImport = "use std::sync::{Arc};"
+		}
+		for _, want := range []string{"use std::error::Error as StdError;", pointerImport} {
+			if !strings.Contains(helper, want) {
+				t.Errorf("error-chain helper (concurrent=%v) lacks %q", concurrent, want)
+			}
+		}
+	}
+}
+
 func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
 	prevConcurrencyDetector := GetConcurrencyDetector()
 	t.Cleanup(func() {

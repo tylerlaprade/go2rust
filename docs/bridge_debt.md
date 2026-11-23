@@ -246,11 +246,12 @@ in the first place.
 
 - Location: `go/external_type_stubs.go`, `writeExecLookPathStub`
 - Go symbol: `os/exec.LookPath`
-- Transpiler gap: source-transpiled `os/exec.LookPath` reaches
-  `internal/syscall/unix.Eaccess`, whose native-tier implementation is still a
-  generic panic, and its relative-path `ErrDot` path reaches untranslated
-  `internal/godebug.Setting` methods. Until those native/runtime boundaries
-  are implemented, non-source-mapped callers need the host PATH search.
+- Transpiler gap: source-transpiled `os/exec.findExecutable` compares an error
+  to `syscall.ENOSYS` and `syscall.EPERM`. Each comparison currently emits
+  a lock on a native `usize` and a cast from `syscall_Errno` to `usize`.
+  Once those compile, `internal/syscall/unix.Eaccess` still needs its native
+  implementation. The relative-path `ErrDot` path also uses
+  `internal/godebug.Setting` methods.
 - Gap fixture: `tests/XFAIL/source_stdlib_exec_look_path/` source-maps
   `os/exec+deps` and reaches the native/runtime boundary above.
 - Bridge regression fixtures: `tests/exec_look_path_success/` and
@@ -330,9 +331,25 @@ in the first place.
 
 ### json-package
 
-- Location: `go/external_type_stubs.go:5885`
+- Location: `go/external_type_stubs.go:writeJsonPackageStub`
 - Go symbol: `encoding/json` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: the package source is not yet lowered; `writeJsonPackageStub`
+  implements the currently supported JSON entry points, including `Valid`.
+- Fixture: `tests/json_valid/`, `tests/json_valid_goroutines/`
 - Removal trigger: transpiler can lower `encoding/json` source.
 - Added: 2026-05-27 (backfill)
+
+### fs-filemode-perm
+
+- Location: `go/external_type_stubs.go`,
+  `writeFsFileModePermMethod`
+- Go symbol: `io/fs.FileMode.Perm`
+- Transpiler gap: non-source-mapped callers still represent `io/fs.FileMode`
+  through the external integer stub, so its Go method body is unavailable and
+  the generic external method emitter panics.
+- Fixture: `tests/filemode_perm/` and
+  `tests/filemode_perm_goroutines/`
+- Removal trigger: ordinary `io/fs.FileMode` callers use the source-translated
+  `io/fs` type and method body instead of the external integer stub; then
+  delete `writeFsFileModePermMethod`.
+- Added: 2026-11-23

@@ -1,0 +1,2 @@
+source_stdlib_packages = "bytes,unicode/utf8"
+test_timeout = "120s"

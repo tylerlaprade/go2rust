@@ -1,0 +1,29 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_filepathlite",
+    "vendor/internal_stringslite",
+    "vendor/os_exec",
+    "vendor/path_filepath",
+]
+
+[package]
+name = "source_stdlib_exec_look_path"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_exec_look_path"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+os_exec = { path = "vendor/os_exec" }
+path_filepath = { path = "vendor/path_filepath" }

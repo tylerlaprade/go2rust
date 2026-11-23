@@ -7,12 +7,6 @@ macro_rules! vec {
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
-#[allow(unused_macros)]
-macro_rules! vec {
-    () => (GoSlice::new());
-    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
-    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
-}
 pub fn pass_tuple(t: Arc<Mutex<Option<go_types::tuple::Tuple>>>) -> bool {
     has(Arc::new(Mutex::new(Some(Box::new(go_types::tuple::TuplePtr(t.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))))
 }

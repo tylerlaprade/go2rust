@@ -442,7 +442,7 @@ func RustCharLiteral(goLiteral string) string {
 
 func isRustPathKeyword(s string) bool {
 	switch s {
-	case "crate", "self", "super":
+	case "crate", "self", "super", "true", "false":
 		return true
 	default:
 		return false

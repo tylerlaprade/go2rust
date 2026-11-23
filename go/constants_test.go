@@ -740,6 +740,20 @@ const n = uint64(2 - 1)
 	}
 }
 
+func TestConstCastOnLeftOfComparisonIsParenthesized(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const limit = 10
+
+func above(value int32) bool {
+	return limit < value
+}
+`)
+	if !strings.Contains(rust, "(LIMIT as i32) <") {
+		t.Fatalf("a cast on the left of < must be parenthesized for Rust to parse it as a comparison:\n%s", rust)
+	}
+}
+
 func TestConstLenArrayVariableUsesTypedLength(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

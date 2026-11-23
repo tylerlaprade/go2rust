@@ -56,6 +56,45 @@ import . "internal/types/errors"
 	}
 }
 
+func TestGeneratedMainImportsDotImportedTranspiledCrate(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const Value = 7
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import . "example.com/dep"
+
+func main() {
+	println(Value)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use example_com_dep::*;") {
+		t.Fatalf("generated main.rs must import names from its dot-imported transpiled crate:\n%s", mainRS)
+	}
+}
+
 func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	sibling := prefixSiblingModuleImports("", "compiletype", []string{"compiletype", "escape"})
 	if sibling != "use crate::escape::*;\n" {
@@ -5344,7 +5383,9 @@ func main() {}
 
 const alphaMarker = "pub(crate) fn __go_init_all()"
 
-var alphaValue = 2
+var alphaValue = alphaSeed()
+
+func alphaSeed() int { return 2 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "beta.go"), `package main
 
@@ -5384,6 +5425,9 @@ var gammaValue = 4
 	}
 
 	alphaRS := mustReadFile(t, filepath.Join(tempDir, "alpha.rs"))
+	if calls := strings.Count(alphaRS, "= Some(alpha_seed());"); calls != 1 {
+		t.Fatalf("expected one call to the global initializer alphaSeed, got %d:\n%s", calls, alphaRS)
+	}
 	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all_alpha()") {
 		t.Fatalf("alpha module should rename its init helper, got:\n%s", alphaRS)
 	}
