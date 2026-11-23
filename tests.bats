@@ -2621,6 +2621,14 @@ run_xfail_test() {
     run_test "tests/os_user_cache_dir_goroutines"
 }
 
+@test "os_user_config_dir" {
+    run_test "tests/os_user_config_dir"
+}
+
+@test "os_user_config_dir_goroutines" {
+    run_test "tests/os_user_config_dir_goroutines"
+}
+
 @test "os_user_home_dir" {
     run_test "tests/os_user_home_dir"
 }

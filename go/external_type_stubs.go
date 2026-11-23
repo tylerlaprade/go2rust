@@ -3212,6 +3212,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	_, needsSetenv := pkg.Functions["setenv"]
 	_, needsUnsetenv := pkg.Functions["unsetenv"]
 	_, needsUserCacheDir := pkg.Functions["user_cache_dir"]
+	_, needsUserConfigDir := pkg.Functions["user_config_dir"]
 	_, needsUserHomeDir := pkg.Functions["user_home_dir"]
 	if needsFilesystemHelpers {
 		out.WriteString("    use std::path::Path;\n\n")
@@ -3220,7 +3221,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeGoBytesArgTrait(out)
 		}
 	}
-	if needsFilesystemHelpers || needsSetenv || needsUnsetenv || needsUserCacheDir || needsUserHomeDir {
+	if needsFilesystemHelpers || needsSetenv || needsUnsetenv || needsUserCacheDir || needsUserConfigDir || needsUserHomeDir {
 		writeOsErrorHelpers(out)
 	}
 
@@ -3309,6 +3310,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsTruncateFunction(out, pkg.Functions[funcName])
 		} else if funcName == "user_cache_dir" {
 			writeOsUserCacheDirFunction(out, pkg.Functions[funcName])
+		} else if funcName == "user_config_dir" {
+			writeOsUserConfigDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "user_home_dir" {
 			writeOsUserHomeDirFunction(out, pkg.Functions[funcName])
 		} else if funcName == "write_file" {
@@ -3905,6 +3908,62 @@ func writeOsUserCacheDirFunction(out *strings.Builder, fn externalPackageStubFun
         #[cfg(not(any(unix, windows)))]
         let result = nonempty(read_env("HOME"))
             .map(|home| __go_string_concat(&home, "/.cache"))
+            .ok_or("$HOME is not defined");
+
+        match result {
+            Ok(value) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "value"))
+	out.WriteString(`, no_error()),
+            Err(message) => (`)
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(`, io_error(std::io::Error::new(std::io::ErrorKind::NotFound, message))),
+        }
+    }
+`)
+}
+
+// PERMANENT: not scaffold — os.UserConfigDir resolves the host process config-directory environment.
+func writeOsUserConfigDirFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn user_config_dir() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(` {
+        #[cfg(unix)]
+        let read_env = |key: &str| {
+            use std::os::unix::ffi::OsStringExt;
+            std::env::var_os(key).map(|value| __go_string_from_bytes(value.into_vec()))
+        };
+        #[cfg(not(unix))]
+        let read_env = |key: &str| std::env::var(key).ok();
+        let nonempty = |value: Option<String>| value.filter(|value| !value.is_empty());
+
+        #[cfg(windows)]
+        let result = nonempty(read_env("AppData"))
+            .ok_or("%AppData% is not defined");
+
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        let result = nonempty(read_env("HOME"))
+            .map(|home| __go_string_concat(&home, "/Library/Application Support"))
+            .ok_or("$HOME is not defined");
+
+        #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+        let result = match nonempty(read_env("XDG_CONFIG_HOME")) {
+            Some(dir) => {
+                use std::os::unix::ffi::OsStringExt;
+                let path = std::path::PathBuf::from(std::ffi::OsString::from_vec(__go_string_bytes(&dir)));
+                if path.is_absolute() {
+                    Ok(dir)
+                } else {
+                    Err("path in $XDG_CONFIG_HOME is relative")
+                }
+            }
+            None => nonempty(read_env("HOME"))
+                .map(|home| __go_string_concat(&home, "/.config"))
+                .ok_or("neither $XDG_CONFIG_HOME nor $HOME are defined"),
+        };
+
+        #[cfg(not(any(unix, windows)))]
+        let result = nonempty(read_env("HOME"))
+            .map(|home| __go_string_concat(&home, "/.config"))
             .ok_or("$HOME is not defined");
 
         match result {
