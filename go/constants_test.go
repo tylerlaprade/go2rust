@@ -1926,7 +1926,9 @@ func small(w Word) bool {
 		strings.Contains(rust, "__tmp_y = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y") {
 		t.Fatalf("primitive shift count should use the named integer inner value, not the wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__tmp_y = (*{ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y") {
+	// The count can reach the width, so the shift checks it (Go's rules);
+	// the count is the named integer's inner value.
+	if !strings.Contains(rust, "let __shift_c = ((*{ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap())) as i128;") {
 		t.Fatalf("primitive shift count should unwrap the named integer inner value:\n%s", rust)
 	}
 }
@@ -2255,7 +2257,7 @@ func localDepthMask(localDepth uint8) uintptr {
 	if strings.Contains(rust, "let __tmp_x = (*Arc::new(Mutex::new(Some(1 as usize))).lock().unwrap().as_ref().unwrap()) as u8") {
 		t.Fatalf("converted shift left operand should not be cast to the shift count type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "as usize") {
+	if !strings.Contains(rust, "let __shift_x = 1usize;") {
 		t.Fatalf("converted shift left operand should use the uintptr result type:\n%s", rust)
 	}
 }

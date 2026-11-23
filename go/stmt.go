@@ -8902,6 +8902,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
+		// true and false are constants of the universe scope; the constant
+		// path below would give them a package constant's escaped name.
+		if isPredeclaredBoolConstant(ident) {
+			out.WriteString(ident.Name)
+			return
+		}
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		isLocalConst := isLocalConstantIdent(ident)
 		varName := rustIdentForUseWithCapture(ident)
@@ -12541,6 +12547,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.AssignStmt:
 		if s.Tok == token.DEFINE {
 			registerDefaultShortDeclBindings(s.Lhs)
+		}
+		if rewritten, ok := goShiftCompoundAsAssignment(s); ok {
+			TranspileStatement(out, rewritten, fnType, fileSet, comments, lastPos, indent)
+			return
 		}
 
 		// Check if this is a map index assignment using type information
