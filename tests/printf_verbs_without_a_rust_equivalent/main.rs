@@ -1149,6 +1149,26 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
             return Some(format!("[{}]", items.join(" ")));
         }
     }
+    // A slice of strings, numbers or bools: the verb, with its width and
+    // flags, is applied to each element, between brackets, as fmt does
+    // (%q of []string is ["a" "b"]). An element the verb does not fit is
+    // reported in its place. A plain %v is left to Println's form below.
+    let plain_v = verb == 'v' && spec.width.is_none() && spec.precision.is_none() && !spec.plus && !spec.sharp && !spec.space;
+    macro_rules! basic_slice {
+        ($($t:ty),*) => {
+            $(if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<$t>>>>>() {
+                if !plain_v && !sharp_v {
+                    let guard = v.borrow();
+                    let items: Vec<String> = guard.as_ref().map(|values| values.iter().map(|item| {
+                        let item: &dyn Any = item;
+                        go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
+                    }).collect()).unwrap_or_default();
+                    return Some(format!("[{}]", items.join(" ")));
+                }
+            })*
+        };
+    }
+    basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {

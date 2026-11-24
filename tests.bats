@@ -2807,6 +2807,14 @@ run_xfail_test() {
     run_test "tests/printf_args_lock_one_value_goroutines"
 }
 
+@test "printf_basic_slice_verbs" {
+    run_test "tests/printf_basic_slice_verbs"
+}
+
+@test "printf_basic_slice_verbs_goroutines" {
+    run_test "tests/printf_basic_slice_verbs_goroutines"
+}
+
 @test "printf_nil_interface_arguments" {
     run_test "tests/printf_nil_interface_arguments"
 }

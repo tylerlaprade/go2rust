@@ -1,0 +1,11 @@
+[package]
+name = "printf_basic_slice_verbs_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_basic_slice_verbs_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
