@@ -2732,3 +2732,35 @@ func main() {
 		t.Fatalf("snake-case name collisions should each get a unique suffix; `walk_dir_1` appears %d times:\n%s", walkDirOccurrences, rust)
 	}
 }
+
+// An integer constant that Go converts to a float is written as a float
+// literal even when it is not a bare literal: go/types types the whole
+// constant expression as float64 but leaves its operands untyped (DEV-167).
+func TestIntegerConstantExpressionInFloatContextIsFloatLiteral(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+const k = -7
+
+func main() {
+	fs := []float64{2.5, -1, 3}
+	m := map[string]float32{"x": -3, "y": 1 << 2}
+	var c float64 = k
+	fmt.Println(fs, m, c, -k)
+}
+`)
+	for _, want := range []string{
+		"vec![2.5, (-1.0), 3.0]",
+		`("x".to_string(), Rc::new(RefCell::new(Some((-3.0)))))`,
+		`("y".to_string(), Rc::new(RefCell::new(Some(4.0))))`,
+		"Some((-7.0))",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "-(1)") || strings.Contains(rust, "Some(k)") {
+		t.Errorf("an integer constant in a float context must not be written as an integer:\n%s", rust)
+	}
+}
