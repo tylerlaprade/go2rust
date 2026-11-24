@@ -10,6 +10,10 @@ use std::sync::{Arc, Mutex};
 fn main() {
     ::go_ast::__go_init_all();
     ::go_token::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strconv::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 

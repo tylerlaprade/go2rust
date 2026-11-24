@@ -59,6 +59,8 @@ fn main() {
     ::bytes::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut u = Arc::new(Mutex::new(Some(userWriter { count: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(Default::default()))) })));

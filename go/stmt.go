@@ -5520,6 +5520,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
+	if writeChannelReceiveHandleFor(out, expr, valueType) {
+		return
+	}
 	// The value of a range over a []any is the element's Box itself, which
 	// has no Clone; the map gets a copy of its own.
 	if isEmptyInterfaceType(valueType) && writeBareAnyReferenceWrappedClone(out, expr) {

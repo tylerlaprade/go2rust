@@ -6,6 +6,7 @@ members = [
     "vendor/internal_filepathlite",
     "vendor/internal_stringslite",
     "vendor/path_filepath",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -25,3 +26,4 @@ go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 path_filepath = { path = "vendor/path_filepath" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

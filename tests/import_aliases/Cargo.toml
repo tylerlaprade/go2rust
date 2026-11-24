@@ -1,3 +1,15 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_stringslite",
+    "vendor/math",
+    "vendor/math_bits",
+    "vendor/strconv",
+    "vendor/unicode_utf8",
+]
+
 [package]
 name = "import_aliases"
 version = "0.1.0"
@@ -9,3 +21,11 @@ path = "main.rs"
 
 [profile.dev]
 overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
+strconv = { path = "vendor/strconv" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

@@ -14246,6 +14246,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeFoldedFloatConstant(out, e) {
+			return
+		}
 		if writeGoSemanticsShift(out, e) {
 			return
 		}
