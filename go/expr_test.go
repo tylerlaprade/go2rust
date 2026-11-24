@@ -5176,9 +5176,12 @@ func sample(q uint32) float64 {
 		strings.Contains(rust, "let __tmp_y = RANDOM_BIT_COUNT; __tmp_x - __tmp_y") {
 		t.Fatalf("float binary expression should not preserve an integer-typed constant operand without a cast:\n%s", rust)
 	}
-	if !strings.Contains(rust, "randomBitCount as f64") &&
+	// The untyped constant goes in as a float: its value as a float literal
+	// (DEV-167), or the identifier cast to f64.
+	if !strings.Contains(rust, "let __tmp_y = 26.0") &&
+		!strings.Contains(rust, "randomBitCount as f64") &&
 		!strings.Contains(rust, "RANDOM_BIT_COUNT as f64") {
-		t.Fatalf("float binary expression should cast the constant identifier operand to f64:\n%s", rust)
+		t.Fatalf("float binary expression should write the constant identifier operand as an f64:\n%s", rust)
 	}
 }
 
