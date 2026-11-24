@@ -3291,6 +3291,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_pointer_index_out_of_range" {
+    run_test "tests/slice_elem_pointer_index_out_of_range"
+}
+
+@test "slice_elem_pointer_index_out_of_range_goroutines" {
+    run_test "tests/slice_elem_pointer_index_out_of_range_goroutines"
+}
+
 @test "slice_elem_pointer_local_struct" {
     run_test "tests/slice_elem_pointer_local_struct"
 }
