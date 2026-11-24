@@ -164,6 +164,7 @@ type HelperTracker struct {
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
 	needsGoChannel                       bool
+	needsGoSelectSend                    bool
 	needsWaitGroup                       bool
 	needsGoMutex                         bool
 	needsGoRWMutex                       bool
@@ -182,6 +183,7 @@ type HelperTracker struct {
 	needsRegexp                          bool
 	needsJsonEscape                      bool
 	needsOsFile                          bool
+	needsGoNilAny                        bool
 	needsOsArgs                          bool
 	needsSliceElemPtr                    bool
 	needsGoTime                          bool
@@ -236,6 +238,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	}
 	helperCopy := *ht
 	helperCopy.needsGoChannel = false
+	helperCopy.needsGoSelectSend = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
 	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
@@ -269,7 +272,7 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht == nil {
 		return nil
 	}
-	helperCopy := &HelperTracker{}
+	helperCopy := &HelperTracker{needsGoSelectSend: ht.needsGoSelectSend}
 	if ht.needsGoChannel || ht.needsGoContext {
 		helperCopy.needsGoChannel = true
 	}
@@ -372,6 +375,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateAnyEquality(&result)
 	}
 
+	if ht.needsGoNilAny {
+		generateGoNilAny(&result)
+	}
+
 	if ht.needsAnyClone || ht.needsAnyHandleCopy {
 		generateAnyClone(&result, anyCloneTypes, ht.needsAnyHandleCopy)
 	}
@@ -418,6 +425,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoChannel {
 		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
+		if ht.needsGoSelectSend {
+			result.WriteString(goSelectSendHelper)
+		}
 	}
 
 	if ht.needsWaitGroup {
@@ -579,6 +589,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsRegexp ||
 		ht.needsJsonEscape ||
 		ht.needsOsFile ||
+		ht.needsGoNilAny ||
 		ht.needsSliceElemPtr ||
 		ht.needsGoTime ||
 		ht.needsGoTimer ||
@@ -790,6 +801,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsOsFile {
 		add("GoFile")
+	}
+	if ht.needsGoNilAny {
+		add(goNilAnyType)
 	}
 	if ht.needsSliceElemPtr {
 		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
@@ -2489,6 +2503,32 @@ fn format_any_variadic(slice: ` + sliceType + `) -> String {
 }
 `)
 }
+
+// Keep ownership of a pending send across polls, including non-Clone interface
+// values. A full channel gives the original Rust value back to the caller.
+const goSelectSendHelper = `
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+`
 
 func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
 	code := `
@@ -6001,4 +6041,28 @@ func generateGoFloatStringHelper(out *strings.Builder) {
     __value.to_string()
 }
 `)
+}
+
+// goNilAnyType is the payload of a bare Box<dyn Any> that holds a nil
+// interface value (see NeedGoNilAny).
+const goNilAnyType = "GoNilAny"
+
+func generateGoNilAny(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n/// A nil interface value in a slot that holds a Box<dyn Any>, such as a\n")
+	out.WriteString("/// []any element: it copies, prints and compares as nil.\n")
+	out.WriteString("#[derive(Clone, Copy, Debug, PartialEq)]\n")
+	out.WriteString(visibility)
+	out.WriteString("struct GoNilAny;\n")
+}
+
+// writeNilAnyBox writes a Box<dyn Any> holding a nil interface value.
+func writeNilAnyBox(out *strings.Builder) {
+	NeedGoNilAny()
+	TrackImport("Any")
+	out.WriteString("Box::new(GoNilAny) as ")
+	out.WriteString(rustAnyTraitObject())
 }

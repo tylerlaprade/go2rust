@@ -451,6 +451,14 @@ run_xfail_test() {
     run_test "tests/any_boxed_types_in_second_file"
 }
 
+@test "any_constant_conversion_types" {
+    run_test "tests/any_constant_conversion_types"
+}
+
+@test "any_constant_conversion_types_goroutines" {
+    run_test "tests/any_constant_conversion_types_goroutines"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }
@@ -2443,6 +2451,14 @@ run_xfail_test() {
     run_test "tests/nested_structures"
 }
 
+@test "nil_any_elements" {
+    run_test "tests/nil_any_elements"
+}
+
+@test "nil_any_elements_goroutines" {
+    run_test "tests/nil_any_elements_goroutines"
+}
+
 @test "nil_basic" {
     run_test "tests/nil_basic"
 }
@@ -3265,6 +3281,10 @@ run_xfail_test() {
 
 @test "select_closed_channel_labeled_break" {
     run_test "tests/select_closed_channel_labeled_break"
+}
+
+@test "select_operands_once" {
+    run_test "tests/select_operands_once"
 }
 
 @test "select_statements" {

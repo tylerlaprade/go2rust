@@ -647,10 +647,17 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
@@ -1047,7 +1054,7 @@ pub fn safe_div(a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, results:
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.lock().unwrap()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "recovered: ".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());;
         }
     }
@@ -1156,7 +1163,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }));;
             let n_defer_captured = n.clone(); let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{} {}", format!("{}", "arg recovered: ".to_string()), format!("{}", { let __nil_result = (*go_recover().lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __v = (*n_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).clone());
+        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{} {}", format!("{}", "arg recovered: ".to_string()), format!("{}", !{ let __nil_result = (*go_recover().lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __v = (*n_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).clone());
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));;
             std::panic::panic_any(Box::new("boom".to_string()) as Box<dyn Any + Send + Sync>);;

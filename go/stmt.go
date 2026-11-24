@@ -1146,6 +1146,14 @@ func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 // expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
 // stores bare boxes).
 func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && ident.Name == "nil" {
+		writeNilAnyBox(out)
+		return
+	}
+	// An interface value is copied into a box of its own, nil as GoNilAny.
+	if isEmptyInterfaceValueExpr(expr) && writeExistingAnyBoxClone(out, expr) {
+		return
+	}
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
@@ -1192,11 +1200,8 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	// it. (A value already of interface type is handled by the local/stdlib
 	// interface paths or the generic clone below.)
 	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
-		ident, isIdent := rhs.(*ast.Ident)
-		if !isIdent || ident.Name != "nil" {
-			writeBareAnyBox(out, rhs)
-			return
-		}
+		writeBareAnyBox(out, rhs)
+		return
 	}
 	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
@@ -9764,6 +9769,53 @@ type parallelIndexedAssignmentTarget struct {
 	outerIndexNames []string
 }
 
+type selectOperands struct {
+	channel string
+	value   string
+}
+
+// Go evaluates all channel operands and send values, in source order,
+// before choosing a ready arm. The polling loop can then reuse those values.
+func prepareSelectOperands(out *strings.Builder, clauses []*ast.CommClause) []selectOperands {
+	operands := make([]selectOperands, len(clauses))
+	for i, cc := range clauses {
+		var channel, value ast.Expr
+		var receive ast.Expr
+		switch comm := cc.Comm.(type) {
+		case *ast.AssignStmt:
+			if len(comm.Rhs) == 1 {
+				receive = comm.Rhs[0]
+			}
+		case *ast.ExprStmt:
+			receive = comm.X
+		case *ast.SendStmt:
+			channel, value = comm.Chan, comm.Value
+		}
+		if unary, ok := unwrapParens(receive).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+			channel = unary.X
+		}
+		if channel == nil {
+			continue
+		}
+		name := freshParallelAssignmentTempName(fmt.Sprintf("__go_select_channel_%d", i))
+		operands[i].channel = name
+		fmt.Fprintf(out, "let %s = ", name)
+		writeChannelExpression(out, channel)
+		out.WriteString(".clone();\n    ")
+		if value != nil {
+			NeedGoSelectSend()
+			name = freshParallelAssignmentTempName(fmt.Sprintf("__go_select_value_%d", i))
+			operands[i].value = name
+			fmt.Fprintf(out, "let mut %s = Some(", name)
+			if !writeInterfaceChannelSendValue(out, channel, value) {
+				transpileChannelValue(out, value)
+			}
+			out.WriteString(");\n    ")
+		}
+	}
+	return operands
+}
+
 func freshParallelAssignmentTempName(base string) string {
 	name := base
 	for lookupVarInfo(name) != nil || packageGlobalNames[name] {
@@ -16222,15 +16274,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
-		// Go evaluates each case's channel operand once, on entering the
-		// select. Inside the polling loop a call such as time.After would
-		// make a new timer each round, and the timer would never fire.
-		restoreSelectChannels := hoistSelectChannelOperands(out, commClauses)
-		defer restoreSelectChannels()
+		out.WriteString("{\n    ")
+		operands := prepareSelectOperands(out, commClauses)
 		out.WriteString("loop {\n")
 		restoreSelectBreakTarget := pushBreakTarget("")
 
-		for _, cc := range commClauses {
+		for i, cc := range commClauses {
 			if cc.Comm == nil {
 				// Default case — handled at the end
 				continue
@@ -16241,11 +16290,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			case *ast.AssignStmt:
 				// case val := <-ch or case val, ok := <-ch
 				if len(comm.Rhs) == 1 {
-					if unary, ok := comm.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+					if unary, ok := unwrapParens(comm.Rhs[0]).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 						// A closed channel is ready too: it gives the zero
 						// value, and ok is false.
 						out.WriteString("        if let Some(__select_recv) = ")
-						writeSelectChannelOperand(out, unary.X)
+						out.WriteString(operands[i].channel)
 						out.WriteString(".try_recv_select() {\n")
 						out.WriteString("            let __select_ok = __select_recv.is_some();\n")
 						if ident, ok := comm.Lhs[0].(*ast.Ident); ok && ident.Name != "_" {
@@ -16309,9 +16358,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			case *ast.ExprStmt:
 				// case <-ch (receive without assignment)
-				if unary, ok := comm.X.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+				if unary, ok := unwrapParens(comm.X).(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
 					out.WriteString("        if let Some(_) = ")
-					writeSelectChannelOperand(out, unary.X)
+					out.WriteString(operands[i].channel)
 					out.WriteString(".try_recv_select() {\n")
 
 					var captureShadowRestores []func()
@@ -16330,14 +16379,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 			case *ast.SendStmt:
-				// case ch <- val (send case) — use try_send for non-blocking
-				out.WriteString("        if ")
-				writeSelectChannelOperand(out, comm.Chan)
-				out.WriteString(".try_send(")
-				if !writeInterfaceChannelSendValue(out, comm.Chan, comm.Value) {
-					transpileChannelValue(out, comm.Value)
-				}
-				out.WriteString(") {\n")
+				// Keep a non-Copy payload available when a send has to retry.
+				fmt.Fprintf(out, "        if %s.try_send_select(&mut %s) {\n", operands[i].channel, operands[i].value)
 
 				var captureShadowRestores []func()
 				for _, bodyStmt := range cc.Body {
@@ -16380,12 +16423,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		restoreSelectBreakTarget()
 		out.WriteString("    }")
-		if selectChannelsHoisted(commClauses) {
-			out.WriteString(" }")
-		}
 		if selectStmtTerminates(s) {
 			out.WriteString("\n    unreachable!()")
 		}
+		out.WriteString("\n    }")
 
 	case *ast.DeferStmt:
 		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)
@@ -16829,11 +16870,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			TranspileExpression(out, expr)
 			out.WriteString(";\n")
-			out.WriteString("    let _ts_is_nil = false;\n")
 			if NeedsConcurrentWrapper() {
 				out.WriteString("    let _ts_val: Option<&(dyn Any + Send + Sync)> = Some(_ts_ref.as_ref() as &(dyn Any + Send + Sync));\n")
 			} else {
 				out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+			}
+			if strings.Contains(rangeVarType, "Box<dyn Any") {
+				// A range variable over a []any: its nil holds GoNilAny. The
+				// variable can be a reference or an owned clone, so test the
+				// borrowed trait object rather than dereferencing it.
+				NeedGoNilAny()
+				out.WriteString("    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());\n")
+			} else {
+				out.WriteString("    let _ts_is_nil = false;\n")
 			}
 		} else if isStdlibRangeRef {
 			out.WriteString("    let _ts_is_nil = false;\n")
@@ -16855,7 +16904,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_guard = _ts_subject")
 			WriteBorrowMethod(out, false)
 			out.WriteString(";\n")
-			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
+			// A nil element of a []any holds GoNilAny.
+			NeedGoNilAny()
+			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
 			out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
 			if NeedsConcurrentWrapper() {
@@ -17083,7 +17134,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.LabeledStmt:
 		label := ToSnakeCase(s.Label.Name)
 		switch s.Stmt.(type) {
-		case *ast.SwitchStmt, *ast.TypeSwitchStmt:
+		case *ast.SwitchStmt, *ast.TypeSwitchStmt, *ast.SelectStmt:
 			out.WriteString("'")
 			out.WriteString(label)
 			out.WriteString(": {\n")

@@ -44,8 +44,10 @@ loop:
 `)
 
 	for _, want := range []string{
-		"if let Some(_) = done.try_recv_select() {",
-		"if let Some(__select_recv) = results.try_recv_select() {",
+		"let __go_select_channel_0 = done.clone();",
+		"if let Some(_) = __go_select_channel_0.try_recv_select() {",
+		"let __go_select_channel_1 = results.clone();",
+		"if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {",
 		"let v = match __select_recv { Some(__v) => __v, None => Default::default() };",
 		"break 'r#loop;",
 	} {

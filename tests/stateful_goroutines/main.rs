@@ -903,15 +903,18 @@ fn main() {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut state = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<i64>>>>::new())));;
         loop {
-        loop {
-        if let Some(__select_recv) = reads_thread.try_recv_select() {
+        {
+    let __go_select_channel_0 = reads_thread.clone();
+    let __go_select_channel_1 = writes_thread.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let read = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut read = Arc::new(Mutex::new(Some(read)));
             { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             break;
         }
-        if let Some(__select_recv) = writes_thread.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let write = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut write = Arc::new(Mutex::new(Some(write)));
@@ -920,6 +923,7 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
     };;
     })) {

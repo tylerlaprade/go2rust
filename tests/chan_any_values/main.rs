@@ -712,6 +712,8 @@ fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<point>>>>() {
         go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<point>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<square>() {
@@ -720,6 +722,11 @@ fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -742,6 +749,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<String>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<point>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<point>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<square>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
@@ -1137,6 +1145,28 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1159,6 +1189,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Arc<Mutex<Option<Vec<String>>>>>() { return "[]string" }
     if val.is::<Arc<Mutex<Option<Vec<i64>>>>>() { return "[]int" }
     if val.is::<Arc<Mutex<Option<point>>>>() { return "*main.point" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<point>() { return "main.point" }
     if val.is::<square>() { return "main.square" }
     std::any::type_name_of_val(val)
@@ -1589,7 +1620,7 @@ pub fn first_half() {
     ch.send({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new(point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
     ch.send({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
     ch.send(None::<Box<dyn Any + Send + Sync>>);
-    ch.send({ let __iface_handle = Arc::new(Mutex::new(Some({ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
+    ch.send({ let __iface_handle = Arc::new(Mutex::new(Some({ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
     ch.send({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new(square { side: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Box<dyn Any + Send + Sync>))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x < __tmp_y } {
@@ -1597,7 +1628,7 @@ pub fn first_half() {
         {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
@@ -1710,27 +1741,35 @@ pub fn second_half() {
     println!("{}", format!("{}", { let __text = match ({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 
     let mut sel = GoChannel::<Option<Box<dyn Any + Send + Sync>>>::new_buffered(1 as usize);
+    {
+    let __go_select_channel_0 = sel.clone();
+    let mut __go_select_value_0 = Some({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new("selected".to_string()) as Box<dyn Any + Send + Sync>))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value });
     loop {
-        if sel.try_send({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new("selected".to_string()) as Box<dyn Any + Send + Sync>))); let __iface_value = __iface_handle.lock().unwrap().take(); __iface_value }) {
+        if __go_select_channel_0.try_send_select(&mut __go_select_value_0) {
             break;
         }
         println!("{}", format!("{}", "full".to_string()));
         break;
     }
-    { let __select_chan_1 = go_channel_after(std::time::Duration::from_secs(1)); loop {
-        if let Some(__select_recv) = sel.try_recv_select() {
+    }
+    {
+    let __go_select_channel_0 = sel.clone();
+    let __go_select_channel_1 = go_channel_after(std::time::Duration::from_secs(1)).clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let x = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut x = Arc::new(Mutex::new(x));
             println!("{} {}", format!("{}", "got".to_string()), format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
             break;
         }
-        if let Some(_) = __select_chan_1.try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "timeout".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
-    } }
+    }
+    }
 
     let mut done = GoChannel::<AnonymousStruct1>::new();
     let mut work = GoChannel::<Option<Box<dyn Any + Send + Sync>>>::new();

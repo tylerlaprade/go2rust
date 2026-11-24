@@ -645,6 +645,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<point>() {
         format!("{}", v)
     } else {
@@ -657,6 +659,11 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
 fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
     format_any(value)
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -676,6 +683,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<i64>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<point>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
@@ -957,6 +965,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Arc<Mutex<Option<i64>>>>() { return "*int" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<point>() { return "main.point" }
     std::any::type_name_of_val(val)
 }
@@ -1135,11 +1144,11 @@ fn main() {
 
         )
     };
-    println!("{} {}", format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*r.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
 
     let mut typedNil: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<i64>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<i64>>>>("pointer", true, "basic", true); __boxed })));
     reassign(go_any_handle_copy(&typedNil));
-    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*({
+    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __nil_result = (*({
         let val = typedNil.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
