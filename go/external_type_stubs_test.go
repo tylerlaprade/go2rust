@@ -1203,10 +1203,71 @@ func TestOsOpenStubReadsFileBytes(t *testing.T) {
 		"std::fs::read(&path)",
 		"os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data))",
 		"None::<os_File>",
-		"io_error(err)",
+		"path_error(\"open\", path, err)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.Open shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestOsReadDirStubDoesNotEmitOpenOnlyPathErrorHelper(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"read_dir": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType("[]fs_DirEntry"),
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "fn path_error(") || strings.Contains(got, "fs_PathError {") {
+		t.Fatalf("os.ReadDir without os.Open must not emit the open-only PathError helper:\n%s", got)
+	}
+}
+
+func TestOsOpenStubEmitsConcretePathError(t *testing.T) {
+	got := generateExternalStubsForPackage(
+		map[string]bool{},
+		map[string]bool{},
+		map[string]string{},
+		map[string]string{},
+		map[string]map[string]string{},
+		map[string]map[string]externalTypeStubMethod{},
+		map[string]map[string]bool{},
+		map[string]*externalPackageStub{
+			"fs": {
+				Variables: map[string]string{
+					"ErrNotExist": wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+			"os": {
+				Functions: map[string]externalPackageStubFunction{
+					"open": {
+						ParamCount: 1,
+						ReturnTypes: []string{
+							wrappedExternalStubType("os_File"),
+							wrappedExternalStubType(externalStubErrorInnerType()),
+						},
+					},
+				},
+			},
+		},
+		false,
+	)
+	for _, want := range []string{
+		"pub struct fs_PathError",
+		"impl std::error::Error for fs_PathError",
+		"pub fn unwrap(&self)",
+		"path_error(\"open\", path, err)",
+		"std::io::ErrorKind::NotFound",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Open concrete error support should include %q:\n%s", want, got)
 		}
 	}
 }

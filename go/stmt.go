@@ -3534,6 +3534,9 @@ func typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo *TypeInfo, typeExpr a
 }
 
 func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseCondition(out, typeInfo, typeExpr, subjectType) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -3599,6 +3602,9 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 // case (named or anonymous). Go gives the case variable the case type, even when
 // the matched value is rewrapped from a statically known interface subject.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseBinding(out, typeInfo, varName, typeExpr, subjectType, mutable) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -13443,7 +13449,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(rustIdentForUseWithCapture(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if ident, ok := star.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
 									out.WriteString("{ ")
@@ -13456,7 +13462,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(rustIdentForUseWithCapture(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if writeGoPtrSlotDerefAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-GoPtr-slot assignment replaces the GoPtr stored in the slot.

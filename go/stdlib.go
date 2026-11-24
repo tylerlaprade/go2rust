@@ -612,6 +612,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
+					} else if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
+						// x.(fmt.Stringer) yields the bare fmt_Stringer.
+						TranspileExpression(out, arg)
 					} else {
 						// Complex expression
 						out.WriteString("(*(")
@@ -1451,6 +1454,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
+	}
+	if writeFmtStringerTypeName(out, arg) {
+		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {

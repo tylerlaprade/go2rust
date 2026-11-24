@@ -1379,6 +1379,22 @@ run_xfail_test() {
     run_test "tests/fmt_sprintf_type_name_call"
 }
 
+@test "fmt_stringer_imported_types" {
+    run_test "tests/fmt_stringer_imported_types"
+}
+
+@test "fmt_stringer_imported_types_goroutines" {
+    run_test "tests/fmt_stringer_imported_types_goroutines"
+}
+
+@test "fmt_stringer_values" {
+    run_test "tests/fmt_stringer_values"
+}
+
+@test "fmt_stringer_values_goroutines" {
+    run_test "tests/fmt_stringer_values_goroutines"
+}
+
 @test "for_loops" {
     run_test "tests/for_loops"
 }
@@ -2523,6 +2539,14 @@ run_xfail_test() {
     run_test "tests/os_hostname_goroutines"
 }
 
+@test "os_open_path_error" {
+    run_test "tests/os_open_path_error"
+}
+
+@test "os_open_path_error_goroutines" {
+    run_test "tests/os_open_path_error_goroutines"
+}
+
 @test "os_readdir_filepath" {
     run_test "tests/os_readdir_filepath"
 }
@@ -3379,6 +3403,14 @@ run_xfail_test() {
     run_test "tests/slice_elem_pointer_short_decl"
 }
 
+@test "slice_elem_ptr_backing_array" {
+    run_test "tests/slice_elem_ptr_backing_array"
+}
+
+@test "slice_elem_ptr_backing_array_goroutines" {
+    run_test "tests/slice_elem_ptr_backing_array_goroutines"
+}
+
 @test "slice_element_pointer_field_receiver" {
     run_test "tests/slice_element_pointer_field_receiver"
 }
@@ -4221,6 +4253,10 @@ run_xfail_test() {
 
 @test "XFAIL: source_stdlib_os_file_readcloser_assignment" {
     run_xfail_test "tests/XFAIL/source_stdlib_os_file_readcloser_assignment"
+}
+
+@test "XFAIL: source_stdlib_os_open_path_error" {
+    run_xfail_test "tests/XFAIL/source_stdlib_os_open_path_error"
 }
 
 @test "XFAIL: type_conversions" {

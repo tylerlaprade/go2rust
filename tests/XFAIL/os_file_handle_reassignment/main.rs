@@ -693,6 +693,44 @@ impl fs_FileMode {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
+    pub op: Arc<Mutex<Option<String>>>,
+    pub path: Arc<Mutex<Option<String>>>,
+}
+
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op.lock().unwrap();
+        let __path_guard = self.path.lock().unwrap();
+        let __err_guard = self.err.lock().unwrap();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
+    }
+}
+
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        self.err.clone()
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
@@ -913,6 +951,11 @@ pub mod os {
         Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
+    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = fs_PathError { err: Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>))), op: Arc::new(Mutex::new(Some::<String>(op.to_string()))), path: Arc::new(Mutex::new(Some::<String>(path))) };
+        Arc::new(Mutex::new(Some(std::sync::Arc::new(path_error) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
+    }
+
     pub fn open<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
@@ -920,7 +963,7 @@ pub mod os {
                 let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };
                 (Arc::new(Mutex::new(Some::<os_File>(file))), no_error())
             }
-            Err(err) => (Arc::new(Mutex::new(None::<os_File>)), io_error(err)),
+            Err(err) => (Arc::new(Mutex::new(None::<os_File>)), path_error("open", path, err)),
         }
     }
 
