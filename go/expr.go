@@ -11585,6 +11585,29 @@ func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
 	return len(call.Args) >= 4 || callArgumentsShouldUseMultiline(call.Args)
 }
 
+// writeAnonymousStructSliceElemPtrFieldValue writes the value of a field of
+// an anonymous struct literal that holds a pointer to a slice element: the
+// generated struct gives the field a GoPtr, as for a named struct.
+func writeAnonymousStructSliceElemPtrFieldValue(out *strings.Builder, lit *ast.CompositeLit, field *types.Var, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return false
+	}
+	structType := typeInfo.GetType(lit)
+	if structType == nil {
+		return false
+	}
+	fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field)
+	if !ok {
+		return false
+	}
+	if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
+		return true
+	}
+	out.WriteString(`unimplemented!("GoPtr struct literal field requires compatible pointer value")`)
+	return true
+}
+
 func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
 	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
 		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
@@ -15916,7 +15939,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
 							typedFieldType = typedStructUnder.Field(eltIndex).Type()
 						}
-						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						var typedField *types.Var
+						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
+							typedField = typedStructUnder.Field(eltIndex)
+						}
+						if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, e.Elts[eltIndex]) {
+							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						}
 						writeAnonymousStructFieldSuffix()
 						eltIndex++
 					}
@@ -15936,7 +15965,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if typedStructUnder != nil {
 								typedFieldType = findTypesStructFieldType(typedStructUnder, key.Name)
 							}
-							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							var typedField *types.Var
+							if typedStructUnder != nil {
+								typedField = findTypesStructField(typedStructUnder, key.Name)
+							}
+							if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, kv.Value) {
+								writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							}
 							writeAnonymousStructFieldSuffix()
 						}
 					}

@@ -2039,6 +2039,13 @@ func sliceElemPtrFieldKey(named *types.Named, fieldName string) string {
 	if named == nil || named.Obj() == nil || fieldName == "" {
 		return ""
 	}
+	if isFunctionLocalNamedType(named) {
+		// A struct type declared inside a function is emitted as an alias
+		// of the generated struct for its underlying type, so its fields
+		// are that struct's fields (DEV-131). The name alone is also not
+		// unique: two functions may each declare a local holder.
+		return sliceElemPtrAnonymousFieldKey(named.Underlying(), fieldName)
+	}
 	pkgPath := ""
 	if pkg := named.Obj().Pkg(); pkg != nil {
 		pkgPath = pkg.Path()
@@ -8604,4 +8611,14 @@ func writeGoPtrCompoundAssignOperator(out *strings.Builder, tok token.Token) {
 	case token.SHR_ASSIGN:
 		out.WriteString(">>")
 	}
+}
+
+// isFunctionLocalNamedType reports whether named is declared inside a
+// function rather than at package level.
+func isFunctionLocalNamedType(named *types.Named) bool {
+	obj := named.Obj()
+	if obj == nil || obj.Pkg() == nil || obj.Parent() == nil {
+		return false
+	}
+	return obj.Parent() != obj.Pkg().Scope() && obj.Parent() != types.Universe
 }
