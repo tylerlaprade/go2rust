@@ -9739,6 +9739,9 @@ func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*a
 	if !ok {
 		return nil
 	}
+	// A method promoted from an instantiated generic, Base[int], selects
+	// the instantiated method; the declaration is its origin's.
+	method = method.Origin()
 	for _, methods := range methodsByReceiver {
 		for _, decl := range methods {
 			if methodFuncForDecl(decl, typeInfo) == method {

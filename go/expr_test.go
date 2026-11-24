@@ -7769,8 +7769,13 @@ func (s *Setting) register() {
 	if strings.Contains(rust, "__once.r#do({ let mut __recv = self.clone(); Box::new") {
 		t.Fatalf("source-mapped sync.Once.Do should not pass a raw method-value closure to source sync::Once:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new") {
-		t.Fatalf("source-mapped sync.Once.Do should wrap method-value arguments for source sync::Once:\n%s", rust)
+	// The wrapped func runs register on the receiver itself, not on a
+	// self.clone() snapshot (DEV-166).
+	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(Box::new(move || { let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) }; __recv_ref.register(); })") {
+		t.Fatalf("source-mapped sync.Once.Do should wrap a func that calls the method on the receiver:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut __recv = self.clone()") {
+		t.Fatalf("source-mapped sync.Once.Do must not run the method on a copy of the receiver:\n%s", rust)
 	}
 }
 
@@ -10287,5 +10292,35 @@ func main() {
 	if !strings.Contains(rust, "Box::new(1i64) as Box<dyn Any>") ||
 		!strings.Contains(rust, "Box::new(\"s\".to_string()) as Box<dyn Any>") {
 		t.Fatalf("[]any literal elements should use Rust's Any trait:\n%s", rust)
+	}
+}
+
+// In a program with goroutines, GoOnce follows Go's Once: the first caller
+// runs f while holding the once's mutex, so no Do returns before f has
+// finished, and f counts as done even when it panics.
+func TestConcurrentGoOnceWaitsForTheRunningCallback(t *testing.T) {
+	helper := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+var n int
+
+func run() {
+	go func() {}()
+	var once sync.Once
+	once.Do(func() { n++ })
+}
+`)
+	for _, want := range []string{
+		"m: std::sync::Arc<std::sync::Mutex<()>>,",
+		"let _running = self.m.lock().unwrap_or_else(|poisoned| poisoned.into_inner());",
+		"let _mark = MarkDone(&self.done);",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Errorf("missing %q:\n%s", want, helper)
+		}
+	}
+	if strings.Contains(helper, "std::mem::drop(done);\n            f();") {
+		t.Errorf("Do must not release the lock before f runs:\n%s", helper)
 	}
 }

@@ -958,24 +958,37 @@ impl std::fmt::Debug for GoMutex {
 
 #[derive(Clone, Debug)]
 struct GoOnce {
-    done: std::sync::Arc<std::sync::Mutex<bool>>,
+    done: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    m: std::sync::Arc<std::sync::Mutex<()>>,
 }
 
 impl GoOnce {
     fn new() -> Self {
         GoOnce {
-            done: std::sync::Arc::new(std::sync::Mutex::new(false)),
+            done: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            m: std::sync::Arc::new(std::sync::Mutex::new(())),
         }
     }
 
+    // Go's Once: the first caller runs f while it holds m, so no call
+    // returns before f has finished, and f counts as done even if it
+    // panics.
     fn r#do<F>(&self, mut f: F)
     where
         F: FnMut(),
     {
-        let mut done = self.done.lock().unwrap();
-        if !*done {
-            *done = true;
-            std::mem::drop(done);
+        if self.done.load(std::sync::atomic::Ordering::Acquire) {
+            return;
+        }
+        let _running = self.m.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !self.done.load(std::sync::atomic::Ordering::Acquire) {
+            struct MarkDone<'a>(&'a std::sync::atomic::AtomicBool);
+            impl Drop for MarkDone<'_> {
+                fn drop(&mut self) {
+                    self.0.store(true, std::sync::atomic::Ordering::Release);
+                }
+            }
+            let _mark = MarkDone(&self.done);
             f();
         }
     }
@@ -1071,6 +1084,75 @@ impl Default for Base {
 impl std::fmt::Display for Base {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", format_map(&self.index));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct Cache__string {
+    pub once: GoOnce,
+    pub items: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<String>>>>>>>,
+}
+
+impl Cache__string {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.once.clone();
+        let __go_clone_1_0 = self.items.clone();
+        Self {
+            once: __go_clone_0_0,
+            items: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Cache__string {
+    fn default() -> Self {
+        let __go_default_0_0 = GoOnce::new();
+        let __go_default_1_0 = Arc::new(Mutex::new(None));
+        Self {
+            once: __go_default_0_0,
+            items: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Cache__string {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", format_map(&self.items));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct Names {
+    pub cache__string: Arc<Mutex<Option<Cache__string>>>,
+}
+
+impl Names {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.cache__string.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        Self {
+            cache__string: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Names {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(Cache__string::default())));
+        Self {
+            cache__string: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Names {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.cache__string.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
@@ -1179,6 +1261,36 @@ impl Base {
     }
 }
 
+impl Cache__string {
+    pub fn fill(&mut self) {
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<String>>>>::from([])))); self.items = new_val; };
+    }
+}
+
+impl Names {
+    /// Get reaches fill, a method of the instantiated Cache[string], through
+    /// Names.
+    pub fn get(&mut self, k: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
+        { let __once = (*self.cache__string.lock().unwrap().as_ref().unwrap()).once.clone(); __once.r#do(|| { { let __promoted_recv = self.cache__string.clone(); let mut __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.fill(); __result }; }); };
+        {
+        let (mut v, mut ok) = { let __map = { let __map_holder = (*self.cache__string.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(String::new()))), false) } };;
+        if ok {
+            return { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
+        }
+    }
+        { let __map_key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = Arc::new(Mutex::new(Some(format!("{}{}", "new:".to_string(), { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v })))); (*(*self.cache__string.lock().unwrap().as_ref().unwrap()).items.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        Arc::new(Mutex::new(Some({ let __map = { let __map_holder = (*self.cache__string.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })))
+    }
+
+    pub fn fill(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.cache__string.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.fill()
+    }
+}
+
 impl Stats {
     pub fn init(&mut self) {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))); self.counts = new_val; };
@@ -1187,10 +1299,10 @@ impl Stats {
 
     pub fn add(&mut self, k: Arc<Mutex<Option<String>>>) {
         { let __once = self.once.clone(); __once.r#do(|| { self.init(); }); };
-        let __mutex_guard_source_772 = self.mu.clone(); let __mutex_guard_772 = __mutex_guard_source_772.guard();
+        let __mutex_guard_source_1165 = self.mu.clone(); let __mutex_guard_1165 = __mutex_guard_source_1165.guard();
         { let __map_holder = self.counts.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
         { let new_val = Arc::new(Mutex::new(Some(node { key: Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
-        std::mem::drop(__mutex_guard_772);
+        std::mem::drop(__mutex_guard_1165);
     }
 
     pub fn keys(&self) -> Arc<Mutex<Option<Vec<String>>>> {
@@ -1281,4 +1393,6 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
     println!("{} {}", format!("{}", "nodes:".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     println!("{} {}", format!("{}", { let __recv = s.clone(); let __recv_ptr: *mut Stats = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Stats }; let __result = unsafe { &mut *__recv_ptr }.lookup(Arc::new(Mutex::new(Some("base".to_string())))); __result }), format!("{}", { let __recv = s.clone(); let __recv_ptr: *mut Stats = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Stats }; let __result = unsafe { &mut *__recv_ptr }.lookup(Arc::new(Mutex::new(Some("missing".to_string())))); __result }));
+    let mut names: Arc<Mutex<Option<Names>>> = Arc::new(Mutex::new(Some(Default::default())));
+    println!("{} {} {}", format!("{}", (*(*names.lock().unwrap().as_mut().unwrap()).get(Arc::new(Mutex::new(Some("x".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*(*names.lock().unwrap().as_mut().unwrap()).get(Arc::new(Mutex::new(Some("x".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*names.lock().unwrap().as_mut().unwrap()).cache__string.lock().unwrap().as_mut().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
 }

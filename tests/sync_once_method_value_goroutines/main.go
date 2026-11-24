@@ -21,6 +21,28 @@ func (b *Base) Lookup(k string) int {
 	return b.index[k]
 }
 
+type Cache[V any] struct {
+	once  sync.Once
+	items map[string]V
+}
+
+func (c *Cache[V]) fill() { c.items = map[string]V{} }
+
+type Names struct {
+	Cache[string]
+}
+
+// Get reaches fill, a method of the instantiated Cache[string], through
+// Names.
+func (n *Names) Get(k string) string {
+	n.once.Do(n.fill)
+	if v, ok := n.items[k]; ok {
+		return v
+	}
+	n.items[k] = "new:" + k
+	return n.items[k]
+}
+
 type Stats struct {
 	Base
 	once   sync.Once
@@ -74,4 +96,6 @@ func main() {
 	}
 	fmt.Println("nodes:", n)
 	fmt.Println(s.Lookup("base"), s.Lookup("missing"))
+	var names Names
+	fmt.Println(names.Get("x"), names.Get("x"), len(names.items))
 }

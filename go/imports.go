@@ -3095,24 +3095,37 @@ func generateGoOnceHelper(out *strings.Builder) {
 		out.WriteString(`
 #[derive(Clone, Debug)]
 struct GoOnce {
-    done: std::sync::Arc<std::sync::Mutex<bool>>,
+    done: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    m: std::sync::Arc<std::sync::Mutex<()>>,
 }
 
 impl GoOnce {
     fn new() -> Self {
         GoOnce {
-            done: std::sync::Arc::new(std::sync::Mutex::new(false)),
+            done: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            m: std::sync::Arc::new(std::sync::Mutex::new(())),
         }
     }
 
+    // Go's Once: the first caller runs f while it holds m, so no call
+    // returns before f has finished, and f counts as done even if it
+    // panics.
     fn r#do<F>(&self, mut f: F)
     where
         F: FnMut(),
     {
-        let mut done = self.done.lock().unwrap();
-        if !*done {
-            *done = true;
-            std::mem::drop(done);
+        if self.done.load(std::sync::atomic::Ordering::Acquire) {
+            return;
+        }
+        let _running = self.m.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if !self.done.load(std::sync::atomic::Ordering::Acquire) {
+            struct MarkDone<'a>(&'a std::sync::atomic::AtomicBool);
+            impl Drop for MarkDone<'_> {
+                fn drop(&mut self) {
+                    self.0.store(true, std::sync::atomic::Ordering::Release);
+                }
+            }
+            let _mark = MarkDone(&self.done);
             f();
         }
     }

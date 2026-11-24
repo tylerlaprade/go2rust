@@ -917,6 +917,75 @@ impl std::fmt::Display for Base {
 
 
 #[derive(Clone)]
+pub struct Cache__string {
+    pub once: GoOnce,
+    pub items: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<String>>>>>>>,
+}
+
+impl Cache__string {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.once.clone();
+        let __go_clone_1_0 = self.items.clone();
+        Self {
+            once: __go_clone_0_0,
+            items: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Cache__string {
+    fn default() -> Self {
+        let __go_default_0_0 = GoOnce::new();
+        let __go_default_1_0 = Rc::new(RefCell::new(None));
+        Self {
+            once: __go_default_0_0,
+            items: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Cache__string {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", format_map(&self.items));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct Names {
+    pub cache__string: Rc<RefCell<Option<Cache__string>>>,
+}
+
+impl Names {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.cache__string.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
+        Self {
+            cache__string: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Names {
+    fn default() -> Self {
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(Cache__string::default())));
+        Self {
+            cache__string: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Names {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.cache__string.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
 pub struct Stats {
     pub base: Rc<RefCell<Option<Base>>>,
     pub once: GoOnce,
@@ -1019,6 +1088,36 @@ impl Base {
     }
 }
 
+impl Cache__string {
+    pub fn fill(&mut self) {
+        { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([])))); self.items = new_val; };
+    }
+}
+
+impl Names {
+    /// Get reaches fill, a method of the instantiated Cache[string], through
+    /// Names.
+    pub fn get(&mut self, k: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
+        { let __once = (*self.cache__string.borrow().as_ref().unwrap()).once.clone(); __once.r#do(|| { { let __promoted_recv = self.cache__string.clone(); let mut __promoted_guard = __promoted_recv.borrow_mut(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.fill(); __result }; }); };
+        {
+        let (mut v, mut ok) = { let __map_holder = (*self.cache__string.borrow().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*k.borrow().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(String::new()))), false) } };;
+        if ok {
+            return { let __owned = v.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };;
+        }
+    }
+        { let __map_key = (*k.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some(format!("{}{}", "new:".to_string(), (*k.borrow().as_ref().unwrap()))))); (*(*self.cache__string.borrow().as_ref().unwrap()).items.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+        Rc::new(RefCell::new(Some({ let __map_holder = (*self.cache__string.borrow().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*k.borrow().as_ref().unwrap()).clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })))
+    }
+
+    pub fn fill(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.cache__string.clone();
+        let mut guard = embedded.borrow_mut();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.fill()
+    }
+}
+
 impl Stats {
     pub fn init(&mut self) {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])))); self.counts = new_val; };
@@ -1027,10 +1126,10 @@ impl Stats {
 
     pub fn add(&mut self, k: Rc<RefCell<Option<String>>>) {
         { let __once = self.once.clone(); __once.r#do(|| { self.init(); }); };
-        let __mutex_guard_source_742 = self.mu.clone(); let __mutex_guard_742 = __mutex_guard_source_742.guard();
+        let __mutex_guard_source_1135 = self.mu.clone(); let __mutex_guard_1135 = __mutex_guard_source_1135.guard();
         { let __map_holder = self.counts.clone(); let __key = (*k.borrow().as_ref().unwrap()).clone(); let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
         { let new_val = Rc::new(RefCell::new(Some(node { key: Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = self.head.clone(); __field }, ..Default::default() }))).clone(); self.head = new_val; };
-        std::mem::drop(__mutex_guard_742);
+        std::mem::drop(__mutex_guard_1135);
     }
 
     pub fn keys(&self) -> Rc<RefCell<Option<Vec<String>>>> {
@@ -1079,4 +1178,6 @@ fn main() {
     }
     println!("{} {} {}", format!("{}", "nodes:".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*(*s.borrow().as_ref().unwrap()).head.borrow().as_ref().unwrap()).key.borrow().as_ref().unwrap()).clone()));
     println!("{} {}", format!("{}", (*s.borrow_mut().as_mut().unwrap()).lookup(Rc::new(RefCell::new(Some("base".to_string()))))), format!("{}", (*s.borrow_mut().as_mut().unwrap()).lookup(Rc::new(RefCell::new(Some("missing".to_string()))))));
+    let mut names: Rc<RefCell<Option<Names>>> = Rc::new(RefCell::new(Some(Default::default())));
+    println!("{} {} {}", format!("{}", (*(*names.borrow_mut().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("x".to_string())))).borrow().as_ref().unwrap())), format!("{}", (*(*names.borrow_mut().as_mut().unwrap()).get(Rc::new(RefCell::new(Some("x".to_string())))).borrow().as_ref().unwrap())), format!("{}", ({ let __len_target = { let __field = (*(*names.borrow_mut().as_mut().unwrap()).cache__string.borrow_mut().as_mut().unwrap()).items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
 }

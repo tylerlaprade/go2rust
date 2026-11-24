@@ -2432,17 +2432,45 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	if !ok {
 		return false
 	}
-	if sel, ok := syncOnceDoCurrentReceiverMethodValue(call.Args[0]); ok && !receiver.wrapFuncArg {
-		// once.Do(s.init) inside a pointer method: call the method on self
-		// from a borrowing closure. The method-value box would capture
-		// self.clone(), and a map or pointer field the method assigns
-		// would land on that copy instead of on s.
-		out.WriteString("{ let __once = ")
-		writeSyncOnceReceiverClone(out, receiver)
-		out.WriteString("; __once.r#do(|| { ")
-		TranspileExpression(out, &ast.CallExpr{Fun: sel, Lparen: sel.End(), Rparen: sel.End()})
-		out.WriteString("; }); }")
-		return true
+	if sel, ok := syncOnceDoCurrentReceiverMethodValue(call.Args[0]); ok {
+		// once.Do(s.init) inside a pointer method: call the method on self.
+		// The method-value box would capture self.clone(), and a map or
+		// pointer field the method assigns would land on that copy instead
+		// of on s.
+		methodCall := &ast.CallExpr{Fun: sel, Lparen: sel.End(), Rparen: sel.End()}
+		if !receiver.wrapFuncArg {
+			// The GoOnce helper takes any FnMut, so the closure borrows self.
+			out.WriteString("{ let __once = ")
+			writeSyncOnceReceiverClone(out, receiver)
+			out.WriteString("; __once.r#do(|| { ")
+			TranspileExpression(out, methodCall)
+			out.WriteString("; }); }")
+			return true
+		}
+		if currentReceiverType != "" {
+			// A source-mapped sync.Once takes a boxed func; it runs it before
+			// Do returns, so the box reaches self through a pointer, as
+			// writeSourceSyncOnceDoPointerReceiverFuncLitCall does.
+			out.WriteString("{ let __once = ")
+			writeSyncOnceReceiverClone(out, receiver)
+			out.WriteString("; let __recv_ptr = self as *mut ")
+			out.WriteString(currentReceiverType)
+			out.WriteString(" as usize; __once.r#do(")
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(move || { let __recv_ref: &mut ")
+			out.WriteString(currentReceiverType)
+			out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
+			out.WriteString(currentReceiverType)
+			out.WriteString(") }; ")
+			prevAlias := currentReceiverRustAlias
+			currentReceiverRustAlias = "__recv_ref"
+			TranspileExpression(out, methodCall)
+			currentReceiverRustAlias = prevAlias
+			out.WriteString("; }) as Box<dyn FnMut() -> () + Send + Sync>")
+			WriteWrapperSuffix(out)
+			out.WriteString(") }")
+			return true
+		}
 	}
 	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
 		return false
