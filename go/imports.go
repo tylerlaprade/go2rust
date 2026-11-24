@@ -3893,6 +3893,60 @@ fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
 `)
 }
 
+// writeSliceElemPtrConstructor writes GoSliceElemPtr::new, which checks the
+// index as &s[i] does, and identity, which pointer comparison uses.
+//
+// With GoSlice the pointer holds a copy of the slice's header in a cell of
+// its own: the copy shares the backing array, so writes through the pointer
+// reach every slice over that array, and a later assignment to the slice
+// variable (items = items[1:], or an append that grows it) leaves the
+// pointer on the element it was taken from, as in Go (DEV-149). Two
+// pointers are equal when they name the same element of the same array.
+// Without GoSlice each slice value is its own Vec, so the pointer holds the
+// variable's cell.
+func writeSliceElemPtrConstructor(out *strings.Builder, outer string, cell string, tryBorrow string) {
+	out.WriteString("    pub fn new(slice: " + outer + "<" + cell + "<Option<Vec<T>>>>, index: usize) -> Self {\n")
+	out.WriteString(`        // &s[i] panics, as indexing does, when i is not below len(s). A
+        // slice already borrowed for the expression is not checked.
+`)
+	out.WriteString("        if let Ok(__guard) = slice." + tryBorrow + "() {\n")
+	out.WriteString(`            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
+            if index >= __len {
+                drop(__guard);
+                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
+            }
+`)
+	if goSliceModeEnabled() {
+		out.WriteString(`            // Hold the backing array the slice has now, not the variable.
+            let __header = (*__guard).clone();
+            drop(__guard);
+`)
+		// Spelled with std paths: a package can declare a Mutex of its own.
+		cellPath := map[string]string{"Mutex": "std::sync::Mutex", "RefCell": "std::cell::RefCell"}[cell]
+		outerPath := map[string]string{"Arc": "std::sync::Arc", "Rc": "std::rc::Rc"}[outer]
+		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index };\n")
+	}
+	out.WriteString(`        }
+        GoSliceElemPtr { slice, index }
+    }
+
+    /// The array and element the pointer names, for == between pointers.
+    pub fn identity(&self) -> (usize, usize) {
+`)
+	if goSliceModeEnabled() {
+		out.WriteString("        if let Ok(__guard) = self.slice." + tryBorrow + "() {\n")
+		// The element's address in the backing array, which every header
+		// over that array shares.
+		out.WriteString(`            if let Some(__slice) = __guard.as_ref() {
+                let __base = __slice.as_slice().as_ptr() as usize;
+                return (__base.wrapping_add(self.index.wrapping_mul(std::mem::size_of::<T>())), 0);
+            }
+        }
+`)
+	}
+	out.WriteString("        (" + outer + "::as_ptr(&self.slice) as *const () as usize, self.index)\n    }\n\n")
+}
+
 func generateSliceElemPtrHelper(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
@@ -4036,20 +4090,9 @@ pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
 }
 
 impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
-        // &s[i] panics, as indexing does, when i is not below len(s). A
-        // slice already borrowed for the expression is not checked.
-        if let Ok(__guard) = slice.try_lock() {
-            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
-            if index >= __len {
-                drop(__guard);
-                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
-            }
-        }
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
+`)
+		writeSliceElemPtrConstructor(out, "Arc", "Mutex", "try_lock")
+		out.WriteString(`    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
         self.slice.clone()
     }
 
@@ -4368,7 +4411,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Arc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Arc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -4380,7 +4423,10 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Arc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Arc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)
@@ -4390,6 +4436,13 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
 }
 
 impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+    /// The pointee, read the way the generated code reads a cell in a
+    /// program with goroutines, ptr.lock().unwrap(), as borrow() is in one
+    /// without: a []*T or map[K]*T element read through the cell path.
+    pub fn lock(&self) -> Result<Option<T>, std::convert::Infallible> {
+        Ok(self.borrow())
+    }
+
     pub fn borrow(&self) -> Option<T> {
         match self {
             GoPtr::Nil => None,
@@ -4569,20 +4622,9 @@ pub struct GoArrayElemMutRef<T: Clone + 'static, const N: usize> {
 }
 
 impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
-        // &s[i] panics, as indexing does, when i is not below len(s). A
-        // slice already borrowed for the expression is not checked.
-        if let Ok(__guard) = slice.try_borrow() {
-            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
-            if index >= __len {
-                drop(__guard);
-                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
-            }
-        }
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
+`)
+		writeSliceElemPtrConstructor(out, "Rc", "RefCell", "try_borrow")
+		out.WriteString(`    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
         self.slice.clone()
     }
 
@@ -4901,7 +4943,7 @@ impl<T: 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Rc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Rc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -4913,7 +4955,10 @@ impl<T: 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Rc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Rc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)

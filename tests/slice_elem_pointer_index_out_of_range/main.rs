@@ -1015,8 +1015,23 @@ impl<T> GoSliceElemPtr<T> {
                 drop(__guard);
                 panic!("index out of bounds: the len is {} but the index is {}", __len, index);
             }
+            // Hold the backing array the slice has now, not the variable.
+            let __header = (*__guard).clone();
+            drop(__guard);
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
         }
         GoSliceElemPtr { slice, index }
+    }
+
+    /// The array and element the pointer names, for == between pointers.
+    pub fn identity(&self) -> (usize, usize) {
+        if let Ok(__guard) = self.slice.try_borrow() {
+            if let Some(__slice) = __guard.as_ref() {
+                let __base = __slice.as_slice().as_ptr() as usize;
+                return (__base.wrapping_add(self.index.wrapping_mul(std::mem::size_of::<T>())), 0);
+            }
+        }
+        (Rc::as_ptr(&self.slice) as *const () as usize, self.index)
     }
 
     pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
@@ -1338,7 +1353,7 @@ impl<T: 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Rc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Rc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -1350,7 +1365,10 @@ impl<T: 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Rc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Rc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)
