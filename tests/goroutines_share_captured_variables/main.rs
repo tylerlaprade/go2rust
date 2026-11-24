@@ -1215,10 +1215,10 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-        mu_thread.lock();;
+        let __mutex_guard_source_899 = mu_thread.clone(); let __mutex_guard_899 = __mutex_guard_source_899.guard();;
         { let __rhs = 10; let mut guard = total_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
         { let __map_holder = counts_thread.clone(); let __key = "n".to_string(); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); };
-        mu_thread.unlock();;
+        std::mem::drop(__mutex_guard_899);;
         { let __idx = ({ let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __tmp_x = { let __v = (*i_thread.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x + __tmp_y }; (*results_thread.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -1296,11 +1296,11 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            lock.lock();;
-            lock.unlock();;
-            mu_thread.lock();;
+            let __mutex_guard_source_1589 = lock.clone(); let __mutex_guard_1589 = __mutex_guard_source_1589.guard();;
+            std::mem::drop(__mutex_guard_1589);;
+            let __mutex_guard_source_1621 = mu_thread.clone(); let __mutex_guard_1621 = __mutex_guard_source_1621.guard();;
             { let mut guard = hits_thread.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_1621);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }

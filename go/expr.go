@@ -2504,6 +2504,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -2578,6 +2579,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -17483,6 +17485,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	// Find captured variables
 	captured := capturedVarsForFuncLit(funcLit)
