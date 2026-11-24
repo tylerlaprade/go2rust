@@ -13,14 +13,15 @@ import (
 // them: *os.File is an io.Reader, an io.Writer, an io.Closer and the rest.
 // The interfaces are the source package's traits, so only that package can
 // implement them for the stub types. A bridged package counts when a
-// package of the program, not of the standard library, imports it.
+// package of the program, or a standard library package translated from
+// source, imports it: flag hands os.Stderr to its io.Writer output.
 func stubTypeInterfaceImpls(pkg *types.Package, interfaces map[string]*ast.InterfaceType, loaded map[string]*packages.Package) map[string]map[string]externalLocalInterfaceImpl {
 	if pkg == nil || len(interfaces) == 0 || !isSourceMappedPackagePath(pkg.Path()) {
 		return nil
 	}
 	imported := map[string]*types.Package{}
 	for path, loadedPkg := range loaded {
-		if loadedPkg == nil || loadedPkg.Types == nil || isStdlibPackage(path) {
+		if loadedPkg == nil || loadedPkg.Types == nil || (isStdlibPackage(path) && !isSourceMappedPackagePath(path)) {
 			continue
 		}
 		for importPath, importedPkg := range loadedPkg.Imports {

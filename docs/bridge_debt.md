@@ -309,6 +309,27 @@ in the first place.
   behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
+### exec-cmd-io-field-bridge
+
+- Location: `go/stub_io_fields.go` (`writeStubIoFieldBridges`,
+  `writeStubIoFieldBridgeValue`), `go/external_type_stubs.go`
+  (`writeExecCmdTypeStub` Stdin)
+- Go symbol: `exec.Cmd.Stdout`, `exec.Cmd.Stderr`, `exec.Cmd.Stdin`
+- Transpiler gap: `os/exec` is the OS process layer and stays a stub, but its
+  `Stdout`, `Stderr` and `Stdin` fields are `io.Writer` and `io.Reader`. With
+  `io` translated from source those are traits of the `io` crate, which
+  depends on the stub crate, so the stub crate cannot name them. The fields
+  hold `GoStubWriter`/`GoStubReader`, a closure the assignment builds over the
+  `io` trait object, which calls its `Write` or reads it to EOF. Without them
+  `go/build` (which sets `cmd.Stdout`) did not compile; a program capturing a
+  command's output in a `bytes.Buffer` now gets it, and `Stdin` reaches the
+  process. Reading the field back as an `io.Writer` is not supported.
+- Fixture: `go/stub_io_fields_test.go:TestExecCmdIoFieldsBridgeSourceIoInterfaces`,
+  `tests/build_package_stub/`
+- Removal trigger: `os/exec` translated from source, with `os.Process` and
+  the pipe syscalls as the bridge; then delete `go/stub_io_fields.go`.
+- Added: 2026-11-24
+
 ### io-readcloser-close-dispatch
 
 - Location: `go/external_type_stubs.go:2639`

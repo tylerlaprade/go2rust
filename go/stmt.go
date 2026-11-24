@@ -6183,6 +6183,12 @@ func writeTranspiledInterfaceSlotAssignmentFromHandle(out *strings.Builder, lhs 
 	out.WriteString("; (*__iface_guard).clone() }; *")
 	writeTranspiledInterfaceAssignmentTarget(out, lhs)
 	WriteBorrowMethod(out, true)
+	if bridge := stubIoFieldAssignmentBridge(lhs); bridge != "" {
+		out.WriteString(" = ")
+		writeStubIoFieldBridgeValue(out, bridge)
+		out.WriteString("; }")
+		return
+	}
 	out.WriteString(" = __iface_value; }")
 }
 
