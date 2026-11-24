@@ -782,13 +782,13 @@ fn main() {
             let __go_cond_0 = {
                 let __go_cond_1 = {
                     let __go_cond_2 = {
-                        let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+                        let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
                         let __tmp_y = 416;
                         __tmp_x == __tmp_y
                     };
                     if __go_cond_2 {
                         let __go_cond_3 = {
-                            let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+                            let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
                             let __tmp_y = 416;
                             __tmp_x == __tmp_y
                         };
@@ -799,7 +799,7 @@ fn main() {
                 };
                 if __go_cond_1 {
                     let __go_cond_4 = {
-                        let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
+                        let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() };
                         let __tmp_y = 416;
                         __tmp_x == __tmp_y
                     };
@@ -810,7 +810,7 @@ fn main() {
             };
             if __go_cond_0 {
                 let __go_cond_5 = {
-                    let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };
+                    let __tmp_x = { let __seq = { let __seq_holder = values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() };
                     let __tmp_y = 416;
                     __tmp_x == __tmp_y
                 };
