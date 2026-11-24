@@ -3395,6 +3395,14 @@ run_xfail_test() {
     run_test "tests/slice_elem_ptr_backing_array_goroutines"
 }
 
+@test "slice_elem_struct_ptr_index" {
+    run_test "tests/slice_elem_struct_ptr_index"
+}
+
+@test "slice_elem_struct_ptr_index_goroutines" {
+    run_test "tests/slice_elem_struct_ptr_index_goroutines"
+}
+
 @test "slice_element_pointer_field_receiver" {
     run_test "tests/slice_element_pointer_field_receiver"
 }
