@@ -5,7 +5,9 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::cell::{RefCell};
-use std::error::Error as StdError;
+use std::cmp::Ord;
+use std::collections::BTreeMap;
+use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
@@ -612,403 +614,273 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+where
+    V: Display,
+{
+    let guard = map.borrow();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
 
-struct GoFile {
-    file: Option<std::fs::File>,
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.borrow();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
+                } else {
+                    format!("{}:<nil>", k)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
 }
 
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
 
-    fn empty() -> Self {
-        GoFile { file: None }
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
     }
+}
 
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(e)))))),
-            },
-            None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file")))))),
-            ),
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
         }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
     }
-
-    fn close(&mut self) -> Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>> {
-        self.file = None;
-        Rc::new(RefCell::new(None))
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
     }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct fs_FileMode(pub u32);
-
-impl PartialEq<u32> for fs_FileMode {
-    fn eq(&self, other: &u32) -> bool {
-        self.0 == *other
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
     }
-}
-
-impl PartialEq<fs_FileMode> for u32 {
-    fn eq(&self, other: &fs_FileMode) -> bool {
-        *self == other.0
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
+    __value.to_string()
 }
-
-impl std::ops::BitAnd for fs_FileMode {
-    type Output = fs_FileMode;
-    fn bitand(self, other: Self) -> fs_FileMode {
-        fs_FileMode(self.0 & other.0)
-    }
-}
-
-impl std::ops::BitOr for fs_FileMode {
-    type Output = fs_FileMode;
-    fn bitor(self, other: Self) -> fs_FileMode {
-        fs_FileMode(self.0 | other.0)
-    }
-}
-
-impl std::fmt::Display for fs_FileMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<fs_FileMode>")
-    }
-}
-
-
-impl fs_FileMode {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
 
 #[derive(Debug, Clone, Default)]
-pub struct fs_PathError {
-    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
-    pub op: Rc<RefCell<Option<String>>>,
-    pub path: Rc<RefCell<Option<String>>>,
+pub struct Inventory {
+    pub stock: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>,
 }
 
-impl std::fmt::Display for fs_PathError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __op_guard = self.op.borrow();
-        let __path_guard = self.path.borrow();
-        let __err_guard = self.err.borrow();
-        let __op = __op_guard.as_deref().unwrap_or("");
-        let __path = __path_guard.as_deref().unwrap_or("");
-        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
-        if __op.is_empty() {
-            write!(f, "{}: {}", __path, __err)
-        } else {
-            write!(f, "{} {}: {}", __op, __path, __err)
-        }
-    }
-}
-
-impl std::error::Error for fs_PathError {}
-
-impl fs_PathError {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some::<String>(self.to_string())))
-    }
-    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-        self.err.clone()
-    }
-}
-
-
-#[derive(Debug, Clone)]
-pub struct os_File {
-    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
-    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    pub __go_wait_for_close: bool,
-    /// How far Read has read __go_data; shared by every copy of the File.
-    pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    /// os.Stdin: Read reads the process's standard input.
-    pub __go_stdin: bool,
-}
-
-impl Default for os_File {
-    fn default() -> Self {
+impl Inventory {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.stock.clone();
         Self {
-            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
-            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            __go_wait_for_close: false,
-            __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            __go_stdin: false,
+            stock: __go_clone_0_0,
         }
     }
 }
 
-/// The end of a File's input until a source-translated io registers its
-/// io.EOF (__go_register_io_eof), the value callers compare with.
-#[derive(Debug)]
-pub struct GoStubEOF;
-
-impl std::fmt::Display for GoStubEOF {
+impl std::fmt::Display for Inventory {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "EOF")
+        let __go_fmt_0 = format!("{}", format_map(&self.stock));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
-impl std::error::Error for GoStubEOF {}
 
-impl std::fmt::Display for os_File {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<os_File>")
+pub fn keys(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
+    let mut out = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
+    for (k, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *out.borrow_mut() = __slice_header; };
     }
+    { let __sort_target = out.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    return out.clone();
 }
-
-impl PartialEq for os_File {
-    fn eq(&self, other: &Self) -> bool {
-        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
-    }
-}
-
-impl Eq for os_File {}
-
-impl os_File {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        self.__go_data.lock().unwrap().extend_from_slice(data);
-    }
-
-    pub fn __go_read_all(&self) -> Vec<u8> {
-        self.__go_data.lock().unwrap().clone()
-    }
-
-    pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
-    }
-
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
-            (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<String>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
-        } else {
-            String::new()
-        };
-        let bytes = Vec::from(value.into_bytes());
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
-    }
-
-    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        // Go's Read: fill as much of p as the input has, or report the end
-        // of the input with no bytes read.
-        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            let mut __guard = __buf.borrow_mut();
-            match __guard.as_mut() {
-                Some(__dst) => {
-                    let __dst = __dst.as_mut_slice();
-                    if __dst.is_empty() {
-                        (0, false)
-                    } else if self.__go_stdin {
-                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
-                            Ok(0) | Err(_) => (0, true),
-                            Ok(__count) => (__count, false),
-                        }
-                    } else {
-                        let __data = self.__go_data.lock().unwrap();
-                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
-                        let __count = (__data.len() - __pos).min(__dst.len());
-                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
-                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
-                        (__count, __count == 0)
-                    }
-                }
-                None => (0, false),
-            }
-        } else {
-            (0, false)
-        };
-        if __eof {
-            (0, __go_stub_eof())
-        } else {
-            let n = __n;
-            (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
-        }
-    }
-
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
-            *v
-        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
-            v.borrow().as_ref().copied().unwrap_or_default()
-        } else {
-            0
-        };
-        let data = self.__go_read_all();
-        let mut n = 0i64;
-        if offset >= 0 {
-            let start = offset as usize;
-            if start < data.len() {
-                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-                    let mut guard = v.borrow_mut();
-                    if let Some(target) = guard.as_mut() {
-                        let count = std::cmp::min(target.len(), data.len() - start);
-                        target[..count].copy_from_slice(&data[start..start + count]);
-                        n = count as i64;
-                    }
-                }
-            }
-        }
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
-    }
-}
-
-thread_local! {
-    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<Rc<dyn StdError>>> = std::cell::RefCell::new(None);
-}
-
-/// io's init hands over io.EOF's value.
-pub fn __go_register_io_eof(eof: Option<Rc<dyn StdError>>) {
-    if eof.is_some() {
-        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
-    }
-}
-
-fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
-        Some(__eof) => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(__eof.clone()))),
-        None => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(GoStubEOF) as Rc<dyn StdError>))),
-    })
-}
-
-
-pub mod os {
-    use super::*;
-    use std::path::Path;
-
-    pub trait GoStringArg {
-        fn into_go_string(self) -> String;
-    }
-
-    impl GoStringArg for String {
-        fn into_go_string(self) -> String {
-            self
-        }
-    }
-
-    impl<'a> GoStringArg for &'a str {
-        fn into_go_string(self) -> String {
-            self.to_string()
-        }
-    }
-
-    impl<'a> GoStringArg for &'a String {
-        fn into_go_string(self) -> String {
-            self.clone()
-        }
-    }
-
-    impl GoStringArg for Rc<RefCell<Option<String>>> {
-        fn into_go_string(self) -> String {
-            self.borrow().as_ref().cloned().unwrap_or_default()
-        }
-    }
-
-    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
-
-    fn no_error() -> GoError {
-        Rc::new(RefCell::new(None))
-    }
-
-    fn io_error(err: std::io::Error) -> GoError {
-        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
-    }
-
-    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
-        let path_error = fs_PathError { err: Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>))), op: Rc::new(RefCell::new(Some::<String>(op.to_string()))), path: Rc::new(RefCell::new(Some::<String>(path))) };
-        Rc::new(RefCell::new(Some(std::rc::Rc::new(path_error) as std::rc::Rc<dyn std::error::Error>)))
-    }
-
-    pub fn open<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        let path = _arg0.into_go_string();
-        match std::fs::read(&path) {
-            Ok(data) => {
-                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };
-                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
-            }
-            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
-        }
-    }
-
-    pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        panic!("open_file bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<Vec<u8>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        let path = _arg0.into_go_string();
-        match std::fs::read(&path) {
-            Ok(data) => (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(data)))), no_error()),
-            Err(err) => (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), io_error(err)),
-        }
-    }
-}
-
 
 fn main() {
-    const path: &'static str = "go2rust-file-handle.txt";
+    let mut mm = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64])))), ("b".to_string(), Rc::new(RefCell::new(Some(vec![2i64]))))]))));
+    {
+        let __go_lhs_map_0 = mm.clone();
+        let __go_lhs_key_0 = "a".to_string();
+        let __go_lhs_map_1 = mm.clone();
+        let __go_lhs_key_1 = "b".to_string();
+        let __tmp_0 = { let __map_holder = mm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+        let __tmp_1 = { let __map_holder = mm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+        (*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    println!("{}", format!("{}", format_map(&mm)));
+    { let __idx = (0) as usize; let __rhs = 7; (*{ let __map_holder = mm.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{}", format!("{}", format_map(&mm)));
 
+    let mut ms = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("x".to_string())))), ("b".to_string(), Rc::new(RefCell::new(Some("y".to_string()))))]))));
+    {
+        let __go_lhs_map_0 = ms.clone();
+        let __go_lhs_key_0 = "a".to_string();
+        let __go_lhs_map_1 = ms.clone();
+        let __go_lhs_key_1 = "b".to_string();
+        let __tmp_0 = Rc::new(RefCell::new(Some({ let __map_holder = ms.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })));
+        let __tmp_1 = Rc::new(RefCell::new(Some({ let __map_holder = ms.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) })));
+        (*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    println!("{}", format!("{}", format_map(&ms)));
 
-    let (mut file, mut err) = { let __path = path; match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{}", format!("{}", false));
-        return;
+    let mut mp = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<i64>>>>::from([]))));
+    let (mut one, mut two) = (Rc::new(RefCell::new(Some(1i64))), Rc::new(RefCell::new(Some(2i64))));
+    {
+        let __go_lhs_map_0 = mp.clone();
+        let __go_lhs_key_0 = 1;
+        let __go_lhs_map_1 = mp.clone();
+        let __go_lhs_key_1 = 2;
+        let __tmp_0 = one.clone();
+        let __tmp_1 = two.clone();
+        (*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    {
+        let __go_lhs_map_0 = mp.clone();
+        let __go_lhs_key_0 = 1;
+        let __go_lhs_map_1 = mp.clone();
+        let __go_lhs_key_1 = 2;
+        let __tmp_0 = { let __map_holder = mp.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+        let __tmp_1 = { let __map_holder = mp.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+        (*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    { let new_val = 20; *{ let __map_holder = mp.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow_mut() = Some(new_val); };
+    println!("{} {} {} {}", format!("{}", { let __v = (*{ let __map_holder = mp.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*{ let __map_holder = mp.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*one.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*two.borrow().as_ref().unwrap()).clone(); __v }));
+
+    let mut counts = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([]))));
+    let mut total = Rc::new(RefCell::new(Some(0i64)));
+    for w in &vec!["x".to_string(), "y".to_string(), "x".to_string()] {
+        {
+            let __go_lhs_map_0 = counts.clone();
+            let __go_lhs_key_0 = w.clone();
+            let __tmp_0 = Rc::new(RefCell::new(Some({ let __map_holder = counts.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(w)).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } + 1)));
+            let __tmp_1 = (*total.borrow().as_ref().unwrap()) + 1;
+            (*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
+            *total.borrow_mut() = Some(__tmp_1);
+        };
     }
-    { let (__tmp_0, __tmp_1) = (*file.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("first".to_string())))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", format_map(&counts)), format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 
-    { let (__tmp_0, __tmp_1) = os::open("go2rust-file-handle.txt".to_string()); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    let mut k = Rc::new(RefCell::new(Some("p".to_string())));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("p".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
+    {
+        let __go_lhs_map_1 = m.clone();
+        let __go_lhs_key_1 = (*k.borrow().as_ref().unwrap()).clone();
+        let __tmp_0 = "q".to_string();
+        let __tmp_1 = Rc::new(RefCell::new(Some(5)));
+        *k.borrow_mut() = Some(__tmp_0);
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    println!("{} {}", format!("{}", { let __v = (*k.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_map(&m)));
 
-    { let (__tmp_0, __tmp_1) = os::open_file("go2rust-file-handle.txt".to_string(), 1025, fs_FileMode(0o600 as u32)); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{}", format!("{}", false));
-        return;
-    }
-    { let (__tmp_0, __tmp_1) = (*file.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("-second".to_string())))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    let mut old = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("apple".to_string(), Rc::new(RefCell::new(Some(3i64))))]))));
+    let mut inv = Rc::new(RefCell::new(Some(Inventory { stock: old.clone(), ..Default::default() })));
+    {
+        let __go_lhs_map_1 = (*inv.borrow().as_ref().unwrap()).stock.clone();
+        let __go_lhs_key_1 = "pear".to_string();
+        let __tmp_0 = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([]))));
+        let __tmp_1 = Rc::new(RefCell::new(Some(9)));
+        (*inv.borrow_mut().as_mut().unwrap()).stock = __tmp_0;
+        (*__go_lhs_map_1.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
+    };
+    println!("{} {} {}", format!("{}", format_slice(&keys(old.clone()))), format!("{}", format_slice(&keys({ let __field = (*inv.borrow().as_ref().unwrap()).stock.clone(); __field }))), format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"pear".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
-    let (mut contents, __tmp_1) = os::read_file("go2rust-file-handle.txt".to_string()); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
-    let mut contents = { let __slice_header = GoSliceHeader::go_slice_header(&contents); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*contents.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
-    println!("{}", format!("{}", { let __nil_result = (*{ let __path = path; match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), Err(e) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e))))) } }.borrow()).is_none(); __nil_result }));
+        // Map variables and fields swap handles: neither map is emptied.
+    let mut a = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
+    let mut b = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2i64))))]))));
+    {
+        let __tmp_0 = b.clone();
+        let __tmp_1 = a.clone();
+        a = __tmp_0;
+        b = __tmp_1;
+    };
+    { let __map_key = "a2".to_string(); let __map_value = Rc::new(RefCell::new(Some(1))); (*a.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    println!("{} {}", format!("{}", format_slice(&keys(a.clone()))), format!("{}", format_slice(&keys(b.clone()))));
+    {
+        let __tmp_0 = a.clone();
+        let __tmp_1 = { let __field = (*inv.borrow().as_ref().unwrap()).stock.clone(); __field };
+        (*inv.borrow_mut().as_mut().unwrap()).stock = __tmp_0;
+        a = __tmp_1;
+    };
+    println!("{} {}", format!("{}", format_slice(&keys({ let __field = (*inv.borrow().as_ref().unwrap()).stock.clone(); __field }))), format!("{}", format_slice(&keys(a.clone()))));
+    let mut c = a.clone();
+    {
+        let __tmp_0 = Rc::new(RefCell::new(None));
+        let __tmp_1 = a.clone();
+        a = __tmp_0;
+        b = __tmp_1;
+    };
+    println!("{} {} {} {}", format!("{}", { let __nil_result = (*a.borrow()).is_none(); __nil_result }), format!("{}", format_slice(&keys(b.clone()))), format!("{}", format_slice(&keys(c.clone()))), format!("{}", (*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

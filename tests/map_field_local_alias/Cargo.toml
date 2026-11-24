@@ -1,0 +1,11 @@
+[package]
+name = "map_field_local_alias"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_field_local_alias"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

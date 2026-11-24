@@ -1372,13 +1372,6 @@ func NeedGoNilAny() {
 	helpers.anyTypeNames[goNilAnyType] = "<nil>"
 }
 
-// NeedOsFile marks that we need OS file helpers
-func NeedOsFile() {
-	if helpers := activeHelperTracker(); helpers != nil {
-		helpers.needsOsFile = true
-	}
-}
-
 // NeedOsArgs marks that we need the os.Args helper.
 func NeedOsArgs() {
 	if helpers := activeHelperTracker(); helpers != nil {

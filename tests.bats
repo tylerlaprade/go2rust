@@ -2059,6 +2059,10 @@ run_xfail_test() {
     run_test "tests/map_converted_numeric"
 }
 
+@test "map_field_local_alias" {
+    run_test "tests/map_field_local_alias"
+}
+
 @test "map_len_integer_key" {
     run_test "tests/map_len_integer_key"
 }
@@ -2567,6 +2571,14 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_create_write" {
+    run_test "tests/os_create_write"
+}
+
+@test "os_create_write_plain" {
+    run_test "tests/os_create_write_plain"
+}
+
 @test "os_executable" {
     run_test "tests/os_executable"
 }
@@ -2581,6 +2593,10 @@ run_xfail_test() {
 
 @test "os_file_direct_read" {
     run_test "tests/os_file_direct_read"
+}
+
+@test "os_file_handle_reassignment" {
+    run_test "tests/os_file_handle_reassignment"
 }
 
 @test "os_file_readcloser_assignment" {
@@ -2771,12 +2787,24 @@ run_xfail_test() {
     run_test "tests/panic_with_sprintf"
 }
 
+@test "parallel_assign_map_elements" {
+    run_test "tests/parallel_assign_map_elements"
+}
+
+@test "parallel_assign_map_elements_goroutines" {
+    run_test "tests/parallel_assign_map_elements_goroutines"
+}
+
 @test "parallel_assign_receiver_named_scalar_field" {
     run_test "tests/parallel_assign_receiver_named_scalar_field"
 }
 
 @test "parallel_assign_receiver_value_field_swap" {
     run_test "tests/parallel_assign_receiver_value_field_swap"
+}
+
+@test "parallel_assign_sequence_rows" {
+    run_test "tests/parallel_assign_sequence_rows"
 }
 
 @test "parallel_assign_value_field_swap" {
@@ -4067,6 +4095,14 @@ run_xfail_test() {
     run_test "tests/sync_once"
 }
 
+@test "sync_once_method_value" {
+    run_test "tests/sync_once_method_value"
+}
+
+@test "sync_once_method_value_goroutines" {
+    run_test "tests/sync_once_method_value_goroutines"
+}
+
 @test "sync_once_receiver_init" {
     run_test "tests/sync_once_receiver_init"
 }
@@ -4333,10 +4369,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: os_file_handle_reassignment" {
-    run_xfail_test "tests/XFAIL/os_file_handle_reassignment"
 }
 
 @test "XFAIL: source_stdlib_exec_look_path" {

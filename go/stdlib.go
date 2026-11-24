@@ -158,7 +158,6 @@ func init() {
 		"context.WithTimeout":      transpileContextWithTimeout,
 		"context.WithCancel":       transpileContextWithCancel,
 		"context.WithCancelCause":  transpileContextWithCancelCause,
-		"os.Create":                transpileOsCreate,
 		"os.Remove":                transpileOsRemove,
 		"reflect.TypeOf":           transpileReflectTypeOf,
 		"reflect.ValueOf":          transpileReflectValueOf,
@@ -2666,32 +2665,6 @@ func transpileFlagString(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileFlagParse(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("()")
-}
-
-func transpileOsCreate(out *strings.Builder, call *ast.CallExpr) {
-	NeedOsFile()
-	TrackImport("Error")
-	out.WriteString("{ let __path = ")
-	if len(call.Args) > 0 {
-		writeOwnedStringStdlibArg(out, call.Args[0])
-	} else {
-		out.WriteString("String::new()")
-	}
-	out.WriteString("; match GoFile::create(&__path) { Ok(file) => (")
-	WriteWrapperPrefix(out)
-	out.WriteString("file")
-	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	writeTypedErrorNone(out)
-	out.WriteString("), Err(e) => (")
-	WriteWrapperPrefix(out)
-	out.WriteString("GoFile::empty()")
-	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	WriteWrapperPrefix(out)
-	out.WriteString(rustErrorFromText("e"))
-	WriteWrapperSuffix(out)
-	out.WriteString(") } }")
 }
 
 func transpileOsRemove(out *strings.Builder, call *ast.CallExpr) {

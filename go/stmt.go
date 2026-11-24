@@ -5066,16 +5066,29 @@ func namedCollectionSelectorNeedsOwnedValue(expr ast.Expr, typ types.Type) bool 
 	}
 }
 
+// writeConcurrentMapSelectorHandleClone writes m := s.data for a map field
+// as a clone of the field's handle: a map is a reference, so the variable
+// and the field are the same map (DEV-169). Copying the map's contents
+// would let m["k"] = v miss s.data. In a program without goroutines only a
+// field of an unnamed map type is shared this way; package-qualified
+// variables and named map types keep their own paths.
 func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsMap(expr) {
 		return false
+	}
+	if !NeedsConcurrentWrapper() {
+		if typeInfo.info == nil {
+			return false
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.FieldVal || isNamedMapExpression(expr) {
+			return false
+		}
 	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
@@ -8461,6 +8474,13 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
+	if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok && typeInfo != nil && !typeInfo.IsMap(index.X) {
+		// A row of a [][]T, or any element a slice or an array stores bare
+		// rather than in its own cell, is read out as a bare value.
+		if elemType := indexedSequenceElementAssignmentType(typeInfo, index); elemType != nil && !indexedSequenceElementKeepsHandle(elemType) {
+			return false
+		}
+	}
 	return typeInfo != nil && parallelTempTypeKeepsHandle(typeInfo.GetType(rhs))
 }
 
@@ -9783,6 +9803,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	if writeParallelSliceElemPtrAssignmentTarget(out, lhs, tmpName, rhs) {
 		return
 	}
+	if writeParallelMapHandleAssignmentTarget(out, lhs, tmpName, rhs) {
+		return
+	}
 	if writeParallelNilAssignmentTarget(out, lhs, tmpName, rhs) {
 		return
 	}
@@ -9916,6 +9939,84 @@ func freshParallelAssignmentTempName(base string) string {
 		name += "_"
 	}
 	return name
+}
+
+// parallelMapAssignmentTarget is a map element m[k] on the left of a
+// parallel assignment. Go evaluates the map operand and the key before any
+// value is stored, and stores by inserting, as m[k] = v does.
+type parallelMapAssignmentTarget struct {
+	indexExpr *ast.IndexExpr
+	mapName   string
+	keyName   string
+}
+
+func prepareParallelMapAssignmentTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, position int, indent string) (parallelMapAssignmentTarget, bool) {
+	indexExpr, ok := unwrapParens(lhs).(*ast.IndexExpr)
+	if !ok {
+		return parallelMapAssignmentTarget{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsMap(indexExpr.X) {
+		return parallelMapAssignmentTarget{}, false
+	}
+	target := parallelMapAssignmentTarget{
+		indexExpr: indexExpr,
+		keyName:   freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_key_%d", position)),
+	}
+	if mapOperandHandleCanBeHeld(indexExpr.X) {
+		target.mapName = freshParallelAssignmentTempName(fmt.Sprintf("__go_lhs_map_%d", position))
+		out.WriteString(indent)
+		out.WriteString("let ")
+		out.WriteString(target.mapName)
+		out.WriteString(" = ")
+		writeMapHandleCloneForOp(out, indexExpr.X)
+		out.WriteString(";\n")
+	}
+	var keyRustType string
+	if syntaxKeyType, ok := localMapKeyRustType(indexExpr.X); ok {
+		keyRustType = syntaxKeyType
+	}
+	keyType, _ := typeInfo.GetMapTypes(indexExpr.X)
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(target.keyName)
+	out.WriteString(" = ")
+	if mapAssignmentKeyRequiresTypeDrivenConversion(keyType) || !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
+		writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
+	}
+	out.WriteString(";\n")
+	return target, true
+}
+
+// writeParallelMapAssignmentTempValue writes the value a parallel assignment
+// stores in a map element, built as m[k] = v builds it, so the temp is a
+// fresh map value rather than a handle to another element's cell.
+func writeParallelMapAssignmentTempValue(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) {
+	if writeSliceElemPtrMapValue(out, indexExpr.X, rhs) {
+		return
+	}
+	var valueType types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		_, valueType = typeInfo.GetMapTypes(indexExpr.X)
+	}
+	writeMapWrappedValue(out, rhs, valueType)
+}
+
+func writeParallelMapAssignmentTargetLine(out *strings.Builder, target parallelMapAssignmentTarget, tmpName string, indent string) {
+	out.WriteString(indent)
+	out.WriteString("(*")
+	if target.mapName != "" {
+		out.WriteString(target.mapName)
+	} else {
+		writeMapHandleForOp(out, target.indexExpr.X)
+	}
+	WriteBorrowMethod(out, true)
+	writeMapMutationUnwrap(out, target.indexExpr.X)
+	out.WriteString(").insert(")
+	out.WriteString(target.keyName)
+	out.WriteString(", ")
+	out.WriteString(tmpName)
+	out.WriteString(");\n")
 }
 
 func prepareParallelIndexedAssignmentTarget(out *strings.Builder, lhs ast.Expr, position int, indent string) (parallelIndexedAssignmentTarget, bool) {
@@ -10166,6 +10267,41 @@ func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Exp
 	return true
 }
 
+// writeParallelMapHandleAssignmentTarget stores a map, or nil, into a map
+// variable or field of a parallel assignment by rebinding its handle, as
+// writeMapHandleAssignment does for a single assignment. The handle is the
+// map itself, so writing into it would change every variable that shares
+// the old map, and a, b = b, a would empty one of them.
+func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsMap(lhs) {
+		return false
+	}
+	switch target := unwrapParens(lhs).(type) {
+	case *ast.Ident:
+		if isPackageGlobalIdent(target) || isVarBare(target.Name) {
+			return false
+		}
+		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
+			return false
+		}
+	case *ast.SelectorExpr:
+	default:
+		return false
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); !(ok && ident.Name == "nil") && !typeInfo.IsMap(rhs) {
+		return false
+	}
+	if isNamedMapExpression(lhs) || isNamedMapExpression(rhs) {
+		return false
+	}
+	// For nil, writeParallelAssignmentTempValueForTarget gave the temp a
+	// nil map of its own.
+	out.WriteString(" ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, tmpName)
+	return true
+}
+
 func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
 	ident, ok := rhs.(*ast.Ident)
 	if !ok || ident.Name != "nil" {
@@ -10236,7 +10372,23 @@ func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Exp
 		out.WriteString("GoPtr::nil()")
 		return
 	}
+	if parallelMapHandleTargetTakesNil(lhs, rhs) {
+		WriteWrappedNone(out)
+		return
+	}
 	writeParallelAssignmentTempValue(out, rhs)
+}
+
+// parallelMapHandleTargetTakesNil reports whether lhs = nil in a parallel
+// assignment rebinds a map handle (writeParallelMapHandleAssignmentTarget),
+// whose temp is then a wrapped nil map.
+func parallelMapHandleTargetTakesNil(lhs ast.Expr, rhs ast.Expr) bool {
+	ident, ok := unwrapParens(rhs).(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	var probe strings.Builder
+	return writeParallelMapHandleAssignmentTarget(&probe, lhs, "__probe", rhs)
 }
 
 func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
@@ -13422,8 +13574,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// RHS expression. Capture them in source order before building
 					// the RHS temporaries, then perform the writes left to right.
 					preparedIndexTargets := make([]parallelIndexedAssignmentTarget, len(s.Lhs))
+					preparedMapTargets := make([]parallelMapAssignmentTarget, len(s.Lhs))
 					for i, lhs := range s.Lhs {
-						if target, ok := prepareParallelIndexedAssignmentTarget(out, lhs, i, indent+"    "); ok {
+						if target, ok := prepareParallelMapAssignmentTarget(out, lhs, s.Rhs[i], i, indent+"    "); ok {
+							preparedMapTargets[i] = target
+						} else if target, ok := prepareParallelIndexedAssignmentTarget(out, lhs, i, indent+"    "); ok {
 							preparedIndexTargets[i] = target
 						}
 					}
@@ -13432,12 +13587,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString(indent)
 						out.WriteString("    ")
 						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
-						writeParallelAssignmentTempValueForTarget(out, s.Lhs[i], rhs)
+						if preparedMapTargets[i].indexExpr != nil {
+							writeParallelMapAssignmentTempValue(out, preparedMapTargets[i].indexExpr, rhs)
+						} else {
+							writeParallelAssignmentTempValueForTarget(out, s.Lhs[i], rhs)
+						}
 						out.WriteString(";\n")
 					}
 					// Then assign all LHS from temporaries
 					for i, lhs := range s.Lhs {
-						if preparedIndexTargets[i].indexExpr != nil {
+						if preparedMapTargets[i].indexExpr != nil {
+							writeParallelMapAssignmentTargetLine(out, preparedMapTargets[i], fmt.Sprintf("__tmp_%d", i), indent+"    ")
+						} else if preparedIndexTargets[i].indexExpr != nil {
 							writeParallelAssignmentPreparedIndexTargetLine(out, preparedIndexTargets[i], fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")
 						} else {
 							writeParallelAssignmentTargetLine(out, lhs, fmt.Sprintf("__tmp_%d", i), s.Rhs[i], indent+"    ")

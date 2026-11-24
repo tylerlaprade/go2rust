@@ -1,0 +1,11 @@
+[package]
+name = "os_create_write_plain"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_create_write_plain"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
