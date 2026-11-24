@@ -5289,6 +5289,11 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		writeAppendElement := func(expr ast.Expr) {
+			// A local []*T that holds pointers to slice elements holds
+			// GoPtr<T> values (DEV-131).
+			if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(call.Args[0]); ok && writeSliceElemPtrSliceSlotValue(out, expr, elemRustType) {
+				return
+			}
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				elemType = typeInfo.GetSliceElemType(call.Args[0])
@@ -5613,7 +5618,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			// append returns a new header and leaves its operand as it
 			// was; the two share the backing array while it has room.
 			out.WriteString("let mut __appended")
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(call.Args[0]); ok {
+				out.WriteString(": Vec<GoPtr<" + elemRustType + ">>")
+			} else if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if resultType := typeInfo.GetType(call); resultType != nil {
 					if _, ok := types.Unalias(resultType).(*types.Slice); ok {
 						if rustType := goTypesTypeToRust(resultType); strings.HasPrefix(rustType, "Vec<") {

@@ -90,11 +90,14 @@ func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidates(body)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidates(body)
 	currentGoPtrCandidates = nil
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -110,11 +113,14 @@ func setSliceElemPtrCandidatesForFunc(fn *ast.FuncDecl) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(fn.Body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidatesForFunc(fn)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidatesForFunc(fn)
 	currentGoPtrCandidates = collectGoPtrCandidatesForFunc(fn)
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(fn.Body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -5558,6 +5564,43 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 			}
 			st.sawSliceAddr = true
 		case *ast.AssignStmt:
+			if len(n.Lhs) == 1 && len(n.Rhs) == 1 {
+				// ptrs = append(ptrs, &items[i]): the appended values decide,
+				// as an index assignment's value does.
+				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "append") && len(call.Args) >= 1 {
+					lhsIdent, lhsOK := unwrapParens(n.Lhs[0]).(*ast.Ident)
+					argIdent, argOK := unwrapParens(call.Args[0]).(*ast.Ident)
+					if lhsOK && argOK && lhsIdent.Name != "_" {
+						if obj := typeInfo.GetObject(lhsIdent); obj != nil && obj == typeInfo.GetObject(argIdent) {
+							if elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type()); ok {
+								st := candidates[obj]
+								if st == nil {
+									st = &state{elemRustType: elemRustType, valid: true}
+									candidates[obj] = st
+								}
+								if call.Ellipsis.IsValid() {
+									if len(call.Args) != 2 {
+										st.valid = false
+									} else if srcElemRustType, ok := sourceElemRustType(call.Args[1]); !ok || srcElemRustType != elemRustType {
+										st.valid = false
+									}
+								} else {
+									for _, value := range call.Args[1:] {
+										ok, sawSliceAddr := isSliceElemPtrAssignmentValue(value)
+										if !ok {
+											st.valid = false
+											continue
+										}
+										if sawSliceAddr {
+											st.sawSliceAddr = true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			if len(n.Rhs) == 1 {
 				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok {
 					if info, ok := sliceElemPtrSliceReturnInfoForCall(call); ok {
@@ -6403,6 +6446,38 @@ func writeSliceElemPtrSliceMake(out *strings.Builder, call *ast.CallExpr, elemRu
 	NeedSliceElemPtr()
 	WriteWrapperPrefix(out)
 	writeSliceMakeBody(out, call.Args, "GoPtr::nil()", "GoPtr<"+elemRustType+">")
+	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeSliceElemPtrSliceLiteral writes a []*T literal for a local that
+// holds pointers to slice elements: a slice of GoPtr<T>, each element
+// written as such a slot is.
+func writeSliceElemPtrSliceLiteral(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
+	lit, ok := unwrapParens(rhs).(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	var elems []string
+	for _, elt := range lit.Elts {
+		if _, keyed := elt.(*ast.KeyValueExpr); keyed {
+			return false
+		}
+		var elem strings.Builder
+		if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" {
+			elem.WriteString("GoPtr::nil()")
+		} else if !writeSliceElemPtrSliceSlotValue(&elem, elt, elemRustType) {
+			return false
+		}
+		elems = append(elems, elem.String())
+	}
+	NeedSliceElemPtr()
+	WriteWrapperPrefix(out)
+	if len(elems) == 0 {
+		out.WriteString("Vec::<GoPtr<" + elemRustType + ">>::new()")
+	} else {
+		out.WriteString("vec![" + strings.Join(elems, ", ") + "]")
+	}
 	WriteWrapperSuffix(out)
 	return true
 }

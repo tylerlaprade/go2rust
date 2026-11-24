@@ -14283,6 +14283,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
+			if writeSliceElemPtrMapNilComparison(out, e.X, e.Op) {
+				return
+			}
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil && typeInfo.IsChannel(e.X) {
 				if e.Op.String() == "!=" {

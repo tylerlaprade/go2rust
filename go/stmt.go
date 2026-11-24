@@ -12601,6 +12601,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Tok == token.DEFINE {
 			registerDefaultShortDeclBindings(s.Lhs)
 		}
+		if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+			if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+				var init strings.Builder
+				if writeSliceElemPtrMapInitializer(&init, ident, s.Rhs[0]) {
+					out.WriteString("let mut ")
+					out.WriteString(RustLocalIdent(ident.Name))
+					out.WriteString(" = ")
+					out.WriteString(init.String())
+					out.WriteString(";")
+					break
+				}
+			}
+		}
 		if rewritten, ok := goShiftCompoundAsAssignment(s); ok {
 			TranspileStatement(out, rewritten, fnType, fileSet, comments, lastPos, indent)
 			return
@@ -12645,7 +12658,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
 				out.WriteString("; let __map_value = ")
-				writeMapWrappedValue(out, s.Rhs[0], valueType)
+				if !writeSliceElemPtrMapValue(out, indexExpr.X, s.Rhs[0]) {
+					writeMapWrappedValue(out, s.Rhs[0], valueType)
+				}
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				writeMapHandleForOp(out, indexExpr.X)
@@ -13875,6 +13890,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(", ")
 										}
 										if s.Tok == token.DEFINE {
+											if i < len(s.Lhs) {
+												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+													if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(lhsIdent); ok && writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+														continue
+													}
+													if writeSliceElemPtrMapInitializer(out, lhsIdent, rhs) {
+														continue
+													}
+												}
+											}
 											// Check if RHS is nil
 											if isGoPtrShortDecl && i == 0 {
 												wroteGoPtrInitializer := false
