@@ -65,6 +65,7 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
 
 fn main() {
     ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_token::__go_init_all();
     ::internal_bytealg::__go_init_all();

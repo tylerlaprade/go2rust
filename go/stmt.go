@@ -5818,6 +5818,9 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, expr, keyType) {
 		return
 	}
+	if writeRangeCharMapKey(out, expr, keyType, "", "") {
+		return
+	}
 	if keyType != nil {
 		if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(keyType); ok {
 			out.WriteString(localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName)))
