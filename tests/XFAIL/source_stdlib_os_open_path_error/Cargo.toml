@@ -1,0 +1,29 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/io",
+    "vendor/io_fs",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "source_stdlib_os_open_path_error"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_os_open_path_error"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+io = { path = "vendor/io" }
+io_fs = { path = "vendor/io_fs" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }
