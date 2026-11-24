@@ -2634,6 +2634,10 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 
 // MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
 func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	if name == fmtStringerStubName {
+		writeFmtStringerStub(out, methods)
+		return
+	}
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"

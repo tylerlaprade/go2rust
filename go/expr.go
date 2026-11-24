@@ -1582,6 +1582,10 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		if typeInfo == nil {
 			return false
 		}
+		if _, _, ok := fmtStringerAssertionTarget(e); ok {
+			// writeFmtStringerAssertionValue yields the bare fmt_Stringer.
+			return false
+		}
 		if _, _, _, ok := anonInterfaceAssertionTarget(e); ok {
 			return true
 		}
@@ -6198,6 +6202,9 @@ func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.T
 }
 
 func writeLocalConcreteStdlibInterfaceConversion(out *strings.Builder, arg ast.Expr, targetRust string) {
+	if targetRust == fmtStringerStubName && writeFmtStringerConversion(out, arg) {
+		return
+	}
 	out.WriteString(targetRust)
 	out.WriteString("::__go_from(")
 	writeLocalConcreteStdlibInterfaceSource(out, arg)
@@ -16165,6 +16172,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeLocalInterfaceAssertionValue(out, e, ifaceName, sourceType, candidates)
 				return
 			}
+			if iface, sourceType, ok := fmtStringerAssertionTarget(e); ok {
+				writeFmtStringerAssertionValue(out, e, iface, sourceType)
+				return
+			}
 			if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
 				writeAnonInterfaceAssertionValue(out, e, sourceType, iface, candidates)
 				return
@@ -20430,6 +20441,11 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	if targetType == nil {
 		return nil, false
 	}
+	// fmt.Stringer is a stub type: writeFmtStringerAssertionCommaOk builds
+	// its value from the operand.
+	if isFmtStringerType(targetType) {
+		return nil, false
+	}
 	targetInterface, ok := targetType.Underlying().(*types.Interface)
 	if !ok || targetInterface.NumMethods() == 0 {
 		return nil, false
@@ -21908,6 +21924,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		return
 	}
 
+	if iface, sourceType, ok := fmtStringerAssertionTarget(e); ok {
+		writeFmtStringerAssertionCommaOk(out, e, iface, sourceType)
+		return
+	}
 	if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
 		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, iface, candidates)
 		return

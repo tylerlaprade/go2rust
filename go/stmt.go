@@ -3509,6 +3509,9 @@ func typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo *TypeInfo, typeExpr a
 }
 
 func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseCondition(out, typeInfo, typeExpr, subjectType) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -3574,6 +3577,9 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 // case (named or anonymous). Go gives the case variable the case type, even when
 // the matched value is rewrapped from a statically known interface subject.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseBinding(out, typeInfo, varName, typeExpr, subjectType, mutable) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
