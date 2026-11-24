@@ -841,8 +841,8 @@ fn main() {
     let mut str = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
     print!("Original string: {}\n", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v });
     print!("Length: {}\n", ({ let __len = (*str.lock().unwrap().as_ref().unwrap()).len(); __len }));
-    print!("First character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = (({ let __len = (*str.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) as u8 as char);
+    print!("First character: {}\n", char::from_u32(({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as i64 as u32).unwrap_or('\u{FFFD}'));
+    print!("Last character: {}\n", char::from_u32(({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = (({ let __len = (*str.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) as i64 as u32).unwrap_or('\u{FFFD}'));
     print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()));
     print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()));
     println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));

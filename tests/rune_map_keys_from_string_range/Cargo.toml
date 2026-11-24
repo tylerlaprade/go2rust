@@ -1,0 +1,11 @@
+[package]
+name = "rune_map_keys_from_string_range"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rune_map_keys_from_string_range"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

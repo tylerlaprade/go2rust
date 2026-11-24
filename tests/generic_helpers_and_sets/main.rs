@@ -330,6 +330,7 @@ pub fn map__int__string(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Option<Bo
 }
 
 fn main() {
+    ::cmp::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
