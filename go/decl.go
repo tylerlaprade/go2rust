@@ -111,6 +111,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		goPtrArray                bool
 		interfaceSlice            bool
 		zeroLenArray              bool
+		// floatKind is 64 or 32 for a float64 or float32 field, which
+		// fmt prints as %v does, and 0 otherwise.
+		floatKind int
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -138,6 +141,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		isPointer := structDisplayFieldIsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		zeroLenArray := structDisplayFieldIsZeroLenArray(field.Type)
+		floatKind := structDisplayFieldFloatKind(field.Type)
 		if isChannel {
 			continue
 		}
@@ -172,6 +176,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					goPtrArray:                goPtrArrayField,
 					interfaceSlice:            interfaceSlice,
 					zeroLenArray:              zeroLenArray,
+					floatKind:                 floatKind,
 				})
 			}
 		} else {
@@ -329,6 +334,17 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	for i, f := range fields {
 		out.WriteString("        let __go_fmt_")
 		out.WriteString(fmt.Sprintf("%d", i))
+		if f.floatKind != 0 && plainField(f) {
+			NeedGoFloatString()
+			out.WriteString(" = go_float_string((")
+			writeDisplayFieldValue(f)
+			if f.floatKind == 32 {
+				out.WriteString(") as f64, true);\n")
+			} else {
+				out.WriteString(") as f64, false);\n")
+			}
+			continue
+		}
 		if plusV && plainField(f) {
 			out.WriteString(" = if __go_plus { format!(\"{:#}\", ")
 			writeDisplayFieldValue(f)
@@ -1471,6 +1487,21 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 		out.WriteString(")")
 		return
 	}
+	if structCloneFieldCopiesSliceHeader(fieldType) {
+		// A slice field is a header over a shared array. The copy gets a
+		// cell of its own holding a copy of the header, so it shares the
+		// array but not the length: c.Tags = append(c.Tags, x) or
+		// c.Tags = nil on the copy leaves the original's slice alone.
+		out.WriteString("{ let __guard = self.")
+		out.WriteString(fieldName)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*__guard).clone())) }")
+		return
+	}
 	if structCloneFieldKeepsHandle(fieldType) {
 		out.WriteString("self.")
 		out.WriteString(fieldName)
@@ -1516,6 +1547,26 @@ func directStructFieldTypeParamName(fieldType ast.Expr) (string, bool) {
 		return "", false
 	}
 	return RustTypeNameForUse(typeParam.Obj().Name()), true
+}
+
+// structCloneFieldCopiesSliceHeader reports whether a struct's Go copy gives
+// the field of this type a cell holding a copy of the slice header: an
+// unnamed slice type, with GoSlice, whose clone is a header over the same
+// array. A defined slice type is a newtype around its handle and keeps it.
+func structCloneFieldCopiesSliceHeader(expr ast.Expr) bool {
+	if expr == nil || !goSliceModeEnabled() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).(*types.Slice)
+	return ok
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {
@@ -4335,13 +4386,14 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	activeMutexGuards = make(map[string]string)
 	defer func() { activeMutexGuards = oldActiveMutexGuards }()
 
-	oldFunctionBodyLbrace := currentFunctionBodyLbrace
+	oldFunctionBodyLbrace, oldFunctionBody := currentFunctionBodyLbrace, currentFunctionBody
+	currentFunctionBody = fn.Body
 	if fn.Body != nil {
 		currentFunctionBodyLbrace = fn.Body.Lbrace
 	} else {
 		currentFunctionBodyLbrace = token.NoPos
 	}
-	defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
+	defer func() { currentFunctionBodyLbrace, currentFunctionBody = oldFunctionBodyLbrace, oldFunctionBody }()
 
 	// Initialize defer stack if needed
 	if hasDefer {
@@ -6101,6 +6153,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					continue
 				}
 
+				registerAnonymousStructTypesInFuncType(funcType)
+
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
 				out.WriteString("(")
@@ -6360,9 +6414,21 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", self.0")
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap())\n")
+				if floatKind := structDisplayFieldFloatKind(t); floatKind != 0 {
+					// A type defined as a float prints as fmt's %v.
+					NeedGoFloatString()
+					out.WriteString("        write!(f, \"{}\", go_float_string(*self.0")
+					WriteBorrowMethod(out, false)
+					if floatKind == 32 {
+						out.WriteString(".as_ref().unwrap() as f64, true))\n")
+					} else {
+						out.WriteString(".as_ref().unwrap() as f64, false))\n")
+					}
+				} else {
+					out.WriteString("        write!(f, \"{}\", self.0")
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())\n")
+				}
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			}
@@ -7219,18 +7285,23 @@ func writeScalarTypeDefinitionShiftOp(out *strings.Builder, rustTypeName string,
 	out.WriteString(rustTypeName)
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
-	out.WriteString("*self.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() ")
-	out.WriteString(op)
-	out.WriteString(" ")
-	if rhsWrapped {
-		out.WriteString("*other.0")
+	shiftOp := token.SHL
+	if op == ">>" {
+		shiftOp = token.SHR
+	}
+	writeGoShiftBlock(out, shiftOp, func(out *strings.Builder) {
+		out.WriteString("*self.0")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()")
-	} else {
-		out.WriteString("other")
-	}
+	}, func(out *strings.Builder) {
+		if rhsWrapped {
+			out.WriteString("*other.0")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+		} else {
+			out.WriteString("other")
+		}
+	})
 	WriteWrapperSuffix(out)
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
@@ -7459,6 +7530,9 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if writeOutOfRangeGoIntConstExprForRustType(out, expr, iotaValue, rustType) {
 		return
 	}
+	if writeConstWithOverflowingShift(out, expr, rustType) {
+		return
+	}
 	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
 		return
 	}
@@ -7475,6 +7549,63 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 		return
 	}
 	TranspileConstExpr(out, expr, iotaValue)
+}
+
+// writeConstWithOverflowingShift writes an integer constant whose
+// expression shifts past the width of its type on the way to a value that
+// fits, such as maxDuration Duration = 1<<63 - 1: Go computes it exactly,
+// while the same arithmetic in Rust overflows, or needs a wider type than
+// the constant's. The value the type checker computed is written instead.
+func writeConstWithOverflowingShift(out *strings.Builder, expr ast.Expr, rustType string) bool {
+	castType, ok := rustIntegerCastTypeFromRustType(rustType)
+	if !ok || expr == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[expr]
+	if !ok || tv.Value == nil || tv.Value.Kind() != constant.Int || !constantFitsRustInteger(tv.Value, castType) {
+		return false
+	}
+	overflows := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if overflows {
+			return false
+		}
+		bin, ok := node.(*ast.BinaryExpr)
+		if !ok || bin.Op != token.SHL {
+			return true
+		}
+		if shifted, ok := typeInfo.info.Types[bin]; ok && shifted.Value != nil && shifted.Value.Kind() == constant.Int && !constantFitsRustInteger(shifted.Value, castType) {
+			overflows = true
+		}
+		return true
+	})
+	if !overflows {
+		return false
+	}
+	out.WriteString(tv.Value.ExactString())
+	return true
+}
+
+// constantFitsRustInteger reports whether an integer constant is in the
+// range of a Rust integer type.
+func constantFitsRustInteger(value constant.Value, rustType string) bool {
+	bits := map[string]uint{"i8": 8, "i16": 16, "i32": 32, "i64": 64, "isize": 64, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}[rustType]
+	if bits == 0 {
+		return false
+	}
+	if strings.HasPrefix(rustType, "u") {
+		if constant.Sign(value) < 0 {
+			return false
+		}
+		limit := constant.Shift(constant.MakeUint64(1), token.SHL, bits)
+		return constant.Compare(value, token.LSS, limit)
+	}
+	limit := constant.Shift(constant.MakeInt64(1), token.SHL, bits-1)
+	return constant.Compare(value, token.LSS, limit) && constant.Compare(value, token.GEQ, constant.UnaryOp(token.SUB, limit, 0))
 }
 
 func writeConstBinaryExprForDeclaredIntegerRustType(out *strings.Builder, expr ast.Expr, rustType string) bool {
@@ -7986,11 +8117,14 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			out.WriteString(RustCharLiteral(e.Value))
 			out.WriteString(" as i32)")
 		} else if e.Kind == token.FLOAT {
-			if value, ok := rustFloatLiteral(e); ok {
+			if writeFloatLiteralAsInteger(out, e) {
+			} else if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
 			} else {
 				out.WriteString(e.Value)
 			}
+		} else if e.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(e.Value))
 		} else {
 			out.WriteString(e.Value)
 		}
@@ -8282,6 +8416,12 @@ func writeConstUnsafeOffsetofCall(out *strings.Builder, call *ast.CallExpr) bool
 	}
 	if ptr, ok := types.Unalias(containerType).(*types.Pointer); ok {
 		containerType = ptr.Elem()
+	}
+	// A stdlib stub can omit fields and does not describe the Go target's layout.
+	if offset := typeInfo.info.Types[call].Value; offset != nil && isStdlibStubBackedType(containerType) {
+		out.WriteString(offset.ExactString())
+		out.WriteString("usize")
+		return true
 	}
 	containerRustType := goTypesTypeToRust(containerType)
 	if containerRustType == "/* unknown struct */" {
@@ -9776,9 +9916,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		oldFunctionHasDefer := currentFunctionHasDefer
 		currentFunctionHasDefer = hasDefer
 		defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
-		oldFunctionBodyLbrace := currentFunctionBodyLbrace
-		currentFunctionBodyLbrace = fn.Body.Lbrace
-		defer func() { currentFunctionBodyLbrace = oldFunctionBodyLbrace }()
+		oldFunctionBodyLbrace, oldFunctionBody := currentFunctionBodyLbrace, currentFunctionBody
+		currentFunctionBodyLbrace, currentFunctionBody = fn.Body.Lbrace, fn.Body
+		defer func() { currentFunctionBodyLbrace, currentFunctionBody = oldFunctionBodyLbrace, oldFunctionBody }()
 		oldActiveMutexGuards := activeMutexGuards
 		activeMutexGuards = make(map[string]string)
 		defer func() { activeMutexGuards = oldActiveMutexGuards }()
@@ -9986,4 +10126,24 @@ func setCurrentReceiverFromIdent(ident *ast.Ident) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
 		currentReceiverObject = typeInfo.info.Defs[ident]
 	}
+}
+
+// structDisplayFieldFloatKind is 64 or 32 for a struct field of type float64
+// or float32, not of a named type, and 0 otherwise.
+func structDisplayFieldFloatKind(fieldType ast.Expr) int {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return 0
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(fieldType)).(*types.Basic)
+	if !ok {
+		return 0
+	}
+	switch basic.Kind() {
+	case types.Float64:
+		return 64
+	case types.Float32:
+		return 32
+	}
+	return 0
 }

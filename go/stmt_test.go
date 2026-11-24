@@ -4252,7 +4252,9 @@ func clear(x uint64) uint64 {
 }
 `)
 
-	if strings.Contains(rust, "as u32") {
+	// The checked shift's own count and width are u32; the uint values are not.
+	withoutShiftCheck := strings.NewReplacer("(__shift_c as u32)", "", "* 8) as u32", "").Replace(rust)
+	if strings.Contains(withoutShiftCheck, "as u32") {
 		t.Fatalf("uint conversion in uint64 bitmask path should not narrow to u32 on this target:\n%s", rust)
 	}
 	if !strings.Contains(rust, "as u64") {
@@ -6571,6 +6573,58 @@ func store(m map[string]bool, key string) {
 	}
 }
 
+func TestZeroValueLocalMapStaysNilAndWriteUsesGoPanic(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func key() string { return "new" }
+func value() int { return 7 }
+
+func store() {
+	var values map[string]int
+	values[key()] = value()
+	var counts map[string]int
+	counts[key()]++
+}
+`)
+
+	if !strings.Contains(rust, "let mut values: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let mut values: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));") {
+		t.Fatalf("zero-valued unnamed map should remain nil:\n%s", rust)
+	}
+	keyAt := strings.Index(rust, "let __map_key =")
+	valueAt := strings.Index(rust, "let __map_value =")
+	panicAt := strings.Index(rust, "unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
+	if keyAt < 0 || valueAt < keyAt || panicAt < valueAt {
+		t.Fatalf("map key and value must be evaluated before checking the nil map:\n%s", rust)
+	}
+	if strings.Count(rust, "unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))") != 2 {
+		t.Fatalf("plain and compound writes to zero-valued maps should use the Go panic:\n%s", rust)
+	}
+}
+
+func TestZeroValueMapFieldLookupAndRangeStayNilSafe(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type holder struct { values map[string]int }
+
+func check() {
+	var h holder
+	_ = h.values["plain"]
+	_, _ = h.values["missing"]
+	for range h.values {}
+}
+`)
+
+	if strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone().get") ||
+		strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone()).clone()") {
+		t.Fatalf("nil map field lookup and range must not unwrap the map value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".values.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then") ||
+		!strings.Contains(rust, "let __range_map = __range_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("map field comma-ok lookup and range should use the nil-tolerant handle path:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentCastsBareRangeIndexValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -7426,8 +7480,10 @@ func main() {
 	if strings.Contains(rust, "as u8 <<") {
 		t.Fatalf("shift LHS with as-cast must be parenthesized to avoid Rust precedence collision:\n%s", rust)
 	}
-	if !strings.Contains(rust, "as u8) <<") {
-		t.Fatalf("expected shift LHS with as-cast to be wrapped in parens:\n%s", rust)
+	// byte(1) is a constant, written with its type, and the count is
+	// checked, so the shifted value is a binding of its own.
+	if !strings.Contains(rust, "let __shift_x = 1u8;") {
+		t.Fatalf("expected the shifted byte(1) to be a u8 binding:\n%s", rust)
 	}
 }
 

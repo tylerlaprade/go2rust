@@ -216,6 +216,9 @@ func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType 
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
 	fieldTypeRust := canonicalPackageExternalStubRustType(goTypesFieldTypeToRustForOwnerPackage(fieldType, ownerPkgPath))
+	if bridge := stubIoFieldBridgeType(fieldType); bridge != "" {
+		fieldTypeRust = wrappedExternalStubType(bridge)
+	}
 	fields := currentExternalTypeStubFields()
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
@@ -1219,6 +1222,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
+	dst.needsGoAnyRuntimeOps = dst.needsGoAnyRuntimeOps || src.needsGoAnyRuntimeOps
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {
@@ -1249,12 +1253,14 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
+	dst.needsGoSelectSend = dst.needsGoSelectSend || src.needsGoSelectSend
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
 	dst.needsGoMutex = dst.needsGoMutex || src.needsGoMutex
 	dst.needsGoRWMutex = dst.needsGoRWMutex || src.needsGoRWMutex
 	dst.needsGoOnce = dst.needsGoOnce || src.needsGoOnce
 	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
+	dst.needsGoFloatString = dst.needsGoFloatString || src.needsGoFloatString
 	dst.needsGoErrorChain = dst.needsGoErrorChain || src.needsGoErrorChain
 	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf
 	dst.needsGoSprintfSpread = dst.needsGoSprintfSpread || src.needsGoSprintfSpread
@@ -1266,6 +1272,8 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsRegexp = dst.needsRegexp || src.needsRegexp
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
 	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
+	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
+	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
 	dst.needsGoTime = dst.needsGoTime || src.needsGoTime
 	dst.needsGoTimer = dst.needsGoTimer || src.needsGoTimer
@@ -1710,6 +1718,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 }
 
 func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub, jsonDecodeSupportNeeded bool) string {
+	if osStub := packageStubs["os"]; osStub != nil {
+		if _, ok := osStub.Functions["open"]; ok {
+			stubs["fs_PathError"] = true
+		}
+	}
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
 			stubs["os_File"] = true
@@ -1742,6 +1755,9 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 	}
 	if externalPackageStubsNeedGoTimer(packageStubs) {
 		generateGoTimerHelper(&out)
+	}
+	if writer, reader := externalStubsNeedIoFieldBridges(fieldsByType); writer || reader {
+		writeStubIoFieldBridges(&out, writer, reader)
 	}
 	for i, name := range names {
 		if i > 0 || out.Len() > 0 {
@@ -1777,6 +1793,10 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 		}
 		if name == "fs_DirEntry" {
 			writeFsDirEntryStub(&out, name, methodsByType[name])
+			continue
+		}
+		if name == "fs_PathError" {
+			writeFsPathErrorStub(&out, methodsByType[name])
 			continue
 		}
 		if interfaceTypes[name] {
@@ -2193,7 +2213,9 @@ func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	int64Type := wrappedExternalStubType("i64")
 	stringType := wrappedExternalStubType("String")
-	intType := wrappedExternalStubType(rustIntType())
+	// An int result is bare, as a stub function's is (callReturnsBareScalar):
+	// n, err := f.Read(buf) binds n as an int.
+	intType := rustIntType()
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
@@ -2210,6 +2232,10 @@ pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub __go_wait_for_close: bool,
+    /// How far Read has read __go_data; shared by every copy of the File.
+    pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    /// os.Stdin: Read reads the process's standard input.
+    pub __go_stdin: bool,
 }
 
 impl Default for os_File {
@@ -2218,9 +2244,24 @@ impl Default for os_File {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             __go_wait_for_close: false,
+            __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            __go_stdin: false,
         }
     }
 }
+
+/// The end of a File's input until a source-translated io registers its
+/// io.EOF (__go_register_io_eof), the value callers compare with.
+#[derive(Debug)]
+pub struct GoStubEOF;
+
+impl std::fmt::Display for GoStubEOF {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "EOF")
+    }
+}
+
+impl std::error::Error for GoStubEOF {}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -2283,8 +2324,41 @@ impl os_File {
         (%s, %s)
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        // Go's Read: fill as much of p as the input has, or report the end
+        // of the input with no bytes read.
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            let mut __guard = __buf%s;
+            match __guard.as_mut() {
+                Some(__dst) => {
+                    let __dst = __dst.as_mut_slice();
+                    if __dst.is_empty() {
+                        (0, false)
+                    } else if self.__go_stdin {
+                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else {
+                        let __data = self.__go_data.lock().unwrap();
+                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                        let __count = (__data.len() - __pos).min(__dst.len());
+                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                        (__count, __count == 0)
+                    }
+                }
+                None => (0, false),
+            }
+        } else {
+            (0, false)
+        };
+        if __eof {
+            (%s, %s)
+        } else {
+            let n = __n;
+            (%s, %s)
+        }
     }
 
     pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
@@ -2315,10 +2389,11 @@ impl os_File {
 }
 `,
 		errorType, noneError,
-		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
-		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
-		intType, errorType, wrappedExternalStubExpr(rustIntType(), "0"), noneError,
-		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError)
+		intType, errorType, vecType, vecBorrow, "n as "+intType, noneError,
+		intType, errorType, stringType, stringBorrow, "n as "+intType, noneError,
+		intType, errorType, vecType, vecMutBorrow, "0", stubEOFError(errorInnerType), "n as "+intType, noneError,
+		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, "n as "+intType, noneError)
+	writeStubIoEOFRegistry(out, errorInnerType, errorType)
 }
 
 // PERMANENT: not scaffold — Rust std::process::Command is the long-term implementation;
@@ -2387,6 +2462,14 @@ impl exec_Cmd {
 	        %s
 	    }
 
+    /// Go's ExitError text: "exit status 3", not Rust's "exit status: 3".
+    fn __go_exit_message(status: &std::process::ExitStatus) -> String {
+        match status.code() {
+            Some(code) => format!("exit status {}", code),
+            None => status.to_string(),
+        }
+    }
+
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
@@ -2413,6 +2496,21 @@ impl exec_Cmd {
         }
 `, externalStubBorrowExpr("self.env"))
 	}
+	if fields["stdin"] == wrappedExternalStubType(stubReaderTypeName) {
+		fmt.Fprintf(out, `        if let Some(stdin) = %s.as_ref() {
+            let data = stdin.__go_read_all();
+            command.stdin(std::process::Stdio::piped());
+            command.stdout(std::process::Stdio::piped());
+            command.stderr(std::process::Stdio::piped());
+            let mut child = command.spawn()?;
+            if let Some(mut pipe) = child.stdin.take() {
+                use std::io::Write;
+                let _ = pipe.write_all(&data);
+            }
+            return child.wait_with_output();
+        }
+`, externalStubBorrowExpr("self.stdin"))
+	}
 	out.WriteString(`        command.output()
     }
 
@@ -2438,7 +2536,7 @@ impl exec_Cmd {
                 let err = if output.status.success() {
                     %s
                 } else {
-                    Self::__go_error(format!("exit status {}", output.status))
+                    Self::__go_error(Self::__go_exit_message(&output.status))
                 };
                 (%s, err)
             }
@@ -2457,7 +2555,7 @@ impl exec_Cmd {
                 if output.status.success() {
                     %s
                 } else {
-                    Self::__go_error(format!("exit status {}", output.status))
+                    Self::__go_error(Self::__go_exit_message(&output.status))
                 }
             }
             Err(err) => Self::__go_error(err.to_string()),
@@ -2538,6 +2636,10 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 
 // MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
 func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	if name == fmtStringerStubName {
+		writeFmtStringerStub(out, methods)
+		return
+	}
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"
@@ -2899,7 +3001,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			if i > 0 {
 				out.WriteString("\n")
 			}
-			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+			writeExternalPackageStubVariable(out, pkgName, varName, pkg.Variables[varName])
 		}
 		if len(varNames) > 0 && len(pkg.Functions) > 0 {
 			out.WriteString("\n")
@@ -3094,6 +3196,65 @@ impl %s {
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: io-fs-path-error in docs/bridge_debt.md. Remove when io/fs.PathError
+// is source-transpiled for ordinary callers instead of emitted as a stub.
+func writeFsPathErrorStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	stringType := wrappedExternalStubType("String")
+	errorType := wrappedExternalStubType(externalStubErrorInnerType())
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: %s,
+    pub op: %s,
+    pub path: %s,
+}
+
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op%s;
+        let __path_guard = self.path%s;
+        let __err_guard = self.err%s;
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
+    }
+}
+
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> %s {
+        %s
+    }
+    pub fn unwrap(&self) -> %s {
+        self.err.clone()
+    }
+`, errorType, stringType, stringType, borrow, borrow, borrow, stringType, wrappedExternalStubExpr("String", "self.to_string()"), errorType)
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "error" || methodName == "unwrap" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, "fs_PathError", methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
+}
+
 // TEMPORARY: hand-written Rust shim for encoding/json package.
 // Long-term fix: transpile encoding/json source.
 func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
@@ -3183,7 +3344,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	if needsFilesystemHelpers || needsExecutable || needsHostname {
-		writeOsErrorHelpers(out)
+		_, needsOpenPathError := pkg.Functions["open"]
+		writeOsErrorHelpers(out, needsOpenPathError)
 	}
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -3210,7 +3372,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	}
 	slices.Sort(varNames)
 	for _, varName := range varNames {
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		if varName == "Stdin" && strings.Contains(pkg.Variables[varName], "os_File") {
+			// os.Stdin reads the process's standard input.
+			out.WriteString("    pub fn Stdin() -> ")
+			out.WriteString(pkg.Variables[varName])
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("os_File", "os_File { __go_stdin: true, ..Default::default() }"))
+			out.WriteString("\n    }\n")
+		} else {
+			writeExternalPackageStubVariable(out, "os", varName, pkg.Variables[varName])
+		}
 		out.WriteString("\n")
 	}
 
@@ -3271,8 +3442,7 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
-// PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
-func writeOsErrorHelpers(out *strings.Builder) {
+func writeOsErrorHelpers(out *strings.Builder, includeOpenPathError bool) {
 	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
 	fmt.Fprintf(out, `    type GoError = %s;
 
@@ -3285,6 +3455,21 @@ func writeOsErrorHelpers(out *strings.Builder) {
     }
 
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
+	if !includeOpenPathError {
+		return
+	}
+
+	// TEMPORARY: os-open-path-error in docs/bridge_debt.md. Remove when os.Open
+	// and io/fs.PathError share the source-transpiled stdlib path.
+	pathError := "fs_PathError { err: " + wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err")) +
+		", op: " + wrappedExternalStubExpr("String", "op.to_string()") +
+		", path: " + wrappedExternalStubExpr("String", "path") + " }"
+	fmt.Fprintf(out, `    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = %s;
+        %s::new(%s::new(Some(%s)))
+    }
+
+`, pathError, GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "path_error"))
 }
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
@@ -3495,14 +3680,14 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("        let path = _arg0.into_go_string();\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => {\n")
-	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
-	out.WriteString(", io_error(err)),\n")
+	out.WriteString(", path_error(\"open\", path, err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
@@ -3778,14 +3963,80 @@ func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageS
 }
 
 // MACHINERY: variable-declaration emitter for stub packages.
-func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
+// stubEOFError is the error handle a File's Read returns at the end of its
+// input: io.EOF's value once a source-translated io registered it.
+func stubEOFError(errorInnerType string) string {
+	return "__go_stub_eof()"
+}
+
+// TEMPORARY: os-file-read — remove when os translates from source with syscall.Read as the bridge.
+// writeStubIoEOFRegistry writes where a source-translated io registers
+// io.EOF, so a File's end of input is the value callers compare with,
+// read directly (n, err := f.Read(buf)) or through io.Reader. The stub
+// crate cannot name io's EOF: io depends on it. Until io registers, the end
+// of input is GoStubEOF, which prints as EOF.
+func writeStubIoEOFRegistry(out *strings.Builder, errorInnerType string, errorType string) {
+	pointer := "std::rc::Rc"
+	if strings.HasPrefix(errorInnerType, "Arc<") || strings.HasPrefix(errorInnerType, "std::sync::Arc<") {
+		pointer = "std::sync::Arc"
+	}
+	fallback := wrappedExternalStubExpr(errorInnerType, pointer+"::new(GoStubEOF) as "+errorInnerType)
+	registered := wrappedExternalStubExpr(errorInnerType, "__eof.clone()")
+	if NeedsConcurrentWrapper() {
+		fmt.Fprintf(out, `
+static __GO_STUB_IO_EOF: std::sync::OnceLock<%s> = std::sync::OnceLock::new();
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<%s>) {
+    if let Some(eof) = eof {
+        let _ = __GO_STUB_IO_EOF.set(eof);
+    }
+}
+
+fn __go_stub_eof() -> %s {
+    match __GO_STUB_IO_EOF.get() {
+        Some(__eof) => %s,
+        None => %s,
+    }
+}
+`, errorInnerType, errorInnerType, errorType, registered, fallback)
+		return
+	}
+	fmt.Fprintf(out, `
+thread_local! {
+    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<%s>> = std::cell::RefCell::new(None);
+}
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<%s>) {
+    if eof.is_some() {
+        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
+    }
+}
+
+fn __go_stub_eof() -> %s {
+    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
+        Some(__eof) => %s,
+        None => %s,
+    })
+}
+`, errorInnerType, errorInnerType, errorType, registered, fallback)
+}
+
+func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
 	out.WriteString("() -> ")
 	out.WriteString(rustType)
 	out.WriteString(" {\n")
 	out.WriteString("        ")
-	writeExternalStubDefaultValue(out, rustType)
+	if pkgName == "fs" && varName == "ErrNotExist" {
+		// TEMPORARY: io-fs-err-not-exist in docs/bridge_debt.md. Remove when the
+		// source-transpiled io/fs sentinel is available to ordinary callers.
+		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::from(std::io::ErrorKind::NotFound)")))
+	} else {
+		writeExternalStubDefaultValue(out, rustType)
+	}
 	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
@@ -3824,7 +4075,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		writeExternalPackageStubVariable(out, "exec", varName, pkg.Variables[varName])
 	}
 	if len(varNames) > 0 && len(pkg.Functions) > 0 {
 		out.WriteString("\n")
@@ -4009,8 +4260,8 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(" {\n")
 	out.WriteString(`        let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true };
-        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true };
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true, ..Default::default() };
+        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true, ..Default::default() };
         (`)
 	out.WriteString(wrappedExternalStubExpr("os_File", "read"))
 	out.WriteString(", ")

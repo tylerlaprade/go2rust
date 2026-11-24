@@ -4,7 +4,11 @@ members = [
     ".",
     "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/io",
+    "vendor/math_bits",
     "vendor/oracle_testing",
+    "vendor/unicode",
     "vendor/unicode_utf8",
 ]
 
@@ -23,5 +27,9 @@ overflow-checks = false
 [dependencies]
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+io = { path = "vendor/io" }
+math_bits = { path = "vendor/math_bits" }
 oracle_testing = { path = "vendor/oracle_testing" }
+unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

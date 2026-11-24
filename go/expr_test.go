@@ -2137,7 +2137,9 @@ func pick(h *holder, i int) uint64 {
 	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
 		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
+	// The inner slice's block is parenthesized before it is indexed, so
+	// the index cannot be read as a statement of its own.
+	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() })[") {
 		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
 	}
 }
@@ -4781,13 +4783,13 @@ func check(raw uint32) bool {
 }
 `)
 
-	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
+	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0o644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
 		t.Fatalf("external named integer alias conversions should construct the newtype before method dispatch:\n%s", rust)
 	}
 	for _, want := range []string{
-		"Some(fs_FileMode(0644 as u32))",
-		"fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))",
-		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))",
+		"Some(fs_FileMode(0o644 as u32))",
+		"fs_FileMode::is_dir(&(fs_FileMode(0o644 as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o755)) as u32)))",
 		"fs_FileMode::is_dir(&(fs_FileMode((*raw.borrow().as_ref().unwrap()) as u32)))",
 	} {
 		if !strings.Contains(rust, want) {
@@ -6112,7 +6114,7 @@ func take(values []int, h *Header) []int {
 	if !strings.Contains(rust, "let __low = 0;") ||
 		!strings.Contains(rust, "let __max = ((*") ||
 		!strings.Contains(rust, " as usize;") ||
-		!strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+		!strings.Contains(rust, "__seq.reslice3_zeroed(__low, __high, __max)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
 	}
 }
@@ -6130,8 +6132,9 @@ func grow() []byte {
 	if !strings.Contains(rust, "let __source_cap = ") {
 		t.Fatalf("two-index slice should capture source capacity before cloning:\n%s", rust)
 	}
-	// The new header views the source's backing array up to its capacity.
-	if !strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+	// The new header views the source's backing array up to its capacity,
+	// whose never-stored bytes are zero.
+	if !strings.Contains(rust, "__seq.reslice3_zeroed(__low, __high, __max)") {
 		t.Fatalf("two-index slice should reslice within the source's capacity:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __max = __source_cap;") {

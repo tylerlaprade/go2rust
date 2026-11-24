@@ -1,0 +1,7 @@
+6 <nil> 3 16
+0 "a 1 true"
+1 "b 2.5"
+2 ""
+[app] started 3
+x1 2yz
+x 1 2 y z

@@ -1,0 +1,11 @@
+[package]
+name = "slice_elem_ptr_backing_array"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_elem_ptr_backing_array"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -17,6 +17,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -29,7 +33,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -39,7 +43,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -78,7 +92,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -133,7 +147,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -166,6 +180,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -184,6 +199,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -395,15 +426,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -605,14 +637,14 @@ fn main() {
     { let new_val = "first".to_string(); *(*items.borrow().as_ref().unwrap())[(0) as usize].clone().value.borrow_mut() = Some(new_val); };
     { let new_val = 2; *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().i_d.borrow_mut() = Some(new_val); };
     { let new_val = "second".to_string(); *(*items.borrow().as_ref().unwrap())[(1) as usize].clone().value.borrow_mut() = Some(new_val); };
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); for (i, item) in __range_values.iter().enumerate() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard); for (i, item) in __range_values.iter().enumerate() {
         let item = &item.__go_value_clone();
         print!("Item {}: {{ID: {}, Value: {}}}\n", i, (*item.i_d.borrow().as_ref().unwrap()), (*item.value.borrow().as_ref().unwrap()).clone());
     } }
 
         // Slice of anonymous structs
     let mut events = Rc::new(RefCell::new(Some(vec![AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("info".to_string()))), message: Rc::new(RefCell::new(Some("System started".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("warning".to_string()))), message: Rc::new(RefCell::new(Some("Low memory".to_string()))), ..Default::default() }, AnonymousStruct6 { r#type: Rc::new(RefCell::new(Some("error".to_string()))), message: Rc::new(RefCell::new(Some("Connection failed".to_string()))), ..Default::default() }])));
-    { let __range_holder = events.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for event in __range_values.iter() {
+    { let __range_holder = events.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for event in __range_values.iter() {
         let event = &event.__go_value_clone();
         print!("Event [{}]: {}\n", (*event.r#type.borrow().as_ref().unwrap()).clone(), (*event.message.borrow().as_ref().unwrap()).clone());
     } }
@@ -620,11 +652,11 @@ fn main() {
         // Map with anonymous struct values
     let mut users = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::from([("alice".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("alice@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(true))), ..Default::default() })))), ("bob".to_string(), Rc::new(RefCell::new(Some(AnonymousStruct7 { email: Rc::new(RefCell::new(Some("bob@example.com".to_string()))), admin: Rc::new(RefCell::new(Some(false))), ..Default::default() }))))]))));
     let mut userNames: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    for (name, _) in { let __range_holder = users.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (name, _) in { let __range_holder = users.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = userNames.clone(); let __append_value = name.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *userNames.borrow_mut() = __slice_header; };
     }
     { let __sort_target = userNames.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = userNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
+    { let __range_holder = userNames.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
         let mut user = Rc::new(RefCell::new(Some({ let __map_holder = users.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone()).unwrap_or_else(|| Default::default()) })));
         print!("User {}: {} (admin: {})\n", name, (*(*user.borrow().as_ref().unwrap()).email.borrow().as_ref().unwrap()).clone(), (*(*user.borrow().as_ref().unwrap()).admin.borrow().as_ref().unwrap()));
     } }

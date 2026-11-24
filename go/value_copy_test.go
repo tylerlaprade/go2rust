@@ -113,11 +113,12 @@ func main() {
 	_ = n
 }
 `)
-	// The copy of a Node copies pos and keeps the cells of the fields Go
-	// shares: the pointer, the slice and the map.
+	// The copy of a Node copies pos and keeps the cells of the pointer and
+	// the map. The slice gets a cell of its own holding a copy of the
+	// header, which shares the array.
 	for _, want := range []string{
 		"self.p.clone()",
-		"self.tags.clone()",
+		"{ let __guard = self.tags.borrow(); Rc::new(RefCell::new((*__guard).clone())) }",
 		"self.m.clone()",
 		"(*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone())",
 	} {
@@ -311,7 +312,7 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 		`n, ok := counts["a"]`:       "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
 		`l, ok = lists["a"]`:         "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
 		`pp, ok := ptrs["a"]`:        "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
-		`f, ok := reg.byName["a"]`:   ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		`f, ok := reg.byName["a"]`:   "let __map_holder = (*reg.borrow().as_ref().unwrap()).by_name.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
 		"the map's cell is not kept": "*r.borrow_mut() = __moved_tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {

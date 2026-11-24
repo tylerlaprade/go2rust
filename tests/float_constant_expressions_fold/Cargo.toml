@@ -1,0 +1,11 @@
+[package]
+name = "float_constant_expressions_fold"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "float_constant_expressions_fold"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

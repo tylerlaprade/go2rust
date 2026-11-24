@@ -78,6 +78,24 @@ list. The compiler-provided `unsafe` package and top-level `runtime` package
 are not ordinary source crates; they stay on the existing intrinsic/runtime
 lowering path.
 
+**Update 2026-11-23:** `math`, `math/bits`, `strconv`, `unicode` and
+`unicode/utf8` are translated from source by default, like `path/filepath`
+(`defaultSourceStdlibPackages` in `go/package_loader.go`). `math`'s
+assembly-backed accelerators are not translated: the loader replaces each
+such file with the one other architectures build (`stdlibNoAsmOverlays` in
+`go/stdlib_overlay.go`), so the package runs its own generic Go code. The
+hand-written strconv, math and unicode call emitters in `go/stdlib.go` no
+longer run for programs and are left to delete.
+
+**Update 2026-11-24:** `strings`, `bytes`, `bufio` and `io` are translated
+from source by default too, with `internal/bytealg`. bytealg's
+`*_native.go` files declare assembly, so the overlay replaces each with its
+`*_generic.go` counterpart, drops `index_amd64.go` (MaxLen stays 0, as on an
+architecture without an assembly Index), and strips `bytealg.go`'s
+assembly-only `internal/cpu` offsets (`stdlibOverlayTransforms`). The
+`internal/bytealg` stub entries, among them DEV-132's `index_byte_string`
+emitter, are no longer reached and are left to delete.
+
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
 and passes. The actual blocker for retiring most rows below is that
@@ -189,6 +207,31 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-stringer**
+
+- Location: `go/fmt_stringer.go`. `writeFmtStringerStub` writes the
+  `fmt_Stringer` stub type, with the text of the value it holds; it is called
+  from `writeExternalInterfaceStub` in `go/external_type_stubs.go`. The
+  writers that fill it, and where they are called:
+  - `writeFmtStringerConversion`, from `writeLocalConcreteStdlibInterfaceConversion` in `go/expr.go`;
+  - `writeTypeSwitchFmtStringerCaseCondition` and `writeTypeSwitchFmtStringerCaseBinding`, from `writeTypeSwitchLocalInterfaceCaseCondition` and `writeTypeSwitchInterfaceCaseBinding` in `go/stmt.go`;
+  - `fmtStringerAssertionTarget`, `writeFmtStringerAssertionValue` and `writeFmtStringerAssertionCommaOk`, from `TranspileExpressionContext` and `TranspileTypeAssertionCommaOk` in `go/expr.go`, with the exceptions in `methodReceiverExpressionNeedsUnwrap` and `staticallyKnownAnyInterfaceAssertionSource`;
+  - `writeFmtStringerTypeName`, for `%T`, from `writeTypeNameFormatArg` in `go/stdlib.go`.
+- Go symbol: `fmt.Stringer` as a variable or parameter type, a `[]fmt.Stringer`,
+  `case fmt.Stringer` and `x.(fmt.Stringer)`.
+- Transpiler gap: `fmt` is bridged (fmt-runtime-format), so `fmt.Stringer` is
+  a stub type rather than a translated interface, and the stub's `String`
+  had no body. A value converted to it now carries a closure over its
+  Display impl, which calls the value's own String method (DEV-152).
+- Fixture: `tests/fmt_stringer_values/` and
+  `tests/fmt_stringer_values_goroutines/`.
+- Not covered: a `fmt.Stringer` put back into an `interface{}` boxes the
+  `fmt_Stringer`, so asserting the concrete type there fails (DEV-155).
+- Removal trigger: `fmt` is translated from source, or the stdlib boundary
+  puts `fmt` in the hand-written tier; then `fmt.Stringer` is an ordinary
+  interface of that package and these writers are deleted.
+- Added: 2026-11-24
+
 **fmt-print-operands**
 
 - Location: `go/stdlib.go`, `transpileFmtSprint`, `transpileFmtSprintln`,
@@ -233,6 +276,27 @@ against the `// TEMPORARY:` comments of that one file.
   yet; that waits for the same change.
 - Added: 2026-11-20
 
+**exec-cmd-io-field-bridge**
+
+- Location: `go/stub_io_fields.go` (`writeStubIoFieldBridges`,
+  `writeStubIoFieldBridgeValue`), `go/external_type_stubs.go`
+  (`writeExecCmdTypeStub` Stdin)
+- Go symbol: `exec.Cmd.Stdout`, `exec.Cmd.Stderr`, `exec.Cmd.Stdin`
+- Transpiler gap: `os/exec` is the OS process layer and stays a stub, but its
+  `Stdout`, `Stderr` and `Stdin` fields are `io.Writer` and `io.Reader`. With
+  `io` translated from source those are traits of the `io` crate, which
+  depends on the stub crate, so the stub crate cannot name them. The fields
+  hold `GoStubWriter`/`GoStubReader`, a closure the assignment builds over the
+  `io` trait object, which calls its `Write` or reads it to EOF. Without them
+  `go/build` (which sets `cmd.Stdout`) did not compile; a program capturing a
+  command's output in a `bytes.Buffer` now gets it, and `Stdin` reaches the
+  process. Reading the field back as an `io.Writer` is not supported.
+- Fixture: `tests/exec_command_io_fields/`, `tests/build_package_stub/`,
+  `go/stub_io_fields_test.go:TestExecCmdIoFieldsBridgeSourceIoInterfaces`
+- Removal trigger: `os/exec` translated from source, with `os.Process` and
+  the pipe syscalls as the bridge; then delete `go/stub_io_fields.go`.
+- Added: 2026-11-24
+
 ## Shims
 
 The rows below were backfilled on 2026-05-27 from the existing 36
@@ -262,6 +326,50 @@ in the first place.
   `internal/godebug` path, make the source-mapped `os/exec` LookPath fixture
   compile and match Go (including `ErrDot`), then delete this emitter.
 - Added: 2026-11-22 (backfill of the pre-existing always-failing stub)
+
+### io-fs-path-error
+
+- Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
+- Go symbol: `io/fs.PathError`
+- Transpiler gap: ordinary non-source-mapped programs cannot use a
+  source-transpiled `io/fs.PathError`, so the external stub emits its concrete
+  fields and wrapped cause. A program that opts into `io/fs` currently has
+  two Rust types for the same Go declaration, so `errors.As` returns false.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile and source-map `io/fs.PathError` for
+  ordinary callers, then delete the stub.
+- Added: 2026-11-20
+
+### os-open-path-error
+
+- Location: `go/external_type_stubs.go`, `writeOsErrorHelpers` and
+  `writeOsOpenFunction`
+- Go symbol: `os.Open`
+- Transpiler gap: the ordinary `os.Open` stub calls Rust `std::fs` and cannot
+  construct the source-transpiled `io/fs.PathError` across that boundary.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile the `os.Open`/`io/fs.PathError` boundary
+  and delete the external-stub constructor.
+- Added: 2026-11-20
+
+### io-fs-err-not-exist
+
+- Location: `go/external_type_stubs.go`,
+  `writeExternalPackageStubVariable`
+- Go symbol: `io/fs.ErrNotExist`
+- Transpiler gap: external package variables cannot refer to the
+  source-transpiled sentinel, so the ordinary stub maps it to Rust
+  `ErrorKind::NotFound`.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
+  route `errors.Is` through it, then delete the external-stub branch.
+- Added: 2026-11-20
 
 ### json-marshal-helpers
 
@@ -311,6 +419,30 @@ in the first place.
   the stdlib path or emit loud unsupported paths without hand-written writer
   behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
+
+### os-file-read
+
+- Location: `go/external_type_stubs.go` (`writeOsFileStub` `read`,
+  `writeStubIoEOFRegistry`, `os.Stdin` in `writeOsPackageStub`),
+  `go/project.go` (`stubIoEOFRegistration`), `go/transpile.go`
+  (`writeStubInterfaceMethodCall` EOF mapping)
+- Go symbol: `(*os.File).Read`, `os.Stdin`
+- Transpiler gap: `os.File` is the syscall layer and stays a stub. Its
+  `Read` returned nothing, so `bufio.Scanner` over a file or `os.Stdin`,
+  `io.ReadAll` and `bufio.Reader` never saw any input once `io` and `bufio`
+  translate from source. `Read` now fills the buffer from the bytes
+  `os.Open` read, at a position shared by the File's copies, or from the
+  process's standard input for `os.Stdin`, and ends with `io.EOF`. The stub
+  crate cannot name `io.EOF` (io depends on it), so io's init hands its
+  value over (`__go_register_io_eof`); before that the end of input is
+  `GoStubEOF`, which the io crate's `io.Reader` impl for the File also maps
+  to `io.EOF`. Its int results are bare, as other stub calls' are, so
+  `n, err := f.Read(buf)` compiles.
+- Fixture: `tests/bufio_reads_files/`, `tests/os_file_direct_read/`,
+  `go/os_file_read_test.go:TestOsFileReadServesFileAndStdin`
+- Removal trigger: `os` translated from source with `syscall.Read` as the
+  bridge; then delete the `read` arm of `writeOsFileStub`.
+- Added: 2026-11-24
 
 ### io-readcloser-close-dispatch
 

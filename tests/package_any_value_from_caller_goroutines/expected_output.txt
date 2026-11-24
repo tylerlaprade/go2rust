@@ -1,0 +1,41 @@
+bad
+later
+wrapped 7
+text
+3
+error: described
+not an error
+[1 2]
+[a b]
+map[k:1]
+{1 2}
+[3 4]
+map[m:2]
+[1.5]
+[]string map[string]int
+typed error
+error: typed error main.callerError switch error: typed error
+caller error
+error: caller error
+main.callerError
+switch error: caller error
+{5 6}
+copied error
+error: preboxed
+preboxed
+typed pointer error
+error: typed pointer error *main.pointerError switch error: typed pointer error
+pointer error
+pointer error
+error: pointer error *main.pointerError switch error: pointer error
+replaced
+false
+[10 20]
+7
+{3 4}
+error: async error main.callerError
+{7 8}
+async copied error
+switch error: async typed error
+async pointer error
+error: async pointer error *main.pointerError switch error: async pointer error

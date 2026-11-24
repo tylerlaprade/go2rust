@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"strconv"
@@ -90,11 +91,14 @@ func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidates(body)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidates(body)
 	currentGoPtrCandidates = nil
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -110,11 +114,14 @@ func setSliceElemPtrCandidatesForFunc(fn *ast.FuncDecl) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(fn.Body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidatesForFunc(fn)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidatesForFunc(fn)
 	currentGoPtrCandidates = collectGoPtrCandidatesForFunc(fn)
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(fn.Body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -2038,6 +2045,13 @@ func sliceElemPtrTypeString(typ types.Type) string {
 func sliceElemPtrFieldKey(named *types.Named, fieldName string) string {
 	if named == nil || named.Obj() == nil || fieldName == "" {
 		return ""
+	}
+	if isFunctionLocalNamedType(named) {
+		// A struct type declared inside a function is emitted as an alias
+		// of the generated struct for its underlying type, so its fields
+		// are that struct's fields (DEV-131). The name alone is also not
+		// unique: two functions may each declare a local holder.
+		return sliceElemPtrAnonymousFieldKey(named.Underlying(), fieldName)
 	}
 	pkgPath := ""
 	if pkg := named.Obj().Pkg(); pkg != nil {
@@ -4772,7 +4786,10 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 					continue
 				}
 				ok, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs)
-				if !ok {
+				if !ok || sliceElemPtrAssignmentValueIsGoPtrField(rhs) {
+					// A field that holds a GoPtr, as n = n.Next does when
+					// Next is assigned slice element pointers, makes the
+					// variable a GoPtr local instead.
 					state.valid = false
 					continue
 				}
@@ -5502,22 +5519,50 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 		sawSliceAddr bool
 	}
 	candidates := map[types.Object]*state{}
-	sourceElemRustType := func(expr ast.Expr) (string, bool) {
+	// sameRepresentation pairs locals that must hold the same element
+	// type: dst = append(dst, src...), copy(dst, src) and dst := src.
+	type sameRepresentation struct{ dst, src types.Object }
+	var edges []sameRepresentation
+	// sourceElemRustType returns the element type of a slice whose
+	// elements dst receives, and the local holding it, if any. A slice
+	// field of GoPtr values has no local: its elements are GoPtr already.
+	sourceElemRustType := func(expr ast.Expr) (string, types.Object, bool) {
 		if sel, ok := unwrapParens(expr).(*ast.SelectorExpr); ok {
 			if info, ok := sliceElemPtrSliceFieldInfoForSelector(sel); ok {
-				return sliceElemPtrSliceFieldElemRustType(info), true
+				return sliceElemPtrSliceFieldElemRustType(info), nil, true
 			}
 		}
 		if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
 			obj := typeInfo.GetObject(ident)
 			if obj == nil {
-				return "", false
+				return "", nil, false
 			}
 			if st := candidates[obj]; st != nil && st.valid && st.elemRustType != "" {
-				return st.elemRustType, true
+				return st.elemRustType, obj, true
 			}
 		}
-		return "", false
+		return "", nil, false
+	}
+	stateFor := func(obj types.Object, elemRustType string) *state {
+		st := candidates[obj]
+		if st == nil {
+			st = &state{elemRustType: elemRustType, valid: true}
+			candidates[obj] = st
+		}
+		return st
+	}
+	// receive records that the local dst receives the elements of src.
+	receive := func(dst types.Object, st *state, src ast.Expr) {
+		srcElemRustType, srcObj, ok := sourceElemRustType(src)
+		if !ok || srcElemRustType != st.elemRustType {
+			st.valid = false
+			return
+		}
+		if srcObj == nil {
+			st.sawSliceAddr = true
+			return
+		}
+		edges = append(edges, sameRepresentation{dst: dst, src: srcObj})
 	}
 
 	ast.Inspect(body, func(node ast.Node) bool {
@@ -5540,17 +5585,102 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 			if !ok {
 				return true
 			}
-			srcElemRustType, ok := sourceElemRustType(n.Args[1])
+			srcElemRustType, srcObj, ok := sourceElemRustType(n.Args[1])
 			if !ok || srcElemRustType != elemRustType {
 				return true
 			}
-			st := candidates[obj]
-			if st == nil {
-				st = &state{elemRustType: elemRustType, valid: true}
-				candidates[obj] = st
+			st := stateFor(obj, elemRustType)
+			if srcObj == nil {
+				st.sawSliceAddr = true
+			} else {
+				edges = append(edges, sameRepresentation{dst: obj, src: srcObj})
 			}
-			st.sawSliceAddr = true
 		case *ast.AssignStmt:
+			if n.Tok == token.DEFINE {
+				for i, lhs := range n.Lhs {
+					ident, ok := lhs.(*ast.Ident)
+					if !ok || ident.Name == "_" || typeInfo.info.Defs[ident] == nil {
+						continue
+					}
+					obj := typeInfo.GetObject(ident)
+					if obj == nil {
+						continue
+					}
+					elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type())
+					if !ok {
+						continue
+					}
+					rhs := assignmentRHSForLHS(n, i)
+					switch init := unwrapParens(rhs).(type) {
+					case *ast.CompositeLit:
+						// The literal is written as the declaration's type is.
+						st := stateFor(obj, elemRustType)
+						if _, ok := sliceElemPtrSliceLiteralPositions(init); !ok {
+							st.valid = false
+							continue
+						}
+						for _, elt := range init.Elts {
+							if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+								elt = kv.Value
+							}
+							if isNilIdentExpr(elt) {
+								continue
+							}
+							ok, sawSliceAddr := isSliceElemPtrAssignmentValue(elt)
+							if !ok {
+								st.valid = false
+								break
+							}
+							if sawSliceAddr {
+								st.sawSliceAddr = true
+							}
+						}
+					case *ast.Ident:
+						if init.Name == "nil" {
+							continue
+						}
+						if _, _, isSource := sourceElemRustType(init); isSource && len(n.Lhs) == 1 {
+							receive(obj, stateFor(obj, elemRustType), init)
+						} else {
+							// Another slice's header: its elements are cells.
+							stateFor(obj, elemRustType).valid = false
+						}
+					}
+				}
+			}
+			if len(n.Lhs) == 1 && len(n.Rhs) == 1 {
+				// ptrs = append(ptrs, &items[i]): the appended values decide,
+				// as an index assignment's value does.
+				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "append") && len(call.Args) >= 1 {
+					lhsIdent, lhsOK := unwrapParens(n.Lhs[0]).(*ast.Ident)
+					argIdent, argOK := unwrapParens(call.Args[0]).(*ast.Ident)
+					if lhsOK && argOK && lhsIdent.Name != "_" {
+						if obj := typeInfo.GetObject(lhsIdent); obj != nil && obj == typeInfo.GetObject(argIdent) {
+							if elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type()); ok {
+								st := stateFor(obj, elemRustType)
+								if call.Ellipsis.IsValid() {
+									if len(call.Args) != 2 {
+										st.valid = false
+									} else {
+										receive(obj, st, call.Args[1])
+									}
+								} else {
+									for _, value := range call.Args[1:] {
+										ok, sawSliceAddr := isSliceElemPtrAssignmentValue(value)
+										if !ok {
+											st.valid = false
+											continue
+										}
+										if sawSliceAddr {
+											st.sawSliceAddr = true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			if len(n.Rhs) == 1 {
 				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok {
 					if info, ok := sliceElemPtrSliceReturnInfoForCall(call); ok {
@@ -5623,9 +5753,33 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 	if len(candidates) == 0 {
 		return nil
 	}
+	// Both ends of an edge must agree. A slice of GoPtr values passes its
+	// representation to the other end, which can hold it when all its own
+	// values could; otherwise neither end is one.
+	held := func(st *state) bool { return st != nil && st.valid && st.sawSliceAddr }
+	for changed := true; changed; {
+		changed = false
+		for _, edge := range edges {
+			dst, src := candidates[edge.dst], candidates[edge.src]
+			if dst == nil || src == nil || held(dst) == held(src) {
+				continue
+			}
+			lagging := dst
+			if held(dst) {
+				lagging = src
+			}
+			if lagging.valid {
+				lagging.sawSliceAddr = true
+			} else {
+				dst.valid = false
+				src.valid = false
+			}
+			changed = true
+		}
+	}
 	result := map[types.Object]string{}
 	for obj, st := range candidates {
-		if st.valid && st.sawSliceAddr {
+		if held(st) {
 			result[obj] = st.elemRustType
 		}
 	}
@@ -6400,6 +6554,52 @@ func writeSliceElemPtrSliceMake(out *strings.Builder, call *ast.CallExpr, elemRu
 	return true
 }
 
+// writeSliceElemPtrSliceLiteral writes a []*T literal for a local that
+// holds pointers to slice elements: a slice of GoPtr<T>, each element
+// written as such a slot is.
+func writeSliceElemPtrSliceLiteral(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
+	lit, ok := unwrapParens(rhs).(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	positions, ok := sliceElemPtrSliceLiteralPositions(lit)
+	if !ok {
+		return false
+	}
+	length := 0
+	for _, position := range positions {
+		if position+1 > length {
+			length = position + 1
+		}
+	}
+	// A keyed literal ([]*T{2: p}) leaves the positions it skips nil.
+	elems := make([]string, length)
+	for i := range elems {
+		elems[i] = "GoPtr::nil()"
+	}
+	for i, elt := range lit.Elts {
+		if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+			elt = kv.Value
+		}
+		var elem strings.Builder
+		if isNilIdentExpr(elt) {
+			elem.WriteString("GoPtr::nil()")
+		} else if !writeSliceElemPtrSliceSlotValue(&elem, elt, elemRustType) {
+			return false
+		}
+		elems[positions[i]] = elem.String()
+	}
+	NeedSliceElemPtr()
+	WriteWrapperPrefix(out)
+	if len(elems) == 0 {
+		out.WriteString("Vec::<GoPtr<" + elemRustType + ">>::new()")
+	} else {
+		out.WriteString("vec![" + strings.Join(elems, ", ") + "]")
+	}
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
 	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
 		if info, ok := goPtrResultInfoForCall(call, 0); ok && goPtrResultElemCompatible(info, goPtrResultInfo{elemRustType: elemRustType}) {
@@ -6446,6 +6646,20 @@ func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRus
 		out.WriteString(")")
 		return true
 	}
+	if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok {
+		// ptrs[0] or byName["a"]: the element read is a GoPtr already.
+		indexedElemRustType, held := sliceElemPtrSliceCandidateForExpr(index.X)
+		if !held {
+			indexedElemRustType, held = sliceElemPtrMapCandidateForExpr(index.X)
+		}
+		if held {
+			if indexedElemRustType != elemRustType {
+				return false
+			}
+			TranspileExpression(out, rhs)
+			return true
+		}
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -6472,14 +6686,81 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 	if !ok {
 		return false
 	}
-	out.WriteString("{ let new_val = ")
-	if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
-		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+	writeValue := func() {
+		if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
+			out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+		}
 	}
+	if indexExpr, targetField, ok := indexedStructElemGoPtrFieldTarget(sel); ok {
+		writeIndexedStructElemGoPtrFieldAssignment(out, indexExpr, targetField, writeValue)
+		return true
+	}
+	out.WriteString("{ let new_val = ")
+	writeValue()
 	out.WriteString("; ")
 	writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
 	out.WriteString(" }")
 	return true
+}
+
+// indexedStructElemGoPtrFieldTarget reports whether sel is s[i].F for a GoPtr
+// field F of a struct element of a slice or array s, and returns s[i] and F.
+func indexedStructElemGoPtrFieldTarget(sel *ast.SelectorExpr) (*ast.IndexExpr, FieldAccessInfo, bool) {
+	indexExpr, ok := unwrapParens(sel.X).(*ast.IndexExpr)
+	if !ok {
+		return nil, FieldAccessInfo{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) || expressionCallsOrReceives(indexExpr.X) {
+		return nil, FieldAccessInfo{}, false
+	}
+	switch unwrapParens(indexExpr.X).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return nil, FieldAccessInfo{}, false
+	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
+		return nil, FieldAccessInfo{}, false
+	}
+	if _, ok := types.Unalias(elemType).Underlying().(*types.Struct); !ok {
+		return nil, FieldAccessInfo{}, false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		return nil, FieldAccessInfo{}, false
+	}
+	return indexExpr, fieldInfo, true
+}
+
+// writeIndexedStructElemGoPtrFieldAssignment writes s[i].F = v for a GoPtr
+// field F, which is a plain Rust field, not a cell. The write goes to the
+// element in place: a write to a clone of the element, the usual target,
+// would be lost. As in Go, the index is evaluated before the value. Both are
+// evaluated before s is locked for writing, since either may read s. An
+// index out of range unlocks s before it panics, so that a recovered panic
+// leaves s usable, as in Go.
+func writeIndexedStructElemGoPtrFieldAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, writeValue func()) {
+	out.WriteString("{ let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let new_val = ")
+	writeValue()
+	out.WriteString("; let __seq_handle = ")
+	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else if isNamedArrayExpression(subj) {
+		writeNamedArrayInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let mut __seq_guard = __seq_handle")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); ")
+	out.WriteString(`if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } `)
+	out.WriteString("(*__seq_guard.as_mut().unwrap())[__idx].")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(" = new_val; }")
 }
 
 func writeGoPtrAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -6941,9 +7222,24 @@ func goPtrAddressExpressionPreferred(expr ast.Expr) bool {
 		return ok
 	case *ast.SelectorExpr:
 		return generatedGoPtrFieldForSelector(e)
+	case *ast.IndexExpr:
+		return heldSliceElemPtrIndex(e)
 	default:
 		return false
 	}
+}
+
+// heldSliceElemPtrIndex reports whether index reads a GoPtr from a local
+// []*T or map[K]*T that holds slice element pointers.
+func heldSliceElemPtrIndex(index *ast.IndexExpr) bool {
+	if index == nil {
+		return false
+	}
+	if _, ok := sliceElemPtrSliceCandidateForExpr(index.X); ok {
+		return true
+	}
+	_, ok := sliceElemPtrMapCandidateForExpr(index.X)
+	return ok
 }
 
 func writeGoPtrAddressExpression(out *strings.Builder, expr ast.Expr, info goPtrResultInfo) bool {
@@ -6974,6 +7270,12 @@ func writeGoPtrAddressExpression(out *strings.Builder, expr ast.Expr, info goPtr
 			out.WriteString(".addr()")
 			return true
 		}
+	}
+	if index, ok := expr.(*ast.IndexExpr); ok && heldSliceElemPtrIndex(index) {
+		out.WriteString("{ let __ptr = ")
+		TranspileExpression(out, index)
+		out.WriteString("; __ptr.addr() }")
+		return true
 	}
 	out.WriteString("{ let __ptr = ")
 	if !writeGoPtrCallArgumentForInfo(out, expr, info) {
@@ -7014,9 +7316,45 @@ func writeSliceElemPtrFieldPointeeSelector(out *strings.Builder, base *ast.Selec
 	return true
 }
 
+// writeSliceElemPtrFieldPointeeBase writes the GoPtr field base, as in
+// base.F, whose pointee the caller then opens with with_mut. When base reads
+// an element of a sequence, as arr[0].Next does, the sequence's borrow is
+// released before the pointer is opened: the pointer may point into that same
+// sequence, and opening it for writing under the borrow panics.
+func writeSliceElemPtrFieldPointeeBase(out *strings.Builder, base *ast.SelectorExpr) {
+	if !expressionReadsSequenceElement(base.X) {
+		TranspileExpressionContext(out, base, LValue)
+		return
+	}
+	out.WriteString("{ let __ptr_base = ")
+	TranspileExpressionContext(out, base, LValue)
+	out.WriteString(".clone(); __ptr_base }")
+}
+
+// expressionReadsSequenceElement reports whether expr indexes a slice or an
+// array anywhere in its operand chain.
+func expressionReadsSequenceElement(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	for {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.IndexExpr:
+			if typeInfo == nil || !typeInfo.IsMap(e.X) {
+				return true
+			}
+			expr = e.X
+		case *ast.SelectorExpr:
+			expr = e.X
+		case *ast.StarExpr:
+			expr = e.X
+		default:
+			return false
+		}
+	}
+}
+
 func writeSliceElemPtrFieldPointeeFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
-	TranspileExpressionContext(out, base, LValue)
+	writeSliceElemPtrFieldPointeeBase(out, base)
 	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
 	out.WriteString(fieldInfo.FieldName)
 	out.WriteString(".clone()); __ptr_value }")
@@ -7024,7 +7362,7 @@ func writeSliceElemPtrFieldPointeeFieldHandle(out *strings.Builder, base *ast.Se
 
 func writeSliceElemPtrFieldPointeePromotedFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
-	TranspileExpressionContext(out, base, LValue)
+	writeSliceElemPtrFieldPointeeBase(out, base)
 	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
 	for _, embedded := range fieldInfo.EmbeddedPath {
 		out.WriteString(".")
@@ -7124,6 +7462,9 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 }
 
 func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {
+	if writeSliceElemStructPointerAsCell(out, rhs) {
+		return true
+	}
 	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 		WriteWrapperPrefix(out)
 		out.WriteString(`unimplemented!("`)
@@ -8604,4 +8945,109 @@ func writeGoPtrCompoundAssignOperator(out *strings.Builder, tok token.Token) {
 	case token.SHR_ASSIGN:
 		out.WriteString(">>")
 	}
+}
+
+// isFunctionLocalNamedType reports whether named is declared inside a
+// function rather than at package level.
+func isFunctionLocalNamedType(named *types.Named) bool {
+	obj := named.Obj()
+	if obj == nil || obj.Pkg() == nil || obj.Parent() == nil {
+		return false
+	}
+	return obj.Parent() != obj.Pkg().Scope() && obj.Parent() != types.Universe
+}
+
+// sliceElemPtrSliceLiteralPositions returns the index each element of a
+// slice literal stores to: the next index, or the constant key a keyed
+// element names.
+func sliceElemPtrSliceLiteralPositions(lit *ast.CompositeLit) ([]int, bool) {
+	typeInfo := GetTypeInfo()
+	positions := make([]int, 0, len(lit.Elts))
+	next := 0
+	for _, elt := range lit.Elts {
+		if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+			if typeInfo == nil || typeInfo.info == nil {
+				return nil, false
+			}
+			tv, ok := typeInfo.info.Types[kv.Key]
+			if !ok || tv.Value == nil {
+				return nil, false
+			}
+			key, exact := constant.Int64Val(constant.ToInt(tv.Value))
+			if !exact || key < 0 {
+				return nil, false
+			}
+			next = int(key)
+		}
+		positions = append(positions, next)
+		next++
+	}
+	return positions, true
+}
+
+// sliceElemPtrAssignmentValueIsGoPtrField reports whether rhs reads a
+// pointer field that holds a GoPtr: a value an Option<GoSliceElemPtr<T>>
+// variable cannot take, though a GoPtr<T> one can.
+func sliceElemPtrAssignmentValueIsGoPtrField(rhs ast.Expr) bool {
+	sel, ok := unwrapParens(rhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	_, ok = sliceElemPtrFieldInfoForSelector(sel)
+	return ok
+}
+
+// writeSliceElemStructPointerAsCell writes a pointer to a struct element of a
+// slice where a *T cell is wanted, such as a []*T struct field or a *T
+// parameter. A struct's fields are cells and its Clone shares them, so a
+// cell holding a Clone of the element reads and writes the element's
+// fields: e.Salary *= 1.1 through it changes the slice's element. Assigning
+// a whole struct through it, or comparing it with another pointer to the
+// element, does not see the element.
+func writeSliceElemStructPointerAsCell(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.Pointer)
+	if !ok {
+		return false
+	}
+	if _, isStruct := ptr.Elem().Underlying().(*types.Struct); !isStruct {
+		return false
+	}
+	rhs = unwrapParens(rhs)
+	if ident, ok := rhs.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		out.WriteString("match ")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".as_ref() { Some(__elem_ptr) => ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("(*__elem_ptr.borrow()).clone()")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(", None => ")
+		WriteWrappedNone(out)
+		out.WriteString(" }")
+		return true
+	}
+	unary, ok := rhs.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(rhs); !ok {
+		return false
+	}
+	out.WriteString("{ let __elem_ptr = ")
+	if !writeSliceElemPtrNewExpression(out, indexExpr) {
+		return false
+	}
+	out.WriteString("; ")
+	WriteWrapperOptionPrefix(out)
+	out.WriteString("(*__elem_ptr.borrow()).clone()")
+	WriteWrapperOptionSuffix(out)
+	out.WriteString(" }")
+	return true
 }

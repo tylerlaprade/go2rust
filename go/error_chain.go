@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/types"
+	"sort"
 	"strings"
 )
 
@@ -18,12 +19,32 @@ func errorChainUnwrapArms() string {
 	if typeInfo == nil || typeInfo.pkg == nil {
 		return ""
 	}
-	errorType := types.Universe.Lookup("error").Type()
-	scope := typeInfo.pkg.Scope()
 	var arms strings.Builder
+	writeErrorChainUnwrapArmsForPackage(&arms, typeInfo.pkg, true)
+	// An error from a translated package the program imports, such as
+	// strconv's *NumError, wraps another error that errors.Is must reach.
+	if ctx := GetTranspileContext(); ctx != nil && ctx.PackageMapping != nil {
+		imports := append([]*types.Package(nil), typeInfo.pkg.Imports()...)
+		sort.Slice(imports, func(i, j int) bool { return imports[i].Path() < imports[j].Path() })
+		for _, imported := range imports {
+			if _, mapped := ctx.PackageMapping[imported.Path()]; mapped {
+				writeErrorChainUnwrapArmsForPackage(&arms, imported, false)
+			}
+		}
+	}
+	return arms.String()
+}
+
+// writeErrorChainUnwrapArmsForPackage writes, for each error type of pkg
+// with an Unwrap() error method whose receiver is not written mutably, the
+// step of go_error_chain that follows that method. Another package's types
+// count only when exported.
+func writeErrorChainUnwrapArmsForPackage(arms *strings.Builder, pkg *types.Package, current bool) {
+	errorType := types.Universe.Lookup("error").Type()
+	scope := pkg.Scope()
 	for _, name := range scope.Names() {
 		typeName, ok := scope.Lookup(name).(*types.TypeName)
-		if !ok || typeName.IsAlias() {
+		if !ok || typeName.IsAlias() || (!current && !typeName.Exported()) {
 			continue
 		}
 		named, ok := typeName.Type().(*types.Named)
@@ -36,7 +57,7 @@ func errorChainUnwrapArms() string {
 		if !types.Implements(named, errorType.Underlying().(*types.Interface)) && !types.Implements(types.NewPointer(named), errorType.Underlying().(*types.Interface)) {
 			continue
 		}
-		obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, "Unwrap")
+		obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, pkg, "Unwrap")
 		fn, ok := obj.(*types.Func)
 		if !ok {
 			continue
@@ -45,8 +66,8 @@ func errorChainUnwrapArms() string {
 		if sig.Params().Len() != 0 || sig.Results().Len() != 1 || !isGoErrorType(sig.Results().At(0).Type()) {
 			continue
 		}
-		mutable, known := packageMethodReceiverMutability[packageMethodReceiverMutabilityKey(typeInfo.pkg.Path(), named.Obj().Name(), "Unwrap")]
-		if !known {
+		mutable, known := packageMethodReceiverMutability[packageMethodReceiverMutabilityKey(pkg.Path(), named.Obj().Name(), "Unwrap")]
+		if !known && current {
 			// The main package is registered as "main".
 			mutable, known = packageMethodReceiverMutability[packageMethodReceiverMutabilityKey("main", named.Obj().Name(), "Unwrap")]
 		}
@@ -58,16 +79,56 @@ func errorChainUnwrapArms() string {
 		arms.WriteString(">() { if let Some(__c) = (*__v.")
 		arms.WriteString(rustMethodNameForTypesFunc(fn))
 		arms.WriteString("()")
-		WriteBorrowMethod(&arms, false)
+		WriteBorrowMethod(arms, false)
 		arms.WriteString(").clone() { stack.push(__c); } }\n")
 	}
+}
+
+// externalErrorChainUnwrapArms follows the cause stored by the native os.Open
+// adapter when its consumer uses the external representation of io/fs.PathError.
+func externalErrorChainUnwrapArms() string {
+	needsPathError := currentExternalTypeStubs()["fs_PathError"]
+	if !needsPathError {
+		if osStub := currentExternalPackageStubs()["os"]; osStub != nil {
+			_, needsPathError = osStub.Functions["open"]
+		}
+	}
+	if !needsPathError {
+		return ""
+	}
+	var arms strings.Builder
+	arms.WriteString("        if let Some(__v) = e.downcast_ref::<fs_PathError>() { if let Some(__c) = (*__v.err")
+	WriteBorrowMethod(&arms, false)
+	arms.WriteString(").clone() { stack.push(__c); } }\n")
 	return arms.String()
 }
 
 func generateGoErrorChainHelper(out *strings.Builder) {
 	errType := rustErrorPayloadType()
 	pointer := rustErrorPointer()
-	userArms := errorChainUnwrapArms()
+	externalArms := externalErrorChainUnwrapArms()
+	userArms := errorChainUnwrapArms() + externalArms
+	match := "std::ptr::addr_eq(&**e, &*target)"
+	nativeIs := ""
+	fs := currentExternalPackageStubs()["fs"]
+	if externalArms != "" || (fs != nil && fs.Variables["ErrNotExist"] != "") {
+		match += " || go_native_error_is(e, &target)"
+		nativeIs = `
+// Go compares syscall.Errno values by their numeric code. Its Is method
+// additionally recognizes the filesystem sentinel when it is the target.
+fn go_native_error_is(err: &ERR, target: &ERR) -> bool {
+    let (Some(err), Some(target)) = (
+        err.downcast_ref::<std::io::Error>(),
+        target.downcast_ref::<std::io::Error>(),
+    ) else { return false; };
+    if let Some(target_code) = target.raw_os_error() {
+        return err.raw_os_error() == Some(target_code);
+    }
+    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
+        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+}
+`
+	}
 	code := `
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
 // true when it wraps more than one, and then errors.Unwrap does not see it.
@@ -123,18 +184,18 @@ fn go_errors_unwrap(err: Option<ERR>) -> Option<ERR> {
     let mut stack: Vec<ERR> = Vec::new();
 USER_ARMS    stack.pop()
 }
-
+` + nativeIs + `
 // Two errors are the same error when they point to the same value, as ==
 // on two errors is written.
 fn go_errors_is(err: Option<ERR>, target: Option<ERR>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| ERROR_MATCH),
         _ => false,
     }
 }
 `
-	out.WriteString(strings.NewReplacer("ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
+	out.WriteString(strings.NewReplacer("ERROR_MATCH", match, "ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
 }
 
 // writeGoErrorOptionValue writes the Option<error> an error expression

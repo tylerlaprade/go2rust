@@ -6,11 +6,18 @@ members = [
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_token",
     "vendor/internal_abi",
+    "vendor/internal_bytealg",
     "vendor/internal_race",
+    "vendor/internal_stringslite",
     "vendor/internal_sync",
+    "vendor/math",
+    "vendor/math_bits",
     "vendor/slices",
+    "vendor/strconv",
     "vendor/sync",
     "vendor/sync_atomic",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -30,8 +37,15 @@ cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_token = { path = "vendor/go_token" }
 internal_abi = { path = "vendor/internal_abi" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_race = { path = "vendor/internal_race" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_sync = { path = "vendor/internal_sync" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
 slices = { path = "vendor/slices" }
+strconv = { path = "vendor/strconv" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

@@ -55,10 +55,43 @@ impl userWriter {
     }
 }
 
+#[derive(Clone)]
+pub struct userWriterPtr(pub Arc<Mutex<Option<userWriter>>>);
+
+impl std::fmt::Display for userWriterPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl io::r#mod::Writer for userWriterPtr {
+    fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        userWriter::write(__recv, p)
+    }
+    fn __go_clone_box_writer(&self) -> Box<dyn io::r#mod::Writer + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::Writer + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_writer(&self, other: &(dyn io::r#mod::Writer + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<userWriterPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 fn main() {
     ::bytes::__go_init_all();
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
+    ::io::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut u = Arc::new(Mutex::new(Some(userWriter { count: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(Default::default()))) })));
