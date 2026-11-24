@@ -136,3 +136,44 @@ func main() {
 		t.Fatalf("time.AfterFunc runs its callback on another goroutine")
 	}
 }
+
+func TestUnknownSynchronousStdlibCallDoesNotMakeProgramConcurrent(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"path"
+	"path/filepath"
+)
+
+func main() {
+	_ = path.Base("/tmp/go2rust")
+	_ = filepath.Base("/tmp/go2rust")
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	if cd.NeedsConcurrency() {
+		t.Fatalf("unlisted calls from pure path packages should not make a program concurrent")
+	}
+}
+
+func TestUnlistedAsyncStdlibCallbacksRemainConcurrent(t *testing.T) {
+	for _, call := range []struct {
+		pkg  string
+		name string
+	}{
+		{pkg: "runtime", name: "SetFinalizer"},
+		{pkg: "runtime", name: "AddCleanup"},
+		{pkg: "context", name: "AfterFunc"},
+		{pkg: "net/http/httptest", name: "NewServer"},
+		{pkg: "net/http/httptest", name: "NewTLSServer"},
+	} {
+		if !isAsyncStdlibFunction(call.pkg, call.name) {
+			t.Errorf("%s.%s runs user work concurrently", call.pkg, call.name)
+		}
+	}
+}

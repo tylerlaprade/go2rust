@@ -7356,6 +7356,9 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 }
 
 func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {
+	if writeSliceElemStructPointerAsCell(out, rhs) {
+		return true
+	}
 	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 		WriteWrapperPrefix(out)
 		out.WriteString(`unimplemented!("`)
@@ -8874,4 +8877,59 @@ func sliceElemPtrSliceLiteralPositions(lit *ast.CompositeLit) ([]int, bool) {
 		next++
 	}
 	return positions, true
+}
+
+// writeSliceElemStructPointerAsCell writes a pointer to a struct element of a
+// slice where a *T cell is wanted, such as a []*T struct field or a *T
+// parameter. A struct's fields are cells and its Clone shares them, so a
+// cell holding a Clone of the element reads and writes the element's
+// fields: e.Salary *= 1.1 through it changes the slice's element. Assigning
+// a whole struct through it, or comparing it with another pointer to the
+// element, does not see the element.
+func writeSliceElemStructPointerAsCell(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.Pointer)
+	if !ok {
+		return false
+	}
+	if _, isStruct := ptr.Elem().Underlying().(*types.Struct); !isStruct {
+		return false
+	}
+	rhs = unwrapParens(rhs)
+	if ident, ok := rhs.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		out.WriteString("match ")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".as_ref() { Some(__elem_ptr) => ")
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("(*__elem_ptr.borrow()).clone()")
+		WriteWrapperOptionSuffix(out)
+		out.WriteString(", None => ")
+		WriteWrappedNone(out)
+		out.WriteString(" }")
+		return true
+	}
+	unary, ok := rhs.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(rhs); !ok {
+		return false
+	}
+	out.WriteString("{ let __elem_ptr = ")
+	if !writeSliceElemPtrNewExpression(out, indexExpr) {
+		return false
+	}
+	out.WriteString("; ")
+	WriteWrapperOptionPrefix(out)
+	out.WriteString("(*__elem_ptr.borrow()).clone()")
+	WriteWrapperOptionSuffix(out)
+	out.WriteString(" }")
+	return true
 }
