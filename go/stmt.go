@@ -1686,6 +1686,22 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 }
 
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
+	if ident, ok := lhs.(*ast.Ident); ok && newBinding {
+		// m, n := make(map[int]*T), 0 where m holds slice element pointers:
+		// the initializer gives the map its GoPtr values, as a single
+		// declaration's does.
+		if writeSliceElemPtrMapInitializer(out, ident, rhs) {
+			return
+		}
+		if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
+			if writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+				return
+			}
+			if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "make") && writeSliceElemPtrSliceMake(out, call, elemRustType) {
+				return
+			}
+		}
+	}
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return

@@ -30,6 +30,9 @@ func collectSliceElemPtrMapCandidates(body *ast.BlockStmt) map[types.Object]stri
 		elemRustType string
 		valid        bool
 		sawSliceAddr bool
+		// declared is set by the map's fresh declaration in the body: a
+		// parameter, declared elsewhere, keeps its type.
+		declared bool
 	}
 	candidates := map[types.Object]*state{}
 	stateFor := func(ident *ast.Ident) *state {
@@ -121,6 +124,7 @@ func collectSliceElemPtrMapCandidates(body *ast.BlockStmt) map[types.Object]stri
 					st.valid = false
 					continue
 				}
+				st.declared = true
 				if lit, ok := unwrapParens(rhs).(*ast.CompositeLit); ok {
 					for _, elt := range lit.Elts {
 						if kv, ok := elt.(*ast.KeyValueExpr); ok {
@@ -136,11 +140,12 @@ func collectSliceElemPtrMapCandidates(body *ast.BlockStmt) map[types.Object]stri
 					continue
 				}
 				allowed[name] = true
-				if i < len(n.Values) {
-					if !sliceElemPtrMapInitializerIsFresh(n.Values[i]) {
-						st.valid = false
-					}
+				if len(n.Names) != 1 {
+					st.valid = false
+				} else if i < len(n.Values) && !sliceElemPtrMapInitializerIsFresh(n.Values[i]) {
+					st.valid = false
 				}
+				st.declared = true
 			}
 		case *ast.IndexExpr:
 			if ident, ok := unwrapParens(n.X).(*ast.Ident); ok && stateFor(ident) != nil {
@@ -179,7 +184,7 @@ func collectSliceElemPtrMapCandidates(body *ast.BlockStmt) map[types.Object]stri
 	})
 	result := map[types.Object]string{}
 	for obj, st := range candidates {
-		if st.valid && st.sawSliceAddr {
+		if st.valid && st.sawSliceAddr && st.declared {
 			result[obj] = st.elemRustType
 		}
 	}
@@ -243,6 +248,7 @@ func writeSliceElemPtrMapInitializer(out *strings.Builder, lhs ast.Expr, rhs ast
 	}
 	keyRustType := goTypesMapKeyToRust(mapType.Key())
 	var entries []string
+	var capacity ast.Expr
 	switch init := unwrapParens(rhs).(type) {
 	case *ast.CompositeLit:
 		for _, elt := range init.Elts {
@@ -263,13 +269,23 @@ func writeSliceElemPtrMapInitializer(out *strings.Builder, lhs ast.Expr, rhs ast
 		if !isBuiltinCallNamed(init, "make") {
 			return false
 		}
+		capacity = sliceElemPtrMapMakeCapacity(init)
 	default:
 		return false
 	}
 	NeedSliceElemPtr()
 	TrackImport("BTreeMap")
 	WriteWrapperPrefix(out)
+	if capacity != nil {
+		// A BTreeMap takes no capacity hint, but the argument still runs.
+		out.WriteString("{ let _ = ")
+		TranspileExpression(out, capacity)
+		out.WriteString("; ")
+	}
 	out.WriteString("BTreeMap::<" + keyRustType + ", GoPtr<" + elemRustType + ">>::from([" + strings.Join(entries, ", ") + "])")
+	if capacity != nil {
+		out.WriteString(" }")
+	}
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -288,16 +304,14 @@ func writeSliceElemPtrMapValue(out *strings.Builder, mapExpr ast.Expr, value ast
 }
 
 // writeSliceElemPtrMapNilComparison writes m[k] == nil (or !=) for such a
-// map: the value read is a GoPtr, nil when the key is missing.
+// map, and ptrs[i] == nil for such a slice: the value read is a GoPtr,
+// nil when a key is missing.
 func writeSliceElemPtrMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
 	}
 	index, ok := unwrapParens(expr).(*ast.IndexExpr)
-	if !ok {
-		return false
-	}
-	if _, ok := sliceElemPtrMapCandidateForExpr(index.X); !ok {
+	if !ok || !heldSliceElemPtrIndex(index) {
 		return false
 	}
 	if op == token.NEQ {
@@ -306,5 +320,35 @@ func writeSliceElemPtrMapNilComparison(out *strings.Builder, expr ast.Expr, op t
 	out.WriteString("{ let __nil_ptr = ")
 	TranspileExpression(out, index)
 	out.WriteString("; __nil_ptr.is_nil() }")
+	return true
+}
+
+// sliceElemPtrMapMakeCapacity returns make's capacity argument when it is
+// not a constant, so its side effects still happen.
+func sliceElemPtrMapMakeCapacity(call *ast.CallExpr) ast.Expr {
+	if len(call.Args) < 2 {
+		return nil
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if tv, ok := typeInfo.info.Types[call.Args[1]]; ok && tv.Value != nil {
+			return nil
+		}
+	}
+	return call.Args[1]
+}
+
+// isNilIdentExpr reports whether expr is the predeclared nil, maybe in
+// parentheses.
+func isNilIdentExpr(expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if obj := typeInfo.GetObject(ident); obj != nil {
+			_, isNil := obj.(*types.Nil)
+			return isNil
+		}
+	}
 	return true
 }
