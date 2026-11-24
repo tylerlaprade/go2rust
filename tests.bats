@@ -4087,6 +4087,14 @@ run_xfail_test() {
     run_test "tests/sync_once"
 }
 
+@test "sync_once_method_value" {
+    run_test "tests/sync_once_method_value"
+}
+
+@test "sync_once_method_value_goroutines" {
+    run_test "tests/sync_once_method_value_goroutines"
+}
+
 @test "sync_once_receiver_init" {
     run_test "tests/sync_once_receiver_init"
 }
