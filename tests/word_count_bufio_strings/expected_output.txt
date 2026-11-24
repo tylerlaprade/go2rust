@@ -1,0 +1,14 @@
+the=3 brown=1 dog=1
+1: "first line"
+2: "second line"
+3: ""
+4: "fourth"
+[a b c] ababab GO x
+[a b c] x-y true
+4 3 3
+true hixx bcd
+12c &lt;t1g>
+true [a b,c,d] key value true
+hello bytes 42 14 true
+[65 66 67] x
+hello bytes 42 buffered

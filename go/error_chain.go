@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/types"
+	"sort"
 	"strings"
 )
 
@@ -18,12 +19,32 @@ func errorChainUnwrapArms() string {
 	if typeInfo == nil || typeInfo.pkg == nil {
 		return ""
 	}
-	errorType := types.Universe.Lookup("error").Type()
-	scope := typeInfo.pkg.Scope()
 	var arms strings.Builder
+	writeErrorChainUnwrapArmsForPackage(&arms, typeInfo.pkg, true)
+	// An error from a translated package the program imports, such as
+	// strconv's *NumError, wraps another error that errors.Is must reach.
+	if ctx := GetTranspileContext(); ctx != nil && ctx.PackageMapping != nil {
+		imports := append([]*types.Package(nil), typeInfo.pkg.Imports()...)
+		sort.Slice(imports, func(i, j int) bool { return imports[i].Path() < imports[j].Path() })
+		for _, imported := range imports {
+			if _, mapped := ctx.PackageMapping[imported.Path()]; mapped {
+				writeErrorChainUnwrapArmsForPackage(&arms, imported, false)
+			}
+		}
+	}
+	return arms.String()
+}
+
+// writeErrorChainUnwrapArmsForPackage writes, for each error type of pkg
+// with an Unwrap() error method whose receiver is not written mutably, the
+// step of go_error_chain that follows that method. Another package's types
+// count only when exported.
+func writeErrorChainUnwrapArmsForPackage(arms *strings.Builder, pkg *types.Package, current bool) {
+	errorType := types.Universe.Lookup("error").Type()
+	scope := pkg.Scope()
 	for _, name := range scope.Names() {
 		typeName, ok := scope.Lookup(name).(*types.TypeName)
-		if !ok || typeName.IsAlias() {
+		if !ok || typeName.IsAlias() || (!current && !typeName.Exported()) {
 			continue
 		}
 		named, ok := typeName.Type().(*types.Named)
@@ -36,7 +57,7 @@ func errorChainUnwrapArms() string {
 		if !types.Implements(named, errorType.Underlying().(*types.Interface)) && !types.Implements(types.NewPointer(named), errorType.Underlying().(*types.Interface)) {
 			continue
 		}
-		obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, "Unwrap")
+		obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, pkg, "Unwrap")
 		fn, ok := obj.(*types.Func)
 		if !ok {
 			continue
@@ -45,8 +66,8 @@ func errorChainUnwrapArms() string {
 		if sig.Params().Len() != 0 || sig.Results().Len() != 1 || !isGoErrorType(sig.Results().At(0).Type()) {
 			continue
 		}
-		mutable, known := packageMethodReceiverMutability[packageMethodReceiverMutabilityKey(typeInfo.pkg.Path(), named.Obj().Name(), "Unwrap")]
-		if !known {
+		mutable, known := packageMethodReceiverMutability[packageMethodReceiverMutabilityKey(pkg.Path(), named.Obj().Name(), "Unwrap")]
+		if !known && current {
 			// The main package is registered as "main".
 			mutable, known = packageMethodReceiverMutability[packageMethodReceiverMutabilityKey("main", named.Obj().Name(), "Unwrap")]
 		}
@@ -58,10 +79,9 @@ func errorChainUnwrapArms() string {
 		arms.WriteString(">() { if let Some(__c) = (*__v.")
 		arms.WriteString(rustMethodNameForTypesFunc(fn))
 		arms.WriteString("()")
-		WriteBorrowMethod(&arms, false)
+		WriteBorrowMethod(arms, false)
 		arms.WriteString(").clone() { stack.push(__c); } }\n")
 	}
-	return arms.String()
 }
 
 // externalErrorChainUnwrapArms follows the cause stored by the native os.Open

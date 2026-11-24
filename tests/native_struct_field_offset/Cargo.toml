@@ -1,0 +1,11 @@
+[package]
+name = "native_struct_field_offset"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "native_struct_field_offset"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -16,6 +16,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -28,7 +32,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -38,7 +42,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -77,7 +91,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -132,7 +146,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -165,6 +179,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -183,6 +198,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -394,15 +425,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -750,6 +782,28 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
@@ -884,15 +938,18 @@ pub fn basic_select() {
     }
     });
 
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
             println!("{} {}", format!("{}", "Received:".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
@@ -900,6 +957,7 @@ pub fn basic_select() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 }
 
@@ -918,19 +976,23 @@ pub fn select_with_timeout() {
     }
     });
 
+    {
+    let __go_select_channel_0 = ch.clone();
+    let __go_select_channel_1 = timeout.clone();
     loop {
-        if let Some(__select_recv) = ch.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
             println!("{} {}", format!("{}", "Got message:".to_string()), format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout.try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "Timeout occurred".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 }
 
@@ -938,18 +1000,24 @@ pub fn select_with_default() {
     let mut ch = GoChannel::<String>::new_buffered(1 as usize);
 
         // Non-blocking send
+    {
+    let __go_select_channel_0 = ch.clone();
+    let mut __go_select_value_0 = Some("hello".to_string());
     loop {
-        if ch.try_send("hello".to_string()) {
+        if __go_select_channel_0.try_send_select(&mut __go_select_value_0) {
             println!("{}", format!("{}", "Sent message".to_string()));
             break;
         }
         println!("{}", format!("{}", "Channel full, couldn't send".to_string()));
         break;
     }
+    }
 
         // Non-blocking receive
+    {
+    let __go_select_channel_0 = ch.clone();
     loop {
-        if let Some(__select_recv) = ch.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
@@ -959,10 +1027,13 @@ pub fn select_with_default() {
         println!("{}", format!("{}", "No message available".to_string()));
         break;
     }
+    }
 
         // Try to receive again (should hit default)
+    {
+    let __go_select_channel_0 = ch.clone();
     loop {
-        if let Some(__select_recv) = ch.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
@@ -971,6 +1042,7 @@ pub fn select_with_default() {
         }
         println!("{}", format!("{}", "No message available".to_string()));
         break;
+    }
     }
 }
 
@@ -1004,26 +1076,31 @@ pub fn select_loop() {
 
     println!("{}", format!("{}", "Starting select loop:".to_string()));
     loop {
-        loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
+    let __go_select_channel_2 = quit.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val1 = Arc::new(Mutex::new(Some(val1)));
             print!("From ch1: {}\n", { let __v = (*val1.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val2 = Arc::new(Mutex::new(Some(val2)));
             print!("From ch2: {}\n", { let __v = (*val2.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(_) = quit.try_recv_select() {
+        if let Some(_) = __go_select_channel_2.try_recv_select() {
             println!("{}", format!("{}", "Quit signal received".to_string()));
             return;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
     }
 }
@@ -1033,24 +1110,32 @@ pub fn select_with_send() {
     let mut ch2 = GoChannel::<String>::new_buffered(1 as usize);
     ch2.send("preloaded ch2".to_string());
 
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let mut __go_select_value_0 = Some("message to ch1".to_string());
+    let __go_select_channel_1 = ch2.clone();
+    let mut __go_select_value_1 = Some("message to ch2".to_string());
     loop {
-        if ch1.try_send("message to ch1".to_string()) {
+        if __go_select_channel_0.try_send_select(&mut __go_select_value_0) {
             println!("{}", format!("{}", "Sent to ch1".to_string()));
             break;
         }
-        if ch2.try_send("message to ch2".to_string()) {
+        if __go_select_channel_1.try_send_select(&mut __go_select_value_1) {
             println!("{}", format!("{}", "Sent to ch2".to_string()));
             break;
         }
         println!("{}", format!("{}", "Both channels busy".to_string()));
         break;
     }
+    }
 
         // Read from both channels
     println!("{} {}", format!("{}", "Reading from ch1:".to_string()), format!("{}", ch1.recv().unwrap_or_default()));
 
+    {
+    let __go_select_channel_0 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg = Arc::new(Mutex::new(Some(msg)));
@@ -1059,6 +1144,7 @@ pub fn select_with_send() {
         }
         println!("{}", format!("{}", "ch2 is empty".to_string()));
         break;
+    }
     }
 }
 

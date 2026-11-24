@@ -15,6 +15,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -27,7 +31,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -37,7 +41,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -76,7 +90,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -131,7 +145,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -164,6 +178,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -182,6 +197,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -393,15 +424,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -762,7 +794,7 @@ fn __go_init_globals() {
 pub fn bump(mu: GoMutex, n: Rc<RefCell<Option<i64>>>) {
     let __mutex_guard_source_374 = mu.clone(); let __mutex_guard_374 = __mutex_guard_source_374.guard();
     { let new_val = { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v } + 1; *n.borrow_mut() = Some(new_val); };
-    drop(__mutex_guard_374);
+    std::mem::drop(__mutex_guard_374);
 }
 
 pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i64>>>) -> i64 {
@@ -773,11 +805,12 @@ pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i64>>>) -> i64 {
         rw_defer_captured.r_unlock();
     }));
     {
+        let __return_value = { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v };
+        return __return_value;
     }
 }
 
@@ -793,12 +826,12 @@ fn main() {
     let mut a = GoMutex { ..Default::default() };
     let __mutex_guard_source_620 = a.clone(); let __mutex_guard_620 = __mutex_guard_source_620.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_620);
+    std::mem::drop(__mutex_guard_620);
 
     let mut b = GoMutex { ..Default::default() };
     let __mutex_guard_source_670 = b.clone(); let __mutex_guard_670 = __mutex_guard_source_670.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_670);
+    std::mem::drop(__mutex_guard_670);
 
     let mut c = GoMutex { ..Default::default() };
     bump(c.clone(), n.clone());
@@ -809,7 +842,7 @@ fn main() {
 
     let __mutex_guard_source_804 = (*global.borrow().as_ref().unwrap()).clone(); let __mutex_guard_804 = __mutex_guard_source_804.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    drop(__mutex_guard_804);
+    std::mem::drop(__mutex_guard_804);
 
     let mut rw = GoRWMutex::new();
     rw.r_lock();

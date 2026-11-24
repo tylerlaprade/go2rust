@@ -1,0 +1,8 @@
+4 "hell" <nil>
+4 "o, f" <nil>
+3 "ile" <nil>
+0 "" EOF
+total 11
+11 <nil> hello, file
+0 true
+4 <nil> file

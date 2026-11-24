@@ -1253,6 +1253,10 @@ type externalLocalInterfaceImpl struct {
 	sourcePointeeRustType string
 	sourcePkgPath         string
 	sourceTypeName        string
+	// sourceIsStub marks a type of a bridged package, such as os.File,
+	// whose stub methods return each non-error result in its own cell.
+	sourceIsStub  bool
+	sourceMethods map[string]*types.Signature
 }
 
 type externalLocalInterfaceArg struct {
@@ -1539,6 +1543,13 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 			return
 		}
 		rustType := localInterfaceAssertionCandidateRustType(named, matchedForm, sourceType)
+		if _, isPointerForm := types.Unalias(matchedForm).(*types.Pointer); isPointerForm && rustType == goTypesNamedTypeToRust(named) && sourceMappedPointerWrapperImplementsImportedInterface(named, ifaceType) {
+			// *T implements an interface of a package T's package imports,
+			// such as *bytes.Buffer and io.StringWriter: T's package
+			// writes the pointer newtype that implements its trait, and a
+			// T value itself does not.
+			rustType = sourceMappedPointerWrapperTypeName(named)
+		}
 		if rustType == "" || seen[rustType] {
 			return
 		}
@@ -1640,6 +1651,41 @@ func sourceMappedPointerWrapperAvailable(named *types.Named) bool {
 		iface.Complete()
 		if types.Implements(ptr, iface) {
 			return true
+		}
+	}
+	return false
+}
+
+// sourceMappedPointerWrapperImplementsImportedInterface reports whether a
+// source-translated package writes a pointer newtype for named that
+// implements iface: iface is one of the named interfaces of named's package
+// or of a package it imports, and *named implements it.
+func sourceMappedPointerWrapperImplementsImportedInterface(named *types.Named, iface *types.Interface) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || iface == nil || iface.NumMethods() == 0 {
+		return false
+	}
+	concretePkg := named.Obj().Pkg()
+	if !isSourceMappedPackagePath(concretePkg.Path()) {
+		return false
+	}
+	ptr := types.NewPointer(named)
+	if !types.Implements(ptr, iface) {
+		return false
+	}
+	pkgs := append([]*types.Package{concretePkg}, concretePkg.Imports()...)
+	for _, pkg := range pkgs {
+		if pkg == nil || pkg.Scope() == nil {
+			continue
+		}
+		for _, name := range pkg.Scope().Names() {
+			obj, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			candidate, ok := types.Unalias(obj.Type()).Underlying().(*types.Interface)
+			if ok && types.Identical(candidate, iface) {
+				return true
+			}
 		}
 	}
 	return false
@@ -1956,6 +2002,10 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 		out.WriteString("    }\n")
 		return
 	}
+	if impl.sourceIsStub {
+		writeStubInterfaceMethodCall(out, methodName, argNames, impl, methodObj)
+		return
+	}
 	out.WriteString("        ")
 	if impl.sourceIsInterface {
 		out.WriteString("(**self).")
@@ -1972,6 +2022,83 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 	}
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
+}
+
+// writeStubInterfaceMethodCall writes the body of an interface method that
+// a bridged type implements: a call to its stub method, whose results are
+// the trait's, an int bare and an error in its cell.
+func writeStubInterfaceMethodCall(out *strings.Builder, methodName string, argNames []string, impl externalLocalInterfaceImpl, methodObj *types.Func) {
+	var results *types.Tuple
+	if methodObj != nil {
+		if sig, ok := methodObj.Type().(*types.Signature); ok {
+			results = sig.Results()
+		}
+	}
+	// The stub method is called by its path: self.read(p) would find the
+	// trait's own read first, through the &mut self receiver.
+	out.WriteString("        let __stub_result = ")
+	out.WriteString(impl.sourcePointeeRustType)
+	out.WriteString("::")
+	out.WriteString(ToSnakeCase(methodName))
+	out.WriteString("(self")
+	for _, argName := range argNames {
+		out.WriteString(", ")
+		out.WriteString(argName)
+	}
+	out.WriteString(");\n")
+	if results == nil || results.Len() == 0 {
+		out.WriteString("        let _ = __stub_result;\n")
+		out.WriteString("    }\n")
+		return
+	}
+	inIO := false
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+		inIO = typeInfo.pkg.Path() == "io"
+	}
+	unwrapResult := func(name string, typ types.Type) string {
+		if isGoErrorType(typ) {
+			if !inIO {
+				return name
+			}
+			// The stub's end of input is io's own EOF, the value callers
+			// compare with.
+			var b strings.Builder
+			b.WriteString("{ let __err = ")
+			b.WriteString(name)
+			b.WriteString("; let __is_eof = __err")
+			WriteBorrowMethod(&b, false)
+			b.WriteString(".as_ref().map_or(false, |__e| __e.downcast_ref::<go2rust_stdlib_stubs::GoStubEOF>().is_some()); if __is_eof { ")
+			// A cell of its own holding EOF's value: the caller may write
+			// to its error variable's cell, which must not be EOF's.
+			b.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new((*EOF")
+			WriteBorrowMethod(&b, false)
+			b.WriteString(").clone()))")
+			b.WriteString(" } else { __err } }")
+			return b.String()
+		}
+		return name
+	}
+	if results.Len() == 1 {
+		out.WriteString("        ")
+		out.WriteString(unwrapResult("__stub_result", results.At(0).Type()))
+		out.WriteString("\n    }\n")
+		return
+	}
+	out.WriteString("        let (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__stub_result_%d", i))
+	}
+	out.WriteString(") = __stub_result;\n        (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(unwrapResult(fmt.Sprintf("__stub_result_%d", i), results.At(i).Type()))
+	}
+	out.WriteString(")\n    }\n")
 }
 
 func externalLocalInterfacePointeeMethodRequiresMutableReceiver(impl externalLocalInterfaceImpl, methodName string) bool {
@@ -2073,6 +2200,14 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 		slices.Sort(concreteTypes)
 		for _, concreteType := range concreteTypes {
 			impl := impls[ifaceName][concreteType]
+			if impl.sourceIsStub {
+				// The stub crate gets the type and the methods the impl
+				// calls, as for any use of a bridged type.
+				RegisterExternalTypeStub(concreteType)
+				for methodName, sig := range impl.sourceMethods {
+					RegisterExternalTypeStubMethod(concreteType, methodName, sig)
+				}
+			}
 			if !*first {
 				out.WriteString("\n\n")
 			}
