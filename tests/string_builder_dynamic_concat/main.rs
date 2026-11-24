@@ -589,7 +589,7 @@ pub fn wrap(name: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
         __s.push_str(&format!("{}", ")".to_string()));
         __s
     });
-    return Rc::new(RefCell::new(Some({ let __builder = out.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    return Rc::new(RefCell::new(Some({ let __builder = out.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
 }
 
 fn main() {

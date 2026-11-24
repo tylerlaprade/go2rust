@@ -615,7 +615,7 @@ impl std::fmt::Display for customError {
 
 impl customError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.msg.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 }
 
@@ -638,7 +638,7 @@ pub fn collect() -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>
 }
 
 fn main() {
-    { let __range_holder = collect().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for err in __range_values.iter().cloned() {
+    { let __range_holder = collect().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for err in __range_values.iter().cloned() {
         accept({ let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) });
     } }
 }

@@ -832,140 +832,140 @@ impl std::ops::Not for Token {
 impl std::ops::Shl for Token {
     type Output = Token;
     fn shl(self, other: Token) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for Token {
     type Output = Token;
     fn shl(self, other: i32) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for Token {
     type Output = Token;
     fn shl(self, other: i8) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for Token {
     type Output = Token;
     fn shl(self, other: i16) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for Token {
     type Output = Token;
     fn shl(self, other: i64) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for Token {
     type Output = Token;
     fn shl(self, other: u32) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for Token {
     type Output = Token;
     fn shl(self, other: u8) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for Token {
     type Output = Token;
     fn shl(self, other: u16) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for Token {
     type Output = Token;
     fn shl(self, other: u64) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for Token {
     type Output = Token;
     fn shl(self, other: usize) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for Token {
     type Output = Token;
     fn shr(self, other: Token) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for Token {
     type Output = Token;
     fn shr(self, other: i32) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for Token {
     type Output = Token;
     fn shr(self, other: i8) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for Token {
     type Output = Token;
     fn shr(self, other: i16) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for Token {
     type Output = Token;
     fn shr(self, other: i64) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for Token {
     type Output = Token;
     fn shr(self, other: u32) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for Token {
     type Output = Token;
     fn shr(self, other: u8) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for Token {
     type Output = Token;
     fn shr(self, other: u16) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for Token {
     type Output = Token;
     fn shr(self, other: u64) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for Token {
     type Output = Token;
     fn shr(self, other: usize) -> Token {
-        Token(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Token(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
@@ -1034,7 +1034,7 @@ impl Parser {
 
     pub fn parse(&mut self) {
         { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *self.tok.borrow_mut() = Some(new_val); };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
     }
 }
 

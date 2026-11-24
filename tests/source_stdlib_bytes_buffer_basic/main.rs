@@ -11,6 +11,8 @@ fn main() {
     ::bytes::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));

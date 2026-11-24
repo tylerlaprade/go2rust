@@ -439,9 +439,50 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("\"<nil>\".to_string()")
 		return
 	}
+	if single, ok := printArgIsBasicFloat(arg); ok {
+		NeedGoFloatString()
+		// A let releases the operand's lock guards before the next operand
+		// takes them, as format! does; a bare call would keep them to the
+		// end of the print statement.
+		out.WriteString("{ let __text = go_float_string((")
+		transpilePrintArg(out, arg)
+		out.WriteString(") as f64, ")
+		if single {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
+		out.WriteString("); __text }")
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
+}
+
+// printArgIsBasicFloat reports whether a print operand is a float32 or a
+// float64 that is not of a named type, and whether it is a float32. fmt
+// prints such a value as %v; Rust's Display has no exponent form.
+func printArgIsBasicFloat(arg ast.Expr) (single bool, ok bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false, false
+	}
+	basic, isBasic := types.Unalias(argType).(*types.Basic)
+	if !isBasic {
+		return false, false
+	}
+	switch basic.Kind() {
+	case types.Float32:
+		return true, true
+	case types.Float64, types.UntypedFloat:
+		return false, true
+	}
+	return false, false
 }
 
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
@@ -1469,6 +1510,14 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 }
 
 func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+	// The nil literal is a nil interface value, which %v and %T print as
+	// <nil>.
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.info == nil || typeInfo.GetObject(ident) == types.Universe.Lookup("nil") {
+			out.WriteString("\"<nil>\".to_string()")
+			return
+		}
+	}
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
 		if tnIdx == argIndex {
@@ -3741,7 +3790,7 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpressionContext(out, call.Args[1], LValue)
 				out.WriteString(".clone(); let __value_guard = __value_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); std::mem::drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; match (__item_guard.as_ref(), __value_option.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
@@ -5636,7 +5685,7 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 	writeNamedSliceInnerHandleClone(out, call.Args[0])
 	out.WriteString("; let __base_guard = __base")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); ")
+	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); ")
 	if call.Ellipsis.IsValid() {
 		if isNamedSliceExpression(call.Args[1]) {
 			out.WriteString("let __src = ")
@@ -6717,7 +6766,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6747,7 +6796,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6776,7 +6825,7 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6787,7 +6836,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -6870,7 +6919,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6881,7 +6930,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 

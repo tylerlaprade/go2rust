@@ -679,12 +679,20 @@ run_xfail_test() {
     run_test "tests/case_table_lookup_with_named_arrays_goroutines"
 }
 
+@test "chan_any_values" {
+    run_test "tests/chan_any_values"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
 
 @test "channel_error_values" {
     run_test "tests/channel_error_values"
+}
+
+@test "channel_handle_copies" {
+    run_test "tests/channel_handle_copies"
 }
 
 @test "channel_interface_events" {
@@ -1303,6 +1311,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "float_constant_expressions_fold" {
+    run_test "tests/float_constant_expressions_fold"
+}
+
 @test "fmt_errorf_interface_field" {
     run_test "tests/fmt_errorf_interface_field"
 }
@@ -1517,6 +1529,10 @@ run_xfail_test() {
 
 @test "global_pointer_argument_lock_lifetime" {
     run_test "tests/global_pointer_argument_lock_lifetime"
+}
+
+@test "go_names_drop" {
+    run_test "tests/go_names_drop"
 }
 
 @test "goroutine_capture_rust_keyword" {
@@ -1855,6 +1871,10 @@ run_xfail_test() {
     run_test "tests/local_large_fixed_array_zero"
 }
 
+@test "local_shadows_package_constant" {
+    run_test "tests/local_shadows_package_constant"
+}
+
 @test "local_sync_mutex_forms" {
     run_test "tests/local_sync_mutex_forms"
 }
@@ -2043,6 +2063,10 @@ run_xfail_test() {
     run_test "tests/maps_operations"
 }
 
+@test "math_from_source" {
+    run_test "tests/math_from_source"
+}
+
 @test "method_address_local_pointer_arg" {
     run_test "tests/method_address_local_pointer_arg"
 }
@@ -2121,6 +2145,14 @@ run_xfail_test() {
 
 @test "multi_file_method_interface_impl" {
     run_test "tests/multi_file_method_interface_impl"
+}
+
+@test "multi_value_call_as_arguments" {
+    run_test "tests/multi_value_call_as_arguments"
+}
+
+@test "multi_value_call_as_arguments_goroutines" {
+    run_test "tests/multi_value_call_as_arguments_goroutines"
 }
 
 @test "multiple_returns" {
@@ -2659,6 +2691,10 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_nil_rebinds" {
+    run_test "tests/pointer_nil_rebinds"
+}
+
 @test "pointer_package_global" {
     run_test "tests/pointer_package_global"
 }
@@ -2719,6 +2755,14 @@ run_xfail_test() {
     run_test "tests/print_boxed_composite_values"
 }
 
+@test "print_float_exponent_forms" {
+    run_test "tests/print_float_exponent_forms"
+}
+
+@test "print_float_exponent_forms_goroutines" {
+    run_test "tests/print_float_exponent_forms_goroutines"
+}
+
 @test "print_interface_value_twice_goroutines" {
     run_test "tests/print_interface_value_twice_goroutines"
 }
@@ -2761,6 +2805,14 @@ run_xfail_test() {
 
 @test "printf_args_lock_one_value_goroutines" {
     run_test "tests/printf_args_lock_one_value_goroutines"
+}
+
+@test "printf_nil_interface_arguments" {
+    run_test "tests/printf_nil_interface_arguments"
+}
+
+@test "printf_nil_interface_arguments_goroutines" {
+    run_test "tests/printf_nil_interface_arguments_goroutines"
 }
 
 @test "printf_p_verb_receiver" {
@@ -3199,6 +3251,14 @@ run_xfail_test() {
     run_test "tests/shared_stdlib_stubs_external"
 }
 
+@test "shift_count_semantics" {
+    run_test "tests/shift_count_semantics"
+}
+
+@test "shift_count_semantics_goroutines" {
+    run_test "tests/shift_count_semantics_goroutines"
+}
+
 @test "simple_embedding" {
     run_test "tests/simple_embedding"
 }
@@ -3213,6 +3273,10 @@ run_xfail_test() {
 
 @test "simple_range" {
     run_test "tests/simple_range"
+}
+
+@test "slice_elem_pointer_local_struct" {
+    run_test "tests/slice_elem_pointer_local_struct"
 }
 
 @test "slice_elem_pointer_short_decl" {
@@ -3563,6 +3627,14 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "strconv_errors_from_source" {
+    run_test "tests/strconv_errors_from_source"
+}
+
+@test "strconv_from_source" {
+    run_test "tests/strconv_from_source"
+}
+
 @test "strconv_itoa_wrapped_call" {
     run_test "tests/strconv_itoa_wrapped_call"
 }
@@ -3889,6 +3961,14 @@ run_xfail_test() {
 
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
+}
+
+@test "unicode_classification" {
+    run_test "tests/unicode_classification"
+}
+
+@test "unicode_utf8_from_source" {
+    run_test "tests/unicode_utf8_from_source"
 }
 
 @test "unsafe_float_bits" {

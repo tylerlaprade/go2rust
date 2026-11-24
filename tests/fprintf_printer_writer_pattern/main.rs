@@ -54,7 +54,7 @@ impl printer {
     let mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let mut m: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
+        { let __range_holder = data.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, b) in __range_values.iter().copied().enumerate() {
         if { let __tmp_x = b; let __tmp_y = ('\n' as u8) as u8; __tmp_x == __tmp_y } {
         {
             let (__tmp_0, __tmp_1) = (*self.output.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
@@ -62,7 +62,7 @@ impl printer {
                 let __seq_guard = __seq_holder.lock().unwrap();
                 let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
                 let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                drop(__seq_guard);
+                std::mem::drop(__seq_guard);
                 let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = ({ let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize;
                 let __max = __source_cap;
@@ -90,7 +90,7 @@ impl printer {
                 let __seq_guard = __seq_holder.lock().unwrap();
                 let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
                 let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                drop(__seq_guard);
+                std::mem::drop(__seq_guard);
                 let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = __seq.len();
                 let __max = __source_cap;
@@ -144,8 +144,10 @@ fn main() {
     ::internal_race::__go_init_all();
     ::internal_sync::__go_init_all();
     ::io::__go_init_all();
+    ::math_bits::__go_init_all();
     ::sync::__go_init_all();
     ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));

@@ -681,7 +681,7 @@ fn __go_init_0() {
     }) as Box<dyn FnMut() -> ()> }))), Rc::new(RefCell::new(Some({ let mut count_closure_clone_closure_clone = count_closure_clone.clone(); Box::new(move || {
         { let __rhs = 100; let mut guard = count_closure_clone_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()> })))]; let mut __appended: Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *steps.borrow_mut() = __slice_header; };
-    { let __range_holder = steps.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter().cloned() {
+    { let __range_holder = steps.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter().cloned() {
         { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = s.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     } }
     println!("{} {}", format!("{}", "steps:".to_string()), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));

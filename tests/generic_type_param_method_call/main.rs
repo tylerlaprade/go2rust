@@ -685,7 +685,7 @@ impl Shape for SqPtr {
 
 pub fn total___sq(items: Rc<RefCell<Option<Vec<Sq>>>>) -> i64 {
     let mut sum = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         let it = &it.__go_value_clone();
         { let __rhs = it.area(); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }

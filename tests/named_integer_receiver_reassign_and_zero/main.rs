@@ -598,7 +598,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -617,7 +617,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -628,7 +628,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -658,9 +658,9 @@ fn format_any(value: &dyn Any) -> String {
     } else if let Some(v) = value.downcast_ref::<i64>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<f64>() {
-        v.to_string()
+        go_float_string(*v, false)
     } else if let Some(v) = value.downcast_ref::<f32>() {
-        v.to_string()
+        go_float_string(*v as f64, true)
     } else if let Some(v) = value.downcast_ref::<String>() {
         v.clone()
     } else if let Some(v) = value.downcast_ref::<&str>() {
@@ -852,6 +852,58 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
+
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
 // true when it wraps more than one, and then errors.Unwrap does not see it.
 #[derive(Debug)]
@@ -934,9 +986,14 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
     None
 }
 
+// A nil interface value passed to a format known only at run time. The
+// arguments are boxes, which cannot be nil themselves.
+#[allow(dead_code)]
+struct GoFormatNil;
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1435,6 +1492,9 @@ fn go_format_is_basic(value: &dyn Any) -> bool {
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+    if value.is::<GoFormatNil>() {
+        return "<nil>".to_string();
+    }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
 }
@@ -1527,6 +1587,16 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
         // bool or a []byte is not an error, and fmt reports the verb: once
         // for a scalar, and for each byte of a []byte.
+        // A nil interface value prints <nil> for %v and %T, and fmt reports
+        // any other verb.
+        if arg.is::<GoFormatNil>() {
+            if matches!(verb, 'v' | 'T') {
+                out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
+            } else {
+                out.push_str(&format!("%!{}(<nil>)", verb));
+            }
+            continue;
+        }
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -1833,140 +1903,140 @@ impl std::ops::Not for Money {
 impl std::ops::Shl for Money {
     type Output = Money;
     fn shl(self, other: Money) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for Money {
     type Output = Money;
     fn shl(self, other: i32) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for Money {
     type Output = Money;
     fn shl(self, other: i8) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for Money {
     type Output = Money;
     fn shl(self, other: i16) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for Money {
     type Output = Money;
     fn shl(self, other: i64) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for Money {
     type Output = Money;
     fn shl(self, other: u32) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for Money {
     type Output = Money;
     fn shl(self, other: u8) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for Money {
     type Output = Money;
     fn shl(self, other: u16) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for Money {
     type Output = Money;
     fn shl(self, other: u64) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for Money {
     type Output = Money;
     fn shl(self, other: usize) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for Money {
     type Output = Money;
     fn shr(self, other: Money) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for Money {
     type Output = Money;
     fn shr(self, other: i32) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for Money {
     type Output = Money;
     fn shr(self, other: i8) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for Money {
     type Output = Money;
     fn shr(self, other: i16) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for Money {
     type Output = Money;
     fn shr(self, other: i64) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for Money {
     type Output = Money;
     fn shr(self, other: u32) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for Money {
     type Output = Money;
     fn shr(self, other: u8) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for Money {
     type Output = Money;
     fn shr(self, other: u16) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for Money {
     type Output = Money;
     fn shr(self, other: u64) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for Money {
     type Output = Money;
     fn shr(self, other: usize) -> Money {
-        Money(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Money(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
@@ -2203,7 +2273,7 @@ impl Base {
 
 impl Item {
     pub fn total(&self) -> Rc<RefCell<Option<Money>>> {
-        return Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(((*(*self.price.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))))))));
+        return Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(((*(*self.price.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i64))))))));
     }
 
     pub fn string(&self) -> Rc<RefCell<Option<String>>> {
@@ -2239,7 +2309,7 @@ impl Inventory {
         }
     }
         let mut it = {
-            let __owner = Rc::new(RefCell::new(Some(Item { base: Rc::new(RefCell::new(Some(Base { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), created: Rc::new(RefCell::new(Some("today".to_string()))), ..Default::default() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), price: Rc::new(RefCell::new(Some({ let __arg_holder = price.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), qty: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&tags); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() })));
+            let __owner = Rc::new(RefCell::new(Some(Item { base: Rc::new(RefCell::new(Some(Base { i_d: Rc::new(RefCell::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), created: Rc::new(RefCell::new(Some("today".to_string()))), ..Default::default() }))), name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), price: Rc::new(RefCell::new(Some({ let __arg_holder = price.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), qty: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&tags); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() })));
             let __embedded = { let __owner_guard = __owner.borrow(); __owner_guard.as_ref().unwrap().base.clone() };
             let __embedded_key = { let __embedded_guard = __embedded.borrow(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
             go_register_embedded_owner(__embedded_key, __owner.clone());
@@ -2254,10 +2324,10 @@ impl Inventory {
     pub fn take(&mut self, name: Rc<RefCell<Option<String>>>, qty: Rc<RefCell<Option<i64>>>) -> (Rc<RefCell<Option<Money>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let (mut it, mut ok) = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&(*name.borrow().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if !ok {
-        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } } }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))));
+        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*ErrNotFound.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } } } }; __go_format_arg }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }])))));
     }
         if (*(*it.borrow().as_ref().unwrap()).qty.borrow().as_ref().unwrap()) < (*qty.borrow().as_ref().unwrap()) {
-        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(Rc::new(StockError { name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Rc::new(RefCell::new(Some({ let __selector_holder = (*it.borrow().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), want: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Rc<dyn StdError>))));
+        return (Rc::new(RefCell::new(Some(Money(Rc::new(RefCell::new(Some(0 as i64))))))), Rc::new(RefCell::new(Some(Rc::new(StockError { name: Rc::new(RefCell::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Rc::new(RefCell::new(Some({ let __selector_holder = (*it.borrow().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), want: Rc::new(RefCell::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Rc<dyn StdError>))));
     }
         { let __target = (*it.borrow().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         if (*(*it.borrow().as_ref().unwrap()).qty.borrow().as_ref().unwrap()) == 0 as i64 {
@@ -2269,7 +2339,7 @@ impl Inventory {
 
     pub fn names(&self) -> Rc<RefCell<Option<Vec<String>>>> {
         let mut names = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..(({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
-        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = n.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *names.borrow_mut() = __slice_header; };
     }
         { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -2279,7 +2349,7 @@ impl Inventory {
     pub fn value(&self) -> Rc<RefCell<Option<Money>>> {
     let mut total: Rc<RefCell<Option<Money>>> = Rc::new(RefCell::new(Some(Default::default())));
 
-        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __rhs = (*(*it.borrow().as_ref().unwrap()).total().borrow().as_ref().unwrap()).clone(); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
         total.clone()
@@ -2352,7 +2422,7 @@ fn main() {
 
     for req in &vec![AnonymousStruct1 { name: Rc::new(RefCell::new(Some("widget".to_string()))), qty: Rc::new(RefCell::new(Some(3))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("gadget".to_string()))), qty: Rc::new(RefCell::new(Some(5))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("pear".to_string()))), qty: Rc::new(RefCell::new(Some(1))), ..Default::default() }, AnonymousStruct1 { name: Rc::new(RefCell::new(Some("gadget".to_string()))), qty: Rc::new(RefCell::new(Some(2))), ..Default::default() }] {
         let req = &req.__go_value_clone();
-        let (mut cost, mut err) = (*inv.borrow_mut().as_mut().unwrap()).take(Rc::new(RefCell::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        let (mut cost, mut err) = (*inv.borrow_mut().as_mut().unwrap()).take(Rc::new(RefCell::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));
         let mut se: Rc<RefCell<Option<StockError>>> = Rc::new(RefCell::new(Some(Default::default())));
         if (*Rc::new(RefCell::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value })))).borrow().as_ref().unwrap()) {
             println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -2371,17 +2441,17 @@ fn main() {
         println!("{} {}", format!("{}", r), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     let mut byTag = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = (*inv.borrow().as_ref().unwrap()).names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        { let __range_holder = (*(*(*inv.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().get(name).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = (*inv.borrow().as_ref().unwrap()).names().clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
+        { let __range_holder = (*(*(*inv.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone().get(name).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         { let __map_key = t.clone(); let __map_value = { let __slice = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(t).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*name).clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byTag.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     } }
     let mut tags = Rc::new(RefCell::new(Some(Vec::<String>::with_capacity(0))));
-    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = tags.clone(); let __append_value = t.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *tags.borrow_mut() = __slice_header; };
     }
     { let __sort_target = tags.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = tags.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         print!("{:<6} {}\n", t, format_slice(&{ let __map_holder = byTag.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }));
     } }
 }

@@ -599,7 +599,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -618,7 +618,7 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -629,7 +629,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -659,9 +659,9 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     } else if let Some(v) = value.downcast_ref::<i64>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<f64>() {
-        v.to_string()
+        go_float_string(*v, false)
     } else if let Some(v) = value.downcast_ref::<f32>() {
-        v.to_string()
+        go_float_string(*v as f64, true)
     } else if let Some(v) = value.downcast_ref::<String>() {
         v.clone()
     } else if let Some(v) = value.downcast_ref::<&str>() {
@@ -1061,6 +1061,58 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     std::any::type_name_of_val(val)
 }
 
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
+
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
 // true when it wraps more than one, and then errors.Unwrap does not see it.
 #[derive(Debug)]
@@ -1143,9 +1195,14 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
     None
 }
 
+// A nil interface value passed to a format known only at run time. The
+// arguments are boxes, which cannot be nil themselves.
+#[allow(dead_code)]
+struct GoFormatNil;
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1644,6 +1701,9 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
+    if value.is::<GoFormatNil>() {
+        return "<nil>".to_string();
+    }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
 }
@@ -1736,6 +1796,16 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
         // bool or a []byte is not an error, and fmt reports the verb: once
         // for a scalar, and for each byte of a []byte.
+        // A nil interface value prints <nil> for %v and %T, and fmt reports
+        // any other verb.
+        if arg.is::<GoFormatNil>() {
+            if matches!(verb, 'v' | 'T') {
+                out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
+            } else {
+                out.push_str(&format!("%!{}(<nil>)", verb));
+            }
+            continue;
+        }
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -2042,140 +2112,140 @@ impl std::ops::Not for Money {
 impl std::ops::Shl for Money {
     type Output = Money;
     fn shl(self, other: Money) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << *other.0.lock().unwrap().as_ref().unwrap()))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for Money {
     type Output = Money;
     fn shl(self, other: i32) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for Money {
     type Output = Money;
     fn shl(self, other: i8) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for Money {
     type Output = Money;
     fn shl(self, other: i16) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for Money {
     type Output = Money;
     fn shl(self, other: i64) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for Money {
     type Output = Money;
     fn shl(self, other: u32) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for Money {
     type Output = Money;
     fn shl(self, other: u8) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for Money {
     type Output = Money;
     fn shl(self, other: u16) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for Money {
     type Output = Money;
     fn shl(self, other: u64) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for Money {
     type Output = Money;
     fn shl(self, other: usize) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() << other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for Money {
     type Output = Money;
     fn shr(self, other: Money) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> *other.0.lock().unwrap().as_ref().unwrap()))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (*other.0.lock().unwrap().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for Money {
     type Output = Money;
     fn shr(self, other: i32) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for Money {
     type Output = Money;
     fn shr(self, other: i8) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for Money {
     type Output = Money;
     fn shr(self, other: i16) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for Money {
     type Output = Money;
     fn shr(self, other: i64) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for Money {
     type Output = Money;
     fn shr(self, other: u32) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for Money {
     type Output = Money;
     fn shr(self, other: u8) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for Money {
     type Output = Money;
     fn shr(self, other: u16) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for Money {
     type Output = Money;
     fn shr(self, other: u64) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for Money {
     type Output = Money;
     fn shr(self, other: usize) -> Money {
-        Money(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() >> other))))
+        Money(Arc::new(Mutex::new(Some({ let __shift_x = *self.0.lock().unwrap().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
@@ -2393,7 +2463,7 @@ impl Base {
 
 impl Item {
     pub fn total(&self) -> Arc<Mutex<Option<Money>>> {
-        return Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*self.price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))))))));
+        return Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*self.price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i64))))))));
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -2421,7 +2491,7 @@ impl StdError for StockError {}
 impl Inventory {
     pub fn add(&mut self, name: Arc<Mutex<Option<String>>>, price: Arc<Mutex<Option<Money>>>, qty: Arc<Mutex<Option<i64>>>, tags: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<Item>>> {
         {
-        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
+        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {
             { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
             { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "restock ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };;
@@ -2430,7 +2500,7 @@ impl Inventory {
     }
         let mut it = {
             let __owner = Arc::new(Mutex::new(Some(Item {
-                base: Arc::new(Mutex::new(Some(Base { i_d: Arc::new(Mutex::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), created: Arc::new(Mutex::new(Some("today".to_string()))), ..Default::default() }))),
+                base: Arc::new(Mutex::new(Some(Base { i_d: Arc::new(Mutex::new(Some({ let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), created: Arc::new(Mutex::new(Some("today".to_string()))), ..Default::default() }))),
                 name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 price: Arc::new(Mutex::new(Some({ let __arg_holder = price.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
                 qty: Arc::new(Mutex::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
@@ -2449,17 +2519,17 @@ impl Inventory {
     }
 
     pub fn take(&mut self, name: Arc<Mutex<Option<String>>>, qty: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<Money>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
+        let (mut it, mut ok) = { let __map = { let __map_holder = self.items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         if !ok {
         return (
             Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(0 as i64))))))),
-            Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))))
+            Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*ErrNotFound.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } } }; __go_format_arg }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))))
         );
     }
         if { let __tmp_x = (*{ let __field = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*qty.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         return (
             Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(0 as i64))))))),
-            Arc::new(Mutex::new(Some(Arc::new(StockError { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Arc::new(Mutex::new(Some({ let __selector_holder = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), want: Arc::new(Mutex::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)))
+            Arc::new(Mutex::new(Some(Arc::new(StockError { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), have: Arc::new(Mutex::new(Some({ let __selector_holder = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), want: Arc::new(Mutex::new(Some({ let __arg_holder = qty.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Arc<dyn StdError + Send + Sync>)))
         );
     }
         { let __target = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); let __rhs = (*qty.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -2475,7 +2545,7 @@ impl Inventory {
 
     pub fn names(&self) -> Arc<Mutex<Option<Vec<String>>>> {
         let mut names = Arc::new(Mutex::new(Some({ let mut v: Vec<String> = (0..(({ let __len = ({ let __len_target = { let __field = self.items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
-        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (n, _) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = n.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *names.lock().unwrap() = __slice_header; };
     }
         { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -2485,7 +2555,7 @@ impl Inventory {
     pub fn value(&self) -> Arc<Mutex<Option<Money>>> {
     let mut total: Arc<Mutex<Option<Money>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (_, it) in { let __range_holder = self.items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __rhs = (*{ let __recv = it.clone(); let __recv_ptr: *const Item = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Item }; let __result = unsafe { &*__recv_ptr }.total(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     }
         total.clone()
@@ -2582,7 +2652,7 @@ fn main() {
         AnonymousStruct1 { name: Arc::new(Mutex::new(Some("gadget".to_string()))), qty: Arc::new(Mutex::new(Some(2))), ..Default::default() },
     ] {
         let req = &req.__go_value_clone();
-        let (mut cost, mut err) = { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.take(Arc::new(Mutex::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
+        let (mut cost, mut err) = { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.take(Arc::new(Mutex::new(Some({ let __selector_holder = req.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = req.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))); __result };
         let mut se: Arc<Mutex<Option<StockError>>> = Arc::new(Mutex::new(Some(Default::default())));
         if (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap()) {
             println!("{} {}", format!("{}", "missing:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -2595,24 +2665,24 @@ fn main() {
         }
     }
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*(*inv.lock().unwrap().as_ref().unwrap()).log.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "; ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap())));
-    print!("{} {} {}\n", format!("{}", Money(Arc::new(Mutex::new(Some(-1234 as i64))))), format!("{}", Money(Arc::new(Mutex::new(Some(5 as i64))))), format!("{}", (*(*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"apple".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).qty.lock().unwrap().as_ref().unwrap())));
+    print!("{} {} {}\n", format!("{}", Money(Arc::new(Mutex::new(Some(-1234 as i64))))), format!("{}", Money(Arc::new(Mutex::new(Some(5 as i64))))), format!("{}", (*(*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"apple".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).qty.lock().unwrap().as_ref().unwrap())));
     for n in vec![4i64, (-1i64)].iter().copied() {
         let (mut r, mut err) = must_positive(Arc::new(Mutex::new(Some(n.clone()))));
         println!("{} {}", format!("{}", r), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     }
     let mut byTag = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = { let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.names(); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        { let __range_holder = (*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = { let __recv = inv.clone(); let __recv_ptr: *const Inventory = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Inventory }; let __result = unsafe { &*__recv_ptr }.names(); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for name in __range_values.iter() {
+        { let __range_holder = (*{ let __map = { let __map_holder = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(name)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         { let __map_key = t.clone(); let __map_value = { let __slice = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(t).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*name).clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byTag.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     } }
     let mut tags = Arc::new(Mutex::new(Some(Vec::<String>::with_capacity(0))));
-    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (t, _) in { let __range_holder = byTag.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = tags.clone(); let __append_value = t.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *tags.lock().unwrap() = __slice_header; };
     }
     { let __sort_target = tags.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
-    { let __range_holder = tags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
-        print!("{} {}\n", format!("{:<6}", t), format!("{}", format_slice(&{ let __map = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
+    { let __range_holder = tags.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
+        print!("{} {}\n", format!("{:<6}", t), format!("{}", format_slice(&{ let __map = { let __map_holder = byTag.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(t)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
     } }
 }
 

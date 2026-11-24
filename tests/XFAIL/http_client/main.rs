@@ -973,7 +973,7 @@ fn main() {
         (*(*resp_defer_captured.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
     }));
 
-        let (mut body, _) = io::read_all({ let __go_arg = { let __selector_holder = (*resp.lock().unwrap().as_ref().unwrap()).body.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg });
+        let (mut body, _) = io::read_all({ let __go_arg = { let __selector_holder = (*resp.lock().unwrap().as_ref().unwrap()).body.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; __go_arg });
         let mut body = { let __slice_header = GoSliceHeader::go_slice_header(&body); Arc::new(Mutex::new(__slice_header)) };
         let mut text = Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*body.lock().unwrap().as_ref().unwrap()).clone())).unwrap())));
         if { let __tmp_x = (({ let __len = (*text.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 100; __tmp_x > __tmp_y } {

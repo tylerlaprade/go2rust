@@ -585,7 +585,7 @@ fn main() {
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = stack.clone(); let __append_value = Default::default(); let mut __appended: Vec<Vec<i64>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *stack.borrow_mut() = __slice_header; };
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = stack.clone(); let __append_value = (*Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<Vec<i64>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *stack.borrow_mut() = __slice_header; };
     let mut total = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = stack.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for row in __range_values.iter() {
+    { let __range_holder = stack.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
         for v in row.iter().copied() {
         { let __rhs = v; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

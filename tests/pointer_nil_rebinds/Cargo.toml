@@ -1,0 +1,11 @@
+[package]
+name = "pointer_nil_rebinds"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_nil_rebinds"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -589,7 +589,7 @@ fn main() {
     let mut src = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("pkg".to_string(), Rc::new(RefCell::new(Some("crate".to_string())))), ("imp".to_string(), Rc::new(RefCell::new(Some("dep".to_string()))))]))));
     let mut paths = Rc::new(RefCell::new(Some(Vec::<String>::new())));
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new())));
-    for (pkgPath, _) in { let __range_holder = src.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (pkgPath, _) in { let __range_holder = src.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         if keep(Rc::new(RefCell::new(Some(pkgPath.clone())))) {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = paths.clone(); let __append_value = pkgPath.clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *paths.borrow_mut() = __slice_header; };
     }

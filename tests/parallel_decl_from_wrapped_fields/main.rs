@@ -625,7 +625,7 @@ impl P {
     /// already-wrapped field handle. go/parser's `pos, op := p.pos, p.tok` hit a
     /// double-wrap (Arc<Mutex<Option<Arc<Mutex<Option<Pos>>>>>>) before this.
     pub fn pair(&self) -> (i64, i64) {
-        let (mut a, mut b) = (Rc::new(RefCell::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        let (mut a, mut b) = (Rc::new(RefCell::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));
         return ((*a.borrow().as_ref().unwrap()), (*b.borrow().as_ref().unwrap()));
     }
 }

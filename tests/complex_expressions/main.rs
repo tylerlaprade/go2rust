@@ -916,16 +916,16 @@ let mut complexResult = Arc::new(Mutex::new(Some(__go_binary_8)));
                 let __seq_guard = __seq_holder.lock().unwrap();
                 let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
                 let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                drop(__seq_guard);
+                std::mem::drop(__seq_guard);
                 let __low = ({ let __v = (*idx1.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = ({ let __v = (*idx2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __max = __source_cap;
                 __seq.reslice3(__low, __high, __max)
-            }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
-            let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*numbers.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+            }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+            let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*numbers.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
             __tmp_x + __tmp_y
         };
-        let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
         __tmp_x - __tmp_y
     })));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", { let __v = (*sliceResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -935,12 +935,12 @@ let mut complexResult = Arc::new(Mutex::new(Some(__go_binary_8)));
 
     let mut data = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10i64)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20i64)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30i64))))]))));
 
-    let __go_binary_0 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"alpha".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
-let __go_binary_1 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"beta".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+    let __go_binary_0 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"alpha".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+let __go_binary_1 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"beta".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
 let __go_binary_2 = 2;
 let __go_binary_3 = __go_binary_1 * __go_binary_2;
 let __go_binary_4 = __go_binary_0 + __go_binary_3;
-let __go_binary_5 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"gamma".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+let __go_binary_5 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"gamma".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
 let __go_binary_6 = 3;
 let __go_binary_7 = __go_binary_5 / __go_binary_6;
 let __go_binary_8 = __go_binary_4 - __go_binary_7;
@@ -1141,7 +1141,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
         let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-        drop(__seq_guard);
+        std::mem::drop(__seq_guard);
         let __low = 0;
         let __high = (5) as usize;
         let __max = __source_cap;

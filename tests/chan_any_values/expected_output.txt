@@ -1,0 +1,23 @@
+old
+int 42
+float 3.5
+bool true
+point 1 2
+slice 2
+nil
+error boom
+shape 9
+kept kept
+7 true
+from goroutine
+99
+<nil> false
+10
+field
+5
+6
+[a b]
+got selected
+n 42
+other text
+other <nil>

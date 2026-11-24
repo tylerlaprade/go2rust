@@ -585,12 +585,12 @@ fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64])));
 
         // Index and value
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         println!("{} {} {} {}", format!("{}", "Index:".to_string()), format!("{}", i), format!("{}", "Value:".to_string()), format!("{}", num));
     } }
 
         // Value only
-    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for num in __range_values.iter().copied() {
+    { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for num in __range_values.iter().copied() {
         println!("{} {}", format!("{}", "Value:".to_string()), format!("{}", num));
     } }
 

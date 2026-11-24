@@ -775,13 +775,13 @@ impl Expr for IdentPtr {
 /// builds such slices (e.g. assignment LHS/RHS expression lists).
 fn main() {
     let mut exprs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(UnaryExprPtr(Rc::new(RefCell::new(Some(UnaryExpr { op: Rc::new(RefCell::new(Some("-".to_string()))), ..Default::default() }))).clone())) as Box<dyn Expr>))), Rc::new(RefCell::new(Some(Box::new(IdentPtr(Rc::new(RefCell::new(Some(Ident { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }))).clone())) as Box<dyn Expr>)))])));
-    { let __range_holder = exprs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
+    { let __range_holder = exprs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
         {
     let _ts_subject = e.clone();
     let _ts_guard = _ts_subject.borrow();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
+    std::mem::drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
         let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn Expr>>() {

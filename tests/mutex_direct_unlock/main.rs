@@ -714,17 +714,17 @@ impl Counter {
     pub fn inc(&mut self) {
         let __mutex_guard_source_116 = self.mu.clone(); let __mutex_guard_116 = __mutex_guard_source_116.guard();
         { let __target = self.n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        drop(__mutex_guard_116);
+        std::mem::drop(__mutex_guard_116);
     }
 
     pub fn add_branch(&mut self, hit: Rc<RefCell<Option<bool>>>) {
         let __mutex_guard_source_194 = self.mu.clone(); let __mutex_guard_194 = __mutex_guard_source_194.guard();
         if (*hit.borrow().as_ref().unwrap()) {
         { let __target = self.n.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        drop(__mutex_guard_194);
+        std::mem::drop(__mutex_guard_194);
     } else {
         { let __target = self.n.clone(); let __rhs = 20; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        drop(__mutex_guard_194);
+        std::mem::drop(__mutex_guard_194);
     }
     }
 }

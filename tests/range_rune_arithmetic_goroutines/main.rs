@@ -768,7 +768,7 @@ pub fn caesar(s: Arc<Mutex<Option<String>>>, k: Arc<Mutex<Option<i64>>>) -> Arc<
             (*b.lock().unwrap().as_mut().unwrap()).push(c);
         }
     }
-    return Arc::new(Mutex::new(Some({ let __builder = b.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    return Arc::new(Mutex::new(Some({ let __builder = b.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
 }
 
 fn main() {
@@ -790,7 +790,7 @@ fn main() {
     for (_, c) in "banana".to_string().char_indices() {
         { let __idx = ((c as i32) - ('a' as i32)) as usize; let mut __seq_guard = counts.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
     }
-    println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(13) as usize].clone() }));
+    println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = counts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(13) as usize].clone() }));
     for (i, c) in "az".to_string().char_indices() {
         let mut up = Arc::new(Mutex::new(Some((c as i32) - ('a' as i32) + ('A' as i32))));
         let mut next = Arc::new(Mutex::new(Some((c as i32) + (1 as i32))));
