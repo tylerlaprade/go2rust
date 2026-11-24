@@ -1423,6 +1423,14 @@ run_xfail_test() {
     run_test "tests/fprintf_user_defined_writer"
 }
 
+@test "fprintln_writers" {
+    run_test "tests/fprintln_writers"
+}
+
+@test "fprintln_writers_plain" {
+    run_test "tests/fprintln_writers_plain"
+}
+
 @test "full_slice_expressions" {
     run_test "tests/full_slice_expressions"
 }
