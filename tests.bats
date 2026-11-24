@@ -2559,6 +2559,14 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_create_write" {
+    run_test "tests/os_create_write"
+}
+
+@test "os_create_write_plain" {
+    run_test "tests/os_create_write_plain"
+}
+
 @test "os_executable" {
     run_test "tests/os_executable"
 }
@@ -2573,6 +2581,10 @@ run_xfail_test() {
 
 @test "os_file_direct_read" {
     run_test "tests/os_file_direct_read"
+}
+
+@test "os_file_handle_reassignment" {
+    run_test "tests/os_file_handle_reassignment"
 }
 
 @test "os_file_readcloser_assignment" {
@@ -4337,10 +4349,6 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
-}
-
-@test "XFAIL: os_file_handle_reassignment" {
-    run_xfail_test "tests/XFAIL/os_file_handle_reassignment"
 }
 
 @test "XFAIL: source_stdlib_exec_look_path" {

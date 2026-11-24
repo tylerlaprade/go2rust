@@ -89,9 +89,7 @@ func writeErrorChainUnwrapArmsForPackage(arms *strings.Builder, pkg *types.Packa
 func externalErrorChainUnwrapArms() string {
 	needsPathError := currentExternalTypeStubs()["fs_PathError"]
 	if !needsPathError {
-		if osStub := currentExternalPackageStubs()["os"]; osStub != nil {
-			_, needsPathError = osStub.Functions["open"]
-		}
+		needsPathError = osStubReturnsPathError(currentExternalPackageStubs()["os"])
 	}
 	if !needsPathError {
 		return ""

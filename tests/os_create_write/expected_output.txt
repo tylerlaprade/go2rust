@@ -1,0 +1,25 @@
+6 <nil>
+<nil>
+"line 1\nraw\nbytes\n" <nil>
+<nil>
+# todo
+1. MILK
+2. EGGS
+true
+0 <nil>
+2 <nil> bc
+<nil>
+0 write os_create_write_test.txt: file already closed
+2 EOF bc
+true
+<nil> true
+true
+true
+0 <nil>
+<nil>
+xy
+<nil>
+xyz
+true false
+true false
+true
