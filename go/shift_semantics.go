@@ -5,6 +5,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -198,4 +199,41 @@ func basicIntegerBits(basic *types.Basic) int {
 	default:
 		return 64
 	}
+}
+
+// writeFoldedFloatConstant writes a constant float expression such as
+// 0.1 + 0.2 as the value Go computes for it. Go evaluates constant
+// expressions exactly and rounds once, so 0.1 + 0.2 is 0.3; Rust's
+// floating-point addition gives 0.30000000000000004.
+func writeFoldedFloatConstant(out *strings.Builder, e *ast.BinaryExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || e == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[e]
+	if !ok || tv.Value == nil || tv.Type == nil {
+		return false
+	}
+	basic, ok := types.Unalias(tv.Type).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	bits := 64
+	switch basic.Kind() {
+	case types.Float64, types.UntypedFloat:
+	case types.Float32:
+		bits = 32
+	default:
+		return false
+	}
+	if _, isNamed := types.Unalias(tv.Type).(*types.Named); isNamed {
+		return false
+	}
+	value, _ := constant.Float64Val(constant.ToFloat(tv.Value))
+	text := strconv.FormatFloat(value, 'g', -1, bits)
+	if !strings.ContainsAny(text, ".eEn") {
+		text += ".0"
+	}
+	out.WriteString(text)
+	return true
 }

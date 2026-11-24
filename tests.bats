@@ -679,12 +679,20 @@ run_xfail_test() {
     run_test "tests/case_table_lookup_with_named_arrays_goroutines"
 }
 
+@test "chan_any_values" {
+    run_test "tests/chan_any_values"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
 
 @test "channel_error_values" {
     run_test "tests/channel_error_values"
+}
+
+@test "channel_handle_copies" {
+    run_test "tests/channel_handle_copies"
 }
 
 @test "channel_interface_events" {
@@ -1303,6 +1311,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "float_constant_expressions_fold" {
+    run_test "tests/float_constant_expressions_fold"
+}
+
 @test "fmt_errorf_interface_field" {
     run_test "tests/fmt_errorf_interface_field"
 }
@@ -1859,6 +1871,10 @@ run_xfail_test() {
     run_test "tests/local_large_fixed_array_zero"
 }
 
+@test "local_shadows_package_constant" {
+    run_test "tests/local_shadows_package_constant"
+}
+
 @test "local_sync_mutex_forms" {
     run_test "tests/local_sync_mutex_forms"
 }
@@ -2045,6 +2061,10 @@ run_xfail_test() {
 
 @test "maps_operations" {
     run_test "tests/maps_operations"
+}
+
+@test "math_from_source" {
+    run_test "tests/math_from_source"
 }
 
 @test "method_address_local_pointer_arg" {
@@ -2781,6 +2801,14 @@ run_xfail_test() {
 
 @test "printf_args_lock_one_value_goroutines" {
     run_test "tests/printf_args_lock_one_value_goroutines"
+}
+
+@test "printf_nil_interface_arguments" {
+    run_test "tests/printf_nil_interface_arguments"
+}
+
+@test "printf_nil_interface_arguments_goroutines" {
+    run_test "tests/printf_nil_interface_arguments_goroutines"
 }
 
 @test "printf_p_verb_receiver" {
@@ -3591,6 +3619,14 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "strconv_errors_from_source" {
+    run_test "tests/strconv_errors_from_source"
+}
+
+@test "strconv_from_source" {
+    run_test "tests/strconv_from_source"
+}
+
 @test "strconv_itoa_wrapped_call" {
     run_test "tests/strconv_itoa_wrapped_call"
 }
@@ -3917,6 +3953,14 @@ run_xfail_test() {
 
 @test "unary_plus_bitwise_not" {
     run_test "tests/unary_plus_bitwise_not"
+}
+
+@test "unicode_classification" {
+    run_test "tests/unicode_classification"
+}
+
+@test "unicode_utf8_from_source" {
+    run_test "tests/unicode_utf8_from_source"
 }
 
 @test "unsafe_float_bits" {

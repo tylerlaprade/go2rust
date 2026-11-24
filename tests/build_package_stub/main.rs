@@ -20,7 +20,10 @@ fn main() {
     ::internal_race::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::internal_sync::__go_init_all();
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
+    ::strconv::__go_init_all();
     ::strings::__go_init_all();
     ::sync::__go_init_all();
     ::sync_atomic::__go_init_all();

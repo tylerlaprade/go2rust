@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/unicode",
+]
+
+[package]
+name = "unicode_classification"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unicode_classification"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+unicode = { path = "vendor/unicode" }

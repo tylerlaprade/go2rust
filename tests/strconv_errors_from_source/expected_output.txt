@@ -1,0 +1,4 @@
+func Atoi num 12x err invalid syntax true
+true true
+true strconv.ParseInt: parsing "99999999999999999999": value out of range
+true true 99999999999999999999

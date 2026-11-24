@@ -4,6 +4,7 @@ members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
     "vendor/io_fs",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -21,3 +22,4 @@ overflow-checks = false
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 io_fs = { path = "vendor/io_fs" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

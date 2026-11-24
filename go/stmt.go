@@ -5520,6 +5520,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
+	if writeChannelReceiveHandleFor(out, expr, valueType) {
+		return
+	}
 	// The value of a range over a []any is the element's Box itself, which
 	// has no Clone; the map gets a copy of its own.
 	if isEmptyInterfaceType(valueType) && writeBareAnyReferenceWrappedClone(out, expr) {
@@ -11847,6 +11850,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
 		if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		} else if writeChannelHandleCopy(out, s.Value, nil) {
 		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
 			transpileChannelValue(out, s.Value)
@@ -12751,16 +12755,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				isErrorChannelRecv := channelElementIsHandleOption(unary.X)
 				if s.Tok == token.DEFINE {
 					// Generate: let (value, ok) = match ch.recv() { ... }
-					out.WriteString("let (mut ")
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
-					out.WriteString(", mut ")
-					if ident, ok := s.Lhs[1].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
+					out.WriteString("let (")
+					writeCommaOkBindingName(out, s.Lhs[0])
+					out.WriteString(", ")
+					writeCommaOkBindingName(out, s.Lhs[1])
 					out.WriteString(") = match ")
-					TranspileExpression(out, unary.X)
+					writeChannelExpression(out, unary.X)
 					out.WriteString(".recv() { Some(v) => (")
 					if isErrorChannelRecv {
 						writeErrorHandleFromOptionValue(out, "v")
@@ -12787,32 +12787,52 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteWrapperSuffix(out)
 					out.WriteString(") }")
 				} else {
-					// Reassignment: value, ok = <-ch
+					// Reassignment: value, ok = <-ch. A blank target discards its
+					// value.
+					valueTarget := !isBlankIdentExpr(s.Lhs[0])
+					okTarget := !isBlankIdentExpr(s.Lhs[1])
+					writeTarget := func(lhs ast.Expr) {
+						out.WriteString(" *")
+						TranspileExpressionContext(out, lhs, LValue)
+						WriteBorrowMethod(out, true)
+					}
 					out.WriteString("match ")
-					TranspileExpression(out, unary.X)
-					out.WriteString(".recv() { Some(v) => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = v; *")
+					writeChannelExpression(out, unary.X)
+					out.WriteString(".recv() { Some(")
+					if valueTarget {
+						out.WriteString("v")
 					} else {
-						out.WriteString(" = Some(v); *")
+						out.WriteString("_")
 					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(true); }, None => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = None::<")
-						out.WriteString(channelHandleOptionPayloadType(unary.X))
-						out.WriteString(">; *")
-					} else {
-						out.WriteString(" = Some(Default::default()); *")
+					out.WriteString(") => {")
+					if valueTarget {
+						writeTarget(s.Lhs[0])
+						if isErrorChannelRecv {
+							out.WriteString(" = v;")
+						} else {
+							out.WriteString(" = Some(v);")
+						}
 					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(false); } }")
+					if okTarget {
+						writeTarget(s.Lhs[1])
+						out.WriteString(" = Some(true);")
+					}
+					out.WriteString(" }, None => {")
+					if valueTarget {
+						writeTarget(s.Lhs[0])
+						if isErrorChannelRecv {
+							out.WriteString(" = None::<")
+							out.WriteString(channelHandleOptionPayloadType(unary.X))
+							out.WriteString(">;")
+						} else {
+							out.WriteString(" = Some(Default::default());")
+						}
+					}
+					if okTarget {
+						writeTarget(s.Lhs[1])
+						out.WriteString(" = Some(false);")
+					}
+					out.WriteString(" } }")
 				}
 			} else if isTypeAssertion && needsTupleUnpack {
 				// Handle type assertion with comma-ok: value, ok := x.(Type)

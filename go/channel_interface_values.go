@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-// A channel of a transpiled named interface carries the Option inside the
-// interface handle, as a channel of error does: nil can be sent, a receive
-// from a closed channel gives nil, and the receiver gets a handle of its own
-// holding the value that was sent.
+// A channel of a transpiled named interface, or of the empty interface,
+// carries the Option inside the interface handle, as a channel of error
+// does: nil can be sent, a receive from a closed channel gives nil, and the
+// receiver gets a handle of its own holding the value that was sent.
 
 // channelInterfaceElementType returns the element type of a channel that
-// carries values of a transpiled named interface.
+// carries values of a transpiled named interface or of the empty interface.
 func channelInterfaceElementType(ch ast.Expr) (types.Type, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || ch == nil {
@@ -26,10 +26,23 @@ func channelInterfaceElementType(ch ast.Expr) (types.Type, bool) {
 	if !ok {
 		return nil, false
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(chanType.Elem()); !ok {
+	if !isInterfaceChannelElemType(chanType.Elem()) {
 		return nil, false
 	}
 	return chanType.Elem(), true
+}
+
+// isInterfaceChannelElemType reports whether a channel of elem carries the
+// Option inside an interface handle: elem is a transpiled named interface
+// or the empty interface.
+func isInterfaceChannelElemType(elem types.Type) bool {
+	if elem == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elem); ok {
+		return true
+	}
+	return isEmptyInterfaceType(elem)
 }
 
 // channelElementIsHandleOption reports whether a channel carries the Option
@@ -69,7 +82,7 @@ func channelHandleOptionPayloadType(ch ast.Expr) string {
 // interfaceChannelElemTypeToRust returns the Rust element type of a channel
 // of a transpiled named interface.
 func interfaceChannelElemTypeToRust(elem types.Type) (string, bool) {
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elem); !ok {
+	if !isInterfaceChannelElemType(elem) {
 		return "", false
 	}
 	return "Option<" + goTypesTypeToRust(elem) + ">", true
@@ -113,6 +126,23 @@ func writeInterfaceChannelSendValue(out *strings.Builder, ch ast.Expr, value ast
 		out.WriteString(">")
 		return true
 	}
+	if isEmptyInterfaceType(elem) {
+		// The value goes into a fresh interface{} handle, as in an
+		// assignment to an interface{} variable; the send takes the Option
+		// out of it, since a boxed value cannot be cloned.
+		var handle strings.Builder
+		if !writeEmptyInterfaceHandleClone(&handle, value) {
+			WriteWrapperPrefix(&handle)
+			writeInterfaceBoxedValue(&handle, value)
+			WriteWrapperSuffix(&handle)
+		}
+		out.WriteString("{ let __iface_handle = ")
+		out.WriteString(handle.String())
+		out.WriteString("; let __iface_value = __iface_handle")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".take(); __iface_value }")
+		return true
+	}
 	var handle strings.Builder
 	if !writeLocalInterfaceWrappedValue(&handle, value, elem) {
 		return false
@@ -133,6 +163,18 @@ func writeInterfaceChannelReceiveHandle(out *strings.Builder, expr ast.Expr) boo
 		return false
 	}
 	if _, ok := channelInterfaceElementType(unary.X); !ok {
+		return false
+	}
+	writeErrorHandleFromChannelReceive(out, unary.X)
+	return true
+}
+
+// writeChannelReceiveHandleFor writes `<-ch` as the handle a place of type
+// target holds, when the channel carries the Option inside such a handle:
+// the received value fills a new handle, which is stored as it is.
+func writeChannelReceiveHandleFor(out *strings.Builder, expr ast.Expr, target types.Type) bool {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op.String() != "<-" || !channelReceiveFillsHandleOf(unary.X, target) {
 		return false
 	}
 	writeErrorHandleFromChannelReceive(out, unary.X)

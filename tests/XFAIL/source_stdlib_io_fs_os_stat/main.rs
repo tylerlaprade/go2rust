@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::io_fs::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let (mut info, mut err) = os::stat(".".to_string());
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
