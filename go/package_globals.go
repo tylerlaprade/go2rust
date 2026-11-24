@@ -746,9 +746,8 @@ func registerAnonymousStructsInValueExpr(expr ast.Expr) {
 	case nil:
 		return
 	case *ast.CallExpr:
-		if callIsBuiltinNew(t) && len(t.Args) == 1 {
+		if len(t.Args) > 0 && (isBuiltinCallNamed(t, "new") || isBuiltinCallNamed(t, "make")) {
 			registerAnonymousStructsInTypeExpr(t.Args[0])
-			return
 		}
 		for _, arg := range t.Args {
 			registerAnonymousStructsInValueExpr(arg)
@@ -765,22 +764,6 @@ func registerAnonymousStructsInValueExpr(expr ast.Expr) {
 			}
 		}
 	}
-}
-
-func callIsBuiltinNew(call *ast.CallExpr) bool {
-	if call == nil {
-		return false
-	}
-	ident, ok := call.Fun.(*ast.Ident)
-	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	obj, ok := typeInfo.info.Uses[ident].(*types.Builtin)
-	return ok && obj.Name() == "new"
 }
 
 func registerAnonymousStructsInFieldList(fields *ast.FieldList) {

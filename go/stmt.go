@@ -6452,9 +6452,17 @@ func writeCurrentReceiverPointerHandleReturnValue(out *strings.Builder, result a
 	return true
 }
 
+func writeNilReturnValue(out *strings.Builder, expected ast.Expr) {
+	if typ := GetTypeInfo().GetType(expected); isChannelFieldType(typ) {
+		writeChannelNilDefault(out, goTypesTypeToRust(typ))
+		return
+	}
+	WriteWrappedNone(out)
+}
+
 func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
 	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
+		writeNilReturnValue(out, expected)
 		return
 	}
 	if resultTypeExprIsBareScalar(expected) {
@@ -12114,7 +12122,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if writeGoPtrReturnValue(out, result, i) {
 					// GoPtr return slots preserve pointer identity through local variables and fields.
 				} else if isNil {
-					WriteWrappedNone(out)
+					writeNilReturnValue(out, returnResultTypeExpr(fnType, i))
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
