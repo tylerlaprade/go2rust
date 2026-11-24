@@ -759,5 +759,5 @@ fn main() {
     }
 
     println!("{}", format!("{}", ({ let __len_target = { let __field = (*pkg.borrow().as_ref().unwrap()).imports.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
-    println!("{}", format!("{}", (*(*(*(*pkg.borrow().as_ref().unwrap()).imports.borrow().as_ref().unwrap()).clone().get(&"pkg".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*{ let __map_holder = (*pkg.borrow().as_ref().unwrap()).imports.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"pkg".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).i_d.borrow().as_ref().unwrap()).clone()));
 }

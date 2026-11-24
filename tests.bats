@@ -1991,6 +1991,14 @@ run_xfail_test() {
     run_test "tests/make_slice_zero_len_capacity"
 }
 
+@test "make_struct_slice_elements" {
+    run_test "tests/make_struct_slice_elements"
+}
+
+@test "make_struct_slice_elements_goroutines" {
+    run_test "tests/make_struct_slice_elements_goroutines"
+}
+
 @test "map_comma_ok_assignment_targets" {
     run_test "tests/map_comma_ok_assignment_targets"
 }
@@ -2053,6 +2061,10 @@ run_xfail_test() {
 
 @test "map_named_slice_parallel_lookup" {
     run_test "tests/map_named_slice_parallel_lookup"
+}
+
+@test "map_nil_assignment" {
+    run_test "tests/map_nil_assignment"
 }
 
 @test "map_pointer_key_comma_ok" {

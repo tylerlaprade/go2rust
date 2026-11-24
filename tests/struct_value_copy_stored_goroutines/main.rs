@@ -1072,7 +1072,7 @@ fn main() {
     { let new_val = 400; *{ let __seq = { let __seq_holder = spread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", { let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = spread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
 
-    let mut copied: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); (({ let __len = (*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
+    let mut copied: Arc<Mutex<Option<Vec<Point>>>> = Arc::new(Mutex::new(Some((0..(({ let __len = (*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| Default::default()).collect::<Vec<Point>>())));
     let mut n = {
         let _src = { let __copy_src_holder = list.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
         let _n = std::cmp::min((*copied.lock().unwrap().as_ref().unwrap()).len(), _src.len());

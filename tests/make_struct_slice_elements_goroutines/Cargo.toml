@@ -1,0 +1,11 @@
+[package]
+name = "make_struct_slice_elements_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "make_struct_slice_elements_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -891,7 +891,7 @@ fn main() {
         // Range over empty collections
     println!("{}", format!("{}", "\n=== Range over empty collections ===".to_string()));
     let mut emptySlice: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
-    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+    let mut emptyMap: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));
 
     println!("{}", format!("{}", "Empty slice:".to_string()));
     { let __range_holder = emptySlice.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, v) in __range_values.iter().copied().enumerate() {

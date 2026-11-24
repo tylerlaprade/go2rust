@@ -1,0 +1,11 @@
+[package]
+name = "map_nil_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_nil_assignment"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
