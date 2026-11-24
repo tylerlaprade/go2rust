@@ -1,0 +1,16 @@
+line 1: ALPHA BETA
+line 2: GAMMA
+line 3: 
+line 4: DELTA EPSILON ZETA
+line 5: LAST LINE WITHOUT NEWLINE
+lines: 5 err: <nil>
+words: 10
+readall: 62 <nil> true
+chunk 0: "alpha beta\n" err=<nil> eof=false
+chunk 1: "gamma\n" err=<nil> eof=false
+chunk 2: "\n" err=<nil> eof=false
+chunk 3: "delta epsilon zeta\n" err=<nil> eof=false
+chunk 4: "last line without newline" err=EOF eof=true
+missing file error: true
+"x\n" <nil>
+"y" EOF true

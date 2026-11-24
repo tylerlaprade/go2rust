@@ -204,6 +204,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -1733,7 +1749,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = 0;
         let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
     { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
     print!("{}", go_sprintf(&"%q %v\n".to_string(), &[{ let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
@@ -1745,7 +1761,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = (1) as usize;
         let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
     let mut s = Arc::new(Mutex::new(Some(vec!["a".to_string(), "b c".to_string(), "\"q\"".to_string()])));
     print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
@@ -1757,7 +1773,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = 0;
         let __high = (1) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     print!("{}", go_sprintf(&"%q|%5s|%-3s|%x\n".to_string(), &[{ let __go_format_arg = Box::new(s.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
         let __seq_holder = s.clone();
@@ -1768,7 +1784,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = 0;
         let __high = (2) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
         let __seq_holder = s.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
@@ -1778,7 +1794,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = 0;
         let __high = (1) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
         let __seq_holder = s.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
@@ -1788,7 +1804,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __low = 0;
         let __high = (2) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     let mut nums = Arc::new(Mutex::new(Some(vec![1i64, (-2i64), 30i64])));
     print!("{}", go_sprintf(&"%d|%03d|%x|%v|%5v|%q\n".to_string(), &[{ let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(nums.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));

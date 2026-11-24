@@ -201,6 +201,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -640,6 +656,10 @@ pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub __go_wait_for_close: bool,
+    /// How far Read has read __go_data; shared by every copy of the File.
+    pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    /// os.Stdin: Read reads the process's standard input.
+    pub __go_stdin: bool,
 }
 
 impl Default for os_File {
@@ -648,9 +668,24 @@ impl Default for os_File {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             __go_wait_for_close: false,
+            __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            __go_stdin: false,
         }
     }
 }
+
+/// The end of a File's input until a source-translated io registers its
+/// io.EOF (__go_register_io_eof), the value callers compare with.
+#[derive(Debug)]
+pub struct GoStubEOF;
+
+impl std::fmt::Display for GoStubEOF {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "EOF")
+    }
+}
+
+impl std::error::Error for GoStubEOF {}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -684,7 +719,7 @@ impl os_File {
         Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
@@ -694,10 +729,10 @@ impl os_File {
         };
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -710,14 +745,47 @@ impl os_File {
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<i64>(0))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+        // Go's Read: fill as much of p as the input has, or report the end
+        // of the input with no bytes read.
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+            let mut __guard = __buf.borrow_mut();
+            match __guard.as_mut() {
+                Some(__dst) => {
+                    let __dst = __dst.as_mut_slice();
+                    if __dst.is_empty() {
+                        (0, false)
+                    } else if self.__go_stdin {
+                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else {
+                        let __data = self.__go_data.lock().unwrap();
+                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                        let __count = (__data.len() - __pos).min(__dst.len());
+                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                        (__count, __count == 0)
+                    }
+                }
+                None => (0, false),
+            }
+        } else {
+            (0, false)
+        };
+        if __eof {
+            (0, __go_stub_eof())
+        } else {
+            let n = __n;
+            (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        }
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
@@ -740,8 +808,26 @@ impl os_File {
                 }
             }
         }
-        (Rc::new(RefCell::new(Some::<i64>(n))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
+}
+
+thread_local! {
+    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<Rc<dyn StdError>>> = std::cell::RefCell::new(None);
+}
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<Rc<dyn StdError>>) {
+    if eof.is_some() {
+        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
+    }
+}
+
+fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
+        Some(__eof) => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(__eof.clone()))),
+        None => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(GoStubEOF) as Rc<dyn StdError>))),
+    })
 }
 
 

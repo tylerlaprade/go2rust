@@ -2200,7 +2200,9 @@ func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	int64Type := wrappedExternalStubType("i64")
 	stringType := wrappedExternalStubType("String")
-	intType := wrappedExternalStubType(rustIntType())
+	// An int result is bare, as a stub function's is (callReturnsBareScalar):
+	// n, err := f.Read(buf) binds n as an int.
+	intType := rustIntType()
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
@@ -2217,6 +2219,10 @@ pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub __go_wait_for_close: bool,
+    /// How far Read has read __go_data; shared by every copy of the File.
+    pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    /// os.Stdin: Read reads the process's standard input.
+    pub __go_stdin: bool,
 }
 
 impl Default for os_File {
@@ -2225,9 +2231,24 @@ impl Default for os_File {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             __go_wait_for_close: false,
+            __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            __go_stdin: false,
         }
     }
 }
+
+/// The end of a File's input until a source-translated io registers its
+/// io.EOF (__go_register_io_eof), the value callers compare with.
+#[derive(Debug)]
+pub struct GoStubEOF;
+
+impl std::fmt::Display for GoStubEOF {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "EOF")
+    }
+}
+
+impl std::error::Error for GoStubEOF {}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -2290,8 +2311,41 @@ impl os_File {
         (%s, %s)
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
+        // Go's Read: fill as much of p as the input has, or report the end
+        // of the input with no bytes read.
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+            let mut __guard = __buf%s;
+            match __guard.as_mut() {
+                Some(__dst) => {
+                    let __dst = __dst.as_mut_slice();
+                    if __dst.is_empty() {
+                        (0, false)
+                    } else if self.__go_stdin {
+                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else {
+                        let __data = self.__go_data.lock().unwrap();
+                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                        let __count = (__data.len() - __pos).min(__dst.len());
+                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                        (__count, __count == 0)
+                    }
+                }
+                None => (0, false),
+            }
+        } else {
+            (0, false)
+        };
+        if __eof {
+            (%s, %s)
+        } else {
+            let n = __n;
+            (%s, %s)
+        }
     }
 
     pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
@@ -2322,10 +2376,11 @@ impl os_File {
 }
 `,
 		errorType, noneError,
-		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
-		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError,
-		intType, errorType, wrappedExternalStubExpr(rustIntType(), "0"), noneError,
-		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr(rustIntType(), "n"), noneError)
+		intType, errorType, vecType, vecBorrow, "n as "+intType, noneError,
+		intType, errorType, stringType, stringBorrow, "n as "+intType, noneError,
+		intType, errorType, vecType, vecMutBorrow, "0", stubEOFError(errorInnerType), "n as "+intType, noneError,
+		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, "n as "+intType, noneError)
+	writeStubIoEOFRegistry(out, errorInnerType, errorType)
 }
 
 // PERMANENT: not scaffold — Rust std::process::Command is the long-term implementation;
@@ -3235,7 +3290,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	}
 	slices.Sort(varNames)
 	for _, varName := range varNames {
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		if varName == "Stdin" && strings.Contains(pkg.Variables[varName], "os_File") {
+			// os.Stdin reads the process's standard input.
+			out.WriteString("    pub fn Stdin() -> ")
+			out.WriteString(pkg.Variables[varName])
+			out.WriteString(" {\n        ")
+			out.WriteString(wrappedExternalStubExpr("os_File", "os_File { __go_stdin: true, ..Default::default() }"))
+			out.WriteString("\n    }\n")
+		} else {
+			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		}
 		out.WriteString("\n")
 	}
 
@@ -3520,7 +3584,7 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("        let path = _arg0.into_go_string();\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => {\n")
-	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
 	out.WriteString(", no_error())\n")
@@ -3803,6 +3867,66 @@ func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageS
 }
 
 // MACHINERY: variable-declaration emitter for stub packages.
+// stubEOFError is the error handle a File's Read returns at the end of its
+// input: io.EOF's value once a source-translated io registered it.
+func stubEOFError(errorInnerType string) string {
+	return "__go_stub_eof()"
+}
+
+// TEMPORARY: os-file-read — remove when os translates from source with syscall.Read as the bridge.
+// writeStubIoEOFRegistry writes where a source-translated io registers
+// io.EOF, so a File's end of input is the value callers compare with,
+// read directly (n, err := f.Read(buf)) or through io.Reader. The stub
+// crate cannot name io's EOF: io depends on it. Until io registers, the end
+// of input is GoStubEOF, which prints as EOF.
+func writeStubIoEOFRegistry(out *strings.Builder, errorInnerType string, errorType string) {
+	pointer := "std::rc::Rc"
+	if strings.HasPrefix(errorInnerType, "Arc<") || strings.HasPrefix(errorInnerType, "std::sync::Arc<") {
+		pointer = "std::sync::Arc"
+	}
+	fallback := wrappedExternalStubExpr(errorInnerType, pointer+"::new(GoStubEOF) as "+errorInnerType)
+	registered := wrappedExternalStubExpr(errorInnerType, "__eof.clone()")
+	if NeedsConcurrentWrapper() {
+		fmt.Fprintf(out, `
+static __GO_STUB_IO_EOF: std::sync::OnceLock<%s> = std::sync::OnceLock::new();
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<%s>) {
+    if let Some(eof) = eof {
+        let _ = __GO_STUB_IO_EOF.set(eof);
+    }
+}
+
+fn __go_stub_eof() -> %s {
+    match __GO_STUB_IO_EOF.get() {
+        Some(__eof) => %s,
+        None => %s,
+    }
+}
+`, errorInnerType, errorInnerType, errorType, registered, fallback)
+		return
+	}
+	fmt.Fprintf(out, `
+thread_local! {
+    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<%s>> = std::cell::RefCell::new(None);
+}
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<%s>) {
+    if eof.is_some() {
+        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
+    }
+}
+
+fn __go_stub_eof() -> %s {
+    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
+        Some(__eof) => %s,
+        None => %s,
+    })
+}
+`, errorInnerType, errorInnerType, errorType, registered, fallback)
+}
+
 func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
@@ -4034,8 +4158,8 @@ func writeOsPipeStub(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(" {\n")
 	out.WriteString(`        let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true };
-        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true };
+        let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true, ..Default::default() };
+        let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true, ..Default::default() };
         (`)
 	out.WriteString(wrappedExternalStubExpr("os_File", "read"))
 	out.WriteString(", ")

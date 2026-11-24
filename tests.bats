@@ -635,6 +635,10 @@ run_xfail_test() {
     run_test "tests/break_loop_inside_switch"
 }
 
+@test "bufio_reads_files" {
+    run_test "tests/bufio_reads_files"
+}
+
 @test "build_package_stub" {
     run_test "tests/build_package_stub"
 }
@@ -2469,6 +2473,10 @@ run_xfail_test() {
 
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
+}
+
+@test "os_file_direct_read" {
+    run_test "tests/os_file_direct_read"
 }
 
 @test "os_file_readcloser_assignment" {

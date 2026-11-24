@@ -6112,7 +6112,7 @@ func take(values []int, h *Header) []int {
 	if !strings.Contains(rust, "let __low = 0;") ||
 		!strings.Contains(rust, "let __max = ((*") ||
 		!strings.Contains(rust, " as usize;") ||
-		!strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+		!strings.Contains(rust, "__seq.reslice3_zeroed(__low, __high, __max)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
 	}
 }
@@ -6130,8 +6130,9 @@ func grow() []byte {
 	if !strings.Contains(rust, "let __source_cap = ") {
 		t.Fatalf("two-index slice should capture source capacity before cloning:\n%s", rust)
 	}
-	// The new header views the source's backing array up to its capacity.
-	if !strings.Contains(rust, "__seq.reslice3(__low, __high, __max)") {
+	// The new header views the source's backing array up to its capacity,
+	// whose never-stored bytes are zero.
+	if !strings.Contains(rust, "__seq.reslice3_zeroed(__low, __high, __max)") {
 		t.Fatalf("two-index slice should reslice within the source's capacity:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __max = __source_cap;") {

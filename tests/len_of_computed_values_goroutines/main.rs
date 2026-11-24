@@ -40,6 +40,6 @@ fn main() {
         let __low = 0;
         let __high = (1) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }
