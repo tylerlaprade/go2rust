@@ -3766,6 +3766,31 @@ func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected
 	return true
 }
 
+// writeRangeCharMapKey writes a rune from ranging over a string, which is a
+// Rust char, as the i32 key of a map[rune]V, between prefix and suffix. A
+// nil keyType is a map key whose type the caller did not look up: the rune
+// is then the key's type, as Go requires.
+func writeRangeCharMapKey(out *strings.Builder, key ast.Expr, keyType types.Type, prefix, suffix string) bool {
+	ident, ok := key.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" {
+		return false
+	}
+	if keyType != nil {
+		basic, ok := types.Unalias(keyType).Underlying().(*types.Basic)
+		if !ok || basic.Kind() != types.Int32 {
+			return false
+		}
+	}
+	out.WriteString(prefix)
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32")
+	out.WriteString(suffix)
+	return true
+}
+
 func writeRangeCharForExpectedType(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	ident, ok := arg.(*ast.Ident)
 	if !ok || expected == nil {
@@ -12742,6 +12767,9 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 					out.WriteString(")")
 					return
 				}
+			}
+			if writeRangeCharMapKey(out, ident, keyType, "&(", ")") {
+				return
 			}
 			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
 				out.WriteString(ident.Name)
