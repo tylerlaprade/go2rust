@@ -17935,7 +17935,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		// any(x) boxes x the way every other conversion to an interface
 		// does: a value that keeps its handle when boxed keeps it here too.
-		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) {
+		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) || writeIntegerConstForAnyBox(out, arg) {
 		} else if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(RustIdentForUse(ident))
