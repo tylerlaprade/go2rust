@@ -7832,6 +7832,10 @@ func timeDurationUsesStdTimeDuration(typ types.Type) bool {
 	if !ok || !isTimeDurationType(named) {
 		return false
 	}
+	// Translated from source, time.Duration is the int64 it is in Go.
+	if isSourceMappedPackagePath("time") {
+		return false
+	}
 	return !useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named)
 }
 

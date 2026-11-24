@@ -3995,6 +3995,14 @@ run_xfail_test() {
     run_test "tests/time_sleep_duration_forms"
 }
 
+@test "time_source_shapes" {
+    run_test "tests/time_source_shapes"
+}
+
+@test "time_source_shapes_goroutines" {
+    run_test "tests/time_source_shapes_goroutines"
+}
+
 @test "timeouts_basic" {
     run_test "tests/timeouts_basic"
 }
