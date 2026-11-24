@@ -105,7 +105,11 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return true
 	}
 	if _, ok := externalIntegerRustTypeForNamed(named); ok {
@@ -251,7 +255,11 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return
 	}
 	if writeUnaryIntegerLiteral(out, expr) {
@@ -553,7 +561,7 @@ func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shi
 	if !ok || lit.Kind != token.INT {
 		return false
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	out.WriteString("i32")
 	return true
 }
@@ -616,7 +624,7 @@ func writeUnaryIntegerLiteral(out *strings.Builder, expr ast.Expr) bool {
 	if unary.Op == token.SUB {
 		out.WriteString("-")
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	return true
 }
 
@@ -1679,6 +1687,45 @@ func writeBareMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, ar
 	TranspileExpression(out, arg)
 }
 
+// writeBareRangeSliceArgument writes a range variable over a [][]T, held
+// bare as the element is, passed to a []T parameter, as bufio's
+// collectFragments passes each full buffer to buf.Write: the parameter
+// takes a cell of its own holding the slice header.
+func writeBareRangeSliceArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || strings.HasPrefix(varType, GetOuterWrapperType()+"<") {
+		// A map's values come in cells of their own.
+		return false
+	}
+	goType := rangeLoopVarGoTypes[ident.Name]
+	if goType == nil {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			goType = typeInfo.GetType(ident)
+		}
+	}
+	if goType == nil {
+		return false
+	}
+	if _, isSlice := types.Unalias(goType).Underlying().(*types.Slice); !isSlice {
+		return false
+	}
+	if _, isNamed := types.Unalias(goType).(*types.Named); isNamed {
+		return false
+	}
+	if _, wantsSlice := types.Unalias(expected).Underlying().(*types.Slice); !wantsSlice {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(RustLocalIdent(ident.Name))
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
@@ -1701,6 +1748,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		return
 	}
 	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if writeBareRangeSliceArgument(out, arg, expectedArgType) {
 		return
 	}
 	if typeInfo != nil && typeInfo.IsChannel(arg) {
@@ -1957,6 +2007,10 @@ func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorE
 	variadicStart := sig.Params().Len() - 1
 	for i := 0; i < variadicStart && i < len(call.Args); i++ {
 		writeArgPrefix(i)
+		if !externalStdlibStubMethodCall && writeBareRangeSliceArgument(out, call.Args[i], selectedMethodParamType(sel, i)) {
+			writeArgSuffix()
+			continue
+		}
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
@@ -13452,13 +13506,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if exprType != nil {
 					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
 						// Integer literal used as float - add .0
-						out.WriteString(e.Value)
-						out.WriteString(".0")
+						out.WriteString(RustFloatFromIntegerLiteral(e.Value))
 						return
 					}
 				}
 			}
-			out.WriteString(e.Value)
+			out.WriteString(RustIntegerLiteral(e.Value))
 		case token.FLOAT:
 			if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
@@ -14284,6 +14337,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
+			if writeBareSliceElementNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if typeInfo != nil && typeInfo.IsChannel(e.X) {
 				if e.Op.String() == "!=" {
 					out.WriteString("!")
@@ -14643,8 +14699,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 				if isComparison && writeOrderedTypeParamValueClone(out, expr) {
@@ -14700,8 +14755,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
-				out.WriteString(xLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(xLit.Value))
 			} else {
 				writeOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
 			}
@@ -14714,8 +14768,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
-				out.WriteString(yLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(yLit.Value))
 			} else {
 				writeOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
 			}
@@ -14760,8 +14813,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.X)
 				}
@@ -14811,8 +14863,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.Y)
 				}
@@ -17867,7 +17918,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 							// []byte to string
 							WriteWrapperPrefix(out)
 							out.WriteString(stringFromUTF8Open())
-							writeUnwrappedSliceClone(out, arg)
+							if isNamedSliceExpression(arg) {
+								// A defined []byte type holds the slice inside it.
+								out.WriteString("{ let __bytes = ")
+								writeNamedSliceInnerHandleClone(out, arg)
+								out.WriteString("; let __bytes_guard = __bytes")
+								WriteBorrowMethod(out, false)
+								out.WriteString("; let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value }")
+							} else {
+								writeUnwrappedSliceClone(out, arg)
+							}
 							out.WriteString(stringFromUTF8Close())
 							WriteWrapperSuffix(out)
 							return

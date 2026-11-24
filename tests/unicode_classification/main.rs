@@ -6,12 +6,11 @@ macro_rules! vec {
 }
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
-use std::cell::{RefCell};
 use std::fmt::{Display};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 
-fn format_any(value: &dyn Any) -> String {
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -123,12 +122,12 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(__value: &dyn Any) -> bool {
+fn go_format_is_text(__value: &(dyn Any + Send + Sync)) -> bool {
     false
 }
 
 // The basic value a newtype such as "type Level int" holds, boxed.
-fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
+fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     None
 }
 
@@ -504,7 +503,7 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
 
 // Formats one argument for one verb. None means the verb does not apply to
 // the argument's type, which fmt reports in the output.
-fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Option<String> {
+fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send + Sync)) -> Option<String> {
     if verb == 'T' {
         return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, true));
     }
@@ -556,8 +555,8 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     if let Some(v) = value.downcast_ref::<&str>() {
         return go_format_string(&basic, string_verb, v);
     }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-        let guard = v.borrow();
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+        let guard = v.lock().unwrap();
         let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
         if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
@@ -615,10 +614,10 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
 
 // The number after % or after the dot: digits, or * for the next argument.
 // Ok(None) is no number. Err is a * whose argument is not a usable integer.
-fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any>], next: &mut usize) -> Result<Option<i64>, ()> {
+fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any + Send + Sync>], next: &mut usize) -> Result<Option<i64>, ()> {
     if chars.peek() == Some(&'*') {
         chars.next();
-        let arg: &dyn Any = match args.get(*next) {
+        let arg: &(dyn Any + Send + Sync) = match args.get(*next) {
             Some(arg) => arg.as_ref(),
             None => return Err(()),
         };
@@ -647,17 +646,17 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
 }
 
 // Whether value is of a type that go_format_argument formats itself.
-fn go_format_is_basic(value: &dyn Any) -> bool {
+fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
-    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Rc<RefCell<Option<Vec<u8>>>>)
+    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Arc<Mutex<Option<Vec<u8>>>>)
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
-fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     if value.is::<GoFormatNil>() {
         return "<nil>".to_string();
     }
@@ -667,7 +666,7 @@ fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
 
 // The verb that writes value as %v does and leaves the flags as they are.
 // %v itself would read + and # as %+v and %#v.
-fn go_format_plain_verb(value: &dyn Any) -> char {
+fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
@@ -687,7 +686,7 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // fmt.Sprintf for a format that is only known when the program runs. A
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
-pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
     let mut out = String::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
@@ -778,50 +777,56 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 use __go_runtime_format::go_sprintf;
 
-pub fn classify(r: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<String>>> {
-    let mut kinds: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    if unicode::is_letter(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "letter".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+pub fn classify(r: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {
+    let mut kinds: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
+    if unicode::is_letter(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "letter".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is_digit(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "digit".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is_digit(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "digit".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is_space(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "space".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is_space(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "space".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is_punct(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "punct".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is_punct(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "punct".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is_upper(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "upper".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is_upper(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "upper".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is_lower(Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "lower".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is_lower(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "lower".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if unicode::is((*unicode::Han.borrow().as_ref().unwrap()).clone(), Rc::new(RefCell::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "han".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *kinds.borrow_mut() = __slice_header; };
+    if unicode::is((*unicode::Han.lock().unwrap().as_ref().unwrap()).clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = kinds.clone(); let __append_value = "han".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *kinds.lock().unwrap() = __slice_header; };
     }
-    if ((*kinds.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
-        return Rc::new(RefCell::new(Some("other".to_string())));
+    if { let __tmp_x = (({ let __len = (*kinds.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        return Arc::new(Mutex::new(Some("other".to_string())));
     }
-    return Rc::new(RefCell::new(Some({ let __parts = (*kinds.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) })));
+    return strings::join(kinds.clone(), Arc::new(Mutex::new(Some(",".to_string()))));
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strings::__go_init_all();
     ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     for (_, r) in "aZ9 \t!\u{e9}\u{6f22}\u{df}\u{663}\u{a0}".to_string().char_indices() {
-        print!("{}", go_sprintf(&"%q %s %q %q\n".to_string(), &[Box::new(r) as Box<dyn Any>, Box::new({ let __v = classify(Rc::new(RefCell::new(Some(r as i32)))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, Box::new(unicode::to_upper(Rc::new(RefCell::new(Some(r as i32))))) as Box<dyn Any>, Box::new(unicode::to_lower(Rc::new(RefCell::new(Some(r as i32))))) as Box<dyn Any>], false));
+        print!("{}", go_sprintf(&"%q %s %q %q\n".to_string(), &[{ let __go_format_arg = Box::new(r) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __v = classify(Arc::new(Mutex::new(Some(r as i32)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(unicode::to_upper(Arc::new(Mutex::new(Some(r as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(unicode::to_lower(Arc::new(Mutex::new(Some(r as i32))))) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
     }
-    let mut words = Rc::new(RefCell::new(Some(0i64)));
-    let mut inWord = Rc::new(RefCell::new(Some(false)));
+    let mut words = Arc::new(Mutex::new(Some(0i64)));
+    let mut inWord = Arc::new(Mutex::new(Some(false)));
     for (_, r) in "  hello,  w\u{f6}rld\nand   more  ".to_string().char_indices() {
-        if unicode::is_space(Rc::new(RefCell::new(Some(r as i32)))) || unicode::is_punct(Rc::new(RefCell::new(Some(r as i32)))) {
-        { let new_val = false; *inWord.borrow_mut() = Some(new_val); };
-    } else if !(*inWord.borrow().as_ref().unwrap()) {
-        { let new_val = true; *inWord.borrow_mut() = Some(new_val); };
-        { let mut guard = words.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        if unicode::is_space(Arc::new(Mutex::new(Some(r as i32)))) || unicode::is_punct(Arc::new(Mutex::new(Some(r as i32)))) {
+        { let new_val = false; *inWord.lock().unwrap() = Some(new_val); };
+    } else if !{ let __v = (*inWord.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        { let new_val = true; *inWord.lock().unwrap() = Some(new_val); };
+        { let mut guard = words.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }
-    println!("{} {} {} {} {}", format!("{}", "words:".to_string()), format!("{}", { let __v = (*words.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", unicode::is_title(Rc::new(RefCell::new(Some(('\u{1c5}' as i32)))))), format!("{}", (*Rc::new(RefCell::new(Some(char::from_u32((unicode::to_title(Rc::new(RefCell::new(Some(('\u{1c6}' as i32)))))) as u32).unwrap().to_string()))).borrow().as_ref().unwrap())), format!("{}", unicode::simple_fold(Rc::new(RefCell::new(Some(('A' as i32)))))));
+    println!("{} {} {} {} {}", format!("{}", "words:".to_string()), format!("{}", { let __v = (*words.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", unicode::is_title(Arc::new(Mutex::new(Some(('\u{1c5}' as i32)))))), format!("{}", (*Arc::new(Mutex::new(Some(char::from_u32((unicode::to_title(Arc::new(Mutex::new(Some(('\u{1c6}' as i32)))))) as u32).unwrap().to_string()))).lock().unwrap().as_ref().unwrap())), format!("{}", unicode::simple_fold(Arc::new(Mutex::new(Some(('A' as i32)))))));
 }

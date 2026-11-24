@@ -1,0 +1,7 @@
+65 98 256
+255 0
+255 254 true true 0
+true false false 1
+2 1 3
+[0 5]
+hello, world 12

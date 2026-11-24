@@ -30,6 +30,44 @@ var stdlibNoAsmOverlays = map[string]map[string]string{
 		"exp_amd64.go":   "",
 		"arith_s390x.go": "",
 	},
+	// internal/bytealg has the same shape: each *_native.go declares
+	// assembly-backed functions, and the *_generic.go file other
+	// architectures build has their Go code. index_amd64.go only picks
+	// MaxLen from CPU features; without it MaxLen stays 0, as on an
+	// architecture with no assembly Index, and strings and bytes use their
+	// Go search instead.
+	"internal/bytealg": {
+		"compare_native.go":   "compare_generic.go",
+		"count_native.go":     "count_generic.go",
+		"index_native.go":     "index_generic.go",
+		"indexbyte_native.go": "indexbyte_generic.go",
+		"index_amd64.go":      "",
+		"index_arm64.go":      "",
+	},
+}
+
+// stdlibOverlayTransforms rewrite a file the host architecture builds
+// rather than replacing it with another file.
+var stdlibOverlayTransforms = map[string]map[string]func([]byte) []byte{
+	"internal/bytealg": {
+		"bytealg.go": removeAssemblyOffsetConstants,
+	},
+}
+
+var (
+	assemblyOffsetConstants = regexp.MustCompile(`(?s)// Offsets into internal/cpu records for use in assembly\.\nconst \(.*?\n\)\n`)
+	internalCPUImport       = regexp.MustCompile(`(?m)^\s*"internal/cpu"\n`)
+	unsafeImport            = regexp.MustCompile(`(?m)^(\s*)"unsafe"$`)
+)
+
+// removeAssemblyOffsetConstants drops bytealg.go's constants that give the
+// assembly field offsets into internal/cpu's records. Nothing in Go reads
+// them, and without them the package no longer needs internal/cpu. The
+// unsafe import stays for its //go:linkname directives.
+func removeAssemblyOffsetConstants(source []byte) []byte {
+	source = assemblyOffsetConstants.ReplaceAll(source, nil)
+	source = internalCPUImport.ReplaceAll(source, nil)
+	return unsafeImport.ReplaceAll(source, []byte(`${1}_ "unsafe"`))
 }
 
 var goBuildConstraintLine = regexp.MustCompile(`(?m)^//go:build .*$`)
@@ -59,6 +97,17 @@ func stdlibNoAsmOverlay() map[string][]byte {
 				contents = goBuildConstraintLine.ReplaceAll(source, nil)
 			}
 			overlay[path] = contents
+		}
+	}
+	for pkg, files := range stdlibOverlayTransforms {
+		dir := filepath.Join(goroot, "src", filepath.FromSlash(pkg))
+		for file, transform := range files {
+			path := filepath.Join(dir, file)
+			source, err := os.ReadFile(path)
+			if err != nil {
+				continue
+			}
+			overlay[path] = transform(source)
 		}
 	}
 	return overlay

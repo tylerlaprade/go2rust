@@ -663,6 +663,10 @@ run_xfail_test() {
     run_test "tests/byte_slice_from_global_array_field"
 }
 
+@test "byte_tables_and_named_byte_slices" {
+    run_test "tests/byte_tables_and_named_byte_slices"
+}
+
 @test "bytes_buffer_zero_value" {
     run_test "tests/bytes_buffer_zero_value"
 }
@@ -1247,6 +1251,10 @@ run_xfail_test() {
     run_test "tests/exec_command_args_stub"
 }
 
+@test "exec_command_io_fields" {
+    run_test "tests/exec_command_io_fields"
+}
+
 @test "exec_command_output_stub" {
     run_test "tests/exec_command_output_stub"
 }
@@ -1789,6 +1797,14 @@ run_xfail_test() {
 
 @test "late_address_of" {
     run_test "tests/late_address_of"
+}
+
+@test "legacy_octal_literals" {
+    run_test "tests/legacy_octal_literals"
+}
+
+@test "legacy_octal_literals_goroutines" {
+    run_test "tests/legacy_octal_literals_goroutines"
 }
 
 @test "len_call_argument" {
@@ -3283,6 +3299,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_pointer_index_out_of_range" {
+    run_test "tests/slice_elem_pointer_index_out_of_range"
+}
+
+@test "slice_elem_pointer_index_out_of_range_goroutines" {
+    run_test "tests/slice_elem_pointer_index_out_of_range_goroutines"
+}
+
 @test "slice_elem_pointer_local_struct" {
     run_test "tests/slice_elem_pointer_local_struct"
 }
@@ -4077,6 +4101,10 @@ run_xfail_test() {
 
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
+}
+
+@test "word_count_bufio_strings" {
+    run_test "tests/word_count_bufio_strings"
 }
 
 @test "worker_pools" {

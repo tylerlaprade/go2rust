@@ -216,6 +216,9 @@ func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType 
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
 	fieldTypeRust := canonicalPackageExternalStubRustType(goTypesFieldTypeToRustForOwnerPackage(fieldType, ownerPkgPath))
+	if bridge := stubIoFieldBridgeType(fieldType); bridge != "" {
+		fieldTypeRust = wrappedExternalStubType(bridge)
+	}
 	fields := currentExternalTypeStubFields()
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
@@ -1744,6 +1747,9 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 	if externalPackageStubsNeedGoTimer(packageStubs) {
 		generateGoTimerHelper(&out)
 	}
+	if writer, reader := externalStubsNeedIoFieldBridges(fieldsByType); writer || reader {
+		writeStubIoFieldBridges(&out, writer, reader)
+	}
 	for i, name := range names {
 		if i > 0 || out.Len() > 0 {
 			out.WriteString("\n\n")
@@ -2388,6 +2394,14 @@ impl exec_Cmd {
 	        %s
 	    }
 
+    /// Go's ExitError text: "exit status 3", not Rust's "exit status: 3".
+    fn __go_exit_message(status: &std::process::ExitStatus) -> String {
+        match status.code() {
+            Some(code) => format!("exit status {}", code),
+            None => status.to_string(),
+        }
+    }
+
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
         let args = %s.as_ref().cloned().unwrap_or_default();
         if args.is_empty() {
@@ -2414,6 +2428,21 @@ impl exec_Cmd {
         }
 `, externalStubBorrowExpr("self.env"))
 	}
+	if fields["stdin"] == wrappedExternalStubType(stubReaderTypeName) {
+		fmt.Fprintf(out, `        if let Some(stdin) = %s.as_ref() {
+            let data = stdin.__go_read_all();
+            command.stdin(std::process::Stdio::piped());
+            command.stdout(std::process::Stdio::piped());
+            command.stderr(std::process::Stdio::piped());
+            let mut child = command.spawn()?;
+            if let Some(mut pipe) = child.stdin.take() {
+                use std::io::Write;
+                let _ = pipe.write_all(&data);
+            }
+            return child.wait_with_output();
+        }
+`, externalStubBorrowExpr("self.stdin"))
+	}
 	out.WriteString(`        command.output()
     }
 
@@ -2439,7 +2468,7 @@ impl exec_Cmd {
                 let err = if output.status.success() {
                     %s
                 } else {
-                    Self::__go_error(format!("exit status {}", output.status))
+                    Self::__go_error(Self::__go_exit_message(&output.status))
                 };
                 (%s, err)
             }
@@ -2458,7 +2487,7 @@ impl exec_Cmd {
                 if output.status.success() {
                     %s
                 } else {
-                    Self::__go_error(format!("exit status {}", output.status))
+                    Self::__go_error(Self::__go_exit_message(&output.status))
                 }
             }
             Err(err) => Self::__go_error(err.to_string()),

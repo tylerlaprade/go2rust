@@ -50,9 +50,9 @@ fn __go_init_globals() {
 
 pub(crate) fn __go_zero_globals() {
     *Users.borrow_mut() = Some(BTreeMap::new());
-    *Numbers.borrow_mut() = Some(vec![]);
+    *Numbers.borrow_mut() = Some(Vec::nil());
     *Groups.borrow_mut() = Some(BTreeMap::new());
-    *Records.borrow_mut() = Some(vec![]);
+    *Records.borrow_mut() = Some(Vec::nil());
 }
 
 

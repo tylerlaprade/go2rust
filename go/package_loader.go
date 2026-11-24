@@ -46,16 +46,24 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // *NumError values that errors.As can find and parses and formats numbers
 // with Go's own algorithms; math and math/bits are Go's code, loaded with the
 // generic path in place of assembly (stdlibNoAsmOverlays); unicode and
-// unicode/utf8 carry Go's tables and rules instead of stubs.
+// unicode/utf8 carry Go's tables and rules instead of stubs. strings,
+// bytes, bufio and io are Go's code too, so a bufio.Scanner reads from a
+// strings.Reader through io.Reader as Go's does; internal/bytealg uses the
+// generic Go search the other architectures build (stdlibNoAsmOverlays).
 var defaultSourceStdlibPackages = map[string]bool{
 	"path/filepath":         true,
 	"internal/filepathlite": true,
 	"internal/stringslite":  true,
+	"internal/bytealg":      true,
 	"math":                  true,
 	"math/bits":             true,
 	"strconv":               true,
 	"unicode":               true,
 	"unicode/utf8":          true,
+	"strings":               true,
+	"bytes":                 true,
+	"bufio":                 true,
+	"io":                    true,
 }
 
 // NewPackageLoader creates a new package loader
@@ -1121,7 +1129,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
-	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.Syntax))
+	pkgInterfaces := collectPackageInterfaceDecls(pkg.Syntax)
+	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(pkgInterfaces)
+	pkgState.ExternalLocalInterfaceImpls = mergeExternalLocalInterfaceImpls(pkgState.ExternalLocalInterfaceImpls, stubTypeInterfaceImpls(pkg.Types, pkgInterfaces, pl.allPackages))
 	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)

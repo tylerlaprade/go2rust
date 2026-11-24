@@ -849,6 +849,7 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
 use __go_runtime_format::go_sprintf;
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();

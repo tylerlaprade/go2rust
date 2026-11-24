@@ -22,6 +22,7 @@ members = [
     "vendor/internal_goversion",
     "vendor/internal_stringslite",
     "vendor/internal_types_errors",
+    "vendor/io",
     "vendor/math",
     "vendor/math_big",
     "vendor/math_bits",
@@ -68,6 +69,7 @@ internal_gover = { path = "vendor/internal_gover" }
 internal_goversion = { path = "vendor/internal_goversion" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_types_errors = { path = "vendor/internal_types_errors" }
+io = { path = "vendor/io" }
 math = { path = "vendor/math" }
 math_big = { path = "vendor/math_big" }
 math_bits = { path = "vendor/math_bits" }
