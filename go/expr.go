@@ -14334,6 +14334,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeRangeRuneArithmetic(out, e) {
 			return
 		}
+		if isNilIdentExpr(e.Y) && writeSliceElemPtrMapNilComparison(out, e.X, e.Op) {
+			return
+		}
+		if isNilIdentExpr(e.X) && writeSliceElemPtrMapNilComparison(out, e.Y, e.Op) {
+			return
+		}
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()

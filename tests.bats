@@ -3299,6 +3299,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_pointer_append" {
+    run_test "tests/slice_elem_pointer_append"
+}
+
+@test "slice_elem_pointer_held_edges" {
+    run_test "tests/slice_elem_pointer_held_edges"
+}
+
 @test "slice_elem_pointer_index_out_of_range" {
     run_test "tests/slice_elem_pointer_index_out_of_range"
 }
@@ -3309,6 +3317,10 @@ run_xfail_test() {
 
 @test "slice_elem_pointer_local_struct" {
     run_test "tests/slice_elem_pointer_local_struct"
+}
+
+@test "slice_elem_pointer_map" {
+    run_test "tests/slice_elem_pointer_map"
 }
 
 @test "slice_elem_pointer_short_decl" {
