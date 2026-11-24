@@ -2691,6 +2691,10 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_nil_rebinds" {
+    run_test "tests/pointer_nil_rebinds"
+}
+
 @test "pointer_package_global" {
     run_test "tests/pointer_package_global"
 }
