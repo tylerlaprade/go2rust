@@ -734,7 +734,7 @@ pub struct board {
 
 impl board {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.cells.clone();
+        let __go_clone_0_0 = { let __guard = self.cells.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             cells: __go_clone_0_0,
         }

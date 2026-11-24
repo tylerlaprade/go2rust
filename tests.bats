@@ -3911,6 +3911,14 @@ run_xfail_test() {
     run_test "tests/struct_const_fields"
 }
 
+@test "struct_copy_slice_field" {
+    run_test "tests/struct_copy_slice_field"
+}
+
+@test "struct_copy_slice_field_goroutines" {
+    run_test "tests/struct_copy_slice_field_goroutines"
+}
+
 @test "struct_embedding" {
     run_test "tests/struct_embedding"
 }

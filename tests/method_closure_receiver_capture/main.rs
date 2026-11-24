@@ -763,7 +763,7 @@ pub struct pkgReader {
 
 impl pkgReader {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.later_fns.clone();
+        let __go_clone_0_0 = { let __guard = self.later_fns.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = self.later_fors.clone();
         let __go_clone_2_0 = { let __guard = self.hits.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {

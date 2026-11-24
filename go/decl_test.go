@@ -1177,7 +1177,7 @@ func use(n node) node {
 		"let __go_clone_0_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
 		"let __go_clone_1_0 = { let __guard = self.b.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
 		"let __go_clone_2_0 = self.next.clone();",
-		"let __go_clone_3_0 = self.values.clone();",
+		"let __go_clone_3_0 = { let __guard = self.values.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
 		"let __go_clone_4_0 = { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };",
 		"Self {\n            a: __go_clone_0_0,\n            b: __go_clone_1_0,\n            next: __go_clone_2_0,\n            values: __go_clone_3_0,\n            flags: __go_clone_4_0,\n        }",
 	} {

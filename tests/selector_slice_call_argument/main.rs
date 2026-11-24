@@ -716,8 +716,8 @@ pub struct Package {
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.dir.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.go_files.clone();
-        let __go_clone_2_0 = self.cgo_files.clone();
+        let __go_clone_1_0 = { let __guard = self.go_files.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.cgo_files.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             dir: __go_clone_0_0,
             go_files: __go_clone_1_0,

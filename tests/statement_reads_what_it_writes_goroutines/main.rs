@@ -910,7 +910,7 @@ pub struct Box_ {
 
 impl Box_ {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.items.clone();
+        let __go_clone_0_0 = { let __guard = self.items.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             items: __go_clone_0_0,
         }
