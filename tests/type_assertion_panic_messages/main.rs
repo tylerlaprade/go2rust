@@ -898,7 +898,7 @@ fn main() {
         let val = b_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Rect>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Rect")).clone()
+            any_val.downcast_ref::<Rect>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Rect")).__go_value_clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }
@@ -934,7 +934,7 @@ fn main() {
         let val = e_closure_clone.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Rect>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Rect")).clone()
+            any_val.downcast_ref::<Rect>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Rect")).__go_value_clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }

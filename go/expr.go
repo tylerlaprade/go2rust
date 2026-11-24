@@ -16189,7 +16189,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
+				writeTypeAssertionExpectBareValue(out, e, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -16210,7 +16210,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError, false)
+				writeTypeAssertionExpectBareValue(out, e, "val", rustType, targetIsError, false)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -16251,7 +16251,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if targetKeepsAnyHandle {
 					writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 				} else {
-					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+					writeTypeAssertionExpectBareValue(out, e, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 				}
 			})
 			if assertionReturnsPointer {
@@ -20689,19 +20689,40 @@ func writeLocalInterfaceAssertionDowncast(out *strings.Builder, sourceTrait stri
 	out.WriteString(">()")
 }
 
-func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string, targetIsError bool) {
+func typeAssertionValueCopyCall(e *ast.TypeAssertExpr) (string, bool) {
+	if e == nil || e.Type == nil {
+		return "", false
+	}
+	targetType, ok := typeInfoTypeForTypeExpr(e.Type)
+	if !ok {
+		return "", false
+	}
+	return goValueCopyCallForType(targetType), true
+}
+
+func writeTypeAssertionTypedValueCopy(out *strings.Builder, e *ast.TypeAssertExpr, targetIsError bool) {
+	if targetIsError {
+		out.WriteString(rustErrorFromText("typed_val.clone()"))
+		return
+	}
+	copyCall, known := typeAssertionValueCopyCall(e)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	out.WriteString("typed_val")
+	out.WriteString(copyCall)
+}
+
+func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, targetIsError bool) {
 	WriteWrapperPrefix(out)
-	writeTypeAssertionSuccessBareValue(out, targetIsError)
+	writeTypeAssertionSuccessBareValue(out, e, targetIsError)
 	_ = rustType
 	WriteWrapperSuffix(out)
 }
 
-func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool) {
-	if targetIsError {
-		out.WriteString(rustErrorFromText("typed_val.clone()"))
-	} else {
-		out.WriteString("typed_val.clone()")
-	}
+func writeTypeAssertionSuccessBareValue(out *strings.Builder, e *ast.TypeAssertExpr, targetIsError bool) {
+	writeTypeAssertionTypedValueCopy(out, e, targetIsError)
 }
 
 func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool, targetIsError bool) bool {
@@ -20728,7 +20749,7 @@ func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertE
 		if anyHandleType, _, ok := typeAssertionAnyHandleTarget(e); ok {
 			writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 		} else {
-			writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+			writeTypeAssertionExpectBareValue(out, e, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 		}
 	})
 	if assertionReturnsPointer {
@@ -20762,7 +20783,7 @@ func writeAnySliceElementAssertionCommaOk(out *strings.Builder, e *ast.TypeAsser
 	out.WriteString(rustType)
 	out.WriteString(">() {\n")
 	out.WriteString("            (")
-	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	writeTypeAssertionSuccessWrappedValue(out, e, rustType, targetIsError)
 	out.WriteString(", true)\n")
 	out.WriteString("        } else {\n")
 	out.WriteString("            (")
@@ -20801,7 +20822,7 @@ func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
 // fmt.Errorf returns is boxed. "x.(error)" then yields that same error. The
 // caller puts it in a cell of its own, so assigning to the result afterwards
 // does not change what x holds.
-func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool, holdsErrorHandle bool) {
+func writeTypeAssertionExpectBareValue(out *strings.Builder, e *ast.TypeAssertExpr, receiver string, rustType string, targetIsError bool, holdsErrorHandle bool) {
 	if targetIsError {
 		out.WriteString("{ ")
 		if holdsErrorHandle {
@@ -20833,11 +20854,16 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 		out.WriteString(">()")
 		writeTypeAssertionFailedUnwrap(out)
 		out.WriteString("; ")
-		writeTypeAssertionSuccessBareValue(out, true)
+		writeTypeAssertionSuccessBareValue(out, e, true)
 		if holdsErrorHandle {
 			out.WriteString(" }")
 		}
 		out.WriteString(" }")
+		return
+	}
+	copyCall, known := typeAssertionValueCopyCall(e)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
 		return
 	}
 	out.WriteString(receiver)
@@ -20845,7 +20871,7 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(rustType)
 	out.WriteString(">()")
 	writeTypeAssertionFailedUnwrap(out)
-	out.WriteString(".clone()")
+	out.WriteString(copyCall)
 }
 
 // typeAssertionFailure is what the one-value form "x.(T)" being written
@@ -21277,7 +21303,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 		out.WriteString(" {\n")
 	}
 	out.WriteString("            (")
-	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
+	writeTypeAssertionSuccessWrappedValue(out, e, rustType, targetIsError)
 	out.WriteString(", ")
 	out.WriteString("true")
 	out.WriteString(")\n")
@@ -21334,7 +21360,7 @@ func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAss
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
 	}
-	writeTypeAssertionSuccessBareValue(out, targetIsError)
+	writeTypeAssertionSuccessBareValue(out, e, targetIsError)
 	if assertionReturnsPointer {
 		WriteWrapperSuffix(out)
 	}
@@ -21993,7 +22019,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString(">() {\n")
 			out.WriteString("                    (")
 			WriteWrapperPrefix(out)
-			out.WriteString("typed_val.clone()")
+			writeTypeAssertionTypedValueCopy(out, e, false)
 			WriteWrapperSuffix(out)
 			out.WriteString(", ")
 			out.WriteString("true")
@@ -22056,11 +22082,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString(">() {\n")
 		out.WriteString("                (")
 		WriteWrapperPrefix(out)
-		if targetIsError {
-			out.WriteString(rustErrorFromText("typed_val.clone()"))
-		} else {
-			out.WriteString("typed_val.clone()")
-		}
+		writeTypeAssertionTypedValueCopy(out, e, targetIsError)
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
 		out.WriteString("true")
@@ -22110,11 +22132,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString(">() {\n")
 		out.WriteString("            (")
 		WriteWrapperPrefix(out)
-		if targetIsError {
-			out.WriteString(rustErrorFromText("typed_val.clone()"))
-		} else {
-			out.WriteString("typed_val.clone()")
-		}
+		writeTypeAssertionTypedValueCopy(out, e, targetIsError)
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
 		out.WriteString("true")
@@ -22189,11 +22207,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString(">() {\n")
 	out.WriteString("                (")
 	WriteWrapperPrefix(out)
-	if targetIsError {
-		out.WriteString(rustErrorFromText("typed_val.clone()"))
-	} else {
-		out.WriteString("typed_val.clone()")
-	}
+	writeTypeAssertionTypedValueCopy(out, e, targetIsError)
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")
 	out.WriteString("true")
