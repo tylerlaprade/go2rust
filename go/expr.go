@@ -12187,6 +12187,14 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 			}
 		}
 	}
+	// A call that returns a struct, array or slice returns it in a cell of
+	// its own, which the map keeps, as "m[k] = f()" does.
+	if call, ok := unwrapParens(value).(*ast.CallExpr); ok {
+		if info := GetTypeInfo(); info != nil && info.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			TranspileExpression(out, call)
+			return
+		}
+	}
 	WriteWrapperPrefix(out)
 	if isEmptyInterfaceExpr(valueExpr) || isEmptyInterfaceType(valueType) {
 		writeInterfaceBoxedValue(out, value)

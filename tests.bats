@@ -1119,6 +1119,14 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "defined_array_rows" {
+    run_test "tests/defined_array_rows"
+}
+
+@test "defined_array_rows_goroutines" {
+    run_test "tests/defined_array_rows_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
@@ -2061,6 +2069,14 @@ run_xfail_test() {
 
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
+}
+
+@test "map_literal_call_values" {
+    run_test "tests/map_literal_call_values"
+}
+
+@test "map_literal_call_values_goroutines" {
+    run_test "tests/map_literal_call_values_goroutines"
 }
 
 @test "map_literal_defined_integer_types" {
