@@ -18,4 +18,6 @@ panic: interface conversion: interface is nil, not fmt.Stringer
 labelled 8°C stringer 9°C
 in place 10°C
 main.Celsius *main.Counter 21°C
+11°C 12°C
+main.Celsius
 panic: interface conversion: int is not fmt.Stringer: missing method String unlabelled

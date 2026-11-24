@@ -12,6 +12,8 @@ func (c *Counter) String() string { return fmt.Sprintf("Counter<%d>", c.N) }
 
 type Plain struct{ X int }
 
+func makeCelsius(d int) Celsius { return Celsius{d} }
+
 // Stringer returns its argument as a fmt.Stringer.
 func Stringer(v fmt.Stringer) fmt.Stringer { return v }
 
@@ -90,6 +92,11 @@ func main() {
 		fmt.Println("in place", st.String())
 	}
 	fmt.Printf("%T %T %v\n", s, Stringer(c), s)
+	// A call's result, an assertion printed directly, and %T of one.
+	var made fmt.Stringer = makeCelsius(11)
+	var held any = Celsius{12}
+	fmt.Println(made.String(), held.(fmt.Stringer))
+	fmt.Printf("%T\n", held.(fmt.Stringer))
 	// A failed assertion that is recovered leaves the value usable.
 	var five any = 5
 	fmt.Println(mustString(five), label(five))

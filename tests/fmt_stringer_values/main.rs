@@ -1070,6 +1070,10 @@ impl Counter {
     }
 }
 
+pub fn make_celsius(d: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Celsius>>> {
+    Rc::new(RefCell::new(Some(Celsius { deg: Rc::new(RefCell::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
+}
+
 /// Stringer returns its argument as a fmt.Stringer.
 pub fn stringer(v: Rc<RefCell<Option<fmt_Stringer>>>) -> Rc<RefCell<Option<fmt_Stringer>>> {
     v.clone()
@@ -1240,6 +1244,34 @@ fn main() {
         }
     }
     print!("{} {} {}\n", match (s).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, match (stringer(Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, format!("{}", (*s.borrow().as_ref().unwrap())));
+
+        // A call's result, an assertion printed directly, and %T of one.
+    let mut made: Rc<RefCell<Option<fmt_Stringer>>> = Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display((*make_celsius(Rc::new(RefCell::new(Some(11)))).borrow().as_ref().unwrap()).clone()))));
+    let mut held: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Celsius { deg: Rc::new(RefCell::new(Some(12))), ..Default::default() }) as Box<dyn Any>)));
+    println!("{} {}", format!("{}", (*(*made.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())), format!("{}", format!("{}", ({
+        let val = held.clone();
+        let __stringer: Result<fmt_Stringer, String> = {
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { Ok(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { Ok(fmt_Stringer::__go_from_display(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else { Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))) }
+        } else {
+            Err("interface conversion: interface is nil, not fmt.Stringer".to_string())
+        }
+        };
+        match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }
+    }))));
+    print!("{}\n", __go_type_name(&*(({
+        let val = held.clone();
+        let __stringer: Result<fmt_Stringer, String> = {
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { Ok(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { Ok(fmt_Stringer::__go_from_display(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else { Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))) }
+        } else {
+            Err("interface conversion: interface is nil, not fmt.Stringer".to_string())
+        }
+        };
+        match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }
+    })).__go_value));
 
         // A failed assertion that is recovered leaves the value usable.
     let mut five: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(5i64) as Box<dyn Any>)));

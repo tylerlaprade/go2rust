@@ -133,7 +133,15 @@ func writeFmtStringerConversion(out *strings.Builder, arg ast.Expr) bool {
 	out.WriteString(fmtStringerStubName)
 	out.WriteString("::")
 	out.WriteString(constructor)
-	writeLocalConcreteStdlibInterfaceSource(out, arg)
+	if call, isCall := unwrapParens(arg).(*ast.CallExpr); isCall && constructor == "__go_from_display(" && typeInfo.ReturnsWrappedValue(call) && !typeInfo.IsTypeConversion(call) {
+		// A call returns its value in a cell; the Stringer holds the value.
+		out.WriteString("(*")
+		TranspileExpression(out, call)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	} else {
+		writeLocalConcreteStdlibInterfaceSource(out, arg)
+	}
 	out.WriteString(")")
 	return true
 }
@@ -162,7 +170,9 @@ func isFmtStringerType(typ types.Type) bool {
 func fmtStringerCandidates(iface *types.Interface, subjectType types.Type) []localInterfaceAssertionCandidate {
 	var out []localInterfaceAssertionCandidate
 	for _, candidate := range localInterfaceAssertionCandidates(iface, subjectType) {
-		if candidate.external {
+		// A type of a package translated from source has its own Rust
+		// type and Display impl, like the program's; a stub's type may not.
+		if candidate.external && !fmtStringerCandidateIsTranslated(candidate.typ) {
 			continue
 		}
 		// An interface value holds a *T as T's cell, not as the pointer
@@ -377,6 +387,20 @@ func writeFmtStringerTypeName(out *strings.Builder, arg ast.Expr) bool {
 			return false
 		}
 		TranspileExpression(&cell, e)
+	case *ast.TypeAssertExpr:
+		if !isFmtStringerAssertion(e) {
+			return false
+		}
+		// x.(fmt.Stringer) yields the bare fmt_Stringer, or panics.
+		for _, candidate := range fmtStringerCandidates(iface, typ) {
+			RegisterAnyCloneType(candidate.typ)
+		}
+		NeedGoTypeName()
+		out.WriteString(goTypeNameHelperRustName)
+		out.WriteString("(&*(")
+		TranspileExpression(out, e)
+		out.WriteString(").__go_value)")
+		return true
 	default:
 		return false
 	}
@@ -392,4 +416,25 @@ func writeFmtStringerTypeName(out *strings.Builder, arg ast.Expr) bool {
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(&*__stringer.__go_value), None => \"<nil>\" }")
 	return true
+}
+
+// isFmtStringerAssertion reports whether e is x.(fmt.Stringer) on an empty
+// interface x, written by writeFmtStringerAssertionValue as a bare
+// fmt_Stringer.
+func isFmtStringerAssertion(e *ast.TypeAssertExpr) bool {
+	_, _, ok := fmtStringerAssertionTarget(e)
+	return ok
+}
+
+// fmtStringerCandidateIsTranslated reports whether a candidate type outside
+// the current package is translated from Go source rather than a stub.
+func fmtStringerCandidateIsTranslated(typ types.Type) bool {
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())
 }

@@ -111,3 +111,35 @@ func main() {
 		}
 	}
 }
+
+// A call's result converts to fmt.Stringer by its value, and an assertion
+// to fmt.Stringer prints and names its held type without the cell steps of
+// a variable.
+func TestFmtStringerCallConversionAndAssertionArguments(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Celsius struct{ Deg int }
+
+func (c Celsius) String() string { return fmt.Sprint(c.Deg) }
+
+func makeC() Celsius { return Celsius{3} }
+
+func main() {
+	var s fmt.Stringer = makeC()
+	var v any = Celsius{2}
+	fmt.Println(s, v.(fmt.Stringer))
+	fmt.Printf("%T\n", v.(fmt.Stringer))
+}
+`)
+	for _, want := range []string{
+		"fmt_Stringer::__go_from_display((*make_c().borrow().as_ref().unwrap()).clone())",
+		"__go_type_name(&*(({",
+		").__go_value)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+}

@@ -1168,6 +1168,10 @@ impl Counter {
     }
 }
 
+pub fn make_celsius(d: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Celsius>>> {
+    Arc::new(Mutex::new(Some(Celsius { deg: Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
+}
+
 /// Stringer returns its argument as a fmt.Stringer.
 pub fn stringer(v: Arc<Mutex<Option<fmt_Stringer>>>) -> Arc<Mutex<Option<fmt_Stringer>>> {
     return v.clone();
@@ -1338,6 +1342,34 @@ fn main() {
         }
     }
     print!("{} {} {}\n", format!("{}", { let __type_name = match (s).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", { let __type_name = match (stringer(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+
+        // A call's result, an assertion printed directly, and %T of one.
+    let mut made: Arc<Mutex<Option<fmt_Stringer>>> = Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display((*make_celsius(Arc::new(Mutex::new(Some(11)))).lock().unwrap().as_ref().unwrap()).clone()))));
+    let mut held: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Celsius { deg: Arc::new(Mutex::new(Some(12))), ..Default::default() }) as Box<dyn Any + Send + Sync>)));
+    println!("{} {}", format!("{}", (*(*made.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())), format!("{}", format!("{}", ({
+        let val = held.clone();
+        let __stringer: Result<fmt_Stringer, String> = {
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { Ok(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { Ok(fmt_Stringer::__go_from_display(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else { Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))) }
+        } else {
+            Err("interface conversion: interface is nil, not fmt.Stringer".to_string())
+        }
+        };
+        match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }
+    }))));
+    print!("{}\n", { let __type_name = __go_type_name(&*(({
+        let val = held.clone();
+        let __stringer: Result<fmt_Stringer, String> = {
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { Ok(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { Ok(fmt_Stringer::__go_from_display(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else { Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))) }
+        } else {
+            Err("interface conversion: interface is nil, not fmt.Stringer".to_string())
+        }
+        };
+        match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }
+    })).__go_value); __type_name });
 
         // A failed assertion that is recovered leaves the value usable.
     let mut five: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(5i64) as Box<dyn Any + Send + Sync>)));

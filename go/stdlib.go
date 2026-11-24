@@ -612,6 +612,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
+					} else if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
+						// x.(fmt.Stringer) yields the bare fmt_Stringer.
+						TranspileExpression(out, arg)
 					} else {
 						// Complex expression
 						out.WriteString("(*(")
