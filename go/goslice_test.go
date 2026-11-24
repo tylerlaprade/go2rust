@@ -34,7 +34,7 @@ func main() {
 		"let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended)))",
 		"let mut xs = Rc::new(RefCell::new((*xs.borrow()).clone()));",
 		"*other.borrow_mut() = __slice_header;",
-		"(0..(8) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v",
+		"(0..(8) as usize).map(|_| 0u8).collect(); v.truncate((0) as usize); v",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("GoSlice mode output is missing %q:\n%s", want, rust)

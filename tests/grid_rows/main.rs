@@ -851,7 +851,7 @@ impl Board {
     pub fn render(&self) -> Rc<RefCell<Option<Vec<String>>>> {
         let mut lines = Rc::new(RefCell::new(Some({ let mut v: Vec<String> = (0..(*self.h.clone().borrow().as_ref().unwrap()) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
         { let __range_holder = self.cells.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
-        let mut buf = Rc::new(RefCell::new(Some(vec![0; (row.len()) as usize])));
+        let mut buf = Rc::new(RefCell::new(Some(vec![0i32; (row.len()) as usize])));
         for (x, c) in row.iter().enumerate() {
         let c = &c.__go_value_clone();
         { let __idx = (x) as usize; let __rhs = ('.' as i32); (*buf.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };

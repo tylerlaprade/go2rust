@@ -685,7 +685,7 @@ fn main() {
 
         // Ignore keys, use only values
     println!("{}", format!("{}", "Values only:".to_string()));
-    let mut values = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
+    let mut values = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..((*ages.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| 0i64).collect(); v.truncate((0) as usize); v })));
     for (_, age) in { let __range_holder = ages.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = (*age.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *values.borrow_mut() = __slice_header; };
     }

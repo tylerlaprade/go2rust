@@ -1200,7 +1200,7 @@ pub fn square(i: Arc<Mutex<Option<i64>>>, results: Arc<Mutex<Option<Vec<i64>>>>,
 
 fn main() {
     let mut total = Arc::new(Mutex::new(Some(0i64)));
-    let mut results = Arc::new(Mutex::new(Some(vec![0; (4) as usize])));
+    let mut results = Arc::new(Mutex::new(Some(vec![0i64; (4) as usize])));
     let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([]))));
     let mut mu = GoMutex::new();
     let mut wg = WaitGroup::new();

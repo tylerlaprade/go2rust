@@ -6057,6 +6057,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				// make([]T, m) of a struct T.
 				elementType = "<" + elementRustType + ">::nil()"
 			}
+			if (elementType == "0" || elementType == "0.0") && rustPrimitiveNumericTypes[elementRustType] {
+				// make([]byte, n) is a Vec<u8> even when nothing later pins
+				// the element type down, as when the slice only goes to
+				// f.Read(buf): an untyped 0 would make it a Vec<i32>.
+				elementType += elementRustType
+			}
 
 			WriteWrapperPrefix(out)
 			if len(call.Args) >= 3 && goSliceModeEnabled() {
@@ -6108,6 +6114,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(")))")
 		}
 	}
+}
+
+var rustPrimitiveNumericTypes = map[string]bool{
+	"u8": true, "u16": true, "u32": true, "u64": true, "usize": true,
+	"i8": true, "i16": true, "i32": true, "i64": true, "isize": true,
+	"f32": true, "f64": true,
 }
 
 // writeMakeNamedType handles make(T) where T is a named type whose underlying
