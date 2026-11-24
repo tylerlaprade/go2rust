@@ -1823,6 +1823,10 @@ run_xfail_test() {
     run_test "tests/interface_slice_nil_element"
 }
 
+@test "interface_type_name_embedded_and_func" {
+    run_test "tests/interface_type_name_embedded_and_func"
+}
+
 @test "interface_values_are_copied" {
     run_test "tests/interface_values_are_copied"
 }

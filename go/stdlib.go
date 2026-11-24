@@ -506,12 +506,20 @@ func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bo
 			// instances fall back below.
 			continue
 		}
+		if sourceMappedDeclIsPruned(tn) {
+			// Dead code elimination left the type out of the crate.
+			continue
+		}
 		if types.Implements(tn.Type(), iface) {
 			rustType, rustOK := anyCloneRustType(tn.Type())
 			goName, goOK := goDynamicTypeName(tn.Type())
 			if rustOK && goOK {
 				names = append(names, namedRustType{rustType, goName})
 			}
+		}
+		if _, isFunc := tn.Type().Underlying().(*types.Signature); isFunc {
+			// A defined func type gets no pointer wrapper.
+			continue
 		}
 		if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
 			// A *T in one of the program's interfaces is boxed in the
@@ -534,11 +542,14 @@ func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bo
 		}
 		return count > 1
 	})
+	// An interface that embeds two others inherits __go_as_any from both,
+	// so the call names one of them.
+	qualifyingTrait := goAsAnyQualifyingTraitByName(ifaceName)
 	var chain strings.Builder
 	chain.WriteString("{ let __any = ")
-	writeChain := func(value string) {
-		chain.WriteString(value)
-		chain.WriteString(".__go_as_any(); ")
+	writeChain := func(value, ref string) {
+		chain.WriteString(goAsAnyCall(qualifyingTrait, value, ref))
+		chain.WriteString("; ")
 		for _, n := range names {
 			chain.WriteString("if __any.is::<")
 			chain.WriteString(n.rust)
@@ -549,11 +560,11 @@ func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bo
 		chain.WriteString("{ std::any::type_name_of_val(__any) } }")
 	}
 	if isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
-		writeChain(RustIdentForUse(ident))
+		writeChain(RustIdentForUse(ident), RustIdentForUse(ident))
 		out.WriteString(chain.String())
 		return true
 	}
-	writeChain("__iface")
+	writeChain("__iface", "&**__iface")
 	out.WriteString("{ let __type_name = match ")
 	out.WriteString(RustIdentForUse(ident))
 	WriteBorrowMethod(out, false)
