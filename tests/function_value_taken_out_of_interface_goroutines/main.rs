@@ -614,6 +614,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -805,6 +810,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>() { return "func()" }
     if val.is::<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>>() { return "func() string" }
     if val.is::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>() { return "func(int) int" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -978,7 +984,7 @@ fn main() {
     {
     let _ts_subject = x.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {

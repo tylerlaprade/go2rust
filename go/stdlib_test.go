@@ -1844,7 +1844,8 @@ func main() {
 }
 `)
 
-	want := "let __append_value = { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) };"
+	// A nil x is boxed as GoNilAny (DEV-151).
+	want := "let __append_value = { let __any_holder = x.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } };"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("missing %q in:\n%s", want, rust)
 	}

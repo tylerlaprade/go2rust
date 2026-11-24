@@ -700,10 +700,17 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
         format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
@@ -939,6 +946,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Arc<Mutex<Option<Vec<f64>>>>>() { return "[]float64" }
     if val.is::<Arc<Mutex<Option<Vec<i64>>>>>() { return "[]int" }
     if val.is::<Arc<Mutex<Option<Vec<u8>>>>>() { return "[]uint8" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -1750,7 +1758,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __max = __source_cap;
         __seq.reslice3_zeroed(__low, __high, __max)
-    }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
+    }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
     { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err.lock().unwrap() = new_val; };
     print!("{}", go_sprintf(&"%q %v\n".to_string(), &[{ let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
         let __seq_holder = b.clone();
@@ -1762,7 +1770,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __max = __source_cap;
         __seq.reslice3_zeroed(__low, __high, __max)
-    }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
+    }))).clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], false));
     let mut s = Arc::new(Mutex::new(Some(vec!["a".to_string(), "b c".to_string(), "\"q\"".to_string()])));
     print!("{}", go_sprintf(&"%q\n".to_string(), &[{ let __go_format_arg = Box::new(Arc::new(Mutex::new(Some({
         let __seq_holder = s.clone();

@@ -2435,6 +2435,14 @@ run_xfail_test() {
     run_test "tests/nested_structures"
 }
 
+@test "nil_any_elements" {
+    run_test "tests/nil_any_elements"
+}
+
+@test "nil_any_elements_goroutines" {
+    run_test "tests/nil_any_elements_goroutines"
+}
+
 @test "nil_basic" {
     run_test "tests/nil_basic"
 }

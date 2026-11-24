@@ -615,6 +615,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -776,7 +781,7 @@ pub fn as_any(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> Arc<M
         let __err_holder = err.clone();
         let __err_guard = __err_holder.lock().unwrap();
         match __err_guard.as_ref() {
-            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>,
             Some(__err) => {
                 if let Some(typed_val) = __err.downcast_ref::<alphaErr>() {
                     go_box_any_with_metadata(typed_val.clone(), "struct", true)

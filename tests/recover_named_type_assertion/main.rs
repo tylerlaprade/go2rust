@@ -614,6 +614,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
 }
@@ -771,7 +776,7 @@ fn main() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut e = go_recover();;
-        if { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*e.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             {
         let (mut ierr, mut ok) = ({
         let val = e.clone();

@@ -613,6 +613,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 pub fn zero() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
@@ -629,7 +634,7 @@ fn main() {
         std::process::exit(2);
     }
     });
-    if { let __nil_result = (*zero().lock().unwrap()).is_none(); __nil_result } {
+    if { let __nil_result = (*zero().lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
         println!("{}", format!("{}", "nil".to_string()));
     }
 }

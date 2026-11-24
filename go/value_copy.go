@@ -355,6 +355,14 @@ func writeGoValueCopyOfElement(out *strings.Builder, expr ast.Expr) bool {
 // the slice expression sliceExpr, to follow the Rust value of that slice:
 // "append(dst, src...)" gives dst its own copy of every element of src.
 func goElementCopyIter(sliceExpr ast.Expr) string {
+	// A []any element is a Box<dyn Any>, which has no Clone: append(dst,
+	// src...) copies each with go_any_clone.
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if slice, ok := types.Unalias(typeInfo.GetType(sliceExpr)).(*types.Slice); ok && isEmptyInterfaceType(slice.Elem()) {
+			NeedAnyClone()
+			return ".iter().map(|__go_elem| go_any_clone(__go_elem.as_ref()))"
+		}
+	}
 	copyCall, known := elementGoValueCopyCall(sliceExpr)
 	if !known {
 		return ".iter().map(|_| " + goValueCopyNeedsTypeInfo + ")"

@@ -1290,6 +1290,30 @@ func NeedJsonEscape() {
 	}
 }
 
+// NeedGoNilAny marks that the program stores a nil interface value in a
+// slot that holds a bare Box<dyn Any>, such as a []any element or a
+// ...any argument: the box holds GoNilAny, which copies, prints and
+// compares as nil.
+func NeedGoNilAny() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	helpers.needsGoNilAny = true
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[goNilAnyType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	helpers.anyFormatArms[goNilAnyType] = anyFormatArm{expr: `"<nil>".to_string()`}
+	if helpers.anyTypeNames == nil {
+		helpers.anyTypeNames = make(map[string]string)
+	}
+	helpers.anyTypeNames[goNilAnyType] = "<nil>"
+}
+
 // NeedOsFile marks that we need OS file helpers
 func NeedOsFile() {
 	if helpers := activeHelperTracker(); helpers != nil {
