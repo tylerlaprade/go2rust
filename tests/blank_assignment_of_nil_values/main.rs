@@ -809,7 +809,7 @@ fn main() {
     let _ = &err;
     let mut ptr: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
     let _ = &ptr;
-    let mut m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(Some(BTreeMap::new())));
+    let mut m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));
     let _ = &m;
     let mut s: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     let _ = &s;

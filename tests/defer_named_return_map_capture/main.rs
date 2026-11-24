@@ -743,6 +743,6 @@ impl Free {
 fn main() {
     let mut f: Rc<RefCell<Option<Free>>> = Rc::new(RefCell::new(Some(Default::default())));
     let mut has = (*f.borrow_mut().as_mut().unwrap()).has(Rc::new(RefCell::new(Some("x".to_string()))));
-    let mut seen = Rc::new(RefCell::new(Some((*(*f.borrow().as_ref().unwrap()).seen.borrow().as_ref().unwrap()).clone().get(&"x".to_string()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false))));
+    let mut seen = Rc::new(RefCell::new(Some({ let __map_holder = (*f.borrow().as_ref().unwrap()).seen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) })));
     println!("{} {}", format!("{}", has), format!("{}", { let __v = (*seen.borrow().as_ref().unwrap()).clone(); __v }));
 }

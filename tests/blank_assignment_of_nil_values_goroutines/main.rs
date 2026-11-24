@@ -971,7 +971,7 @@ fn main() {
     let _ = &err;
     let mut ptr: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));
     let _ = &ptr;
-    let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+    let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));
     let _ = &m;
     let mut s: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
     let _ = &s;
