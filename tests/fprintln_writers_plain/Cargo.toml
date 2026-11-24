@@ -1,0 +1,11 @@
+[package]
+name = "fprintln_writers_plain"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fprintln_writers_plain"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -7965,6 +7965,25 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	return false
 }
 
+// isCurrentReceiverFieldSelector reports whether expr is r.f for the current
+// method's receiver r.
+func isCurrentReceiverFieldSelector(expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if selection, ok := typeInfo.info.Selections[sel]; ok {
+			return selection.Kind() == types.FieldVal
+		}
+	}
+	return false
+}
+
 func writeCopySelectorFieldArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	sel, ok := arg.(*ast.SelectorExpr)
 	if !ok || !selectorFieldCallArgumentCopiesInnerValue(sel) {
@@ -15726,6 +15745,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							TranspileExpression(out, elt)
 						}
+					} else if isEmptyInterfaceType(elemType) && isCurrentReceiverFieldSelector(elt) && writeOwnedExpressionValue(out, elt) {
+						// A field of the method's receiver goes in as its
+						// value, not as the field's cell.
 					} else {
 						TranspileExpression(out, elt)
 					}
