@@ -311,7 +311,7 @@ func TestRangeAndMapReadsCopyTheValue(t *testing.T) {
 		`n, ok := counts["a"]`:       "Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false)",
 		`l, ok = lists["a"]`:         "Some(v) => (v.clone(), true), None => (Default::default(), false) } }; l = __tmp_0;",
 		`pp, ok := ptrs["a"]`:        "let (mut pp, mut ok) = { let __map_holder = ptrs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true)",
-		`f, ok := reg.byName["a"]`:   ".clone().get(&\"a\".to_string()) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
+		`f, ok := reg.byName["a"]`:   "let __map_holder = (*reg.borrow().as_ref().unwrap()).by_name.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&\"a\".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().__go_value_clone()))), true)",
 		"the map's cell is not kept": "*r.borrow_mut() = __moved_tmp_0;",
 	} {
 		if !strings.Contains(rust, want) {

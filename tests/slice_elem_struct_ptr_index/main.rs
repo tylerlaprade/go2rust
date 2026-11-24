@@ -1349,7 +1349,7 @@ pub fn raise(e: Rc<RefCell<Option<Employee>>>, pct: Rc<RefCell<Option<i64>>>) {
 fn main() {
     let mut r = Rc::new(RefCell::new(Some(Registry { all: Rc::new(RefCell::new(Some(vec![Employee { name: Rc::new(RefCell::new(Some("ann".to_string()))), dept: Rc::new(RefCell::new(Some("eng".to_string()))), salary: Rc::new(RefCell::new(Some(100))), ..Default::default() }, Employee { name: Rc::new(RefCell::new(Some("bo".to_string()))), dept: Rc::new(RefCell::new(Some("ops".to_string()))), salary: Rc::new(RefCell::new(Some(80))), ..Default::default() }, Employee { name: Rc::new(RefCell::new(Some("cy".to_string()))), dept: Rc::new(RefCell::new(Some("eng".to_string()))), salary: Rc::new(RefCell::new(Some(120))), ..Default::default() }]))), ..Default::default() })));
     (*r.borrow_mut().as_mut().unwrap()).index();
-    { let __range_holder = (*(*r.borrow().as_ref().unwrap()).by_dept.borrow().as_ref().unwrap()).clone().get(&"eng".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
+    { let __range_holder = { let __map_holder = (*r.borrow().as_ref().unwrap()).by_dept.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"eng".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
         raise((*e).clone(), Rc::new(RefCell::new(Some(10))));
     } }
     raise({ let __elem_ptr = GoSliceElemPtr::new((*r.borrow().as_ref().unwrap()).all.clone(), (1) as usize); Rc::new(RefCell::new((*__elem_ptr.borrow()).clone())) }, Rc::new(RefCell::new(Some(50))));
@@ -1359,7 +1359,7 @@ fn main() {
         println!("{} {} {}", format!("{}", (*e.name.borrow().as_ref().unwrap()).clone()), format!("{}", (*e.dept.borrow().as_ref().unwrap()).clone()), format!("{}", (*e.salary.borrow().as_ref().unwrap())));
     } }
     let mut depts = Rc::new(RefCell::new(Some(Vec::<String>::new())));
-    for (d, es) in ((*(*r.borrow().as_ref().unwrap()).by_dept.borrow().as_ref().unwrap()).clone()).clone() {
+    for (d, es) in { let __range_holder = (*r.borrow().as_ref().unwrap()).by_dept.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = depts.clone(); let __append_value = (*Rc::new(RefCell::new(Some(format!("{}:{}", d, (*es.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0))))).borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *depts.borrow_mut() = __slice_header; };
     }
     { let __sort_target = depts.clone(); let mut __sort_guard = __sort_target.borrow_mut(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
@@ -1367,5 +1367,5 @@ fn main() {
 
         // A *T parameter given &s[i] writes the element's fields.
     raise({ let __elem_ptr = GoSliceElemPtr::new((*r.borrow().as_ref().unwrap()).all.clone(), (0) as usize); Rc::new(RefCell::new((*__elem_ptr.borrow()).clone())) }, Rc::new(RefCell::new(Some(100))));
-    println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).all.borrow().as_ref().unwrap())[(0) as usize].clone().salary.borrow().as_ref().unwrap())), format!("{}", (*(*(*(*(*r.borrow().as_ref().unwrap()).by_dept.borrow().as_ref().unwrap()).clone().get(&"eng".to_string()).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()).borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).salary.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).all.borrow().as_ref().unwrap())[(0) as usize].clone().salary.borrow().as_ref().unwrap())), format!("{}", (*(*(*{ let __map_holder = (*r.borrow().as_ref().unwrap()).by_dept.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"eng".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).salary.borrow().as_ref().unwrap())));
 }

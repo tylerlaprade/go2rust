@@ -6573,6 +6573,58 @@ func store(m map[string]bool, key string) {
 	}
 }
 
+func TestZeroValueLocalMapStaysNilAndWriteUsesGoPanic(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func key() string { return "new" }
+func value() int { return 7 }
+
+func store() {
+	var values map[string]int
+	values[key()] = value()
+	var counts map[string]int
+	counts[key()]++
+}
+`)
+
+	if !strings.Contains(rust, "let mut values: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let mut values: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));") {
+		t.Fatalf("zero-valued unnamed map should remain nil:\n%s", rust)
+	}
+	keyAt := strings.Index(rust, "let __map_key =")
+	valueAt := strings.Index(rust, "let __map_value =")
+	panicAt := strings.Index(rust, "unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
+	if keyAt < 0 || valueAt < keyAt || panicAt < valueAt {
+		t.Fatalf("map key and value must be evaluated before checking the nil map:\n%s", rust)
+	}
+	if strings.Count(rust, "unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))") != 2 {
+		t.Fatalf("plain and compound writes to zero-valued maps should use the Go panic:\n%s", rust)
+	}
+}
+
+func TestZeroValueMapFieldLookupAndRangeStayNilSafe(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type holder struct { values map[string]int }
+
+func check() {
+	var h holder
+	_ = h.values["plain"]
+	_, _ = h.values["missing"]
+	for range h.values {}
+}
+`)
+
+	if strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone().get") ||
+		strings.Contains(rust, ".values.borrow().as_ref().unwrap()).clone()).clone()") {
+		t.Fatalf("nil map field lookup and range must not unwrap the map value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".values.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then") ||
+		!strings.Contains(rust, "let __range_map = __range_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("map field comma-ok lookup and range should use the nil-tolerant handle path:\n%s", rust)
+	}
+}
+
 func TestMapAssignmentCastsBareRangeIndexValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
