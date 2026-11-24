@@ -980,6 +980,33 @@ func NeedEmbeddedOwnerRegistry() {
 	})
 }
 
+// RegisterGoTypeName records what Go calls typ for %T, without the clone
+// and format arms RegisterAnyCloneType also adds.
+func RegisterGoTypeName(typ types.Type) {
+	rustType, ok := anyCloneRustType(typ)
+	if !ok {
+		return
+	}
+	goName, ok := goDynamicTypeName(typ)
+	if !ok {
+		return
+	}
+	registerGoTypeNameForRustType(rustType, goName)
+}
+
+// registerGoTypeNameForRustType records that a value of rustType is what Go
+// calls goName for %T.
+func registerGoTypeNameForRustType(rustType, goName string) {
+	if helpers := activeHelperTracker(); helpers != nil {
+		if helpers.anyTypeNames == nil {
+			helpers.anyTypeNames = make(map[string]string)
+		}
+		if existing, seen := helpers.anyTypeNames[rustType]; !seen || goName < existing {
+			helpers.anyTypeNames[rustType] = goName
+		}
+	}
+}
+
 func RegisterAnyCloneType(typ types.Type) {
 	rustType, ok := anyCloneRustType(typ)
 	if !ok {

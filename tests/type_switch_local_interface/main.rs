@@ -726,7 +726,7 @@ pub struct alphaPtr(pub Rc<RefCell<Option<alpha>>>);
 impl std::fmt::Display for alphaPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -782,7 +782,7 @@ pub struct betaPtr(pub Rc<RefCell<Option<beta>>>);
 impl std::fmt::Display for betaPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
     }
 }
 

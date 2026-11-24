@@ -734,7 +734,7 @@ pub struct IdentPtr(pub Rc<RefCell<Option<Ident>>>);
 impl std::fmt::Display for IdentPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -790,7 +790,7 @@ pub struct StarExprPtr(pub Rc<RefCell<Option<StarExpr>>>);
 impl std::fmt::Display for StarExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
     }
 }
 

@@ -460,6 +460,81 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
+// writeLocalInterfaceTypeNameFormatArg writes %T of a value of one of the
+// program's interfaces, an ident held in a cell, as the type of the value it
+// holds: the trait object's __go_as_any, named by __go_type_name. Every type
+// of the package that implements the interface gets its name recorded.
+func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return false
+	}
+	iface, ok := typ.Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	// Only an interface of the package being translated: its implementors
+	// and their pointer wrappers are in this crate, under these names.
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	{
+		scope := named.Obj().Pkg().Scope()
+		for _, name := range scope.Names() {
+			tn, ok := scope.Lookup(name).(*types.TypeName)
+			if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) {
+				continue
+			}
+			if types.Implements(tn.Type(), iface) {
+				RegisterGoTypeName(tn.Type())
+			}
+			if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
+				// A *T in one of the program's interfaces is boxed in the
+				// pointer wrapper, not as the handle.
+				if goName, ok := goDynamicTypeName(ptr); ok {
+					ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(typ)
+					registerGoTypeNameForRustType(pointerLocalInterfaceWrapperNameForUse(tn.Name(), ifaceName), goName)
+				}
+			}
+		}
+	}
+	if isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
+		out.WriteString(goTypeNameHelperRustName)
+		out.WriteString("(")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".__go_as_any())")
+		return true
+	}
+	out.WriteString("{ let __type_name = match ")
+	out.WriteString(RustIdentForUse(ident))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__iface) => ")
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(__iface.__go_as_any()), None => \"<nil>\" }; __type_name }")
+	return true
+}
+
+// rangeVarHoldsWrappedCell reports whether ident is a range loop variable
+// whose value is a cell: the value of "for _, s := range shapes" for a
+// []Shape of a local interface Shape. It is not bare, though range
+// variables usually are.
+func rangeVarHoldsWrappedCell(ident *ast.Ident) bool {
+	varType, ok := rangeLoopVars[ident.Name]
+	return ok && !identShadowsRangeVar(ident) && isWrappedRangeVarType(varType)
+}
+
 // printArgIsBasicFloat reports whether a print operand is a float32 or a
 // float64 that is not of a named type, and whether it is a float32. fmt
 // prints such a value as %v; Rust's Display has no exponent form.
@@ -596,7 +671,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			} else {
 				// It's a named interface - use Display formatting
 				// Check if it's a bare interface param (&dyn Trait) - use directly
-				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) {
+				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
 					// Interface parameter is already &dyn Trait with Display supertrait
 					out.WriteString(RustIdentForUse(ident))
 				} else {
@@ -1439,6 +1514,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		}
 	}
 	NeedGoTypeName()
+	if writeLocalInterfaceTypeNameFormatArg(out, arg) {
+		return
+	}
 	var payload strings.Builder
 	if writeBareAnyPayloadRef(&payload, arg) {
 		out.WriteString(goTypeNameHelperRustName)
