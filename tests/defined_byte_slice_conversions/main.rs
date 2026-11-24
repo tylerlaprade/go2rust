@@ -790,7 +790,7 @@ fn main() {
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*(*m.borrow().as_ref().unwrap()).body.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())));
 
         // u shares raw's array until the append, which needs a new one.
-    let mut raw = Rc::new(RefCell::new(Some(vec![0; (3) as usize])));
+    let mut raw = Rc::new(RefCell::new(Some(vec![0u8; (3) as usize])));
     {
         let _src = "raw".to_string().as_bytes().to_vec();
         let _n = std::cmp::min((*raw.borrow().as_ref().unwrap()).len(), _src.len());
