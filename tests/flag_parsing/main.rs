@@ -9,6 +9,11 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::flag::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strconv::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut name = flag::string(Arc::new(Mutex::new(Some("name".to_string()))), Arc::new(Mutex::new(Some("World".to_string()))), Arc::new(Mutex::new(Some("a name to say hello to".to_string()))));
     flag::parse();

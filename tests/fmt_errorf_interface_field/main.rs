@@ -40,8 +40,10 @@ fn main() {
     ::internal_race::__go_init_all();
     ::internal_sync::__go_init_all();
     ::io::__go_init_all();
+    ::math_bits::__go_init_all();
     ::sync::__go_init_all();
     ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut h = Arc::new(Mutex::new(Some(holder { w: Arc::new(Mutex::new(Some(Box::new(bytes::buffer::BufferPtr(bytes::new_buffer(Arc::new(Mutex::new(None))).clone())) as Box<dyn io::r#mod::Writer + Send + Sync>))), ..Default::default() })));

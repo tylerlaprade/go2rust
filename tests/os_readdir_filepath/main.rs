@@ -14,6 +14,7 @@ fn main() {
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::path_filepath::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let (mut entries, mut err) = os::read_dir("data".to_string());
     let mut entries = { let __slice_header = GoSliceHeader::go_slice_header(&entries); Arc::new(Mutex::new(__slice_header)) };

@@ -1195,9 +1195,14 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
     None
 }
 
+// A nil interface value passed to a format known only at run time. The
+// arguments are boxes, which cannot be nil themselves.
+#[allow(dead_code)]
+struct GoFormatNil;
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1696,6 +1701,9 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
+    if value.is::<GoFormatNil>() {
+        return "<nil>".to_string();
+    }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
 }
@@ -1788,6 +1796,16 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
         // bool or a []byte is not an error, and fmt reports the verb: once
         // for a scalar, and for each byte of a []byte.
+        // A nil interface value prints <nil> for %v and %T, and fmt reports
+        // any other verb.
+        if arg.is::<GoFormatNil>() {
+            if matches!(verb, 'v' | 'T') {
+                out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
+            } else {
+                out.push_str(&format!("%!{}(<nil>)", verb));
+            }
+            continue;
+        }
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -2505,7 +2523,7 @@ impl Inventory {
         if !ok {
         return (
             Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(0 as i64))))))),
-            Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } }; __go_format_arg }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))))
+            Arc::new(Mutex::new(Some(go_error_wrap(format!("{}", go_sprintf(&"take %q: %w".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg: Box<dyn Any + Send + Sync> = if { let __nil_result = (*ErrNotFound.lock().unwrap()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __err_holder = ErrNotFound.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<StockError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } } }; __go_format_arg }], true)), vec![{ let __err_handle = { let __err_source = ErrNotFound.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }]))))
         );
     }
         if { let __tmp_x = (*{ let __field = (*it.lock().unwrap().as_ref().unwrap()).qty.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*qty.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {

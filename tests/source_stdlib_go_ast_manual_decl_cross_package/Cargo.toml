@@ -6,6 +6,10 @@ members = [
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_ast",
     "vendor/go_token",
+    "vendor/internal_stringslite",
+    "vendor/math",
+    "vendor/math_bits",
+    "vendor/strconv",
     "vendor/unicode",
     "vendor/unicode_utf8",
 ]
@@ -27,5 +31,9 @@ example_com_source_stdlib_go_ast_manual_decl_cross_package_walker = { path = "ve
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }
 go_token = { path = "vendor/go_token" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
+strconv = { path = "vendor/strconv" }
 unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

@@ -20,6 +20,7 @@ fn main() {
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::path_filepath::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("/foo".to_string()))))));
     println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("foo".to_string()))))));

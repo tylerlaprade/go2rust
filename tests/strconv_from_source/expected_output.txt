@@ -1,0 +1,50 @@
+42 <nil>
+-7 <nil>
+3 <nil>
+0 strconv.Atoi: parsing "0x1f": invalid syntax
+0 strconv.Atoi: parsing "abc": invalid syntax
+9223372036854775807 strconv.Atoi: parsing "99999999999999999999": value out of range
+0 strconv.Atoi: parsing "": invalid syntax
+255 <nil>
+255 <nil>
+-128 <nil>
+127 strconv.ParseInt: parsing "128": value out of range
+511 <nil>
+10 <nil>
+35 <nil>
+18446744073709551615 <nil>
+strconv.ParseUint: parsing "-1": invalid syntax
+3.14159 <nil>
+1e+10 <nil>
+-0 <nil>
++Inf <nil>
+NaN <nil>
++Inf strconv.ParseFloat: parsing "1e400": value out of range
+0.25 <nil>
+0 strconv.ParseFloat: parsing "12abc": invalid syntax
+0.5 <nil>
++Inf strconv.ParseFloat: parsing "3.4e39": value out of range
+true <nil>
+false <nil>
+true <nil>
+false strconv.ParseBool: parsing "yes": invalid syntax
+-12345 ff -11111111 1y2p0ij32e8e8
+0 0.000e+00 0 0.00 0
+1 1.000e+00 1 1.00 1
+-2.5 -2.500e+00 -2.5 -2.50 -2.5
+3.14159265358979 3.142e+00 3.14159265358979 3.14 3.142
+1000000000000000000000 1.000e+21 1e+21 1000000000000000000000.00 1e+21
+0.0000001 1.000e-07 1e-07 0.00 1e-07
+123456789.125 1.235e+08 1.23456789125e+08 123456789.12 1.235e+08
+0.3 3.000e-01 0.3 0.30 0.3
+true "hi\n\"there\"\t☺\x00" "\u263a \u00e9" '☺' '\n'
+"a\tb" <nil>
+"raw\\n" <nil>
+"x" <nil>
+"" invalid syntax
+"☺" <nil>
+n=-42 2.5 "q"false
+func Atoi num 12x err invalid syntax true
+true
+true strconv.ParseInt: parsing "99999999999999999999": value out of range
+true false false 64
