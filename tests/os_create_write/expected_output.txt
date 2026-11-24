@@ -6,5 +6,8 @@
 1. MILK
 2. EGGS
 true
-0
+0 <nil>
+2 <nil> bc
+<nil>
+0 write os_create_write_test.txt: file already closed
 true

@@ -911,8 +911,11 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
-    /// The file os.Create opened: writes go to it, and Close closes it.
+    /// The file os.Create opened: reads and writes go to it, and Close
+    /// closes it.
     pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
+    /// The name the File was opened with, for its errors.
+    pub __go_name: String,
 }
 
 impl Default for os_File {
@@ -924,6 +927,7 @@ impl Default for os_File {
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
             __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            __go_name: String::new(),
         }
     }
 }
@@ -961,11 +965,21 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        let _ = self.__go_write_bytes_result(data);
+    }
+
+    /// Writes data to the disk file os.Create opened, or else to the
+    /// File's bytes. A closed File takes no writes, as in Go.
+    pub fn __go_write_bytes_result(&self, data: &[u8]) -> std::io::Result<()> {
+        if self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("write {}: file already closed", self.__go_name)));
+        }
         if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
-            let _ = std::io::Write::write_all(__disk, data);
-            return;
+            return std::io::Write::write_all(__disk, data)
+                .map_err(|__err| std::io::Error::new(__err.kind(), format!("write {}: {}", self.__go_name, __err)));
         }
         self.__go_data.lock().unwrap().extend_from_slice(data);
+        Ok(())
     }
 
     pub fn __go_read_all(&self) -> Vec<u8> {
@@ -987,7 +1001,10 @@ impl os_File {
             Vec::new()
         };
         let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
+        if let Err(__err) = self.__go_write_bytes_result(&bytes) {
+            let n = 0i64;
+            return (n as i64, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(__err) as std::sync::Arc<dyn std::error::Error + Send + Sync>))));
+        }
         (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
@@ -1003,7 +1020,10 @@ impl os_File {
         };
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
+        if let Err(__err) = self.__go_write_bytes_result(&bytes) {
+            let n = 0i64;
+            return (n as i64, Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(__err) as std::sync::Arc<dyn std::error::Error + Send + Sync>))));
+        }
         (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
@@ -1019,6 +1039,11 @@ impl os_File {
                         (0, false)
                     } else if self.__go_stdin {
                         match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
+                        match std::io::Read::read(__disk, __dst) {
                             Ok(0) | Err(_) => (0, true),
                             Ok(__count) => (__count, false),
                         }
@@ -1052,8 +1077,29 @@ impl os_File {
         } else {
             0
         };
-        let data = self.__go_read_all();
         let mut n = 0i64;
+        #[cfg(unix)]
+        if offset >= 0 {
+            if let Some(__disk) = self.__go_disk.lock().unwrap().as_ref() {
+                // ReadAt reads at offset without moving the File's own
+                // position, as pread does.
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+                    let mut guard = v.lock().unwrap();
+                    if let Some(target) = guard.as_mut() {
+                        let mut __done = 0usize;
+                        while __done < target.len() {
+                            match std::os::unix::fs::FileExt::read_at(__disk, &mut target[__done..], offset as u64 + __done as u64) {
+                                Ok(0) | Err(_) => break,
+                                Ok(__count) => __done += __count,
+                            }
+                        }
+                        n = __done as i64;
+                    }
+                }
+                return (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)));
+            }
+        }
+        let data = self.__go_read_all();
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {

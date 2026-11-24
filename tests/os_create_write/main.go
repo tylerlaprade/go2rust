@@ -52,9 +52,19 @@ func main() {
 	f, err = os.Create(path)
 	fmt.Println(err == nil)
 	f.Close()
-	data, _ = os.ReadFile(path)
-	fmt.Println(len(data))
+	data, err = os.ReadFile(path)
+	fmt.Println(len(data), err)
 
-	_, err = os.Create("/nonexistent-dir/x.txt")
+	g, _ := os.Create(path)
+	g.WriteString("abc")
+	buf := make([]byte, 2)
+	n, err = g.ReadAt(buf, 1)
+	fmt.Println(n, err, string(buf))
+	fmt.Println(g.Close())
+	n, err = g.WriteString("x")
+	fmt.Println(n, err)
+
+	// A file is not a directory, so nothing can be created inside it.
+	_, err = os.Create(path + "/x.txt")
 	fmt.Println(err != nil)
 }

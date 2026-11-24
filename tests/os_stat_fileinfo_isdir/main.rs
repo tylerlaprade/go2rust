@@ -625,6 +625,8 @@ pub struct fs_FileInfo {
     pub name: String,
     pub is_dir: bool,
     pub size: i64,
+    /// The modification time: seconds and nanoseconds since the Unix epoch.
+    pub mod_time: (i64, i64),
 }
 
 impl std::fmt::Display for fs_FileInfo {
@@ -697,7 +699,7 @@ pub mod os {
         match std::fs::metadata(&path) {
             Ok(metadata) => {
                 let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());
-                (Rc::new(RefCell::new(Some::<fs_FileInfo>(fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }))), no_error())
+                (Rc::new(RefCell::new(Some::<fs_FileInfo>(fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64, mod_time: metadata.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| (d.as_secs() as i64, d.subsec_nanos() as i64)).unwrap_or((0, 0)) }))), no_error())
             }
             Err(err) => (Rc::new(RefCell::new(Some::<fs_FileInfo>(fs_FileInfo::default()))), io_error(err)),
         }

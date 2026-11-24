@@ -703,8 +703,11 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
-    /// The file os.Create opened: writes go to it, and Close closes it.
+    /// The file os.Create opened: reads and writes go to it, and Close
+    /// closes it.
     pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
+    /// The name the File was opened with, for its errors.
+    pub __go_name: String,
 }
 
 impl Default for os_File {
@@ -716,6 +719,7 @@ impl Default for os_File {
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
             __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            __go_name: String::new(),
         }
     }
 }
@@ -753,11 +757,21 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        let _ = self.__go_write_bytes_result(data);
+    }
+
+    /// Writes data to the disk file os.Create opened, or else to the
+    /// File's bytes. A closed File takes no writes, as in Go.
+    pub fn __go_write_bytes_result(&self, data: &[u8]) -> std::io::Result<()> {
+        if self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("write {}: file already closed", self.__go_name)));
+        }
         if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
-            let _ = std::io::Write::write_all(__disk, data);
-            return;
+            return std::io::Write::write_all(__disk, data)
+                .map_err(|__err| std::io::Error::new(__err.kind(), format!("write {}: {}", self.__go_name, __err)));
         }
         self.__go_data.lock().unwrap().extend_from_slice(data);
+        Ok(())
     }
 
     pub fn __go_read_all(&self) -> Vec<u8> {
@@ -779,7 +793,10 @@ impl os_File {
             Vec::new()
         };
         let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
+        if let Err(__err) = self.__go_write_bytes_result(&bytes) {
+            let n = 0i64;
+            return (n as i64, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>))));
+        }
         (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
@@ -795,7 +812,10 @@ impl os_File {
         };
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
+        if let Err(__err) = self.__go_write_bytes_result(&bytes) {
+            let n = 0i64;
+            return (n as i64, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>))));
+        }
         (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
@@ -811,6 +831,11 @@ impl os_File {
                         (0, false)
                     } else if self.__go_stdin {
                         match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
+                        match std::io::Read::read(__disk, __dst) {
                             Ok(0) | Err(_) => (0, true),
                             Ok(__count) => (__count, false),
                         }
@@ -844,8 +869,29 @@ impl os_File {
         } else {
             0
         };
-        let data = self.__go_read_all();
         let mut n = 0i64;
+        #[cfg(unix)]
+        if offset >= 0 {
+            if let Some(__disk) = self.__go_disk.lock().unwrap().as_ref() {
+                // ReadAt reads at offset without moving the File's own
+                // position, as pread does.
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+                    let mut guard = v.borrow_mut();
+                    if let Some(target) = guard.as_mut() {
+                        let mut __done = 0usize;
+                        while __done < target.len() {
+                            match std::os::unix::fs::FileExt::read_at(__disk, &mut target[__done..], offset as u64 + __done as u64) {
+                                Ok(0) | Err(_) => break,
+                                Ok(__count) => __done += __count,
+                            }
+                        }
+                        n = __done as i64;
+                    }
+                }
+                return (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
+            }
+        }
+        let data = self.__go_read_all();
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {
@@ -931,9 +977,9 @@ pub mod os {
 
     pub fn create<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let path = _arg0.into_go_string();
-        match std::fs::File::create(&path) {
+        match std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).open(&path) {
             Ok(disk) => {
-                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), ..Default::default() };
+                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() };
                 (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
             }
             Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
@@ -951,8 +997,30 @@ pub mod os {
         }
     }
 
-    pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
-        panic!("open_file bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn open_file<T0: GoStringArg, T1: 'static, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+        let path = _arg0.into_go_string();
+        let flag: i64 = if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<i32>() {
+            *v as i64
+        } else if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
+            v.borrow().as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let access = flag & 3;
+        let mut options = std::fs::OpenOptions::new();
+        options.read(access == 0 || access == 2).write(access == 1 || access == 2);
+        if flag & 1024 != 0 { options.append(true); }
+        if flag & 64 != 0 { if flag & 128 != 0 { options.create_new(true); } else { options.create(true); } }
+        if flag & 512 != 0 { options.truncate(true); }
+        match options.open(&path) {
+            Ok(disk) => {
+                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() };
+                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
+            }
+            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
+        }
     }
 
     pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<Vec<u8>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {

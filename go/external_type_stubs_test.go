@@ -1172,7 +1172,7 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::fs::symlink_metadata(&path)",
-		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
+		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64, mod_time: metadata.modified()",
 		"fs_FileInfo::default()",
 		"io_error(err)",
 	} {

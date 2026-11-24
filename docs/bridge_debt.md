@@ -337,22 +337,31 @@ in the first place.
 
 ### os-file-create
 
-- Location: `go/external_type_stubs.go` (`writeOsCreateFunction`, the
-  `__go_disk` field of `writeOsFileStub` and its `__go_write_bytes` and
-  `close`, `osStubReturnsPathError`), `go/error_chain.go`
+- Location: `go/external_type_stubs.go` (`writeOsCreateFunction`,
+  `writeOsOpenFileFunction`, `writeOsIsErrorKindFunction`, the `__go_disk`
+  and `__go_name` fields of `writeOsFileStub` and its writes, reads and
+  `close`, the `mod_time` of `writeFsFileInfoStub`,
+  `osStubReturnsPathError`), `go/error_chain.go`
   (`externalErrorChainUnwrapArms`)
-- Go symbol: `os.Create`, `(*os.File).Write`, `WriteString` and `Close` on a
-  created file, `fmt.Fprintf` to it
+- Go symbol: `os.Create`, `os.OpenFile`, `os.IsNotExist`, `os.IsExist`,
+  `os.IsPermission`, `(fs.FileInfo).ModTime`, and `Write`, `WriteString`,
+  `Read`, `ReadAt` and `Close` on an opened file, `fmt.Fprintf` to it
 - Transpiler gap: `os.File` is the syscall layer and stays a stub.
   `os.Create` returned a separate hand-written `GoFile` type, while method
   calls on a `*os.File` are written for the stub's `os_File`, so writing to
   a created file did not compile (E0599, E0606) once anything else used the
   os stub. `os.Create` now returns an `os_File` that holds the file it
-  opened: writes go to the disk file, and `Close` closes it. A failure is an
-  `*fs.PathError` with op "open", as Go's. This replaces `GoFile`, which is
-  deleted, so the bridge has one file type instead of two.
+  opened: reads and writes go to the disk file, a write after `Close` fails
+  with Go's "file already closed", and `Close` closes it. A failure is an
+  `*fs.PathError` with op "open", as Go's. `os.OpenFile` opens the file with
+  the flags the type checker folded to this platform's values. This replaces
+  `GoFile`, which is deleted, so the bridge has one file type instead of
+  two. `os.IsNotExist`, `os.IsExist` and `os.IsPermission` look at the Rust
+  I/O error's kind, through an `*fs.PathError`; Go compares the errno.
+  `FileInfo.ModTime` is the time from the file's metadata.
 - Fixture: `tests/os_create_write/`, `tests/os_create_write_plain/`,
-  `tests/file_io/`, `go/os_create_test.go`
+  `tests/os_file_handle_reassignment/`, `tests/file_io/`,
+  `go/os_create_test.go`
 - Removal trigger: `os` translated from source with `syscall.Open`,
   `syscall.Write` and `syscall.Close` as the bridge; then delete
   `writeOsCreateFunction` and `__go_disk`.
