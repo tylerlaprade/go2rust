@@ -835,15 +835,15 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 }
 
 pub fn float64bits(f: Arc<Mutex<Option<f64>>>) -> u64 {
-    (({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }).to_bits() as u64)
+    return (({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }).to_bits() as u64);
 }
 
 pub fn float64frombits(b: Arc<Mutex<Option<u64>>>) -> f64 {
-    f64::from_bits(({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as u64)
+    return f64::from_bits(({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as u64);
 }
 
 pub fn float32bits(f: Arc<Mutex<Option<f32>>>) -> u32 {
-    (({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }).to_bits() as u32)
+    return (({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }).to_bits() as u32);
 }
 
 pub fn signed_of(p: Arc<Mutex<Option<u64>>>) -> i64 {

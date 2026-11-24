@@ -1080,14 +1080,14 @@ fn main() {
     let mut zero = Rc::new(RefCell::new(Some(0.0)));
     let mut holder = Rc::new(RefCell::new(Some(Holder { value: Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some({ let __bin_zero = (*zero.borrow().as_ref().unwrap()).clone(); __bin_zero / __bin_zero }))), ..Default::default() }) as Box<dyn Value>))), ..Default::default() })));
     let mut copied = { let __owned = holder.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
-    println!("{} {}", format!("{}", { let __bin_holder = (*holder.borrow().as_ref().unwrap()).__go_value_clone(); __bin_holder == __bin_holder }), format!("{}", (*holder.borrow().as_ref().unwrap()) == (*copied.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", { let __bin_holder = (*holder.borrow().as_ref().unwrap()).__go_value_clone(); __bin_holder.clone() == __bin_holder }), format!("{}", (*holder.borrow().as_ref().unwrap()) == (*copied.borrow().as_ref().unwrap())));
 
     let mut empty: Rc<RefCell<Option<Holder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    println!("{}", format!("{}", { let __bin_empty = (*empty.borrow().as_ref().unwrap()).__go_value_clone(); __bin_empty == __bin_empty }));
+    println!("{}", format!("{}", { let __bin_empty = (*empty.borrow().as_ref().unwrap()).__go_value_clone(); __bin_empty.clone() == __bin_empty }));
 
     let mut anyNaN = Rc::new(RefCell::new(Some(Holder { value: Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some(1.0))), ..Default::default() }) as Box<dyn Value>))), extra: Rc::new(RefCell::new(Some(Box::new({ let __bin_zero = (*zero.borrow().as_ref().unwrap()).clone(); __bin_zero / __bin_zero }) as Box<dyn Any>))), ..Default::default() })));
     let mut arrayNaN = Rc::new(RefCell::new(Some(Holder { value: Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some(1.0))), ..Default::default() }) as Box<dyn Value>))), values: Rc::new(RefCell::new(Some([Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some({ let __bin_zero = (*zero.borrow().as_ref().unwrap()).clone(); __bin_zero / __bin_zero }))), ..Default::default() }) as Box<dyn Value>)))]))), ..Default::default() })));
-    println!("{} {}", format!("{}", { let __bin_any_na_n = (*anyNaN.borrow().as_ref().unwrap()).__go_value_clone(); __bin_any_na_n == __bin_any_na_n }), format!("{}", { let __bin_array_na_n = (*arrayNaN.borrow().as_ref().unwrap()).__go_value_clone(); __bin_array_na_n == __bin_array_na_n }));
+    println!("{} {}", format!("{}", { let __bin_any_na_n = (*anyNaN.borrow().as_ref().unwrap()).__go_value_clone(); __bin_any_na_n.clone() == __bin_any_na_n }), format!("{}", { let __bin_array_na_n = (*arrayNaN.borrow().as_ref().unwrap()).__go_value_clone(); __bin_array_na_n.clone() == __bin_array_na_n }));
 
     let mut mixed = Rc::new(RefCell::new(Some(Holder { value: Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some(1.0))), ..Default::default() }) as Box<dyn Value>))), extra: Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>))), values: Rc::new(RefCell::new(Some([Rc::new(RefCell::new(Some(Box::new(Number { value: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }) as Box<dyn Value>)))]))), ..Default::default() })));
     let mut mixedCopy = { let __owned = mixed.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };

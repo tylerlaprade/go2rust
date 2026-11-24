@@ -783,7 +783,7 @@ impl<T> Iterator for GoChannel<T> {
 pub fn replace(mut ch: GoChannel<i64>) -> GoChannel<i64> {
     ch = GoChannel::<i64>::new_buffered(1 as usize);
     ch.send(7);
-    ch.clone()
+    return ch.clone();
 }
 
 fn main() {

@@ -614,6 +614,28 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+
 fn __go_next_external_interface_id() -> usize {
     static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
     NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
@@ -845,7 +867,7 @@ pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Optio
     for (__range_key, _) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));
         let _ = (*key.borrow().as_ref().unwrap()).pkg();
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = entries.clone(); let __append_value = entry { obj: Rc::new(RefCell::new(Some((*key.borrow_mut().as_mut().unwrap()).clone()))), ..Default::default() }; let mut __appended: Vec<entry> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *entries.borrow_mut() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = entries.clone(); let __append_value = entry { obj: Rc::new(RefCell::new(Some((*key.borrow_mut().as_mut().unwrap()).clone()))), ..Default::default() }; let mut __appended: Vec<entry> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *entries.borrow_mut() = __slice_header; };
     }
     let _ = &entries;
     let mut copied = Rc::new(RefCell::new(Some(BTreeMap::<types_Object, Rc<RefCell<Option<String>>>>::from([]))));

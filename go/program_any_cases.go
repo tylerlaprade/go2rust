@@ -42,6 +42,11 @@ type programAnyCases struct {
 	// packages that import it, so a later package can add a case that an
 	// earlier helper was written without.
 	written map[string]*programAnyCasesWritten
+
+	// runtimeOps says at least one generated non-standard-library dependency
+	// can consume a caller-defined dynamic type. Single-crate programs do not
+	// need the erased registry or its fallback calls.
+	runtimeOps bool
 }
 
 type programAnyCasesWritten struct {
@@ -59,7 +64,12 @@ func beginProgramAnyCases() {
 		formatArms: make(map[string]anyFormatArm),
 		typeNames:  make(map[string]string),
 		written:    make(map[string]*programAnyCasesWritten),
+		runtimeOps: true,
 	}
+}
+
+func programAnyRuntimeOpsEnabled() bool {
+	return currentProgramAnyCases != nil && currentProgramAnyCases.runtimeOps
 }
 
 func endProgramAnyCases() {

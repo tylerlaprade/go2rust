@@ -1222,6 +1222,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
+	dst.needsGoAnyRuntimeOps = dst.needsGoAnyRuntimeOps || src.needsGoAnyRuntimeOps
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {
@@ -1272,6 +1273,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
 	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
+	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
 	dst.needsGoTime = dst.needsGoTime || src.needsGoTime
 	dst.needsGoTimer = dst.needsGoTimer || src.needsGoTimer
@@ -1716,6 +1718,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 }
 
 func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub, jsonDecodeSupportNeeded bool) string {
+	if osStub := packageStubs["os"]; osStub != nil {
+		if _, ok := osStub.Functions["open"]; ok {
+			stubs["fs_PathError"] = true
+		}
+	}
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
 			stubs["os_File"] = true
@@ -1786,6 +1793,10 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 		}
 		if name == "fs_DirEntry" {
 			writeFsDirEntryStub(&out, name, methodsByType[name])
+			continue
+		}
+		if name == "fs_PathError" {
+			writeFsPathErrorStub(&out, methodsByType[name])
 			continue
 		}
 		if interfaceTypes[name] {
@@ -2625,6 +2636,10 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 
 // MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
 func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	if name == fmtStringerStubName {
+		writeFmtStringerStub(out, methods)
+		return
+	}
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"
@@ -2981,7 +2996,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			if i > 0 {
 				out.WriteString("\n")
 			}
-			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+			writeExternalPackageStubVariable(out, pkgName, varName, pkg.Variables[varName])
 		}
 		if len(varNames) > 0 && len(pkg.Functions) > 0 {
 			out.WriteString("\n")
@@ -3176,6 +3191,65 @@ impl %s {
 	out.WriteString("}\n")
 }
 
+// TEMPORARY: io-fs-path-error in docs/bridge_debt.md. Remove when io/fs.PathError
+// is source-transpiled for ordinary callers instead of emitted as a stub.
+func writeFsPathErrorStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	stringType := wrappedExternalStubType("String")
+	errorType := wrappedExternalStubType(externalStubErrorInnerType())
+	fmt.Fprintf(out, `#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: %s,
+    pub op: %s,
+    pub path: %s,
+}
+
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op%s;
+        let __path_guard = self.path%s;
+        let __err_guard = self.err%s;
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
+    }
+}
+
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> %s {
+        %s
+    }
+    pub fn unwrap(&self) -> %s {
+        self.err.clone()
+    }
+`, errorType, stringType, stringType, borrow, borrow, borrow, stringType, wrappedExternalStubExpr("String", "self.to_string()"), errorType)
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "error" || methodName == "unwrap" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, "fs_PathError", methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
+}
+
 // TEMPORARY: hand-written Rust shim for encoding/json package.
 // Long-term fix: transpile encoding/json source.
 func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
@@ -3265,7 +3339,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	if needsFilesystemHelpers || needsExecutable || needsHostname {
-		writeOsErrorHelpers(out)
+		_, needsOpenPathError := pkg.Functions["open"]
+		writeOsErrorHelpers(out, needsOpenPathError)
 	}
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -3300,7 +3375,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			out.WriteString(wrappedExternalStubExpr("os_File", "os_File { __go_stdin: true, ..Default::default() }"))
 			out.WriteString("\n    }\n")
 		} else {
-			writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+			writeExternalPackageStubVariable(out, "os", varName, pkg.Variables[varName])
 		}
 		out.WriteString("\n")
 	}
@@ -3362,8 +3437,7 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
-// PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
-func writeOsErrorHelpers(out *strings.Builder) {
+func writeOsErrorHelpers(out *strings.Builder, includeOpenPathError bool) {
 	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
 	fmt.Fprintf(out, `    type GoError = %s;
 
@@ -3376,6 +3450,21 @@ func writeOsErrorHelpers(out *strings.Builder) {
     }
 
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err"))
+	if !includeOpenPathError {
+		return
+	}
+
+	// TEMPORARY: os-open-path-error in docs/bridge_debt.md. Remove when os.Open
+	// and io/fs.PathError share the source-transpiled stdlib path.
+	pathError := "fs_PathError { err: " + wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "err")) +
+		", op: " + wrappedExternalStubExpr("String", "op.to_string()") +
+		", path: " + wrappedExternalStubExpr("String", "path") + " }"
+	fmt.Fprintf(out, `    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = %s;
+        %s::new(%s::new(Some(%s)))
+    }
+
+`, pathError, GetOuterWrapperType(), externalStubInnerWrapperType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "path_error"))
 }
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
@@ -3593,7 +3682,7 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
-	out.WriteString(", io_error(err)),\n")
+	out.WriteString(", path_error(\"open\", path, err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
@@ -3929,14 +4018,20 @@ fn __go_stub_eof() -> %s {
 `, errorInnerType, errorInnerType, errorType, registered, fallback)
 }
 
-func writeExternalPackageStubVariable(out *strings.Builder, varName string, rustType string) {
+func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
 	out.WriteString("() -> ")
 	out.WriteString(rustType)
 	out.WriteString(" {\n")
 	out.WriteString("        ")
-	writeExternalStubDefaultValue(out, rustType)
+	if pkgName == "fs" && varName == "ErrNotExist" {
+		// TEMPORARY: io-fs-err-not-exist in docs/bridge_debt.md. Remove when the
+		// source-transpiled io/fs sentinel is available to ordinary callers.
+		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::from(std::io::ErrorKind::NotFound)")))
+	} else {
+		writeExternalStubDefaultValue(out, rustType)
+	}
 	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
@@ -3975,7 +4070,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
+		writeExternalPackageStubVariable(out, "exec", varName, pkg.Variables[varName])
 	}
 	if len(varNames) > 0 && len(pkg.Functions) > 0 {
 		out.WriteString("\n")

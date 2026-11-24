@@ -4,9 +4,8 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -631,23 +630,23 @@ impl GoFile {
         GoFile { file: None }
     }
 
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
+    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>) {
+        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
         match self.file.as_mut() {
             Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(e)))))),
+                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i64))), Arc::new(Mutex::new(None))),
+                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from(e)))))),
             },
             None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file")))))),
+                Arc::new(Mutex::new(Some(0))),
+                Arc::new(Mutex::new(Some(std::sync::Arc::<dyn std::error::Error + Send + Sync>::from(Box::<dyn std::error::Error + Send + Sync>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file")))))),
             ),
         }
     }
 
-    fn close(&mut self) -> Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>> {
+    fn close(&mut self) -> Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>> {
         self.file = None;
-        Rc::new(RefCell::new(None))
+        Arc::new(Mutex::new(None))
     }
 }
 
@@ -690,6 +689,44 @@ impl std::fmt::Display for fs_FileMode {
 impl fs_FileMode {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
+    pub op: Arc<Mutex<Option<String>>>,
+    pub path: Arc<Mutex<Option<String>>>,
+}
+
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op.lock().unwrap();
+        let __path_guard = self.path.lock().unwrap();
+        let __err_guard = self.err.lock().unwrap();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
+        }
+    }
+}
+
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+        self.err.clone()
     }
 }
 
@@ -757,45 +794,45 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    pub fn close(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
+        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
         } else {
             Vec::new()
         };
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
             (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<String>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
         } else {
             String::new()
         };
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         // Go's Read: fill as much of p as the input has, or report the end
         // of the input with no bytes read.
-        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            let mut __guard = __buf.borrow_mut();
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            let mut __guard = __buf.lock().unwrap();
             match __guard.as_mut() {
                 Some(__dst) => {
                     let __dst = __dst.as_mut_slice();
@@ -824,15 +861,15 @@ impl os_File {
             (0, __go_stub_eof())
         } else {
             let n = __n;
-            (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+            (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
         }
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
-        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
-            v.borrow().as_ref().copied().unwrap_or_default()
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
+            v.lock().unwrap().as_ref().copied().unwrap_or_default()
         } else {
             0
         };
@@ -841,8 +878,8 @@ impl os_File {
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {
-                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-                    let mut guard = v.borrow_mut();
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+                    let mut guard = v.lock().unwrap();
                     if let Some(target) = guard.as_mut() {
                         let count = std::cmp::min(target.len(), data.len() - start);
                         target[..count].copy_from_slice(&data[start..start + count]);
@@ -851,26 +888,24 @@ impl os_File {
                 }
             }
         }
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 }
 
-thread_local! {
-    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<Rc<dyn StdError>>> = std::cell::RefCell::new(None);
-}
+static __GO_STUB_IO_EOF: std::sync::OnceLock<Arc<dyn StdError + Send + Sync>> = std::sync::OnceLock::new();
 
 /// io's init hands over io.EOF's value.
-pub fn __go_register_io_eof(eof: Option<Rc<dyn StdError>>) {
-    if eof.is_some() {
-        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
+pub fn __go_register_io_eof(eof: Option<Arc<dyn StdError + Send + Sync>>) {
+    if let Some(eof) = eof {
+        let _ = __GO_STUB_IO_EOF.set(eof);
     }
 }
 
-fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
-        Some(__eof) => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(__eof.clone()))),
-        None => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(GoStubEOF) as Rc<dyn StdError>))),
-    })
+fn __go_stub_eof() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    match __GO_STUB_IO_EOF.get() {
+        Some(__eof) => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(__eof.clone()))),
+        None => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(GoStubEOF) as Arc<dyn StdError + Send + Sync>))),
+    }
 }
 
 
@@ -900,42 +935,47 @@ pub mod os {
         }
     }
 
-    impl GoStringArg for Rc<RefCell<Option<String>>> {
+    impl GoStringArg for Arc<Mutex<Option<String>>> {
         fn into_go_string(self) -> String {
-            self.borrow().as_ref().cloned().unwrap_or_default()
+            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
         }
     }
 
-    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
+    type GoError = Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>;
 
     fn no_error() -> GoError {
-        Rc::new(RefCell::new(None))
+        Arc::new(Mutex::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
+        Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
     }
 
-    pub fn open<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = fs_PathError { err: Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>))), op: Arc::new(Mutex::new(Some::<String>(op.to_string()))), path: Arc::new(Mutex::new(Some::<String>(path))) };
+        Arc::new(Mutex::new(Some(std::sync::Arc::new(path_error) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
+    }
+
+    pub fn open<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
             Ok(data) => {
                 let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };
-                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
+                (Arc::new(Mutex::new(Some::<os_File>(file))), no_error())
             }
-            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), io_error(err)),
+            Err(err) => (Arc::new(Mutex::new(None::<os_File>)), path_error("open", path, err)),
         }
     }
 
-    pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn open_file<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         panic!("open_file bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
-    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<Vec<u8>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+    pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
-            Ok(data) => (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(data)))), no_error()),
-            Err(err) => (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), io_error(err)),
+            Ok(data) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(data)))), no_error()),
+            Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(Vec::new())))), io_error(err)),
         }
     }
 }
@@ -945,27 +985,27 @@ fn main() {
     const path: &'static str = "go2rust-file-handle.txt";
 
 
-    let (mut file, mut err) = { let __path = path; match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+    let (mut file, mut err) = { let __path = path; match GoFile::create(&__path) { Ok(file) => (Arc::new(Mutex::new(Some(file))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))), Err(e) => (Arc::new(Mutex::new(Some(GoFile::empty()))), Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e)))))) } };
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", false));
         return;
     }
-    { let (__tmp_0, __tmp_1) = (*file.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("first".to_string())))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("first".to_string())))); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __nil_result = (*{ let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result }.lock().unwrap()).is_none(); __nil_result }));
 
-    { let (__tmp_0, __tmp_1) = os::open("go2rust-file-handle.txt".to_string()); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = os::open("go2rust-file-handle.txt".to_string()); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __nil_result = (*{ let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result }.lock().unwrap()).is_none(); __nil_result }));
 
-    { let (__tmp_0, __tmp_1) = os::open_file("go2rust-file-handle.txt".to_string(), 1025, fs_FileMode(0o600 as u32)); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+    { let (__tmp_0, __tmp_1) = os::open_file("go2rust-file-handle.txt".to_string(), 1025, fs_FileMode(0o600 as u32)); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", false));
         return;
     }
-    { let (__tmp_0, __tmp_1) = (*file.borrow_mut().as_mut().unwrap()).write_string(Rc::new(RefCell::new(Some("-second".to_string())))); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1; };
-    println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result } && { let __nil_result = (*(*file.borrow_mut().as_mut().unwrap()).close().borrow()).is_none(); __nil_result }));
+    { let (__tmp_0, __tmp_1) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("-second".to_string())))); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __nil_result = (*{ let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result }.lock().unwrap()).is_none(); __nil_result }));
 
-    let (mut contents, __tmp_1) = os::read_file("go2rust-file-handle.txt".to_string()); let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *err.borrow_mut() = __moved_tmp_1;;
-    let mut contents = { let __slice_header = GoSliceHeader::go_slice_header(&contents); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*contents.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())), format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
-    println!("{}", format!("{}", { let __nil_result = (*{ let __path = path; match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), Err(e) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e))))) } }.borrow()).is_none(); __nil_result }));
+    let (mut contents, __tmp_1) = os::read_file("go2rust-file-handle.txt".to_string()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+    let mut contents = { let __slice_header = GoSliceHeader::go_slice_header(&contents); Arc::new(Mutex::new(__slice_header)) };
+    println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*contents.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }));
+    println!("{}", format!("{}", { let __nil_result = (*{ let __path = path; match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e))))) } }.lock().unwrap()).is_none(); __nil_result }));
 }

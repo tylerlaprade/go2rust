@@ -1066,7 +1066,7 @@ pub fn get() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 
 pub fn reassign(mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
     { let new_val = Box::new("changed in callee".to_string()) as Box<dyn Any + Send + Sync>; *v.lock().unwrap() = Some(new_val); };
-    go_any_handle_copy(&v)
+    return go_any_handle_copy(&v);
 }
 
 fn main() {
