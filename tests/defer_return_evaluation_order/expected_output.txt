@@ -1,0 +1,5 @@
+5 [compute plain deferred]
+1
+10 boom
+10
+2

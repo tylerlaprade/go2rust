@@ -2,19 +2,23 @@
 [workspace]
 members = [
     ".",
+    "vendor/bufio",
     "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_build",
     "vendor/internal_abi",
     "vendor/internal_bytealg",
-    "vendor/internal_cpu",
     "vendor/internal_filepathlite",
     "vendor/internal_godebug",
     "vendor/internal_godebugs",
     "vendor/internal_race",
     "vendor/internal_stringslite",
     "vendor/internal_sync",
+    "vendor/io",
+    "vendor/math",
+    "vendor/math_bits",
     "vendor/path_filepath",
+    "vendor/strconv",
     "vendor/strings",
     "vendor/sync",
     "vendor/sync_atomic",
@@ -35,19 +39,23 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+bufio = { path = "vendor/bufio" }
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_build = { path = "vendor/go_build" }
 internal_abi = { path = "vendor/internal_abi" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
-internal_cpu = { path = "vendor/internal_cpu" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_godebug = { path = "vendor/internal_godebug" }
 internal_godebugs = { path = "vendor/internal_godebugs" }
 internal_race = { path = "vendor/internal_race" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_sync = { path = "vendor/internal_sync" }
+io = { path = "vendor/io" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
 path_filepath = { path = "vendor/path_filepath" }
+strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }

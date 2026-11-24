@@ -17,6 +17,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -29,7 +33,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -39,7 +43,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -78,7 +92,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -133,7 +147,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -166,6 +180,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -184,6 +199,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -395,15 +426,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -916,16 +948,16 @@ let mut complexResult = Arc::new(Mutex::new(Some(__go_binary_8)));
                 let __seq_guard = __seq_holder.lock().unwrap();
                 let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
                 let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-                drop(__seq_guard);
+                std::mem::drop(__seq_guard);
                 let __low = ({ let __v = (*idx1.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = ({ let __v = (*idx2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __max = __source_cap;
-                __seq.reslice3(__low, __high, __max)
-            }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
-            let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*numbers.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+                __seq.reslice3_zeroed(__low, __high, __max)
+            }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+            let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*numbers.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
             __tmp_x + __tmp_y
         };
-        let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
         __tmp_x - __tmp_y
     })));
     print!("numbers[idx1:idx2][1] + numbers[len(numbers)-1] - numbers[0] = {}\n", { let __v = (*sliceResult.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -935,12 +967,12 @@ let mut complexResult = Arc::new(Mutex::new(Some(__go_binary_8)));
 
     let mut data = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("alpha".to_string(), Arc::new(Mutex::new(Some(10i64)))), ("beta".to_string(), Arc::new(Mutex::new(Some(20i64)))), ("gamma".to_string(), Arc::new(Mutex::new(Some(30i64))))]))));
 
-    let __go_binary_0 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"alpha".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
-let __go_binary_1 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"beta".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+    let __go_binary_0 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"alpha".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+let __go_binary_1 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"beta".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
 let __go_binary_2 = 2;
 let __go_binary_3 = __go_binary_1 * __go_binary_2;
 let __go_binary_4 = __go_binary_0 + __go_binary_3;
-let __go_binary_5 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"gamma".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+let __go_binary_5 = { let __map = { let __map_holder = data.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"gamma".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
 let __go_binary_6 = 3;
 let __go_binary_7 = __go_binary_5 / __go_binary_6;
 let __go_binary_8 = __go_binary_4 - __go_binary_7;
@@ -1141,11 +1173,11 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
         let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-        drop(__seq_guard);
+        std::mem::drop(__seq_guard);
         let __low = 0;
         let __high = (5) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }.iter().copied().enumerate() {
         { let __rhs = { let __tmp_x = { let __tmp_x = i as i64; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

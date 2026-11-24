@@ -1,0 +1,11 @@
+[package]
+name = "defer_return_evaluation_order"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defer_return_evaluation_order"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

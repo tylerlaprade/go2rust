@@ -27,6 +27,7 @@ members = [
     "vendor/internal_stringslite",
     "vendor/internal_sync",
     "vendor/internal_types_errors",
+    "vendor/io",
     "vendor/math",
     "vendor/math_big",
     "vendor/math_bits",
@@ -79,6 +80,7 @@ internal_race = { path = "vendor/internal_race" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_sync = { path = "vendor/internal_sync" }
 internal_types_errors = { path = "vendor/internal_types_errors" }
+io = { path = "vendor/io" }
 math = { path = "vendor/math" }
 math_big = { path = "vendor/math_big" }
 math_bits = { path = "vendor/math_bits" }

@@ -635,6 +635,10 @@ run_xfail_test() {
     run_test "tests/break_loop_inside_switch"
 }
 
+@test "bufio_reads_files" {
+    run_test "tests/bufio_reads_files"
+}
+
 @test "build_package_stub" {
     run_test "tests/build_package_stub"
 }
@@ -663,6 +667,10 @@ run_xfail_test() {
     run_test "tests/byte_slice_from_global_array_field"
 }
 
+@test "byte_tables_and_named_byte_slices" {
+    run_test "tests/byte_tables_and_named_byte_slices"
+}
+
 @test "bytes_buffer_zero_value" {
     run_test "tests/bytes_buffer_zero_value"
 }
@@ -679,12 +687,20 @@ run_xfail_test() {
     run_test "tests/case_table_lookup_with_named_arrays_goroutines"
 }
 
+@test "chan_any_values" {
+    run_test "tests/chan_any_values"
+}
+
 @test "channel_buffering" {
     run_test "tests/channel_buffering"
 }
 
 @test "channel_error_values" {
     run_test "tests/channel_error_values"
+}
+
+@test "channel_handle_copies" {
+    run_test "tests/channel_handle_copies"
 }
 
 @test "channel_interface_events" {
@@ -951,6 +967,10 @@ run_xfail_test() {
     run_test "tests/copy_into_wrapped_slice_field"
 }
 
+@test "cross_file_calls_into_main_file" {
+    run_test "tests/cross_file_calls_into_main_file"
+}
+
 @test "cross_file_debug_derive_inner_any" {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
@@ -1065,6 +1085,14 @@ run_xfail_test() {
 
 @test "defer_nested_pointer_field_capture" {
     run_test "tests/defer_nested_pointer_field_capture"
+}
+
+@test "defer_return_evaluation_order" {
+    run_test "tests/defer_return_evaluation_order"
+}
+
+@test "defer_return_evaluation_order_goroutines" {
+    run_test "tests/defer_return_evaluation_order_goroutines"
 }
 
 @test "defer_select_case" {
@@ -1239,6 +1267,10 @@ run_xfail_test() {
     run_test "tests/exec_command_args_stub"
 }
 
+@test "exec_command_io_fields" {
+    run_test "tests/exec_command_io_fields"
+}
+
 @test "exec_command_output_stub" {
     run_test "tests/exec_command_output_stub"
 }
@@ -1301,6 +1333,10 @@ run_xfail_test() {
 
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
+}
+
+@test "float_constant_expressions_fold" {
+    run_test "tests/float_constant_expressions_fold"
 }
 
 @test "fmt_errorf_interface_field" {
@@ -1517,6 +1553,10 @@ run_xfail_test() {
 
 @test "global_pointer_argument_lock_lifetime" {
     run_test "tests/global_pointer_argument_lock_lifetime"
+}
+
+@test "go_names_drop" {
+    run_test "tests/go_names_drop"
 }
 
 @test "goroutine_capture_rust_keyword" {
@@ -1775,6 +1815,14 @@ run_xfail_test() {
     run_test "tests/late_address_of"
 }
 
+@test "legacy_octal_literals" {
+    run_test "tests/legacy_octal_literals"
+}
+
+@test "legacy_octal_literals_goroutines" {
+    run_test "tests/legacy_octal_literals_goroutines"
+}
+
 @test "len_call_argument" {
     run_test "tests/len_call_argument"
 }
@@ -1853,6 +1901,10 @@ run_xfail_test() {
 
 @test "local_large_fixed_array_zero" {
     run_test "tests/local_large_fixed_array_zero"
+}
+
+@test "local_shadows_package_constant" {
+    run_test "tests/local_shadows_package_constant"
 }
 
 @test "local_sync_mutex_forms" {
@@ -2043,6 +2095,10 @@ run_xfail_test() {
     run_test "tests/maps_operations"
 }
 
+@test "math_from_source" {
+    run_test "tests/math_from_source"
+}
+
 @test "method_address_local_pointer_arg" {
     run_test "tests/method_address_local_pointer_arg"
 }
@@ -2121,6 +2177,18 @@ run_xfail_test() {
 
 @test "multi_file_method_interface_impl" {
     run_test "tests/multi_file_method_interface_impl"
+}
+
+@test "multi_value_call_as_arguments" {
+    run_test "tests/multi_value_call_as_arguments"
+}
+
+@test "multi_value_call_as_arguments_goroutines" {
+    run_test "tests/multi_value_call_as_arguments_goroutines"
+}
+
+@test "multi_value_call_receiver_order" {
+    run_test "tests/multi_value_call_receiver_order"
 }
 
 @test "multiple_returns" {
@@ -2327,6 +2395,10 @@ run_xfail_test() {
     run_test "tests/named_types_methods"
 }
 
+@test "native_struct_field_offset" {
+    run_test "tests/native_struct_field_offset"
+}
+
 @test "negative_named_integer_conversions" {
     run_test "tests/negative_named_integer_conversions"
 }
@@ -2417,6 +2489,10 @@ run_xfail_test() {
 
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
+}
+
+@test "os_file_direct_read" {
+    run_test "tests/os_file_direct_read"
 }
 
 @test "os_file_readcloser_assignment" {
@@ -2659,6 +2735,10 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_nil_rebinds" {
+    run_test "tests/pointer_nil_rebinds"
+}
+
 @test "pointer_package_global" {
     run_test "tests/pointer_package_global"
 }
@@ -2719,6 +2799,14 @@ run_xfail_test() {
     run_test "tests/print_boxed_composite_values"
 }
 
+@test "print_float_exponent_forms" {
+    run_test "tests/print_float_exponent_forms"
+}
+
+@test "print_float_exponent_forms_goroutines" {
+    run_test "tests/print_float_exponent_forms_goroutines"
+}
+
 @test "print_interface_value_twice_goroutines" {
     run_test "tests/print_interface_value_twice_goroutines"
 }
@@ -2761,6 +2849,22 @@ run_xfail_test() {
 
 @test "printf_args_lock_one_value_goroutines" {
     run_test "tests/printf_args_lock_one_value_goroutines"
+}
+
+@test "printf_basic_slice_verbs" {
+    run_test "tests/printf_basic_slice_verbs"
+}
+
+@test "printf_basic_slice_verbs_goroutines" {
+    run_test "tests/printf_basic_slice_verbs_goroutines"
+}
+
+@test "printf_nil_interface_arguments" {
+    run_test "tests/printf_nil_interface_arguments"
+}
+
+@test "printf_nil_interface_arguments_goroutines" {
+    run_test "tests/printf_nil_interface_arguments_goroutines"
 }
 
 @test "printf_p_verb_receiver" {
@@ -3203,6 +3307,14 @@ run_xfail_test() {
     run_test "tests/shared_stdlib_stubs_external"
 }
 
+@test "shift_count_semantics" {
+    run_test "tests/shift_count_semantics"
+}
+
+@test "shift_count_semantics_goroutines" {
+    run_test "tests/shift_count_semantics_goroutines"
+}
+
 @test "simple_embedding" {
     run_test "tests/simple_embedding"
 }
@@ -3217,6 +3329,30 @@ run_xfail_test() {
 
 @test "simple_range" {
     run_test "tests/simple_range"
+}
+
+@test "slice_elem_pointer_append" {
+    run_test "tests/slice_elem_pointer_append"
+}
+
+@test "slice_elem_pointer_held_edges" {
+    run_test "tests/slice_elem_pointer_held_edges"
+}
+
+@test "slice_elem_pointer_index_out_of_range" {
+    run_test "tests/slice_elem_pointer_index_out_of_range"
+}
+
+@test "slice_elem_pointer_index_out_of_range_goroutines" {
+    run_test "tests/slice_elem_pointer_index_out_of_range_goroutines"
+}
+
+@test "slice_elem_pointer_local_struct" {
+    run_test "tests/slice_elem_pointer_local_struct"
+}
+
+@test "slice_elem_pointer_map" {
+    run_test "tests/slice_elem_pointer_map"
 }
 
 @test "slice_elem_pointer_short_decl" {
@@ -3317,6 +3453,10 @@ run_xfail_test() {
 
 @test "sort_slice" {
     run_test "tests/sort_slice"
+}
+
+@test "source_context_background" {
+    run_test "tests/source_context_background"
 }
 
 @test "source_stdlib_bytes_buffer_basic" {
@@ -3561,6 +3701,14 @@ run_xfail_test() {
 
 @test "stdlib_typed_const_index" {
     run_test "tests/stdlib_typed_const_index"
+}
+
+@test "strconv_errors_from_source" {
+    run_test "tests/strconv_errors_from_source"
+}
+
+@test "strconv_from_source" {
+    run_test "tests/strconv_from_source"
 }
 
 @test "strconv_itoa_wrapped_call" {
@@ -3891,6 +4039,14 @@ run_xfail_test() {
     run_test "tests/unary_plus_bitwise_not"
 }
 
+@test "unicode_classification" {
+    run_test "tests/unicode_classification"
+}
+
+@test "unicode_utf8_from_source" {
+    run_test "tests/unicode_utf8_from_source"
+}
+
 @test "unsafe_float_bits" {
     run_test "tests/unsafe_float_bits"
 }
@@ -3989,6 +4145,10 @@ run_xfail_test() {
 
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
+}
+
+@test "word_count_bufio_strings" {
+    run_test "tests/word_count_bufio_strings"
 }
 
 @test "worker_pools" {

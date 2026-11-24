@@ -30,7 +30,7 @@ func main() {
 }
 `)
 	for _, want := range []string{
-		"__seq.reslice3(__low, __high, __max)",
+		"__seq.reslice3_zeroed(__low, __high, __max)",
 		"let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended)))",
 		"let mut xs = Rc::new(RefCell::new((*xs.borrow()).clone()));",
 		"*other.borrow_mut() = __slice_header;",

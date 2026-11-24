@@ -305,140 +305,140 @@ impl std::ops::Not for Number {
 impl std::ops::Shl for Number {
     type Output = Number;
     fn shl(self, other: Number) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for Number {
     type Output = Number;
     fn shl(self, other: i32) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for Number {
     type Output = Number;
     fn shl(self, other: i8) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for Number {
     type Output = Number;
     fn shl(self, other: i16) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for Number {
     type Output = Number;
     fn shl(self, other: i64) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for Number {
     type Output = Number;
     fn shl(self, other: u32) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for Number {
     type Output = Number;
     fn shl(self, other: u8) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for Number {
     type Output = Number;
     fn shl(self, other: u16) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for Number {
     type Output = Number;
     fn shl(self, other: u64) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for Number {
     type Output = Number;
     fn shl(self, other: usize) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for Number {
     type Output = Number;
     fn shr(self, other: Number) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for Number {
     type Output = Number;
     fn shr(self, other: i32) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for Number {
     type Output = Number;
     fn shr(self, other: i8) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for Number {
     type Output = Number;
     fn shr(self, other: i16) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for Number {
     type Output = Number;
     fn shr(self, other: i64) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for Number {
     type Output = Number;
     fn shr(self, other: u32) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for Number {
     type Output = Number;
     fn shr(self, other: u8) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for Number {
     type Output = Number;
     fn shr(self, other: u16) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for Number {
     type Output = Number;
     fn shr(self, other: u64) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for Number {
     type Output = Number;
     fn shr(self, other: usize) -> Number {
-        Number(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        Number(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 

@@ -1350,7 +1350,7 @@ func zeroValueForGoType(expr ast.Expr) string {
 			}
 			return "std::array::from_fn(|_| " + zeroValueForGoType(t.Elt) + ")"
 		}
-		return "vec![]"
+		return bareSliceZeroValue()
 	case *ast.MapType:
 		TrackImport("BTreeMap")
 		return "BTreeMap::new()"
@@ -1460,7 +1460,7 @@ func zeroValueForTypesType(typ types.Type) string {
 		}
 		return "Default::default()"
 	case *types.Slice:
-		return "vec![]"
+		return bareSliceZeroValue()
 	case *types.Array:
 		return arrayZeroValueFromFn(t.Len(), zeroValueForTypesType(t.Elem()))
 	case *types.Map:
@@ -1684,6 +1684,11 @@ func goTypesTypeToRust(t types.Type) string {
 		if _, isMap := types.Unalias(named.Underlying()).(*types.Map); isMap {
 			return goTypesNamedTypeToRust(named)
 		}
+		// A defined array type is a newtype over the array's cell, as its
+		// literals and declarations write it.
+		if _, isArray := types.Unalias(named.Underlying()).(*types.Array); isArray {
+			return goTypesNamedTypeToRust(named)
+		}
 	}
 	switch ut := t.Underlying().(type) {
 	case *types.Basic:
@@ -1819,6 +1824,14 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 func goTypesGoPtrElemTypeToRust(t types.Type) string {
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return goTypesTypeToRust(t)
+	}
+	// A GoPtr to a defined array type points at the array itself, as an
+	// unsafe.Pointer conversion gives it, not at the newtype around its
+	// cell.
+	if named, ok := types.Unalias(t).(*types.Named); ok && (named.Obj() == nil || named.Obj().Pkg() == nil || !isStdlibPackage(named.Obj().Pkg().Path())) {
+		if array, ok := types.Unalias(named.Underlying()).(*types.Array); ok {
+			return "[" + goTypesCollectionElemTypeToRust(array.Elem()) + "; " + strconv.FormatInt(array.Len(), 10) + "]"
+		}
 	}
 	return goTypesCollectionElemTypeToRust(t)
 }
@@ -2295,4 +2308,14 @@ func signatureToGoParamBoxDynFn(sig *types.Signature) string {
 // type annotation to take it from.
 func arrayZeroValueFromFn(n int64, elemZero string) string {
 	return fmt.Sprintf("std::array::from_fn::<_, %d, _>(|_| %s)", n, elemZero)
+}
+
+// bareSliceZeroValue is the zero value of a slice held bare, such as an
+// element of a [][]byte or a [256][]byte: the nil slice. A std Vec has no
+// nil state, so without GoSlice it is an empty Vec.
+func bareSliceZeroValue() string {
+	if goSliceModeEnabled() {
+		return "Vec::nil()"
+	}
+	return "vec![]"
 }
