@@ -335,6 +335,29 @@ in the first place.
   and delete the external-stub constructor.
 - Added: 2026-11-20
 
+### os-file-create
+
+- Location: `go/external_type_stubs.go` (`writeOsCreateFunction`, the
+  `__go_disk` field of `writeOsFileStub` and its `__go_write_bytes` and
+  `close`, `osStubReturnsPathError`), `go/error_chain.go`
+  (`externalErrorChainUnwrapArms`)
+- Go symbol: `os.Create`, `(*os.File).Write`, `WriteString` and `Close` on a
+  created file, `fmt.Fprintf` to it
+- Transpiler gap: `os.File` is the syscall layer and stays a stub.
+  `os.Create` returned a separate hand-written `GoFile` type, while method
+  calls on a `*os.File` are written for the stub's `os_File`, so writing to
+  a created file did not compile (E0599, E0606) once anything else used the
+  os stub. `os.Create` now returns an `os_File` that holds the file it
+  opened: writes go to the disk file, and `Close` closes it. A failure is an
+  `*fs.PathError` with op "open", as Go's. This replaces `GoFile`, which is
+  deleted, so the bridge has one file type instead of two.
+- Fixture: `tests/os_create_write/`, `tests/os_create_write_plain/`,
+  `tests/file_io/`, `go/os_create_test.go`
+- Removal trigger: `os` translated from source with `syscall.Open`,
+  `syscall.Write` and `syscall.Close` as the bridge; then delete
+  `writeOsCreateFunction` and `__go_disk`.
+- Added: 2026-11-24
+
 ### io-fs-err-not-exist
 
 - Location: `go/external_type_stubs.go`,

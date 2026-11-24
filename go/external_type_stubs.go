@@ -1271,7 +1271,6 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsUrl = dst.needsUrl || src.needsUrl
 	dst.needsRegexp = dst.needsRegexp || src.needsRegexp
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
-	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
 	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
@@ -1718,10 +1717,8 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 }
 
 func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub, jsonDecodeSupportNeeded bool) string {
-	if osStub := packageStubs["os"]; osStub != nil {
-		if _, ok := osStub.Functions["open"]; ok {
-			stubs["fs_PathError"] = true
-		}
+	if osStubReturnsPathError(packageStubs["os"]) {
+		stubs["fs_PathError"] = true
 	}
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
@@ -2236,6 +2233,8 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// The file os.Create opened: writes go to it, and Close closes it.
+    pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
 }
 
 impl Default for os_File {
@@ -2246,6 +2245,7 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
         }
     }
 }
@@ -2283,6 +2283,10 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
+            let _ = std::io::Write::write_all(__disk, data);
+            return;
+        }
         self.__go_data.lock().unwrap().extend_from_slice(data);
     }
 
@@ -2292,6 +2296,7 @@ impl os_File {
 
     pub fn close(&self) -> %s {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.__go_disk.lock().unwrap().take();
         %s
     }
 
@@ -3339,8 +3344,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	if needsFilesystemHelpers || needsExecutable || needsHostname {
-		_, needsOpenPathError := pkg.Functions["open"]
-		writeOsErrorHelpers(out, needsOpenPathError)
+		writeOsErrorHelpers(out, osStubReturnsPathError(pkg))
 	}
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -3405,6 +3409,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsLstatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
+		} else if funcName == "create" {
+			writeOsCreateFunction(out, pkg.Functions[funcName])
 		} else if funcName == "open" {
 			writeOsOpenFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
@@ -3422,6 +3428,17 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("}\n")
 }
 
+// osStubReturnsPathError reports whether the os stub has a function that
+// returns an *fs.PathError: os.Open and os.Create.
+func osStubReturnsPathError(pkg *externalPackageStub) bool {
+	if pkg == nil {
+		return false
+	}
+	_, open := pkg.Functions["open"]
+	_, create := pkg.Functions["create"]
+	return open || create
+}
+
 func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	if pkg == nil {
 		return false
@@ -3429,12 +3446,13 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsStat := pkg.Functions["stat"]
 	_, needsMkdirAll := pkg.Functions["mkdir_all"]
 	_, needsOpen := pkg.Functions["open"]
+	_, needsCreate := pkg.Functions["create"]
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsCreate || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
 func writeOsErrorHelpers(out *strings.Builder, includeOpenPathError bool) {
@@ -3676,6 +3694,28 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => {\n")
 	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
+	out.WriteString(", path_error(\"open\", path, err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// TEMPORARY: os-file-create in docs/bridge_debt.md. os.Create maps to
+// std::fs::File::create for the os.File stub, which writes through to the
+// file on disk, until os translates from source over syscall.Open.
+func writeOsCreateFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn create<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::File::create(&path) {\n")
+	out.WriteString("            Ok(disk) => {\n")
+	out.WriteString("                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), ..Default::default() };\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
 	out.WriteString(", no_error())\n")

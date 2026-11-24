@@ -622,6 +622,8 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// The file os.Create opened: writes go to it, and Close closes it.
+    pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
 }
 
 impl Default for os_File {
@@ -632,6 +634,7 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
         }
     }
 }
@@ -669,6 +672,10 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
+            let _ = std::io::Write::write_all(__disk, data);
+            return;
+        }
         self.__go_data.lock().unwrap().extend_from_slice(data);
     }
 
@@ -678,6 +685,7 @@ impl os_File {
 
     pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.__go_disk.lock().unwrap().take();
         Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 

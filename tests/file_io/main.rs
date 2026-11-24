@@ -613,43 +613,43 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-struct GoFile {
-    file: Option<std::fs::File>,
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
+    pub op: Rc<RefCell<Option<String>>>,
+    pub path: Rc<RefCell<Option<String>>>,
 }
 
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(e)))))),
-            },
-            None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file")))))),
-            ),
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op.borrow();
+        let __path_guard = self.path.borrow();
+        let __err_guard = self.err.borrow();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
         }
     }
+}
 
-    fn close(&mut self) -> Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>> {
-        self.file = None;
-        Rc::new(RefCell::new(None))
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+        self.err.clone()
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct os_File {
@@ -660,6 +660,8 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// The file os.Create opened: writes go to it, and Close closes it.
+    pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
 }
 
 impl Default for os_File {
@@ -670,6 +672,7 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
         }
     }
 }
@@ -707,6 +710,10 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
+            let _ = std::io::Write::write_all(__disk, data);
+            return;
+        }
         self.__go_data.lock().unwrap().extend_from_slice(data);
     }
 
@@ -716,6 +723,7 @@ impl os_File {
 
     pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.__go_disk.lock().unwrap().take();
         Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 
@@ -831,6 +839,66 @@ fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
 }
 
 
+pub mod os {
+    use super::*;
+    use std::path::Path;
+
+    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for Rc<RefCell<Option<String>>> {
+        fn into_go_string(self) -> String {
+            self.borrow().as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
+
+    fn no_error() -> GoError {
+        Rc::new(RefCell::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
+    }
+
+    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = fs_PathError { err: Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>))), op: Rc::new(RefCell::new(Some::<String>(op.to_string()))), path: Rc::new(RefCell::new(Some::<String>(path))) };
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(path_error) as std::rc::Rc<dyn std::error::Error>)))
+    }
+
+    pub fn create<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::File::create(&path) {
+            Ok(disk) => {
+                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), ..Default::default() };
+                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
+            }
+            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
+        }
+    }
+}
+
+
 fn main() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
@@ -838,7 +906,7 @@ fn main() {
         { let __path = "test.txt".to_string(); match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), Err(e) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e))))) } };
     }));
 
-    let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    let (mut file, mut err) = os::create("test.txt".to_string());
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         {

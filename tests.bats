@@ -2531,6 +2531,14 @@ run_xfail_test() {
     run_test "tests/os_args"
 }
 
+@test "os_create_write" {
+    run_test "tests/os_create_write"
+}
+
+@test "os_create_write_plain" {
+    run_test "tests/os_create_write_plain"
+}
+
 @test "os_executable" {
     run_test "tests/os_executable"
 }

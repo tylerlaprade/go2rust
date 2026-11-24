@@ -1,0 +1,10 @@
+6 <nil>
+<nil>
+"line 1\nraw\nbytes\n" <nil>
+<nil>
+# todo
+1. MILK
+2. EGGS
+true
+0
+true
