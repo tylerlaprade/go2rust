@@ -49,7 +49,7 @@ pub fn fib(n: Arc<Mutex<Option<i64>>>) -> i64 {
         return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     {
-        let (mut v, mut ok) = { let __map = { let __map_holder = memo.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };;
+        let (mut v, mut ok) = { let __map = { let __map_holder = memo.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })) { /* MAP_COMMA_OK */ Some(v) => (Arc::new(Mutex::new(Some(v.lock().unwrap().as_ref().unwrap().clone()))), true), None => (Arc::new(Mutex::new(Some(0))), false) } };;
         if ok {
             return { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v };;
         }

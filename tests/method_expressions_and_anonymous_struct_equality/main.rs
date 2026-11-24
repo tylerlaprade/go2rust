@@ -4,588 +4,18 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use go2rust_stdlib_stubs::*;
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
-/// A Go slice: an offset, a length and a capacity over a backing array that
-/// every slice made from it shares. Every name below that a binding uses
-/// starts with __, so no package-level variable of the program shadows it.
-pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
-    off: usize,
-    len: usize,
-    cap: usize,
-}
-
-unsafe impl<T: Send> Send for GoSlice<T> {}
-unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
-
-/// The prelude's Vec and vec! are Go slices in generated code.
-pub type Vec<T> = GoSlice<T>;
-
-impl<T> Clone for GoSlice<T> {
-    /// Copies the header. The copy shares the elements, as a Go slice
-    /// assignment does.
-    fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
-    }
-}
-
-impl<T> GoSlice<T> {
-    pub fn new() -> Self {
-        Self::from(std::vec::Vec::new())
-    }
-
-    pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
-    }
-
-    fn backing_ref(&self) -> &std::vec::Vec<T> {
-        unsafe { &*self.backing.get() }
-    }
-
-    #[allow(clippy::mut_from_ref)]
-    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
-        unsafe { &mut *self.backing.get() }
-    }
-
-    pub fn as_slice(&self) -> &[T] {
-        &self.backing_ref()[self.off..self.off + self.len]
-    }
-
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        let (__off, __len) = (self.off, self.len);
-        &mut self.backing_mut()[__off..__off + __len]
-    }
-
-    /// Go's cap(s).
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
-
-    /// Whether two slices share their backing array.
-    pub fn shares_backing_with(&self, __other: &Self) -> bool {
-        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
-    }
-
-    /// Go's s[lo:hi].
-    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
-        if __lo > __hi || __hi > self.cap {
-            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
-        }
-        if self.off + __hi > self.backing_ref().len() {
-            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
-        }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
-    }
-
-    /// Go's s[lo:hi:max].
-    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
-        if __max > self.cap || __hi > __max {
-            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
-        }
-        let mut __slice = self.reslice(__lo, __hi);
-        __slice.cap = __max - __lo;
-        __slice
-    }
-
-    /// Go's s = s[:n] when n is at most len(s).
-    pub fn truncate(&mut self, __n: usize) {
-        if __n < self.len {
-            self.len = __n;
-        }
-    }
-
-    /// Go's s = s[:0].
-    pub fn clear(&mut self) {
-        self.len = 0;
-    }
-
-    #[allow(unused_variables)]
-    pub fn reserve(&mut self, __additional: usize) {}
-
-    /// Keeps the elements the predicate accepts, in order, at the front.
-    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
-        let mut __kept = 0;
-        {
-            let __window = self.as_mut_slice();
-            for __index in 0..__window.len() {
-                if __keep(&__window[__index]) {
-                    __window.swap(__kept, __index);
-                    __kept += 1;
-                }
-            }
-        }
-        self.len = __kept;
-    }
-
-    /// Moves the slice's elements out when no other slice shares them.
-    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
-        let (__off, __len) = (self.off, self.len);
-        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut());
-        __elems.truncate(__off + __len);
-        __elems.drain(..__off);
-        Some(__elems)
-    }
-
-    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
-    }
-
-    /// The capacity Go's append gives a slice that must grow to hold
-    /// __needed elements.
-    fn grown_cap(&self, __needed: usize) -> usize {
-        let __old = self.cap;
-        let __doubled = __old + __old;
-        if __needed > __doubled {
-            return __needed;
-        }
-        if __old < 256 {
-            return __doubled.max(1);
-        }
-        let mut __grown = __old;
-        while __grown < __needed {
-            __grown += (__grown + 3 * 256) / 4;
-        }
-        __grown
-    }
-
-    /// Stores a value at index len(s) of the backing array: the in-place
-    /// half of Go's append. The backing Vec has room for the capacity, so
-    /// pushing onto it never moves elements other slices are reading.
-    fn store_at_end(&mut self, __value: T) {
-        let __at = self.off + self.len;
-        let __backing = self.backing_mut();
-        if __at < __backing.len() {
-            __backing[__at] = __value;
-        } else {
-            __backing.push(__value);
-        }
-        self.len += 1;
-    }
-
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
-}
-
-impl<T: Clone> GoSlice<T> {
-    /// Go's s = append(s, v): in place while there is capacity, else into a
-    /// new backing array.
-    pub fn push(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.push(__value);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's append(s, v), leaving s as it was.
-    pub fn appended(&self, __value: T) -> Self {
-        let mut __result = self.clone();
-        __result.push(__value);
-        __result
-    }
-
-    /// Go's s = append(s, xs...).
-    pub fn extend_from_slice(&mut self, __values: &[T]) {
-        if self.len + __values.len() <= self.cap {
-            for __value in __values {
-                self.store_at_end(__value.clone());
-            }
-            return;
-        }
-        let __cap = self.grown_cap(self.len + __values.len());
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.extend_from_slice(__values);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's s = append(s, xs...) from values.
-    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
-        let __values: std::vec::Vec<T> = __values.into_iter().collect();
-        self.extend_from_slice(&__values);
-    }
-
-    /// Removes and returns the last element: Go's v := s[len(s)-1];
-    /// s = s[:len(s)-1].
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-        let __last = self.as_slice()[self.len - 1].clone();
-        self.len -= 1;
-        Some(__last)
-    }
-
-    pub fn insert(&mut self, __index: usize, __value: T) {
-        if __index > self.len {
-            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
-        }
-        self.push(__value);
-        self.as_mut_slice()[__index..].rotate_right(1);
-    }
-
-    pub fn remove(&mut self, __index: usize) -> T {
-        let __removed = self.as_slice()[__index].clone();
-        self.as_mut_slice()[__index..].rotate_left(1);
-        self.len -= 1;
-        __removed
-    }
-
-    pub fn split_off(&mut self, __at: usize) -> Self {
-        let __tail = Self::from(self.as_slice()[__at..].to_vec());
-        self.len = __at;
-        __tail
-    }
-
-    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
-        let mut __elems = self.as_slice().to_vec();
-        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
-        let __cap = self.cap;
-        *self = Self::fresh(__elems, __cap);
-        __drained.into_iter()
-    }
-
-    pub fn resize(&mut self, __new_len: usize, __value: T) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more = std::vec::from_elem(__value, __new_len - self.len);
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn into_std_vec(self) -> std::vec::Vec<T> {
-        self.as_slice().to_vec()
-    }
-
-    pub fn into_boxed_slice(self) -> Box<[T]> {
-        self.as_slice().to_vec().into_boxed_slice()
-    }
-}
-
-/// The values appended by append(s, xs...) to a slice of interface values:
-/// always a slice built for the append, which nothing else holds.
-pub trait GoSliceBoxedValues<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T>;
-}
-
-impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T> {
-        self
-    }
-}
-
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
-/// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
-pub trait GoSliceAppendBoxed<T> {
-    fn push(&mut self, __value: T);
-    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-/// Reads the header of a slice value, whichever form the value has.
-pub trait GoSliceHeader<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>>;
-}
-
-impl<T> GoSliceHeader<T> for GoSlice<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        Some(self.clone())
-    }
-}
-
-impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.borrow().clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.lock().unwrap().clone()
-    }
-}
-
-/// Copies a Rust slice into a new Go slice.
-pub trait GoSliceFromSlice<T> {
-    fn to_go_slice(&self) -> GoSlice<T>;
-}
-
-impl<T: Clone> GoSliceFromSlice<T> for [T] {
-    fn to_go_slice(&self) -> GoSlice<T> {
-        GoSlice::from(self.to_vec())
-    }
-}
-
-impl<T> Default for GoSlice<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
-    fn from(__elems: std::vec::Vec<T>) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
-    }
-}
-
-impl<T: Clone> From<&[T]> for GoSlice<T> {
-    fn from(__elems: &[T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T: Clone> From<&mut [T]> for GoSlice<T> {
-    fn from(__elems: &mut [T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
-    fn from(__elems: [T; N]) -> Self {
-        Self::from(std::vec::Vec::from(__elems))
-    }
-}
-
-impl From<&str> for GoSlice<u8> {
-    fn from(__text: &str) -> Self {
-        Self::from(__text.as_bytes().to_vec())
-    }
-}
-
-impl From<String> for GoSlice<u8> {
-    fn from(__text: String) -> Self {
-        Self::from(__text.into_bytes())
-    }
-}
-
-impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
-    fn from(__slice: GoSlice<T>) -> Self {
-        __slice.as_slice().to_vec()
-    }
-}
-
-impl<T> std::ops::Deref for GoSlice<T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::ops::DerefMut for GoSlice<T> {
-    fn deref_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> AsRef<[T]> for GoSlice<T> {
-    fn as_ref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> AsMut<[T]> for GoSlice<T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
-    fn borrow(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
-    fn borrow_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::iter::FromIterator<T> for GoSlice<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
-        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
-    }
-}
-
-impl<T: Clone> IntoIterator for GoSlice<T> {
-    type Item = T;
-    type IntoIter = std::vec::IntoIter<T>;
-    fn into_iter(mut self) -> Self::IntoIter {
-        match self.take_unique() {
-            Some(__elems) => __elems.into_iter(),
-            None => self.as_slice().to_vec().into_iter(),
-        }
-    }
-}
-
-impl<'a, T> IntoIterator for &'a GoSlice<T> {
-    type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
-    type Item = &'a mut T;
-    type IntoIter = std::slice::IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_mut_slice().iter_mut()
-    }
-}
-
-impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_slice().fmt(__f)
-    }
-}
-
-/// Go's %v of a slice: the elements' %v between brackets.
-impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        __f.write_str("[")?;
-        for (__index, __value) in self.as_slice().iter().enumerate() {
-            if __index > 0 {
-                __f.write_str(" ")?;
-            }
-            write!(__f, "{}", __value)?;
-        }
-        __f.write_str("]")
-    }
-}
-
-impl<T: PartialEq> PartialEq for GoSlice<T> {
-    fn eq(&self, __other: &Self) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
-    fn eq(&self, __other: &[T]) -> bool {
-        self.as_slice() == __other
-    }
-}
-
-impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
-    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: Eq> Eq for GoSlice<T> {}
-
-impl<T: PartialOrd> PartialOrd for GoSlice<T> {
-    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_slice().partial_cmp(__other.as_slice())
-    }
-}
-
-impl<T: Ord> Ord for GoSlice<T> {
-    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
-        self.as_slice().cmp(__other.as_slice())
-    }
-}
-
-impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
-    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
-        self.as_slice().hash(__state)
-    }
-}
-
-impl std::io::Write for GoSlice<u8> {
-    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
-        self.extend_from_slice(__bytes);
-        Ok(__bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
@@ -602,15 +32,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -619,6 +49,113 @@ where
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
+    }
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+
+fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(value.to_string())) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
     }
 }
 
@@ -676,14 +213,14 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 #[derive(Debug, Clone)]
 pub struct Vec_ {
-    pub x: Rc<RefCell<Option<f64>>>,
-    pub y: Rc<RefCell<Option<f64>>>,
+    pub x: Arc<Mutex<Option<f64>>>,
+    pub y: Arc<Mutex<Option<f64>>>,
 }
 
 impl Vec_ {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_0_1 = { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             x: __go_clone_0_0,
             y: __go_clone_0_1,
@@ -694,8 +231,8 @@ impl Vec_ {
 
 impl Default for Vec_ {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(0.0)));
-        let __go_default_0_1 = Rc::new(RefCell::new(Some(0.0)));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0.0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0.0)));
         Self {
             x: __go_default_0_0,
             y: __go_default_0_1,
@@ -705,93 +242,154 @@ impl Default for Vec_ {
 
 impl std::fmt::Display for Vec_ {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = go_float_string(((*self.x.borrow().as_ref().unwrap())) as f64, false);
-        let __go_fmt_1 = go_float_string(((*self.y.borrow().as_ref().unwrap())) as f64, false);
+        let __go_fmt_0 = go_float_string(((*self.x.lock().unwrap().as_ref().unwrap())) as f64, false);
+        let __go_fmt_1 = go_float_string(((*self.y.lock().unwrap().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
 
 
 impl Vec_ {
-    pub fn add(&self, o: Rc<RefCell<Option<Vec_>>>) -> Rc<RefCell<Option<Vec_>>> {
-        Rc::new(RefCell::new(Some(Vec_ { x: Rc::new(RefCell::new(Some((*self.x.borrow().as_ref().unwrap()) + (*(*o.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())))), y: Rc::new(RefCell::new(Some((*self.y.borrow().as_ref().unwrap()) + (*(*o.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap())))), ..Default::default() })))
+    pub fn add(&self, o: Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> {
+        Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.x.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*o.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))), y: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.y.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*o.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))), ..Default::default() })))
     }
 
-    pub fn scale(&self, k: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Vec_>>> {
-        Rc::new(RefCell::new(Some(Vec_ { x: Rc::new(RefCell::new(Some((*self.x.borrow().as_ref().unwrap()) * (*k.borrow().as_ref().unwrap())))), y: Rc::new(RefCell::new(Some((*self.y.borrow().as_ref().unwrap()) * (*k.borrow().as_ref().unwrap())))), ..Default::default() })))
+    pub fn scale(&self, k: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> {
+        Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.x.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }))), y: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.y.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }))), ..Default::default() })))
     }
 
     pub fn normalize(&mut self) {
-        let mut l = Rc::new(RefCell::new(Some(((*self.x.borrow().as_ref().unwrap()) * (*self.x.borrow().as_ref().unwrap()) + (*self.y.borrow().as_ref().unwrap()) * (*self.y.borrow().as_ref().unwrap()) as f64).sqrt())));
-        { let __target = self.x.clone(); let __rhs = (*l.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
-        { let __target = self.y.clone(); let __rhs = (*l.borrow().as_ref().unwrap()); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
+        let mut l = math::sqrt(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*self.x.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.x.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_y = { let __tmp_x = (*self.y.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.y.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            __tmp_x + __tmp_y
+        }))));
+        { let __target = self.x.clone(); let __rhs = l; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
+        { let __target = self.y.clone(); let __rhs = l; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
     }
 }
 
-pub fn defer_order() -> Rc<RefCell<Option<Vec<i64>>>> {
+pub fn defer_order() -> Arc<Mutex<Option<Vec<i64>>>> {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let mut out: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
+    let mut out: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
 
-    let mut i = Rc::new(RefCell::new(Some(0i64)));
-    while (*i.borrow().as_ref().unwrap()) < 3 {
-        let i_defer_captured = Rc::new(RefCell::new((*i.borrow()).clone())); let mut out_defer_captured = out.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_defer_captured.clone(); let __append_value = (*i_defer_captured.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *out_defer_captured.borrow_mut() = __slice_header; };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        let i_defer_captured = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); let mut out_defer_captured = out.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_defer_captured.clone(); let __append_value = ({ let __v = (*i_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_defer_captured.lock().unwrap() = __slice_header; };
+    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    {
-        { let new_val = Rc::new(RefCell::new(Some(vec![100i64]))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *out.borrow_mut() = __moved_val; };;
+        {
+        { let new_val = Arc::new(Mutex::new(Some(vec![100i64]))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *out.lock().unwrap() = __moved_val; };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return out.clone();
     }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            out.clone()
+        }
+    }
 }
 
 fn main() {
-    let mut add = Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<Vec_>>>, __arg1: Rc<RefCell<Option<Vec_>>>| -> Rc<RefCell<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.borrow().as_ref().unwrap()).add(__arg1); __result } }) as Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<Vec_>>>) -> Rc<RefCell<Option<Vec_>>>>)));
-    let mut scale = Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<Vec_>>>, __arg1: Rc<RefCell<Option<f64>>>| -> Rc<RefCell<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.borrow().as_ref().unwrap()).scale(__arg1); __result } }) as Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Vec_>>>>)));
-    let mut v = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<Vec_>>>) -> Rc<RefCell<Option<Vec_>>>> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<Vec_>>>) -> Rc<RefCell<Option<Vec_>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(Vec_ { x: Rc::new(RefCell::new(Some(1.0))), y: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }))), Rc::new(RefCell::new(Some(Vec_ { x: Rc::new(RefCell::new(Some(3.0))), y: Rc::new(RefCell::new(Some(4.0))), ..Default::default() })))) };
-    println!("{} {}", format!("{}", (*v.borrow().as_ref().unwrap())), format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Vec_>>>> = { let mut __f_guard = scale.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Vec_>>>, Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Vec_>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(v.clone(), Rc::new(RefCell::new(Some(0.5)))) }.borrow().as_ref().unwrap())));
-    let mut p = Rc::new(RefCell::new(Some(Vec_ { x: Rc::new(RefCell::new(Some(3.0))), y: Rc::new(RefCell::new(Some(4.0))), ..Default::default() })));
-    let mut norm = Rc::new(RefCell::new(Some({ let __recv = p.clone(); Box::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).normalize() }) as Box<dyn FnMut() -> ()> })));
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = norm.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    print!("{:.2} {:.2}\n", (*(*p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()), (*(*p.borrow().as_ref().unwrap()).y.borrow().as_ref().unwrap()));
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
 
+    let mut add = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<Vec_>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
+    let mut scale = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<f64>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).scale(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
+    let mut v = {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = {
+            let mut __f_guard = add.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(1.0))), y: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }))),
+            Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(3.0))), y: Arc::new(Mutex::new(Some(4.0))), ..Default::default() })))
+        )
+    };
+    println!("{} {}", format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", (*{
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = {
+            let mut __f_guard = scale.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            v.clone(),
+            Arc::new(Mutex::new(Some(0.5)))
+        )
+    }.lock().unwrap().as_ref().unwrap())));
+    let mut p = Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(3.0))), y: Arc::new(Mutex::new(Some(4.0))), ..Default::default() })));
+    let mut norm = Arc::new(Mutex::new(Some({ let __recv = p.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).normalize() }) as Box<dyn FnMut() -> () + Send + Sync> })));
+    {
+        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
+            let mut __f_guard = norm.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    };
+    print!("{} {}\n", format!("{:.2}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{:.2}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", format_slice(&defer_order())));
-
-    let mut pt = Rc::new(RefCell::new(Some(AnonymousStruct1 { name: Rc::new(RefCell::new(Some("a".to_string()))), pos: Rc::new(RefCell::new(Some([1i64, 2i64]))) })));
-    let mut other = { let __owned = pt.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let __idx = (0) as usize; let __rhs = 9; (*(*other.borrow().as_ref().unwrap()).pos.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {} {}", format!("{}", (*pt.borrow().as_ref().unwrap())), format!("{}", (*other.borrow().as_ref().unwrap())), format!("{}", (*pt.borrow().as_ref().unwrap()) == (*other.borrow().as_ref().unwrap())));
-
-    let mut u8: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some(250)));
-    { let __rhs = 10 as u8; let mut guard = u8.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    let mut i8: Rc<RefCell<Option<i8>>> = Rc::new(RefCell::new(Some(127)));
-    { let mut guard = i8.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    println!("{} {} {} {} {} {} {} {} {} {} {}", format!("{}", { let __v = (*u8.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i8.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", -(7) / 2), format!("{}", -(7) % 2), format!("{}", 7 >> 1), format!("{}", -8 >> 1), format!("{}", 1 << 10), format!("{}", 0xF0 & 0x3C), format!("{}", 0xF0 | 0x0F), format!("{}", 0xF0 ^ 0xFF), format!("{}", 6 & ! 3));
-    let mut u: Rc<RefCell<Option<u32>>> = Rc::new(RefCell::new(Some(1)));
-    println!("{} {} {} {} {} {}", format!("{}", (*u.borrow().as_ref().unwrap()) << 31), format!("{}", !(*u.borrow().as_ref().unwrap())), format!("{}", 9223372036854775807i64), format!("{}", i64::MIN), format!("{}", 4294967295i64), { let __text = go_float_string((std::f64::consts::PI) as f64, false); __text });
-    let mut x = Rc::new(RefCell::new(Some(10i64)));
+    let mut pt = Arc::new(Mutex::new(Some(AnonymousStruct1 { name: Arc::new(Mutex::new(Some("a".to_string()))), pos: Arc::new(Mutex::new(Some([1i64, 2i64]))) })));
+    let mut other = { let __owned = pt.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
+    { let __idx = (0) as usize; let __rhs = 9; (*(*other.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", { let __v = (*pt.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*other.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*pt.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); let __tmp_y = ({ let __v = (*other.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); __tmp_x == __tmp_y }));
+    let mut u8: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(250)));
+    { let __rhs = 10 as u8; let mut guard = u8.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    let mut i8: Arc<Mutex<Option<i8>>> = Arc::new(Mutex::new(Some(127)));
+    { let mut guard = i8.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    println!("{} {} {} {} {} {} {} {} {} {} {}", format!("{}", { let __v = (*u8.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i8.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x / __tmp_y }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x % __tmp_y }), format!("{}", { let __tmp_x = 7; let __tmp_y = 1; __tmp_x >> __tmp_y }), format!("{}", { let __tmp_x = -8; let __tmp_y = 1; __tmp_x >> __tmp_y }), format!("{}", { let __tmp_x = 1; let __tmp_y = 10; __tmp_x << __tmp_y }), format!("{}", { let __tmp_x = 0xF0; let __tmp_y = 0x3C; __tmp_x & __tmp_y }), format!("{}", { let __tmp_x = 0xF0; let __tmp_y = 0x0F; __tmp_x | __tmp_y }), format!("{}", { let __tmp_x = 0xF0; let __tmp_y = 0xFF; __tmp_x ^ __tmp_y }), format!("{}", { let __tmp_x = 6; let __tmp_y = 3; __tmp_x & ! __tmp_y }));
+    let mut u: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(1)));
+    println!("{} {} {} {} {} {}", format!("{}", { let __tmp_x = { let __v = (*u.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 31; __tmp_x << __tmp_y }), format!("{}", !({ let __v = (*u.lock().unwrap().as_ref().unwrap()); __v })), format!("{}", 9223372036854775807i64), format!("{}", i64::MIN), format!("{}", 4294967295i64), { let __text = go_float_string((math::PI) as f64, false); __text });
+    let mut x = Arc::new(Mutex::new(Some(10i64)));
     let mut ptr = x.clone();
-    let mut pp = Rc::new(RefCell::new(Some(ptr.clone())));
-    { let new_val = 20; *(*pp.borrow_mut().as_mut().unwrap()).borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*ptr.borrow().as_ref().unwrap()).clone(); __v } == 20));
+    let mut pp = Arc::new(Mutex::new(Some(ptr.clone())));
+    { let new_val = 20; *(*pp.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some(new_val); };
+    println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x == __tmp_y }));
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct AnonymousStruct1 {
-    pub name: Rc<RefCell<Option<String>>>,
-    pub pos: Rc<RefCell<Option<[i64; 2]>>>,
+    pub name: Arc<Mutex<Option<String>>>,
+    pub pos: Arc<Mutex<Option<[i64; 2]>>>,
+}
+impl PartialEq for AnonymousStruct1 {
+    fn eq(&self, other: &Self) -> bool {
+        (
+            { let __left = { self.name.lock().unwrap().as_ref().cloned() }; let __right = { other.name.lock().unwrap().as_ref().cloned() }; __left == __right }
+                && { let __left = { self.pos.lock().unwrap().as_ref().cloned() }; let __right = { other.pos.lock().unwrap().as_ref().cloned() }; __left == __right }
+        )
+    }
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.pos.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.pos.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
             pos: __go_clone_1_0,
@@ -802,8 +400,8 @@ impl AnonymousStruct1 {
 
 impl Default for AnonymousStruct1 {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(String::new())));
-        let __go_default_1_0 = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| 0))));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(String::new())));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| 0))));
         Self {
             name: __go_default_0_0,
             pos: __go_default_1_0,
@@ -813,8 +411,15 @@ impl Default for AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.name.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = format!("{}", (*self.name.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_slice(&self.pos));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
+impl GoValueClone for Vec_ {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
     }
 }
