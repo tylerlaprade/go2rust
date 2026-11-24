@@ -735,7 +735,7 @@ impl bucket {
 }
 
 fn main() {
-    let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(3) as usize).map(|_| 0).collect(); v.truncate((1) as usize); v }))), ..Default::default() })));
+    let mut b = Rc::new(RefCell::new(Some(bucket { values: Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(3) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v }))), ..Default::default() })));
     println!("{}", format!("{}", ({ let __len_target = { let __field = (*b.borrow().as_ref().unwrap()).values.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
     println!("{}", format!("{}", ({ let __cap_target = { let __field = (*b.borrow().as_ref().unwrap()).values.clone(); __field }; let __cap_guard = __cap_target.borrow(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })));
     println!("{}", format!("{}", (*b.borrow().as_ref().unwrap()).has_room()));

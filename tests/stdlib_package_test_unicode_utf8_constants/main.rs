@@ -278,7 +278,7 @@ let mut buf = { let __slice_header = GoSliceHeader::go_slice_header(&buf); Arc::
 
 /// Check that negative runes encode as U+FFFD.
 pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
-    let mut errorbuf = Arc::new(Mutex::new(Some(vec![0; (U_T_F_MAX) as usize])));
+    let mut errorbuf = Arc::new(Mutex::new(Some(vec![0u8; (U_T_F_MAX) as usize])));
     { let __slice_header = GoSliceHeader::go_slice_header(&(Arc::new(Mutex::new(Some({
         let __seq_holder = errorbuf.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
@@ -290,7 +290,7 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
         let __max = __source_cap;
         __seq.reslice3_zeroed(__low, __high, __max)
     }))))); *errorbuf.lock().unwrap() = __slice_header; };
-    let mut buf = Arc::new(Mutex::new(Some(vec![0; (U_T_F_MAX) as usize])));
+    let mut buf = Arc::new(Mutex::new(Some(vec![0u8; (U_T_F_MAX) as usize])));
     { let __slice_header = GoSliceHeader::go_slice_header(&(Arc::new(Mutex::new(Some({
         let __seq_holder = buf.clone();
         let __seq_guard = __seq_holder.lock().unwrap();

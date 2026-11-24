@@ -1238,7 +1238,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*(*q.as_ref().unwrap().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*q.as_ref().unwrap().borrow().as_ref().unwrap()).price.borrow().as_ref().unwrap())), format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()).clone()));
 
         // An append that grows the slice leaves the pointer on the old array.
-    let mut small = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(1) as usize).map(|_| 0).collect(); v.truncate((1) as usize); v })));
+    let mut small = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(1) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v })));
     let mut s: Option<GoSliceElemPtr<i64>> = Some(GoSliceElemPtr::new(small.clone(), (0) as usize));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = small.clone(); let __append_value = 5; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *small.borrow_mut() = __slice_header; };
     { let new_val = 7; *s.as_ref().unwrap().borrow_mut() = Some(new_val); };

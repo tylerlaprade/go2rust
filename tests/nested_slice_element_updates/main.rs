@@ -857,7 +857,7 @@ fn main() {
 
     let mut paths = Rc::new(RefCell::new(Some(vec![<Vec<i64>>::nil(); (4) as usize])));
     for i in 0..(({ let __range_holder = paths.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        { let __idx = (i) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![0; (4) as usize]))).borrow().as_ref().unwrap()).clone(); (*paths.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (i) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![0i64; (4) as usize]))).borrow().as_ref().unwrap()).clone(); (*paths.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         { let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; (*paths.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     }
     let mut i = Rc::new(RefCell::new(Some(1i64)));

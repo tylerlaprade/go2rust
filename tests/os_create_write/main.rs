@@ -318,6 +318,11 @@ fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<
     None
 }
 
+// value as %+v prints it, when it is a struct.
+fn go_format_fields_value(__value: &(dyn Any + Send + Sync)) -> Option<String> {
+    None
+}
+
 // A nil interface value passed to a format known only at run time. The
 // arguments are boxes, which cannot be nil themselves.
 #[allow(dead_code)]
@@ -325,7 +330,7 @@ struct GoFormatNil;
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -787,6 +792,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
     // element, which is not done here. nil is one text.
+    if plus_v && spec.width.is_none() && spec.precision.is_none() && !spec.space {
+        if let Some(text) = go_format_fields_value(value) {
+            return Some(text);
+        }
+    }
     if verb == 'v' && !plus_v && !sharp_v {
         let text = format_any(value);
         if text == "<nil>" {
@@ -1105,7 +1115,7 @@ fn main() {
         println!("{} {}", format!("{}", ({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         let (mut g, _) = os::create({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
         { let __recv = g.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("abc".to_string())))); __result };
-        let mut buf = Arc::new(Mutex::new(Some(vec![0; (2) as usize])));
+        let mut buf = Arc::new(Mutex::new(Some(vec![0u8; (2) as usize])));
         { let (__tmp_0, __tmp_1) = { let __recv = g.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.read_at(buf.clone(), Arc::new(Mutex::new(Some(1 as i64)))); __result }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         println!("{} {} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*buf.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap())));
         println!("{}", format!("{}", { let __text = match { let __recv = g.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result }.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -1113,7 +1123,7 @@ fn main() {
         println!("{} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         let (mut h, _) = os::create({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
         { let __recv = h.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("abc".to_string())))); __result };
-        let mut big = Arc::new(Mutex::new(Some(vec![0; (4) as usize])));
+        let mut big = Arc::new(Mutex::new(Some(vec![0u8; (4) as usize])));
         { let (__tmp_0, __tmp_1) = { let __recv = h.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.read_at(big.clone(), Arc::new(Mutex::new(Some(1 as i64)))); __result }; n = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         println!("{} {} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*Arc::new(Mutex::new(Some({
             let __seq_holder = big.clone();

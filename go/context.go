@@ -980,6 +980,33 @@ func NeedEmbeddedOwnerRegistry() {
 	})
 }
 
+// RegisterGoTypeName records what Go calls typ for %T, without the clone
+// and format arms RegisterAnyCloneType also adds.
+func RegisterGoTypeName(typ types.Type) {
+	rustType, ok := anyCloneRustType(typ)
+	if !ok {
+		return
+	}
+	goName, ok := goDynamicTypeName(typ)
+	if !ok {
+		return
+	}
+	registerGoTypeNameForRustType(rustType, goName)
+}
+
+// registerGoTypeNameForRustType records that a value of rustType is what Go
+// calls goName for %T.
+func registerGoTypeNameForRustType(rustType, goName string) {
+	if helpers := activeHelperTracker(); helpers != nil {
+		if helpers.anyTypeNames == nil {
+			helpers.anyTypeNames = make(map[string]string)
+		}
+		if existing, seen := helpers.anyTypeNames[rustType]; !seen || goName < existing {
+			helpers.anyTypeNames[rustType] = goName
+		}
+	}
+}
+
 func RegisterAnyCloneType(typ types.Type) {
 	rustType, ok := anyCloneRustType(typ)
 	if !ok {
@@ -1072,6 +1099,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 	if array, ok := typ.(*types.Array); ok && anyArrayHasCloneableScalars(array) {
 		return goTypesTypeToRust(array), true
 	}
+	if st, ok := typ.(*types.Struct); ok {
+		return anonymousStructRustType(st)
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -1082,6 +1112,19 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 	rustType := goTypesTypeToRust(named)
 	if qualified, ok := currentPackageHelperRustTypePath(named, rustType); ok {
 		return qualified, true
+	}
+	return rustType, true
+}
+
+// anonymousStructRustType names the generated struct of an anonymous struct
+// type, struct{ A, B int }, when it has one.
+func anonymousStructRustType(st *types.Struct) (string, bool) {
+	if typeMentionsTypeParam(st) {
+		return "", false
+	}
+	rustType := goTypesTypeToRust(st)
+	if !strings.HasPrefix(rustType, "AnonymousStruct") {
+		return "", false
 	}
 	return rustType, true
 }

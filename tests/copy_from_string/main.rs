@@ -613,7 +613,7 @@ impl std::io::Write for GoSlice<u8> {
 
 
 fn main() {
-    let mut buf = Rc::new(RefCell::new(Some(vec![0; (5) as usize])));
+    let mut buf = Rc::new(RefCell::new(Some(vec![0u8; (5) as usize])));
     let mut n = {
         let _src = "hello".to_string().as_bytes().to_vec();
         let _n = std::cmp::min((*buf.borrow().as_ref().unwrap()).len(), _src.len());
@@ -624,7 +624,7 @@ fn main() {
     };
     println!("{} {}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*buf.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
 
-    let mut buf2 = Rc::new(RefCell::new(Some(vec![0; (3) as usize])));
+    let mut buf2 = Rc::new(RefCell::new(Some(vec![0u8; (3) as usize])));
     let mut n2 = {
         let _src = "transpile".to_string().as_bytes().to_vec();
         let _n = std::cmp::min((*buf2.borrow().as_ref().unwrap()).len(), _src.len());
@@ -649,7 +649,7 @@ fn main() {
     };
     println!("{} {}", format!("{}", { let __v = (*n3.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*Rc::new(RefCell::new(Some({ let __seq_holder = fingerprint.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
 
-    let mut buf3 = Rc::new(RefCell::new(Some(vec![0; (4) as usize])));
+    let mut buf3 = Rc::new(RefCell::new(Some(vec![0u8; (4) as usize])));
     {
         let _src = "xxxx".to_string().as_bytes().to_vec();
         let _n = std::cmp::min((*buf3.borrow().as_ref().unwrap()).len(), _src.len());

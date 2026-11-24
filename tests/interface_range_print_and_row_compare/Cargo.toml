@@ -1,0 +1,11 @@
+[package]
+name = "interface_range_print_and_row_compare"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_range_print_and_row_compare"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

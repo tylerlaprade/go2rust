@@ -823,8 +823,8 @@ fn main() {
     let mut r: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(('A' as i32))));
     let mut b: Rc<RefCell<Option<u8>>> = Rc::new(RefCell::new(Some(65)));
 
-    print!("rune 'A': {} ({})\n", ({ let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }) as u8 as char, { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
-    print!("byte 65: {} ({})\n", ({ let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }) as u8 as char, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v });
+    print!("rune 'A': {} ({})\n", char::from_u32(({ let __v = (*r.borrow().as_ref().unwrap()).clone(); __v }) as i64 as u32).unwrap_or('\u{FFFD}'), { let __v = (*r.borrow().as_ref().unwrap()).clone(); __v });
+    print!("byte 65: {} ({})\n", char::from_u32(({ let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }) as i64 as u32).unwrap_or('\u{FFFD}'), { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v });
 
         // Rune to string
     let mut str = Rc::new(RefCell::new(Some(char::from_u32(((*r.borrow().as_ref().unwrap())) as u32).unwrap().to_string())));
