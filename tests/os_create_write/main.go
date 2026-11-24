@@ -64,6 +64,25 @@ func main() {
 	n, err = g.WriteString("x")
 	fmt.Println(n, err)
 
+	h, _ := os.Create(path)
+	h.WriteString("abc")
+	big := make([]byte, 4)
+	n, err = h.ReadAt(big, 1)
+	fmt.Println(n, err, string(big[:n]))
+	_, err = h.ReadAt(big, -1)
+	fmt.Println(err != nil)
+	fmt.Println(h.Close(), h.Close() != nil)
+	_, err = h.Read(big)
+	fmt.Println(err != nil)
+
+	ap, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_TRUNC, 0)
+	fmt.Println(err)
+	ap.WriteString("x")
+	ap.WriteString("y")
+	ap.Close()
+	data, _ = os.ReadFile(path)
+	fmt.Println(string(data))
+
 	// A file is not a directory, so nothing can be created inside it.
 	_, err = os.Create(path + "/x.txt")
 	fmt.Println(err != nil)

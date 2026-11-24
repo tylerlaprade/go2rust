@@ -10,4 +10,10 @@ true
 2 <nil> bc
 <nil>
 0 write os_create_write_test.txt: file already closed
+2 EOF bc
+true
+<nil> true
+true
+<nil>
+xy
 true

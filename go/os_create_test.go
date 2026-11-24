@@ -43,10 +43,11 @@ func main() {
 		"pub fn create<T0: GoStringArg>(_arg0: T0)",
 		"match std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).open(&path) {",
 		"os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() }",
-		"return Err(std::io::Error::new(std::io::ErrorKind::Other, format!(\"write {}: file already closed\", self.__go_name)));",
+		"format!(\"{} {}: file already closed\", op, self.__go_name)",
+		"if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {",
 		`path_error("open", path, err)`,
 		"if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {",
-		"self.__go_disk.lock().unwrap().take();",
+		"__disk.take();",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q:\n%s", want, rust)
@@ -81,7 +82,7 @@ func main() {
 		rust += string(stubs)
 	}
 	for _, want := range []string{
-		"pub fn open_file<T0: GoStringArg, T1: 'static, T2>(_arg0: T0, _arg1: T1, _arg2: T2)",
+		"pub fn open_file<T0: GoStringArg, T1: 'static, T2: 'static>(_arg0: T0, _arg1: T1, _arg2: T2)",
 		"let mut options = std::fs::OpenOptions::new();",
 		"options.append(true);",
 		"pub fn is_not_exist<T0: 'static>(_arg0: T0) -> bool {",

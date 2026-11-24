@@ -340,7 +340,8 @@ in the first place.
 - Location: `go/external_type_stubs.go` (`writeOsCreateFunction`,
   `writeOsOpenFileFunction`, `writeOsIsErrorKindFunction`, the `__go_disk`
   and `__go_name` fields of `writeOsFileStub` and its writes, reads and
-  `close`, the `mod_time` of `writeFsFileInfoStub`,
+  `close`, the `mod_time` of `writeFsFileInfoStub` and its producers
+  `writeOsStatFunction` and `writeOsLstatFunction`,
   `osStubReturnsPathError`), `go/error_chain.go`
   (`externalErrorChainUnwrapArms`)
 - Go symbol: `os.Create`, `os.OpenFile`, `os.IsNotExist`, `os.IsExist`,
