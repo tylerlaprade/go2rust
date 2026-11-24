@@ -105,7 +105,8 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		if lit.Kind == token.INT {
+		if lit.Kind == token.FLOAT && writeFloatLiteralAsInteger(out, lit) {
+		} else if lit.Kind == token.INT {
 			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(RustCharLiteral(lit.Value))
@@ -255,7 +256,8 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
-		if lit.Kind == token.INT {
+		if lit.Kind == token.FLOAT && writeFloatLiteralAsInteger(out, lit) {
+		} else if lit.Kind == token.INT {
 			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(RustCharLiteral(lit.Value))
@@ -5691,15 +5693,24 @@ func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, conc
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
 	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString(">()).map(|__e| *__e.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == (")
-	if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
-		TranspileConstExpr(out, concreteExpr, 0)
+	if _, stub := externalIntegerRustTypeForNamed(named); stub {
+		// A stub's named integer, such as syscall.Errno, holds its value
+		// bare, and its constants are values of the type: err !=
+		// syscall.ENOENT compares the two fields.
+		out.WriteString(">()).map(|__e| __e.0 == (")
+		TranspileExpression(out, concreteExpr)
+		out.WriteString(").0).unwrap_or(false); ")
+	} else {
+		out.WriteString(">()).map(|__e| *__e.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() == (")
+		if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
+			TranspileConstExpr(out, concreteExpr, 0)
+		}
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")).unwrap_or(false); ")
 	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")).unwrap_or(false); ")
 	if op == token.NEQ {
 		out.WriteString("!__matched")
 	} else {
@@ -13559,7 +13570,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(RustIntegerLiteral(e.Value))
 		case token.FLOAT:
-			if value, ok := rustFloatLiteral(e); ok {
+			if writeFloatLiteralAsInteger(out, e) {
+				// d / 1e9 for an integer d: the constant is the integer
+				// 1000000000.
+			} else if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
 			} else {
 				out.WriteString(e.Value)
@@ -14602,6 +14616,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeIdentValueClone(out, ident)
 			out.WriteString("; ")
 			out.WriteString(tempName)
+			// A named integer is a newtype without Copy, and its operators
+			// take their operands by value: d + d uses a clone on the left.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if _, named := types.Unalias(typeInfo.GetType(ident)).(*types.Named); named {
+					out.WriteString(".clone()")
+				}
+			}
 			out.WriteString(" ")
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
@@ -19740,6 +19761,30 @@ func writeConstNumericConversionOperand(out *strings.Builder, arg ast.Expr, rust
 		}
 	}
 	writeConstExpressionOperandAsRustInteger(out, arg, operandRustType)
+}
+
+// writeFloatLiteralAsInteger writes a float literal that the type checker
+// gave an integer type, as 1e9 in d / 1e9 for a Duration d, as the integer
+// it denotes. Written as a float, Rust cannot combine it with the integer.
+func writeFloatLiteralAsInteger(out *strings.Builder, lit *ast.BasicLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || lit == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[lit]
+	if !ok || tv.Value == nil || tv.Type == nil {
+		return false
+	}
+	basic, ok := tv.Type.Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsInteger == 0 {
+		return false
+	}
+	value := constant.ToInt(tv.Value)
+	if value.Kind() != constant.Int {
+		return false
+	}
+	out.WriteString(value.ExactString())
+	return true
 }
 
 func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallExpr) bool {

@@ -161,7 +161,7 @@ pub fn drop(items: Arc<Mutex<Option<Vec<String>>>>, mut n: Arc<Mutex<Option<i64>
     if { let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); let __tmp_y = (({ let __len = (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); __tmp_x > __tmp_y } {
         { let new_val = ({ let __len = (*items.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; *n.lock().unwrap() = Some(new_val); };
     }
-    Arc::new(Mutex::new(Some({
+    return Arc::new(Mutex::new(Some({
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
@@ -171,7 +171,7 @@ pub fn drop(items: Arc<Mutex<Option<Vec<String>>>>, mut n: Arc<Mutex<Option<i64>
         let __high = __seq.len();
         let __max = __source_cap;
         __seq.reslice3_zeroed(__low, __high, __max)
-    })))
+    })));
 }
 
 fn main() {

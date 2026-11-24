@@ -64,6 +64,10 @@ var currentFunctionHasDefer bool
 // locals but drop before parameters.
 var currentFunctionBodyLbrace token.Pos
 
+// currentFunctionBody is the body of the function being written, for
+// questions about the whole body such as whether it reassigns a parameter.
+var currentFunctionBody *ast.BlockStmt
+
 // activeMutexGuards tracks sync.Mutex Lock statement guards by receiver syntax
 // so a direct Unlock statement can drop the matching Rust guard at that point.
 var activeMutexGuards = make(map[string]string)
