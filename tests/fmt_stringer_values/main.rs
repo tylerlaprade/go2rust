@@ -649,6 +649,8 @@ fn format_any(value: &dyn Any) -> String {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Counter>() {
         format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<Plain>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() {
@@ -659,6 +661,11 @@ fn format_any(value: &dyn Any) -> String {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -679,6 +686,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Celsius>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Counter>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Plain>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Counter>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
@@ -811,6 +819,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Celsius>() { return "main.Celsius" }
     if val.is::<Counter>() { return "main.Counter" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<Plain>() { return "main.Plain" }
     if val.is::<Rc<RefCell<Option<Celsius>>>>() { return "*main.Celsius" }
     if val.is::<Rc<RefCell<Option<Counter>>>>() { return "*main.Counter" }
@@ -1085,7 +1094,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -1139,7 +1148,7 @@ pub fn must_string(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<St
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let new_val = Rc::new(RefCell::new(Some(format!("{}{}", format!("{}", "panic: ".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *out_defer_captured.borrow_mut() = __moved_val; };;
         }
     }
