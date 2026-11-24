@@ -2700,6 +2700,7 @@ impl<T> Iterator for GoChannel<T> {
 		code = strings.ReplaceAll(code, "    fn try_send(", "    pub fn try_send(")
 		code = strings.ReplaceAll(code, "    fn recv(", "    pub fn recv(")
 		code = strings.ReplaceAll(code, "    fn try_recv(", "    pub fn try_recv(")
+		code = strings.ReplaceAll(code, "    fn try_recv_select(", "    pub fn try_recv_select(")
 		code = strings.ReplaceAll(code, "    fn close(", "    pub fn close(")
 		code = strings.ReplaceAll(code, "    fn is_nil(", "    pub fn is_nil(")
 		code = strings.ReplaceAll(code, "    fn len(", "    pub fn len(")

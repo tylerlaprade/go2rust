@@ -3267,6 +3267,10 @@ run_xfail_test() {
     run_test "tests/select_statements"
 }
 
+@test "select_with_source_stdlib" {
+    run_test "tests/select_with_source_stdlib"
+}
+
 @test "selector_map_field_short_decl_range" {
     run_test "tests/selector_map_field_short_decl_range"
 }
