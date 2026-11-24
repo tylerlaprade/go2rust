@@ -787,7 +787,7 @@ impl geometry for rectPtr {
 }
 
 pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
-    println!("{}", format!("{}", format!("{}", (*g.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", match g.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
     println!("{}", { let __text = go_float_string(((*g.borrow().as_ref().unwrap()).area()) as f64, false); __text });
     println!("{}", { let __text = go_float_string(((*g.borrow().as_ref().unwrap()).perim()) as f64, false); __text });
 }

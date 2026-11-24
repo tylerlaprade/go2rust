@@ -1,0 +1,12 @@
+<nil>
+<nil>
+{3 4}
+main.Rect
+<nil>
+<nil>
+{1 1}
+0
+first:a
+second:b
+true false
+true false
