@@ -10644,3 +10644,52 @@ func main() {
 		t.Fatalf("expected five sends of nested local values, got %d:\n%s", count, rust)
 	}
 }
+
+// Rows of a [][]T are stored bare, so a parallel assignment's temps hold
+// bare rows and are stored as they are (DEV-168).
+func TestParallelAssignmentSwapsBareSliceRows(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	grid := [][]int{{1}, {2}}
+	grid[0], grid[1] = grid[1], grid[0]
+	_ = grid
+}
+`)
+	if strings.Contains(rust, "__tmp_0.borrow_mut().take()") {
+		t.Fatalf("a bare row temp must not be unwrapped as a cell:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__go_lhs_index_0] = __tmp_0;") {
+		t.Fatalf("the row should be stored from the temp as it is:\n%s", rust)
+	}
+}
+
+// A map element on the left of a parallel assignment is stored by insertion,
+// with the map and key evaluated before any value; a map variable is
+// rebound, not written into (DEV-168).
+func TestParallelAssignmentInsertsMapElementsAndRebindsMaps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	m := map[string]string{"a": "x", "b": "y"}
+	m["a"], m["b"] = m["b"], m["a"]
+	a := map[string]int{}
+	b := map[string]int{}
+	a, b = b, a
+	_, _, _ = m, a, b
+}
+`)
+	for _, want := range []string{
+		"let __go_lhs_key_0 = \"a\".to_string();",
+		"(*__go_lhs_map_0.borrow_mut().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);",
+		"a = __tmp_0;",
+		"b = __tmp_1;",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "*a.borrow_mut() = __tmp_0.borrow_mut().take();") {
+		t.Errorf("a map variable must be rebound, not have the other map moved into its cell:\n%s", rust)
+	}
+}
