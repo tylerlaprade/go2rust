@@ -207,6 +207,31 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-stringer**
+
+- Location: `go/fmt_stringer.go`. `writeFmtStringerStub` writes the
+  `fmt_Stringer` stub type, with the text of the value it holds; it is called
+  from `writeExternalInterfaceStub` in `go/external_type_stubs.go`. The
+  writers that fill it, and where they are called:
+  - `writeFmtStringerConversion`, from `writeLocalConcreteStdlibInterfaceConversion` in `go/expr.go`;
+  - `writeTypeSwitchFmtStringerCaseCondition` and `writeTypeSwitchFmtStringerCaseBinding`, from `writeTypeSwitchLocalInterfaceCaseCondition` and `writeTypeSwitchInterfaceCaseBinding` in `go/stmt.go`;
+  - `fmtStringerAssertionTarget`, `writeFmtStringerAssertionValue` and `writeFmtStringerAssertionCommaOk`, from `TranspileExpressionContext` and `TranspileTypeAssertionCommaOk` in `go/expr.go`, with the exceptions in `methodReceiverExpressionNeedsUnwrap` and `staticallyKnownAnyInterfaceAssertionSource`;
+  - `writeFmtStringerTypeName`, for `%T`, from `writeTypeNameFormatArg` in `go/stdlib.go`.
+- Go symbol: `fmt.Stringer` as a variable or parameter type, a `[]fmt.Stringer`,
+  `case fmt.Stringer` and `x.(fmt.Stringer)`.
+- Transpiler gap: `fmt` is bridged (fmt-runtime-format), so `fmt.Stringer` is
+  a stub type rather than a translated interface, and the stub's `String`
+  had no body. A value converted to it now carries a closure over its
+  Display impl, which calls the value's own String method (DEV-152).
+- Fixture: `tests/fmt_stringer_values/` and
+  `tests/fmt_stringer_values_goroutines/`.
+- Not covered: a `fmt.Stringer` put back into an `interface{}` boxes the
+  `fmt_Stringer`, so asserting the concrete type there fails (DEV-155).
+- Removal trigger: `fmt` is translated from source, or the stdlib boundary
+  puts `fmt` in the hand-written tier; then `fmt.Stringer` is an ordinary
+  interface of that package and these writers are deleted.
+- Added: 2026-11-24
+
 **fmt-print-operands**
 
 - Location: `go/stdlib.go`, `transpileFmtSprint`, `transpileFmtSprintln`,
@@ -280,6 +305,50 @@ transpiler-gap and fixture fields. **When you touch a shim, fill in its row
 before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
+
+### io-fs-path-error
+
+- Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
+- Go symbol: `io/fs.PathError`
+- Transpiler gap: ordinary non-source-mapped programs cannot use a
+  source-transpiled `io/fs.PathError`, so the external stub emits its concrete
+  fields and wrapped cause. A program that opts into `io/fs` currently has
+  two Rust types for the same Go declaration, so `errors.As` returns false.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile and source-map `io/fs.PathError` for
+  ordinary callers, then delete the stub.
+- Added: 2026-11-20
+
+### os-open-path-error
+
+- Location: `go/external_type_stubs.go`, `writeOsErrorHelpers` and
+  `writeOsOpenFunction`
+- Go symbol: `os.Open`
+- Transpiler gap: the ordinary `os.Open` stub calls Rust `std::fs` and cannot
+  construct the source-transpiled `io/fs.PathError` across that boundary.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-transpile the `os.Open`/`io/fs.PathError` boundary
+  and delete the external-stub constructor.
+- Added: 2026-11-20
+
+### io-fs-err-not-exist
+
+- Location: `go/external_type_stubs.go`,
+  `writeExternalPackageStubVariable`
+- Go symbol: `io/fs.ErrNotExist`
+- Transpiler gap: external package variables cannot refer to the
+  source-transpiled sentinel, so the ordinary stub maps it to Rust
+  `ErrorKind::NotFound`.
+- Fixture: `tests/os_open_path_error/` and
+  `tests/os_open_path_error_goroutines/`. The source-mode regression is
+  `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
+  route `errors.Is` through it, then delete the external-stub branch.
+- Added: 2026-11-20
 
 ### json-marshal-helpers
 

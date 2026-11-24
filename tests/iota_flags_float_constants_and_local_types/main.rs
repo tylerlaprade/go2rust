@@ -1337,7 +1337,7 @@ pub fn apply(fs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCel
         { let __range_holder = fs_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) }; *x.borrow_mut() = Some(new_val); };
     } }
-        (*x.borrow().as_ref().unwrap())
+        return (*x.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>)));
 }
 

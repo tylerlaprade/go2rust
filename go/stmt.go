@@ -88,9 +88,34 @@ func expressionReadsWrappedLocal(expr ast.Expr, fnType *ast.FuncType) bool {
 // records the rare opt-outs (bare scalar slot from a bare-scalar call, range
 // vars, etc.) as WrapNone. Anything else that's a body-declared local is
 // assumed wrapped.
+// paramIsReboundInBody reports whether ident is a parameter that the body
+// reassigns. Such a parameter gets a cell of its own at the top of the body
+// (writeGoSliceParamHeaderCopies), a local that drops before the
+// temporaries of a tail expression, like any other body local.
+func paramIsReboundInBody(ident *ast.Ident, fnType *ast.FuncType) bool {
+	if fnType == nil || fnType.Params == nil || currentFunctionBody == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Uses[ident]
+	if obj == nil {
+		return false
+	}
+	if obj.Pos() < fnType.Params.Pos() || obj.Pos() >= fnType.Params.End() {
+		return false
+	}
+	return funcBodyReassignsVar(currentFunctionBody, obj, typeInfo)
+}
+
 func identIsWrappedFunctionLocal(ident *ast.Ident, fnType *ast.FuncType) bool {
 	if ident == nil || ident.Name == "_" {
 		return false
+	}
+	if paramIsReboundInBody(ident, fnType) {
+		return true
 	}
 	if info := lookupVarInfo(ident.Name); info != nil {
 		return info.Source == SourceLocal && info.WrapLevel != WrapNone
@@ -3509,6 +3534,9 @@ func typeSwitchStaticallyKnownInterfaceCaseTarget(typeInfo *TypeInfo, typeExpr a
 }
 
 func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseCondition(out, typeInfo, typeExpr, subjectType) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -3574,6 +3602,9 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 // case (named or anonymous). Go gives the case variable the case type, even when
 // the matched value is rewrapped from a statically known interface subject.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool, canRewrapInterfaceSubject bool) bool {
+	if writeTypeSwitchFmtStringerCaseBinding(out, typeInfo, varName, typeExpr, subjectType, mutable) {
+		return true
+	}
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr, subjectType)
 	if !ok {
 		return false
@@ -7388,6 +7419,9 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	if writePointerHandleAssignmentFromTemp(out, lhs, tmpName) {
 		return
 	}
+	if writeCurrentReceiverDerefAssignmentFromTemp(out, lhs, tmpName) {
+		return
+	}
 	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
 	out.WriteString(" let ")
 	out.WriteString(movedName)
@@ -7400,6 +7434,26 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	out.WriteString(" = ")
 	out.WriteString(movedName)
 	out.WriteString(";")
+}
+
+// writeCurrentReceiverDerefAssignmentFromTemp writes *t = <temp> for the
+// receiver t of a pointer method, as in "*t, err = parse(data)": the
+// receiver is &mut T, so the value goes into *self, as a plain "*t = v"
+// does in writeCurrentReceiverDerefAssignment.
+func writeCurrentReceiverDerefAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) bool {
+	star, ok := lhs.(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := star.X.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || isNamedSliceExpression(star) || isNamedMapExpression(star) {
+		return false
+	}
+	out.WriteString(" *self = { let mut __guard = ")
+	out.WriteString(tmpName)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take().unwrap_or_default() };")
+	return true
 }
 
 func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string, tmpBareScalar bool) {
@@ -12815,10 +12869,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				isString := false
 				if s.Tok == token.ADD_ASSIGN {
 					typeInfo := GetTypeInfo()
+					lhsTyped := false
 					if typeInfo != nil {
 						isString = typeInfo.IsString(s.Lhs[0])
+						lhsTyped = typeInfo.GetType(s.Lhs[0]) != nil
 					}
-					if !isString && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
+					// The variable table is keyed by name, so a string variable of
+					// an inner scope can stand in for an int of the same name
+					// outside it; the type checker's answer comes first.
+					if !isString && !lhsTyped && (isSyntaxStringValue(s.Lhs[0]) || isSyntaxStringConversion(s.Rhs[0])) {
 						isString = true
 					}
 					// A named string newtype concatenates through its Add impl.
@@ -13390,7 +13449,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(rustIdentForUseWithCapture(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if ident, ok := star.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
 									out.WriteString("{ ")
@@ -13403,7 +13462,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; *")
-									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(rustIdentForUseWithCapture(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if writeGoPtrSlotDerefAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-GoPtr-slot assignment replaces the GoPtr stored in the slot.
@@ -15982,12 +16041,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		hasFallthrough := false
 		for _, stmt := range s.Body.List {
 			if caseClause, ok := stmt.(*ast.CaseClause); ok {
+				popCaseScope := pushCaseClauseScope()
 				for _, bodyStmt := range caseClause.Body {
 					if branch, ok := bodyStmt.(*ast.BranchStmt); ok && branch.Tok == token.FALLTHROUGH {
 						hasFallthrough = true
 						break
 					}
 				}
+				popCaseScope()
 				if hasFallthrough {
 					break
 				}
@@ -16079,6 +16140,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// Case body — replace fallthrough with flag set
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					var captureShadowRestores []func()
+					popCaseScope := pushCaseClauseScope()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -16092,6 +16154,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("\n")
 						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					popCaseScope()
 					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }\n")
@@ -16162,6 +16225,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					var caseBodyLastPos token.Pos = caseClause.Colon
 					var captureShadowRestores []func()
+					popCaseScope := pushCaseClauseScope()
 					for _, bodyStmt := range caseClause.Body {
 						if isUnlabeledBreakStmt(bodyStmt) {
 							break
@@ -16171,6 +16235,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("\n")
 						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					popCaseScope()
 					restoreCaptureShadows(captureShadowRestores)
 
 					out.WriteString("        }")
@@ -16186,6 +16251,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				var caseBodyLastPos token.Pos = defaultClause.Colon
 				var captureShadowRestores []func()
+				popCaseScope := pushCaseClauseScope()
 				for _, bodyStmt := range defaultClause.Body {
 					if isUnlabeledBreakStmt(bodyStmt) {
 						break
@@ -16195,6 +16261,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("\n")
 					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				popCaseScope()
 				restoreCaptureShadows(captureShadowRestores)
 				out.WriteString("        }")
 			}
@@ -16335,6 +16402,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 						// Body
 						var captureShadowRestores []func()
+						popCaseScope := pushCaseClauseScope()
 						for _, bodyStmt := range cc.Body {
 							out.WriteString("            ")
 							TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
@@ -16342,6 +16410,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString("\n")
 							trackCaptureShadows(&captureShadowRestores, bodyStmt)
 						}
+						popCaseScope()
 						restoreCaptureShadows(captureShadowRestores)
 						if !stmtListTerminates(cc.Body) {
 							out.WriteString("            break;\n")
@@ -16358,6 +16427,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".try_recv_select() {\n")
 
 					var captureShadowRestores []func()
+					popCaseScope := pushCaseClauseScope()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("            ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
@@ -16365,6 +16435,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("\n")
 						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					popCaseScope()
 					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("            break;\n")
@@ -16377,6 +16448,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				fmt.Fprintf(out, "        if %s.try_send_select(&mut %s) {\n", operands[i].channel, operands[i].value)
 
 				var captureShadowRestores []func()
+				popCaseScope := pushCaseClauseScope()
 				for _, bodyStmt := range cc.Body {
 					out.WriteString("            ")
 					TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
@@ -16384,6 +16456,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("\n")
 					trackCaptureShadows(&captureShadowRestores, bodyStmt)
 				}
+				popCaseScope()
 				restoreCaptureShadows(captureShadowRestores)
 				if !stmtListTerminates(cc.Body) {
 					out.WriteString("            break;\n")
@@ -16397,6 +16470,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			for _, cc := range commClauses {
 				if cc.Comm == nil {
 					var captureShadowRestores []func()
+					popCaseScope := pushCaseClauseScope()
 					for _, bodyStmt := range cc.Body {
 						out.WriteString("        ")
 						TranspileStatementSimple(out, bodyStmt, fnType, fileSet)
@@ -16404,6 +16478,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("\n")
 						trackCaptureShadows(&captureShadowRestores, bodyStmt)
 					}
+					popCaseScope()
 					restoreCaptureShadows(captureShadowRestores)
 					if !stmtListTerminates(cc.Body) {
 						out.WriteString("        break;\n")
@@ -16461,6 +16536,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			if !assignedCaptured[varName] && !(currentReceiver != "" && varName == currentReceiver) && deferCapturedNameCopiesValue(s.Call, varName) {
 				// The value the variable has when the defer statement runs.
+				if isVarBare(varName) {
+					// A bare local, such as the int a (uintptr, error) call
+					// returns, is its own value.
+					out.WriteString(source)
+					out.WriteString(".clone(); ")
+					continue
+				}
 				writeCapturedValueCopy(out, source)
 				out.WriteString("; ")
 				continue
