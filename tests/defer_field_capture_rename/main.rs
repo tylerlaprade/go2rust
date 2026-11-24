@@ -642,11 +642,12 @@ pub fn compute() -> bool {
     }));
     { let __map_key = "x".to_string(); let __map_value = tset.clone(); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     {
+        let __return_value = false;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return false;
+        return __return_value;
     }
 }
 

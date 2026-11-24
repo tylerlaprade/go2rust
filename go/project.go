@@ -767,9 +767,14 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 		if ident == nil || obj == nil || obj.Parent() != pkgScope || obj.Pkg() != typeInfo.pkg {
 			continue
 		}
-		moduleName := moduleNameForObjectPos(files, moduleNamesByIndex, obj.Pos())
-		if moduleName == "" {
+		moduleName, found := moduleNameForObjectPosFound(files, moduleNamesByIndex, obj.Pos())
+		if !found {
 			continue
+		}
+		if moduleName == "" {
+			// main.go is the crate root: another file names its items
+			// as crate::item.
+			moduleName = crateRootSiblingModule
 		}
 		rustName, ok := rustPackageObjectImportName(obj)
 		if !ok {
@@ -1018,24 +1023,37 @@ func siblingImportSpecs(neededByModule map[string]map[string]bool) []string {
 			itemNames = append(itemNames, itemName)
 		}
 		sort.Strings(itemNames)
+		if moduleName == crateRootSiblingModule {
+			specs = append(specs, itemNames...)
+			continue
+		}
 		specs = append(specs, moduleName+"::{"+strings.Join(itemNames, ", ")+"}")
 	}
 	return specs
 }
 
 func moduleNameForObjectPos(files []*ast.File, moduleNamesByIndex []string, pos token.Pos) string {
+	name, _ := moduleNameForObjectPosFound(files, moduleNamesByIndex, pos)
+	return name
+}
+
+// crateRootSiblingModule stands for main.go, whose items are at the crate
+// root, among the modules sibling imports come from.
+const crateRootSiblingModule = "\x00crate"
+
+func moduleNameForObjectPosFound(files []*ast.File, moduleNamesByIndex []string, pos token.Pos) (string, bool) {
 	if pos == token.NoPos {
-		return ""
+		return "", false
 	}
 	for i, file := range files {
 		if file == nil || i >= len(moduleNamesByIndex) {
 			continue
 		}
 		if file.Pos() <= pos && pos < file.End() {
-			return moduleNamesByIndex[i]
+			return moduleNamesByIndex[i], true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func rustPackageObjectImportName(obj types.Object) (string, bool) {

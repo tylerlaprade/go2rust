@@ -1,0 +1,11 @@
+[package]
+name = "multi_value_call_receiver_order"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "multi_value_call_receiver_order"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

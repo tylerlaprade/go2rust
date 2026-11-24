@@ -1117,11 +1117,12 @@ impl tally {
         t_defer_captured.mu.r_unlock();
     }));
             {
+        let __return_value = { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __map = { let __map_holder = self.count.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
+        return __return_value;
     }
         }));
         match __go_panic_result {

@@ -789,11 +789,12 @@ pub fn read(rw: GoRWMutex, n: Rc<RefCell<Option<i64>>>) -> i64 {
         rw_defer_captured.r_unlock();
     }));
     {
+        let __return_value = { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v };
+        return __return_value;
     }
 }
 

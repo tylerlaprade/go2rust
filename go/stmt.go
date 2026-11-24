@@ -11878,11 +11878,17 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
-	if binding, rewritten, ok := multiValueArgumentStatement(stmt); ok {
+	if prelude, rewritten, ok := multiValueArgumentStatement(stmt); ok {
 		// g(f()) with a multi-value f: bind f's results, then call g.
-		TranspileStatement(out, binding, fnType, fileSet, comments, lastPos, indent)
-		out.WriteString("\n")
-		out.WriteString(indent)
+		for i, binding := range prelude {
+			if i == 0 {
+				TranspileStatement(out, binding, fnType, fileSet, comments, lastPos, indent)
+			} else {
+				TranspileStatement(out, binding, fnType, fileSet, nil, nil, indent)
+			}
+			out.WriteString("\n")
+			out.WriteString(indent)
+		}
 		TranspileStatement(out, rewritten, fnType, fileSet, nil, nil, indent)
 		return
 	}
@@ -12061,8 +12067,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
-		// Execute defers before returning if needed
-		if currentFunctionHasDefer {
+		// Go evaluates the results, then runs the deferred calls, then
+		// returns: `defer note(); return compute()` calls compute first. The
+		// results are staged in a local before the defer stack drains.
+		stagedDeferReturn := currentFunctionHasDefer && len(s.Results) > 0
+		if stagedDeferReturn {
+			out.WriteString("{\n")
+			out.WriteString("        let __return_value =")
+		} else if currentFunctionHasDefer {
 			out.WriteString("{\n")
 			out.WriteString("        // Execute deferred functions\n")
 			out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
@@ -12113,7 +12125,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if !writeMultiResultCallReturnWithSlotConversions(out, call, fnType) {
 						TranspileExpression(out, call)
 					}
-					if currentFunctionHasDefer {
+					if stagedDeferReturn {
+						writeStagedDeferReturnClose(out)
+					} else if currentFunctionHasDefer {
 						out.WriteString(";\n    }")
 					} else if !tailReturn {
 						out.WriteString(";")
@@ -12623,7 +12637,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		// Close the defer execution block if needed
-		if currentFunctionHasDefer {
+		if stagedDeferReturn {
+			writeStagedDeferReturnClose(out)
+		} else if currentFunctionHasDefer {
 			// The `;` after `return X` keeps the return value's temporaries
 			// scoped to the statement so the surrounding wrapped locals can
 			// drop afterward. Without it the block's tail expression rules
@@ -17862,6 +17878,17 @@ func writeTupleElementDroppingGuards(out *strings.Builder, value string) {
 	out.WriteString("{ let __tuple_value = ")
 	out.WriteString(value)
 	out.WriteString("; __tuple_value }")
+}
+
+// writeStagedDeferReturnClose ends `let __return_value = <results>` and
+// returns the staged results once the deferred calls have run.
+func writeStagedDeferReturnClose(out *strings.Builder) {
+	out.WriteString(";\n")
+	out.WriteString("        // Execute deferred functions\n")
+	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+	out.WriteString("            f();\n")
+	out.WriteString("        }\n")
+	out.WriteString("        return __return_value;\n    }")
 }
 
 // writeBuiltinLengthForIntegerSlot writes len(x) or cap(x) stored into an
