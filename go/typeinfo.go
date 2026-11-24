@@ -705,7 +705,13 @@ func sequenceElementIsBareValue(ti *TypeInfo, e *ast.IndexExpr, elemType types.T
 	default:
 		return false
 	}
-	switch seq := types.Unalias(ti.GetType(e.X)).(type) {
+	seqType := ti.GetType(e.X)
+	if seqType == nil {
+		return false
+	}
+	// A defined slice or array type (type Rows [2][2]int) holds its
+	// elements as its underlying type does.
+	switch seq := seqType.Underlying().(type) {
 	case *types.Slice, *types.Array:
 		return true
 	case *types.Pointer:

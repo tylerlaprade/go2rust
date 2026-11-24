@@ -1189,7 +1189,7 @@ pub fn join(items: Arc<Mutex<Option<Vec<fmt_Stringer>>>>) -> Arc<Mutex<Option<St
 }
 
 pub fn show(s: Arc<Mutex<Option<fmt_Stringer>>>) {
-    println!("{} {} {}", format!("{}", "show:".to_string()), format!("{}", (*(*s.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", "show:".to_string()), format!("{}", (*(*s.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())), format!("{}", match s.lock().unwrap().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 }
 
 pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
@@ -1298,7 +1298,7 @@ pub fn must_string(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mut
 fn main() {
     let mut s: Arc<Mutex<Option<fmt_Stringer>>> = Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(Celsius { deg: Arc::new(Mutex::new(Some(21))), ..Default::default() }))));
     println!("{}", format!("{}", (*(*s.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+    println!("{}", format!("{}", match s.lock().unwrap().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 
     let mut c = Arc::new(Mutex::new(Some(Counter { n: Arc::new(Mutex::new(Some(1))), ..Default::default() })));
     show(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))));
@@ -1341,7 +1341,7 @@ fn main() {
             println!("{} {}", format!("{}", "in place".to_string()), format!("{}", (*(*st.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));;
         }
     }
-    print!("{} {} {}\n", format!("{}", { let __type_name = match (s).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", { let __type_name = match (stringer(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+    print!("{} {} {}\n", format!("{}", { let __type_name = match (s).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", { let __type_name = match (stringer(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", match s.lock().unwrap().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 
         // A call's result, an assertion printed directly, and %T of one.
     let mut made: Arc<Mutex<Option<fmt_Stringer>>> = Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display((*make_celsius(Arc::new(Mutex::new(Some(11)))).lock().unwrap().as_ref().unwrap()).clone()))));

@@ -1767,6 +1767,10 @@ run_xfail_test() {
     run_test "tests/interface_mutating_method_dispatch"
 }
 
+@test "interface_nil_print_and_defined_rows" {
+    run_test "tests/interface_nil_print_and_defined_rows"
+}
+
 @test "interface_range_print_and_row_compare" {
     run_test "tests/interface_range_print_and_row_compare"
 }
