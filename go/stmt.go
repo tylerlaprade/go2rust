@@ -1689,6 +1689,22 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 }
 
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
+	if ident, ok := lhs.(*ast.Ident); ok && newBinding {
+		// m, n := make(map[int]*T), 0 where m holds slice element pointers:
+		// the initializer gives the map its GoPtr values, as a single
+		// declaration's does.
+		if writeSliceElemPtrMapInitializer(out, ident, rhs) {
+			return
+		}
+		if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
+			if writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+				return
+			}
+			if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "make") && writeSliceElemPtrSliceMake(out, call, elemRustType) {
+				return
+			}
+		}
+	}
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return
@@ -12637,6 +12653,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Tok == token.DEFINE {
 			registerDefaultShortDeclBindings(s.Lhs)
 		}
+		if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+			if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+				var init strings.Builder
+				if writeSliceElemPtrMapInitializer(&init, ident, s.Rhs[0]) {
+					out.WriteString("let mut ")
+					out.WriteString(RustLocalIdent(ident.Name))
+					out.WriteString(" = ")
+					out.WriteString(init.String())
+					out.WriteString(";")
+					break
+				}
+			}
+		}
 		if rewritten, ok := goShiftCompoundAsAssignment(s); ok {
 			TranspileStatement(out, rewritten, fnType, fileSet, comments, lastPos, indent)
 			return
@@ -12681,7 +12710,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
 				out.WriteString("; let __map_value = ")
-				writeMapWrappedValue(out, s.Rhs[0], valueType)
+				if !writeSliceElemPtrMapValue(out, indexExpr.X, s.Rhs[0]) {
+					writeMapWrappedValue(out, s.Rhs[0], valueType)
+				}
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				writeMapHandleForOp(out, indexExpr.X)
@@ -13911,6 +13942,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(", ")
 										}
 										if s.Tok == token.DEFINE {
+											if i < len(s.Lhs) {
+												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+													if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(lhsIdent); ok && writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+														continue
+													}
+													if writeSliceElemPtrMapInitializer(out, lhsIdent, rhs) {
+														continue
+													}
+												}
+											}
 											// Check if RHS is nil
 											if isGoPtrShortDecl && i == 0 {
 												wroteGoPtrInitializer := false

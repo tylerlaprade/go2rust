@@ -1014,6 +1014,15 @@ pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
 
 impl<T> GoSliceElemPtr<T> {
     pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+        // &s[i] panics, as indexing does, when i is not below len(s). A
+        // slice already borrowed for the expression is not checked.
+        if let Ok(__guard) = slice.try_lock() {
+            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
+            if index >= __len {
+                drop(__guard);
+                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
+            }
+        }
         GoSliceElemPtr { slice, index }
     }
 
