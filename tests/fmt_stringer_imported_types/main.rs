@@ -156,7 +156,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<fmt_Stringer>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", ok), format!("{}", ok2), format!("{}", format!("{}", (*st.borrow().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", ok), format!("{}", ok2), format!("{}", match st.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 }
 
 impl GoValueClone for Celsius {
