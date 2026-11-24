@@ -9,15 +9,19 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut total = Arc::new(Mutex::new(Some(0i64)));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "1, 2,x, 30".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut field in __range_values.iter().cloned() {
-        { let new_val = (*Arc::new(Mutex::new(Some({ let __s = field.clone(); __s.trim().to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); field = new_val; };
+    { let __range_holder = strings::split(Arc::new(Mutex::new(Some("1, 2,x, 30".to_string()))), Arc::new(Mutex::new(Some(",".to_string())))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut field in __range_values.iter().cloned() {
+        { let new_val = (*strings::trim_space(Arc::new(Mutex::new(Some(field.clone())))).lock().unwrap().as_ref().unwrap()).clone(); field = new_val; };
         let (mut n, mut err) = strconv::atoi(Arc::new(Mutex::new(Some(field.clone()))));
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{} {} {}", format!("{}", "skip".to_string()), format!("{}", field), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

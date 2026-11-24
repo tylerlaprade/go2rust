@@ -219,6 +219,7 @@ fn main() {
     ::internal_stringslite::__go_init_all();
     ::internal_sync::__go_init_all();
     ::internal_types_errors::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_big::__go_init_all();
     ::math_bits::__go_init_all();

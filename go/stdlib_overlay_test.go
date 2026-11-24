@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/build"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -88,5 +89,34 @@ func main() {
 `)
 	if !strings.Contains(rust, "return ((*q.borrow().as_ref().unwrap()), (*r.borrow().as_ref().unwrap()));") {
 		t.Errorf("the return of named results should be an explicit return:\n%s", rust)
+	}
+}
+
+// internal/bytealg loads with its generic Go files in place of the
+// assembly-backed ones, and without the internal/cpu offsets only assembly
+// reads.
+func TestStdlibOverlayReplacesBytealgAssembly(t *testing.T) {
+	overlay := stdlibNoAsmOverlay()
+	dir := filepath.Join(build.Default.GOROOT, "src", "internal", "bytealg")
+	if _, err := os.Stat(filepath.Join(dir, "index_native.go")); err != nil {
+		t.Skip("GOROOT has no internal/bytealg sources")
+	}
+	native, ok := overlay[filepath.Join(dir, "index_native.go")]
+	if !ok || !strings.Contains(string(native), `panic("unimplemented")`) || strings.Contains(string(native), "//go:build") {
+		t.Fatalf("index_native.go should hold index_generic.go without its build line:\n%s", native)
+	}
+	if amd64, ok := overlay[filepath.Join(dir, "index_amd64.go")]; !ok || strings.TrimSpace(string(amd64)) != "package bytealg" {
+		t.Fatalf("index_amd64.go should be only a package clause:\n%s", amd64)
+	}
+	bytealg, ok := overlay[filepath.Join(dir, "bytealg.go")]
+	if !ok {
+		t.Fatal("bytealg.go has no overlay")
+	}
+	text := string(bytealg)
+	if strings.Contains(text, "internal/cpu") || strings.Contains(text, "Offsetof") {
+		t.Fatalf("bytealg.go should drop the internal/cpu offsets:\n%s", text)
+	}
+	if !strings.Contains(text, `_ "unsafe"`) || !strings.Contains(text, "var MaxLen int") {
+		t.Fatalf("bytealg.go should keep its linkname import and MaxLen:\n%s", text)
 	}
 }

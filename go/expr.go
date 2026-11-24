@@ -1687,6 +1687,45 @@ func writeBareMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, ar
 	TranspileExpression(out, arg)
 }
 
+// writeBareRangeSliceArgument writes a range variable over a [][]T, held
+// bare as the element is, passed to a []T parameter, as bufio's
+// collectFragments passes each full buffer to buf.Write: the parameter
+// takes a cell of its own holding the slice header.
+func writeBareRangeSliceArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || strings.HasPrefix(varType, GetOuterWrapperType()+"<") {
+		// A map's values come in cells of their own.
+		return false
+	}
+	goType := rangeLoopVarGoTypes[ident.Name]
+	if goType == nil {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			goType = typeInfo.GetType(ident)
+		}
+	}
+	if goType == nil {
+		return false
+	}
+	if _, isSlice := types.Unalias(goType).Underlying().(*types.Slice); !isSlice {
+		return false
+	}
+	if _, isNamed := types.Unalias(goType).(*types.Named); isNamed {
+		return false
+	}
+	if _, wantsSlice := types.Unalias(expected).Underlying().(*types.Slice); !wantsSlice {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(RustLocalIdent(ident.Name))
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
@@ -1709,6 +1748,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		return
 	}
 	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if writeBareRangeSliceArgument(out, arg, expectedArgType) {
 		return
 	}
 	if typeInfo != nil && typeInfo.IsChannel(arg) {
@@ -1965,6 +2007,10 @@ func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorE
 	variadicStart := sig.Params().Len() - 1
 	for i := 0; i < variadicStart && i < len(call.Args); i++ {
 		writeArgPrefix(i)
+		if !externalStdlibStubMethodCall && writeBareRangeSliceArgument(out, call.Args[i], selectedMethodParamType(sel, i)) {
+			writeArgSuffix()
+			continue
+		}
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
@@ -14291,6 +14337,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
+			if writeBareSliceElementNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if typeInfo != nil && typeInfo.IsChannel(e.X) {
 				if e.Op.String() == "!=" {
 					out.WriteString("!")
@@ -17869,7 +17918,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 							// []byte to string
 							WriteWrapperPrefix(out)
 							out.WriteString(stringFromUTF8Open())
-							writeUnwrappedSliceClone(out, arg)
+							if isNamedSliceExpression(arg) {
+								// A defined []byte type holds the slice inside it.
+								out.WriteString("{ let __bytes = ")
+								writeNamedSliceInnerHandleClone(out, arg)
+								out.WriteString("; let __bytes_guard = __bytes")
+								WriteBorrowMethod(out, false)
+								out.WriteString("; let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value }")
+							} else {
+								writeUnwrappedSliceClone(out, arg)
+							}
 							out.WriteString(stringFromUTF8Close())
 							WriteWrapperSuffix(out)
 							return

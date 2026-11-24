@@ -10,6 +10,7 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    ::bytes::__go_init_all();
     ::cmp::__go_init_all();
     ::example_com_source_stdlib_parser_decl_cross_package_walker::__go_init_all();
     ::go_ast::__go_init_all();
@@ -17,9 +18,9 @@ fn main() {
     ::go_scanner::__go_init_all();
     ::go_token::__go_init_all();
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();

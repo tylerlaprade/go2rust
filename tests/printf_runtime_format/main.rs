@@ -4,585 +4,13 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use go2rust_stdlib_stubs::*;
 use std::any::Any;
-use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
-
-/// A Go slice: an offset, a length and a capacity over a backing array that
-/// every slice made from it shares. Every name below that a binding uses
-/// starts with __, so no package-level variable of the program shadows it.
-pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
-    off: usize,
-    len: usize,
-    cap: usize,
-}
-
-unsafe impl<T: Send> Send for GoSlice<T> {}
-unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
-
-/// The prelude's Vec and vec! are Go slices in generated code.
-pub type Vec<T> = GoSlice<T>;
-
-impl<T> Clone for GoSlice<T> {
-    /// Copies the header. The copy shares the elements, as a Go slice
-    /// assignment does.
-    fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
-    }
-}
-
-impl<T> GoSlice<T> {
-    pub fn new() -> Self {
-        Self::from(std::vec::Vec::new())
-    }
-
-    pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
-    }
-
-    fn backing_ref(&self) -> &std::vec::Vec<T> {
-        unsafe { &*self.backing.get() }
-    }
-
-    #[allow(clippy::mut_from_ref)]
-    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
-        unsafe { &mut *self.backing.get() }
-    }
-
-    pub fn as_slice(&self) -> &[T] {
-        &self.backing_ref()[self.off..self.off + self.len]
-    }
-
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        let (__off, __len) = (self.off, self.len);
-        &mut self.backing_mut()[__off..__off + __len]
-    }
-
-    /// Go's cap(s).
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
-
-    /// Whether two slices share their backing array.
-    pub fn shares_backing_with(&self, __other: &Self) -> bool {
-        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
-    }
-
-    /// Go's s[lo:hi].
-    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
-        if __lo > __hi || __hi > self.cap {
-            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
-        }
-        if self.off + __hi > self.backing_ref().len() {
-            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
-        }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
-    }
-
-    /// Go's s[lo:hi:max].
-    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
-        if __max > self.cap || __hi > __max {
-            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
-        }
-        let mut __slice = self.reslice(__lo, __hi);
-        __slice.cap = __max - __lo;
-        __slice
-    }
-
-    /// Go's s = s[:n] when n is at most len(s).
-    pub fn truncate(&mut self, __n: usize) {
-        if __n < self.len {
-            self.len = __n;
-        }
-    }
-
-    /// Go's s = s[:0].
-    pub fn clear(&mut self) {
-        self.len = 0;
-    }
-
-    #[allow(unused_variables)]
-    pub fn reserve(&mut self, __additional: usize) {}
-
-    /// Keeps the elements the predicate accepts, in order, at the front.
-    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
-        let mut __kept = 0;
-        {
-            let __window = self.as_mut_slice();
-            for __index in 0..__window.len() {
-                if __keep(&__window[__index]) {
-                    __window.swap(__kept, __index);
-                    __kept += 1;
-                }
-            }
-        }
-        self.len = __kept;
-    }
-
-    /// Moves the slice's elements out when no other slice shares them.
-    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
-        let (__off, __len) = (self.off, self.len);
-        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut());
-        __elems.truncate(__off + __len);
-        __elems.drain(..__off);
-        Some(__elems)
-    }
-
-    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
-    }
-
-    /// The capacity Go's append gives a slice that must grow to hold
-    /// __needed elements.
-    fn grown_cap(&self, __needed: usize) -> usize {
-        let __old = self.cap;
-        let __doubled = __old + __old;
-        if __needed > __doubled {
-            return __needed;
-        }
-        if __old < 256 {
-            return __doubled.max(1);
-        }
-        let mut __grown = __old;
-        while __grown < __needed {
-            __grown += (__grown + 3 * 256) / 4;
-        }
-        __grown
-    }
-
-    /// Stores a value at index len(s) of the backing array: the in-place
-    /// half of Go's append. The backing Vec has room for the capacity, so
-    /// pushing onto it never moves elements other slices are reading.
-    fn store_at_end(&mut self, __value: T) {
-        let __at = self.off + self.len;
-        let __backing = self.backing_mut();
-        if __at < __backing.len() {
-            __backing[__at] = __value;
-        } else {
-            __backing.push(__value);
-        }
-        self.len += 1;
-    }
-
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
-}
-
-impl<T: Clone> GoSlice<T> {
-    /// Go's s = append(s, v): in place while there is capacity, else into a
-    /// new backing array.
-    pub fn push(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.push(__value);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's append(s, v), leaving s as it was.
-    pub fn appended(&self, __value: T) -> Self {
-        let mut __result = self.clone();
-        __result.push(__value);
-        __result
-    }
-
-    /// Go's s = append(s, xs...).
-    pub fn extend_from_slice(&mut self, __values: &[T]) {
-        if self.len + __values.len() <= self.cap {
-            for __value in __values {
-                self.store_at_end(__value.clone());
-            }
-            return;
-        }
-        let __cap = self.grown_cap(self.len + __values.len());
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.extend_from_slice(__values);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's s = append(s, xs...) from values.
-    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
-        let __values: std::vec::Vec<T> = __values.into_iter().collect();
-        self.extend_from_slice(&__values);
-    }
-
-    /// Removes and returns the last element: Go's v := s[len(s)-1];
-    /// s = s[:len(s)-1].
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-        let __last = self.as_slice()[self.len - 1].clone();
-        self.len -= 1;
-        Some(__last)
-    }
-
-    pub fn insert(&mut self, __index: usize, __value: T) {
-        if __index > self.len {
-            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
-        }
-        self.push(__value);
-        self.as_mut_slice()[__index..].rotate_right(1);
-    }
-
-    pub fn remove(&mut self, __index: usize) -> T {
-        let __removed = self.as_slice()[__index].clone();
-        self.as_mut_slice()[__index..].rotate_left(1);
-        self.len -= 1;
-        __removed
-    }
-
-    pub fn split_off(&mut self, __at: usize) -> Self {
-        let __tail = Self::from(self.as_slice()[__at..].to_vec());
-        self.len = __at;
-        __tail
-    }
-
-    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
-        let mut __elems = self.as_slice().to_vec();
-        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
-        let __cap = self.cap;
-        *self = Self::fresh(__elems, __cap);
-        __drained.into_iter()
-    }
-
-    pub fn resize(&mut self, __new_len: usize, __value: T) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more = std::vec::from_elem(__value, __new_len - self.len);
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn into_std_vec(self) -> std::vec::Vec<T> {
-        self.as_slice().to_vec()
-    }
-
-    pub fn into_boxed_slice(self) -> Box<[T]> {
-        self.as_slice().to_vec().into_boxed_slice()
-    }
-}
-
-/// The values appended by append(s, xs...) to a slice of interface values:
-/// always a slice built for the append, which nothing else holds.
-pub trait GoSliceBoxedValues<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T>;
-}
-
-impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T> {
-        self
-    }
-}
-
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
-/// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
-pub trait GoSliceAppendBoxed<T> {
-    fn push(&mut self, __value: T);
-    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-/// Reads the header of a slice value, whichever form the value has.
-pub trait GoSliceHeader<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>>;
-}
-
-impl<T> GoSliceHeader<T> for GoSlice<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        Some(self.clone())
-    }
-}
-
-impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.borrow().clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.lock().unwrap().clone()
-    }
-}
-
-/// Copies a Rust slice into a new Go slice.
-pub trait GoSliceFromSlice<T> {
-    fn to_go_slice(&self) -> GoSlice<T>;
-}
-
-impl<T: Clone> GoSliceFromSlice<T> for [T] {
-    fn to_go_slice(&self) -> GoSlice<T> {
-        GoSlice::from(self.to_vec())
-    }
-}
-
-impl<T> Default for GoSlice<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
-    fn from(__elems: std::vec::Vec<T>) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
-    }
-}
-
-impl<T: Clone> From<&[T]> for GoSlice<T> {
-    fn from(__elems: &[T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T: Clone> From<&mut [T]> for GoSlice<T> {
-    fn from(__elems: &mut [T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
-    fn from(__elems: [T; N]) -> Self {
-        Self::from(std::vec::Vec::from(__elems))
-    }
-}
-
-impl From<&str> for GoSlice<u8> {
-    fn from(__text: &str) -> Self {
-        Self::from(__text.as_bytes().to_vec())
-    }
-}
-
-impl From<String> for GoSlice<u8> {
-    fn from(__text: String) -> Self {
-        Self::from(__text.into_bytes())
-    }
-}
-
-impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
-    fn from(__slice: GoSlice<T>) -> Self {
-        __slice.as_slice().to_vec()
-    }
-}
-
-impl<T> std::ops::Deref for GoSlice<T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::ops::DerefMut for GoSlice<T> {
-    fn deref_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> AsRef<[T]> for GoSlice<T> {
-    fn as_ref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> AsMut<[T]> for GoSlice<T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
-    fn borrow(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
-    fn borrow_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::iter::FromIterator<T> for GoSlice<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
-        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
-    }
-}
-
-impl<T: Clone> IntoIterator for GoSlice<T> {
-    type Item = T;
-    type IntoIter = std::vec::IntoIter<T>;
-    fn into_iter(mut self) -> Self::IntoIter {
-        match self.take_unique() {
-            Some(__elems) => __elems.into_iter(),
-            None => self.as_slice().to_vec().into_iter(),
-        }
-    }
-}
-
-impl<'a, T> IntoIterator for &'a GoSlice<T> {
-    type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
-    type Item = &'a mut T;
-    type IntoIter = std::slice::IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_mut_slice().iter_mut()
-    }
-}
-
-impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_slice().fmt(__f)
-    }
-}
-
-/// Go's %v of a slice: the elements' %v between brackets.
-impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        __f.write_str("[")?;
-        for (__index, __value) in self.as_slice().iter().enumerate() {
-            if __index > 0 {
-                __f.write_str(" ")?;
-            }
-            write!(__f, "{}", __value)?;
-        }
-        __f.write_str("]")
-    }
-}
-
-impl<T: PartialEq> PartialEq for GoSlice<T> {
-    fn eq(&self, __other: &Self) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
-    fn eq(&self, __other: &[T]) -> bool {
-        self.as_slice() == __other
-    }
-}
-
-impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
-    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: Eq> Eq for GoSlice<T> {}
-
-impl<T: PartialOrd> PartialOrd for GoSlice<T> {
-    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_slice().partial_cmp(__other.as_slice())
-    }
-}
-
-impl<T: Ord> Ord for GoSlice<T> {
-    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
-        self.as_slice().cmp(__other.as_slice())
-    }
-}
-
-impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
-    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
-        self.as_slice().hash(__state)
-    }
-}
-
-impl std::io::Write for GoSlice<u8> {
-    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
-        self.extend_from_slice(__bytes);
-        Ok(__bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
+use std::sync::{Arc, Mutex};
 
 
 // Go expands a pointer to a struct only when the pointer is the value being
@@ -594,11 +22,11 @@ fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce()
     }
     if is_nil() { "<nil>".to_string() } else { format!("{:p}", address) }
 }
-fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
-    let guard = map.borrow();
+    let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
@@ -606,7 +34,7 @@ where
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
-                let v_guard = v.borrow();
+                let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
@@ -620,12 +48,12 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
@@ -642,15 +70,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -662,11 +90,11 @@ where
     }
 }
 
-fn format_any(value: &dyn Any) -> String {
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     format_any_at(value, false)
 }
 
-fn format_any_at(value: &dyn Any, nested: bool) -> String {
+fn format_any_at(value: &(dyn Any + Send + Sync), nested: bool) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -697,20 +125,20 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() {
+        match (*v.lock().unwrap()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() {
+        format_map(v)
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Point>>>>() {
+        go_format_any_pointer(nested, Arc::as_ptr(v) as *const (), || v.try_lock().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Status>>>>() {
+        match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() {
+        format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+        format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() {
-        format_map(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Point>>>>() {
-        go_format_any_pointer(nested, Rc::as_ptr(v) as *const (), || v.try_borrow().map(|__guard| __guard.is_none()).unwrap_or(false), || match (*v.borrow()).as_ref() { Some(__pointee) => format!("&{}", __pointee), None => "<nil>".to_string() })
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
-        match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Status>>>>() {
-        match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
-        format_slice(v)
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-        format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Status>() {
         format!("{}", v)
     } else {
@@ -718,52 +146,36 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
     }
 }
 
-#[derive(Clone, Copy)]
-struct GoAnyTypeMetadata {
-    pub kind: &'static str,
-    pub comparable: bool,
-    pub elem_kind: Option<&'static str>,
-    pub elem_comparable: bool,
+fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<i16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u8>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<u16>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<usize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<isize>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<f32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Point>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Status>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Point>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Status>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    None
 }
 
-fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
-    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
-    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
-}
-
-fn go_any_value_metadata_key(value: &dyn Any) -> usize {
-    value as *const dyn Any as *const () as usize
-}
-
-fn go_register_any_type<T: Any + 'static>(kind: &'static str, comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-fn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
-    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
-}
-
-// Boxes value as itself and records what kind of Go type it is. Every reader
-// of an interface value looks for the value's own type in the box, so the
-// box must hold nothing else: a wrapper around the value would be a type no
-// reader knows.
-fn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
-    go_register_any_type::<T>(kind, comparable);
-    Box::new(value) as Box<dyn Any>
-}
-
-fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
-    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
-}
-
-fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
-    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
-        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
@@ -785,12 +197,12 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>() { return "map[string]int" }
+    if val.is::<Arc<Mutex<Option<Point>>>>() { return "*main.Point" }
+    if val.is::<Arc<Mutex<Option<Status>>>>() { return "*main.Status" }
+    if val.is::<Arc<Mutex<Option<Vec<i64>>>>>() { return "[]int" }
+    if val.is::<Arc<Mutex<Option<Vec<u8>>>>>() { return "[]uint8" }
     if val.is::<Point>() { return "main.Point" }
-    if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return "map[string]int" }
-    if val.is::<Rc<RefCell<Option<Point>>>>() { return "*main.Point" }
-    if val.is::<Rc<RefCell<Option<Status>>>>() { return "*main.Status" }
-    if val.is::<Rc<RefCell<Option<Vec<i64>>>>>() { return "[]int" }
-    if val.is::<Rc<RefCell<Option<Vec<u8>>>>>() { return "[]uint8" }
     if val.is::<Status>() { return "main.Status" }
     std::any::type_name_of_val(val)
 }
@@ -849,15 +261,15 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(__value: &dyn Any) -> bool {
+fn go_format_is_text(__value: &(dyn Any + Send + Sync)) -> bool {
     false
-        || __value.is::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()
-        || __value.is::<Rc<RefCell<Option<Status>>>>()
+        || __value.is::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>()
+        || __value.is::<Arc<Mutex<Option<Status>>>>()
         || __value.is::<Status>()
 }
 
 // The basic value a newtype such as "type Level int" holds, boxed.
-fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
+fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     None
 }
 
@@ -1233,7 +645,7 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
 
 // Formats one argument for one verb. None means the verb does not apply to
 // the argument's type, which fmt reports in the output.
-fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Option<String> {
+fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send + Sync)) -> Option<String> {
     if verb == 'T' {
         return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, true));
     }
@@ -1285,8 +697,8 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     if let Some(v) = value.downcast_ref::<&str>() {
         return go_format_string(&basic, string_verb, v);
     }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-        let guard = v.borrow();
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+        let guard = v.lock().unwrap();
         let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
         if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
@@ -1324,10 +736,10 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
 
 // The number after % or after the dot: digits, or * for the next argument.
 // Ok(None) is no number. Err is a * whose argument is not a usable integer.
-fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any>], next: &mut usize) -> Result<Option<i64>, ()> {
+fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any + Send + Sync>], next: &mut usize) -> Result<Option<i64>, ()> {
     if chars.peek() == Some(&'*') {
         chars.next();
-        let arg: &dyn Any = match args.get(*next) {
+        let arg: &(dyn Any + Send + Sync) = match args.get(*next) {
             Some(arg) => arg.as_ref(),
             None => return Err(()),
         };
@@ -1356,17 +768,17 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
 }
 
 // Whether value is of a type that go_format_argument formats itself.
-fn go_format_is_basic(value: &dyn Any) -> bool {
+fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
-    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Rc<RefCell<Option<Vec<u8>>>>)
+    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Arc<Mutex<Option<Vec<u8>>>>)
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
-fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     if value.is::<GoFormatNil>() {
         return "<nil>".to_string();
     }
@@ -1376,7 +788,7 @@ fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
 
 // The verb that writes value as %v does and leaves the flags as they are.
 // %v itself would read + and # as %+v and %#v.
-fn go_format_plain_verb(value: &dyn Any) -> char {
+fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
@@ -1396,7 +808,7 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // fmt.Sprintf for a format that is only known when the program runs. A
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
-pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
     let mut out = String::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
@@ -1486,136 +898,26 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 }
 
 // go_sprintf for f(format, args...), where the arguments are a slice.
-pub(super) fn go_sprintf_spread(format: &str, args: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>, wraps: bool) -> String {
-    let guard = args.borrow();
+pub(super) fn go_sprintf_spread(format: &str, args: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>, wraps: bool) -> String {
+    let guard = args.lock().unwrap();
     go_sprintf(format, guard.as_deref().unwrap_or(&[]), wraps)
 }
 }
 use __go_runtime_format::{go_sprintf, go_sprintf_spread};
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct errors_errorString;
-
-impl std::fmt::Display for errors_errorString {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<errors_errorString>")
-    }
-}
-
-impl std::error::Error for errors_errorString {}
-
-
-impl errors_errorString {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct errors_joinError;
-
-impl std::fmt::Display for errors_joinError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<errors_joinError>")
-    }
-}
-
-impl std::error::Error for errors_joinError {}
-
-
-impl errors_joinError {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct fs_PathError;
-
-impl std::fmt::Display for fs_PathError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<fs_PathError>")
-    }
-}
-
-impl std::error::Error for fs_PathError {}
-
-
-impl fs_PathError {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("fs_PathError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct os_LinkError;
-
-impl std::fmt::Display for os_LinkError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<os_LinkError>")
-    }
-}
-
-impl std::error::Error for os_LinkError {}
-
-
-impl os_LinkError {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("os_LinkError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct os_SyscallError;
-
-impl std::fmt::Display for os_SyscallError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<os_SyscallError>")
-    }
-}
-
-impl std::error::Error for os_SyscallError {}
-
-
-impl os_SyscallError {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("os_SyscallError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
 
 pub(crate) const PAIR_LAYOUT: &'static str = "%v=%v\n";
 
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    pub x: Rc<RefCell<Option<i64>>>,
-    pub y: Rc<RefCell<Option<i64>>>,
+    pub x: Arc<Mutex<Option<i64>>>,
+    pub y: Arc<Mutex<Option<i64>>>,
 }
 
 impl Point {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.x.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_0_1 = { let __guard = self.y.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.x.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_1 = { let __guard = self.y.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             x: __go_clone_0_0,
             y: __go_clone_0_1,
@@ -1626,8 +928,8 @@ impl Point {
 
 impl Default for Point {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
-        let __go_default_0_1 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_0_1 = Arc::new(Mutex::new(Some(0)));
         Self {
             x: __go_default_0_0,
             y: __go_default_0_1,
@@ -1638,8 +940,8 @@ impl Default for Point {
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_plus = f.alternate();
-        let __go_fmt_0 = if __go_plus { format!("{:#}", (*self.x.borrow().as_ref().unwrap())) } else { format!("{}", (*self.x.borrow().as_ref().unwrap())) };
-        let __go_fmt_1 = if __go_plus { format!("{:#}", (*self.y.borrow().as_ref().unwrap())) } else { format!("{}", (*self.y.borrow().as_ref().unwrap())) };
+        let __go_fmt_0 = if __go_plus { format!("{:#}", (*self.x.lock().unwrap().as_ref().unwrap())) } else { format!("{}", (*self.x.lock().unwrap().as_ref().unwrap())) };
+        let __go_fmt_1 = if __go_plus { format!("{:#}", (*self.y.lock().unwrap().as_ref().unwrap())) } else { format!("{}", (*self.y.lock().unwrap().as_ref().unwrap())) };
         if __go_plus {
             return write!(f, "{{X:{} Y:{}}}", __go_fmt_0, __go_fmt_1);
         }
@@ -1650,12 +952,12 @@ impl std::fmt::Display for Point {
 
 #[derive(Debug, Clone)]
 pub struct Status {
-    pub code: Rc<RefCell<Option<i64>>>,
+    pub code: Arc<Mutex<Option<i64>>>,
 }
 
 impl Status {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.code.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.code.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             code: __go_clone_0_0,
         }
@@ -1665,7 +967,7 @@ impl Status {
 
 impl Default for Status {
     fn default() -> Self {
-        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
         Self {
             code: __go_default_0_0,
         }
@@ -1674,122 +976,133 @@ impl Default for Status {
 
 impl std::fmt::Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", (*self.string().borrow().as_ref().unwrap()))
+        write!(f, "{}", (*self.string().lock().unwrap().as_ref().unwrap()))
     }
 }
 
 
 impl Status {
-    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("status {}", (*self.code.borrow().as_ref().unwrap())))))
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some(format!("status {}", (*self.code.lock().unwrap().as_ref().unwrap())))))
     }
 }
 
 /// logf is the wrapper most programs have: the format arrives as a value, so
 /// it is only known when the program runs.
-pub fn logf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-    print!("{}", go_sprintf_spread(&format!("{}{}", (*format.borrow().as_ref().unwrap()), "\n".to_string()), &args, false));
+pub fn logf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
+    print!("{}", go_sprintf_spread(&format!("{}{}", { let __v = (*format.lock().unwrap().as_ref().unwrap()).clone(); __v }, "\n".to_string()), &args, false));
 }
 
-pub fn sprintf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, false)))))
+pub fn sprintf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, false)))))
 }
 
-pub fn errorf(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-    Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true)))))))
+pub fn errorf(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, true)))))))
 }
 
 /// showPair passes its arguments on as a list to a format that is known when
 /// the program is translated: a constant, and one written out in the call.
-pub fn show_pair(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
+pub fn show_pair(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
     print!("{}", go_sprintf_spread(&PAIR_LAYOUT, &args, false));
-    let mut text = Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&"%v|%v".to_string(), &args, false)))));
-    println!("{}", format!("{}", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v }));
+    let mut text = Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&"%v|%v".to_string(), &args, false)))));
+    println!("{}", format!("{}", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }
 
 /// later formats inside a closure. The closure holds the format and the
 /// arguments, and the arguments are used again after it is made.
-pub fn later(format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-    let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.borrow().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>)));
-    println!("{}", format!("{}", (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = build.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", "arguments".to_string()));
+pub fn later(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
+    let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.lock().unwrap().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
+    }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    println!("{}", format!("{}", (*{
+        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
+            let mut __f_guard = build.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+
+        )
+    }.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", ({ let __len = (*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", "arguments".to_string()));
 }
 
-pub fn pick(named: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<String>>> {
-    if (*named.borrow().as_ref().unwrap()) {
-        return Rc::new(RefCell::new(Some("name=%s ok=%v\n".to_string())));
+pub fn pick(named: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
+    if { let __v = (*named.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return Arc::new(Mutex::new(Some("name=%s ok=%v\n".to_string())));
     }
-    Rc::new(RefCell::new(Some("%v %v\n".to_string())))
+    Arc::new(Mutex::new(Some("%v %v\n".to_string())))
 }
 
 fn main() {
-        // The format is a parameter, the result of a call, or a variable.
-    logf(Rc::new(RefCell::new(Some("count %d of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>]))));
-    print!("{}", go_sprintf(&(*pick(Rc::new(RefCell::new(Some(true)))).borrow().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any>, Box::new(true) as Box<dyn Any>], false));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d-%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7i64) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    let mut f = Rc::new(RefCell::new(Some("value: %d\n".to_string())));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(42i64) as Box<dyn Any>], false));
+    ::internal_bytealg::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
-    show_pair(Rc::new(RefCell::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>]))));
-    later(Rc::new(RefCell::new(Some("%d and %s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>]))));
-
-        // Verbs, flags, width and precision.
-    logf(Rc::new(RefCell::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>, Box::new(8i64) as Box<dyn Any>, Box::new(5i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>, Box::new(65i64) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%s|%10s|%-10s|%.2s|%q|%x".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("golang".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>, Box::new("go".to_string()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%v|%f|%.2f|%8.3f|%e|%g".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new(123456.789) as Box<dyn Any>, Box::new(1e21) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%t|%v|%5t".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(true) as Box<dyn Any>, Box::new(false) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%v %v %v %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%T %T %T %T".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new(3.5) as Box<dyn Any>, Box::new(true) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("100%% of %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(3i64) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%*d|%-*d|%.*f".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(5i64) as Box<dyn Any>, Box::new(42i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>]))));
-
-        // Values that print the way Println prints them.
-    logf(Rc::new(RefCell::new(Some("point %v, pointer %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("slice %v, map %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("error: %v / %s".to_string()))), Rc::new(RefCell::new(Some(vec![{ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bang".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
-    let mut failed = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("failed".to_string())))));
-    logf(Rc::new(RefCell::new(Some("%v|%s|%10v|".to_string()))), Rc::new(RefCell::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
-    logf(Rc::new(RefCell::new(Some("%v|%s|%-12v|%v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Status { code: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Status { code: Rc::new(RefCell::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any>]))));
-
-        // A value with a String or an Error method is the text that method
-        // returns: a width, a precision, %q and %x apply to that text.
-    logf(Rc::new(RefCell::new(Some("%q|%x|%8.3v|%-8s|%08s".to_string()))), Rc::new(RefCell::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
-    logf(Rc::new(RefCell::new(Some("%q|%.6s|%12v|%x|%+v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Status { code: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(Status { code: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone()) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>, Box::new(Status { code: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>]))));
-    let mut none: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(None));
-    logf(Rc::new(RefCell::new(Some("%8v|%-8v|%v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(none.clone()) as Box<dyn Any>, Box::new(none.clone()) as Box<dyn Any>, Box::new(none.clone()) as Box<dyn Any>]))));
-
-        // A []byte prints as text where a string would.
-    logf(Rc::new(RefCell::new(Some("bytes %s, hex %x, list %v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any>, Box::new(Rc::new(RefCell::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any>]))));
-    logf(Rc::new(RefCell::new(Some("%*d|%#v|%#v".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(-4i64) as Box<dyn Any>, Box::new(7i64) as Box<dyn Any>, Box::new("quoted".to_string()) as Box<dyn Any>, Box::new(255u8) as Box<dyn Any>]))));
-
-        // What fmt writes when the format and the arguments do not fit.
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%s".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d %d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%d".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("%z".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("trailing %".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("no verbs".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>])))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*sprintf(Rc::new(RefCell::new(Some("plain".to_string()))), Rc::new(RefCell::new(Some(vec![])))).borrow().as_ref().unwrap())));
-
-        // The same through Sprintf, Errorf and Fprintf.
-    let mut err = errorf(Rc::new(RefCell::new(Some("code %d: %w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(7i64) as Box<dyn Any>, { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }]))));
-    println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-
-        // %w is for an error. fmt reports it for a number or a string.
-    println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(5i64) as Box<dyn Any>])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w and %w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any>, { let __err_holder = failed.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    println!("{}", format!("{}", { let __text = match errorf(Rc::new(RefCell::new(Some("%w".to_string()))), Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any>])))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new(43i64) as Box<dyn Any>], false));
-    let mut pair = Rc::new(RefCell::new(Some("%s=%d".to_string())));
-    let mut b: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-    (*b.clone().borrow_mut().as_mut().unwrap()).push_str(&format!("{}", go_sprintf(&(*pair.borrow().as_ref().unwrap()).clone(), &[Box::new("k".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>], false)));
-    println!("{}", format!("{}", (*Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }))).borrow().as_ref().unwrap())));
-
-        // A constant format is known when the program is translated.
+    logf(Arc::new(Mutex::new(Some("count %d of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>]))));
+    print!("{}", go_sprintf(&(*pick(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("x".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(true) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d-%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("z".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    let mut f = Arc::new(Mutex::new(Some("value: %d\n".to_string())));
+    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(42i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    show_pair(Arc::new(Mutex::new(Some(vec![Box::new("k".to_string()) as Box<dyn Any + Send + Sync>, Box::new(1i64) as Box<dyn Any + Send + Sync>]))));
+    later(Arc::new(Mutex::new(Some("%d and %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%5d|%-5d|%05d|%+d|%x|%X|%o|%b|%c|%q|%U".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(255i64) as Box<dyn Any + Send + Sync>, Box::new(255i64) as Box<dyn Any + Send + Sync>, Box::new(8i64) as Box<dyn Any + Send + Sync>, Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>, Box::new(65i64) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%s|%10s|%-10s|%.2s|%q|%x".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("golang".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>, Box::new("go".to_string()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%v|%f|%.2f|%8.3f|%e|%g".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(123456.789) as Box<dyn Any + Send + Sync>, Box::new(1e21) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%t|%v|%5t".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(true) as Box<dyn Any + Send + Sync>, Box::new(false) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%v %v %v %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%T %T %T %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new(3.5) as Box<dyn Any + Send + Sync>, Box::new(true) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("100%% of %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(3i64) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%*d|%-*d|%.*f".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(5i64) as Box<dyn Any + Send + Sync>, Box::new(42i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>, Box::new(3.14159) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("point %v, pointer %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("slice %v, map %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("error: %v / %s".to_string()))), Arc::new(Mutex::new(Some(vec![{ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bang".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
+    let mut failed = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("failed".to_string())))));
+    logf(Arc::new(Mutex::new(Some("%v|%s|%10v|".to_string()))), Arc::new(Mutex::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
+    logf(Arc::new(Mutex::new(Some("%v|%s|%-12v|%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Status { code: Arc::new(Mutex::new(Some(1))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Status { code: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Status { code: Arc::new(Mutex::new(Some(3))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Status { code: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%q|%x|%8.3v|%-8s|%08s".to_string()))), Arc::new(Mutex::new(Some(vec![{ let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
+    logf(Arc::new(Mutex::new(Some("%q|%.6s|%12v|%x|%+v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Status { code: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Status { code: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(Status { code: Arc::new(Mutex::new(Some(7))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Status { code: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Status { code: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Any + Send + Sync>]))));
+    let mut none: Arc<Mutex<Option<Point>>> = Arc::new(Mutex::new(None));
+    logf(Arc::new(Mutex::new(Some("%8v|%-8v|%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(none.clone()) as Box<dyn Any + Send + Sync>, Box::new(none.clone()) as Box<dyn Any + Send + Sync>, Box::new(none.clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("bytes %s, hex %x, list %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>, Box::new(Arc::new(Mutex::new(Some(("Hi".to_string()).as_bytes().to_go_slice()))).clone()) as Box<dyn Any + Send + Sync>]))));
+    logf(Arc::new(Mutex::new(Some("%*d|%#v|%#v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(-4i64) as Box<dyn Any + Send + Sync>, Box::new(7i64) as Box<dyn Any + Send + Sync>, Box::new("quoted".to_string()) as Box<dyn Any + Send + Sync>, Box::new(255u8) as Box<dyn Any + Send + Sync>]))));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("%z".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("trailing %".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("no verbs".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("left".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*sprintf(Arc::new(Mutex::new(Some("plain".to_string()))), Arc::new(Mutex::new(Some(vec![])))).lock().unwrap().as_ref().unwrap())));
+    let mut err = errorf(Arc::new(Mutex::new(Some("code %d: %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(7i64) as Box<dyn Any + Send + Sync>, { let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("inner".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }]))));
+    println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(5i64) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w and %w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("text".to_string()) as Box<dyn Any + Send + Sync>, { let __err_holder = failed.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{}", format!("{}", { let __text = match errorf(Arc::new(Mutex::new(Some("%w".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some(vec![65 as u8, 66 as u8]))).clone()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(43i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    let mut pair = Arc::new(Mutex::new(Some("%s=%d".to_string())));
+    let mut b: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+    (*b.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*pair.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new("k".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(1i64) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))));
+    println!("{}", format!("{}", (*(*b.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
     const layout: &'static str = "%s has %d items\n";
 
-    print!("{} has {} items\n", "cart".to_string(), 3);
+    print!("{} has {} items\n", format!("{}", "cart".to_string()), format!("{}", 3));
+}
+
+impl GoValueClone for Point {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Status {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }
