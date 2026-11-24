@@ -2347,6 +2347,14 @@ run_xfail_test() {
     run_test "tests/named_func_type_interface_param"
 }
 
+@test "named_func_type_slice_calls" {
+    run_test "tests/named_func_type_slice_calls"
+}
+
+@test "named_func_type_slice_calls_goroutines" {
+    run_test "tests/named_func_type_slice_calls_goroutines"
+}
+
 @test "named_int_constants_print_through_string" {
     run_test "tests/named_int_constants_print_through_string"
 }
