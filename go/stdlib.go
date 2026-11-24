@@ -5510,7 +5510,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		// ("append(s, s[0])", "append(s, len(s))", "append(s, s...)"), and a
 		// read under the write lock panics, or hangs in a program with
 		// goroutines.
-		writeAppendedValues := func() string {
+		writeAppendedValuesRaw := func() string {
 			if call.Ellipsis.IsValid() {
 				// Slice expansion: append(dst, src...) → extend from src.
 				// Go also permits append([]byte, string...), which expands bytes.
@@ -5529,6 +5529,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeAppendElementsVec(out, call.Args[1:], writeAppendElement)
 			out.WriteString("; ")
 			return ".extend(__append_values)"
+		}
+		writeAppendedValues := func() string {
+			return appendStoreCopyingElements(call, writeAppendedValuesRaw())
 		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
@@ -5669,6 +5672,33 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(store)
 		out.WriteString("; __append_target.clone() }")
 	}
+}
+
+// appendStoreCopyingElements wraps the call that adds appended values to a
+// GoSlice when its elements are structs: a struct's Clone shares its field
+// cells, so when the append moves the slice to a new backing array the
+// elements it carries over are replaced with Go's copies. Without that the
+// old array and the new one share every field, and a write through the old
+// slice shows in the new one (DEV-55).
+func appendStoreCopyingElements(call *ast.CallExpr, store string) string {
+	if !goSliceModeEnabled() {
+		return store
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return store
+	}
+	sliceType, ok := types.Unalias(typeInfo.GetType(call)).(*types.Slice)
+	if !ok {
+		if t := typeInfo.GetType(call); t != nil {
+			sliceType, ok = t.Underlying().(*types.Slice)
+		}
+	}
+	if !ok || !typeNeedsGoValueClone(sliceType.Elem()) {
+		return store
+	}
+	NeedGoSliceAppendCopying()
+	return ".go_append_copying(|__go_slice| { __go_slice" + store + "; }, |__go_elem| __go_elem" + goStructValueCopyCall + ")"
 }
 
 func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {

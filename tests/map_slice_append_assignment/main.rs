@@ -614,6 +614,28 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct entry {
     pub key: Arc<Mutex<Option<i64>>>,
@@ -660,7 +682,7 @@ fn main() {
     let mut table = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<entry>>>>>::from([(1i64, Arc::new(Mutex::new(Some(vec![entry { key: Arc::new(Mutex::new(Some(1))), ..Default::default() }]))))]))));
     let mut bucket = { let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     let mut bucket = { let __slice_header = GoSliceHeader::go_slice_header(&bucket); Arc::new(Mutex::new(__slice_header)) };
-    { let __map_key = 1; let __map_value = { let __append_target = bucket.clone(); let __append_value = entry { key: Arc::new(Mutex::new(Some(2))), ..Default::default() }; let mut __appended: Vec<entry> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*table.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = 1; let __map_value = { let __append_target = bucket.clone(); let __append_value = entry { key: Arc::new(Mutex::new(Some(2))), ..Default::default() }; let mut __appended: Vec<entry> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Arc::new(Mutex::new(Some(__appended))) }; (*table.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     println!("{}", format!("{}", ({ let __len = (*{ let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = { let __map = { let __map_holder = table.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.key.lock().unwrap().as_ref().unwrap())));
