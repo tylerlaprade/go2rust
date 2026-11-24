@@ -1,0 +1,7 @@
+st 'x'
+{A:1 B:2} 'x'
+{3 4} 'y'
+[true false] 'x'
+{1 2 p}|{X:3 Y:4 Tag:q} 'z'
+main.State 'x'
+{X:5 Y:6 Tag:r} "s"

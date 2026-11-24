@@ -229,6 +229,9 @@ type anyFormatArm struct {
 	// Level int". A format known only at run time formats that value for any
 	// verb the type's own text does not take.
 	namedBasic bool
+	// fields says the value is a struct whose Display writes the field
+	// names when asked for the alternate form, which is how %+v prints it.
+	fields bool
 }
 
 var generatingPublicHelpers bool
