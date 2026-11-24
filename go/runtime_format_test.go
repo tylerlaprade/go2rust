@@ -427,3 +427,28 @@ func main() {
 		t.Fatalf("expected spaces only between the two integers:\n%s", rust)
 	}
 }
+
+// A slice of strings, numbers or bools takes the verb element by element,
+// as fmt applies it: %q of []string is ["a" "b"], %03d of []int [001 002].
+// The handle's wrapper follows the program's (Rc or Arc).
+func TestRuntimeFormatAppliesTheVerbToEachSliceElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	names := []string{"a", "b"}
+	f := "%q\n"
+	fmt.Printf(f, names)
+}
+`)
+	for _, want := range []string{
+		"if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<$t>>>>>() {",
+		"basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);",
+		`go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+}

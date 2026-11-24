@@ -39,7 +39,6 @@ fn main() {
     ::bytes::__go_init_all();
     ::internal_abi::__go_init_all();
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_race::__go_init_all();
     ::internal_sync::__go_init_all();
     ::io::__go_init_all();

@@ -1182,6 +1182,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
 	}
+	if writeBuiltinLengthForIntegerSlot(out, rhs, expected) {
+		return
+	}
 	if writeTypeParamArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
 	}
@@ -1686,6 +1689,22 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 }
 
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
+	if ident, ok := lhs.(*ast.Ident); ok && newBinding {
+		// m, n := make(map[int]*T), 0 where m holds slice element pointers:
+		// the initializer gives the map its GoPtr values, as a single
+		// declaration's does.
+		if writeSliceElemPtrMapInitializer(out, ident, rhs) {
+			return
+		}
+		if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
+			if writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+				return
+			}
+			if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "make") && writeSliceElemPtrSliceMake(out, call, elemRustType) {
+				return
+			}
+		}
+	}
 	if call, isCall := rhs.(*ast.CallExpr); isCall {
 		if writeBareBuiltinShortDeclInitializer(out, call, lhs) {
 			return
@@ -2073,6 +2092,16 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 func writeRangeLengthExpression(out *strings.Builder, expr ast.Expr) {
 	if writePointerToArrayLen(out, expr) {
 		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		// An array's length is part of its type; a defined array type such
+		// as strings' byteReplacer has no len() of its own.
+		if typ := typeInfo.GetType(expr); typ != nil {
+			if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok {
+				out.WriteString(fmt.Sprintf("(%d)", array.Len()))
+				return
+			}
+		}
 	}
 	if rangeTargetNeedsWrappedSliceGuard(expr) {
 		out.WriteString("({ let __range_holder = ")
@@ -6170,6 +6199,12 @@ func writeTranspiledInterfaceSlotAssignmentFromHandle(out *strings.Builder, lhs 
 	out.WriteString("; (*__iface_guard).clone() }; *")
 	writeTranspiledInterfaceAssignmentTarget(out, lhs)
 	WriteBorrowMethod(out, true)
+	if bridge := stubIoFieldAssignmentBridge(lhs); bridge != "" {
+		out.WriteString(" = ")
+		writeStubIoFieldBridgeValue(out, bridge)
+		out.WriteString("; }")
+		return
+	}
 	out.WriteString(" = __iface_value; }")
 }
 
@@ -6452,9 +6487,17 @@ func writeCurrentReceiverPointerHandleReturnValue(out *strings.Builder, result a
 	return true
 }
 
+func writeNilReturnValue(out *strings.Builder, expected ast.Expr) {
+	if typ := GetTypeInfo().GetType(expected); isChannelFieldType(typ) {
+		writeChannelNilDefault(out, goTypesTypeToRust(typ))
+		return
+	}
+	WriteWrappedNone(out)
+}
+
 func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
 	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
+		writeNilReturnValue(out, expected)
 		return
 	}
 	if resultTypeExprIsBareScalar(expected) {
@@ -8149,6 +8192,12 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 	// during the loop is seen, and the loop variable takes its copy of the
 	// element at the start of its iteration (writeRangeOwnedValuesAdapter
 	// and writeRangeValueIterationCopy).
+	if rangeExprIsArrayValue(rangeExpr) {
+		// An array's cell always holds it. Rust has no Default for arrays
+		// longer than 32 elements, such as a [256]byte table.
+		out.WriteString("; let __range_values = __range_guard.as_ref().cloned().expect(\"array value\"); std::mem::drop(__range_guard); ")
+		return
+	}
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); ")
 }
 
@@ -9023,11 +9072,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok {
 				switch basic.Kind() {
 				case types.Float32, types.Float64:
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 			}
+			out.WriteString(RustIntegerLiteral(lit.Value))
+			return
 		}
 		out.WriteString(lit.Value)
 		return
@@ -10813,6 +10863,8 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		if lit.Kind == token.STRING {
 			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
+		} else if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(lit.Value)
 		}
@@ -12114,7 +12166,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if writeGoPtrReturnValue(out, result, i) {
 					// GoPtr return slots preserve pointer identity through local variables and fields.
 				} else if isNil {
-					WriteWrappedNone(out)
+					writeNilReturnValue(out, returnResultTypeExpr(fnType, i))
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
@@ -12601,6 +12653,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Tok == token.DEFINE {
 			registerDefaultShortDeclBindings(s.Lhs)
 		}
+		if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
+			if ident, ok := s.Lhs[0].(*ast.Ident); ok {
+				var init strings.Builder
+				if writeSliceElemPtrMapInitializer(&init, ident, s.Rhs[0]) {
+					out.WriteString("let mut ")
+					out.WriteString(RustLocalIdent(ident.Name))
+					out.WriteString(" = ")
+					out.WriteString(init.String())
+					out.WriteString(";")
+					break
+				}
+			}
+		}
 		if rewritten, ok := goShiftCompoundAsAssignment(s); ok {
 			TranspileStatement(out, rewritten, fnType, fileSet, comments, lastPos, indent)
 			return
@@ -12645,7 +12710,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
 				out.WriteString("; let __map_value = ")
-				writeMapWrappedValue(out, s.Rhs[0], valueType)
+				if !writeSliceElemPtrMapValue(out, indexExpr.X, s.Rhs[0]) {
+					writeMapWrappedValue(out, s.Rhs[0], valueType)
+				}
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
 				writeMapHandleForOp(out, indexExpr.X)
@@ -13875,6 +13942,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(", ")
 										}
 										if s.Tok == token.DEFINE {
+											if i < len(s.Lhs) {
+												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+													if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(lhsIdent); ok && writeSliceElemPtrSliceLiteral(out, rhs, elemRustType) {
+														continue
+													}
+													if writeSliceElemPtrMapInitializer(out, lhsIdent, rhs) {
+														continue
+													}
+												}
+											}
 											// Check if RHS is nil
 											if isGoPtrShortDecl && i == 0 {
 												wroteGoPtrInitializer := false
@@ -14457,7 +14534,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													isFloatType := underlyingType == "float64" || underlyingType == "float32"
 													if isFloatType {
 														if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-															out.WriteString(lit.Value + ".0")
+															out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
@@ -14512,7 +14589,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												isFloatType := underlyingType == "float64" || underlyingType == "float32"
 												if isFloatType {
 													if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-														out.WriteString(lit.Value + ".0")
+														out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}
@@ -15423,6 +15500,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				TranspileExpression(out, s.X)
 			}
+			// Go ranges over the string's value as it was when the loop began,
+			// so the loop reads a copy: holding the variable's cell for the
+			// whole loop would deadlock (in the Arc/Mutex form) a body that
+			// reads the string again, as strings.Map does.
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
@@ -15434,7 +15515,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
-					out.WriteString(") in (*")
+					out.WriteString(") in { let __range_string = (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
@@ -15442,7 +15523,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.char_indices()")
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
@@ -15452,7 +15533,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
-					out.WriteString(" in (*")
+					out.WriteString(" in { let __range_string = (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
@@ -15460,7 +15541,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.chars()")
 				}
 			} else if s.Key != nil {
 				// for i := range str
@@ -15471,14 +15552,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
-					out.WriteString("(*")
+					out.WriteString("{ let __range_string = (*")
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.char_indices()")
 				}
 			} else {
 				// for range str
@@ -15487,14 +15568,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
-					out.WriteString("(*")
+					out.WriteString("{ let __range_string = (*")
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.chars()")
 				}
 			}
 		} else if isMap {
@@ -17822,4 +17903,38 @@ func writeTupleElementDroppingGuards(out *strings.Builder, value string) {
 	out.WriteString("{ let __tuple_value = ")
 	out.WriteString(value)
 	out.WriteString("; __tuple_value }")
+}
+
+// writeBuiltinLengthForIntegerSlot writes len(x) or cap(x) stored into an
+// integer element, as in skip[i] = len(pattern). Rust's len() is a usize,
+// so it takes the element's integer type.
+func writeBuiltinLengthForIntegerSlot(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	call, ok := unwrapParens(rhs).(*ast.CallExpr)
+	if !ok || expected == nil {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || (ident.Name != "len" && ident.Name != "cap") || !isBuiltinCallTarget(ident) {
+		return false
+	}
+	if _, isNamed := types.Unalias(expected).(*types.Named); isNamed {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsInteger == 0 {
+		return false
+	}
+	var length strings.Builder
+	TranspileExpression(&length, call)
+	text := length.String()
+	rustType := goTypesTypeToRust(expected)
+	if strings.HasSuffix(text, " as "+rustType) {
+		out.WriteString(text)
+		return true
+	}
+	out.WriteString("(")
+	out.WriteString(text)
+	out.WriteString(") as ")
+	out.WriteString(rustType)
+	return true
 }

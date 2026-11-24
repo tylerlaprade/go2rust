@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"strconv"
@@ -90,11 +91,14 @@ func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidates(body)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidates(body)
 	currentGoPtrCandidates = nil
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -110,11 +114,14 @@ func setSliceElemPtrCandidatesForFunc(fn *ast.FuncDecl) func() {
 	oldSlice := currentSliceElemPtrSliceCandidates
 	oldArray := currentArrayElemPtrCandidates
 	oldGoPtr := currentGoPtrCandidates
+	oldMap := currentSliceElemPtrMapCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(fn.Body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidatesForFunc(fn)
 	currentArrayElemPtrCandidates = collectArrayElemPtrCandidatesForFunc(fn)
 	currentGoPtrCandidates = collectGoPtrCandidatesForFunc(fn)
+	currentSliceElemPtrMapCandidates = collectSliceElemPtrMapCandidates(fn.Body)
 	return func() {
+		currentSliceElemPtrMapCandidates = oldMap
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
 		currentArrayElemPtrCandidates = oldArray
@@ -5509,22 +5516,50 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 		sawSliceAddr bool
 	}
 	candidates := map[types.Object]*state{}
-	sourceElemRustType := func(expr ast.Expr) (string, bool) {
+	// sameRepresentation pairs locals that must hold the same element
+	// type: dst = append(dst, src...), copy(dst, src) and dst := src.
+	type sameRepresentation struct{ dst, src types.Object }
+	var edges []sameRepresentation
+	// sourceElemRustType returns the element type of a slice whose
+	// elements dst receives, and the local holding it, if any. A slice
+	// field of GoPtr values has no local: its elements are GoPtr already.
+	sourceElemRustType := func(expr ast.Expr) (string, types.Object, bool) {
 		if sel, ok := unwrapParens(expr).(*ast.SelectorExpr); ok {
 			if info, ok := sliceElemPtrSliceFieldInfoForSelector(sel); ok {
-				return sliceElemPtrSliceFieldElemRustType(info), true
+				return sliceElemPtrSliceFieldElemRustType(info), nil, true
 			}
 		}
 		if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
 			obj := typeInfo.GetObject(ident)
 			if obj == nil {
-				return "", false
+				return "", nil, false
 			}
 			if st := candidates[obj]; st != nil && st.valid && st.elemRustType != "" {
-				return st.elemRustType, true
+				return st.elemRustType, obj, true
 			}
 		}
-		return "", false
+		return "", nil, false
+	}
+	stateFor := func(obj types.Object, elemRustType string) *state {
+		st := candidates[obj]
+		if st == nil {
+			st = &state{elemRustType: elemRustType, valid: true}
+			candidates[obj] = st
+		}
+		return st
+	}
+	// receive records that the local dst receives the elements of src.
+	receive := func(dst types.Object, st *state, src ast.Expr) {
+		srcElemRustType, srcObj, ok := sourceElemRustType(src)
+		if !ok || srcElemRustType != st.elemRustType {
+			st.valid = false
+			return
+		}
+		if srcObj == nil {
+			st.sawSliceAddr = true
+			return
+		}
+		edges = append(edges, sameRepresentation{dst: dst, src: srcObj})
 	}
 
 	ast.Inspect(body, func(node ast.Node) bool {
@@ -5547,17 +5582,102 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 			if !ok {
 				return true
 			}
-			srcElemRustType, ok := sourceElemRustType(n.Args[1])
+			srcElemRustType, srcObj, ok := sourceElemRustType(n.Args[1])
 			if !ok || srcElemRustType != elemRustType {
 				return true
 			}
-			st := candidates[obj]
-			if st == nil {
-				st = &state{elemRustType: elemRustType, valid: true}
-				candidates[obj] = st
+			st := stateFor(obj, elemRustType)
+			if srcObj == nil {
+				st.sawSliceAddr = true
+			} else {
+				edges = append(edges, sameRepresentation{dst: obj, src: srcObj})
 			}
-			st.sawSliceAddr = true
 		case *ast.AssignStmt:
+			if n.Tok == token.DEFINE {
+				for i, lhs := range n.Lhs {
+					ident, ok := lhs.(*ast.Ident)
+					if !ok || ident.Name == "_" || typeInfo.info.Defs[ident] == nil {
+						continue
+					}
+					obj := typeInfo.GetObject(ident)
+					if obj == nil {
+						continue
+					}
+					elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type())
+					if !ok {
+						continue
+					}
+					rhs := assignmentRHSForLHS(n, i)
+					switch init := unwrapParens(rhs).(type) {
+					case *ast.CompositeLit:
+						// The literal is written as the declaration's type is.
+						st := stateFor(obj, elemRustType)
+						if _, ok := sliceElemPtrSliceLiteralPositions(init); !ok {
+							st.valid = false
+							continue
+						}
+						for _, elt := range init.Elts {
+							if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+								elt = kv.Value
+							}
+							if isNilIdentExpr(elt) {
+								continue
+							}
+							ok, sawSliceAddr := isSliceElemPtrAssignmentValue(elt)
+							if !ok {
+								st.valid = false
+								break
+							}
+							if sawSliceAddr {
+								st.sawSliceAddr = true
+							}
+						}
+					case *ast.Ident:
+						if init.Name == "nil" {
+							continue
+						}
+						if _, _, isSource := sourceElemRustType(init); isSource && len(n.Lhs) == 1 {
+							receive(obj, stateFor(obj, elemRustType), init)
+						} else {
+							// Another slice's header: its elements are cells.
+							stateFor(obj, elemRustType).valid = false
+						}
+					}
+				}
+			}
+			if len(n.Lhs) == 1 && len(n.Rhs) == 1 {
+				// ptrs = append(ptrs, &items[i]): the appended values decide,
+				// as an index assignment's value does.
+				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok && isBuiltinCallNamed(call, "append") && len(call.Args) >= 1 {
+					lhsIdent, lhsOK := unwrapParens(n.Lhs[0]).(*ast.Ident)
+					argIdent, argOK := unwrapParens(call.Args[0]).(*ast.Ident)
+					if lhsOK && argOK && lhsIdent.Name != "_" {
+						if obj := typeInfo.GetObject(lhsIdent); obj != nil && obj == typeInfo.GetObject(argIdent) {
+							if elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type()); ok {
+								st := stateFor(obj, elemRustType)
+								if call.Ellipsis.IsValid() {
+									if len(call.Args) != 2 {
+										st.valid = false
+									} else {
+										receive(obj, st, call.Args[1])
+									}
+								} else {
+									for _, value := range call.Args[1:] {
+										ok, sawSliceAddr := isSliceElemPtrAssignmentValue(value)
+										if !ok {
+											st.valid = false
+											continue
+										}
+										if sawSliceAddr {
+											st.sawSliceAddr = true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 			if len(n.Rhs) == 1 {
 				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok {
 					if info, ok := sliceElemPtrSliceReturnInfoForCall(call); ok {
@@ -5630,9 +5750,33 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 	if len(candidates) == 0 {
 		return nil
 	}
+	// Both ends of an edge must agree. A slice of GoPtr values passes its
+	// representation to the other end, which can hold it when all its own
+	// values could; otherwise neither end is one.
+	held := func(st *state) bool { return st != nil && st.valid && st.sawSliceAddr }
+	for changed := true; changed; {
+		changed = false
+		for _, edge := range edges {
+			dst, src := candidates[edge.dst], candidates[edge.src]
+			if dst == nil || src == nil || held(dst) == held(src) {
+				continue
+			}
+			lagging := dst
+			if held(dst) {
+				lagging = src
+			}
+			if lagging.valid {
+				lagging.sawSliceAddr = true
+			} else {
+				dst.valid = false
+				src.valid = false
+			}
+			changed = true
+		}
+	}
 	result := map[types.Object]string{}
 	for obj, st := range candidates {
-		if st.valid && st.sawSliceAddr {
+		if held(st) {
 			result[obj] = st.elemRustType
 		}
 	}
@@ -6407,6 +6551,52 @@ func writeSliceElemPtrSliceMake(out *strings.Builder, call *ast.CallExpr, elemRu
 	return true
 }
 
+// writeSliceElemPtrSliceLiteral writes a []*T literal for a local that
+// holds pointers to slice elements: a slice of GoPtr<T>, each element
+// written as such a slot is.
+func writeSliceElemPtrSliceLiteral(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
+	lit, ok := unwrapParens(rhs).(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	positions, ok := sliceElemPtrSliceLiteralPositions(lit)
+	if !ok {
+		return false
+	}
+	length := 0
+	for _, position := range positions {
+		if position+1 > length {
+			length = position + 1
+		}
+	}
+	// A keyed literal ([]*T{2: p}) leaves the positions it skips nil.
+	elems := make([]string, length)
+	for i := range elems {
+		elems[i] = "GoPtr::nil()"
+	}
+	for i, elt := range lit.Elts {
+		if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+			elt = kv.Value
+		}
+		var elem strings.Builder
+		if isNilIdentExpr(elt) {
+			elem.WriteString("GoPtr::nil()")
+		} else if !writeSliceElemPtrSliceSlotValue(&elem, elt, elemRustType) {
+			return false
+		}
+		elems[positions[i]] = elem.String()
+	}
+	NeedSliceElemPtr()
+	WriteWrapperPrefix(out)
+	if len(elems) == 0 {
+		out.WriteString("Vec::<GoPtr<" + elemRustType + ">>::new()")
+	} else {
+		out.WriteString("vec![" + strings.Join(elems, ", ") + "]")
+	}
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
 	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
 		if info, ok := goPtrResultInfoForCall(call, 0); ok && goPtrResultElemCompatible(info, goPtrResultInfo{elemRustType: elemRustType}) {
@@ -6452,6 +6642,20 @@ func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRus
 		TranspileExpression(out, rhs)
 		out.WriteString(")")
 		return true
+	}
+	if index, ok := unwrapParens(rhs).(*ast.IndexExpr); ok {
+		// ptrs[0] or byName["a"]: the element read is a GoPtr already.
+		indexedElemRustType, held := sliceElemPtrSliceCandidateForExpr(index.X)
+		if !held {
+			indexedElemRustType, held = sliceElemPtrMapCandidateForExpr(index.X)
+		}
+		if held {
+			if indexedElemRustType != elemRustType {
+				return false
+			}
+			TranspileExpression(out, rhs)
+			return true
+		}
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -6948,9 +7152,24 @@ func goPtrAddressExpressionPreferred(expr ast.Expr) bool {
 		return ok
 	case *ast.SelectorExpr:
 		return generatedGoPtrFieldForSelector(e)
+	case *ast.IndexExpr:
+		return heldSliceElemPtrIndex(e)
 	default:
 		return false
 	}
+}
+
+// heldSliceElemPtrIndex reports whether index reads a GoPtr from a local
+// []*T or map[K]*T that holds slice element pointers.
+func heldSliceElemPtrIndex(index *ast.IndexExpr) bool {
+	if index == nil {
+		return false
+	}
+	if _, ok := sliceElemPtrSliceCandidateForExpr(index.X); ok {
+		return true
+	}
+	_, ok := sliceElemPtrMapCandidateForExpr(index.X)
+	return ok
 }
 
 func writeGoPtrAddressExpression(out *strings.Builder, expr ast.Expr, info goPtrResultInfo) bool {
@@ -6981,6 +7200,12 @@ func writeGoPtrAddressExpression(out *strings.Builder, expr ast.Expr, info goPtr
 			out.WriteString(".addr()")
 			return true
 		}
+	}
+	if index, ok := expr.(*ast.IndexExpr); ok && heldSliceElemPtrIndex(index) {
+		out.WriteString("{ let __ptr = ")
+		TranspileExpression(out, index)
+		out.WriteString("; __ptr.addr() }")
+		return true
 	}
 	out.WriteString("{ let __ptr = ")
 	if !writeGoPtrCallArgumentForInfo(out, expr, info) {
@@ -8621,4 +8846,32 @@ func isFunctionLocalNamedType(named *types.Named) bool {
 		return false
 	}
 	return obj.Parent() != obj.Pkg().Scope() && obj.Parent() != types.Universe
+}
+
+// sliceElemPtrSliceLiteralPositions returns the index each element of a
+// slice literal stores to: the next index, or the constant key a keyed
+// element names.
+func sliceElemPtrSliceLiteralPositions(lit *ast.CompositeLit) ([]int, bool) {
+	typeInfo := GetTypeInfo()
+	positions := make([]int, 0, len(lit.Elts))
+	next := 0
+	for _, elt := range lit.Elts {
+		if kv, keyed := elt.(*ast.KeyValueExpr); keyed {
+			if typeInfo == nil || typeInfo.info == nil {
+				return nil, false
+			}
+			tv, ok := typeInfo.info.Types[kv.Key]
+			if !ok || tv.Value == nil {
+				return nil, false
+			}
+			key, exact := constant.Int64Val(constant.ToInt(tv.Value))
+			if !exact || key < 0 {
+				return nil, false
+			}
+			next = int(key)
+		}
+		positions = append(positions, next)
+		next++
+	}
+	return positions, true
 }
