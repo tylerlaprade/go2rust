@@ -614,6 +614,28 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
@@ -1225,7 +1247,7 @@ fn main() {
         // An append within capacity keeps the same array.
     let mut roomy: Rc<RefCell<Option<Vec<Item>>>> = Rc::new(RefCell::new(Some({ let mut v: Vec<Item> = (0..(4) as usize).map(|_| Default::default()).collect(); v.truncate((1) as usize); v })));
     let mut t: Option<GoSliceElemPtr<Item>> = Some(GoSliceElemPtr::new(roomy.clone(), (0) as usize));
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = roomy.clone(); let __append_value = Item { name: Rc::new(RefCell::new(Some("m".to_string()))), price: Rc::new(RefCell::new(Some(6))), ..Default::default() }; let mut __appended: Vec<Item> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *roomy.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = roomy.clone(); let __append_value = Item { name: Rc::new(RefCell::new(Some("m".to_string()))), price: Rc::new(RefCell::new(Some(6))), ..Default::default() }; let mut __appended: Vec<Item> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *roomy.borrow_mut() = __slice_header; };
     { let new_val = 8; *(*t.as_ref().unwrap().borrow().as_ref().unwrap()).price.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", (*(*roomy.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", (*(*t.as_ref().unwrap().borrow().as_ref().unwrap()).price.borrow().as_ref().unwrap())));
 
@@ -1245,6 +1267,6 @@ fn main() {
     for i in 0..(({ let __range_holder = list.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         { let __map_key = { let __selector_holder = (*list.borrow().as_ref().unwrap())[(i) as usize].clone().name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; let __map_value = GoPtr::slice_elem(GoSliceElemPtr::new(list.clone(), (i) as usize)); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).clone(); let __append_values: Vec<_> = { let __slice_holder = Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Item> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *list.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).clone(); let __append_values: Vec<_> = { let __slice_holder = Rc::new(RefCell::new(Some({ let __seq_holder = list.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Item> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *list.borrow_mut() = __slice_header; };
     println!("{} {} {}", format!("{}", (*(*{ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*{ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"y".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*list.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow().as_ref().unwrap()).clone()));
 }
