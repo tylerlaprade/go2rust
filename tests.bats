@@ -451,6 +451,14 @@ run_xfail_test() {
     run_test "tests/any_boxed_types_in_second_file"
 }
 
+@test "any_constant_conversion_types" {
+    run_test "tests/any_constant_conversion_types"
+}
+
+@test "any_constant_conversion_types_goroutines" {
+    run_test "tests/any_constant_conversion_types_goroutines"
+}
+
 @test "any_field_handle_reuse" {
     run_test "tests/any_field_handle_reuse"
 }
