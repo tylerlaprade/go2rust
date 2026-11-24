@@ -170,7 +170,7 @@ pub fn drop(items: Arc<Mutex<Option<Vec<String>>>>, mut n: Arc<Mutex<Option<i64>
         let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __high = __seq.len();
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     })))
 }
 
@@ -203,7 +203,7 @@ fn main() {
         let __low = ({ let __v = (*drop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __high = __seq.len();
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }.iter().enumerate() {
         { let __map_key = (*w).clone(); let __map_value = Arc::new(Mutex::new(Some({ let __tmp_x = i as i64; let __tmp_y = { let __v = (*drop.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))); (*(*q.lock().unwrap().as_ref().unwrap()).seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
