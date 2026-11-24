@@ -899,7 +899,7 @@ fn main() {
     let mut groups = group_by___user__int(users.clone(), Arc::new(Mutex::new(Some(Box::new(move |u: Arc<Mutex<Option<User>>>| -> i64 {
         return (*(*u.lock().unwrap().as_ref().unwrap()).age.lock().unwrap().as_ref().unwrap());
     }) as Box<dyn FnMut(Arc<Mutex<Option<User>>>) -> i64 + Send + Sync>))));
-    let mut ages = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..(({ let __len = (*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
+    let mut ages = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..(({ let __len = (*groups.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize).map(|_| 0i64).collect(); v.truncate((0) as usize); v })));
     for (age, _) in { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ages.clone(); let __append_value = age; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *ages.lock().unwrap() = __slice_header; };
     }

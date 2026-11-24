@@ -459,6 +459,130 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
+// writeLocalInterfaceTypeNameFormatArg writes %T of a value of one of the
+// program's interfaces, an ident held in a cell, as the type of the value it
+// holds: the trait object's __go_as_any, matched against every type of the
+// package that implements the interface.
+func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return false
+	}
+	iface, ok := typ.Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	// Only an interface of the package being translated: its implementors
+	// and their pointer wrappers are in this crate, under these names.
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	// The names are matched here rather than through __go_type_name, whose
+	// parameter is a Send + Sync Any in some programs with goroutines while
+	// __go_as_any returns a plain one.
+	type namedRustType struct{ rust, goName string }
+	var names []namedRustType
+	ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(typ)
+	scope := named.Obj().Pkg().Scope()
+	for _, name := range scope.Names() {
+		tn, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) {
+			continue
+		}
+		if named, ok := tn.Type().(*types.Named); ok && named.TypeParams().Len() > 0 {
+			// A generic declaration has no Rust type of its own; its
+			// instances fall back below.
+			continue
+		}
+		if sourceMappedDeclIsPruned(tn) {
+			// Dead code elimination left the type out of the crate.
+			continue
+		}
+		if types.Implements(tn.Type(), iface) {
+			rustType, rustOK := anyCloneRustType(tn.Type())
+			goName, goOK := goDynamicTypeName(tn.Type())
+			if rustOK && goOK {
+				names = append(names, namedRustType{rustType, goName})
+			}
+		}
+		if _, isFunc := tn.Type().Underlying().(*types.Signature); isFunc {
+			// A defined func type gets no pointer wrapper.
+			continue
+		}
+		if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
+			// A *T in one of the program's interfaces is boxed in the
+			// pointer wrapper, not as the handle.
+			if goName, ok := goDynamicTypeName(ptr); ok {
+				names = append(names, namedRustType{pointerLocalInterfaceWrapperNameForUse(tn.Name(), ifaceName), goName})
+			}
+		}
+	}
+	slices.SortFunc(names, func(a, b namedRustType) int { return strings.Compare(a.rust, b.rust) })
+	// Two Go types can share a Rust type, as defined func types do; a Rust
+	// type that stands for more than one Go name is left to the fallback
+	// rather than named wrongly.
+	names = slices.DeleteFunc(names, func(n namedRustType) bool {
+		count := 0
+		for _, other := range names {
+			if other.rust == n.rust {
+				count++
+			}
+		}
+		return count > 1
+	})
+	// An interface that embeds two others inherits __go_as_any from both,
+	// so the call names one of them.
+	qualifyingTrait := goAsAnyQualifyingTraitByName(ifaceName)
+	var chain strings.Builder
+	chain.WriteString("{ let __any = ")
+	writeChain := func(value, ref string) {
+		chain.WriteString(goAsAnyCall(qualifyingTrait, value, ref))
+		chain.WriteString("; ")
+		for _, n := range names {
+			chain.WriteString("if __any.is::<")
+			chain.WriteString(n.rust)
+			chain.WriteString(">() { ")
+			chain.WriteString(strconv.Quote(n.goName))
+			chain.WriteString(" } else ")
+		}
+		chain.WriteString("{ std::any::type_name_of_val(__any) } }")
+	}
+	if isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
+		writeChain(RustIdentForUse(ident), RustIdentForUse(ident))
+		out.WriteString(chain.String())
+		return true
+	}
+	writeChain("__iface", "&**__iface")
+	out.WriteString("{ let __type_name = match ")
+	out.WriteString(RustIdentForUse(ident))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__iface) => ")
+	out.WriteString(chain.String())
+	out.WriteString(", None => \"<nil>\" }; __type_name }")
+	return true
+}
+
+// rangeVarHoldsWrappedCell reports whether ident is a range loop variable
+// whose value is a cell: the value of "for _, s := range shapes" for a
+// []Shape of a local interface Shape. It is not bare, though range
+// variables usually are.
+func rangeVarHoldsWrappedCell(ident *ast.Ident) bool {
+	varType, ok := rangeLoopVars[ident.Name]
+	return ok && !identShadowsRangeVar(ident) && isWrappedRangeVarType(varType)
+}
+
 // printArgIsBasicFloat reports whether a print operand is a float32 or a
 // float64 that is not of a named type, and whether it is a float32. fmt
 // prints such a value as %v; Rust's Display has no exponent form.
@@ -595,23 +719,29 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			} else {
 				// It's a named interface - use Display formatting
 				// Check if it's a bare interface param (&dyn Trait) - use directly
-				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) {
+				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
 					// Interface parameter is already &dyn Trait with Display supertrait
 					out.WriteString(RustIdentForUse(ident))
 				} else {
-					// This will use the Display impl of the concrete type
-					out.WriteString("format!(\"{}\", ")
+					// This will use the Display impl of the concrete type.
+					// A variable or field holding a nil interface value
+					// prints <nil>.
 					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString("(*")
+						out.WriteString("match ")
 						out.WriteString(RustIdentForUse(ident))
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
-					} else if _, ok := arg.(*ast.SelectorExpr); ok {
-						out.WriteString("(*")
+						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						return
+					}
+					if _, ok := arg.(*ast.SelectorExpr); ok {
+						out.WriteString("match ")
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
-					} else if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
+						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						return
+					}
+					out.WriteString("format!(\"{}\", ")
+					if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
 						// x.(fmt.Stringer) yields the bare fmt_Stringer.
 						TranspileExpression(out, arg)
 					} else {
@@ -1068,9 +1198,11 @@ func formatPlusVArgIndices(format string) map[int]bool {
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings
-// Returns: (format_string, skipIndices, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
-func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int, []int, []int, map[int]string) {
+// Returns: (format_string, skipIndices, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
+func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int, []int, []int, map[int]string, []int) {
 	var skipIndices []int
+	// stringIndices are the arguments of %s: a []byte prints as its text.
+	var stringIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
 	var pointerIndices []int
@@ -1171,6 +1303,9 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					j++
 				}
 				if j < len(format) && (format[j] == 'f' || format[j] == 'g' || format[j] == 'd' || format[j] == 's') {
+					if format[j] == 's' {
+						stringIndices = append(stringIndices, argIndex)
+					}
 					precision := format[i+2 : j]
 					result.WriteString("{:.")
 					result.WriteString(precision)
@@ -1202,6 +1337,7 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 					width := format[widthStart:j]
 					switch format[j] {
 					case 's':
+						stringIndices = append(stringIndices, argIndex)
 						if leftAlign {
 							result.WriteString("{:<")
 						} else {
@@ -1246,6 +1382,9 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 				// Handle single-char format verbs
 				switch format[i+1] {
 				case 'd', 'g', 's', 'v', 't', 'w':
+					if format[i+1] == 's' {
+						stringIndices = append(stringIndices, argIndex)
+					}
 					result.WriteString("{}")
 					argIndex++
 				case 'p':
@@ -1299,12 +1438,12 @@ func convertFormatStringWithSkips(goFormat string) (string, []int, []int, []int,
 		finalFormat = strconv.Quote(finalFormat)
 	}
 
-	return finalFormat, skipIndices, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats
+	return finalFormat, skipIndices, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices
 }
 
 // convertFormatString converts Go format strings to Rust format strings
 func convertFormatString(goFormat string) string {
-	converted, _, _, _, _, _, _ := convertFormatStringWithSkips(goFormat)
+	converted, _, _, _, _, _, _, _ := convertFormatStringWithSkips(goFormat)
 	return converted
 }
 
@@ -1438,6 +1577,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		}
 	}
 	NeedGoTypeName()
+	if writeLocalInterfaceTypeNameFormatArg(out, arg) {
+		return
+	}
 	var payload strings.Builder
 	if writeBareAnyPayloadRef(&payload, arg) {
 		out.WriteString(goTypeNameHelperRustName)
@@ -1532,7 +1674,7 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
-func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string, stringIndices []int) {
 	// The nil literal is a nil interface value, which %v and %T print as
 	// <nil>.
 	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
@@ -1572,6 +1714,8 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 
 	if isTypeNameArg {
 		writeTypeNameFormatArg(out, arg)
+	} else if slices.Contains(stringIndices, argIndex) && writeByteSliceFormatTextArg(out, arg) {
+		// %s of a []byte prints its text.
 	} else if isUnicodeArg {
 		transpilePrintArg(out, arg)
 		out.WriteString(" as u32")
@@ -1606,6 +1750,43 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 	}
 }
 
+// writeByteSliceFormatTextArg writes a []byte, or a defined type over one,
+// as the string %s prints: its bytes as text, as string(b) does, not the
+// [97 98 99] of %v. A String method decides what %s prints, so a type with
+// one is left to the usual path.
+func writeByteSliceFormatTextArg(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	slice, ok := argType.Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	if basic, ok := types.Unalias(slice.Elem()).(*types.Basic); !ok || basic.Kind() != types.Byte {
+		return false
+	}
+	if obj, _, _ := types.LookupFieldOrMethod(argType, true, nil, "String"); obj != nil {
+		return false
+	}
+	out.WriteString(stringFromUTF8Open())
+	if isNamedSliceExpression(arg) {
+		out.WriteString("{ let __bytes = ")
+		writeNamedSliceInnerHandleClone(out, arg)
+		out.WriteString("; let __bytes_guard = __bytes")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value }")
+	} else {
+		writeUnwrappedSliceClone(out, arg)
+	}
+	out.WriteString(stringFromUTF8Close())
+	return true
+}
+
 func transpileFmtPrintf(out *strings.Builder, call *ast.CallExpr) {
 	writeFmtMacroCall(out, "print!", call, 0)
 }
@@ -1616,6 +1797,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 
 	var skipIndices []int
 	var charIndices []int
+	var stringIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
 	var pointerIndices []int
@@ -1624,7 +1806,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
@@ -1632,6 +1814,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			unicodeIndices = unicodes
 			pointerIndices = pointers
 			hexFormats = hexes
+			stringIndices = strs
 			if NeedsConcurrentWrapper() {
 				// The arguments are written first, so that each can be
 				// formatted on its own; see formatArgsEachInOwnFormat.
@@ -1642,7 +1825,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 					})
 					args = append(args, arg.String())
 				}
@@ -1678,7 +1861,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
-					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
 		}
@@ -2332,6 +2515,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 
 	var skipIndices []int
 	var charIndices []int
+	var stringIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
 	var pointerIndices []int
@@ -2341,7 +2525,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
@@ -2349,6 +2533,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			unicodeIndices = unicodes
 			pointerIndices = pointers
 			hexFormats = hexes
+			stringIndices = strs
 			if NeedsConcurrentWrapper() {
 				// The arguments are written first, so that each can be
 				// formatted on its own; see formatArgsEachInOwnFormat.
@@ -2359,7 +2544,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 					}
 					var arg strings.Builder
 					withPrintArgPlusV(plusVArgs[i-1], func() {
-						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 					})
 					args = append(args, arg.String())
 				}
@@ -2396,7 +2581,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			if !shouldSkip {
 				out.WriteString(", ")
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
 		}
@@ -2442,6 +2627,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 
 	var skipIndices []int
 	var charIndices []int
+	var stringIndices []int
 	var typeNameIndices []int
 	var unicodeIndices []int
 	var pointerIndices []int
@@ -2452,7 +2638,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 		literalFormat := false
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust
-			format, skips, chars, typeNames, unicodes, pointers, hexes := convertFormatStringWithSkips(literal)
+			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
 			skipIndices = skips
 			charIndices = chars
@@ -2460,6 +2646,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			unicodeIndices = unicodes
 			pointerIndices = pointers
 			hexFormats = hexes
+			stringIndices = strs
 			out.WriteString(format)
 			literalFormat = true
 		} else {
@@ -2490,7 +2677,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				withPrintArgPlusV(plusVArgs[i-1], func() {
-					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats)
+					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
 		}
@@ -6057,6 +6244,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				// make([]T, m) of a struct T.
 				elementType = "<" + elementRustType + ">::nil()"
 			}
+			if (elementType == "0" || elementType == "0.0") && rustPrimitiveNumericTypes[elementRustType] {
+				// make([]byte, n) is a Vec<u8> even when nothing later pins
+				// the element type down, as when the slice only goes to
+				// f.Read(buf): an untyped 0 would make it a Vec<i32>.
+				elementType += elementRustType
+			}
 
 			WriteWrapperPrefix(out)
 			if len(call.Args) >= 3 && goSliceModeEnabled() {
@@ -6108,6 +6301,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(")))")
 		}
 	}
+}
+
+var rustPrimitiveNumericTypes = map[string]bool{
+	"u8": true, "u16": true, "u32": true, "u64": true, "usize": true,
+	"i8": true, "i16": true, "i32": true, "i64": true, "isize": true,
+	"f32": true, "f64": true,
 }
 
 // writeMakeNamedType handles make(T) where T is a named type whose underlying

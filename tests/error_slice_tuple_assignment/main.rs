@@ -618,7 +618,7 @@ pub fn parse() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
 }
 
 fn main() {
-    let mut values = Rc::new(RefCell::new(Some(vec![0; (1) as usize])));
+    let mut values = Rc::new(RefCell::new(Some(vec![0i64; (1) as usize])));
     let mut errs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None::<Rc<dyn StdError>>)); (1) as usize])));
     { let (__tmp_0, __tmp_1) = parse(); { let __idx = (0) as usize; (*values.borrow_mut().as_mut().unwrap())[__idx] = __tmp_0; } { let __idx = (0) as usize; (*errs.borrow_mut().as_mut().unwrap())[__idx] = __tmp_1; } };
 

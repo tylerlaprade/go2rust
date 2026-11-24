@@ -613,7 +613,7 @@ impl std::io::Write for GoSlice<u8> {
 
 
 fn main() {
-    let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<u8> = (0..(4) as usize).map(|_| 0).collect(); v.truncate((2) as usize); v })));
+    let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<u8> = (0..(4) as usize).map(|_| 0u8).collect(); v.truncate((2) as usize); v })));
     { let __idx = (0) as usize; let __rhs = ('g' as u8) as u8; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = ('o' as u8) as u8; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))); *s.borrow_mut() = __slice_header; };
