@@ -687,6 +687,10 @@ run_xfail_test() {
     run_test "tests/channel_error_values"
 }
 
+@test "channel_handle_copies" {
+    run_test "tests/channel_handle_copies"
+}
+
 @test "channel_interface_events" {
     run_test "tests/channel_interface_events"
 }

@@ -3185,6 +3185,16 @@ func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
+	if index, ok := unwrapParens(expr).(*ast.IndexExpr); ok && mapIndexHoldsChannelCell(index) {
+		// A map stores a channel in its own cell. A missing key reads as
+		// the nil channel.
+		out.WriteString("{ let __channel_cell = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString("; let __channel = __channel_cell")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().cloned().unwrap_or_default(); __channel }")
+		return
+	}
 	// The expression is written aside to see whether it locks. It starts
 	// with the current line, so multiline output keeps its indentation.
 	written := out.String()
@@ -8270,6 +8280,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if isGoErrorType(elemType) {
 		return writeGoErrorHandleValue(out, expr)
 	}
+	if writeChannelHandleCopy(out, expr, elemType) {
+		return true
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 			if elemType != nil {
@@ -9941,6 +9954,9 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 	if (fieldExpr != nil && isChannelFieldExpr(fieldExpr)) || isChannelFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
+			return
+		}
+		if writeChannelHandleCopy(out, value, nil) {
 			return
 		}
 		TranspileExpression(out, value)
@@ -11662,6 +11678,17 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	}
 	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
 		return
+	}
+	if valueType != nil {
+		if _, isChan := types.Unalias(valueType).Underlying().(*types.Chan); isChan {
+			var channel strings.Builder
+			if writeChannelHandleCopy(&channel, value, valueType) {
+				WriteWrapperPrefix(out)
+				out.WriteString(channel.String())
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 	}
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
