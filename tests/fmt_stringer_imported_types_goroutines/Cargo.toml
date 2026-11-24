@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_fmt_stringer_imported_types_goroutines_model",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "fmt_stringer_imported_types_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_stringer_imported_types_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_fmt_stringer_imported_types_goroutines_model = { path = "vendor/example_com_fmt_stringer_imported_types_goroutines_model" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

@@ -1222,6 +1222,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
+	dst.needsGoAnyRuntimeOps = dst.needsGoAnyRuntimeOps || src.needsGoAnyRuntimeOps
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {
@@ -1272,6 +1273,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
 	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
+	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
 	dst.needsGoTime = dst.needsGoTime || src.needsGoTime
 	dst.needsGoTimer = dst.needsGoTimer || src.needsGoTimer
@@ -2634,6 +2636,10 @@ func writeExternalIntegerStubOps(out *strings.Builder, name string, integerType 
 
 // MACHINERY: generic interface-stub emitter framework, not a stdlib shim.
 func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
+	if name == fmtStringerStubName {
+		writeFmtStringerStub(out, methods)
+		return
+	}
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"

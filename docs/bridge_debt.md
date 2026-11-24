@@ -207,6 +207,31 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-stringer**
+
+- Location: `go/fmt_stringer.go`. `writeFmtStringerStub` writes the
+  `fmt_Stringer` stub type, with the text of the value it holds; it is called
+  from `writeExternalInterfaceStub` in `go/external_type_stubs.go`. The
+  writers that fill it, and where they are called:
+  - `writeFmtStringerConversion`, from `writeLocalConcreteStdlibInterfaceConversion` in `go/expr.go`;
+  - `writeTypeSwitchFmtStringerCaseCondition` and `writeTypeSwitchFmtStringerCaseBinding`, from `writeTypeSwitchLocalInterfaceCaseCondition` and `writeTypeSwitchInterfaceCaseBinding` in `go/stmt.go`;
+  - `fmtStringerAssertionTarget`, `writeFmtStringerAssertionValue` and `writeFmtStringerAssertionCommaOk`, from `TranspileExpressionContext` and `TranspileTypeAssertionCommaOk` in `go/expr.go`, with the exceptions in `methodReceiverExpressionNeedsUnwrap` and `staticallyKnownAnyInterfaceAssertionSource`;
+  - `writeFmtStringerTypeName`, for `%T`, from `writeTypeNameFormatArg` in `go/stdlib.go`.
+- Go symbol: `fmt.Stringer` as a variable or parameter type, a `[]fmt.Stringer`,
+  `case fmt.Stringer` and `x.(fmt.Stringer)`.
+- Transpiler gap: `fmt` is bridged (fmt-runtime-format), so `fmt.Stringer` is
+  a stub type rather than a translated interface, and the stub's `String`
+  had no body. A value converted to it now carries a closure over its
+  Display impl, which calls the value's own String method (DEV-152).
+- Fixture: `tests/fmt_stringer_values/` and
+  `tests/fmt_stringer_values_goroutines/`.
+- Not covered: a `fmt.Stringer` put back into an `interface{}` boxes the
+  `fmt_Stringer`, so asserting the concrete type there fails (DEV-155).
+- Removal trigger: `fmt` is translated from source, or the stdlib boundary
+  puts `fmt` in the hand-written tier; then `fmt.Stringer` is an ordinary
+  interface of that package and these writers are deleted.
+- Added: 2026-11-24
+
 **fmt-print-operands**
 
 - Location: `go/stdlib.go`, `transpileFmtSprint`, `transpileFmtSprintln`,

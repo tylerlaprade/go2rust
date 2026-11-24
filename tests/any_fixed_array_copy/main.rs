@@ -35,7 +35,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<[[i64; 2]; 1]>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<[i64; 2]>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
-    None
+    go_clone_registered_any(value)
 }
 
 fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {

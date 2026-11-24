@@ -527,6 +527,14 @@ run_xfail_test() {
     run_test "tests/append_function_slice_field"
 }
 
+@test "append_growth_copies_struct_elements" {
+    run_test "tests/append_growth_copies_struct_elements"
+}
+
+@test "append_growth_copies_struct_elements_goroutines" {
+    run_test "tests/append_growth_copies_struct_elements_goroutines"
+}
+
 @test "append_interface_value" {
     run_test "tests/append_interface_value"
 }
@@ -1377,6 +1385,22 @@ run_xfail_test() {
 
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
+}
+
+@test "fmt_stringer_imported_types" {
+    run_test "tests/fmt_stringer_imported_types"
+}
+
+@test "fmt_stringer_imported_types_goroutines" {
+    run_test "tests/fmt_stringer_imported_types_goroutines"
+}
+
+@test "fmt_stringer_values" {
+    run_test "tests/fmt_stringer_values"
+}
+
+@test "fmt_stringer_values_goroutines" {
+    run_test "tests/fmt_stringer_values_goroutines"
 }
 
 @test "for_loops" {
@@ -2541,6 +2565,10 @@ run_xfail_test() {
 
 @test "package_any_value_from_caller" {
     run_test "tests/package_any_value_from_caller"
+}
+
+@test "package_any_value_from_caller_goroutines" {
+    run_test "tests/package_any_value_from_caller_goroutines"
 }
 
 @test "package_const_lowercase_condition" {
@@ -3747,6 +3775,14 @@ run_xfail_test() {
     run_test "tests/stdlib_typed_const_index"
 }
 
+@test "stdlib_unknown_call_stays_local" {
+    run_test "tests/stdlib_unknown_call_stays_local"
+}
+
+@test "stdlib_unknown_call_with_goroutine" {
+    run_test "tests/stdlib_unknown_call_with_goroutine"
+}
+
 @test "strconv_errors_from_source" {
     run_test "tests/strconv_errors_from_source"
 }
@@ -3985,6 +4021,14 @@ run_xfail_test() {
 
 @test "time_sleep_duration_forms" {
     run_test "tests/time_sleep_duration_forms"
+}
+
+@test "time_source_shapes" {
+    run_test "tests/time_source_shapes"
+}
+
+@test "time_source_shapes_goroutines" {
+    run_test "tests/time_source_shapes_goroutines"
 }
 
 @test "timeouts_basic" {

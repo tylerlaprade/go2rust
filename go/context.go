@@ -837,15 +837,17 @@ func NeedFormatAny() {
 		// Also track the Any import that the helper will need
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
 }
 
 // NeedFormatAnyNested marks that a value held inside another one is printed,
 // which goes through format_any_nested.
 func NeedFormatAnyNested() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnyNested = true
-		helpers.needsFormatAny = true
-		TrackImport("Any")
 	}
 }
 
@@ -863,15 +865,31 @@ func NeedAnyClone() {
 		helpers.needsAnyClone = true
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
+}
+
+// NeedGoAnyRuntimeOps marks the erased operation registry used when a value
+// declared in one generated crate is formatted, copied, named, or asserted in
+// another. The registry lives in the shared helper crate, so it never needs a
+// reverse dependency on the crate that declares the concrete type.
+func NeedGoAnyRuntimeOps() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAnyRuntimeOps = true
+		TrackImport("Any")
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoAnyRuntimeOps = true
+	})
 }
 
 // NeedAnyHandleCopy marks that we need go_any_handle_copy and go_any_store,
 // which give an interface{} variable Go's copy of a value.
 func NeedAnyHandleCopy() {
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsAnyHandleCopy = true
-		helpers.needsAnyClone = true
-		TrackImport("Any")
 	}
 }
 
@@ -897,10 +915,9 @@ func NeedGoPointerError() {
 
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
 func NeedGoValueClone() {
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoValueClone = true
-		helpers.needsAnyClone = true
-		TrackImport("Any")
 	}
 	markSharedStdlibHelper(func(helpers *HelperTracker) {
 		helpers.needsGoValueClone = true
@@ -1113,12 +1130,9 @@ func NeedGoInteger() {
 
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnySlice = true
-		// Also need the regular format_any helper
-		helpers.needsFormatAny = true
-		// Track the Any import that the helpers will need
-		TrackImport("Any")
 	}
 }
 
@@ -1218,17 +1232,19 @@ func NeedGoTypeName() {
 		helpers.needsGoTypeName = true
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
 }
 
 // NeedGoSprintf marks that we need go_sprintf, which formats with a format
 // that is only known at run time. It prints through format_any and names
 // types through the %T helper.
 func NeedGoSprintf() {
+	NeedFormatAny()
+	NeedGoTypeName()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoSprintf = true
-		helpers.needsFormatAny = true
-		helpers.needsGoTypeName = true
-		TrackImport("Any")
 	}
 }
 
@@ -1287,6 +1303,14 @@ func NeedRegexp() {
 func NeedJsonEscape() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsJsonEscape = true
+	}
+}
+
+// NeedGoSliceAppendCopying marks that the program appends to a slice of
+// structs, whose growth copies the elements with go_slice_append_copying.
+func NeedGoSliceAppendCopying() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSliceAppendCopying = true
 	}
 }
 

@@ -165,3 +165,15 @@ func goPtrSlotVarInfo(name string) (*VarInfo, bool) {
 	}
 	return nil, false
 }
+
+// pushCaseClauseScope opens the implicit block of a switch case clause, so
+// a variable a clause declares does not replace one of the same name
+// outside it, as in "sec := uint64(sec)". It returns the call that closes it.
+func pushCaseClauseScope() func() {
+	vt := GetVarTable()
+	if vt == nil {
+		return func() {}
+	}
+	vt.PushScope()
+	return vt.PopScope
+}

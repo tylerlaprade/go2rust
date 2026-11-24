@@ -659,6 +659,13 @@ func (pl *PackageLoader) TranspileAll() error {
 	// helpers. The project generator ends this once the main package and
 	// the shared crate are written.
 	beginProgramAnyCases()
+	currentProgramAnyCases.runtimeOps = false
+	for pkgPath, pkg := range pl.allPackages {
+		if pkgPath != pl.mainPkg.PkgPath && pkg != nil && !isStdlibPackage(pkgPath) {
+			currentProgramAnyCases.runtimeOps = true
+			break
+		}
+	}
 
 	// Set the global type info from the main package
 	// This gives us access to all type information including imports

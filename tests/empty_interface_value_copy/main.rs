@@ -897,7 +897,7 @@ pub fn get() -> Rc<RefCell<Option<Box<dyn Any>>>> {
 
 pub fn reassign(mut v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<dyn Any>>>> {
     { let new_val = Box::new("changed in callee".to_string()) as Box<dyn Any>; *v.borrow_mut() = Some(new_val); };
-    go_any_handle_copy(&v)
+    return go_any_handle_copy(&v);
 }
 
 fn main() {

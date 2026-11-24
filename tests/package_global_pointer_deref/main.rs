@@ -645,11 +645,11 @@ fn __go_init_globals() {
 
 
 pub fn bool_ptr(v: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<bool>>> {
-    v.clone()
+    return v.clone();
 }
 
 pub fn string_ptr(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
-    v.clone()
+    return v.clone();
 }
 
 pub fn invert(v: Rc<RefCell<Option<bool>>>) -> bool {
