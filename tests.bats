@@ -2063,6 +2063,10 @@ run_xfail_test() {
     run_test "tests/map_named_slice_parallel_lookup"
 }
 
+@test "map_nil_assignment" {
+    run_test "tests/map_nil_assignment"
+}
+
 @test "map_pointer_key_comma_ok" {
     run_test "tests/map_pointer_key_comma_ok"
 }

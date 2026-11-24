@@ -1,0 +1,8 @@
+false 3
+true 0 0 0 false
+true 0 0 false
+key
+value
+direct: assignment to entry in nil map
+key
+compound: assignment to entry in nil map
