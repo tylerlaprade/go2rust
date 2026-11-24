@@ -6136,7 +6136,7 @@ func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType strin
 
 func writeChannelCapacityAsUsize(out *strings.Builder, expr ast.Expr) {
 	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT {
-		out.WriteString(lit.Value)
+		out.WriteString(RustIntegerLiteral(lit.Value))
 		out.WriteString(" as usize")
 		return
 	}

@@ -1791,6 +1791,14 @@ run_xfail_test() {
     run_test "tests/late_address_of"
 }
 
+@test "legacy_octal_literals" {
+    run_test "tests/legacy_octal_literals"
+}
+
+@test "legacy_octal_literals_goroutines" {
+    run_test "tests/legacy_octal_literals_goroutines"
+}
+
 @test "len_call_argument" {
     run_test "tests/len_call_argument"
 }
