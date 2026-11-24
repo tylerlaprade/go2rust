@@ -10693,3 +10693,30 @@ func main() {
 		t.Errorf("a map variable must be rebound, not have the other map moved into its cell:\n%s", rust)
 	}
 }
+
+// m := s.data for a map field shares the field's map: the variable gets a
+// clone of the handle, not a copy of the map (DEV-169).
+func TestShortDeclFromMapFieldSharesTheMap(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Store struct{ data map[string]int }
+
+func main() {
+	st := &Store{data: map[string]int{}}
+	m := st.data
+	var v = st.data
+	m["a"], v["b"] = 1, 2
+}
+`)
+	for _, want := range []string{
+		"let mut m = (*st.borrow().as_ref().unwrap()).data.clone();",
+		"(*st.borrow().as_ref().unwrap()).data.clone()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, ".data.borrow().as_ref().unwrap()).clone()") {
+		t.Errorf("a map field must not be copied into the variable:\n%s", rust)
+	}
+}
