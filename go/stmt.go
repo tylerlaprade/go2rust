@@ -7742,6 +7742,55 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	return true
 }
 
+// writePointerNilRebind writes `p = nil` for a pointer variable or field.
+// A pointer is the handle of its pointee's cell, and a nil pointer is a
+// handle whose cell is empty. Writing None into the cell p holds emptied
+// the pointee for every other pointer to it: after `q := p; q = nil`, p
+// was nil too, and `item = nil` in a range loop cleared the slice element
+// (DEV-142). Like any other pointer assignment, nil now replaces the
+// handle, with a fresh empty one.
+func writePointerNilRebind(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	if ident, ok := rhs.(*ast.Ident); !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(lhsType).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	switch target := unwrapParens(lhs).(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isCurrentReceiverIdent(target) {
+			return false
+		}
+		if _, isGlobal := packageGlobalPointerIdent(target); isGlobal {
+			return false
+		}
+	case *ast.SelectorExpr:
+		if selection, ok := typeInfo.info.Selections[target]; !ok || selection.Kind() != types.FieldVal {
+			return false
+		}
+	default:
+		return false
+	}
+	nilHandle := zeroValueForTypesType(lhsType)
+	if nilHandle == "" {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(nilHandle)
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
+	return true
+}
+
 func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, rhs) {
 		return
@@ -13389,6 +13438,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// GoPtr fields preserve pointer identity for slice element addresses.
 								} else if writeGoPtrAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// GoPtr locals preserve pointer identity across pointer assignment.
+								} else if writePointerNilRebind(out, s.Lhs[0], s.Rhs[0]) {
+									// A pointer variable or field takes a nil handle of its own.
 								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")

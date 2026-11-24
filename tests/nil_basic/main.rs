@@ -617,7 +617,7 @@ fn main() {
     }
 
         // Set back to nil
-    *p.borrow_mut() = None;
+    { let new_val = Rc::new(RefCell::new(None)); p = new_val; };
     if { let __nil_result = (*p.borrow()).is_none(); __nil_result } {
         println!("{}", format!("{}", "p is nil again".to_string()));
     }
