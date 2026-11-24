@@ -2432,6 +2432,57 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	if !ok {
 		return false
 	}
+	if sel, ok := syncOnceDoCurrentReceiverMethodValue(call.Args[0]); ok {
+		// once.Do(s.init) inside a pointer method: call the method on self.
+		// The method-value box would capture self.clone(), and a map or
+		// pointer field the method assigns would land on that copy instead
+		// of on s.
+		methodCall := &ast.CallExpr{Fun: sel, Lparen: sel.End(), Rparen: sel.End()}
+		if !receiver.wrapFuncArg {
+			// The GoOnce helper takes any FnMut, so the closure borrows self.
+			out.WriteString("{ let __once = ")
+			writeSyncOnceReceiverClone(out, receiver)
+			out.WriteString("; __once.r#do(|| { ")
+			TranspileExpression(out, methodCall)
+			out.WriteString("; }); }")
+			return true
+		}
+		if currentReceiverType != "" {
+			// A source-mapped sync.Once takes a boxed func; it runs it before
+			// Do returns, so the box reaches self through a pointer, as
+			// writeSourceSyncOnceDoPointerReceiverFuncLitCall does. A method
+			// that only reads the receiver leaves the caller with &self, so
+			// the pointer is a const one then.
+			ptrKind, refKind := "*const ", "&"
+			if methodCallNeedsMutableReceiver(sel) {
+				ptrKind, refKind = "*mut ", "&mut "
+			}
+			out.WriteString("{ let __once = ")
+			writeSyncOnceReceiverClone(out, receiver)
+			out.WriteString("; let __recv_ptr = self as ")
+			out.WriteString(ptrKind)
+			out.WriteString(currentReceiverType)
+			out.WriteString(" as usize; __once.r#do(")
+			WriteWrapperPrefix(out)
+			out.WriteString("Box::new(move || { let __recv_ref: ")
+			out.WriteString(refKind)
+			out.WriteString(currentReceiverType)
+			out.WriteString(" = unsafe { ")
+			out.WriteString(refKind)
+			out.WriteString("*(__recv_ptr as ")
+			out.WriteString(ptrKind)
+			out.WriteString(currentReceiverType)
+			out.WriteString(") }; ")
+			prevAlias := currentReceiverRustAlias
+			currentReceiverRustAlias = "__recv_ref"
+			TranspileExpression(out, methodCall)
+			currentReceiverRustAlias = prevAlias
+			out.WriteString("; }) as Box<dyn FnMut() -> () + Send + Sync>")
+			WriteWrapperSuffix(out)
+			out.WriteString(") }")
+			return true
+		}
+	}
 	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
 		return false
 	}
@@ -2487,6 +2538,36 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	out.WriteString("    }); }")
 	return true
+}
+
+// syncOnceDoCurrentReceiverMethodValue reports the method value s.m when it
+// is the argument of once.Do inside a method whose pointer receiver is s, and
+// m has a pointer receiver too. Go runs the method on s itself.
+func syncOnceDoCurrentReceiverMethodValue(arg ast.Expr) (*ast.SelectorExpr, bool) {
+	sel, ok := unwrapParens(arg).(*ast.SelectorExpr)
+	if !ok {
+		return nil, false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
+		return nil, false
+	}
+	if _, ok := currentReceiverObject.Type().(*types.Pointer); !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal || !typeInfo.HasPointerReceiver(sel) {
+		return nil, false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(sel))
+	if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 0 {
+		return nil, false
+	}
+	return sel, true
 }
 
 func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, receiver syncOnceReceiverInfo, funcLit *ast.FuncLit) bool {
