@@ -3015,6 +3015,10 @@ run_xfail_test() {
     run_test "tests/printf_runtime_format_table"
 }
 
+@test "printf_s_byte_slice" {
+    run_test "tests/printf_s_byte_slice"
+}
+
 @test "printf_verbs_without_a_rust_equivalent" {
     run_test "tests/printf_verbs_without_a_rust_equivalent"
 }

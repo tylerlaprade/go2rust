@@ -1868,3 +1868,23 @@ func main() {
 		}
 	}
 }
+
+// %s of a []byte in a format lowered to print! prints the bytes as text,
+// not as the slice %v prints (DEV-172).
+func TestPrintfPercentSOfByteSliceWritesText(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	bs := []byte("abc")
+	fmt.Printf("%s %5s %v\n", bs, bs, bs)
+}
+`)
+	if strings.Count(rust, "String::from_utf8(") != 2 {
+		t.Errorf("both %%s arguments should be written as text:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice(&bs)") {
+		t.Errorf("%%v of the slice should still print the slice:\n%s", rust)
+	}
+}
