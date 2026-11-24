@@ -1519,7 +1519,7 @@ impl Item {
         let __go_clone_1_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.price.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_3_0 = { let __guard = self.qty.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_4_0 = self.tags.clone();
+        let __go_clone_4_0 = { let __guard = self.tags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             base: __go_clone_0_0,
             name: __go_clone_1_0,
@@ -1566,7 +1566,7 @@ impl Inventory {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.items.clone();
         let __go_clone_1_0 = { let __guard = self.next_i_d.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.log.clone();
+        let __go_clone_2_0 = { let __guard = self.log.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             items: __go_clone_0_0,
             next_i_d: __go_clone_1_0,

@@ -905,7 +905,7 @@ impl Basic {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.id.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.balance.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.history.clone();
+        let __go_clone_2_0 = { let __guard = self.history.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             id: __go_clone_0_0,
             balance: __go_clone_1_0,

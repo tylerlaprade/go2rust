@@ -164,7 +164,7 @@ pub struct Cache__string__User {
 impl Cache__string__User {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.data.clone();
-        let __go_clone_1_0 = self.order.clone();
+        let __go_clone_1_0 = { let __guard = self.order.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             data: __go_clone_0_0,
@@ -208,7 +208,7 @@ pub struct Cache__int__slice_string {
 impl Cache__int__slice_string {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.data.clone();
-        let __go_clone_1_0 = self.order.clone();
+        let __go_clone_1_0 = { let __guard = self.order.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             data: __go_clone_0_0,

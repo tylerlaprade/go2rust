@@ -1506,7 +1506,7 @@ pub struct List {
 
 impl List {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.nodes.clone();
+        let __go_clone_0_0 = { let __guard = self.nodes.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = self.head.clone();
         Self {
             nodes: __go_clone_0_0,

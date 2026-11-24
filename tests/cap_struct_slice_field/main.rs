@@ -713,7 +713,7 @@ pub struct bucket {
 
 impl bucket {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.values.clone();
+        let __go_clone_0_0 = { let __guard = self.values.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             values: __go_clone_0_0,
         }

@@ -12113,10 +12113,32 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		// The map cell holds the defined integer type.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
+	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
+		// map[K]T{k: v} for a struct variable v stores Go's copy of v.
+		writeExpressionWithGoCopy(out, value, copyCall)
 	} else {
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+// mapLiteralValueGoCopyCall returns the call that makes Go's copy of value, a
+// variable or field whose type's Go copy is not Clone, such as a struct. Its
+// Rust value is read out of a cell, and the map needs a value of its own.
+func mapLiteralValueGoCopyCall(value ast.Expr) (string, bool) {
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return "", false
+	}
+	if !expressionNeedsGoValueClone(value) {
+		return "", false
+	}
+	copyCall, known := goValueCopyCallForExpr(value)
+	if !known || copyCall == ".clone()" {
+		return "", false
+	}
+	return copyCall, true
 }
 
 func writeTranspiledInterfaceMapValue(out *strings.Builder, value ast.Expr, valueType types.Type) bool {

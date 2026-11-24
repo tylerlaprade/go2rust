@@ -1215,8 +1215,8 @@ pub struct Request {
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.mode.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.env.clone();
-        let __go_clone_2_0 = self.build_flags.clone();
+        let __go_clone_1_0 = { let __guard = self.env.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.build_flags.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_3_0 = { let __guard = self.tests.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_4_0 = self.overlay.clone();
         Self {

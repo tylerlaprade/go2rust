@@ -714,7 +714,7 @@ pub struct Package {
 
 impl Package {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.errors.clone();
+        let __go_clone_0_0 = { let __guard = self.errors.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             errors: __go_clone_0_0,
         }

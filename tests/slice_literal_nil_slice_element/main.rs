@@ -110,7 +110,7 @@ pub struct source {
 
 impl source {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.files.clone();
+        let __go_clone_0_0 = { let __guard = self.files.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             files: __go_clone_0_0,
         }

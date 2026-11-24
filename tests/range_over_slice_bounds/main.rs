@@ -715,7 +715,7 @@ pub struct scanner {
 impl scanner {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.offset.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.data.clone();
+        let __go_clone_1_0 = { let __guard = self.data.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             offset: __go_clone_0_0,
             data: __go_clone_1_0,

@@ -936,8 +936,8 @@ pub struct Sheet {
 
 impl Sheet {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.cells.clone();
-        let __go_clone_1_0 = self.names.clone();
+        let __go_clone_0_0 = { let __guard = self.cells.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.names.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             cells: __go_clone_0_0,
             names: __go_clone_1_0,

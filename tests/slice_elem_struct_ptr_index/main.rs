@@ -1308,7 +1308,7 @@ pub struct Registry {
 
 impl Registry {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.all.clone();
+        let __go_clone_0_0 = { let __guard = self.all.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = self.by_dept.clone();
         let __go_clone_2_0 = self.top.clone();
         Self {

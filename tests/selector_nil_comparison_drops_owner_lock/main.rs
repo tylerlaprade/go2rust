@@ -883,7 +883,7 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.env.clone();
+        let __go_clone_0_0 = { let __guard = self.env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             env: __go_clone_0_0,
@@ -923,7 +923,7 @@ pub struct Invocation {
 impl Invocation {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.clean_env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.env.clone();
+        let __go_clone_1_0 = { let __guard = self.env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.working_dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             clean_env: __go_clone_0_0,
