@@ -663,7 +663,7 @@ fn main() {
     });
 
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
-    let mut xs = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..({ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }) as usize).map(|_| 0).collect(); v.truncate((0) as usize); v })));
+    let mut xs = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..({ let __recv = c.clone(); let __recv_ptr: *const counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const counter }; let __result = unsafe { &*__recv_ptr }.len(); __result }) as usize).map(|_| 0i64).collect(); v.truncate((0) as usize); v })));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = xs.clone(); let __append_values = vec![1, 2, 3]; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *xs.lock().unwrap() = __slice_header; };
 
     println!("{}", format!("{}", ({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));

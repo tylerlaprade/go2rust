@@ -1991,6 +1991,10 @@ run_xfail_test() {
     run_test "tests/logical_short_circuit_return"
 }
 
+@test "make_byte_slice_read" {
+    run_test "tests/make_byte_slice_read"
+}
+
 @test "make_capacity_wrapped_call" {
     run_test "tests/make_capacity_wrapped_call"
 }

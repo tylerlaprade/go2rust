@@ -1419,7 +1419,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*{ let __field = (*q.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", (*{ let __field = (*q.as_ref().unwrap().borrow().as_ref().unwrap()).price.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __seq = { let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.name.lock().unwrap().as_ref().unwrap()).clone()));
 
         // An append that grows the slice leaves the pointer on the old array.
-    let mut small = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..(1) as usize).map(|_| 0).collect(); v.truncate((1) as usize); v })));
+    let mut small = Arc::new(Mutex::new(Some({ let mut v: Vec<i64> = (0..(1) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v })));
     let mut s: Option<GoSliceElemPtr<i64>> = Some(GoSliceElemPtr::new(small.clone(), (0) as usize));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = small.clone(); let __append_value = 5; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *small.lock().unwrap() = __slice_header; };
     { let new_val = 7; *s.as_ref().unwrap().borrow_mut() = Some(new_val); };
