@@ -7564,8 +7564,40 @@ func (o *outer) mark() {
 	if !strings.Contains(rust, "let __once =") || !strings.Contains(rust, "__once.r#do(") {
 		t.Fatalf("sync.Once.Do should clone the typed receiver before invoking Do:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(move |") || !strings.Contains(rust, ".mark()") {
-		t.Fatalf("method value argument should lower to a boxed method-value closure:\n%s", rust)
+	// o.mark runs on o itself, so the closure borrows self rather than
+	// boxing a self.clone() snapshot.
+	if !strings.Contains(rust, "__once.r#do(|| { self.mark(); })") {
+		t.Fatalf("method value of the receiver should lower to a closure that calls it on self:\n%s", rust)
+	}
+}
+
+func TestSyncOnceDoReceiverMethodValueAssignsFieldsOnReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Stats struct {
+	once   sync.Once
+	counts map[string]int
+}
+
+func (s *Stats) init() { s.counts = map[string]int{} }
+
+func (s *Stats) Get(k string) int {
+	s.once.Do(s.init)
+	return s.counts[k]
+}
+`)
+
+	if strings.Contains(rust, "let mut __recv = self.clone()") {
+		t.Fatalf("once.Do(s.init) must not run init on a self.clone() snapshot; its map assignment would be lost:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__once.r#do(|| { self.init(); })") {
+		t.Fatalf("once.Do(s.init) should call init on self:\n%s", rust)
+	}
+	// Get mutates s through init, so it needs a mutable receiver.
+	if !strings.Contains(rust, "pub fn get(&mut self") {
+		t.Fatalf("a method calling once.Do(s.init) should take &mut self when init mutates s:\n%s", rust)
 	}
 }
 

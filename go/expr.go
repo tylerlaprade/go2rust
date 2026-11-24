@@ -2432,6 +2432,18 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	if !ok {
 		return false
 	}
+	if sel, ok := syncOnceDoCurrentReceiverMethodValue(call.Args[0]); ok && !receiver.wrapFuncArg {
+		// once.Do(s.init) inside a pointer method: call the method on self
+		// from a borrowing closure. The method-value box would capture
+		// self.clone(), and a map or pointer field the method assigns
+		// would land on that copy instead of on s.
+		out.WriteString("{ let __once = ")
+		writeSyncOnceReceiverClone(out, receiver)
+		out.WriteString("; __once.r#do(|| { ")
+		TranspileExpression(out, &ast.CallExpr{Fun: sel, Lparen: sel.End(), Rparen: sel.End()})
+		out.WriteString("; }); }")
+		return true
+	}
 	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
 		return false
 	}
@@ -2487,6 +2499,36 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	out.WriteString("    }); }")
 	return true
+}
+
+// syncOnceDoCurrentReceiverMethodValue reports the method value s.m when it
+// is the argument of once.Do inside a method whose pointer receiver is s, and
+// m has a pointer receiver too. Go runs the method on s itself.
+func syncOnceDoCurrentReceiverMethodValue(arg ast.Expr) (*ast.SelectorExpr, bool) {
+	sel, ok := unwrapParens(arg).(*ast.SelectorExpr)
+	if !ok {
+		return nil, false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
+		return nil, false
+	}
+	if _, ok := currentReceiverObject.Type().(*types.Pointer); !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal || !typeInfo.HasPointerReceiver(sel) {
+		return nil, false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(sel))
+	if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 0 {
+		return nil, false
+	}
+	return sel, true
 }
 
 func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, receiver syncOnceReceiverInfo, funcLit *ast.FuncLit) bool {
