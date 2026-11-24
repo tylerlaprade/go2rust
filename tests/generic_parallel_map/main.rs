@@ -1042,7 +1042,7 @@ impl SafeCounter__string {
 }
 
 pub fn parallel_map__int__int(xs: Arc<Mutex<Option<Vec<i64>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0i64; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, x) in __range_values.iter().copied().enumerate() {
         wg.add(1);
@@ -1101,7 +1101,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
 }
 
 pub fn parallel_map__string__int(xs: Arc<Mutex<Option<Vec<String>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
-    let mut out = Arc::new(Mutex::new(Some(vec![0; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
+    let mut out = Arc::new(Mutex::new(Some(vec![0i64; (({ let __len = (*xs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     let mut wg = WaitGroup::new();
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, x) in __range_values.iter().enumerate() {
         wg.add(1);

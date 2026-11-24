@@ -2007,6 +2007,10 @@ run_xfail_test() {
     run_test "tests/logical_short_circuit_return"
 }
 
+@test "make_byte_slice_read" {
+    run_test "tests/make_byte_slice_read"
+}
+
 @test "make_capacity_wrapped_call" {
     run_test "tests/make_capacity_wrapped_call"
 }
@@ -3025,6 +3029,10 @@ run_xfail_test() {
 
 @test "printf_runtime_format_table" {
     run_test "tests/printf_runtime_format_table"
+}
+
+@test "printf_s_byte_slice" {
+    run_test "tests/printf_s_byte_slice"
 }
 
 @test "printf_verbs_without_a_rust_equivalent" {

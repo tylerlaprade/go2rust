@@ -849,7 +849,7 @@ let mut s = { let __slice_header = GoSliceHeader::go_slice_header(&s); Rc::new(R
 }
 
 fn main() {
-    let mut qs = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0).collect(); v.truncate((1) as usize); v })));
+    let mut qs = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v })));
     grow(qs.clone());
     println!("{} {} {} {}", format!("{}", "callee append:".to_string()), format!("{}", (*qs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*qs.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq_holder = qs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (2) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))));
 
@@ -871,7 +871,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = 99; (*view.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "sub-slice write:".to_string()), format!("{}", format_slice(&base)), format!("{}", format_slice(&view)));
 
-    let mut b2 = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0).collect(); v.truncate((2) as usize); v })));
+    let mut b2 = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0i64).collect(); v.truncate((2) as usize); v })));
     {
         let __go_lhs_sequence_0 = b2.clone();
         let __go_lhs_index_0 = (0) as usize;
