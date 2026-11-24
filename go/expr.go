@@ -2450,16 +2450,27 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 		if currentReceiverType != "" {
 			// A source-mapped sync.Once takes a boxed func; it runs it before
 			// Do returns, so the box reaches self through a pointer, as
-			// writeSourceSyncOnceDoPointerReceiverFuncLitCall does.
+			// writeSourceSyncOnceDoPointerReceiverFuncLitCall does. A method
+			// that only reads the receiver leaves the caller with &self, so
+			// the pointer is a const one then.
+			ptrKind, refKind := "*const ", "&"
+			if methodCallNeedsMutableReceiver(sel) {
+				ptrKind, refKind = "*mut ", "&mut "
+			}
 			out.WriteString("{ let __once = ")
 			writeSyncOnceReceiverClone(out, receiver)
-			out.WriteString("; let __recv_ptr = self as *mut ")
+			out.WriteString("; let __recv_ptr = self as ")
+			out.WriteString(ptrKind)
 			out.WriteString(currentReceiverType)
 			out.WriteString(" as usize; __once.r#do(")
 			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(move || { let __recv_ref: &mut ")
+			out.WriteString("Box::new(move || { let __recv_ref: ")
+			out.WriteString(refKind)
 			out.WriteString(currentReceiverType)
-			out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
+			out.WriteString(" = unsafe { ")
+			out.WriteString(refKind)
+			out.WriteString("*(__recv_ptr as ")
+			out.WriteString(ptrKind)
 			out.WriteString(currentReceiverType)
 			out.WriteString(") }; ")
 			prevAlias := currentReceiverRustAlias

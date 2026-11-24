@@ -10298,6 +10298,38 @@ func main() {
 // In a program with goroutines, GoOnce follows Go's Once: the first caller
 // runs f while holding the once's mutex, so no Do returns before f has
 // finished, and f counts as done even when it panics.
+// A source-mapped once.Do of a method that only reads the receiver leaves
+// the caller with &self, so the boxed func reaches it through a const
+// pointer: &T cannot be cast to *mut T.
+func TestSourceMappedSyncOnceDoReadOnlyMethodValueUsesConstPointer(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
+
+import "sync"
+
+type Setting struct {
+	once sync.Once
+	n    int
+}
+
+func (s *Setting) Get() {
+	go func() {}()
+	s.once.Do(s.show)
+}
+
+func (s *Setting) show() {
+	println(s.n)
+}
+`, map[string]string{"sync": "sync"})
+
+	if !strings.Contains(rust, "let __recv_ptr = self as *const Setting as usize;") ||
+		!strings.Contains(rust, "let __recv_ref: &Setting = unsafe { &*(__recv_ptr as *const Setting) }; __recv_ref.show();") {
+		t.Fatalf("a read-only method value should reach the receiver through a const pointer:\n%s", rust)
+	}
+	if strings.Contains(rust, "self as *mut Setting") {
+		t.Fatalf("&self must not be cast to *mut:\n%s", rust)
+	}
+}
+
 func TestConcurrentGoOnceWaitsForTheRunningCallback(t *testing.T) {
 	helper := transpileTypedConcurrentRegression(t, `package main
 
