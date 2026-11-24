@@ -1072,6 +1072,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 	if array, ok := typ.(*types.Array); ok && anyArrayHasCloneableScalars(array) {
 		return goTypesTypeToRust(array), true
 	}
+	if st, ok := typ.(*types.Struct); ok {
+		return anonymousStructRustType(st)
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -1082,6 +1085,19 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 	rustType := goTypesTypeToRust(named)
 	if qualified, ok := currentPackageHelperRustTypePath(named, rustType); ok {
 		return qualified, true
+	}
+	return rustType, true
+}
+
+// anonymousStructRustType names the generated struct of an anonymous struct
+// type, struct{ A, B int }, when it has one.
+func anonymousStructRustType(st *types.Struct) (string, bool) {
+	if typeMentionsTypeParam(st) {
+		return "", false
+	}
+	rustType := goTypesTypeToRust(st)
+	if !strings.HasPrefix(rustType, "AnonymousStruct") {
+		return "", false
 	}
 	return rustType, true
 }

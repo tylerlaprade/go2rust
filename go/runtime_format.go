@@ -290,6 +290,7 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard, "GO_HANDLE_OPEN", handleOpen, "GO_HANDLE_CLOSE", handleClose)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
+	var fieldTypes []string
 	for rustType, arm := range anyFormatArms {
 		if arm.text {
 			textTypes = append(textTypes, rustType)
@@ -297,9 +298,13 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		if arm.namedBasic {
 			namedBasicTypes = append(namedBasicTypes, rustType)
 		}
+		if arm.fields {
+			fieldTypes = append(fieldTypes, rustType)
+		}
 	}
 	sort.Strings(textTypes)
 	sort.Strings(namedBasicTypes)
+	sort.Strings(fieldTypes)
 	// go_format_is_text names the program's own types, so it stays where
 	// they are in scope. Its one name is one Go cannot declare.
 	out.WriteString(`
@@ -324,6 +329,15 @@ fn go_format_named_basic_value(__value: &` + anyValue + `) -> Option<` + anyBox 
 		out.WriteString("\n    if let Some(__v) = __value.downcast_ref::<" + rustType + ">() {\n        return Some(Box::new(" + inner.String() + "));\n    }")
 	}
 	out.WriteString("\n    None\n}\n")
+	// %+v of a struct is its Display asked for the alternate form, which
+	// writes the field names.
+	out.WriteString(`
+// value as %+v prints it, when it is a struct.
+fn go_format_fields_value(__value: &` + anyValue + `) -> Option<String> {`)
+	for _, rustType := range fieldTypes {
+		out.WriteString("\n    if let Some(__v) = __value.downcast_ref::<" + rustType + ">() {\n        return Some(format!(\"{:#}\", __v));\n    }")
+	}
+	out.WriteString("\n    None\n}\n")
 	// The rest is in a module of its own. The crate root, where helpers are
 	// written, imports every package-level variable and constant of the Go
 	// package, and Rust does not let a local name or a parameter be the
@@ -342,7 +356,7 @@ fn go_format_named_basic_value(__value: &` + anyValue + `) -> Option<` + anyBox 
 	out.WriteString(`
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -825,6 +839,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
     // element, which is not done here. nil is one text.
+    if plus_v && spec.width.is_none() && spec.precision.is_none() && !spec.space {
+        if let Some(text) = go_format_fields_value(value) {
+            return Some(text);
+        }
+    }
     if verb == 'v' && !plus_v && !sharp_v {
         let text = format_any(value);
         if text == "<nil>" {
