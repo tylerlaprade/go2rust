@@ -3279,6 +3279,10 @@ run_xfail_test() {
     run_test "tests/slice_elem_pointer_append"
 }
 
+@test "slice_elem_pointer_held_edges" {
+    run_test "tests/slice_elem_pointer_held_edges"
+}
+
 @test "slice_elem_pointer_local_struct" {
     run_test "tests/slice_elem_pointer_local_struct"
 }
