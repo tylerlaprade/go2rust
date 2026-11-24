@@ -3243,6 +3243,10 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_pointer_local_struct" {
+    run_test "tests/slice_elem_pointer_local_struct"
+}
+
 @test "slice_elem_pointer_short_decl" {
     run_test "tests/slice_elem_pointer_short_decl"
 }
