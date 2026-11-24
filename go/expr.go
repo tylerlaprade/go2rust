@@ -202,6 +202,22 @@ func writeNamedIntegerBinaryPrimitiveExpressionForNamed(out *strings.Builder, ex
 	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
 	}
+	if (expr.Op == token.SHL || expr.Op == token.SHR) && shiftNeedsGoCountCheck(named, expr.Y) {
+		writeGoShiftBlock(out, expr.Op, func(out *strings.Builder) {
+			out.WriteString("(")
+			writeNamedIntegerPrimitiveOperand(out, expr.X, primitiveType)
+			out.WriteString(")")
+			if primitiveType != "" {
+				out.WriteString(" as ")
+				out.WriteString(primitiveType)
+			}
+		}, func(out *strings.Builder) {
+			if !writeShiftCountPrimitiveOperand(out, expr.Y, expr) {
+				writeGoShiftCount(out, expr.Y)
+			}
+		})
+		return true
+	}
 	out.WriteString("(")
 	var left strings.Builder
 	writeNamedIntegerPrimitiveOperand(&left, expr.X, primitiveType)
@@ -1311,10 +1327,10 @@ func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.S
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
 	if sequenceTypeIsArray(starType) {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", false)
 	} else {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", true)
 	}
 	WriteWrapperSuffix(out)
@@ -2920,7 +2936,7 @@ func writeNilTolerantNamedMapInnerHandleClone(out *strings.Builder, expr ast.Exp
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
 	WriteWrappedNone(out)
-	out.WriteString("); drop(__named_map_guard); __map_holder }")
+	out.WriteString("); std::mem::drop(__named_map_guard); __map_holder }")
 	return true
 }
 
@@ -2957,7 +2973,7 @@ func writeOptionalClonedMapExpression(out *strings.Builder, expr ast.Expr) {
 	writeMapHandleCloneForOp(out, expr)
 	out.WriteString("; let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }")
+	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }")
 }
 
 func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
@@ -3009,7 +3025,7 @@ func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
+		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }")
 		return true
@@ -3168,6 +3184,16 @@ func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
 			out.WriteString(".as_ref().unwrap().clone(); __channel }")
 			return
 		}
+	}
+	if index, ok := unwrapParens(expr).(*ast.IndexExpr); ok && mapIndexHoldsChannelCell(index) {
+		// A map stores a channel in its own cell. A missing key reads as
+		// the nil channel.
+		out.WriteString("{ let __channel_cell = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString("; let __channel = __channel_cell")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().cloned().unwrap_or_default(); __channel }")
+		return
 	}
 	// The expression is written aside to see whether it locks. It starts
 	// with the current line, so multiline output keeps its indentation.
@@ -8254,6 +8280,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if isGoErrorType(elemType) {
 		return writeGoErrorHandleValue(out, expr)
 	}
+	if writeChannelHandleCopy(out, expr, elemType) {
+		return true
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 			if elemType != nil {
@@ -9927,6 +9956,9 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 			out.WriteString("Default::default()")
 			return
 		}
+		if writeChannelHandleCopy(out, value, nil) {
+			return
+		}
 		TranspileExpression(out, value)
 		return
 	}
@@ -11507,6 +11539,29 @@ func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
 	return len(call.Args) >= 4 || callArgumentsShouldUseMultiline(call.Args)
 }
 
+// writeAnonymousStructSliceElemPtrFieldValue writes the value of a field of
+// an anonymous struct literal that holds a pointer to a slice element: the
+// generated struct gives the field a GoPtr, as for a named struct.
+func writeAnonymousStructSliceElemPtrFieldValue(out *strings.Builder, lit *ast.CompositeLit, field *types.Var, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return false
+	}
+	structType := typeInfo.GetType(lit)
+	if structType == nil {
+		return false
+	}
+	fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field)
+	if !ok {
+		return false
+	}
+	if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
+		return true
+	}
+	out.WriteString(`unimplemented!("GoPtr struct literal field requires compatible pointer value")`)
+	return true
+}
+
 func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
 	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
 		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
@@ -11646,6 +11701,17 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	}
 	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
 		return
+	}
+	if valueType != nil {
+		if _, isChan := types.Unalias(valueType).Underlying().(*types.Chan); isChan {
+			var channel strings.Builder
+			if writeChannelHandleCopy(&channel, value, valueType) {
+				WriteWrapperPrefix(out)
+				out.WriteString(channel.String())
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 	}
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
@@ -12659,7 +12725,7 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __cloned = ")
 	writeClonedValueFromGuard(out, expr, guardName)
-	out.WriteString("; drop(")
+	out.WriteString("; std::mem::drop(")
 	out.WriteString(guardName)
 	out.WriteString("); __cloned }")
 }
@@ -14203,6 +14269,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeFoldedFloatConstant(out, e) {
+			return
+		}
+		if writeGoSemanticsShift(out, e) {
+			return
+		}
 		if writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
@@ -14948,7 +15020,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
 			out.WriteString("; let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", true)
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
@@ -15003,7 +15075,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
 				out.WriteString(";\n")
 				out.WriteString(indent)
-				out.WriteString("drop(__seq_guard)")
+				out.WriteString("std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray, indent, closeIndent)
 			} else {
 				out.WriteString("{ let __seq_holder = ")
@@ -15016,7 +15088,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
 				}
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
-				out.WriteString("; drop(__seq_guard)")
+				out.WriteString("; std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			}
 			WriteWrapperSuffix(out)
@@ -15818,7 +15890,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
 							typedFieldType = typedStructUnder.Field(eltIndex).Type()
 						}
-						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						var typedField *types.Var
+						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
+							typedField = typedStructUnder.Field(eltIndex)
+						}
+						if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, e.Elts[eltIndex]) {
+							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						}
 						writeAnonymousStructFieldSuffix()
 						eltIndex++
 					}
@@ -15838,7 +15916,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if typedStructUnder != nil {
 								typedFieldType = findTypesStructFieldType(typedStructUnder, key.Name)
 							}
-							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							var typedField *types.Var
+							if typedStructUnder != nil {
+								typedField = findTypesStructField(typedStructUnder, key.Name)
+							}
+							if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, kv.Value) {
+								writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							}
 							writeAnonymousStructFieldSuffix()
 						}
 					}
@@ -22107,7 +22191,7 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		out.WriteString(".clone(); let __guard = __builder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }")
+		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }")
 		WriteWrapperSuffix(out)
 		return true
 	case "Len":

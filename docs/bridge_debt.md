@@ -78,6 +78,15 @@ list. The compiler-provided `unsafe` package and top-level `runtime` package
 are not ordinary source crates; they stay on the existing intrinsic/runtime
 lowering path.
 
+**Update 2026-11-23:** `math`, `math/bits`, `strconv`, `unicode` and
+`unicode/utf8` are translated from source by default, like `path/filepath`
+(`defaultSourceStdlibPackages` in `go/package_loader.go`). `math`'s
+assembly-backed accelerators are not translated: the loader replaces each
+such file with the one other architectures build (`stdlibNoAsmOverlays` in
+`go/stdlib_overlay.go`), so the package runs its own generic Go code. The
+hand-written strconv, math and unicode call emitters in `go/stdlib.go` no
+longer run for programs and are left to delete.
+
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
 and passes. The actual blocker for retiring most rows below is that

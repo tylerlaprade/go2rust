@@ -654,10 +654,10 @@ pub fn is_string(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return true;;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return false;;
     }
     }
@@ -677,12 +677,12 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<String>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         if is_string(go_any_handle_copy(&v)) {
         return Rc::new(RefCell::new(Some("string".to_string())));
     };
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
     }

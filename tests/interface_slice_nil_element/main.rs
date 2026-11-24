@@ -629,7 +629,7 @@ impl std::fmt::Display for FuncDecl {
 
 impl FuncDecl {
     pub fn decl_name(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        return Rc::new(RefCell::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));
     }
 }
 
@@ -689,7 +689,7 @@ fn main() {
     { let __idx = (2) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(FuncDeclPtr(Rc::new(RefCell::new(Some(FuncDecl { name: Rc::new(RefCell::new(Some("c".to_string()))), ..Default::default() }))).clone())) as Box<dyn Decl>))); (*decls.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
 
         // Read with nil check pattern.
-    { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
+    { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
         if { let __nil_result = (*d.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", i), format!("{}", (*(*d.borrow().as_ref().unwrap()).decl_name().borrow().as_ref().unwrap())));
     } else {
@@ -699,7 +699,7 @@ fn main() {
 
         // Reassign nil.
     { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(None)); (*decls.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
+    { let __range_holder = decls.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, d) in __range_values.iter().enumerate() {
         if { let __nil_result = (*d.borrow()).is_none(); __nil_result } {
         println!("{} {}", format!("{}", i), format!("{}", "<nil>".to_string()));
     } else {

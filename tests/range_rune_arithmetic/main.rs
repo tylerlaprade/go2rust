@@ -599,7 +599,7 @@ pub fn caesar(s: Rc<RefCell<Option<String>>>, k: Rc<RefCell<Option<i64>>>) -> Rc
             (*b.borrow_mut().as_mut().unwrap()).push(c);
         }
     }
-    return Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    return Rc::new(RefCell::new(Some({ let __builder = b.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
 }
 
 fn main() {

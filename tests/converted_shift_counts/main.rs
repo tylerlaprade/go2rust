@@ -821,140 +821,140 @@ impl std::ops::Not for mode {
 impl std::ops::Shl for mode {
     type Output = mode;
     fn shl(self, other: mode) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << *other.0.borrow().as_ref().unwrap()))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i32> for mode {
     type Output = mode;
     fn shl(self, other: i32) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i8> for mode {
     type Output = mode;
     fn shl(self, other: i8) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i16> for mode {
     type Output = mode;
     fn shl(self, other: i16) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<i64> for mode {
     type Output = mode;
     fn shl(self, other: i64) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u32> for mode {
     type Output = mode;
     fn shl(self, other: u32) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u8> for mode {
     type Output = mode;
     fn shl(self, other: u8) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u16> for mode {
     type Output = mode;
     fn shl(self, other: u16) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<u64> for mode {
     type Output = mode;
     fn shl(self, other: u64) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shl<usize> for mode {
     type Output = mode;
     fn shl(self, other: usize) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() << other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr for mode {
     type Output = mode;
     fn shr(self, other: mode) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> *other.0.borrow().as_ref().unwrap()))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (*other.0.borrow().as_ref().unwrap()) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i32> for mode {
     type Output = mode;
     fn shr(self, other: i32) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i8> for mode {
     type Output = mode;
     fn shr(self, other: i8) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i16> for mode {
     type Output = mode;
     fn shr(self, other: i16) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<i64> for mode {
     type Output = mode;
     fn shr(self, other: i64) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u32> for mode {
     type Output = mode;
     fn shr(self, other: u32) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u8> for mode {
     type Output = mode;
     fn shr(self, other: u8) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u16> for mode {
     type Output = mode;
     fn shr(self, other: u16) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<u64> for mode {
     type Output = mode;
     fn shr(self, other: u64) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
 impl std::ops::Shr<usize> for mode {
     type Output = mode;
     fn shr(self, other: usize) -> mode {
-        mode(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() >> other))))
+        mode(Rc::new(RefCell::new(Some({ let __shift_x = *self.0.borrow().as_ref().unwrap(); let __shift_c = (other) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } }))))
     }
 }
 
@@ -970,11 +970,11 @@ impl Ord for mode {
 
 
 pub fn has_bit(m: Rc<RefCell<Option<mode>>>, i: Rc<RefCell<Option<i64>>>) -> bool {
-    mode(Rc::new(RefCell::new(Some(((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & ((1 << (((31 - (*i.borrow().as_ref().unwrap()))) as u64)))))))) != mode(Rc::new(RefCell::new(Some(0 as u32))))
+    mode(Rc::new(RefCell::new(Some(((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) & ({ let __shift_x = (1) as u32; let __shift_c = ((((31 - (*i.borrow().as_ref().unwrap()))) as u64)) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } })))))) != mode(Rc::new(RefCell::new(Some(0 as u32))))
 }
 
 pub fn shift_right(m: Rc<RefCell<Option<mode>>>, i: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<mode>>> {
-    Rc::new(RefCell::new(Some(mode(Rc::new(RefCell::new(Some(((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) >> ((*i.borrow().as_ref().unwrap()) as u64)))))))))
+    Rc::new(RefCell::new(Some(mode(Rc::new(RefCell::new(Some({ let __shift_x = ((*(*m.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())) as u32; let __shift_c = (((*i.borrow().as_ref().unwrap()) as u64)) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { (__shift_x >> (__shift_bits - 1)) >> 1 } else { __shift_x >> (__shift_c as u32) } })))))))
 }
 
 fn main() {

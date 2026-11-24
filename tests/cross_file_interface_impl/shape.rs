@@ -29,7 +29,7 @@ impl Clone for Box<dyn Shape> {
 
 pub fn total_area(shapes: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Shape>>>>>>>>) -> i64 {
     let mut sum = Rc::new(RefCell::new(Some(0i64)));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         { let __rhs = (*s.borrow().as_ref().unwrap()).area(); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return (*sum.borrow().as_ref().unwrap());

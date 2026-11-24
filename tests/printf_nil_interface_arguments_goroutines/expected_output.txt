@@ -1,0 +1,8 @@
+<nil> "goroutine"
+<nil>
+<nil> "x"
+0 strconv.Atoi: parsing "x": invalid syntax
+<nil> "s" <nil> <nil>|<nil>|
+<nil> <nil> "end"
+boom 3 "end"
+strconv.Atoi: parsing "x": invalid syntax-<nil> wrap <nil>: strconv.Atoi: parsing "x": invalid syntax

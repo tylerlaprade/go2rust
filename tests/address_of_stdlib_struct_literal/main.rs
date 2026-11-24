@@ -26,8 +26,10 @@ fn main() {
     ::internal_race::__go_init_all();
     ::internal_sync::__go_init_all();
     ::io::__go_init_all();
+    ::math_bits::__go_init_all();
     ::sync::__go_init_all();
     ::sync_atomic::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     if { let __nil_result = (*make_buffer().lock().unwrap()).is_some(); __nil_result } {

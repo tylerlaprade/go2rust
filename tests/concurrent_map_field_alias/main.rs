@@ -704,7 +704,7 @@ impl encoder {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<scope>, Arc<Mutex<Option<Vec<object>>>>>::new()))); m = new_val; };
         { let new_val = m.clone(); self.memo = new_val; };
     }
-        let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(s.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
+        let (mut objs, mut ok) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(s.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };
         let mut objs = { let __slice_header = GoSliceHeader::go_slice_header(&objs); Arc::new(Mutex::new(__slice_header)) };
         if !ok {
         { let __slice_header = GoSliceHeader::go_slice_header(&(Arc::new(Mutex::new(Some(vec![object { name: Arc::new(Mutex::new(Some("one".to_string()))), ..Default::default() }]))))); *objs.lock().unwrap() = __slice_header; };

@@ -791,11 +791,11 @@ pub fn error_text(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> (bool, Rc<RefCell<Opt
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<notFound>>>>()).is_some() {
         let err = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()) { Rc::new(RefCell::new(Some(Rc::new(typed_val.clone()) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<pointerError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<notFound>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return (true, Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))));;
     } else {
         let err = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return (false, Rc::new(RefCell::new(Some("".to_string()))));;
     }
     }
@@ -816,12 +816,12 @@ pub fn replace_then_error_text(v: Rc<RefCell<Option<Box<dyn Any>>>>, p: Rc<RefCe
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<notFound>>>>()).is_some() {
         let err = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()) { Rc::new(RefCell::new(Some(Rc::new(typed_val.clone()) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<pointerError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<notFound>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = pointerError { code: Rc::new(RefCell::new(Some(10))), ..Default::default() }; *p.borrow_mut() = Some(new_val); };;
         return Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap()))));;
     } else {
         let err = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some("not error".to_string())));;
     }
     }
@@ -841,10 +841,10 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<notFound>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<pointerError>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<notFound>>>>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return true;;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return false;;
     }
     }

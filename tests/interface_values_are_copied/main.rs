@@ -583,6 +583,58 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
+
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -627,8 +679,8 @@ impl Default for Rect {
 
 impl std::fmt::Display for Rect {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.w.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.h.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = go_float_string(((*self.w.borrow().as_ref().unwrap())) as f64, false);
+        let __go_fmt_1 = go_float_string(((*self.h.borrow().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -726,55 +778,55 @@ pub fn reassign(mut s: Rc<RefCell<Option<Box<dyn Shape>>>>) -> f64 {
 
 fn main() {
     let mut x: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1.0))), h: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape>)));
-    println!("{} {}", format!("{}", reassign(x.clone())), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string((reassign(x.clone())) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut y = { let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(3.0))), h: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", (*y.borrow().as_ref().unwrap()).area()), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(((*y.borrow().as_ref().unwrap()).area()) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut h = Rc::new(RefCell::new(Some(Holder { s: { let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }, ..Default::default() })));
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(4.0))), h: Rc::new(RefCell::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", (*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(((*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut h2: Rc<RefCell<Option<Holder>>> = Rc::new(RefCell::new(Some(Default::default())));
     { let __iface_handle = x.clone(); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *(*h2.borrow_mut().as_mut().unwrap()).s.borrow_mut() = __iface_value; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(5.0))), h: Rc::new(RefCell::new(Some(5.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", (*(*h2.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(((*(*h2.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut arr = Rc::new(RefCell::new(Some(vec![{ let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }])));
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(6.0))), h: Rc::new(RefCell::new(Some(6.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     { let __idx = (0) as usize; let __rhs = { let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }; (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(8.0))), h: Rc::new(RefCell::new(Some(8.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Box<dyn Shape>>>>>::from([]))));
     { let __map_key = 1; let __map_value = { let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(9.0))), h: Rc::new(RefCell::new(Some(9.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut lit = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Shape>>>>>::from([("a".to_string(), { let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) })]))));
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(10.0))), h: Rc::new(RefCell::new(Some(10.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = { let __map_holder = lit.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*x.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map_holder = lit.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*x.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut e = { let __iface_value = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(11.0))), h: Rc::new(RefCell::new(Some(11.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *e.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*e.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*e.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut g = (*h.borrow().as_ref().unwrap()).get();
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(12.0))), h: Rc::new(RefCell::new(Some(12.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *g.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", (*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()), format!("{}", (*g.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(((*(*h.borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).area()) as f64, false); __text }, { let __text = go_float_string(((*g.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut v = { let __iface_value = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().clone(); Rc::new(RefCell::new(__iface_value)) };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(13.0))), h: Rc::new(RefCell::new(Some(13.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *v.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", (*v.borrow().as_ref().unwrap()).area()));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&1)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(((*v.borrow().as_ref().unwrap()).area()) as f64, false); __text });
 
     let mut list = Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn Shape>>>>>::new())));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = list.clone(); let __append_values = vec![{ let __iface_value = x.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }, { let __iface_value = (*h.borrow().as_ref().unwrap()).s.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }]; let mut __appended: Vec<Rc<RefCell<Option<Box<dyn Shape>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *list.borrow_mut() = __slice_header; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(14.0))), h: Rc::new(RefCell::new(Some(14.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *x.borrow_mut() = __iface_value; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(15.0))), h: Rc::new(RefCell::new(Some(15.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *(*h.borrow_mut().as_mut().unwrap()).s.borrow_mut() = __iface_value; };
-    println!("{} {}", format!("{}", { let __recv = (*list.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }), format!("{}", { let __recv = (*list.borrow().as_ref().unwrap())[(1) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }));
+    println!("{} {}", { let __text = go_float_string(({ let __recv = (*list.borrow().as_ref().unwrap())[(0) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text }, { let __text = go_float_string(({ let __recv = (*list.borrow().as_ref().unwrap())[(1) as usize].clone(); let __result = (*__recv.borrow().as_ref().unwrap()).area(); __result }) as f64, false); __text });
 
     let mut none: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(None));
     let mut keep = Rc::new(RefCell::new(Some(vec![{ let __iface_value = none.borrow().clone(); Rc::new(RefCell::new(__iface_value)) }])));

@@ -20,6 +20,7 @@ fn main() {
     ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
     ::slices::__go_init_all();
@@ -34,5 +35,5 @@ fn main() {
         println!("{}", format!("{}", "parse failed".to_string()));
         return;
     }
-    println!("{}", format!("{}", (*example_com_source_stdlib_parser_decl_cross_package_walker::decl_kind({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone()).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*example_com_source_stdlib_parser_decl_cross_package_walker::decl_kind({ let __seq = { let __seq_holder = (*file.lock().unwrap().as_ref().unwrap()).decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone()).lock().unwrap().as_ref().unwrap())));
 }

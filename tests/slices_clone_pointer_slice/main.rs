@@ -708,7 +708,7 @@ impl GoComparable for pkg {
 
 fn main() {
     let mut pkgs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("root".to_string()))), ..Default::default() }))), Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("dep".to_string()))), ..Default::default() })))])));
-    let mut list = Rc::new(RefCell::new(Some((*Rc::new(RefCell::new(Some({ let __seq_holder = pkgs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone())));
+    let mut list = Rc::new(RefCell::new(Some((*Rc::new(RefCell::new(Some({ let __seq_holder = pkgs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone())));
     let mut list = { let __slice_header = GoSliceHeader::go_slice_header(&list); Rc::new(RefCell::new(__slice_header)) };
     println!("{}", format!("{}", (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

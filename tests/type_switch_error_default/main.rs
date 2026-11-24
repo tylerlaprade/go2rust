@@ -786,7 +786,7 @@ pub fn classify(mut err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) ->
     let _ts_val = _ts_guard.as_ref();
     {
         let err = _ts_subject.clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}", err.lock().unwrap().as_ref().unwrap()))));;
     }
     }
