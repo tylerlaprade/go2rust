@@ -2763,12 +2763,24 @@ run_xfail_test() {
     run_test "tests/panic_with_sprintf"
 }
 
+@test "parallel_assign_map_elements" {
+    run_test "tests/parallel_assign_map_elements"
+}
+
+@test "parallel_assign_map_elements_goroutines" {
+    run_test "tests/parallel_assign_map_elements_goroutines"
+}
+
 @test "parallel_assign_receiver_named_scalar_field" {
     run_test "tests/parallel_assign_receiver_named_scalar_field"
 }
 
 @test "parallel_assign_receiver_value_field_swap" {
     run_test "tests/parallel_assign_receiver_value_field_swap"
+}
+
+@test "parallel_assign_sequence_rows" {
+    run_test "tests/parallel_assign_sequence_rows"
 }
 
 @test "parallel_assign_value_field_swap" {
