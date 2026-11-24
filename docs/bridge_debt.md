@@ -330,6 +330,30 @@ in the first place.
   the pipe syscalls as the bridge; then delete `go/stub_io_fields.go`.
 - Added: 2026-11-24
 
+### os-file-read
+
+- Location: `go/external_type_stubs.go` (`writeOsFileStub` `read`,
+  `writeStubIoEOFRegistry`, `os.Stdin` in `writeOsPackageStub`),
+  `go/project.go` (`stubIoEOFRegistration`), `go/transpile.go`
+  (`writeStubInterfaceMethodCall` EOF mapping)
+- Go symbol: `(*os.File).Read`, `os.Stdin`
+- Transpiler gap: `os.File` is the syscall layer and stays a stub. Its
+  `Read` returned nothing, so `bufio.Scanner` over a file or `os.Stdin`,
+  `io.ReadAll` and `bufio.Reader` never saw any input once `io` and `bufio`
+  translate from source. `Read` now fills the buffer from the bytes
+  `os.Open` read, at a position shared by the File's copies, or from the
+  process's standard input for `os.Stdin`, and ends with `io.EOF`. The stub
+  crate cannot name `io.EOF` (io depends on it), so io's init hands its
+  value over (`__go_register_io_eof`); before that the end of input is
+  `GoStubEOF`, which the io crate's `io.Reader` impl for the File also maps
+  to `io.EOF`. Its int results are bare, as other stub calls' are, so
+  `n, err := f.Read(buf)` compiles.
+- Fixture: `tests/bufio_reads_files/`, `tests/os_file_direct_read/`,
+  `go/os_file_read_test.go:TestOsFileReadServesFileAndStdin`
+- Removal trigger: `os` translated from source with `syscall.Read` as the
+  bridge; then delete the `read` arm of `writeOsFileStub`.
+- Added: 2026-11-24
+
 ### io-readcloser-close-dispatch
 
 - Location: `go/external_type_stubs.go:2639`

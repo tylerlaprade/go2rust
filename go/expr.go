@@ -1427,6 +1427,42 @@ func writeSliceBoundValue(out *strings.Builder, expr ast.Expr, fallback string) 
 	writeExpressionAsUsize(out, expr)
 }
 
+// currentSliceElemZeroFillable reports, while a slice expression is
+// written, whether its elements are of a basic type, which has a zero value
+// (Rust's Default) to fill the backing array with.
+var currentSliceElemZeroFillable bool
+
+func sliceExprElemIsBasic(e *ast.SliceExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e == nil {
+		return false
+	}
+	typ := typeInfo.GetType(e)
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	if _, isNamed := types.Unalias(slice.Elem()).(*types.Named); isNamed {
+		return false
+	}
+	_, isBasic := types.Unalias(slice.Elem()).(*types.Basic)
+	return isBasic
+}
+
+// resliceMethod is GoSlice's s[lo:hi:max]. Slicing up to the capacity
+// reaches elements an append's growth reserved but never stored, which in
+// Go are zero, as io.ReadAll's b[len(b):cap(b)] does: for basic elements
+// reslice3_zeroed stores those zeros first.
+func resliceMethod() string {
+	if currentSliceElemZeroFillable {
+		return "reslice3_zeroed"
+	}
+	return "reslice3"
+}
+
 func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max ast.Expr, defaultMax string, canExtendWithinCapacity bool) {
 	out.WriteString("; let __low = ")
 	writeSliceBoundValue(out, low, "0")
@@ -1436,7 +1472,7 @@ func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max
 	writeSliceBoundValue(out, max, defaultMax)
 	if canExtendWithinCapacity && goSliceModeEnabled() {
 		// The new header shares the backing array.
-		out.WriteString("; __seq.reslice3(__low, __high, __max) }")
+		out.WriteString("; __seq." + resliceMethod() + "(__low, __high, __max) }")
 		return
 	}
 	if canExtendWithinCapacity {
@@ -1461,7 +1497,7 @@ func writeSliceVecFromSeqMultiline(out *strings.Builder, low ast.Expr, high ast.
 	out.WriteString(";\n")
 	if canExtendWithinCapacity && goSliceModeEnabled() {
 		out.WriteString(indent)
-		out.WriteString("__seq.reslice3(__low, __high, __max)\n")
+		out.WriteString("__seq." + resliceMethod() + "(__low, __high, __max)\n")
 		out.WriteString(closeIndent)
 		out.WriteString("}")
 		return
@@ -14998,6 +15034,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.SliceExpr:
 		// Slice expressions like arr[1:] or s[0:5] or s[0:5:7]
 		// The array/slice is wrapped, so we need to unwrap it first
+		previousZeroFillable := currentSliceElemZeroFillable
+		currentSliceElemZeroFillable = sliceExprElemIsBasic(e)
+		defer func() { currentSliceElemZeroFillable = previousZeroFillable }()
 		isStringSlice := false
 		isGoByteSequenceSlice := false
 		if typeInfo := GetTypeInfo(); typeInfo != nil {

@@ -2025,8 +2025,8 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 }
 
 // writeStubInterfaceMethodCall writes the body of an interface method that
-// a bridged type implements: a call to its stub method, whose non-error
-// results each come in a cell, taken out of the cell for the trait.
+// a bridged type implements: a call to its stub method, whose results are
+// the trait's, an int bare and an error in its cell.
 func writeStubInterfaceMethodCall(out *strings.Builder, methodName string, argNames []string, impl externalLocalInterfaceImpl, methodObj *types.Func) {
 	var results *types.Tuple
 	if methodObj != nil {
@@ -2051,17 +2051,32 @@ func writeStubInterfaceMethodCall(out *strings.Builder, methodName string, argNa
 		out.WriteString("    }\n")
 		return
 	}
+	inIO := false
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil {
+		inIO = typeInfo.pkg.Path() == "io"
+	}
 	unwrapResult := func(name string, typ types.Type) string {
 		if isGoErrorType(typ) {
-			return name
+			if !inIO {
+				return name
+			}
+			// The stub's end of input is io's own EOF, the value callers
+			// compare with.
+			var b strings.Builder
+			b.WriteString("{ let __err = ")
+			b.WriteString(name)
+			b.WriteString("; let __is_eof = __err")
+			WriteBorrowMethod(&b, false)
+			b.WriteString(".as_ref().map_or(false, |__e| __e.downcast_ref::<go2rust_stdlib_stubs::GoStubEOF>().is_some()); if __is_eof { ")
+			// A cell of its own holding EOF's value: the caller may write
+			// to its error variable's cell, which must not be EOF's.
+			b.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new((*EOF")
+			WriteBorrowMethod(&b, false)
+			b.WriteString(").clone()))")
+			b.WriteString(" } else { __err } }")
+			return b.String()
 		}
-		var b strings.Builder
-		b.WriteString("{ let __cell = ")
-		b.WriteString(name)
-		b.WriteString("; let __value = __cell")
-		WriteBorrowMethod(&b, false)
-		b.WriteString(".clone().unwrap_or_default(); __value }")
-		return b.String()
+		return name
 	}
 	if results.Len() == 1 {
 		out.WriteString("        ")
