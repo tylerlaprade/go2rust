@@ -613,43 +613,43 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-struct GoFile {
-    file: Option<std::fs::File>,
+#[derive(Debug, Clone, Default)]
+pub struct fs_PathError {
+    pub err: Rc<RefCell<Option<Rc<dyn StdError>>>>,
+    pub op: Rc<RefCell<Option<String>>>,
+    pub path: Rc<RefCell<Option<String>>>,
 }
 
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(e)))))),
-            },
-            None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(std::rc::Rc::<dyn std::error::Error>::from(Box::<dyn std::error::Error>::from(std::io::Error::new(std::io::ErrorKind::Other, "invalid file")))))),
-            ),
+impl std::fmt::Display for fs_PathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __op_guard = self.op.borrow();
+        let __path_guard = self.path.borrow();
+        let __err_guard = self.err.borrow();
+        let __op = __op_guard.as_deref().unwrap_or("");
+        let __path = __path_guard.as_deref().unwrap_or("");
+        let __err = __err_guard.as_ref().map(|e| e.to_string()).unwrap_or_default();
+        if __op.is_empty() {
+            write!(f, "{}: {}", __path, __err)
+        } else {
+            write!(f, "{} {}: {}", __op, __path, __err)
         }
     }
+}
 
-    fn close(&mut self) -> Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>> {
-        self.file = None;
-        Rc::new(RefCell::new(None))
+impl std::error::Error for fs_PathError {}
+
+impl fs_PathError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some::<String>(self.to_string())))
+    }
+    pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+        self.err.clone()
     }
 }
+
 
 #[derive(Debug, Clone)]
 pub struct os_File {
@@ -660,6 +660,14 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// The file os.Create opened: reads and writes go to it, and Close
+    /// closes it.
+    pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
+    /// The name the File was opened with, for its errors.
+    pub __go_name: String,
+    /// This File was closed: shared by its copies, but not by the other
+    /// end of a pipe, which __go_closed is.
+    pub __go_handle_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Default for os_File {
@@ -670,6 +678,9 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            __go_name: String::new(),
+            __go_handle_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
     }
 }
@@ -707,7 +718,65 @@ impl os_File {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
+        let _ = self.__go_write_bytes_result(data);
+    }
+
+    /// Go's text for an I/O error: the C library's text with a lowercase
+    /// first letter, without Rust's " (os error N)".
+    fn __go_io_text(err: &std::io::Error) -> String {
+        let mut text = err.to_string();
+        if let Some(code) = err.raw_os_error() {
+            let suffix = format!(" (os error {})", code);
+            if text.ends_with(&suffix) {
+                text.truncate(text.len() - suffix.len());
+            }
+            let mut chars = text.chars();
+            if let Some(first) = chars.next() {
+                text = first.to_lowercase().collect::<String>() + chars.as_str();
+            }
+        }
+        text
+    }
+
+    fn __go_op_error(&self, op: &str, err: std::io::Error) -> std::io::Error {
+        std::io::Error::new(err.kind(), format!("{} {}: {}", op, self.__go_name, Self::__go_io_text(&err)))
+    }
+
+    fn __go_closed_error(&self, op: &str) -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::Other, format!("{} {}: file already closed", op, self.__go_name))
+    }
+
+    /// Writes data to the disk file os.Create or os.OpenFile opened, or
+    /// else to the File's bytes, and reports how many bytes it wrote. A
+    /// closed File takes no writes, as in Go. The disk lock is held from
+    /// the closed check to the write, so Close cannot come in between.
+    pub fn __go_write_counted(&self, data: &[u8]) -> (usize, Option<std::io::Error>) {
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            return (0, Some(self.__go_closed_error("write")));
+        }
+        if let Some(__file) = __disk.as_mut() {
+            let mut __done = 0usize;
+            while __done < data.len() {
+                match std::io::Write::write(__file, &data[__done..]) {
+                    Ok(0) => return (__done, Some(std::io::Error::new(std::io::ErrorKind::WriteZero, format!("write {}: short write", self.__go_name)))),
+                    Ok(__count) => __done += __count,
+                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(__err) => return (__done, Some(self.__go_op_error("write", __err))),
+                }
+            }
+            return (__done, None);
+        }
+        drop(__disk);
         self.__go_data.lock().unwrap().extend_from_slice(data);
+        (data.len(), None)
+    }
+
+    pub fn __go_write_bytes_result(&self, data: &[u8]) -> std::io::Result<()> {
+        match self.__go_write_counted(data) {
+            (_, None) => Ok(()),
+            (_, Some(__err)) => Err(__err),
+        }
     }
 
     pub fn __go_read_all(&self) -> Vec<u8> {
@@ -715,7 +784,32 @@ impl os_File {
     }
 
     pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            drop(__disk);
+            let __err = self.__go_closed_error("close");
+            return Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)));
+        }
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        // Dropping a File closes it and discards the result. Go's Close
+        // reports a failed close(2), so on Unix close the descriptor
+        // directly. The handle stays closed either way.
+        if let Some(__file) = __disk.take() {
+            drop(__disk);
+            #[cfg(unix)]
+            {
+                let __fd = std::os::fd::IntoRawFd::into_raw_fd(__file);
+                unsafe extern "C" {
+                    fn close(fd: i32) -> i32;
+                }
+                if unsafe { close(__fd) } != 0 {
+                    let __err = self.__go_op_error("close", std::io::Error::last_os_error());
+                    return Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)));
+                }
+            }
+            #[cfg(not(unix))]
+            drop(__file);
+        }
         Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 
@@ -727,9 +821,12 @@ impl os_File {
         } else {
             Vec::new()
         };
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        let (__count, __failure) = self.__go_write_counted(&bytes);
+        let n = __count as i64;
+        match __failure {
+            Some(__err) => (n as i64, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)))),
+            None => (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))),
+        }
     }
 
     pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
@@ -742,46 +839,67 @@ impl os_File {
         } else {
             String::new()
         };
-        let bytes = Vec::from(value.into_bytes());
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        let (__count, __failure) = self.__go_write_counted(value.as_bytes());
+        let n = __count as i64;
+        match __failure {
+            Some(__err) => (n as i64, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)))),
+            None => (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))),
+        }
     }
 
     pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         // Go's Read: fill as much of p as the input has, or report the end
-        // of the input with no bytes read.
-        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            let mut __guard = __buf.borrow_mut();
-            match __guard.as_mut() {
-                Some(__dst) => {
-                    let __dst = __dst.as_mut_slice();
-                    if __dst.is_empty() {
-                        (0, false)
-                    } else if self.__go_stdin {
-                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
-                            Ok(0) | Err(_) => (0, true),
-                            Ok(__count) => (__count, false),
+        // of the input with no bytes read. The destination is locked before
+        // the disk file, as in ReadAt.
+        enum __ReadOutcome { Bytes(usize), End, Failed(std::io::Error) }
+        // Close sets the closed flag while it holds the disk lock, so the
+        // flag is read under that lock: a Close that lands between the check
+        // and the read cannot turn a closed-file error into EOF. Go checks
+        // for a closed file before the buffer length, nil buffers included.
+        let __outcome = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+            let mut __guard = __buf .borrow_mut();
+            let mut __disk = self.__go_disk.lock().unwrap();
+            if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+                __ReadOutcome::Failed(self.__go_closed_error("read"))
+            } else {
+                match __guard.as_mut() {
+                    Some(__dst) => {
+                        let __dst = __dst.as_mut_slice();
+                        if __dst.is_empty() {
+                            __ReadOutcome::Bytes(0)
+                        } else if self.__go_stdin {
+                            match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                                Ok(0) | Err(_) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                            }
+                        } else if let Some(__disk) = __disk.as_mut() {
+                            match std::io::Read::read(__disk, __dst) {
+                                Ok(0) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                                Err(__err) => __ReadOutcome::Failed(self.__go_op_error("read", __err)),
+                            }
+                        } else {
+                            let __data = self.__go_data.lock().unwrap();
+                            let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                            let __count = (__data.len() - __pos).min(__dst.len());
+                            __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                            self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                            if __count == 0 { __ReadOutcome::End } else { __ReadOutcome::Bytes(__count) }
                         }
-                    } else {
-                        let __data = self.__go_data.lock().unwrap();
-                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
-                        let __count = (__data.len() - __pos).min(__dst.len());
-                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
-                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
-                        (__count, __count == 0)
                     }
+                    None => __ReadOutcome::Bytes(0),
                 }
-                None => (0, false),
             }
         } else {
-            (0, false)
+            __ReadOutcome::Bytes(0)
         };
-        if __eof {
-            (0, __go_stub_eof())
-        } else {
-            let n = __n;
-            (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        match __outcome {
+            __ReadOutcome::Bytes(__n) => {
+                let n = __n;
+                (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+            }
+            __ReadOutcome::End => (0, __go_stub_eof()),
+            __ReadOutcome::Failed(__err) => (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)))),
         }
     }
 
@@ -789,26 +907,95 @@ impl os_File {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
-            v.borrow().as_ref().copied().unwrap_or_default()
+            v .borrow().as_ref().copied().unwrap_or_default()
         } else {
             0
         };
-        let data = self.__go_read_all();
-        let mut n = 0i64;
-        if offset >= 0 {
-            let start = offset as usize;
-            if start < data.len() {
-                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-                    let mut guard = v.borrow_mut();
-                    if let Some(target) = guard.as_mut() {
-                        let count = std::cmp::min(target.len(), data.len() - start);
-                        target[..count].copy_from_slice(&data[start..start + count]);
-                        n = count as i64;
+        if offset < 0 {
+            let __err = std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("readat {}: negative offset", self.__go_name));
+            return (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>))));
+        }
+        let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() else {
+            return (0, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
+        };
+        // The destination first, then the disk file, as in Read.
+        let mut guard = v .borrow_mut();
+        let Some(target) = guard.as_mut() else {
+            return (0, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
+        };
+        // Go's ReadAt reads nothing into an empty p, so it succeeds even on
+        // a closed file.
+        if target.is_empty() {
+            return (0, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
+        }
+        let mut __done = 0usize;
+        let mut __failure: Option<std::io::Error> = None;
+        // The closed flag is read under the disk lock, as in Read.
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            drop(__disk);
+            let __err = self.__go_closed_error("read");
+            return (0, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>))));
+        }
+        if let Some(__file) = __disk.as_mut() {
+            // ReadAt reads at offset without moving the File's own position.
+            #[cfg(unix)]
+            while __done < target.len() {
+                match std::os::unix::fs::FileExt::read_at(&*__file, &mut target[__done..], offset as u64 + __done as u64) {
+                    Ok(0) => break,
+                    Ok(__count) => __done += __count,
+                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(__err) => {
+                        __failure = Some(self.__go_op_error("read", __err));
+                        break;
                     }
                 }
             }
+            #[cfg(not(unix))]
+            {
+                // ReadAt must leave the File's position where it was: without
+                // the saved position, do not seek; a failed restore is the
+                // call's error.
+                match std::io::Seek::stream_position(__file) {
+                    Err(__err) => __failure = Some(self.__go_op_error("read", __err)),
+                    Ok(__saved) => {
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(offset as u64)) {
+                            __failure = Some(self.__go_op_error("read", __err));
+                        } else {
+                            while __done < target.len() {
+                                match std::io::Read::read(__file, &mut target[__done..]) {
+                                    Ok(0) => break,
+                                    Ok(__count) => __done += __count,
+                                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                                    Err(__err) => {
+                                        __failure = Some(self.__go_op_error("read", __err));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(__saved)) {
+                            __failure.get_or_insert(self.__go_op_error("read", __err));
+                        }
+                    }
+                }
+            }
+        } else {
+            drop(__disk);
+            let data = self.__go_read_all();
+            let start = offset as usize;
+            if start < data.len() {
+                __done = std::cmp::min(target.len(), data.len() - start);
+                target[..__done].copy_from_slice(&data[start..start + __done]);
+            }
         }
-        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
+        let n = __done as i64;
+        match __failure {
+            Some(__err) => (n as i64, Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(__err) as std::rc::Rc<dyn std::error::Error>)))),
+            // Go's ReadAt reports the end of the file when it cannot fill p.
+            None if __done < target.len() => (n as i64, __go_stub_eof()),
+            None => (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>))),
+        }
     }
 }
 
@@ -831,6 +1018,66 @@ fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
 }
 
 
+pub mod os {
+    use super::*;
+    use std::path::Path;
+
+    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for Rc<RefCell<Option<String>>> {
+        fn into_go_string(self) -> String {
+            self.borrow().as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
+
+    fn no_error() -> GoError {
+        Rc::new(RefCell::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
+    }
+
+    fn path_error(op: &str, path: String, err: std::io::Error) -> GoError {
+        let path_error = fs_PathError { err: Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>))), op: Rc::new(RefCell::new(Some::<String>(op.to_string()))), path: Rc::new(RefCell::new(Some::<String>(path))) };
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(path_error) as std::rc::Rc<dyn std::error::Error>)))
+    }
+
+    pub fn create<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).open(&path) {
+            Ok(disk) => {
+                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() };
+                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
+            }
+            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),
+        }
+    }
+}
+
+
 fn main() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
@@ -838,7 +1085,7 @@ fn main() {
         { let __path = "test.txt".to_string(); match std::fs::remove_file(&__path) { Ok(()) => Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), Err(e) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e))))) } };
     }));
 
-    let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(e)))))) } };
+    let (mut file, mut err) = os::create("test.txt".to_string());
     if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         {

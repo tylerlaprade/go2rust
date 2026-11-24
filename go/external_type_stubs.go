@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 var externalTypeStubs = make(map[string]bool)
@@ -1271,7 +1272,6 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsUrl = dst.needsUrl || src.needsUrl
 	dst.needsRegexp = dst.needsRegexp || src.needsRegexp
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
-	dst.needsOsFile = dst.needsOsFile || src.needsOsFile
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
 	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
@@ -1718,10 +1718,8 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 }
 
 func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub, jsonDecodeSupportNeeded bool) string {
-	if osStub := packageStubs["os"]; osStub != nil {
-		if _, ok := osStub.Functions["open"]; ok {
-			stubs["fs_PathError"] = true
-		}
+	if osStubReturnsPathError(packageStubs["os"]) {
+		stubs["fs_PathError"] = true
 	}
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
@@ -2209,6 +2207,291 @@ impl atomic_Uint64 {
 
 // PERMANENT: not scaffold — Rust std::fs::File is the long-term implementation;
 // os.File wraps OS file handles, no transpilable Go source equivalent.
+// osFileStubCoreMethods are os_File's writes, reads and Close. The
+// upper-case names are replaced with the program's types.
+const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
+        let _ = self.__go_write_bytes_result(data);
+    }
+
+    /// Go's text for an I/O error: the C library's text with a lowercase
+    /// first letter, without Rust's " (os error N)".
+    fn __go_io_text(err: &std::io::Error) -> String {
+        let mut text = err.to_string();
+        if let Some(code) = err.raw_os_error() {
+            let suffix = format!(" (os error {})", code);
+            if text.ends_with(&suffix) {
+                text.truncate(text.len() - suffix.len());
+            }
+            let mut chars = text.chars();
+            if let Some(first) = chars.next() {
+                text = first.to_lowercase().collect::<String>() + chars.as_str();
+            }
+        }
+        text
+    }
+
+    fn __go_op_error(&self, op: &str, err: std::io::Error) -> std::io::Error {
+        std::io::Error::new(err.kind(), format!("{} {}: {}", op, self.__go_name, Self::__go_io_text(&err)))
+    }
+
+    fn __go_closed_error(&self, op: &str) -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::Other, format!("{} {}: file already closed", op, self.__go_name))
+    }
+
+    /// Writes data to the disk file os.Create or os.OpenFile opened, or
+    /// else to the File's bytes, and reports how many bytes it wrote. A
+    /// closed File takes no writes, as in Go. The disk lock is held from
+    /// the closed check to the write, so Close cannot come in between.
+    pub fn __go_write_counted(&self, data: &[u8]) -> (usize, Option<std::io::Error>) {
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            return (0, Some(self.__go_closed_error("write")));
+        }
+        if let Some(__file) = __disk.as_mut() {
+            let mut __done = 0usize;
+            while __done < data.len() {
+                match std::io::Write::write(__file, &data[__done..]) {
+                    Ok(0) => return (__done, Some(std::io::Error::new(std::io::ErrorKind::WriteZero, format!("write {}: short write", self.__go_name)))),
+                    Ok(__count) => __done += __count,
+                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(__err) => return (__done, Some(self.__go_op_error("write", __err))),
+                }
+            }
+            return (__done, None);
+        }
+        drop(__disk);
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+        (data.len(), None)
+    }
+
+    pub fn __go_write_bytes_result(&self, data: &[u8]) -> std::io::Result<()> {
+        match self.__go_write_counted(data) {
+            (_, None) => Ok(()),
+            (_, Some(__err)) => Err(__err),
+        }
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn close(&self) -> ERROR_TYPE {
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            drop(__disk);
+            let __err = self.__go_closed_error("close");
+            return WRITE_ERROR;
+        }
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        // Dropping a File closes it and discards the result. Go's Close
+        // reports a failed close(2), so on Unix close the descriptor
+        // directly. The handle stays closed either way.
+        if let Some(__file) = __disk.take() {
+            drop(__disk);
+            #[cfg(unix)]
+            {
+                let __fd = std::os::fd::IntoRawFd::into_raw_fd(__file);
+                unsafe extern "C" {
+                    fn close(fd: i32) -> i32;
+                }
+                if unsafe { close(__fd) } != 0 {
+                    let __err = self.__go_op_error("close", std::io::Error::last_os_error());
+                    return WRITE_ERROR;
+                }
+            }
+            #[cfg(not(unix))]
+            drop(__file);
+        }
+        NONE_ERROR
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (INT_TYPE, ERROR_TYPE) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<VEC_TYPE>() {
+            VEC_BORROW.as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let (__count, __failure) = self.__go_write_counted(&bytes);
+        let n = __count as i64;
+        match __failure {
+            Some(__err) => (n as INT_TYPE, WRITE_ERROR),
+            None => (n as INT_TYPE, NONE_ERROR),
+        }
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (INT_TYPE, ERROR_TYPE) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<STRING_TYPE>() {
+            STRING_BORROW.as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let (__count, __failure) = self.__go_write_counted(value.as_bytes());
+        let n = __count as i64;
+        match __failure {
+            Some(__err) => (n as INT_TYPE, WRITE_ERROR),
+            None => (n as INT_TYPE, NONE_ERROR),
+        }
+    }
+
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (INT_TYPE, ERROR_TYPE) {
+        // Go's Read: fill as much of p as the input has, or report the end
+        // of the input with no bytes read. The destination is locked before
+        // the disk file, as in ReadAt.
+        enum __ReadOutcome { Bytes(usize), End, Failed(std::io::Error) }
+        // Close sets the closed flag while it holds the disk lock, so the
+        // flag is read under that lock: a Close that lands between the check
+        // and the read cannot turn a closed-file error into EOF. Go checks
+        // for a closed file before the buffer length, nil buffers included.
+        let __outcome = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<VEC_TYPE>() {
+            let mut __guard = __buf VEC_MUT_BORROW;
+            let mut __disk = self.__go_disk.lock().unwrap();
+            if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+                __ReadOutcome::Failed(self.__go_closed_error("read"))
+            } else {
+                match __guard.as_mut() {
+                    Some(__dst) => {
+                        let __dst = __dst.as_mut_slice();
+                        if __dst.is_empty() {
+                            __ReadOutcome::Bytes(0)
+                        } else if self.__go_stdin {
+                            match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                                Ok(0) | Err(_) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                            }
+                        } else if let Some(__disk) = __disk.as_mut() {
+                            match std::io::Read::read(__disk, __dst) {
+                                Ok(0) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                                Err(__err) => __ReadOutcome::Failed(self.__go_op_error("read", __err)),
+                            }
+                        } else {
+                            let __data = self.__go_data.lock().unwrap();
+                            let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                            let __count = (__data.len() - __pos).min(__dst.len());
+                            __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                            self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                            if __count == 0 { __ReadOutcome::End } else { __ReadOutcome::Bytes(__count) }
+                        }
+                    }
+                    None => __ReadOutcome::Bytes(0),
+                }
+            }
+        } else {
+            __ReadOutcome::Bytes(0)
+        };
+        match __outcome {
+            __ReadOutcome::Bytes(__n) => {
+                let n = __n;
+                (n as INT_TYPE, NONE_ERROR)
+            }
+            __ReadOutcome::End => (0, EOF_ERROR),
+            __ReadOutcome::Failed(__err) => (0, WRITE_ERROR),
+        }
+    }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (INT_TYPE, ERROR_TYPE) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<INT64_TYPE>() {
+            v INT64_BORROW.as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        if offset < 0 {
+            let __err = std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("readat {}: negative offset", self.__go_name));
+            return (0, WRITE_ERROR);
+        }
+        let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<VEC_TYPE>() else {
+            return (0, NONE_ERROR);
+        };
+        // The destination first, then the disk file, as in Read.
+        let mut guard = v VEC_MUT_BORROW;
+        let Some(target) = guard.as_mut() else {
+            return (0, NONE_ERROR);
+        };
+        // Go's ReadAt reads nothing into an empty p, so it succeeds even on
+        // a closed file.
+        if target.is_empty() {
+            return (0, NONE_ERROR);
+        }
+        let mut __done = 0usize;
+        let mut __failure: Option<std::io::Error> = None;
+        // The closed flag is read under the disk lock, as in Read.
+        let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            drop(__disk);
+            let __err = self.__go_closed_error("read");
+            return (0, WRITE_ERROR);
+        }
+        if let Some(__file) = __disk.as_mut() {
+            // ReadAt reads at offset without moving the File's own position.
+            #[cfg(unix)]
+            while __done < target.len() {
+                match std::os::unix::fs::FileExt::read_at(&*__file, &mut target[__done..], offset as u64 + __done as u64) {
+                    Ok(0) => break,
+                    Ok(__count) => __done += __count,
+                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(__err) => {
+                        __failure = Some(self.__go_op_error("read", __err));
+                        break;
+                    }
+                }
+            }
+            #[cfg(not(unix))]
+            {
+                // ReadAt must leave the File's position where it was: without
+                // the saved position, do not seek; a failed restore is the
+                // call's error.
+                match std::io::Seek::stream_position(__file) {
+                    Err(__err) => __failure = Some(self.__go_op_error("read", __err)),
+                    Ok(__saved) => {
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(offset as u64)) {
+                            __failure = Some(self.__go_op_error("read", __err));
+                        } else {
+                            while __done < target.len() {
+                                match std::io::Read::read(__file, &mut target[__done..]) {
+                                    Ok(0) => break,
+                                    Ok(__count) => __done += __count,
+                                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                                    Err(__err) => {
+                                        __failure = Some(self.__go_op_error("read", __err));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(__saved)) {
+                            __failure.get_or_insert(self.__go_op_error("read", __err));
+                        }
+                    }
+                }
+            }
+        } else {
+            drop(__disk);
+            let data = self.__go_read_all();
+            let start = offset as usize;
+            if start < data.len() {
+                __done = std::cmp::min(target.len(), data.len() - start);
+                target[..__done].copy_from_slice(&data[start..start + __done]);
+            }
+        }
+        let n = __done as i64;
+        match __failure {
+            Some(__err) => (n as INT_TYPE, WRITE_ERROR),
+            // Go's ReadAt reports the end of the file when it cannot fill p.
+            None if __done < target.len() => (n as INT_TYPE, EOF_ERROR),
+            None => (n as INT_TYPE, NONE_ERROR),
+        }
+    }
+}
+`
+
 func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
 	int64Type := wrappedExternalStubType("i64")
@@ -2219,6 +2502,7 @@ func writeOsFileStub(out *strings.Builder) {
 	errorInnerType := externalStubErrorInnerType()
 	errorType := wrappedExternalStubType(errorInnerType)
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
+	writeError := wrappedExternalStubExpr(errorInnerType, rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "__err"))
 	vecBorrow := externalStubBorrowExpr("v")
 	stringBorrow := externalStubBorrowExpr("v")
 	int64Borrow := ".borrow()"
@@ -2236,6 +2520,14 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// The file os.Create opened: reads and writes go to it, and Close
+    /// closes it.
+    pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
+    /// The name the File was opened with, for its errors.
+    pub __go_name: String,
+    /// This File was closed: shared by its copies, but not by the other
+    /// end of a pipe, which __go_closed is.
+    pub __go_handle_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Default for os_File {
@@ -2246,6 +2538,9 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
+            __go_name: String::new(),
+            __go_handle_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
     }
 }
@@ -2282,117 +2577,21 @@ impl os_File {
         None
     }
 
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        self.__go_data.lock().unwrap().extend_from_slice(data);
-    }
-
-    pub fn __go_read_all(&self) -> Vec<u8> {
-        self.__go_data.lock().unwrap().clone()
-    }
-
-    pub fn close(&self) -> %s {
-        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        %s
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (%s, %s)
-    }
-
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
-            (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().cloned().unwrap_or_default()
-        } else {
-            String::new()
-        };
-        let bytes = value.into_bytes();
-        let n = bytes.len() as i64;
-        self.__go_write_bytes(&bytes);
-        (%s, %s)
-    }
-
-    pub fn read<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        // Go's Read: fill as much of p as the input has, or report the end
-        // of the input with no bytes read.
-        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            let mut __guard = __buf%s;
-            match __guard.as_mut() {
-                Some(__dst) => {
-                    let __dst = __dst.as_mut_slice();
-                    if __dst.is_empty() {
-                        (0, false)
-                    } else if self.__go_stdin {
-                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
-                            Ok(0) | Err(_) => (0, true),
-                            Ok(__count) => (__count, false),
-                        }
-                    } else {
-                        let __data = self.__go_data.lock().unwrap();
-                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
-                        let __count = (__data.len() - __pos).min(__dst.len());
-                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
-                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
-                        (__count, __count == 0)
-                    }
-                }
-                None => (0, false),
-            }
-        } else {
-            (0, false)
-        };
-        if __eof {
-            (%s, %s)
-        } else {
-            let n = __n;
-            (%s, %s)
-        }
-    }
-
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
-        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
-            *v
-        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
-            v%s.as_ref().copied().unwrap_or_default()
-        } else {
-            0
-        };
-        let data = self.__go_read_all();
-        let mut n = 0i64;
-        if offset >= 0 {
-            let start = offset as usize;
-            if start < data.len() {
-                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-                    let mut guard = v%s;
-                    if let Some(target) = guard.as_mut() {
-                        let count = std::cmp::min(target.len(), data.len() - start);
-                        target[..count].copy_from_slice(&data[start..start + count]);
-                        n = count as i64;
-                    }
-                }
-            }
-        }
-        (%s, %s)
-    }
-}
-`,
-		errorType, noneError,
-		intType, errorType, vecType, vecBorrow, "n as "+intType, noneError,
-		intType, errorType, stringType, stringBorrow, "n as "+intType, noneError,
-		intType, errorType, vecType, vecMutBorrow, "0", stubEOFError(errorInnerType), "n as "+intType, noneError,
-		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, "n as "+intType, noneError)
+`)
+	out.WriteString(strings.NewReplacer(
+		"ERROR_TYPE", errorType,
+		"NONE_ERROR", noneError,
+		"WRITE_ERROR", writeError,
+		"EOF_ERROR", stubEOFError(errorInnerType),
+		"INT_TYPE", intType,
+		"INT64_TYPE", int64Type,
+		"INT64_BORROW", int64Borrow,
+		"VEC_TYPE", vecType,
+		"VEC_BORROW", vecBorrow,
+		"VEC_MUT_BORROW", vecMutBorrow,
+		"STRING_TYPE", stringType,
+		"STRING_BORROW", stringBorrow,
+	).Replace(osFileStubCoreMethods))
 	writeStubIoEOFRegistry(out, errorInnerType, errorType)
 }
 
@@ -3074,6 +3273,8 @@ pub struct %s {
     pub name: String,
     pub is_dir: bool,
     pub size: i64,
+    /// The modification time: seconds and nanoseconds since the Unix epoch.
+    pub mod_time: (i64, i64),
 }
 
 impl std::fmt::Display for %s {
@@ -3109,9 +3310,19 @@ impl %s {
 			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
 			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
 	}
+	// Part of the os-file-create shim (docs/bridge_debt.md). ModTime gives the
+	// time Stat read from the file's metadata.
+	modTime, hasModTime := methods["mod_time"]
+	hasModTime = hasModTime && len(modTime.ReturnTypes) == 1 && strings.Contains(modTime.ReturnTypes[0], "GoTime")
+	if hasModTime {
+		fmt.Fprintf(out, `    pub fn mod_time(&self) -> %s {
+        %s
+    }
+`, modTime.ReturnTypes[0], wrappedExternalStubExpr("GoTime", "GoTime::from_unix(self.mod_time.0, self.mod_time.1)"))
+	}
 	methodNames := make([]string, 0, len(methods))
 	for methodName := range methods {
-		if methodName == "name" || methodName == "size" || methodName == "is_dir" || methodName == "mode" {
+		if methodName == "name" || methodName == "size" || methodName == "is_dir" || methodName == "mode" || (methodName == "mod_time" && hasModTime) {
 			continue
 		}
 		methodNames = append(methodNames, methodName)
@@ -3344,8 +3555,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 	}
 	if needsFilesystemHelpers || needsExecutable || needsHostname {
-		_, needsOpenPathError := pkg.Functions["open"]
-		writeOsErrorHelpers(out, needsOpenPathError)
+		writeOsErrorHelpers(out, osStubReturnsPathError(pkg))
 	}
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -3410,6 +3620,12 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsLstatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
+		} else if funcName == "create" {
+			writeOsCreateFunction(out, pkg.Functions[funcName])
+		} else if funcName == "open_file" {
+			writeOsOpenFileFunction(out, pkg.Functions[funcName])
+		} else if funcName == "is_not_exist" || funcName == "is_exist" || funcName == "is_permission" {
+			writeOsIsErrorKindFunction(out, funcName, osStubReturnsPathError(pkg) || currentExternalTypeStubs()["fs_PathError"])
 		} else if funcName == "open" {
 			writeOsOpenFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
@@ -3427,6 +3643,18 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 	out.WriteString("}\n")
 }
 
+// osStubReturnsPathError reports whether the os stub has a function that
+// returns an *fs.PathError: os.Open and os.Create.
+func osStubReturnsPathError(pkg *externalPackageStub) bool {
+	if pkg == nil {
+		return false
+	}
+	_, open := pkg.Functions["open"]
+	_, create := pkg.Functions["create"]
+	_, openFile := pkg.Functions["open_file"]
+	return open || create || openFile
+}
+
 func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	if pkg == nil {
 		return false
@@ -3434,12 +3662,14 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsStat := pkg.Functions["stat"]
 	_, needsMkdirAll := pkg.Functions["mkdir_all"]
 	_, needsOpen := pkg.Functions["open"]
+	_, needsCreate := pkg.Functions["create"]
+	_, needsOpenFile := pkg.Functions["open_file"]
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsCreate || needsOpenFile || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
 func writeOsErrorHelpers(out *strings.Builder, includeOpenPathError bool) {
@@ -3642,7 +3872,7 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64, mod_time: metadata.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| (d.as_secs() as i64, d.subsec_nanos() as i64)).unwrap_or((0, 0)) }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
@@ -3662,7 +3892,7 @@ func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
 	out.WriteString("                (")
-	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64, mod_time: metadata.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| (d.as_secs() as i64, d.subsec_nanos() as i64)).unwrap_or((0, 0)) }"))
 	out.WriteString(", no_error())\n")
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
@@ -3690,6 +3920,131 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(", path_error(\"open\", path, err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+// TEMPORARY: os-file-create in docs/bridge_debt.md. os.Create maps to
+// std::fs::File::create for the os.File stub, which writes through to the
+// file on disk, until os translates from source over syscall.Open.
+func writeOsCreateFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn create<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::OpenOptions::new().read(true).write(true).create(true).truncate(true).open(&path) {\n")
+	out.WriteString("            Ok(disk) => {\n")
+	out.WriteString("                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() };\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
+	out.WriteString(", path_error(\"open\", path, err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// Part of the os-file-create shim (docs/bridge_debt.md). os.OpenFile opens the
+// file with std::fs::OpenOptions set from Go's flags, which the type checker
+// has folded to this platform's values, for the os.File stub.
+func writeOsOpenFileFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	intType := wrappedExternalStubType("i64")
+	intBorrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		intBorrow = ".lock().unwrap()"
+	}
+	out.WriteString("    pub fn open_file<T0: GoStringArg, T1: 'static, T2: 'static>(_arg0: T0, _arg1: T1, _arg2: T2) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        let flag: i64 = if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<i64>() {\n")
+	out.WriteString("            *v\n")
+	out.WriteString("        } else if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<i32>() {\n")
+	out.WriteString("            *v as i64\n")
+	out.WriteString("        } else if let Some(v) = (&_arg1 as &dyn std::any::Any).downcast_ref::<" + intType + ">() {\n")
+	out.WriteString("            v" + intBorrow + ".as_ref().copied().unwrap_or_default()\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            0\n")
+	out.WriteString("        };\n")
+	fmt.Fprintf(out, "        let access = flag & %d;\n", syscall.O_RDONLY|syscall.O_WRONLY|syscall.O_RDWR)
+	out.WriteString("        let mut options = std::fs::OpenOptions::new();\n")
+	fmt.Fprintf(out, "        options.read(access == %d || access == %d).write(access == %d || access == %d);\n", syscall.O_RDONLY, syscall.O_RDWR, syscall.O_WRONLY, syscall.O_RDWR)
+	fmt.Fprintf(out, "        if flag & %d != 0 { options.append(true); }\n", syscall.O_APPEND)
+	fmt.Fprintf(out, "        if flag & %d != 0 { if flag & %d != 0 { options.create_new(true); } else { options.create(true); } }\n", syscall.O_CREAT, syscall.O_EXCL)
+	// Rust refuses append with truncate; on Unix the truncation goes in as
+	// the open flag Go passes, so both hold in one open. O_SYNC has no
+	// OpenOptions setter and goes in the same way. custom_flags replaces
+	// the mask, so both share one call.
+	fmt.Fprintf(out, "        #[cfg(unix)]\n")
+	fmt.Fprintf(out, "        {\n")
+	fmt.Fprintf(out, "            let mut native = flag & %d;\n", syscall.O_SYNC)
+	fmt.Fprintf(out, "            if flag & %d != 0 { if flag & %d != 0 { native |= %d; } else { options.truncate(true); } }\n", syscall.O_TRUNC, syscall.O_APPEND, syscall.O_TRUNC)
+	fmt.Fprintf(out, "            if native != 0 { std::os::unix::fs::OpenOptionsExt::custom_flags(&mut options, native as i32); }\n")
+	fmt.Fprintf(out, "        }\n")
+	fmt.Fprintf(out, "        #[cfg(not(unix))]\n")
+	fmt.Fprintf(out, "        if flag & %d != 0 { options.truncate(true); }\n", syscall.O_TRUNC)
+	// The permission bits a created file gets, before the umask, as Go's.
+	if currentExternalTypeStubs()["fs_FileMode"] {
+		out.WriteString("        let perm: Option<u32> = if let Some(v) = (&_arg2 as &dyn std::any::Any).downcast_ref::<fs_FileMode>() { Some(v.0 & 0o777) } else if let Some(v) = (&_arg2 as &dyn std::any::Any).downcast_ref::<u32>() { Some(*v & 0o777) } else { None };\n")
+	} else {
+		out.WriteString("        let perm: Option<u32> = if let Some(v) = (&_arg2 as &dyn std::any::Any).downcast_ref::<u32>() { Some(*v & 0o777) } else { None };\n")
+	}
+	out.WriteString("        #[cfg(unix)]\n")
+	out.WriteString("        if let Some(perm) = perm { std::os::unix::fs::OpenOptionsExt::mode(&mut options, perm); }\n")
+	out.WriteString("        #[cfg(not(unix))]\n")
+	out.WriteString("        let _ = perm;\n")
+	out.WriteString("        match options.open(&path) {\n")
+	out.WriteString("            Ok(disk) => {\n")
+	out.WriteString("                let file = os_File { __go_disk: std::sync::Arc::new(std::sync::Mutex::new(Some(disk))), __go_name: path.clone(), ..Default::default() };\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
+	out.WriteString(", path_error(\"open\", path, err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// Part of the os-file-create shim (docs/bridge_debt.md). os.IsNotExist,
+// os.IsExist and os.IsPermission look at the kind of the Rust I/O error
+// that the os stub's functions return, through an *fs.PathError as Go's
+// do, until os translates from source and they compare syscall errnos.
+func writeOsIsErrorKindFunction(out *strings.Builder, funcName string, unwrapPathError bool) {
+	kind := map[string]string{
+		"is_not_exist":  "NotFound",
+		"is_exist":      "AlreadyExists",
+		"is_permission": "PermissionDenied",
+	}[funcName]
+	errorType := wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper()))
+	borrow := ".borrow()"
+	if NeedsConcurrentWrapper() {
+		borrow = ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, "    pub fn %s<T0: 'static>(_arg0: T0) -> bool {\n", funcName)
+	fmt.Fprintf(out, "        fn kind_is(err: &(dyn std::error::Error + 'static)) -> bool {\n")
+	fmt.Fprintf(out, "            if let Some(io) = err.downcast_ref::<std::io::Error>() {\n")
+	fmt.Fprintf(out, "                return io.kind() == std::io::ErrorKind::%s;\n", kind)
+	fmt.Fprintf(out, "            }\n")
+	if unwrapPathError {
+		// Go's underlyingError unwraps one *PathError and classifies its
+		// cause; a PathError inside a PathError is not looked through.
+		fmt.Fprintf(out, "            if let Some(path_error) = err.downcast_ref::<fs_PathError>() {\n")
+		fmt.Fprintf(out, "                if let Some(inner) = path_error.err%s.as_ref() {\n", borrow)
+		fmt.Fprintf(out, "                    return inner.downcast_ref::<std::io::Error>().map_or(false, |io| io.kind() == std::io::ErrorKind::%s);\n", kind)
+		fmt.Fprintf(out, "                }\n")
+		fmt.Fprintf(out, "            }\n")
+	}
+	fmt.Fprintf(out, "            false\n")
+	fmt.Fprintf(out, "        }\n")
+	fmt.Fprintf(out, "        let Some(err) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() else { return false; };\n", errorType)
+	fmt.Fprintf(out, "        let guard = err%s;\n", borrow)
+	fmt.Fprintf(out, "        match guard.as_ref() {\n")
+	fmt.Fprintf(out, "            Some(err) => kind_is(&**err),\n")
+	fmt.Fprintf(out, "            None => false,\n")
+	fmt.Fprintf(out, "        }\n")
+	fmt.Fprintf(out, "    }\n")
 }
 
 // PERMANENT: not scaffold — os.ReadFile maps to std::fs::read, syscall-tied.

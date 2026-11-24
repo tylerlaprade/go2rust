@@ -183,7 +183,6 @@ type HelperTracker struct {
 	needsUrl                             bool
 	needsRegexp                          bool
 	needsJsonEscape                      bool
-	needsOsFile                          bool
 	needsGoNilAny                        bool
 	needsGoSliceAppendCopying            bool
 	needsOsArgs                          bool
@@ -507,10 +506,6 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateJsonEscapeHelper(&result)
 	}
 
-	if ht.needsOsFile {
-		generateOsFileHelper(&result)
-	}
-
 	if ht.needsOsArgs {
 		generateOsArgsHelper(&result)
 	}
@@ -602,7 +597,6 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsUrl ||
 		ht.needsRegexp ||
 		ht.needsJsonEscape ||
-		ht.needsOsFile ||
 		ht.needsGoNilAny ||
 		ht.needsGoSliceAppendCopying ||
 		ht.needsSliceElemPtr ||
@@ -816,9 +810,6 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsJsonEscape {
 		add("go_json_escape")
-	}
-	if ht.needsOsFile {
-		add("GoFile")
 	}
 	if ht.needsGoNilAny {
 		add(goNilAnyType)
@@ -5775,95 +5766,6 @@ fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
     __GO_OS_ARGS.with(|args| args.clone())
 }
 `)
-}
-
-func generateOsFileHelper(out *strings.Builder) {
-	if NeedsConcurrentWrapper() {
-		TrackImport("Arc")
-		TrackImport("Mutex")
-		out.WriteString(expandErrorRepr(`
-struct GoFile {
-    file: Option<std::fs::File>,
-}
-
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<GO_ERROR_PAYLOAD>>>) {
-        let text = (*text.lock().unwrap().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Arc::new(Mutex::new(Some(text.len() as i64))), Arc::new(Mutex::new(None))),
-                Err(e) => (Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(GO_ERROR_FROM(e))))),
-            },
-            None => (
-                Arc::new(Mutex::new(Some(0))),
-                Arc::new(Mutex::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
-            ),
-        }
-    }
-
-    fn close(&mut self) -> Arc<Mutex<Option<GO_ERROR_PAYLOAD>>> {
-        self.file = None;
-        Arc::new(Mutex::new(None))
-    }
-}
-`, true))
-		return
-	}
-
-	TrackImport("Rc")
-	TrackImport("RefCell")
-	out.WriteString(expandErrorRepr(`
-struct GoFile {
-    file: Option<std::fs::File>,
-}
-
-impl GoFile {
-    fn create(path: &str) -> Result<Self, std::io::Error> {
-        std::fs::OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(path)
-            .map(|file| GoFile { file: Some(file) })
-    }
-
-    fn empty() -> Self {
-        GoFile { file: None }
-    }
-
-    fn write_string(&mut self, text: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<GO_ERROR_PAYLOAD>>>) {
-        let text = (*text.borrow().as_ref().unwrap()).clone();
-        match self.file.as_mut() {
-            Some(file) => match std::io::Write::write_all(file, text.as_bytes()) {
-                Ok(()) => (Rc::new(RefCell::new(Some(text.len() as i64))), Rc::new(RefCell::new(None))),
-                Err(e) => (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some(GO_ERROR_FROM(e))))),
-            },
-            None => (
-                Rc::new(RefCell::new(Some(0))),
-                Rc::new(RefCell::new(Some(GO_ERROR_FROM(std::io::Error::new(std::io::ErrorKind::Other, "invalid file"))))),
-            ),
-        }
-    }
-
-    fn close(&mut self) -> Rc<RefCell<Option<GO_ERROR_PAYLOAD>>> {
-        self.file = None;
-        Rc::new(RefCell::new(None))
-    }
-}
-`, false))
 }
 
 func generateReflectHelper(out *strings.Builder) {

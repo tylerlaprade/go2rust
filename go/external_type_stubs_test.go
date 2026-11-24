@@ -1058,7 +1058,7 @@ func TestOsFileStubImplementsReadAtMethod(t *testing.T) {
 	for _, want := range []string{
 		"pub fn read_at<T0: 'static, T1: 'static>",
 		"let offset =",
-		"target[..count].copy_from_slice(&data[start..start + count]);",
+		"target[..__done].copy_from_slice(&data[start..start + __done]);",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("os.File ReadAt shim should include %q:\n%s", want, got)
@@ -1225,7 +1225,7 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::fs::symlink_metadata(&path)",
-		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
+		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64, mod_time: metadata.modified()",
 		"fs_FileInfo::default()",
 		"io_error(err)",
 	} {
