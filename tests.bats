@@ -2375,6 +2375,10 @@ run_xfail_test() {
     run_test "tests/named_types_methods"
 }
 
+@test "native_struct_field_offset" {
+    run_test "tests/native_struct_field_offset"
+}
+
 @test "negative_named_integer_conversions" {
     run_test "tests/negative_named_integer_conversions"
 }
