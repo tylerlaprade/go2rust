@@ -1351,16 +1351,18 @@ func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".go_to_string()")
 }
 
-func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+func writeGoByteSequenceSlice(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
 	NeedGoByteSequence()
-	writeGoByteSequenceReceiver(out, expr)
-	out.WriteString(".go_slice_to_string(")
+	// Evaluate bounds before borrowing the data; a bound can read the same sequence.
+	out.WriteString("{ let __seq = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __low = ")
 	if low != nil {
 		writeExpressionAsUsize(out, low)
 	} else {
 		out.WriteString("0")
 	}
-	out.WriteString(", ")
+	out.WriteString("; let __high = ")
 	if high != nil {
 		out.WriteString("Some(")
 		writeExpressionAsUsize(out, high)
@@ -1368,7 +1370,9 @@ func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low a
 	} else {
 		out.WriteString("None")
 	}
-	out.WriteString(")")
+	out.WriteString("; let __slice = __seq")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap().go_slice(__low, __high); __slice }")
 }
 
 func writeStringSliceValue(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
@@ -15081,7 +15085,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if isGoByteSequenceSlice {
 			WriteWrapperPrefix(out)
-			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
+			writeGoByteSequenceSlice(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
