@@ -882,7 +882,7 @@ fn main() {
     { let new_val = 400; *(*spread.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*spread.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
-    let mut copied: Rc<RefCell<Option<Vec<Point>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); ((*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut copied: Rc<RefCell<Option<Vec<Point>>>> = Rc::new(RefCell::new(Some((0..((*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| Default::default()).collect::<Vec<Point>>())));
     let mut n = {
         let _src = { let __copy_src_holder = list.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
         let _n = std::cmp::min((*copied.borrow().as_ref().unwrap()).len(), _src.len());

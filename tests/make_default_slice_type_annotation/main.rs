@@ -646,7 +646,7 @@ impl std::fmt::Display for item {
 
 
 fn main() {
-    let mut items: Rc<RefCell<Option<Vec<item>>>> = Rc::new(RefCell::new(Some(vec![Default::default(); (2) as usize])));
+    let mut items: Rc<RefCell<Option<Vec<item>>>> = Rc::new(RefCell::new(Some((0..(2) as usize).map(|_| Default::default()).collect::<Vec<item>>())));
     let mut ptrs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<item>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None)); ((*items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
     println!("{} {}", format!("{}", (*items.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*ptrs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

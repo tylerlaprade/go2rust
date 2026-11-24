@@ -6059,11 +6059,22 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 					// Vector with initial size AND capacity: make([]T, len, cap)
 					out.WriteString("{ let mut v = Vec::with_capacity(")
 					writeExpressionAsUsize(out, call.Args[2])
-					out.WriteString("); v.resize(")
+					out.WriteString("); v.resize_with(")
 					writeExpressionAsUsize(out, call.Args[1])
-					out.WriteString(", ")
+					out.WriteString(", || ")
 					out.WriteString(elementType)
 					out.WriteString("); v }")
+				} else if makeElementsNeedOwnValues(call.Args[0]) {
+					// A struct's Clone shares its field cells, so
+					// vec![T::default(); n] would give every element the
+					// same fields. Each element is made on its own.
+					out.WriteString("(0..")
+					writeExpressionAsUsize(out, call.Args[1])
+					out.WriteString(").map(|_| ")
+					out.WriteString(elementType)
+					out.WriteString(").collect::<Vec<")
+					out.WriteString(elementRustType)
+					out.WriteString(">>()")
 				} else {
 					// Vector with initial size only
 					out.WriteString("vec![")
@@ -7985,4 +7996,19 @@ func isStructFieldSelection(expr ast.Expr) bool {
 	}
 	selection, ok := typeInfo.info.Selections[sel]
 	return ok && selection.Kind() == types.FieldVal
+}
+
+// makeElementsNeedOwnValues reports whether make([]T, n) must make each
+// element on its own rather than clone one zero value: a struct, or a named
+// array, whose Clone shares its cells.
+func makeElementsNeedOwnValues(sliceTypeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	sliceType, ok := types.Unalias(typeInfo.GetType(sliceTypeExpr)).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	return typeNeedsGoValueClone(sliceType.Elem())
 }
