@@ -6686,66 +6686,81 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 	if !ok {
 		return false
 	}
+	writeValue := func() {
+		if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
+			out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+		}
+	}
+	if indexExpr, targetField, ok := indexedStructElemGoPtrFieldTarget(sel); ok {
+		writeIndexedStructElemGoPtrFieldAssignment(out, indexExpr, targetField, writeValue)
+		return true
+	}
 	out.WriteString("{ let new_val = ")
-	if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
-		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
-	}
+	writeValue()
 	out.WriteString("; ")
-	if !writeIndexedStructElemGoPtrFieldTarget(out, sel, "new_val") {
-		writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
-	}
+	writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
 	out.WriteString(" }")
 	return true
 }
 
-// writeIndexedStructElemGoPtrFieldTarget writes s[i].F = valueName for a GoPtr
-// field F of a struct element of a slice or array. A GoPtr field is a plain
-// Rust field, not a cell, so the write goes to the element in place. The
-// usual target, a clone of the element, would take the write and drop it.
-// The index is evaluated before the sequence is locked for writing, since
-// it may read the sequence.
-func writeIndexedStructElemGoPtrFieldTarget(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+// indexedStructElemGoPtrFieldTarget reports whether sel is s[i].F for a GoPtr
+// field F of a struct element of a slice or array s, and returns s[i] and F.
+func indexedStructElemGoPtrFieldTarget(sel *ast.SelectorExpr) (*ast.IndexExpr, FieldAccessInfo, bool) {
 	indexExpr, ok := unwrapParens(sel.X).(*ast.IndexExpr)
 	if !ok {
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) || expressionCallsOrReceives(indexExpr.X) {
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
 	switch unwrapParens(indexExpr.X).(type) {
 	case *ast.Ident, *ast.SelectorExpr:
 	default:
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
 	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 	if elemType == nil {
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
 	if _, ok := types.Unalias(elemType).Underlying().(*types.Struct); !ok {
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
 	fieldInfo := selectorFieldAccessInfo(sel)
 	if fieldInfo.IsPromoted {
-		return false
+		return nil, FieldAccessInfo{}, false
 	}
-	out.WriteString("let __idx = ")
+	return indexExpr, fieldInfo, true
+}
+
+// writeIndexedStructElemGoPtrFieldAssignment writes s[i].F = v for a GoPtr
+// field F, which is a plain Rust field, not a cell. The write goes to the
+// element in place: a write to a clone of the element, the usual target,
+// would be lost. As in Go, the index is evaluated before the value. Both are
+// evaluated before s is locked for writing, since either may read s. An
+// index out of range unlocks s before it panics, so that a recovered panic
+// leaves s usable, as in Go.
+func writeIndexedStructElemGoPtrFieldAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, writeValue func()) {
+	out.WriteString("{ let __idx = ")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("; (*")
+	out.WriteString("; let new_val = ")
+	writeValue()
+	out.WriteString("; let __seq_handle = ")
 	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
 		writeNamedSliceInnerHandleClone(out, subj)
 	} else if isNamedArrayExpression(subj) {
 		writeNamedArrayInnerHandleClone(out, subj)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
 	}
+	out.WriteString("; let mut __seq_guard = __seq_handle")
 	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[__idx].")
+	out.WriteString("; let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); ")
+	out.WriteString(`if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } `)
+	out.WriteString("(*__seq_guard.as_mut().unwrap())[__idx].")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(" = ")
-	out.WriteString(valueName)
-	out.WriteString(";")
-	return true
+	out.WriteString(" = new_val; }")
 }
 
 func writeGoPtrAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {

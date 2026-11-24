@@ -4,3 +4,6 @@ true true
 7
 24
 1
+[lhs rhs] 2
+recovered: runtime error: index out of range [5] with length 2
+[lhs rhs bad] 1 1

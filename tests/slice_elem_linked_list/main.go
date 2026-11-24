@@ -60,4 +60,24 @@ func main() {
 	fmt.Println(l.Sum())
 	l.nodes[len(l.nodes)-1].Next = &l.nodes[0]
 	fmt.Println(l.nodes[2].Next.Val)
+	orderAndRecover()
+}
+
+// The index on the left is evaluated before the value on the right, and an
+// index out of range panics without leaving the slice unusable.
+func orderAndRecover() {
+	nodes := []Node{{Val: 1}, {Val: 2}}
+	var order []string
+	at := func(name string, i int) int {
+		order = append(order, name)
+		return i
+	}
+	nodes[at("lhs", 0)].Next = &nodes[at("rhs", 1)]
+	fmt.Println(order, nodes[0].Next.Val)
+	func() {
+		defer func() { fmt.Println("recovered:", recover()) }()
+		nodes[at("bad", 5)].Next = &nodes[0]
+	}()
+	nodes[1].Next = &nodes[0]
+	fmt.Println(order, nodes[1].Next.Val, nodes[0].Next.Next.Val)
 }

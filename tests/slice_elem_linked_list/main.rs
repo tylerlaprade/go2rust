@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -651,6 +652,107 @@ where
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
+    }
+}
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        go_float_string(*v, false)
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        go_float_string(*v as f64, true)
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            Err(__payload) => std::panic::resume_unwind(__payload),
+        }
     }
 }
 
@@ -1321,7 +1423,7 @@ impl List {
     pub fn link(&mut self) {
         for i in 0..(({ let __range_holder = self.nodes.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         if (i as i64 + 1 as i64) < (({ let __len_target = { let __field = self.nodes.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) {
-        { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(self.nodes.clone(), (i as i64 + 1) as usize)); let __idx = (i) as usize; (*self.nodes.borrow_mut().as_mut().unwrap())[__idx].next = new_val; };
+        { let __idx = (i) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(self.nodes.clone(), (i as i64 + 1) as usize)); let __seq_handle = self.nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
     }
     }
         { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(self.nodes.clone(), (0) as usize)); self.head = new_val; };
@@ -1343,7 +1445,7 @@ fn main() {
     for i in 0..(({ let __range_holder = nodes.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         { let new_val = i as i64 * 10; *(*nodes.borrow().as_ref().unwrap())[(i) as usize].clone().val.borrow_mut() = Some(new_val); };
         if i as i64 > 0 {
-        { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes.clone(), (i) as usize)); let __idx = (i as i64 - 1) as usize; (*nodes.borrow_mut().as_mut().unwrap())[__idx].next = new_val; };
+        { let __idx = (i as i64 - 1) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes.clone(), (i) as usize)); let __seq_handle = nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
     }
     }
     { let new_val = 99; *(*nodes.borrow().as_ref().unwrap())[(2) as usize].clone().val.borrow_mut() = Some(new_val); };
@@ -1358,7 +1460,7 @@ fn main() {
     let mut arr: Rc<RefCell<Option<[Node; 3]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 3, _>(|_| Default::default()))));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 2 {
-        { let new_val = GoPtr::array_elem(GoArrayElemPtr::new(arr.clone(), ((*i.borrow().as_ref().unwrap()) + 1) as usize)); let __idx = ((*i.borrow().as_ref().unwrap())) as usize; (*arr.borrow_mut().as_mut().unwrap())[__idx].next = new_val; };
+        { let __idx = ((*i.borrow().as_ref().unwrap())) as usize; let new_val = GoPtr::array_elem(GoArrayElemPtr::new(arr.clone(), ((*i.borrow().as_ref().unwrap()) + 1) as usize)); let __seq_handle = arr.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     { let new_val = 7; *(*arr.borrow().as_ref().unwrap())[(2) as usize].clone().val.borrow_mut() = Some(new_val); };
@@ -1368,6 +1470,54 @@ fn main() {
     (*l.borrow_mut().as_mut().unwrap()).link();
     { let new_val = 20; *(*(*l.borrow().as_ref().unwrap()).nodes.borrow().as_ref().unwrap())[(1) as usize].clone().val.borrow_mut() = Some(new_val); };
     println!("{}", format!("{}", (*l.borrow().as_ref().unwrap()).sum()));
-    { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new((*l.borrow().as_ref().unwrap()).nodes.clone(), (0) as usize)); let __idx = ((({ let __len_target = { let __field = (*l.borrow().as_ref().unwrap()).nodes.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) - (1 as i64)) as usize; (*(*l.borrow().as_ref().unwrap()).nodes.borrow_mut().as_mut().unwrap())[__idx].next = new_val; };
+    { let __idx = ((({ let __len_target = { let __field = (*l.borrow().as_ref().unwrap()).nodes.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64) - (1 as i64)) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new((*l.borrow().as_ref().unwrap()).nodes.clone(), (0) as usize)); let __seq_handle = (*l.borrow().as_ref().unwrap()).nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
     println!("{}", format!("{}", (*{ let __ptr_value = (*(*l.borrow().as_ref().unwrap()).nodes.borrow().as_ref().unwrap())[(2) as usize].clone().next.borrow(); __ptr_value.as_ref().unwrap().val.clone() }.borrow().as_ref().unwrap())));
+    order_and_recover();
+}
+
+/// The index on the left is evaluated before the value on the right, and an
+/// index out of range panics without leaving the slice unusable.
+pub fn order_and_recover() {
+    let mut nodes = Rc::new(RefCell::new(Some(vec![Node { val: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Node { val: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
+    let mut order: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
+    let mut order_closure_clone = order.clone(); let mut at = Rc::new(RefCell::new(Some(Box::new(move |name: Rc<RefCell<Option<String>>>, i: Rc<RefCell<Option<i64>>>| -> i64 {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = order_closure_clone.clone(); let __append_value = (*name.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *order_closure_clone.borrow_mut() = __slice_header; };
+        (*i.borrow().as_ref().unwrap())
+    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64>)));
+    { let __idx = ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = at.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("lhs".to_string()))), Rc::new(RefCell::new(Some(0)))) }) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes.clone(), ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = at.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("rhs".to_string()))), Rc::new(RefCell::new(Some(1)))) }) as usize)); let __seq_handle = nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
+    println!("{} {}", format!("{}", format_slice(&order)), format!("{}", (*{ let __ptr_value = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().next.borrow(); __ptr_value.as_ref().unwrap().val.clone() }.borrow().as_ref().unwrap())));
+    let at_closure_clone = at.clone(); let nodes_closure_clone = nodes.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", match (go_recover()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        { let __idx = ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = at_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("bad".to_string()))), Rc::new(RefCell::new(Some(5)))) }) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes_closure_clone.clone(), (0) as usize)); let __seq_handle = nodes_closure_clone.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    { let __idx = (1) as usize; let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(nodes.clone(), (0) as usize)); let __seq_handle = nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } (*__seq_guard.as_mut().unwrap())[__idx].next = new_val; };
+    println!("{} {} {}", format!("{}", format_slice(&order)), format!("{}", (*{ let __ptr_value = (*nodes.borrow().as_ref().unwrap())[(1) as usize].clone().next.borrow(); __ptr_value.as_ref().unwrap().val.clone() }.borrow().as_ref().unwrap())), format!("{}", (*{ let __ptr_value = { let __ptr_value = { let __ptr_base = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().next.clone(); __ptr_base }.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.borrow(); __ptr_value.as_ref().unwrap().val.clone() }.borrow().as_ref().unwrap())));
 }

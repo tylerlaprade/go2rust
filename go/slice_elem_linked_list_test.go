@@ -28,9 +28,16 @@ func main() {
 	}
 }
 `)
-	want := "let __idx = ((*i.borrow().as_ref().unwrap()) - 1) as usize; (*nodes.borrow_mut().as_mut().unwrap())[__idx].next = new_val;"
+	want := "{ let __idx = ((*i.borrow().as_ref().unwrap()) - 1) as usize; let new_val = GoPtr::slice_elem("
 	if !strings.Contains(rust, want) {
-		t.Errorf("missing in-place field write %q:\n%s", want, rust)
+		t.Errorf("the index should be evaluated before the value (%q):\n%s", want, rust)
+	}
+	want = "let __seq_handle = nodes.clone(); let mut __seq_guard = __seq_handle.borrow_mut(); let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); if __idx >= __len { std::mem::drop(__seq_guard); panic!("
+	if !strings.Contains(rust, want) {
+		t.Errorf("an index out of range should unlock the slice before it panics (%q):\n%s", want, rust)
+	}
+	if !strings.Contains(rust, "(*__seq_guard.as_mut().unwrap())[__idx].next = new_val; }") {
+		t.Errorf("missing the in-place field write:\n%s", rust)
 	}
 	if strings.Contains(rust, ".clone().next = new_val") {
 		t.Errorf("the field write should not go to a clone of the element:\n%s", rust)
