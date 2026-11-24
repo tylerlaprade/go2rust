@@ -1423,11 +1423,12 @@ pub fn no_panic() -> i64 {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
+        let __return_value = 7;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return 7;
+        return __return_value;
     }
     }));
     match __go_panic_result {

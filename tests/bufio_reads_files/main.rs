@@ -900,11 +900,12 @@ pub fn count_lines(path: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<A
         let (mut f, mut err) = os::open({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         {
+        let __return_value = (0, { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (0, { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) });
+        return __return_value;
     }
     }
         let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
@@ -917,14 +918,15 @@ pub fn count_lines(path: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<A
         print!("line {}: {}\n", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*strings::to_upper({ let __recv = sc.clone(); let __recv_ptr: *const bufio::scan::Scanner = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const bufio::scan::Scanner }; let __result = unsafe { &*__recv_ptr }.text(); __result }).lock().unwrap().as_ref().unwrap())));
     }
         {
+        let __return_value = (
+            { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
+            { let __recv = sc.clone(); let __recv_ptr: *const bufio::scan::Scanner = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const bufio::scan::Scanner }; let __result = unsafe { &*__recv_ptr }.err(); __result }
+        );
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (
-            { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v },
-            { let __recv = sc.clone(); let __recv_ptr: *const bufio::scan::Scanner = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const bufio::scan::Scanner }; let __result = unsafe { &*__recv_ptr }.err(); __result }
-        );
+        return __return_value;
     }
     }));
     match __go_panic_result {
@@ -954,11 +956,12 @@ pub fn count_words(path: Arc<Mutex<Option<String>>>) -> i64 {
         let (mut f, mut err) = os::open({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         {
+        let __return_value = -(1);
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return -(1);
+        return __return_value;
     }
     }
         let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
@@ -973,11 +976,12 @@ pub fn count_words(path: Arc<Mutex<Option<String>>>) -> i64 {
         { let mut guard = words.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         {
+        let __return_value = { let __v = (*words.lock().unwrap().as_ref().unwrap()).clone(); __v };
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return { let __v = (*words.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        return __return_value;
     }
     }));
     match __go_panic_result {

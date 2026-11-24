@@ -967,6 +967,10 @@ run_xfail_test() {
     run_test "tests/copy_into_wrapped_slice_field"
 }
 
+@test "cross_file_calls_into_main_file" {
+    run_test "tests/cross_file_calls_into_main_file"
+}
+
 @test "cross_file_debug_derive_inner_any" {
     run_test "tests/cross_file_debug_derive_inner_any"
 }
@@ -1081,6 +1085,14 @@ run_xfail_test() {
 
 @test "defer_nested_pointer_field_capture" {
     run_test "tests/defer_nested_pointer_field_capture"
+}
+
+@test "defer_return_evaluation_order" {
+    run_test "tests/defer_return_evaluation_order"
+}
+
+@test "defer_return_evaluation_order_goroutines" {
+    run_test "tests/defer_return_evaluation_order_goroutines"
 }
 
 @test "defer_select_case" {
@@ -2173,6 +2185,10 @@ run_xfail_test() {
 
 @test "multi_value_call_as_arguments_goroutines" {
     run_test "tests/multi_value_call_as_arguments_goroutines"
+}
+
+@test "multi_value_call_receiver_order" {
+    run_test "tests/multi_value_call_receiver_order"
 }
 
 @test "multiple_returns" {
