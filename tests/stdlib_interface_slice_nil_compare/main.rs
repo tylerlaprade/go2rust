@@ -26,6 +26,7 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast
 
 fn main() {
     ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_token::__go_init_all();
     ::internal_bytealg::__go_init_all();

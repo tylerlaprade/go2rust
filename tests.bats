@@ -1615,6 +1615,10 @@ run_xfail_test() {
     run_test "tests/goroutine_capture_rust_keyword"
 }
 
+@test "goroutine_defer_unlock_in_loop" {
+    run_test "tests/goroutine_defer_unlock_in_loop"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -2293,6 +2297,10 @@ run_xfail_test() {
 
 @test "mutex_counter" {
     run_test "tests/mutex_counter"
+}
+
+@test "mutex_defer_unlock_closure_in_loop" {
+    run_test "tests/mutex_defer_unlock_closure_in_loop"
 }
 
 @test "mutex_direct_unlock" {
@@ -3381,6 +3389,14 @@ run_xfail_test() {
 
 @test "rune_literals_in_byte_fields_goroutines" {
     run_test "tests/rune_literals_in_byte_fields_goroutines"
+}
+
+@test "rune_map_keys_from_string_range" {
+    run_test "tests/rune_map_keys_from_string_range"
+}
+
+@test "rune_map_keys_from_string_range_goroutines" {
+    run_test "tests/rune_map_keys_from_string_range_goroutines"
 }
 
 @test "runtime_format_structs_and_arrays" {

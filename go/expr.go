@@ -2504,6 +2504,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -2578,6 +2579,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -3763,6 +3765,31 @@ func writeRangeIndexForExpectedType(out *strings.Builder, arg ast.Expr, expected
 	}
 	out.WriteString(RustIdentForUse(ident))
 	out.WriteString(" as " + rustIntType())
+	return true
+}
+
+// writeRangeCharMapKey writes a rune from ranging over a string, which is a
+// Rust char, as the i32 key of a map[rune]V, between prefix and suffix. A
+// nil keyType is a map key whose type the caller did not look up: the rune
+// is then the key's type, as Go requires.
+func writeRangeCharMapKey(out *strings.Builder, key ast.Expr, keyType types.Type, prefix, suffix string) bool {
+	ident, ok := key.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" {
+		return false
+	}
+	if keyType != nil {
+		basic, ok := types.Unalias(keyType).Underlying().(*types.Basic)
+		if !ok || basic.Kind() != types.Int32 {
+			return false
+		}
+	}
+	out.WriteString(prefix)
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" as i32")
+	out.WriteString(suffix)
 	return true
 }
 
@@ -12743,6 +12770,9 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 					return
 				}
 			}
+			if writeRangeCharMapKey(out, ident, keyType, "&(", ")") {
+				return
+			}
 			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
 				out.WriteString(ident.Name)
 			} else {
@@ -17490,6 +17520,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	// Find captured variables
 	captured := capturedVarsForFuncLit(funcLit)
