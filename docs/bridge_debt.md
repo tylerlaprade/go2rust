@@ -477,6 +477,29 @@ in the first place.
   bridge; then delete the `read` arm of `writeOsFileStub`.
 - Added: 2026-11-24
 
+### os-std-streams
+
+- Location: `go/external_type_stubs.go` (the `__go_std_stream` field of
+  `writeOsFileStub` and its arm in `__go_write_counted`, `os.Stdout` and
+  `os.Stderr` in `writeOsPackageStub`)
+- Go symbol: `os.Stdout`, `os.Stderr` used as values: passed to
+  `bufio.NewWriter`, an `io.Writer` parameter or `io.WriteString`, held in a
+  variable, or written with `Write` and `WriteString`
+- Transpiler gap: `os.File` is the syscall layer and stays a stub.
+  `fmt.Fprint*(os.Stdout, ...)` is written as `print!`, but `os.Stdout`
+  as a value was a new in-memory `os_File` on every read, so its writes went
+  nowhere: a program writing through `bufio.NewWriter(os.Stdout)` printed
+  nothing. The two variables are now one File each, made once, whose writes
+  go to the process's standard output or error through Rust's handles, the
+  same ones `print!` and `eprint!` use, so the output stays in order.
+  Standard output is flushed after each write, as Go's is unbuffered.
+- Fixture: `tests/os_stdout_as_writer/`,
+  `tests/os_stdout_as_writer_goroutines/`,
+  `go/os_stdout_writer_test.go:TestOsStdoutValueWritesToProcessOutput`
+- Removal trigger: `os` translated from source with `syscall.Write` as the
+  bridge; then delete the `__go_std_stream` arm of `writeOsFileStub`.
+- Added: 2026-11-24
+
 ### io-readcloser-close-dispatch
 
 - Location: `go/external_type_stubs.go:2639`

@@ -2623,6 +2623,14 @@ run_xfail_test() {
     run_test "tests/os_stat_fileinfo_isdir"
 }
 
+@test "os_stdout_as_writer" {
+    run_test "tests/os_stdout_as_writer"
+}
+
+@test "os_stdout_as_writer_goroutines" {
+    run_test "tests/os_stdout_as_writer_goroutines"
+}
+
 @test "package_any_value_from_caller" {
     run_test "tests/package_any_value_from_caller"
 }
