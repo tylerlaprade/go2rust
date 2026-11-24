@@ -1,4 +1,4 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec, go_float_string};
 
 use crate::{types::{Counter, Point}};
 

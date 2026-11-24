@@ -1,4 +1,4 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec, go_float_string};
 
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
@@ -75,8 +75,8 @@ impl Default for Point {
 
 impl std::fmt::Display for Point {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.x.borrow().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.y.borrow().as_ref().unwrap()));
+        let __go_fmt_0 = go_float_string(((*self.x.borrow().as_ref().unwrap())) as f64, false);
+        let __go_fmt_1 = go_float_string(((*self.y.borrow().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
