@@ -852,7 +852,7 @@ fn main() {
         let __low = 0;
         let __high = (3) as usize;
         let __max = __source_cap;
-        __seq.reslice3_zeroed(__low, __high, __max)
+        __seq.reslice3(__low, __high, __max)
     } {
         (*b.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}={} ", format!("{}", w), format!("{}", { let __map = { let __map_holder = counts.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(w)).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }))))));
     }

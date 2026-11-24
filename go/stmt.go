@@ -6471,9 +6471,17 @@ func writeCurrentReceiverPointerHandleReturnValue(out *strings.Builder, result a
 	return true
 }
 
+func writeNilReturnValue(out *strings.Builder, expected ast.Expr) {
+	if typ := GetTypeInfo().GetType(expected); isChannelFieldType(typ) {
+		writeChannelNilDefault(out, goTypesTypeToRust(typ))
+		return
+	}
+	WriteWrappedNone(out)
+}
+
 func writeBlankNamedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) {
 	if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
-		WriteWrappedNone(out)
+		writeNilReturnValue(out, expected)
 		return
 	}
 	if resultTypeExprIsBareScalar(expected) {
@@ -9048,11 +9056,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok {
 				switch basic.Kind() {
 				case types.Float32, types.Float64:
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 			}
+			out.WriteString(RustIntegerLiteral(lit.Value))
+			return
 		}
 		out.WriteString(lit.Value)
 		return
@@ -10838,6 +10847,8 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		if lit.Kind == token.STRING {
 			out.WriteString(RustStringLiteral(lit.Value))
 			out.WriteString(".to_string()")
+		} else if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(lit.Value)
 		}
@@ -12139,7 +12150,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if writeGoPtrReturnValue(out, result, i) {
 					// GoPtr return slots preserve pointer identity through local variables and fields.
 				} else if isNil {
-					WriteWrappedNone(out)
+					writeNilReturnValue(out, returnResultTypeExpr(fnType, i))
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
@@ -14482,7 +14493,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													isFloatType := underlyingType == "float64" || underlyingType == "float32"
 													if isFloatType {
 														if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-															out.WriteString(lit.Value + ".0")
+															out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 														} else {
 															TranspileExpression(out, valueSpec.Values[i])
 														}
@@ -14537,7 +14548,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												isFloatType := underlyingType == "float64" || underlyingType == "float32"
 												if isFloatType {
 													if lit, ok := valueSpec.Values[i].(*ast.BasicLit); ok && lit.Kind == token.INT {
-														out.WriteString(lit.Value + ".0")
+														out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 													} else {
 														TranspileExpression(out, valueSpec.Values[i])
 													}

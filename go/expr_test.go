@@ -4781,13 +4781,13 @@ func check(raw uint32) bool {
 }
 `)
 
-	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
+	if strings.Contains(rust, "fs_FileMode::is_dir(&(*0o644") || strings.Contains(rust, "fs_FileMode::is_dir(&(*{") {
 		t.Fatalf("external named integer alias conversions should construct the newtype before method dispatch:\n%s", rust)
 	}
 	for _, want := range []string{
-		"Some(fs_FileMode(0644 as u32))",
-		"fs_FileMode::is_dir(&(fs_FileMode(0644 as u32)))",
-		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0755)) as u32)))",
+		"Some(fs_FileMode(0o644 as u32))",
+		"fs_FileMode::is_dir(&(fs_FileMode(0o644 as u32)))",
+		"fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o755)) as u32)))",
 		"fs_FileMode::is_dir(&(fs_FileMode((*raw.borrow().as_ref().unwrap()) as u32)))",
 	} {
 		if !strings.Contains(rust, want) {

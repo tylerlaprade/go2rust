@@ -6117,6 +6117,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 					continue
 				}
 
+				registerAnonymousStructTypesInFuncType(funcType)
+
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
 				out.WriteString("(")
@@ -8024,6 +8026,8 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			} else {
 				out.WriteString(e.Value)
 			}
+		} else if e.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(e.Value))
 		} else {
 			out.WriteString(e.Value)
 		}
