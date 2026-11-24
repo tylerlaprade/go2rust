@@ -1091,7 +1091,7 @@ pub fn join(items: Rc<RefCell<Option<Vec<fmt_Stringer>>>>) -> Rc<RefCell<Option<
 }
 
 pub fn show(s: Rc<RefCell<Option<fmt_Stringer>>>) {
-    println!("{} {} {}", format!("{}", "show:".to_string()), format!("{}", (*(*s.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())), format!("{}", format!("{}", (*s.borrow().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", "show:".to_string()), format!("{}", (*(*s.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())), format!("{}", match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 }
 
 pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
@@ -1200,7 +1200,7 @@ pub fn must_string(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<St
 fn main() {
     let mut s: Rc<RefCell<Option<fmt_Stringer>>> = Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display(Celsius { deg: Rc::new(RefCell::new(Some(21))), ..Default::default() }))));
     println!("{}", format!("{}", (*(*s.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", format!("{}", (*s.borrow().as_ref().unwrap()))));
+    println!("{}", format!("{}", match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
 
     let mut c = Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
     show(Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))));
@@ -1243,7 +1243,7 @@ fn main() {
             println!("{} {}", format!("{}", "in place".to_string()), format!("{}", (*(*st.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));;
         }
     }
-    print!("{} {} {}\n", match (s).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, match (stringer(Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, format!("{}", (*s.borrow().as_ref().unwrap())));
+    print!("{} {} {}\n", match (s).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, match (stringer(Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }, match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() });
 
         // A call's result, an assertion printed directly, and %T of one.
     let mut made: Rc<RefCell<Option<fmt_Stringer>>> = Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display((*make_celsius(Rc::new(RefCell::new(Some(11)))).borrow().as_ref().unwrap()).clone()))));

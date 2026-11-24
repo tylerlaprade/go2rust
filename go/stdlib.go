@@ -459,6 +459,130 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(")")
 }
 
+// writeLocalInterfaceTypeNameFormatArg writes %T of a value of one of the
+// program's interfaces, an ident held in a cell, as the type of the value it
+// holds: the trait object's __go_as_any, matched against every type of the
+// package that implements the interface.
+func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); !ok {
+		return false
+	}
+	iface, ok := typ.Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	// Only an interface of the package being translated: its implementors
+	// and their pointer wrappers are in this crate, under these names.
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	// The names are matched here rather than through __go_type_name, whose
+	// parameter is a Send + Sync Any in some programs with goroutines while
+	// __go_as_any returns a plain one.
+	type namedRustType struct{ rust, goName string }
+	var names []namedRustType
+	ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(typ)
+	scope := named.Obj().Pkg().Scope()
+	for _, name := range scope.Names() {
+		tn, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) {
+			continue
+		}
+		if named, ok := tn.Type().(*types.Named); ok && named.TypeParams().Len() > 0 {
+			// A generic declaration has no Rust type of its own; its
+			// instances fall back below.
+			continue
+		}
+		if sourceMappedDeclIsPruned(tn) {
+			// Dead code elimination left the type out of the crate.
+			continue
+		}
+		if types.Implements(tn.Type(), iface) {
+			rustType, rustOK := anyCloneRustType(tn.Type())
+			goName, goOK := goDynamicTypeName(tn.Type())
+			if rustOK && goOK {
+				names = append(names, namedRustType{rustType, goName})
+			}
+		}
+		if _, isFunc := tn.Type().Underlying().(*types.Signature); isFunc {
+			// A defined func type gets no pointer wrapper.
+			continue
+		}
+		if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
+			// A *T in one of the program's interfaces is boxed in the
+			// pointer wrapper, not as the handle.
+			if goName, ok := goDynamicTypeName(ptr); ok {
+				names = append(names, namedRustType{pointerLocalInterfaceWrapperNameForUse(tn.Name(), ifaceName), goName})
+			}
+		}
+	}
+	slices.SortFunc(names, func(a, b namedRustType) int { return strings.Compare(a.rust, b.rust) })
+	// Two Go types can share a Rust type, as defined func types do; a Rust
+	// type that stands for more than one Go name is left to the fallback
+	// rather than named wrongly.
+	names = slices.DeleteFunc(names, func(n namedRustType) bool {
+		count := 0
+		for _, other := range names {
+			if other.rust == n.rust {
+				count++
+			}
+		}
+		return count > 1
+	})
+	// An interface that embeds two others inherits __go_as_any from both,
+	// so the call names one of them.
+	qualifyingTrait := goAsAnyQualifyingTraitByName(ifaceName)
+	var chain strings.Builder
+	chain.WriteString("{ let __any = ")
+	writeChain := func(value, ref string) {
+		chain.WriteString(goAsAnyCall(qualifyingTrait, value, ref))
+		chain.WriteString("; ")
+		for _, n := range names {
+			chain.WriteString("if __any.is::<")
+			chain.WriteString(n.rust)
+			chain.WriteString(">() { ")
+			chain.WriteString(strconv.Quote(n.goName))
+			chain.WriteString(" } else ")
+		}
+		chain.WriteString("{ std::any::type_name_of_val(__any) } }")
+	}
+	if isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
+		writeChain(RustIdentForUse(ident), RustIdentForUse(ident))
+		out.WriteString(chain.String())
+		return true
+	}
+	writeChain("__iface", "&**__iface")
+	out.WriteString("{ let __type_name = match ")
+	out.WriteString(RustIdentForUse(ident))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__iface) => ")
+	out.WriteString(chain.String())
+	out.WriteString(", None => \"<nil>\" }; __type_name }")
+	return true
+}
+
+// rangeVarHoldsWrappedCell reports whether ident is a range loop variable
+// whose value is a cell: the value of "for _, s := range shapes" for a
+// []Shape of a local interface Shape. It is not bare, though range
+// variables usually are.
+func rangeVarHoldsWrappedCell(ident *ast.Ident) bool {
+	varType, ok := rangeLoopVars[ident.Name]
+	return ok && !identShadowsRangeVar(ident) && isWrappedRangeVarType(varType)
+}
+
 // printArgIsBasicFloat reports whether a print operand is a float32 or a
 // float64 that is not of a named type, and whether it is a float32. fmt
 // prints such a value as %v; Rust's Display has no exponent form.
@@ -595,23 +719,29 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			} else {
 				// It's a named interface - use Display formatting
 				// Check if it's a bare interface param (&dyn Trait) - use directly
-				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) {
+				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
 					// Interface parameter is already &dyn Trait with Display supertrait
 					out.WriteString(RustIdentForUse(ident))
 				} else {
-					// This will use the Display impl of the concrete type
-					out.WriteString("format!(\"{}\", ")
+					// This will use the Display impl of the concrete type.
+					// A variable or field holding a nil interface value
+					// prints <nil>.
 					if ident, ok := arg.(*ast.Ident); ok {
-						out.WriteString("(*")
+						out.WriteString("match ")
 						out.WriteString(RustIdentForUse(ident))
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
-					} else if _, ok := arg.(*ast.SelectorExpr); ok {
-						out.WriteString("(*")
+						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						return
+					}
+					if _, ok := arg.(*ast.SelectorExpr); ok {
+						out.WriteString("match ")
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
-					} else if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
+						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						return
+					}
+					out.WriteString("format!(\"{}\", ")
+					if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
 						// x.(fmt.Stringer) yields the bare fmt_Stringer.
 						TranspileExpression(out, arg)
 					} else {
@@ -1447,6 +1577,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		}
 	}
 	NeedGoTypeName()
+	if writeLocalInterfaceTypeNameFormatArg(out, arg) {
+		return
+	}
 	var payload strings.Builder
 	if writeBareAnyPayloadRef(&payload, arg) {
 		out.WriteString(goTypeNameHelperRustName)

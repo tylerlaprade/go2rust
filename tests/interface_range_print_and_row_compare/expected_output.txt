@@ -1,0 +1,13 @@
+0 {3 4}
+main.Rect|{3 4}|12.0
+1 Circle(1.0)
+main.Circle|Circle(1.0)|3.0
+0 *main.Square|4.0
+1 *main.Rect|30.0
+main.Rect {1 2}
+main.Circle 12.0 *main.Square 9.0
+<nil> true
+true true true
+true false
+true false false
+true false
