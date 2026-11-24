@@ -1,0 +1,7 @@
+<nil> hello world 0
+<nil> 2
+<nil>
+apple
+fig
+pear
+exit status 3 oops

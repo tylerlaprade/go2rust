@@ -844,15 +844,17 @@ func NeedFormatAny() {
 		// Also track the Any import that the helper will need
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
 }
 
 // NeedFormatAnyNested marks that a value held inside another one is printed,
 // which goes through format_any_nested.
 func NeedFormatAnyNested() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnyNested = true
-		helpers.needsFormatAny = true
-		TrackImport("Any")
 	}
 }
 
@@ -870,15 +872,31 @@ func NeedAnyClone() {
 		helpers.needsAnyClone = true
 		TrackImport("Any")
 	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
+	}
+}
+
+// NeedGoAnyRuntimeOps marks the erased operation registry used when a value
+// declared in one generated crate is formatted, copied, named, or asserted in
+// another. The registry lives in the shared helper crate, so it never needs a
+// reverse dependency on the crate that declares the concrete type.
+func NeedGoAnyRuntimeOps() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAnyRuntimeOps = true
+		TrackImport("Any")
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoAnyRuntimeOps = true
+	})
 }
 
 // NeedAnyHandleCopy marks that we need go_any_handle_copy and go_any_store,
 // which give an interface{} variable Go's copy of a value.
 func NeedAnyHandleCopy() {
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsAnyHandleCopy = true
-		helpers.needsAnyClone = true
-		TrackImport("Any")
 	}
 }
 
@@ -904,10 +922,9 @@ func NeedGoPointerError() {
 
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
 func NeedGoValueClone() {
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoValueClone = true
-		helpers.needsAnyClone = true
-		TrackImport("Any")
 	}
 	markSharedStdlibHelper(func(helpers *HelperTracker) {
 		helpers.needsGoValueClone = true
@@ -1052,6 +1069,9 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		}
 		return handleType, true
 	}
+	if array, ok := typ.(*types.Array); ok && anyArrayHasCloneableScalars(array) {
+		return goTypesTypeToRust(array), true
+	}
 	named, ok := typ.(*types.Named)
 	if !ok || named.Obj() == nil {
 		return "", false
@@ -1064,6 +1084,17 @@ func anyCloneRustType(typ types.Type) (string, bool) {
 		return qualified, true
 	}
 	return rustType, true
+}
+
+// Rust's array Clone copies these elements by value, including when the
+// arrays are nested. Struct and interface elements need their own copy paths.
+func anyArrayHasCloneableScalars(array *types.Array) bool {
+	elem := types.Unalias(array.Elem())
+	for nested, ok := elem.(*types.Array); ok; nested, ok = elem.(*types.Array) {
+		elem = types.Unalias(nested.Elem())
+	}
+	basic, ok := elem.(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
 func currentPackageHelperRustTypePath(named *types.Named, rustType string) (string, bool) {
@@ -1106,12 +1137,9 @@ func NeedGoInteger() {
 
 // NeedFormatAnySlice marks that we need the format_any_slice helper
 func NeedFormatAnySlice() {
+	NeedFormatAny()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnySlice = true
-		// Also need the regular format_any helper
-		helpers.needsFormatAny = true
-		// Track the Any import that the helpers will need
-		TrackImport("Any")
 	}
 }
 
@@ -1131,6 +1159,16 @@ func NeedGoAnyPtrKey() {
 }
 
 // NeedGoChannel marks that we need the GoChannel helper struct
+func NeedGoSelectSend() {
+	NeedGoChannel()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSelectSend = true
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoSelectSend = true
+	})
+}
+
 func NeedGoChannel() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoChannel = true
@@ -1189,10 +1227,20 @@ func NeedGoErrorChain() {
 	}
 }
 
+// NeedGoFloatString marks that a float is printed as fmt's %v prints it.
+func NeedGoFloatString() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFloatString = true
+	}
+}
+
 func NeedGoTypeName() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTypeName = true
 		TrackImport("Any")
+	}
+	if programAnyRuntimeOpsEnabled() {
+		NeedGoAnyRuntimeOps()
 	}
 }
 
@@ -1200,11 +1248,10 @@ func NeedGoTypeName() {
 // that is only known at run time. It prints through format_any and names
 // types through the %T helper.
 func NeedGoSprintf() {
+	NeedFormatAny()
+	NeedGoTypeName()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoSprintf = true
-		helpers.needsFormatAny = true
-		helpers.needsGoTypeName = true
-		TrackImport("Any")
 	}
 }
 
@@ -1264,6 +1311,38 @@ func NeedJsonEscape() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsJsonEscape = true
 	}
+}
+
+// NeedGoSliceAppendCopying marks that the program appends to a slice of
+// structs, whose growth copies the elements with go_slice_append_copying.
+func NeedGoSliceAppendCopying() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSliceAppendCopying = true
+	}
+}
+
+// NeedGoNilAny marks that the program stores a nil interface value in a
+// slot that holds a bare Box<dyn Any>, such as a []any element or a
+// ...any argument: the box holds GoNilAny, which copies, prints and
+// compares as nil.
+func NeedGoNilAny() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	helpers.needsGoNilAny = true
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[goNilAnyType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	helpers.anyFormatArms[goNilAnyType] = anyFormatArm{expr: `"<nil>".to_string()`}
+	if helpers.anyTypeNames == nil {
+		helpers.anyTypeNames = make(map[string]string)
+	}
+	helpers.anyTypeNames[goNilAnyType] = "<nil>"
 }
 
 // NeedOsFile marks that we need OS file helpers

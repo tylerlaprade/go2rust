@@ -1,0 +1,8 @@
+true false true
+2 1
+c 1
+11 1
+true b
+3 true c
+12 true
+2 c

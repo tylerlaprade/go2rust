@@ -3311,7 +3311,7 @@ func main() {
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	// The elements are structs, so each loop value is Go's copy of its element.
-	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard);") {
+	if !strings.Contains(mainRS, "let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e.__go_value_clone()).collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard);") {
 		t.Fatalf("range over wrapped array fields should clone values before the loop and drop the guard, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "fn format_slice<T, C>") || !strings.Contains(mainRS, "C: AsRef<[T]>") {
@@ -5383,7 +5383,9 @@ func main() {}
 
 const alphaMarker = "pub(crate) fn __go_init_all()"
 
-var alphaValue = 2
+var alphaValue = alphaSeed()
+
+func alphaSeed() int { return 2 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "beta.go"), `package main
 
@@ -5423,6 +5425,9 @@ var gammaValue = 4
 	}
 
 	alphaRS := mustReadFile(t, filepath.Join(tempDir, "alpha.rs"))
+	if calls := strings.Count(alphaRS, "= Some(alpha_seed());"); calls != 1 {
+		t.Fatalf("expected one call to the global initializer alphaSeed, got %d:\n%s", calls, alphaRS)
+	}
 	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all_alpha()") {
 		t.Fatalf("alpha module should rename its init helper, got:\n%s", alphaRS)
 	}

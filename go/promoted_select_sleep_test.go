@@ -44,8 +44,10 @@ loop:
 `)
 
 	for _, want := range []string{
-		"if let Some(_) = done.try_recv_select() {",
-		"if let Some(__select_recv) = results.try_recv_select() {",
+		"let __go_select_channel_0 = done.clone();",
+		"if let Some(_) = __go_select_channel_0.try_recv_select() {",
+		"let __go_select_channel_1 = results.clone();",
+		"if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {",
 		"let v = match __select_recv { Some(__v) => __v, None => Default::default() };",
 		"break 'r#loop;",
 	} {
@@ -113,8 +115,13 @@ func main() {
 	if err := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")}).Generate(); err != nil {
 		t.Fatalf("Generate() error = %v", err)
 	}
+	// math is translated from its source, so its constants are in its crate.
+	constants := mustReadFile(t, filepath.Join(tempDir, "vendor", "math", "const.rs"))
+	if !strings.Contains(constants, "pub const MAX_INT64: u64 = ") || !strings.Contains(constants, "pub const MAX_INT32: i64 = ") {
+		t.Fatalf("an untyped constant should get a Rust integer that holds it:\n%s", constants)
+	}
 	rust := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(rust, "pub const MAX_INT64: i64 = 9223372036854775807;") || !strings.Contains(rust, "pub const MAX_INT32: i64 = 2147483647;") {
-		t.Fatalf("an untyped constant should get a Rust integer that holds it:\n%s", rust)
+	if !strings.Contains(rust, "math::MAX_INT32 as i32") || !strings.Contains(rust, "math::MAX_INT64 as i64") {
+		t.Fatalf("the program should convert math's constants to its variables' types:\n%s", rust)
 	}
 }

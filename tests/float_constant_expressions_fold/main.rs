@@ -4,10 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::collections::BTreeMap;
-use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::cell::{RefCell};
+use std::fmt::{Display};
+use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -17,6 +16,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -29,7 +32,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -39,7 +42,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -78,7 +91,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -133,7 +146,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -166,6 +179,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -184,6 +198,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -395,15 +425,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -581,353 +612,108 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
-
-struct GoChannel<T> {
-    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
-    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
-    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
-    capacity: usize,
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
 }
 
-impl<T> GoChannel<T> {
-    fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
-    }
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
 
-    fn new_buffered(cap: usize) -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: cap,
-        }
-    }
-
-    fn send(&self, val: T) {
-        if self.is_nil() {
-            return;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.send(val).is_ok() && self.capacity > 0 {
-                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
             }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
         }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
     }
-
-    fn try_send(&self, val: T) -> bool {
-        if self.is_nil() {
-            return false;
-        }
-        let tx = self.tx.lock().unwrap().clone();
-        if let Some(tx) = tx {
-            if tx.try_send(val).is_ok() {
-                if self.capacity > 0 {
-                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                }
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
     }
-
-    fn recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
     }
-
-    fn try_recv(&self) -> Option<T> {
-        if self.is_nil() {
-            return None;
-        }
-        let value = self.rx.lock().unwrap().try_recv().ok();
-        if value.is_some() && self.capacity > 0 {
-            let _ = self.len.fetch_update(
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-                |__go_current| __go_current.checked_sub(1),
-            );
-        }
-        value
-    }
-
-    // A select case's receive: Some(Some(v)) for a value, Some(None) when
-    // the channel is closed and drained, None when nothing is ready yet.
-    fn try_recv_select(&self) -> Option<Option<T>> {
-        if self.is_nil() {
-            return None;
-        }
-        match self.rx.lock().unwrap().try_recv() {
-            Ok(value) => {
-                if self.capacity > 0 {
-                    let _ = self.len.fetch_update(
-                        std::sync::atomic::Ordering::SeqCst,
-                        std::sync::atomic::Ordering::SeqCst,
-                        |__go_current| __go_current.checked_sub(1),
-                    );
-                }
-                Some(Some(value))
-            }
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
-            Err(std::sync::mpsc::TryRecvError::Empty) => None,
-        }
-    }
-
-    fn close(&self) {
-        *self.tx.lock().unwrap() = None;
-    }
-
-    fn is_nil(&self) -> bool {
-        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn len(&self) -> usize {
-        self.len.load(std::sync::atomic::Ordering::SeqCst)
-    }
-
-    fn capacity(&self) -> usize {
-        self.capacity
-    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
 }
 
-impl<T> Clone for GoChannel<T> {
-    fn clone(&self) -> Self {
-        GoChannel {
-            tx: self.tx.clone(),
-            rx: self.rx.clone(),
-            is_nil: self.is_nil.clone(),
-            len: self.len.clone(),
-            capacity: self.capacity,
-        }
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
     }
-}
-
-impl<T> Default for GoChannel<T> {
-    fn default() -> Self {
-        let (tx, rx) = std::sync::mpsc::sync_channel(0);
-        GoChannel {
-            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
-            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
-            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
-            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            capacity: 0,
-        }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
+    __value.to_string()
 }
 
-impl<T> std::fmt::Debug for GoChannel<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "GoChannel")
-    }
-}
-
-impl<T> Iterator for GoChannel<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<T> {
-        self.recv()
-    }
-}
-
-fn go_rand_state() -> &'static std::sync::Mutex<u64> {
-    static STATE: std::sync::OnceLock<std::sync::Mutex<u64>> = std::sync::OnceLock::new();
-    STATE.get_or_init(|| std::sync::Mutex::new(1))
-}
-
-fn go_rand_seed(seed: i64) {
-    *go_rand_state().lock().unwrap() = seed as u64;
-}
-
-fn go_rand_next_u64() -> u64 {
-    let mut state = go_rand_state().lock().unwrap();
-    *state = state
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(1442695040888963407);
-    *state
-}
-
-fn go_rand_intn(n: i64) -> i64 {
-    if n <= 0 {
-        panic!("invalid argument to Intn");
-    }
-    (go_rand_next_u64() % n as u64) as i64
-}
-
-fn go_rand_float64() -> f64 {
-    ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
-}
-
-#[derive(Debug, Clone)]
-pub struct readOp {
-    pub key: Arc<Mutex<Option<i64>>>,
-    pub resp: GoChannel<i64>,
-}
-
-impl readOp {
-    pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.resp.clone();
-        Self {
-            key: __go_clone_0_0,
-            resp: __go_clone_1_0,
-        }
-    }
-}
-
-
-impl Default for readOp {
-    fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_1_0 = Default::default();
-        Self {
-            key: __go_default_0_0,
-            resp: __go_default_1_0,
-        }
-    }
-}
-
-impl std::fmt::Display for readOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{}}}", __go_fmt_0)
-    }
-}
-
-
-#[derive(Debug, Clone)]
-pub struct writeOp {
-    pub key: Arc<Mutex<Option<i64>>>,
-    pub val: Arc<Mutex<Option<i64>>>,
-    pub resp: GoChannel<bool>,
-}
-
-impl writeOp {
-    pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.key.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.resp.clone();
-        Self {
-            key: __go_clone_0_0,
-            val: __go_clone_1_0,
-            resp: __go_clone_2_0,
-        }
-    }
-}
-
-
-impl Default for writeOp {
-    fn default() -> Self {
-        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
-        let __go_default_2_0 = Default::default();
-        Self {
-            key: __go_default_0_0,
-            val: __go_default_1_0,
-            resp: __go_default_2_0,
-        }
-    }
-}
-
-impl std::fmt::Display for writeOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.key.lock().unwrap().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.val.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
-    }
-}
+pub(crate) const THIRD: f64 = 0.3333333333333333;
 
 
 fn main() {
-    let mut readOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
-    let mut writeOps: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
-
-    let mut reads = GoChannel::<readOp>::new();
-    let mut writes = GoChannel::<writeOp>::new();
-    let mut done = GoChannel::<bool>::new();
-
-    let reads_thread = reads.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
-        let mut state = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<i64>>>>::new())));;
-        loop {
-        loop {
-        if let Some(__select_recv) = reads_thread.try_recv_select() {
-            let __select_ok = __select_recv.is_some();
-            let read = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut read = Arc::new(Mutex::new(Some(read)));
-            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
-            break;
-        }
-        if let Some(__select_recv) = writes_thread.try_recv_select() {
-            let __select_ok = __select_recv.is_some();
-            let write = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut write = Arc::new(Mutex::new(Some(write)));
-            { let __map_key = (*{ let __field = (*write.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __map_value = (*write.lock().unwrap().as_ref().unwrap()).val.clone(); (*state.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-            { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send(true);
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-    };;
-    });
-
-    let mut r = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let readOps_thread = readOps.clone(); let reads_thread = reads.clone(); std::thread::spawn(move || {
-        let mut read = Arc::new(Mutex::new(Some(readOp { key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))), resp: GoChannel::<i64>::new(), ..Default::default() })));;
-        reads_thread.send(read.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        Arc::new(Mutex::new(Some({ let __target = readOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
-        done_thread.send(true);;;
-    });
-        { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    let mut w = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x < __tmp_y } {
-        let done_thread = done.clone(); let writeOps_thread = writeOps.clone(); let writes_thread = writes.clone(); std::thread::spawn(move || {
-        let mut write = Arc::new(Mutex::new(Some(writeOp {
-            key: Arc::new(Mutex::new(Some(go_rand_intn(5 as i64)))),
-            val: Arc::new(Mutex::new(Some(go_rand_intn(100 as i64)))),
-            resp: GoChannel::<bool>::new(),
-            ..Default::default()
-        })));;
-        writes_thread.send(write.lock().unwrap().as_ref().unwrap().__go_value_clone());;
-        { let __channel = (*write.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.recv().unwrap_or_default();;
-        Arc::new(Mutex::new(Some({ let __target = writeOps_thread.clone(); let __delta = (1) as u64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));;
-        done_thread.send(true);;;
-    });
-        { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    let mut i = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 110; __tmp_x < __tmp_y } {
-        done.recv().unwrap_or_default();
-        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }
-
-    let mut readOpsFinal = Arc::new(Mutex::new(Some({ let __target = readOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
-    println!("{} {}", format!("{}", "readOps:".to_string()), format!("{}", { let __v = (*readOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut writeOpsFinal = Arc::new(Mutex::new(Some({ let __target = writeOps.clone(); let mut __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
-    println!("{} {}", format!("{}", "writeOps:".to_string()), format!("{}", { let __v = (*writeOpsFinal.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    let mut x = Rc::new(RefCell::new(Some(0.3)));
+    let mut y: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.3)));
+    let mut z = Rc::new(RefCell::new(Some(vec![0.3, 1.21])));
+    println!("{} {} {} {} {}", { let __text = go_float_string(({ let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, { let __text = go_float_string(({ let __v = (*y.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, format!("{}", format_slice(&z)), { let __text = go_float_string((1.0) as f64, false); __text }, format!("{}", (*x.borrow().as_ref().unwrap()) == 0.3));
+    println!("{} {}", { let __text = go_float_string(((*Rc::new(RefCell::new(Some(((0.3)) as f32))).borrow().as_ref().unwrap())) as f64, true); __text }, format!("{}", 2.0 == 2.0));
+    print!("{:.20}\n", 0.3);
 }

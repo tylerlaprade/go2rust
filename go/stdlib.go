@@ -439,9 +439,50 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("\"<nil>\".to_string()")
 		return
 	}
+	if single, ok := printArgIsBasicFloat(arg); ok {
+		NeedGoFloatString()
+		// A let releases the operand's lock guards before the next operand
+		// takes them, as format! does; a bare call would keep them to the
+		// end of the print statement.
+		out.WriteString("{ let __text = go_float_string((")
+		transpilePrintArg(out, arg)
+		out.WriteString(") as f64, ")
+		if single {
+			out.WriteString("true")
+		} else {
+			out.WriteString("false")
+		}
+		out.WriteString("); __text }")
+		return
+	}
 	out.WriteString("format!(\"{}\", ")
 	transpilePrintArg(out, arg)
 	out.WriteString(")")
+}
+
+// printArgIsBasicFloat reports whether a print operand is a float32 or a
+// float64 that is not of a named type, and whether it is a float32. fmt
+// prints such a value as %v; Rust's Display has no exponent form.
+func printArgIsBasicFloat(arg ast.Expr) (single bool, ok bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false, false
+	}
+	basic, isBasic := types.Unalias(argType).(*types.Basic)
+	if !isBasic {
+		return false, false
+	}
+	switch basic.Kind() {
+	case types.Float32:
+		return true, true
+	case types.Float64, types.UntypedFloat:
+		return false, true
+	}
+	return false, false
 }
 
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
@@ -571,6 +612,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
+					} else if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
+						// x.(fmt.Stringer) yields the bare fmt_Stringer.
+						TranspileExpression(out, arg)
 					} else {
 						// Complex expression
 						out.WriteString("(*(")
@@ -1411,6 +1455,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
 	}
+	if writeFmtStringerTypeName(out, arg) {
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if typ := typeInfo.GetType(ident); typ != nil {
@@ -1425,6 +1472,24 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 					return
 				}
 			}
+		}
+	}
+	if _, isIdent := arg.(*ast.Ident); !isIdent && isEmptyInterfaceValueExpr(arg) {
+		if _, isElement := anySequenceElementIndex(arg); !isElement {
+			// Name the type of the value the interface holds, as
+			// writeFormatAnyPrintArg prints it: not the type of its text.
+			out.WriteString("match (")
+			if _, ok := arg.(*ast.SelectorExpr); ok {
+				TranspileExpressionContext(out, arg, LValue)
+			} else {
+				TranspileExpression(out, arg)
+			}
+			out.WriteString(")")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref() { Some(__any_value) => ")
+			out.WriteString(goTypeNameHelperRustName)
+			out.WriteString("(&**__any_value), None => \"<nil>\" }")
+			return
 		}
 	}
 	out.WriteString(goTypeNameHelperRustName)
@@ -1469,6 +1534,14 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 }
 
 func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+	// The nil literal is a nil interface value, which %v and %T print as
+	// <nil>.
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.info == nil || typeInfo.GetObject(ident) == types.Universe.Lookup("nil") {
+			out.WriteString("\"<nil>\".to_string()")
+			return
+		}
+	}
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
 		if tnIdx == argIndex {
@@ -3741,7 +3814,7 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 				TranspileExpressionContext(out, call.Args[1], LValue)
 				out.WriteString(".clone(); let __value_guard = __value_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
+				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); std::mem::drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
 				WriteBorrowMethod(out, false)
 				out.WriteString("; match (__item_guard.as_ref(), __value_option.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
@@ -5240,6 +5313,11 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		writeAppendElement := func(expr ast.Expr) {
+			// A local []*T that holds pointers to slice elements holds
+			// GoPtr<T> values (DEV-131).
+			if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(call.Args[0]); ok && writeSliceElemPtrSliceSlotValue(out, expr, elemRustType) {
+				return
+			}
 			var elemType types.Type
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				elemType = typeInfo.GetSliceElemType(call.Args[0])
@@ -5263,10 +5341,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if isEmptyInterfaceType(elemType) && !isEmptyInterfaceValueExpr(expr) {
-					if nilIdent, ok := expr.(*ast.Ident); !ok || nilIdent.Name != "nil" {
-						writeBareAnyBox(out, expr)
-						return
-					}
+					writeBareAnyBox(out, expr)
+					return
 				}
 				// An interface value appended to a []interface{} is copied
 				// into a box of its own. A box cannot be cloned, so the
@@ -5434,7 +5510,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		// ("append(s, s[0])", "append(s, len(s))", "append(s, s...)"), and a
 		// read under the write lock panics, or hangs in a program with
 		// goroutines.
-		writeAppendedValues := func() string {
+		writeAppendedValuesRaw := func() string {
 			if call.Ellipsis.IsValid() {
 				// Slice expansion: append(dst, src...) → extend from src.
 				// Go also permits append([]byte, string...), which expands bytes.
@@ -5453,6 +5529,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			writeAppendElementsVec(out, call.Args[1:], writeAppendElement)
 			out.WriteString("; ")
 			return ".extend(__append_values)"
+		}
+		writeAppendedValues := func() string {
+			return appendStoreCopyingElements(call, writeAppendedValuesRaw())
 		}
 		writeIndexedSliceAppend := func(indexExpr *ast.IndexExpr) bool {
 			if !appendCallReturnsBareIndexedSlice(call) {
@@ -5564,7 +5643,9 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			// append returns a new header and leaves its operand as it
 			// was; the two share the backing array while it has room.
 			out.WriteString("let mut __appended")
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(call.Args[0]); ok {
+				out.WriteString(": Vec<GoPtr<" + elemRustType + ">>")
+			} else if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if resultType := typeInfo.GetType(call); resultType != nil {
 					if _, ok := types.Unalias(resultType).(*types.Slice); ok {
 						if rustType := goTypesTypeToRust(resultType); strings.HasPrefix(rustType, "Vec<") {
@@ -5591,6 +5672,33 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(store)
 		out.WriteString("; __append_target.clone() }")
 	}
+}
+
+// appendStoreCopyingElements wraps the call that adds appended values to a
+// GoSlice when its elements are structs: a struct's Clone shares its field
+// cells, so when the append moves the slice to a new backing array the
+// elements it carries over are replaced with Go's copies. Without that the
+// old array and the new one share every field, and a write through the old
+// slice shows in the new one (DEV-55).
+func appendStoreCopyingElements(call *ast.CallExpr, store string) string {
+	if !goSliceModeEnabled() {
+		return store
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return store
+	}
+	sliceType, ok := types.Unalias(typeInfo.GetType(call)).(*types.Slice)
+	if !ok {
+		if t := typeInfo.GetType(call); t != nil {
+			sliceType, ok = t.Underlying().(*types.Slice)
+		}
+	}
+	if !ok || !typeNeedsGoValueClone(sliceType.Elem()) {
+		return store
+	}
+	NeedGoSliceAppendCopying()
+	return ".go_append_copying(|__go_slice| { __go_slice" + store + "; }, |__go_elem| __go_elem" + goStructValueCopyCall + ")"
 }
 
 func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
@@ -5636,7 +5744,7 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 	writeNamedSliceInnerHandleClone(out, call.Args[0])
 	out.WriteString("; let __base_guard = __base")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); ")
+	out.WriteString("; let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); ")
 	if call.Ellipsis.IsValid() {
 		if isNamedSliceExpression(call.Args[1]) {
 			out.WriteString("let __src = ")
@@ -5646,6 +5754,11 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values")
 			out.WriteString(goElementCopyIter(call.Args[1]))
 			out.WriteString("); }; ")
+		} else if appendExpandsStringIntoByteSlice(call) {
+			// append(w, s...) with a string s appends its bytes.
+			out.WriteString("__values.extend(")
+			writeOwnedStringStdlibArg(out, call.Args[1])
+			out.WriteString(".as_bytes().iter().cloned()); ")
 		} else {
 			out.WriteString("__values.extend(")
 			TranspileExpression(out, call.Args[1])
@@ -6087,7 +6200,7 @@ func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType strin
 
 func writeChannelCapacityAsUsize(out *strings.Builder, expr ast.Expr) {
 	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT {
-		out.WriteString(lit.Value)
+		out.WriteString(RustIntegerLiteral(lit.Value))
 		out.WriteString(" as usize")
 		return
 	}
@@ -6717,7 +6830,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6747,7 +6860,7 @@ where
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {
-                    format!("{}:{}", k, val)
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:<nil>", k)
                 }
@@ -6776,7 +6889,7 @@ where
 {
     let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6787,7 +6900,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -6870,7 +6983,7 @@ where
 {
     let guard = slice.borrow();
     if let Some(ref s) = *guard {
-        let formatted: Vec<String> = s.as_ref().iter().map(|v| v.to_string()).collect();
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
@@ -6881,7 +6994,7 @@ fn format_slice_values<T>(slice: &[T]) -> String
 where
     T: Display,
 {
-    let formatted: Vec<String> = slice.iter().map(|v| v.to_string()).collect();
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
     format!("[{}]", formatted.join(" "))
 }
 
@@ -7747,6 +7860,10 @@ func isTimeDurationType(typ types.Type) bool {
 func timeDurationUsesStdTimeDuration(typ types.Type) bool {
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || !isTimeDurationType(named) {
+		return false
+	}
+	// Translated from source, time.Duration is the int64 it is in Go.
+	if isSourceMappedPackagePath("time") {
 		return false
 	}
 	return !useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named)

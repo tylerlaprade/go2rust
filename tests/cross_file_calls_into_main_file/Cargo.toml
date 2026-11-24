@@ -1,0 +1,11 @@
+[package]
+name = "cross_file_calls_into_main_file"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_calls_into_main_file"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

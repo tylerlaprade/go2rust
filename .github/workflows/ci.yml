@@ -6,11 +6,13 @@ on:
   pull_request:
     branches: [master]
 
-# A new push makes the runs of the branch's older commits useless; cancel
-# them so they do not hold runners while every other branch waits.
+# A new push to a pull request makes the runs of its older commits useless;
+# cancel them so they do not hold runners while every other branch waits.
+# A push to master is not cancelled: each master commit needs its own result,
+# or a busy day of merges leaves master with none.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   lint:
@@ -70,7 +72,11 @@ jobs:
 
       - name: Run tests
         id: fixtures
-        run: ./test.sh -v -t 30s
+        # A fixture that imports strings, bytes, bufio, io or another package
+        # translated from source builds those crates too, which takes 15-30s
+        # on a runner shared with the other shards. 60s is the default of
+        # tests.bats; a hang still fails.
+        run: ./test.sh -v -t 60s
 
       # The test run rewrites every generated file under tests/ and
       # tests.bats. If that changes anything, the committed snapshots are not

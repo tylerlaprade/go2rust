@@ -10,10 +10,14 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
+    ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let (mut entries, mut err) = os::read_dir("data".to_string());
     let mut entries = { let __slice_header = GoSliceHeader::go_slice_header(&entries); Arc::new(Mutex::new(__slice_header)) };
@@ -21,7 +25,7 @@ fn main() {
         println!("{}", format!("{}", "read error".to_string()));
         return;
     }
-    { let __range_holder = entries.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for entry in __range_values.iter() {
+    { let __range_holder = entries.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for entry in __range_values.iter() {
         let mut joined = path_filepath::join(Arc::new(Mutex::new(Some(vec!["data".to_string(), (*entry.name().lock().unwrap().as_ref().unwrap()).clone()]))));
         println!("{} {} {} {}", format!("{}", "entry".to_string()), format!("{}", { let __v = (*joined.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*path_filepath::base(Arc::new(Mutex::new(Some({ let __arg_holder = joined.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", entry.is_dir()));
     } }
