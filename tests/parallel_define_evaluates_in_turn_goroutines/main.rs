@@ -179,7 +179,7 @@ impl Matrix {
 
 pub fn eval_r_p_n(expr: Arc<Mutex<Option<String>>>) -> i64 {
     let mut st: Arc<Mutex<Option<Stack>>> = Arc::new(Mutex::new(Some(Default::default())));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = (*expr.lock().unwrap().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
+    { let __range_holder = strings::fields(Arc::new(Mutex::new(Some({ let __arg_holder = expr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for t in __range_values.iter() {
         { let _switch_val = (*t).clone();
     if _switch_val == ("+".to_string()) || _switch_val == ("*".to_string()) {
             let (mut b, mut a) = ({ let __tuple_value = (*st.lock().unwrap().as_mut().unwrap()).pop(); __tuple_value }, { let __tuple_value = (*st.lock().unwrap().as_mut().unwrap()).pop(); __tuple_value });
@@ -198,10 +198,14 @@ pub fn eval_r_p_n(expr: Arc<Mutex<Option<String>>>) -> i64 {
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut started = GoChannel::<bool>::new();
@@ -223,7 +227,7 @@ fn main() {
     let (mut p, mut q) = ({ let __tuple_value = { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }; __tuple_value }, { let __tuple_value = { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }; __tuple_value });
     println!("{} {}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut byLen = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<String>>>>>::from([]))));
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = "go is fun to use".to_string(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
+    { let __range_holder = strings::fields(Arc::new(Mutex::new(Some("go is fun to use".to_string())))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
         { let __map_key = w.len() as i64; let __map_value = { let __slice = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().unwrap().get(&(w.len() as i64)).cloned().unwrap_or_else(|| Arc::new(Mutex::new(None))) }; let __append_value = (*w).clone(); let mut __appended = (*__slice.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }; (*byLen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
     println!("{} {}", format!("{}", format_slice(&{ let __map = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&2)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&{ let __map = { let __map_holder = byLen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&3)).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));

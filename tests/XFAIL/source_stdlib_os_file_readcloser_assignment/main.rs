@@ -17,7 +17,6 @@ fn main() {
     ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_byteorder::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_goarch::__go_init_all();
     ::internal_godebug::__go_init_all();

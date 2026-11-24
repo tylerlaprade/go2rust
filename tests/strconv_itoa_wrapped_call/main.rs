@@ -48,6 +48,7 @@ impl item {
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();

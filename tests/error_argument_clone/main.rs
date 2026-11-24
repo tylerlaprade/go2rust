@@ -15,6 +15,7 @@ pub fn check(err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();

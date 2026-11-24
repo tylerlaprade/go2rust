@@ -4,589 +4,17 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use go2rust_stdlib_stubs::*;
 use std::any::Any;
-use std::cell::{RefCell};
 use std::fmt::{Display};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
-/// A Go slice: an offset, a length and a capacity over a backing array that
-/// every slice made from it shares. Every name below that a binding uses
-/// starts with __, so no package-level variable of the program shadows it.
-pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
-    off: usize,
-    len: usize,
-    cap: usize,
-}
-
-unsafe impl<T: Send> Send for GoSlice<T> {}
-unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
-
-/// The prelude's Vec and vec! are Go slices in generated code.
-pub type Vec<T> = GoSlice<T>;
-
-impl<T> Clone for GoSlice<T> {
-    /// Copies the header. The copy shares the elements, as a Go slice
-    /// assignment does.
-    fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
-    }
-}
-
-impl<T> GoSlice<T> {
-    pub fn new() -> Self {
-        Self::from(std::vec::Vec::new())
-    }
-
-    pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
-    }
-
-    fn backing_ref(&self) -> &std::vec::Vec<T> {
-        unsafe { &*self.backing.get() }
-    }
-
-    #[allow(clippy::mut_from_ref)]
-    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
-        unsafe { &mut *self.backing.get() }
-    }
-
-    pub fn as_slice(&self) -> &[T] {
-        &self.backing_ref()[self.off..self.off + self.len]
-    }
-
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        let (__off, __len) = (self.off, self.len);
-        &mut self.backing_mut()[__off..__off + __len]
-    }
-
-    /// Go's cap(s).
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
-
-    /// Whether two slices share their backing array.
-    pub fn shares_backing_with(&self, __other: &Self) -> bool {
-        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
-    }
-
-    /// Go's s[lo:hi].
-    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
-        if __lo > __hi || __hi > self.cap {
-            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
-        }
-        if self.off + __hi > self.backing_ref().len() {
-            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
-        }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
-    }
-
-    /// Go's s[lo:hi:max].
-    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
-        if __max > self.cap || __hi > __max {
-            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
-        }
-        let mut __slice = self.reslice(__lo, __hi);
-        __slice.cap = __max - __lo;
-        __slice
-    }
-
-    /// Go's s = s[:n] when n is at most len(s).
-    pub fn truncate(&mut self, __n: usize) {
-        if __n < self.len {
-            self.len = __n;
-        }
-    }
-
-    /// Go's s = s[:0].
-    pub fn clear(&mut self) {
-        self.len = 0;
-    }
-
-    #[allow(unused_variables)]
-    pub fn reserve(&mut self, __additional: usize) {}
-
-    /// Keeps the elements the predicate accepts, in order, at the front.
-    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
-        let mut __kept = 0;
-        {
-            let __window = self.as_mut_slice();
-            for __index in 0..__window.len() {
-                if __keep(&__window[__index]) {
-                    __window.swap(__kept, __index);
-                    __kept += 1;
-                }
-            }
-        }
-        self.len = __kept;
-    }
-
-    /// Moves the slice's elements out when no other slice shares them.
-    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
-        let (__off, __len) = (self.off, self.len);
-        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut());
-        __elems.truncate(__off + __len);
-        __elems.drain(..__off);
-        Some(__elems)
-    }
-
-    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
-    }
-
-    /// The capacity Go's append gives a slice that must grow to hold
-    /// __needed elements.
-    fn grown_cap(&self, __needed: usize) -> usize {
-        let __old = self.cap;
-        let __doubled = __old + __old;
-        if __needed > __doubled {
-            return __needed;
-        }
-        if __old < 256 {
-            return __doubled.max(1);
-        }
-        let mut __grown = __old;
-        while __grown < __needed {
-            __grown += (__grown + 3 * 256) / 4;
-        }
-        __grown
-    }
-
-    /// Stores a value at index len(s) of the backing array: the in-place
-    /// half of Go's append. The backing Vec has room for the capacity, so
-    /// pushing onto it never moves elements other slices are reading.
-    fn store_at_end(&mut self, __value: T) {
-        let __at = self.off + self.len;
-        let __backing = self.backing_mut();
-        if __at < __backing.len() {
-            __backing[__at] = __value;
-        } else {
-            __backing.push(__value);
-        }
-        self.len += 1;
-    }
-
-    /// append for elements that cannot be copied: when the slice is full and
-    /// shares its backing array, the value goes at the end of that array.
-    fn push_without_copy(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        if let Some(mut __elems) = self.take_unique() {
-            __elems.reserve(__cap.saturating_sub(__elems.len()));
-            __elems.push(__value);
-            *self = Self::fresh(__elems, __cap);
-            return;
-        }
-        self.store_at_end(__value);
-        self.cap = self.len;
-    }
-}
-
-impl<T: Clone> GoSlice<T> {
-    /// Go's s = append(s, v): in place while there is capacity, else into a
-    /// new backing array.
-    pub fn push(&mut self, __value: T) {
-        if self.len < self.cap {
-            self.store_at_end(__value);
-            return;
-        }
-        let __cap = self.grown_cap(self.len + 1);
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.push(__value);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's append(s, v), leaving s as it was.
-    pub fn appended(&self, __value: T) -> Self {
-        let mut __result = self.clone();
-        __result.push(__value);
-        __result
-    }
-
-    /// Go's s = append(s, xs...).
-    pub fn extend_from_slice(&mut self, __values: &[T]) {
-        if self.len + __values.len() <= self.cap {
-            for __value in __values {
-                self.store_at_end(__value.clone());
-            }
-            return;
-        }
-        let __cap = self.grown_cap(self.len + __values.len());
-        let mut __elems = match self.take_unique() {
-            Some(__elems) => __elems,
-            None => self.as_slice().to_vec(),
-        };
-        __elems.reserve(__cap.saturating_sub(__elems.len()));
-        __elems.extend_from_slice(__values);
-        *self = Self::fresh(__elems, __cap);
-    }
-
-    /// Go's s = append(s, xs...) from values.
-    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
-        let __values: std::vec::Vec<T> = __values.into_iter().collect();
-        self.extend_from_slice(&__values);
-    }
-
-    /// Removes and returns the last element: Go's v := s[len(s)-1];
-    /// s = s[:len(s)-1].
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-        let __last = self.as_slice()[self.len - 1].clone();
-        self.len -= 1;
-        Some(__last)
-    }
-
-    pub fn insert(&mut self, __index: usize, __value: T) {
-        if __index > self.len {
-            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
-        }
-        self.push(__value);
-        self.as_mut_slice()[__index..].rotate_right(1);
-    }
-
-    pub fn remove(&mut self, __index: usize) -> T {
-        let __removed = self.as_slice()[__index].clone();
-        self.as_mut_slice()[__index..].rotate_left(1);
-        self.len -= 1;
-        __removed
-    }
-
-    pub fn split_off(&mut self, __at: usize) -> Self {
-        let __tail = Self::from(self.as_slice()[__at..].to_vec());
-        self.len = __at;
-        __tail
-    }
-
-    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
-        let mut __elems = self.as_slice().to_vec();
-        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
-        let __cap = self.cap;
-        *self = Self::fresh(__elems, __cap);
-        __drained.into_iter()
-    }
-
-    pub fn resize(&mut self, __new_len: usize, __value: T) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more = std::vec::from_elem(__value, __new_len - self.len);
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
-        if __new_len <= self.len {
-            self.len = __new_len;
-        } else {
-            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
-            self.extend_from_slice(&__more);
-        }
-    }
-
-    pub fn into_std_vec(self) -> std::vec::Vec<T> {
-        self.as_slice().to_vec()
-    }
-
-    pub fn into_boxed_slice(self) -> Box<[T]> {
-        self.as_slice().to_vec().into_boxed_slice()
-    }
-}
-
-/// The values appended by append(s, xs...) to a slice of interface values:
-/// always a slice built for the append, which nothing else holds.
-pub trait GoSliceBoxedValues<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T>;
-}
-
-impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
-    fn into_boxed_values(self) -> std::vec::Vec<T> {
-        self
-    }
-}
-
-impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
-    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
-        match self.take_unique() {
-            Some(__elems) => __elems,
-            None => panic!("append of interface values held by another slice"),
-        }
-    }
-}
-
-/// Go's append for interface values, which have no Clone. When the slice
-/// is full and shares its backing array, the new element goes at the end of
-/// that array instead of into a copy.
-pub trait GoSliceAppendBoxed<T> {
-    fn push(&mut self, __value: T);
-    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
-    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
-        self.push_without_copy(__value);
-    }
-    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
-        for __value in __values.into_boxed_values() {
-            self.push_without_copy(__value);
-        }
-    }
-}
-
-/// Reads the header of a slice value, whichever form the value has.
-pub trait GoSliceHeader<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>>;
-}
-
-impl<T> GoSliceHeader<T> for GoSlice<T> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        Some(self.clone())
-    }
-}
-
-impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.borrow().clone()
-    }
-}
-
-impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
-    fn go_slice_header(&self) -> Option<GoSlice<T>> {
-        self.lock().unwrap().clone()
-    }
-}
-
-/// Copies a Rust slice into a new Go slice.
-pub trait GoSliceFromSlice<T> {
-    fn to_go_slice(&self) -> GoSlice<T>;
-}
-
-impl<T: Clone> GoSliceFromSlice<T> for [T] {
-    fn to_go_slice(&self) -> GoSlice<T> {
-        GoSlice::from(self.to_vec())
-    }
-}
-
-impl<T> Default for GoSlice<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
-    fn from(__elems: std::vec::Vec<T>) -> Self {
-        let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
-    }
-}
-
-impl<T: Clone> From<&[T]> for GoSlice<T> {
-    fn from(__elems: &[T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T: Clone> From<&mut [T]> for GoSlice<T> {
-    fn from(__elems: &mut [T]) -> Self {
-        Self::from(__elems.to_vec())
-    }
-}
-
-impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
-    fn from(__elems: [T; N]) -> Self {
-        Self::from(std::vec::Vec::from(__elems))
-    }
-}
-
-impl From<&str> for GoSlice<u8> {
-    fn from(__text: &str) -> Self {
-        Self::from(__text.as_bytes().to_vec())
-    }
-}
-
-impl From<String> for GoSlice<u8> {
-    fn from(__text: String) -> Self {
-        Self::from(__text.into_bytes())
-    }
-}
-
-impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
-    fn from(__slice: GoSlice<T>) -> Self {
-        __slice.as_slice().to_vec()
-    }
-}
-
-impl<T> std::ops::Deref for GoSlice<T> {
-    type Target = [T];
-    fn deref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::ops::DerefMut for GoSlice<T> {
-    fn deref_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> AsRef<[T]> for GoSlice<T> {
-    fn as_ref(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> AsMut<[T]> for GoSlice<T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
-    fn borrow(&self) -> &[T] {
-        self.as_slice()
-    }
-}
-
-impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
-    fn borrow_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
-    }
-}
-
-impl<T> std::iter::FromIterator<T> for GoSlice<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
-        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
-    }
-}
-
-impl<T: Clone> IntoIterator for GoSlice<T> {
-    type Item = T;
-    type IntoIter = std::vec::IntoIter<T>;
-    fn into_iter(mut self) -> Self::IntoIter {
-        match self.take_unique() {
-            Some(__elems) => __elems.into_iter(),
-            None => self.as_slice().to_vec().into_iter(),
-        }
-    }
-}
-
-impl<'a, T> IntoIterator for &'a GoSlice<T> {
-    type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
-    type Item = &'a mut T;
-    type IntoIter = std::slice::IterMut<'a, T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_mut_slice().iter_mut()
-    }
-}
-
-impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_slice().fmt(__f)
-    }
-}
-
-/// Go's %v of a slice: the elements' %v between brackets.
-impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
-    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        __f.write_str("[")?;
-        for (__index, __value) in self.as_slice().iter().enumerate() {
-            if __index > 0 {
-                __f.write_str(" ")?;
-            }
-            write!(__f, "{}", __value)?;
-        }
-        __f.write_str("]")
-    }
-}
-
-impl<T: PartialEq> PartialEq for GoSlice<T> {
-    fn eq(&self, __other: &Self) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
-    fn eq(&self, __other: &[T]) -> bool {
-        self.as_slice() == __other
-    }
-}
-
-impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
-    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
-        self.as_slice() == __other.as_slice()
-    }
-}
-
-impl<T: Eq> Eq for GoSlice<T> {}
-
-impl<T: PartialOrd> PartialOrd for GoSlice<T> {
-    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
-        self.as_slice().partial_cmp(__other.as_slice())
-    }
-}
-
-impl<T: Ord> Ord for GoSlice<T> {
-    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
-        self.as_slice().cmp(__other.as_slice())
-    }
-}
-
-impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
-    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
-        self.as_slice().hash(__state)
-    }
-}
-
-impl std::io::Write for GoSlice<u8> {
-    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
-        self.extend_from_slice(__bytes);
-        Ok(__bytes.len())
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
@@ -603,15 +31,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -623,7 +51,7 @@ where
     }
 }
 
-fn format_any(value: &dyn Any) -> String {
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -735,12 +163,12 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 // Whether value has a String or an Error method. fmt prints such a value as
 // the one text the method returns.
-fn go_format_is_text(__value: &dyn Any) -> bool {
+fn go_format_is_text(__value: &(dyn Any + Send + Sync)) -> bool {
     false
 }
 
 // The basic value a newtype such as "type Level int" holds, boxed.
-fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
+fn go_format_named_basic_value(__value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     None
 }
 
@@ -1116,7 +544,7 @@ fn go_format_bytes(spec: &GoFormatSpec, verb: char, bytes: &[u8]) -> Option<Stri
 
 // Formats one argument for one verb. None means the verb does not apply to
 // the argument's type, which fmt reports in the output.
-fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Option<String> {
+fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send + Sync)) -> Option<String> {
     if verb == 'T' {
         return Some(go_format_pad(spec, __go_type_name(value).to_string(), 0, true));
     }
@@ -1168,8 +596,8 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     if let Some(v) = value.downcast_ref::<&str>() {
         return go_format_string(&basic, string_verb, v);
     }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-        let guard = v.borrow();
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+        let guard = v.lock().unwrap();
         let bytes: &[u8] = guard.as_deref().unwrap_or(&[]);
         if let Some(text) = go_format_bytes(spec, verb, bytes) {
             return Some(text);
@@ -1207,10 +635,10 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
 
 // The number after % or after the dot: digits, or * for the next argument.
 // Ok(None) is no number. Err is a * whose argument is not a usable integer.
-fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any>], next: &mut usize) -> Result<Option<i64>, ()> {
+fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Box<dyn Any + Send + Sync>], next: &mut usize) -> Result<Option<i64>, ()> {
     if chars.peek() == Some(&'*') {
         chars.next();
-        let arg: &dyn Any = match args.get(*next) {
+        let arg: &(dyn Any + Send + Sync) = match args.get(*next) {
             Some(arg) => arg.as_ref(),
             None => return Err(()),
         };
@@ -1239,17 +667,17 @@ fn go_format_number(chars: &mut std::iter::Peekable<std::str::Chars>, args: &[Bo
 }
 
 // Whether value is of a type that go_format_argument formats itself.
-fn go_format_is_basic(value: &dyn Any) -> bool {
+fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
-    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Rc<RefCell<Option<Vec<u8>>>>)
+    is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Arc<Mutex<Option<Vec<u8>>>>)
 }
 
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
-fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
     if value.is::<GoFormatNil>() {
         return "<nil>".to_string();
     }
@@ -1259,7 +687,7 @@ fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
 
 // The verb that writes value as %v does and leaves the flags as they are.
 // %v itself would read + and # as %+v and %#v.
-fn go_format_plain_verb(value: &dyn Any) -> char {
+fn go_format_plain_verb(value: &(dyn Any + Send + Sync)) -> char {
     macro_rules! is_one_of {
         ($($t:ty),*) => { false $(|| value.is::<$t>())* };
     }
@@ -1279,7 +707,7 @@ fn go_format_plain_verb(value: &dyn Any) -> char {
 // fmt.Sprintf for a format that is only known when the program runs. A
 // format written as a literal is expanded when the program is translated and
 // does not come here. wraps is true for fmt.Errorf, where %w prints as %v.
-pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {
+pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wraps: bool) -> String {
     let mut out = String::new();
     let mut next = 0;
     let mut chars = format.chars().peekable();
@@ -1371,169 +799,127 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
 use __go_runtime_format::go_sprintf;
 
 fn main() {
-        // Basic string operations
+    ::internal_bytealg::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
+
     println!("{}", format!("{}", "=== Basic string operations ===".to_string()));
-
-    let mut str = Rc::new(RefCell::new(Some("Hello, World!".to_string())));
-    print!("Original string: {}\n", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Length: {}\n", (*str.borrow().as_ref().unwrap()).len());
-
-        // String indexing and slicing
-    print!("First character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
-    print!("Last character: {}\n", ({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(((*str.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize] }) as u8 as char);
-    print!("Substring [0:5]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).borrow().as_ref().unwrap()));
-    print!("Substring [7:]: {}\n", (*Rc::new(RefCell::new(Some({ let __s = &((*str.borrow().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).borrow().as_ref().unwrap()));
-
-        // String concatenation
+    let mut str = Arc::new(Mutex::new(Some("Hello, World!".to_string())));
+    print!("Original string: {}\n", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Length: {}\n", ({ let __len = (*str.lock().unwrap().as_ref().unwrap()).len(); __len }));
+    print!("First character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) as u8 as char);
+    print!("Last character: {}\n", ({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = (({ let __len = (*str.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) as u8 as char);
+    print!("Substring [0:5]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = (5) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()));
+    print!("Substring [7:]: {}\n", (*Arc::new(Mutex::new(Some({ let __s = &((*str.lock().unwrap().as_ref().unwrap()).clone()); let __low = (7) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()));
     println!("{}", format!("{}", "\n=== String concatenation ===".to_string()));
-    let mut first = Rc::new(RefCell::new(Some("Hello".to_string())));
-    let mut second = Rc::new(RefCell::new(Some("World".to_string())));
-    let mut combined = Rc::new(RefCell::new(Some({
+    let mut first = Arc::new(Mutex::new(Some("Hello".to_string())));
+    let mut second = Arc::new(Mutex::new(Some("World".to_string())));
+    let mut combined = Arc::new(Mutex::new(Some({
         let mut __s = String::new();
-        __s.push_str(&format!("{}", (*first.borrow().as_ref().unwrap())));
+        __s.push_str(&format!("{}", { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         __s.push_str(&format!("{}", ", ".to_string()));
-        __s.push_str(&format!("{}", (*second.borrow().as_ref().unwrap())));
+        __s.push_str(&format!("{}", { let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         __s.push_str(&format!("{}", "!".to_string()));
         __s
     })));
-    print!("Concatenated: {}\n", { let __v = (*combined.borrow().as_ref().unwrap()).clone(); __v });
-
-        // Using strings package
+    print!("Concatenated: {}\n", { let __v = (*combined.lock().unwrap().as_ref().unwrap()).clone(); __v });
     println!("{}", format!("{}", "\n=== strings package functions ===".to_string()));
-
-    let mut text = Rc::new(RefCell::new(Some("  Go is awesome for systems programming  ".to_string())));
-    print!("Original: '{}'\n", { let __v = (*text.borrow().as_ref().unwrap()).clone(); __v });
-
-        // Trimming
-    let mut trimmed = Rc::new(RefCell::new(Some({ let __s = (*text.borrow().as_ref().unwrap()).clone(); __s.trim().to_string() })));
-    print!("Trimmed: '{}'\n", { let __v = (*trimmed.borrow().as_ref().unwrap()).clone(); __v });
-
-        // Case conversion
-    print!("Upper: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); __s.to_uppercase() }))).borrow().as_ref().unwrap()));
-    print!("Lower: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); __s.to_lowercase() }))).borrow().as_ref().unwrap()));
-    print!("Title: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*trimmed.borrow().as_ref().unwrap()).clone(); let mut __out = String::new(); let mut __new_word = true; for __ch in __s.chars() { if __ch.is_alphanumeric() { if __new_word { for __upper in __ch.to_uppercase() { __out.push(__upper); } } else { __out.push(__ch); } __new_word = false; } else { __out.push(__ch); __new_word = true; } } __out }))).borrow().as_ref().unwrap()));
-
-        // String searching
+    let mut text = Arc::new(Mutex::new(Some("  Go is awesome for systems programming  ".to_string())));
+    print!("Original: '{}'\n", { let __v = (*text.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    let mut trimmed = strings::trim_space(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    print!("Trimmed: '{}'\n", { let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Upper: {}\n", (*strings::to_upper(Arc::new(Mutex::new(Some({ let __arg_holder = trimmed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
+    print!("Lower: {}\n", (*strings::to_lower(Arc::new(Mutex::new(Some({ let __arg_holder = trimmed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
+    print!("Title: {}\n", (*strings::title(Arc::new(Mutex::new(Some({ let __arg_holder = trimmed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
     println!("{}", format!("{}", "\n=== String searching ===".to_string()));
-    let mut searchText = Rc::new(RefCell::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
-    print!("Text: {}\n", { let __v = (*searchText.borrow().as_ref().unwrap()).clone(); __v });
-
-    print!("Contains 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "fox".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Contains 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __arg = "cat".to_string(); __s.contains(&__arg) }))).borrow().as_ref().unwrap()));
-
-    print!("Index of 'fox': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "fox".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("Index of 'cat': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "cat".to_string(); __s.find(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-    print!("IndexAny of vowels: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __chars = "aeiou".to_string(); __s.char_indices().find(|(_, __ch)| __chars.contains(*__ch)).map(|(__i, _)| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-
-    print!("Last index of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); __s.rfind(&__substr).map(|__i| __i as i64).unwrap_or(-1) }))).borrow().as_ref().unwrap()));
-
-    print!("Count of 'the': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*searchText.borrow().as_ref().unwrap()).clone(); let __substr = "the".to_string(); if __substr.is_empty() { __s.chars().count() as i64 + 1 } else { __s.matches(&__substr).count() as i64 } }))).borrow().as_ref().unwrap()));
-
-        // String prefixes and suffixes
+    let mut searchText = Arc::new(Mutex::new(Some("The quick brown fox jumps over the lazy dog".to_string())));
+    print!("Text: {}\n", { let __v = (*searchText.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Contains 'fox': {}\n", strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("fox".to_string())))));
+    print!("Contains 'cat': {}\n", strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("cat".to_string())))));
+    print!("Index of 'fox': {}\n", strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("fox".to_string())))));
+    print!("Index of 'cat': {}\n", strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("cat".to_string())))));
+    print!("IndexAny of vowels: {}\n", strings::index_any(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("aeiou".to_string())))));
+    print!("Last index of 'the': {}\n", strings::last_index(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("the".to_string())))));
+    print!("Count of 'the': {}\n", strings::count(Arc::new(Mutex::new(Some({ let __arg_holder = searchText.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("the".to_string())))));
     println!("{}", format!("{}", "\n=== Prefixes and suffixes ===".to_string()));
-    let mut filename = Rc::new(RefCell::new(Some("document.txt".to_string())));
-    print!("Filename: {}\n", { let __v = (*filename.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Has .txt suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".txt".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Has .pdf suffix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = ".pdf".to_string(); __s.ends_with(&__arg) }))).borrow().as_ref().unwrap()));
-    print!("Has 'doc' prefix: {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*filename.borrow().as_ref().unwrap()).clone(); let __arg = "doc".to_string(); __s.starts_with(&__arg) }))).borrow().as_ref().unwrap()));
-
-        // String splitting and joining
+    let mut filename = Arc::new(Mutex::new(Some("document.txt".to_string())));
+    print!("Filename: {}\n", { let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Has .txt suffix: {}\n", strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(".txt".to_string())))));
+    print!("Has .pdf suffix: {}\n", strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(".pdf".to_string())))));
+    print!("Has 'doc' prefix: {}\n", strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("doc".to_string())))));
     println!("{}", format!("{}", "\n=== Splitting and joining ===".to_string()));
-    let mut csv = Rc::new(RefCell::new(Some("apple,banana,cherry,date".to_string())));
-    print!("CSV: {}\n", { let __v = (*csv.borrow().as_ref().unwrap()).clone(); __v });
-
-    let mut fruits = Rc::new(RefCell::new(Some({ let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
-    let mut fruits = { let __slice_header = GoSliceHeader::go_slice_header(&fruits); Rc::new(RefCell::new(__slice_header)) };
+    let mut csv = Arc::new(Mutex::new(Some("apple,banana,cherry,date".to_string())));
+    print!("CSV: {}\n", { let __v = (*csv.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    let mut fruits = strings::split(Arc::new(Mutex::new(Some({ let __arg_holder = csv.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",".to_string()))));
+    let mut fruits = { let __slice_header = GoSliceHeader::go_slice_header(&fruits); Arc::new(Mutex::new(__slice_header)) };
     print!("Split result: {}\n", format_slice(&fruits));
-
-    let mut rejoined = Rc::new(RefCell::new(Some({ let __parts = (*fruits.borrow()).as_ref().cloned().unwrap_or_default(); let __sep = " | ".to_string(); __parts.join(&__sep) })));
-    print!("Rejoined: {}\n", { let __v = (*rejoined.borrow().as_ref().unwrap()).clone(); __v });
-    let (mut before, mut after, mut found) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ",".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } };
-    print!("Cut first comma: {} | {} | {}\n", { let __v = (*before.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*after.borrow().as_ref().unwrap()).clone(); __v }, found);
-    { let (__tmp_0, __tmp_1, __tmp_2) = { let __s = (*csv.borrow().as_ref().unwrap()).clone(); let __sep = ";".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Rc::new(RefCell::new(Some(__before))), Rc::new(RefCell::new(Some(__after))), true) } else { (Rc::new(RefCell::new(Some(__s))), Rc::new(RefCell::new(Some(String::new()))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.borrow_mut(); __guard.take() }; *before.borrow_mut() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.borrow_mut(); __guard.take() }; *after.borrow_mut() = __moved_tmp_1; found = __tmp_2; };
-    print!("Cut semicolon: {} | {} | {}\n", { let __v = (*before.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*after.borrow().as_ref().unwrap()).clone(); __v }, found);
-
-        // Fields (split on whitespace)
-    let mut sentence = Rc::new(RefCell::new(Some("The quick brown fox".to_string())));
-    let mut words = Rc::new(RefCell::new(Some({ let __s = (*sentence.borrow().as_ref().unwrap()).clone(); __s.split_whitespace().map(|__part| __part.to_string()).collect::<Vec<String>>() })));
-    let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Rc::new(RefCell::new(__slice_header)) };
+    let mut rejoined = strings::join(fruits.clone(), Arc::new(Mutex::new(Some(" | ".to_string()))));
+    print!("Rejoined: {}\n", { let __v = (*rejoined.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    let (mut before, mut after, mut found) = strings::cut(Arc::new(Mutex::new(Some({ let __arg_holder = csv.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",".to_string()))));
+    print!("Cut first comma: {} | {} | {}\n", format!("{}", { let __v = (*before.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*after.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", found));
+    { let (__tmp_0, __tmp_1, __tmp_2) = strings::cut(Arc::new(Mutex::new(Some({ let __arg_holder = csv.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(";".to_string())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *before.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *after.lock().unwrap() = __moved_tmp_1; found = __tmp_2; };
+    print!("Cut semicolon: {} | {} | {}\n", format!("{}", { let __v = (*before.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*after.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", found));
+    let mut sentence = Arc::new(Mutex::new(Some("The quick brown fox".to_string())));
+    let mut words = strings::fields(Arc::new(Mutex::new(Some({ let __arg_holder = sentence.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Arc::new(Mutex::new(__slice_header)) };
     print!("Words: {}\n", format_slice(&words));
-
-        // String replacement
     println!("{}", format!("{}", "\n=== String replacement ===".to_string()));
-    let mut original = Rc::new(RefCell::new(Some("I like cats and cats like me".to_string())));
-    print!("Original: {}\n", { let __v = (*original.borrow().as_ref().unwrap()).clone(); __v });
-
-    let mut replaced = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); let __n = 1; if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } })));
-    print!("Replace first 'cats': {}\n", { let __v = (*replaced.borrow().as_ref().unwrap()).clone(); __v });
-
-    let mut replacedAll = Rc::new(RefCell::new(Some({ let __s = (*original.borrow().as_ref().unwrap()).clone(); let __old = "cats".to_string(); let __new = "dogs".to_string(); __s.replace(&__old, &__new) })));
-    print!("Replace all 'cats': {}\n", { let __v = (*replacedAll.borrow().as_ref().unwrap()).clone(); __v });
-
-        // String repetition
+    let mut original = Arc::new(Mutex::new(Some("I like cats and cats like me".to_string())));
+    print!("Original: {}\n", { let __v = (*original.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    let mut replaced = strings::replace(Arc::new(Mutex::new(Some({ let __arg_holder = original.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("cats".to_string()))), Arc::new(Mutex::new(Some("dogs".to_string()))), Arc::new(Mutex::new(Some(1))));
+    print!("Replace first 'cats': {}\n", { let __v = (*replaced.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    let mut replacedAll = strings::replace_all(Arc::new(Mutex::new(Some({ let __arg_holder = original.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("cats".to_string()))), Arc::new(Mutex::new(Some("dogs".to_string()))));
+    print!("Replace all 'cats': {}\n", { let __v = (*replacedAll.lock().unwrap().as_ref().unwrap()).clone(); __v });
     println!("{}", format!("{}", "\n=== String repetition ===".to_string()));
-    let mut pattern = Rc::new(RefCell::new(Some("Go! ".to_string())));
-    let mut repeated = Rc::new(RefCell::new(Some({ let __s = (*pattern.borrow().as_ref().unwrap()).clone(); let __count = 3; __s.repeat(__count as usize) })));
-    print!("Repeated: {}\n", { let __v = (*repeated.borrow().as_ref().unwrap()).clone(); __v });
-
-        // String comparison
+    let mut pattern = Arc::new(Mutex::new(Some("Go! ".to_string())));
+    let mut repeated = strings::repeat(Arc::new(Mutex::new(Some({ let __arg_holder = pattern.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(3))));
+    print!("Repeated: {}\n", { let __v = (*repeated.lock().unwrap().as_ref().unwrap()).clone(); __v });
     println!("{}", format!("{}", "\n=== String comparison ===".to_string()));
-    let mut str1 = Rc::new(RefCell::new(Some("apple".to_string())));
-    let mut str2 = Rc::new(RefCell::new(Some("banana".to_string())));
-    let mut str3 = Rc::new(RefCell::new(Some("apple".to_string())));
-
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str2.borrow().as_ref().unwrap()));
-    print!("'{}' == '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) == (*str3.borrow().as_ref().unwrap()));
-    print!("'{}' < '{}': {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*str1.borrow().as_ref().unwrap()) < (*str2.borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str2.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str2.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str2.borrow().as_ref().unwrap()).clone(); let __b = (*str1.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
-    print!("Compare('{}', '{}'): {}\n", { let __v = (*str1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*str3.borrow().as_ref().unwrap()).clone(); __v }, (*Rc::new(RefCell::new(Some({ let __a = (*str1.borrow().as_ref().unwrap()).clone(); let __b = (*str3.borrow().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).borrow().as_ref().unwrap()));
-
-        // Case-insensitive comparison
-    print!("EqualFold('Apple', 'APPLE'): {}\n", (*Rc::new(RefCell::new(Some({ let __a = "Apple".to_string(); let __b = "APPLE".to_string(); __a.to_lowercase() == __b.to_lowercase() }))).borrow().as_ref().unwrap()));
-
-        // String building with strings.Builder
+    let mut str1 = Arc::new(Mutex::new(Some("apple".to_string())));
+    let mut str2 = Arc::new(Mutex::new(Some("banana".to_string())));
+    let mut str3 = Arc::new(Mutex::new(Some("apple".to_string())));
+    print!("'{}' == '{}': {}\n", format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = ({ let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x == __tmp_y }));
+    print!("'{}' == '{}': {}\n", format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str3.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = ({ let __v = (*str3.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x == __tmp_y }));
+    print!("'{}' < '{}': {}\n", format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = ({ let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x < __tmp_y }));
+    print!("Compare('{}', '{}'): {}\n", format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", strings::compare(Arc::new(Mutex::new(Some({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    print!("Compare('{}', '{}'): {}\n", format!("{}", { let __v = (*str2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", strings::compare(Arc::new(Mutex::new(Some({ let __arg_holder = str2.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    print!("Compare('{}', '{}'): {}\n", format!("{}", { let __v = (*str1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str3.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", strings::compare(Arc::new(Mutex::new(Some({ let __arg_holder = str1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = str3.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    print!("EqualFold('Apple', 'APPLE'): {}\n", strings::equal_fold(Arc::new(Mutex::new(Some("Apple".to_string()))), Arc::new(Mutex::new(Some("APPLE".to_string())))));
     println!("{}", format!("{}", "\n=== String building ===".to_string()));
-    let mut builder: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(Default::default())));
-
-    (*builder.borrow_mut().as_mut().unwrap()).push_str("Building ");
-    (*builder.borrow_mut().as_mut().unwrap()).push_str("a ");
-    (*builder.borrow_mut().as_mut().unwrap()).push_str("string ");
-    (*builder.borrow_mut().as_mut().unwrap()).push_str("efficiently");
-
-    let mut built = Rc::new(RefCell::new(Some({ let __builder = builder.clone(); let __guard = __builder.borrow(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
-    print!("Built string: {}\n", { let __v = (*built.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Builder length: {}\n", (*builder.borrow().as_ref().unwrap()).len() as i64);
-
-        // Rune iteration (Unicode support)
+    let mut builder: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("Building ".to_string()))));
+    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("a ".to_string()))));
+    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("string ".to_string()))));
+    (*builder.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("efficiently".to_string()))));
+    let mut built = (*builder.lock().unwrap().as_ref().unwrap()).string();
+    print!("Built string: {}\n", { let __v = (*built.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Builder length: {}\n", (*builder.lock().unwrap().as_ref().unwrap()).len());
     println!("{}", format!("{}", "\n=== Unicode and runes ===".to_string()));
-    let mut unicode = Rc::new(RefCell::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
-    print!("Unicode string: {}\n", { let __v = (*unicode.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Byte length: {}\n", (*unicode.borrow().as_ref().unwrap()).len());
-
-    let mut runeCount = Rc::new(RefCell::new(Some(0i64)));
-    for (_, r) in (*unicode.borrow().as_ref().unwrap()).char_indices() {
-        { let mut guard = runeCount.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        print!("Rune: {} (U+{})\n", r, format!("{:04X}", r as u32));
+    let mut unicode = Arc::new(Mutex::new(Some("Hello, \u{4e16}\u{754c}! \u{1f30d}".to_string())));
+    print!("Unicode string: {}\n", { let __v = (*unicode.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Byte length: {}\n", ({ let __len = (*unicode.lock().unwrap().as_ref().unwrap()).len(); __len }));
+    let mut runeCount = Arc::new(Mutex::new(Some(0i64)));
+    for (_, r) in { let __range_string = (*unicode.lock().unwrap().as_ref().unwrap()).clone(); __range_string }.char_indices() {
+        { let mut guard = runeCount.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        print!("Rune: {} (U+{})\n", format!("{}", r), format!("{}", format!("{:04X}", r as u32)));
     }
-    print!("Rune count: {}\n", { let __v = (*runeCount.borrow().as_ref().unwrap()).clone(); __v });
-
-        // String trimming variations
+    print!("Rune count: {}\n", { let __v = (*runeCount.lock().unwrap().as_ref().unwrap()).clone(); __v });
     println!("{}", format!("{}", "\n=== String trimming variations ===".to_string()));
-    let mut messy = Rc::new(RefCell::new(Some("!!!Hello World!!!".to_string())));
-    print!("Original: {}\n", { let __v = (*messy.borrow().as_ref().unwrap()).clone(); __v });
-    print!("TrimLeft '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_start_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
-    print!("TrimRight '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_end_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
-    print!("Trim '!': {}\n", (*Rc::new(RefCell::new(Some({ let __s = (*messy.borrow().as_ref().unwrap()).clone(); let __cutset = "!".to_string(); __s.trim_matches(|__ch| __cutset.contains(__ch)).to_string() }))).borrow().as_ref().unwrap()));
-
-        // String formatting with different verbs
+    let mut messy = Arc::new(Mutex::new(Some("!!!Hello World!!!".to_string())));
+    print!("Original: {}\n", { let __v = (*messy.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("TrimLeft '!': {}\n", (*strings::trim_left(Arc::new(Mutex::new(Some({ let __arg_holder = messy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("TrimRight '!': {}\n", (*strings::trim_right(Arc::new(Mutex::new(Some({ let __arg_holder = messy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
+    print!("Trim '!': {}\n", (*strings::trim(Arc::new(Mutex::new(Some({ let __arg_holder = messy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("!".to_string())))).lock().unwrap().as_ref().unwrap()));
     println!("{}", format!("{}", "\n=== String formatting ===".to_string()));
-    let mut name = Rc::new(RefCell::new(Some("Alice".to_string())));
-    let mut age = Rc::new(RefCell::new(Some(30i64)));
-    let mut height = Rc::new(RefCell::new(Some(5.6)));
-
-    print!("Name: {}, Age: {}, Height: {:.1}\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*height.borrow().as_ref().unwrap()).clone(); __v });
-    print!("{}", go_sprintf(&"Quoted string: %q\n".to_string(), &[Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
-    print!("String with width: '{:>10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
-    print!("Left-aligned: '{:<10}'\n", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v });
+    let mut name = Arc::new(Mutex::new(Some("Alice".to_string())));
+    let mut age = Arc::new(Mutex::new(Some(30i64)));
+    let mut height = Arc::new(Mutex::new(Some(5.6)));
+    print!("Name: {}, Age: {}, Height: {}\n", format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*age.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{:.1}", { let __v = (*height.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    print!("{}", go_sprintf(&"Quoted string: %q\n".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
+    print!("String with width: '{:>10}'\n", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    print!("Left-aligned: '{:<10}'\n", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }

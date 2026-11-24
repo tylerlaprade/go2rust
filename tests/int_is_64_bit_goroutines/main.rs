@@ -68,6 +68,7 @@ pub fn factorial(n: Arc<Mutex<Option<i64>>>) -> i64 {
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
