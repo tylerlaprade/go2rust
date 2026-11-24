@@ -33,7 +33,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Celsius>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
-    None
+    go_clone_registered_any(value)
 }
 
 fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
@@ -202,7 +202,7 @@ impl std::fmt::Debug for WaitGroup {
     }
 }
 
-fn __go_type_name(val: &dyn Any) -> &'static str {
+fn __go_type_name(val: &(dyn Any + Send + Sync)) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
     if val.is::<char>() { return "int32" }
@@ -225,6 +225,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Arc<Mutex<Option<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>>>>() { return "*model.Label" }
     if val.is::<Celsius>() { return "main.Celsius" }
     if val.is::<example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label>() { return "model.Label" }
+    if let Some(__go_name) = go_registered_any_type_name(val) { return __go_name }
     std::any::type_name_of_val(val)
 }
 
@@ -274,7 +275,7 @@ fn main() {
 
     let mut s: Arc<Mutex<Option<fmt_Stringer>>> = Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display((*make_c().lock().unwrap().as_ref().unwrap()).clone()))));
     println!("{}", format!("{}", (*(*s.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
-    let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Celsius { deg: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>)));
+    let mut v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ go_register_any_runtime_type::<Celsius>("main.Celsius", |__value| { let __typed = __value.downcast_ref::<Celsius>().expect("registered interface formatter type mismatch"); format!("{}", __typed) }, |__value| { let __typed = __value.downcast_ref::<Celsius>().expect("registered interface clone type mismatch"); Box::new(__typed.__go_value_clone()) as Box<dyn Any + Send + Sync> }, None); Box::new(Celsius { deg: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync> })));
     println!("{}", format!("{}", format!("{}", ({
         let val = v.clone();
         let __stringer: Result<fmt_Stringer, String> = {

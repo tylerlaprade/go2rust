@@ -32,7 +32,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<example_com_fmt_stringer_imported_types_model::r#mod::Label>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<example_com_fmt_stringer_imported_types_model::r#mod::Label>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
-    None
+    go_clone_registered_any(value)
 }
 
 fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
@@ -62,6 +62,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Rc<RefCell<Option<Celsius>>>>() { return "*main.Celsius" }
     if val.is::<Rc<RefCell<Option<example_com_fmt_stringer_imported_types_model::r#mod::Label>>>>() { return "*model.Label" }
     if val.is::<example_com_fmt_stringer_imported_types_model::r#mod::Label>() { return "model.Label" }
+    if let Some(__go_name) = go_registered_any_type_name(val) { return __go_name }
     std::any::type_name_of_val(val)
 }
 
@@ -111,7 +112,7 @@ fn main() {
 
     let mut s: Rc<RefCell<Option<fmt_Stringer>>> = Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display((*make_c().borrow().as_ref().unwrap()).clone()))));
     println!("{}", format!("{}", (*(*s.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));
-    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Celsius { deg: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>)));
+    let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ go_register_any_runtime_type::<Celsius>("main.Celsius", |__value| { let __typed = __value.downcast_ref::<Celsius>().expect("registered interface formatter type mismatch"); format!("{}", __typed) }, |__value| { let __typed = __value.downcast_ref::<Celsius>().expect("registered interface clone type mismatch"); Box::new(__typed.__go_value_clone()) as Box<dyn Any> }, None); Box::new(Celsius { deg: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any> })));
     println!("{}", format!("{}", format!("{}", ({
         let val = v.clone();
         let __stringer: Result<fmt_Stringer, String> = {

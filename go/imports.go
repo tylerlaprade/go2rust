@@ -160,6 +160,7 @@ type HelperTracker struct {
 	needsGoComparable                    bool
 	needsGoConstStrEq                    bool
 	needsGoAnyTypeMetadata               bool
+	needsGoAnyRuntimeOps                 bool
 	needsEmbeddedOwnerRegistry           bool
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
@@ -249,6 +250,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoTypeParamFieldClone = false
 	helperCopy.needsGoComparable = false
 	helperCopy.needsGoAnyTypeMetadata = false
+	helperCopy.needsGoAnyRuntimeOps = false
 	helperCopy.needsEmbeddedOwnerRegistry = false
 	helperCopy.needsGoAnyPtrKey = false
 	helperCopy.omitGoSlice = true
@@ -295,6 +297,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsGoAnyTypeMetadata {
 		helperCopy.needsGoAnyTypeMetadata = true
+	}
+	if ht.needsGoAnyRuntimeOps {
+		helperCopy.needsGoAnyRuntimeOps = true
 	}
 	if ht.needsEmbeddedOwnerRegistry {
 		helperCopy.needsEmbeddedOwnerRegistry = true
@@ -365,7 +370,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		// format_any_slice prints its elements as nested values, and only a
 		// pointer case makes that differ from format_any.
 		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && ht.needsFormatAnySlice)
-		generateAnyFormatter(&result, anyFormatArms, needsFormatAnyPointer, needsNestedEntry)
+		generateAnyFormatter(&result, anyFormatArms, needsFormatAnyPointer, needsNestedEntry, programAnyRuntimeOpsEnabled())
 	}
 
 	if ht.needsFormatAnySlice {
@@ -415,6 +420,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	if ht.needsGoAnyTypeMetadata {
 		generateGoAnyTypeMetadata(&result)
 	}
+	if ht.needsGoAnyRuntimeOps {
+		generateGoAnyRuntimeOps(&result)
+	}
 
 	if ht.needsEmbeddedOwnerRegistry {
 		generateEmbeddedOwnerRegistry(&result)
@@ -456,7 +464,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoTypeName {
-		generateGoTypeNameHelper(&result, anyTypeNames)
+		generateGoTypeNameHelper(&result, anyTypeNames, programAnyRuntimeOpsEnabled())
 	}
 
 	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
@@ -574,6 +582,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoComparable ||
 		ht.needsGoConstStrEq ||
 		ht.needsGoAnyTypeMetadata ||
+		ht.needsGoAnyRuntimeOps ||
 		ht.needsEmbeddedOwnerRegistry ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
@@ -739,6 +748,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoAnyTypeMetadata {
 		add("GoAnyTypeMetadata", "go_any_type_metadata", "go_box_any_with_metadata", "go_register_any_type", "go_register_any_type_with_elem", "go_register_any_value_metadata")
+	}
+	if ht.needsGoAnyRuntimeOps {
+		add("go_register_any_runtime_type", "go_format_registered_any", "go_clone_registered_any", "go_registered_any_type_name", "go_registered_any_is_error", "go_registered_any_error")
 	}
 	if ht.needsEmbeddedOwnerRegistry {
 		add("go_lookup_embedded_owner", "go_register_embedded_owner")
@@ -1161,7 +1173,7 @@ fn go_format_any_pointer(nested: bool, address: *const (), is_nil: impl FnOnce()
 // that prints says which of the two it is, and nothing is remembered between
 // calls: a String or Error method that prints starts at the top level again,
 // as it does in Go.
-func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm, pointerArms bool, nestedEntry bool) {
+func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyFormatArm, pointerArms bool, nestedEntry bool, runtimeOps bool) {
 	TrackImport("Any")
 	valueType := "&dyn Any"
 	if NeedsConcurrentWrapper() {
@@ -1218,6 +1230,10 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	// A value of a type with no case above cannot be printed yet. Stop
 	// with a message that says so: printing a placeholder would be a wrong
 	// answer that looks like a right one.
+	if runtimeOps {
+		out.WriteString("    } else if let Some(__go_text) = go_format_registered_any(value) {\n")
+		out.WriteString("        __go_text\n")
+	}
 	out.WriteString("    } else {\n")
 	out.WriteString("        panic!(\"go2rust: cannot print this value held in an interface: its type has no formatting case yet\")\n")
 	out.WriteString("    }\n")
@@ -1294,7 +1310,11 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool, withH
 	}
 	out.WriteString("    if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as " + traitObject + "); }\n")
 	writeAnyCloneTypeArms(out, anyCloneTypes, traitObject)
-	out.WriteString("    None\n}\n\n")
+	if programAnyRuntimeOpsEnabled() {
+		out.WriteString("    go_clone_registered_any(value)\n}\n\n")
+	} else {
+		out.WriteString("    None\n}\n\n")
+	}
 	out.WriteString(visibility)
 	out.WriteString("fn go_any_clone(value: " + valueRef + ") -> " + traitObject + " {\n")
 	out.WriteString("    go_any_try_clone(value).unwrap_or_else(|| panic!(\"go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>\"))\n}\n")
@@ -2126,6 +2146,116 @@ fn go_any_value_metadata_key(value: &dyn Any) -> usize {
 %[1]sfn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
     go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
+}
+`, visibility)
+}
+
+// generateGoAnyRuntimeOps emits a TypeId keyed registry of erased operations
+// for interface payloads whose concrete Rust type belongs to another generated
+// crate. The declaring crate registers non-capturing downcast functions before
+// boxing a value; consumers can then preserve Go formatting, copy, %T, and
+// error-assertion semantics without naming that concrete type.
+func generateGoAnyRuntimeOps(out *strings.Builder) {
+	TrackImport("Any")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	if NeedsConcurrentWrapper() {
+		fmt.Fprintf(out, `
+#[derive(Clone, Copy)]
+%[1]sstruct GoAnyRuntimeOps {
+    format: fn(&(dyn Any + Send + Sync)) -> String,
+    clone_value: fn(&(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync>,
+    type_name: &'static str,
+    as_error: Option<fn(&(dyn Any + Send + Sync)) -> std::sync::Arc<dyn std::error::Error + Send + Sync>>,
+}
+
+fn go_any_runtime_ops_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyRuntimeOps>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyRuntimeOps>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+%[1]sfn go_register_any_runtime_type<T: Any + Send + Sync + 'static>(
+    type_name: &'static str,
+    format: fn(&(dyn Any + Send + Sync)) -> String,
+    clone_value: fn(&(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync>,
+    as_error: Option<fn(&(dyn Any + Send + Sync)) -> std::sync::Arc<dyn std::error::Error + Send + Sync>>,
+) {
+    go_any_runtime_ops_registry().lock().unwrap().entry(std::any::TypeId::of::<T>())
+        .or_insert(GoAnyRuntimeOps { format, clone_value, type_name, as_error });
+}
+
+%[1]sfn go_format_registered_any(value: &(dyn Any + Send + Sync)) -> Option<String> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.format);
+    op.map(|format| format(value))
+}
+
+%[1]sfn go_clone_registered_any(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.clone_value);
+    op.map(|clone_value| clone_value(value))
+}
+
+%[1]sfn go_registered_any_type_name(value: &(dyn Any + Send + Sync)) -> Option<&'static str> {
+    go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.type_name)
+}
+
+%[1]sfn go_registered_any_is_error(value: &(dyn Any + Send + Sync)) -> bool {
+    go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().and_then(|ops| ops.as_error).is_some()
+}
+
+%[1]sfn go_registered_any_error(value: &(dyn Any + Send + Sync)) -> Option<std::sync::Arc<dyn std::error::Error + Send + Sync>> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().and_then(|ops| ops.as_error);
+    op.map(|as_error| as_error(value))
+}
+`, visibility)
+		return
+	}
+	fmt.Fprintf(out, `
+#[derive(Clone, Copy)]
+%[1]sstruct GoAnyRuntimeOps {
+    format: fn(&dyn Any) -> String,
+    clone_value: fn(&dyn Any) -> Box<dyn Any>,
+    type_name: &'static str,
+    as_error: Option<fn(&dyn Any) -> std::rc::Rc<dyn std::error::Error>>,
+}
+
+fn go_any_runtime_ops_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyRuntimeOps>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyRuntimeOps>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+%[1]sfn go_register_any_runtime_type<T: Any + 'static>(
+    type_name: &'static str,
+    format: fn(&dyn Any) -> String,
+    clone_value: fn(&dyn Any) -> Box<dyn Any>,
+    as_error: Option<fn(&dyn Any) -> std::rc::Rc<dyn std::error::Error>>,
+) {
+    go_any_runtime_ops_registry().lock().unwrap().entry(std::any::TypeId::of::<T>())
+        .or_insert(GoAnyRuntimeOps { format, clone_value, type_name, as_error });
+}
+
+%[1]sfn go_format_registered_any(value: &dyn Any) -> Option<String> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.format);
+    op.map(|format| format(value))
+}
+
+%[1]sfn go_clone_registered_any(value: &dyn Any) -> Option<Box<dyn Any>> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.clone_value);
+    op.map(|clone_value| clone_value(value))
+}
+
+%[1]sfn go_registered_any_type_name(value: &dyn Any) -> Option<&'static str> {
+    go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().map(|ops| ops.type_name)
+}
+
+%[1]sfn go_registered_any_is_error(value: &dyn Any) -> bool {
+    go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().and_then(|ops| ops.as_error).is_some()
+}
+
+%[1]sfn go_registered_any_error(value: &dyn Any) -> Option<std::rc::Rc<dyn std::error::Error>> {
+    let op = go_any_runtime_ops_registry().lock().unwrap().get(&value.type_id()).copied().and_then(|ops| ops.as_error);
+    op.map(|as_error| as_error(value))
 }
 `, visibility)
 }
@@ -3195,12 +3325,16 @@ func isRustIdentPart(c byte) bool {
 	return isRustIdentStart(c) || (c >= '0' && c <= '9')
 }
 
-func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string) {
+func generateGoTypeNameHelper(out *strings.Builder, anyTypeNames map[string]string, runtimeOps bool) {
 	TrackImport("Any")
+	valueType := "&dyn Any"
+	if runtimeOps && NeedsConcurrentWrapper() {
+		valueType = "&(dyn Any + Send + Sync)"
+	}
 	out.WriteString(`
 fn `)
 	out.WriteString(goTypeNameHelperRustName)
-	out.WriteString(`(val: &dyn Any) -> &'static str {
+	out.WriteString("(val: " + valueType + `) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
     if val.is::<char>() { return "int32" }
@@ -3233,9 +3367,10 @@ fn `)
 		out.WriteString(strconv.Quote(anyTypeNames[rustType]))
 		out.WriteString(" }\n")
 	}
-	out.WriteString(`    std::any::type_name_of_val(val)
-}
-`)
+	if runtimeOps {
+		out.WriteString("    if let Some(__go_name) = go_registered_any_type_name(val) { return __go_name }\n")
+	}
+	out.WriteString("    std::any::type_name_of_val(val)\n}\n")
 }
 
 func generateBase64Helper(out *strings.Builder) {

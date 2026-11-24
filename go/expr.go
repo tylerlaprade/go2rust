@@ -8746,6 +8746,139 @@ func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
+	if writeRuntimeRegisteredAnyBox(out, expr) {
+		return
+	}
+	writeInterfaceBoxedValueRaw(out, expr)
+}
+
+// writeRuntimeRegisteredAnyBox gives a shared run-time registry the erased
+// operations for a package-local struct before the value crosses a crate
+// boundary in interface{}. The shared crate stores only TypeId and function
+// pointers; it never has to name the caller's concrete type.
+func writeRuntimeRegisteredAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	if expr == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	var registration strings.Builder
+	if !writeRuntimeAnyTypeRegistration(&registration, typeInfo.GetType(expr)) {
+		return false
+	}
+	out.WriteString("{ ")
+	out.WriteString(registration.String())
+	out.WriteString("; ")
+	writeInterfaceBoxedValueRaw(out, expr)
+	out.WriteString(" }")
+	return true
+}
+
+// writeRuntimeAnyTypeRegistration publishes the erased operations for a
+// package-local named struct. It is deliberately separate from boxing so the
+// error-interface-to-any path can register the dynamic concrete type selected
+// from the error before it stores that value in the any box.
+func writeRuntimeAnyTypeRegistration(out *strings.Builder, typ types.Type) bool {
+	if !programAnyRuntimeOpsEnabled() || typ == nil {
+		return false
+	}
+	typ = types.Unalias(typ)
+	named, ok := typ.(*types.Named)
+	pointer := false
+	if ptr, isPointer := typ.(*types.Pointer); isPointer {
+		pointer = true
+		named, ok = types.Unalias(ptr.Elem()).(*types.Named)
+	}
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.TypeParams().Len() != 0 || named.TypeArgs().Len() != 0 {
+		return false
+	}
+	if _, ok := named.Underlying().(*types.Struct); !ok || !typeNeedsGoValueClone(named) {
+		return false
+	}
+	formatArm, ok := anyFormatArmForType(typ)
+	if !ok {
+		return false
+	}
+	goName, ok := goDynamicTypeName(typ)
+	if !ok {
+		return false
+	}
+	rustType, ok := anyCloneRustType(typ)
+	if !ok {
+		return false
+	}
+	NeedGoAnyRuntimeOps()
+	RegisterAnyCloneType(typ)
+	out.WriteString("go_register_any_runtime_type::<")
+	out.WriteString(rustType)
+	out.WriteString(">(")
+	out.WriteString(strconv.Quote(goName))
+	out.WriteString(", |__value| { let __typed = __value.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">().expect(\"registered interface formatter type mismatch\"); ")
+	formatExpr := replaceRustIdent(formatArm.expr, "v", "__typed")
+	formatExpr = replaceRustIdent(formatExpr, "nested", "false")
+	out.WriteString(formatExpr)
+	out.WriteString(" }, |__value| { let __typed = __value.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">().expect(\"registered interface clone type mismatch\"); Box::new(")
+	if pointer {
+		out.WriteString("__typed.clone()")
+	} else {
+		out.WriteString("__typed.__go_value_clone()")
+	}
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+	out.WriteString(" }, ")
+	if isConcreteGoErrorValue(typ) {
+		out.WriteString("Some(|__value| { let __typed = __value.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">().expect(\"registered interface error type mismatch\"); ")
+		out.WriteString(rustErrorFromValueStart())
+		if pointer {
+			NeedGoPointerError()
+			out.WriteString("GoPointerError::new(__typed.clone())")
+		} else {
+			out.WriteString("__typed.__go_value_clone()")
+		}
+		out.WriteString(rustErrorFromValueEnd())
+		out.WriteString(" })")
+	} else {
+		out.WriteString("None")
+	}
+	out.WriteString(")")
+	return true
+}
+
+func replaceRustIdent(expr, old, replacement string) string {
+	if old == "" || !strings.Contains(expr, old) {
+		return expr
+	}
+	var out strings.Builder
+	for at := 0; at < len(expr); {
+		next := strings.Index(expr[at:], old)
+		if next < 0 {
+			out.WriteString(expr[at:])
+			break
+		}
+		next += at
+		end := next + len(old)
+		leftBoundary := next == 0 || !isRustIdentPart(expr[next-1])
+		rightBoundary := end == len(expr) || !isRustIdentPart(expr[end])
+		out.WriteString(expr[at:next])
+		if leftBoundary && rightBoundary {
+			out.WriteString(replacement)
+		} else {
+			out.WriteString(old)
+		}
+		at = end
+	}
+	return out.String()
+}
+
+func writeInterfaceBoxedValueRaw(out *strings.Builder, expr ast.Expr) {
 	if writeGoErrorInterfaceAnyBox(out, expr) {
 		return
 	}
@@ -9220,6 +9353,14 @@ func goErrorAnyBoxValue(candidate localInterfaceAssertionCandidate) string {
 }
 
 func writeGoAnyMetadataBox(out *strings.Builder, valueExpr string, candidate localInterfaceAssertionCandidate) {
+	registered := false
+	var registration strings.Builder
+	if writeRuntimeAnyTypeRegistration(&registration, candidate.typ) {
+		registered = true
+		out.WriteString("{ ")
+		out.WriteString(registration.String())
+		out.WriteString("; ")
+	}
 	out.WriteString("go_box_any_with_metadata(")
 	out.WriteString(valueExpr)
 	out.WriteString(", \"")
@@ -9231,6 +9372,9 @@ func writeGoAnyMetadataBox(out *strings.Builder, valueExpr string, candidate loc
 		out.WriteString("false")
 	}
 	out.WriteString(")")
+	if registered {
+		out.WriteString(" }")
+	}
 }
 
 func goAnyMetadataKind(typ types.Type) string {
@@ -16348,7 +16492,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if targetKeepsAnyHandle {
 					writeAnyHandleAssertionExpectBareValue(out, "any_val", anyHandleType)
 				} else {
-					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+					holdsErrorHandle := targetIsError && typeAssertionSourceIsEmptyInterface(e.X)
+					receiver := "any_val"
+					if holdsErrorHandle && programAnyRuntimeOpsEnabled() {
+						// The registry keys the payload by TypeId. A reference to
+						// its Box would identify the container as the dynamic type.
+						receiver = "any_val.as_ref()"
+					}
+					writeTypeAssertionExpectBareValue(out, receiver, rustType, targetIsError, holdsErrorHandle)
 				}
 			})
 			if assertionReturnsPointer {
@@ -20931,6 +21082,10 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	if targetIsError {
 		out.WriteString("{ ")
 		if holdsErrorHandle {
+			useRegisteredError := programAnyRuntimeOpsEnabled()
+			if useRegisteredError {
+				NeedGoAnyRuntimeOps()
+			}
 			out.WriteString("if let Some(__err_handle) = ")
 			out.WriteString(receiver)
 			out.WriteString(".downcast_ref::<")
@@ -20946,6 +21101,11 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 				out.WriteString(">() { ")
 				writeGoErrorPayloadFromAssertionCandidate(out, candidate)
 				out.WriteString(" }")
+			}
+			if useRegisteredError {
+				out.WriteString(" else if let Some(__registered_error) = go_registered_any_error(")
+				out.WriteString(receiver)
+				out.WriteString(") { __registered_error }")
 			}
 			out.WriteString(" else { ")
 			writeTypeAssertionFailurePanic(out)
@@ -22276,6 +22436,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            ")
 	if targetIsError && typeAssertionSourceIsEmptyInterface(e.X) {
+		useRegisteredError := programAnyRuntimeOpsEnabled()
+		if useRegisteredError {
+			NeedGoAnyRuntimeOps()
+		}
 		// An error whose dynamic type cannot be named sits in the box as its
 		// own handle (see writeOpaqueGoErrorAnyBox). Asserting it back to
 		// error gives the result a handle of its own to the same error: it
@@ -22300,6 +22464,11 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			writeGoErrorHandleFromAssertionCandidate(out, candidate)
 			out.WriteString(", true)\n")
 			out.WriteString("            }")
+		}
+		if useRegisteredError {
+			out.WriteString(" else if let Some(__registered_error) = go_registered_any_error(any_val.as_ref()) {\n                (")
+			writeErrorHandleFromOptionValue(out, "Some(__registered_error)")
+			out.WriteString(", true)\n            }")
 		}
 		out.WriteString(" else {\n")
 		out.WriteString("                (")

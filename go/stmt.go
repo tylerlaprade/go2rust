@@ -3718,6 +3718,10 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 			out.WriteString(candidate.rustType)
 			out.WriteString(">()).is_some()")
 		}
+		if programAnyRuntimeOpsEnabled() {
+			NeedGoAnyRuntimeOps()
+			out.WriteString(" || _ts_val.is_some_and(go_registered_any_is_error)")
+		}
 		return
 	}
 	if handleType, ok := typeSwitchCaseAnyHandleRustType(typeInfo, typeExpr, subjectType); ok {
@@ -16983,14 +16987,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// A nil element of a []any holds GoNilAny.
 			NeedGoNilAny()
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());\n")
-			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
-			out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
-			if NeedsConcurrentWrapper() {
-				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {\n")
-			} else {
-				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {\n")
+			anyRef := "&dyn Any"
+			if programAnyRuntimeOpsEnabled() && NeedsConcurrentWrapper() {
+				anyRef = "&(dyn Any + Send + Sync)"
 			}
-			out.WriteString("            __any = __boxed.as_ref() as &dyn Any;\n")
+			out.WriteString("    let _ts_val: Option<" + anyRef + "> = _ts_guard.as_ref().map(|__v| {\n")
+			out.WriteString("        let mut __any = __v.as_ref() as " + anyRef + ";\n")
+			out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<" + rustAnyTraitObject() + ">() {\n")
+			out.WriteString("            __any = __boxed.as_ref() as " + anyRef + ";\n")
 			out.WriteString("        }\n")
 			out.WriteString("        __any\n")
 			out.WriteString("    });\n")
@@ -17138,6 +17142,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(candidate.rustType)
 								out.WriteString(">()) { ")
 								writeGoErrorHandleFromAssertionCandidate(out, candidate)
+								out.WriteString(" }")
+							}
+							if programAnyRuntimeOpsEnabled() {
+								NeedGoAnyRuntimeOps()
+								out.WriteString(" else if let Some(__registered_error) = _ts_val.and_then(go_registered_any_error) { ")
+								writeErrorHandleFromOptionValue(out, "Some(__registered_error)")
 								out.WriteString(" }")
 							}
 							out.WriteString(" else { unreachable!(\"type switch error case matched no error payload\") }")
