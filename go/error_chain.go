@@ -84,10 +84,51 @@ func writeErrorChainUnwrapArmsForPackage(arms *strings.Builder, pkg *types.Packa
 	}
 }
 
+// externalErrorChainUnwrapArms follows the cause stored by the native os.Open
+// adapter when its consumer uses the external representation of io/fs.PathError.
+func externalErrorChainUnwrapArms() string {
+	needsPathError := currentExternalTypeStubs()["fs_PathError"]
+	if !needsPathError {
+		if osStub := currentExternalPackageStubs()["os"]; osStub != nil {
+			_, needsPathError = osStub.Functions["open"]
+		}
+	}
+	if !needsPathError {
+		return ""
+	}
+	var arms strings.Builder
+	arms.WriteString("        if let Some(__v) = e.downcast_ref::<fs_PathError>() { if let Some(__c) = (*__v.err")
+	WriteBorrowMethod(&arms, false)
+	arms.WriteString(").clone() { stack.push(__c); } }\n")
+	return arms.String()
+}
+
 func generateGoErrorChainHelper(out *strings.Builder) {
 	errType := rustErrorPayloadType()
 	pointer := rustErrorPointer()
-	userArms := errorChainUnwrapArms()
+	externalArms := externalErrorChainUnwrapArms()
+	userArms := errorChainUnwrapArms() + externalArms
+	match := "std::ptr::addr_eq(&**e, &*target)"
+	nativeIs := ""
+	fs := currentExternalPackageStubs()["fs"]
+	if externalArms != "" || (fs != nil && fs.Variables["ErrNotExist"] != "") {
+		match += " || go_native_error_is(e, &target)"
+		nativeIs = `
+// Go compares syscall.Errno values by their numeric code. Its Is method
+// additionally recognizes the filesystem sentinel when it is the target.
+fn go_native_error_is(err: &ERR, target: &ERR) -> bool {
+    let (Some(err), Some(target)) = (
+        err.downcast_ref::<std::io::Error>(),
+        target.downcast_ref::<std::io::Error>(),
+    ) else { return false; };
+    if let Some(target_code) = target.raw_os_error() {
+        return err.raw_os_error() == Some(target_code);
+    }
+    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
+        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+}
+`
+	}
 	code := `
 // An error that wraps others: fmt.Errorf with %w, or errors.Join. many is
 // true when it wraps more than one, and then errors.Unwrap does not see it.
@@ -143,18 +184,18 @@ fn go_errors_unwrap(err: Option<ERR>) -> Option<ERR> {
     let mut stack: Vec<ERR> = Vec::new();
 USER_ARMS    stack.pop()
 }
-
+` + nativeIs + `
 // Two errors are the same error when they point to the same value, as ==
 // on two errors is written.
 fn go_errors_is(err: Option<ERR>, target: Option<ERR>) -> bool {
     match (err, target) {
         (None, None) => true,
-        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| std::ptr::addr_eq(&**e, &*target)),
+        (Some(err), Some(target)) => go_error_chain(Some(err)).iter().any(|e| ERROR_MATCH),
         _ => false,
     }
 }
 `
-	out.WriteString(strings.NewReplacer("ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
+	out.WriteString(strings.NewReplacer("ERROR_MATCH", match, "ERR", errType, "PTR", pointer, "USER_ARMS", userArms).Replace(code))
 }
 
 // writeGoErrorOptionValue writes the Option<error> an error expression
