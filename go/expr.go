@@ -7046,6 +7046,68 @@ func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+// writeSliceElemPtrEquality writes p == q where both are pointers to slice
+// elements, held as Option<GoSliceElemPtr<T>>, or nil: they are equal when
+// both are nil or both name the same element of the same array.
+func writeSliceElemPtrEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	leftIsElem, rightIsElem := sliceElemPtrComparisonOperand(expr.X), sliceElemPtrComparisonOperand(expr.Y)
+	if !leftIsElem && !rightIsElem {
+		return false
+	}
+	var left, right strings.Builder
+	if !writeSliceElemPtrComparisonOperand(&left, expr.X) || !writeSliceElemPtrComparisonOperand(&right, expr.Y) {
+		return false
+	}
+	out.WriteString("{ let __left = ")
+	out.WriteString(left.String())
+	out.WriteString("; let __right = ")
+	out.WriteString(right.String())
+	out.WriteString("; let __eq = match (&__left, &__right) { (None, None) => true, (Some(__l), Some(__r)) => __l.identity() == __r.identity(), _ => false }; ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
+func sliceElemPtrComparisonOperand(expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		return ident.Name != "nil" && isSliceElemPtrVar(ident.Name)
+	}
+	_, ok := sliceElemPtrAddressElemRustType(expr)
+	return ok
+}
+
+// writeSliceElemPtrComparisonOperand writes one side of a slice element
+// pointer comparison as an Option<GoSliceElemPtr<T>>.
+func writeSliceElemPtrComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			out.WriteString("None")
+			return true
+		}
+		if !isSliceElemPtrVar(ident.Name) {
+			return false
+		}
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return true
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(expr); !ok {
+		return false
+	}
+	unary := expr.(*ast.UnaryExpr)
+	indexExpr := unwrapParens(unary.X).(*ast.IndexExpr)
+	out.WriteString("Some(")
+	if !writeSliceElemPtrNewExpression(out, indexExpr) {
+		return false
+	}
+	out.WriteString(")")
+	return true
+}
+
 func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
@@ -7059,6 +7121,9 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(expr.X) || !typeInfo.IsPointer(expr.Y) {
 		return false
+	}
+	if writeSliceElemPtrEquality(out, expr) {
+		return true
 	}
 	trackWrapperImports()
 	var left strings.Builder
