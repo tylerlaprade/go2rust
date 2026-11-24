@@ -890,6 +890,89 @@ impl Display for Runes {
 }
 
 
+#[derive(Debug)]
+pub struct Text(pub Arc<Mutex<Option<String>>>);
+
+impl Clone for Text {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.lock().unwrap()).clone();
+        Text(Arc::new(Mutex::new(__value)))
+    }
+}
+
+impl Default for Text {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(Some(Default::default()))))
+    }
+}
+
+impl Display for Text {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for Text {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialOrd for Text {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(std::cmp::Ord::cmp(self, other))
+    }
+}
+
+impl Eq for Text {}
+
+impl Ord for Text {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.lock().unwrap().as_ref().cloned() };
+        let __right = { other.0.lock().unwrap().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Text {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.lock().unwrap().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Text {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.lock().unwrap().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Text {
+    type Output = Text;
+    fn add(self, other: Self) -> Text {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other.0.lock().unwrap().as_ref().unwrap());
+        Text(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Text {
+    type Output = Text;
+    fn add(self, other: String) -> Text {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
+        Text(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Text {
+    type Output = Text;
+    fn add(self, other: &str) -> Text {
+        let __joined = format!("{}{}", self.0.lock().unwrap().as_ref().unwrap(), other);
+        Text(Arc::new(Mutex::new(Some(__joined))))
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Msg {
     pub body: Arc<Mutex<Option<Bytes>>>,
@@ -947,7 +1030,7 @@ fn main() {
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*(*c.lock().unwrap().as_ref().unwrap()).upper().lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = Bytes(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) })))); __named_slice.0.clone() }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).lock().unwrap().as_ref().unwrap())));
     print!("{} {}\n", format!("{}", String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*b.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()), format!("{}", format_slice(&{ let __named_slice = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })));
     let mut r = Arc::new(Mutex::new(Some(Runes(Arc::new(Mutex::new(Some(("h\u{e9}llo".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())))))));
-    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*r.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = { let __named_slice = (*r.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); (*__rune_slice_guard.as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>() }))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*r.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = { let __named_slice = (*r.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).lock().unwrap().as_ref().unwrap())));
     { let new_val = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some(("reassigned".to_string()).as_bytes().to_go_slice()))))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *c.lock().unwrap() = __moved_val; };
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*c.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", size(Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some(("four".to_string()).as_bytes().to_go_slice()))))))))));
     let mut m = Arc::new(Mutex::new(Some(Msg { body: Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some(("body".to_string()).as_bytes().to_go_slice()))).clone())))), ..Default::default() })));
@@ -963,11 +1046,28 @@ fn main() {
         }
         Arc::new(Mutex::new(Some(_n as i64)))
     };
-    let mut u: Arc<Mutex<Option<Bytes>>> = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some(({ let __v = (*raw.lock().unwrap().as_ref().unwrap()).clone(); __v }))))))));
+    let mut u: Arc<Mutex<Option<Bytes>>> = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(raw.lock().unwrap().clone()))))));
     { let __idx = (1) as usize; let __rhs = ('A' as u8) as u8; (*{ let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     { let new_val = { let __base = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push(('!' as u8)); Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *u.lock().unwrap() = __moved_val; };
     { let __idx = (0) as usize; let __rhs = ('R' as u8) as u8; (*{ let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*raw.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).lock().unwrap().as_ref().unwrap())));
+
+        // A defined string, a nil []byte, an assigned variable and a [][]byte
+        // row go into the defined type; a nil or invalid []rune converts.
+    let mut name: Arc<Mutex<Option<Text>>> = Arc::new(Mutex::new(Some(Text(Arc::new(Mutex::new(Some("hey".to_string())))))));
+    println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = Bytes(Arc::new(Mutex::new(Some((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_go_slice())))); __named_slice.0.clone() }; let __bytes_guard = __bytes.lock().unwrap(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __slice_holder = { let __named_slice = Runes(Arc::new(Mutex::new(Some((*(*name.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()).clone().chars().map(|c| c as i32).collect::<Vec<_>>())))); __named_slice.0.clone() }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+    let mut none: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
+    let mut empty: Arc<Mutex<Option<Bytes>>> = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(none.lock().unwrap().clone()))))));
+    println!("{} {} {}", format!("{}", { let __slice_holder = { let __named_slice = empty.lock().unwrap().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = (*empty.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = { let __named_slice = Runes(Arc::new(Mutex::new(None::<Vec<i32>>))); __named_slice.0.clone() }; let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y }));
+    let mut one = Arc::new(Mutex::new(Some(vec![1 as u8])));
+    { let new_val = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(one.lock().unwrap().clone())))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *u.lock().unwrap() = __moved_val; };
+    { let __idx = (0) as usize; let __rhs = 2 as u8; (*{ let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut rows = Arc::new(Mutex::new(Some(vec![vec![7 as u8]])));
+    let mut row: Arc<Mutex<Option<Bytes>>> = Arc::new(Mutex::new(Some(Bytes(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone())))))));
+    { let __idx = (0) as usize; let __rhs = 8 as u8; (*{ let __named_slice = (*row.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut bad = Arc::new(Mutex::new(Some(Runes(Arc::new(Mutex::new(Some(("x".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())))))));
+    { let __idx = (0) as usize; let __rhs = -1 as i32; (*{ let __named_slice = (*bad.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", { let __seq = { let __seq_holder = one.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", ({ let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })[(0) as usize].clone()), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = { let __named_slice = (*bad.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\u{fffd}".to_string(); __tmp_x == __tmp_y }));
     let mut wg = WaitGroup::new();
     let mut out: Arc<Mutex<Option<Vec<Bytes>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); (2) as usize])));
     for i in 0..(({ let __range_holder = out.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {

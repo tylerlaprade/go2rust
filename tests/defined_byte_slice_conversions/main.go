@@ -9,6 +9,7 @@ import (
 
 type Bytes []byte
 type Runes []rune
+type Text string
 
 func (b Bytes) Upper() Bytes {
 	out := make(Bytes, len(b))
@@ -47,4 +48,20 @@ func main() {
 	u = append(u, '!')
 	u[0] = 'R'
 	fmt.Println(string(raw), string(u))
+	// A defined string, a nil []byte, an assigned variable and a [][]byte
+	// row go into the defined type; a nil or invalid []rune converts.
+	var name Text = "hey"
+	fmt.Println(string(Bytes(name)), len(Runes(name)))
+	var none []byte
+	var empty Bytes = none
+	fmt.Println(empty == nil, len(empty), string(Runes(nil)) == "")
+	one := []byte{1}
+	u = one
+	u[0] = 2
+	rows := [][]byte{{7}}
+	var row Bytes = rows[0]
+	row[0] = 8
+	bad := Runes("x")
+	bad[0] = -1
+	fmt.Println(one[0], rows[0][0], string(bad) == "\uFFFD")
 }

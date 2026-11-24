@@ -726,6 +726,89 @@ impl Display for Runes {
 }
 
 
+#[derive(Debug)]
+pub struct Text(pub Rc<RefCell<Option<String>>>);
+
+impl Clone for Text {
+    fn clone(&self) -> Self {
+        let __value = (*self.0.borrow()).clone();
+        Text(Rc::new(RefCell::new(__value)))
+    }
+}
+
+impl Default for Text {
+    fn default() -> Self {
+        Self(Rc::new(RefCell::new(Some(Default::default()))))
+    }
+}
+
+impl Display for Text {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+    }
+}
+
+impl PartialEq for Text {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
+    }
+}
+
+impl PartialOrd for Text {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(std::cmp::Ord::cmp(self, other))
+    }
+}
+
+impl Eq for Text {}
+
+impl Ord for Text {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.cmp(&__right)
+    }
+}
+
+impl PartialEq<String> for Text {
+    fn eq(&self, other: &String) -> bool {
+        *self.0.borrow().as_ref().unwrap() == *other
+    }
+}
+
+impl PartialEq<&str> for Text {
+    fn eq(&self, other: &&str) -> bool {
+        self.0.borrow().as_ref().unwrap().as_str() == *other
+    }
+}
+
+impl std::ops::Add for Text {
+    type Output = Text;
+    fn add(self, other: Self) -> Text {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other.0.borrow().as_ref().unwrap());
+        Text(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<String> for Text {
+    type Output = Text;
+    fn add(self, other: String) -> Text {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Text(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+impl std::ops::Add<&str> for Text {
+    type Output = Text;
+    fn add(self, other: &str) -> Text {
+        let __joined = format!("{}{}", self.0.borrow().as_ref().unwrap(), other);
+        Text(Rc::new(RefCell::new(Some(__joined))))
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Msg {
     pub body: Rc<RefCell<Option<Bytes>>>,
@@ -783,7 +866,7 @@ fn main() {
     println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*(*c.borrow().as_ref().unwrap()).upper().borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = Bytes(Rc::new(RefCell::new(Some({ let __slice_holder = { let __named_slice = (*b.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) })))); __named_slice.0.clone() }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())));
     print!("{} {}\n", String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*b.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap(), format_slice(&{ let __named_slice = (*c.borrow().as_ref().unwrap()).0.clone(); __named_slice }));
     let mut r = Rc::new(RefCell::new(Some(Runes(Rc::new(RefCell::new(Some(("h\u{e9}llo".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())))))));
-    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*r.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", (*Rc::new(RefCell::new(Some({ let __rune_slice_holder = { let __named_slice = (*r.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.borrow(); (*__rune_slice_guard.as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>() }))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", { let __slice_holder = { let __named_slice = (*r.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", (*Rc::new(RefCell::new(Some({ let __rune_slice_holder = { let __named_slice = (*r.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.borrow(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).borrow().as_ref().unwrap())));
     { let new_val = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some(("reassigned".to_string()).as_bytes().to_go_slice()))))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *c.borrow_mut() = __moved_val; };
     println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*c.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())), format!("{}", size(Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some(("four".to_string()).as_bytes().to_go_slice()))))))))));
     let mut m = Rc::new(RefCell::new(Some(Msg { body: Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some(("body".to_string()).as_bytes().to_go_slice()))).clone())))), ..Default::default() })));
@@ -799,9 +882,26 @@ fn main() {
         }
         Rc::new(RefCell::new(Some(_n as i64)))
     };
-    let mut u: Rc<RefCell<Option<Bytes>>> = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some((*raw.borrow().as_ref().unwrap()).clone())))))));
+    let mut u: Rc<RefCell<Option<Bytes>>> = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(raw.borrow().clone()))))));
     { let __idx = (1) as usize; let __rhs = ('A' as u8) as u8; (*{ let __named_slice = (*u.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let new_val = { let __base = { let __named_slice = (*u.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push(('!' as u8)); Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *u.borrow_mut() = __moved_val; };
     { let __idx = (0) as usize; let __rhs = ('R' as u8) as u8; (*{ let __named_slice = (*u.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*raw.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = (*u.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())));
+
+        // A defined string, a nil []byte, an assigned variable and a [][]byte
+        // row go into the defined type; a nil or invalid []rune converts.
+    let mut name: Rc<RefCell<Option<Text>>> = Rc::new(RefCell::new(Some(Text(Rc::new(RefCell::new(Some("hey".to_string())))))));
+    println!("{} {}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from({ let __bytes = { let __named_slice = Bytes(Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone().as_bytes().to_go_slice())))); __named_slice.0.clone() }; let __bytes_guard = __bytes.borrow(); let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value })).unwrap()))).borrow().as_ref().unwrap())), format!("{}", { let __slice_holder = { let __named_slice = Runes(Rc::new(RefCell::new(Some((*(*name.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()).clone().chars().map(|c| c as i32).collect::<Vec<_>>())))); __named_slice.0.clone() }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+    let mut none: Rc<RefCell<Option<Vec<u8>>>> = Rc::new(RefCell::new(None));
+    let mut empty: Rc<RefCell<Option<Bytes>>> = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(none.borrow().clone()))))));
+    println!("{} {} {}", format!("{}", { let __slice_holder = { let __named_slice = empty.borrow().as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Rc::new(RefCell::new(None))); __named_slice }; let __slice_guard = __slice_holder.borrow(); (*__slice_guard).is_none() }), format!("{}", { let __slice_holder = { let __named_slice = (*empty.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", (*Rc::new(RefCell::new(Some({ let __rune_slice_holder = { let __named_slice = Runes(Rc::new(RefCell::new(None::<Vec<i32>>))); __named_slice.0.clone() }; let __rune_slice_guard = __rune_slice_holder.borrow(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).borrow().as_ref().unwrap()).clone() == "".to_string()));
+    let mut one = Rc::new(RefCell::new(Some(vec![1 as u8])));
+    { let new_val = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(one.borrow().clone())))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *u.borrow_mut() = __moved_val; };
+    { let __idx = (0) as usize; let __rhs = 2 as u8; (*{ let __named_slice = (*u.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    let mut rows = Rc::new(RefCell::new(Some(vec![vec![7 as u8]])));
+    let mut row: Rc<RefCell<Option<Bytes>>> = Rc::new(RefCell::new(Some(Bytes(Rc::new(RefCell::new(Some((*rows.borrow().as_ref().unwrap())[(0) as usize].clone().clone())))))));
+    { let __idx = (0) as usize; let __rhs = 8 as u8; (*{ let __named_slice = (*row.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    let mut bad = Rc::new(RefCell::new(Some(Runes(Rc::new(RefCell::new(Some(("x".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())))))));
+    { let __idx = (0) as usize; let __rhs = -1 as i32; (*{ let __named_slice = (*bad.borrow().as_ref().unwrap()).0.clone(); __named_slice }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", (*one.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*rows.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()), format!("{}", (*Rc::new(RefCell::new(Some({ let __rune_slice_holder = { let __named_slice = (*bad.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __rune_slice_guard = __rune_slice_holder.borrow(); match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>(), None => String::new() } }))).borrow().as_ref().unwrap()).clone() == "\u{fffd}".to_string()));
 }

@@ -18426,7 +18426,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()")
 				WriteWrapperSuffix(out)
 				return
 			case "u8":
@@ -18779,7 +18779,10 @@ func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) boo
 		out.WriteString(goTypesNamedTypeToRust(targetNamed))
 		out.WriteString("(")
 		WriteWrapperPrefix(out)
-		writeStringConversionSource(out, call.Args[0])
+		// A defined string type ("type Text string") holds its String.
+		if !writeNamedStringNewtypeInnerValue(out, call.Args[0]) {
+			writeStringConversionSource(out, call.Args[0])
+		}
 		out.WriteString(conversion)
 		WriteWrapperSuffix(out)
 		out.WriteString(")")
@@ -19665,9 +19668,10 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 		writeNamedSliceInnerHandleClone(out, arg)
 		out.WriteString("; let __rune_slice_guard = __rune_slice_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; (*__rune_slice_guard.as_ref().unwrap())")
+		// A nil slice converts to "".
+		out.WriteString("; match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes)")
 		writeRuneSliceIteratorToString(out)
-		out.WriteString(" }")
+		out.WriteString(", None => String::new() } }")
 		return
 	}
 	if sliceConversionSourceIsBare(arg) {
@@ -19718,7 +19722,7 @@ func sliceConversionSourceIsBare(arg ast.Expr) bool {
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {
-	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()")
 }
 
 func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {

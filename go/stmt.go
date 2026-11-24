@@ -7420,25 +7420,35 @@ func functionTypeExprUsesWrappedHandle(expr ast.Expr) (bool, bool) {
 	return ok, true
 }
 
+// writeUnnamedSliceToNamedSliceAssignment writes "b = raw" or
+// "b = []byte("x")" for a variable of type Bytes []byte: the slice goes
+// into the defined type.
+func writeUnnamedSliceToNamedSliceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	var value strings.Builder
+	if !writeUnnamedSliceToNamedSliceInitializer(&value, rhs, typeInfo.GetType(lhs)) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(value.String())
+	out.WriteString("; let __moved_val = { let mut __guard = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() }; *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __moved_val; }")
+	return true
+}
+
 func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		// b = []byte("x") for a variable of type Bytes []byte: the slice
-		// goes into the defined type.
-		var value strings.Builder
-		if writeUnnamedSliceToNamedSliceInitializer(&value, rhs, typeInfo.GetType(lhs)) {
-			out.WriteString("{ let new_val = ")
-			out.WriteString(value.String())
-			out.WriteString("; let __moved_val = { let mut __guard = new_val")
-			WriteBorrowMethod(out, true)
-			out.WriteString("; __guard.take() }; *")
-			TranspileExpressionContext(out, lhs, LValue)
-			WriteBorrowMethod(out, true)
-			out.WriteString(" = __moved_val; }")
-			return
-		}
+	if writeUnnamedSliceToNamedSliceAssignment(out, lhs, rhs) {
+		return
 	}
 	out.WriteString("{ ")
 	out.WriteString("let new_val = ")
@@ -8695,18 +8705,23 @@ func writeUnnamedSliceToNamedSliceInitializer(out *strings.Builder, value ast.Ex
 	out.WriteString("(")
 	switch unwrapParens(value).(type) {
 	case *ast.Ident, *ast.SelectorExpr:
-		// "var u Numbers = s" copies s's header into a cell of its own, as
-		// "t := s" does: appending to u does not change s.
-		WriteWrapperPrefix(out)
-		if !writeOwnedExpressionValue(out, unwrapParens(value)) {
-			out.WriteString("(*")
-			TranspileExpressionContext(out, unwrapParens(value), LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
-		}
-		WriteWrapperSuffix(out)
+		// "var u Numbers = s" copies s's header into a cell of its own:
+		// appending to u does not change s, and a nil s gives a nil u.
+		out.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(")
+		TranspileExpressionContext(out, unwrapParens(value), LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone()))")
 	default:
-		writePlainSliceHandleForNamedSliceConversion(out, value)
+		// An element of a [][]byte is the row itself, not a handle: it goes
+		// into a cell of its own.
+		if typeInfo.ReturnsWrappedValue(unwrapParens(value)) {
+			writePlainSliceHandleForNamedSliceConversion(out, value)
+		} else {
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, value)
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+		}
 	}
 	out.WriteString(")")
 	WriteWrapperSuffix(out)
@@ -13898,6 +13913,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Pointer assignment replaces the handle to preserve aliasing.
+								} else if writeUnnamedSliceToNamedSliceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// b = raw for a variable of a defined slice type.
 								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeCurrentReceiverLocalAssignment(out, s.Lhs[0], s.Rhs[0]) {

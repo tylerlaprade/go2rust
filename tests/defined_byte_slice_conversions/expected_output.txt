@@ -5,3 +5,6 @@ xyz [97 98 99]
 reassigned 4
 body
 rAw RAw!
+hey 3
+true 0 true
+2 8 true
