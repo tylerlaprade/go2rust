@@ -2051,6 +2051,10 @@ run_xfail_test() {
     run_test "tests/map_converted_numeric"
 }
 
+@test "map_field_local_alias" {
+    run_test "tests/map_field_local_alias"
+}
+
 @test "map_len_integer_key" {
     run_test "tests/map_len_integer_key"
 }

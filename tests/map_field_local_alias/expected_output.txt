@@ -1,0 +1,4 @@
+[b c d] 3 3 3
+map[x:[first]]
+[z]
+[b c d] [new]
