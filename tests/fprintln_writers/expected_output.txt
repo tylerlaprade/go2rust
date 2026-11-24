@@ -1,0 +1,5 @@
+2 <nil> 3 [a 1 true b ]
+"x 2.5\ny\n"
+"buffered 3\n"
+report via io.Writer 4
+to stdout
