@@ -1825,6 +1825,14 @@ func goTypesGoPtrElemTypeToRust(t types.Type) string {
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return goTypesTypeToRust(t)
 	}
+	// A GoPtr to a defined array type points at the array itself, as an
+	// unsafe.Pointer conversion gives it, not at the newtype around its
+	// cell.
+	if named, ok := types.Unalias(t).(*types.Named); ok && (named.Obj() == nil || named.Obj().Pkg() == nil || !isStdlibPackage(named.Obj().Pkg().Path())) {
+		if array, ok := types.Unalias(named.Underlying()).(*types.Array); ok {
+			return "[" + goTypesCollectionElemTypeToRust(array.Elem()) + "; " + strconv.FormatInt(array.Len(), 10) + "]"
+		}
+	}
 	return goTypesCollectionElemTypeToRust(t)
 }
 

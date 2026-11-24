@@ -1539,6 +1539,13 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 			return
 		}
 		rustType := localInterfaceAssertionCandidateRustType(named, matchedForm, sourceType)
+		if _, isPointerForm := types.Unalias(matchedForm).(*types.Pointer); isPointerForm && rustType == goTypesNamedTypeToRust(named) && sourceMappedPointerWrapperImplementsImportedInterface(named, ifaceType) {
+			// *T implements an interface of a package T's package imports,
+			// such as *bytes.Buffer and io.StringWriter: T's package
+			// writes the pointer newtype that implements its trait, and a
+			// T value itself does not.
+			rustType = sourceMappedPointerWrapperTypeName(named)
+		}
 		if rustType == "" || seen[rustType] {
 			return
 		}
@@ -1640,6 +1647,41 @@ func sourceMappedPointerWrapperAvailable(named *types.Named) bool {
 		iface.Complete()
 		if types.Implements(ptr, iface) {
 			return true
+		}
+	}
+	return false
+}
+
+// sourceMappedPointerWrapperImplementsImportedInterface reports whether a
+// source-translated package writes a pointer newtype for named that
+// implements iface: iface is one of the named interfaces of named's package
+// or of a package it imports, and *named implements it.
+func sourceMappedPointerWrapperImplementsImportedInterface(named *types.Named, iface *types.Interface) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || iface == nil || iface.NumMethods() == 0 {
+		return false
+	}
+	concretePkg := named.Obj().Pkg()
+	if !isSourceMappedPackagePath(concretePkg.Path()) {
+		return false
+	}
+	ptr := types.NewPointer(named)
+	if !types.Implements(ptr, iface) {
+		return false
+	}
+	pkgs := append([]*types.Package{concretePkg}, concretePkg.Imports()...)
+	for _, pkg := range pkgs {
+		if pkg == nil || pkg.Scope() == nil {
+			continue
+		}
+		for _, name := range pkg.Scope().Names() {
+			obj, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			candidate, ok := types.Unalias(obj.Type()).Underlying().(*types.Interface)
+			if ok && types.Identical(candidate, iface) {
+				return true
+			}
 		}
 	}
 	return false

@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();

@@ -663,6 +663,10 @@ run_xfail_test() {
     run_test "tests/byte_slice_from_global_array_field"
 }
 
+@test "byte_tables_and_named_byte_slices" {
+    run_test "tests/byte_tables_and_named_byte_slices"
+}
+
 @test "bytes_buffer_zero_value" {
     run_test "tests/bytes_buffer_zero_value"
 }
@@ -4057,6 +4061,10 @@ run_xfail_test() {
 
 @test "waitgroup_sync" {
     run_test "tests/waitgroup_sync"
+}
+
+@test "word_count_bufio_strings" {
+    run_test "tests/word_count_bufio_strings"
 }
 
 @test "worker_pools" {

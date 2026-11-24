@@ -87,6 +87,15 @@ such file with the one other architectures build (`stdlibNoAsmOverlays` in
 hand-written strconv, math and unicode call emitters in `go/stdlib.go` no
 longer run for programs and are left to delete.
 
+**Update 2026-11-24:** `strings`, `bytes`, `bufio` and `io` are translated
+from source by default too, with `internal/bytealg`. bytealg's
+`*_native.go` files declare assembly, so the overlay replaces each with its
+`*_generic.go` counterpart, drops `index_amd64.go` (MaxLen stays 0, as on an
+architecture without an assembly Index), and strips `bytealg.go`'s
+assembly-only `internal/cpu` offsets (`stdlibOverlayTransforms`). The
+`internal/bytealg` stub entries, among them DEV-132's `index_byte_string`
+emitter, are no longer reached and are left to delete.
+
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
 and passes. The actual blocker for retiring most rows below is that

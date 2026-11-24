@@ -9,17 +9,18 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    ::bufio::__go_init_all();
     ::bytes::__go_init_all();
     ::go_build::__go_init_all();
     ::internal_abi::__go_init_all();
     ::internal_bytealg::__go_init_all();
-    ::internal_cpu::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_godebug::__go_init_all();
     ::internal_godebugs::__go_init_all();
     ::internal_race::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::internal_sync::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::path_filepath::__go_init_all();

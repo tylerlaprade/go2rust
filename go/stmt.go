@@ -15391,6 +15391,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				TranspileExpression(out, s.X)
 			}
+			// Go ranges over the string's value as it was when the loop began,
+			// so the loop reads a copy: holding the variable's cell for the
+			// whole loop would deadlock (in the Arc/Mutex form) a body that
+			// reads the string again, as strings.Map does.
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
@@ -15402,7 +15406,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
-					out.WriteString(") in (*")
+					out.WriteString(") in { let __range_string = (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
@@ -15410,7 +15414,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.char_indices()")
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
@@ -15420,7 +15424,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
-					out.WriteString(" in (*")
+					out.WriteString(" in { let __range_string = (*")
 					// Use raw identifier to avoid double-unwrapping
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
@@ -15428,7 +15432,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.chars()")
 				}
 			} else if s.Key != nil {
 				// for i := range str
@@ -15439,14 +15443,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".char_indices()")
 				} else {
-					out.WriteString("(*")
+					out.WriteString("{ let __range_string = (*")
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).char_indices()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.char_indices()")
 				}
 			} else {
 				// for range str
@@ -15455,14 +15459,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeBareStringRangeSource()
 					out.WriteString(".chars()")
 				} else {
-					out.WriteString("(*")
+					out.WriteString("{ let __range_string = (*")
 					if ident, ok := s.X.(*ast.Ident); ok {
 						out.WriteString(EscapeRustIdent(ident.Name))
 					} else {
 						TranspileExpression(out, s.X)
 					}
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).chars()")
+					out.WriteString(".as_ref().unwrap()).clone(); __range_string }.chars()")
 				}
 			}
 		} else if isMap {
