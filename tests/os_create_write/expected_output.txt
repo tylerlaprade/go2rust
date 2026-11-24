@@ -14,6 +14,12 @@ true
 true
 <nil> true
 true
+true
+0 <nil>
 <nil>
 xy
+<nil>
+xyz
+true false
+true false
 true

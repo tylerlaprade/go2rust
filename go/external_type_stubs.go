@@ -2283,7 +2283,25 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
             return WRITE_ERROR;
         }
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        __disk.take();
+        // Dropping a File closes it and discards the result. Go's Close
+        // reports a failed close(2), so on Unix close the descriptor
+        // directly. The handle stays closed either way.
+        if let Some(__file) = __disk.take() {
+            drop(__disk);
+            #[cfg(unix)]
+            {
+                let __fd = std::os::fd::IntoRawFd::into_raw_fd(__file);
+                unsafe extern "C" {
+                    fn close(fd: i32) -> i32;
+                }
+                if unsafe { close(__fd) } != 0 {
+                    let __err = self.__go_op_error("close", std::io::Error::last_os_error());
+                    return WRITE_ERROR;
+                }
+            }
+            #[cfg(not(unix))]
+            drop(__file);
+        }
         NONE_ERROR
     }
 
@@ -2326,36 +2344,43 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
         // of the input with no bytes read. The destination is locked before
         // the disk file, as in ReadAt.
         enum __ReadOutcome { Bytes(usize), End, Failed(std::io::Error) }
+        // Close sets the closed flag while it holds the disk lock, so the
+        // flag is read under that lock: a Close that lands between the check
+        // and the read cannot turn a closed-file error into EOF. Go checks
+        // for a closed file before the buffer length, nil buffers included.
         let __outcome = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<VEC_TYPE>() {
             let mut __guard = __buf VEC_MUT_BORROW;
-            match __guard.as_mut() {
-                Some(__dst) => {
-                    let __dst = __dst.as_mut_slice();
-                    if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
-                        __ReadOutcome::Failed(self.__go_closed_error("read"))
-                    } else if __dst.is_empty() {
-                        __ReadOutcome::Bytes(0)
-                    } else if self.__go_stdin {
-                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
-                            Ok(0) | Err(_) => __ReadOutcome::End,
-                            Ok(__count) => __ReadOutcome::Bytes(__count),
+            let mut __disk = self.__go_disk.lock().unwrap();
+            if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+                __ReadOutcome::Failed(self.__go_closed_error("read"))
+            } else {
+                match __guard.as_mut() {
+                    Some(__dst) => {
+                        let __dst = __dst.as_mut_slice();
+                        if __dst.is_empty() {
+                            __ReadOutcome::Bytes(0)
+                        } else if self.__go_stdin {
+                            match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                                Ok(0) | Err(_) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                            }
+                        } else if let Some(__disk) = __disk.as_mut() {
+                            match std::io::Read::read(__disk, __dst) {
+                                Ok(0) => __ReadOutcome::End,
+                                Ok(__count) => __ReadOutcome::Bytes(__count),
+                                Err(__err) => __ReadOutcome::Failed(self.__go_op_error("read", __err)),
+                            }
+                        } else {
+                            let __data = self.__go_data.lock().unwrap();
+                            let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                            let __count = (__data.len() - __pos).min(__dst.len());
+                            __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                            self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                            if __count == 0 { __ReadOutcome::End } else { __ReadOutcome::Bytes(__count) }
                         }
-                    } else if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {
-                        match std::io::Read::read(__disk, __dst) {
-                            Ok(0) => __ReadOutcome::End,
-                            Ok(__count) => __ReadOutcome::Bytes(__count),
-                            Err(__err) => __ReadOutcome::Failed(self.__go_op_error("read", __err)),
-                        }
-                    } else {
-                        let __data = self.__go_data.lock().unwrap();
-                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
-                        let __count = (__data.len() - __pos).min(__dst.len());
-                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
-                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
-                        if __count == 0 { __ReadOutcome::End } else { __ReadOutcome::Bytes(__count) }
                     }
+                    None => __ReadOutcome::Bytes(0),
                 }
-                None => __ReadOutcome::Bytes(0),
             }
         } else {
             __ReadOutcome::Bytes(0)
@@ -2390,13 +2415,20 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
         let Some(target) = guard.as_mut() else {
             return (0, NONE_ERROR);
         };
-        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            let __err = self.__go_closed_error("read");
-            return (0, WRITE_ERROR);
+        // Go's ReadAt reads nothing into an empty p, so it succeeds even on
+        // a closed file.
+        if target.is_empty() {
+            return (0, NONE_ERROR);
         }
         let mut __done = 0usize;
         let mut __failure: Option<std::io::Error> = None;
+        // The closed flag is read under the disk lock, as in Read.
         let mut __disk = self.__go_disk.lock().unwrap();
+        if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            drop(__disk);
+            let __err = self.__go_closed_error("read");
+            return (0, WRITE_ERROR);
+        }
         if let Some(__file) = __disk.as_mut() {
             // ReadAt reads at offset without moving the File's own position.
             #[cfg(unix)]
@@ -2413,24 +2445,31 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
             }
             #[cfg(not(unix))]
             {
-                let __saved = std::io::Seek::stream_position(__file);
-                if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(offset as u64)) {
-                    __failure = Some(self.__go_op_error("read", __err));
-                } else {
-                    while __done < target.len() {
-                        match std::io::Read::read(__file, &mut target[__done..]) {
-                            Ok(0) => break,
-                            Ok(__count) => __done += __count,
-                            Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
-                            Err(__err) => {
-                                __failure = Some(self.__go_op_error("read", __err));
-                                break;
+                // ReadAt must leave the File's position where it was: without
+                // the saved position, do not seek; a failed restore is the
+                // call's error.
+                match std::io::Seek::stream_position(__file) {
+                    Err(__err) => __failure = Some(self.__go_op_error("read", __err)),
+                    Ok(__saved) => {
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(offset as u64)) {
+                            __failure = Some(self.__go_op_error("read", __err));
+                        } else {
+                            while __done < target.len() {
+                                match std::io::Read::read(__file, &mut target[__done..]) {
+                                    Ok(0) => break,
+                                    Ok(__count) => __done += __count,
+                                    Err(__err) if __err.kind() == std::io::ErrorKind::Interrupted => {}
+                                    Err(__err) => {
+                                        __failure = Some(self.__go_op_error("read", __err));
+                                        break;
+                                    }
+                                }
                             }
                         }
+                        if let Err(__err) = std::io::Seek::seek(__file, std::io::SeekFrom::Start(__saved)) {
+                            __failure.get_or_insert(self.__go_op_error("read", __err));
+                        }
                     }
-                }
-                if let Ok(__pos) = __saved {
-                    let _ = std::io::Seek::seek(__file, std::io::SeekFrom::Start(__pos));
                 }
             }
         } else {
@@ -3933,13 +3972,17 @@ func writeOsOpenFileFunction(out *strings.Builder, fn externalPackageStubFunctio
 	fmt.Fprintf(out, "        if flag & %d != 0 { options.append(true); }\n", syscall.O_APPEND)
 	fmt.Fprintf(out, "        if flag & %d != 0 { if flag & %d != 0 { options.create_new(true); } else { options.create(true); } }\n", syscall.O_CREAT, syscall.O_EXCL)
 	// Rust refuses append with truncate; on Unix the truncation goes in as
-	// the open flag Go passes, so both hold in one open.
-	fmt.Fprintf(out, "        if flag & %d != 0 {\n", syscall.O_TRUNC)
-	fmt.Fprintf(out, "            #[cfg(unix)]\n")
-	fmt.Fprintf(out, "            if flag & %d != 0 { std::os::unix::fs::OpenOptionsExt::custom_flags(&mut options, %d); } else { options.truncate(true); }\n", syscall.O_APPEND, syscall.O_TRUNC)
-	fmt.Fprintf(out, "            #[cfg(not(unix))]\n")
-	fmt.Fprintf(out, "            options.truncate(true);\n")
+	// the open flag Go passes, so both hold in one open. O_SYNC has no
+	// OpenOptions setter and goes in the same way. custom_flags replaces
+	// the mask, so both share one call.
+	fmt.Fprintf(out, "        #[cfg(unix)]\n")
+	fmt.Fprintf(out, "        {\n")
+	fmt.Fprintf(out, "            let mut native = flag & %d;\n", syscall.O_SYNC)
+	fmt.Fprintf(out, "            if flag & %d != 0 { if flag & %d != 0 { native |= %d; } else { options.truncate(true); } }\n", syscall.O_TRUNC, syscall.O_APPEND, syscall.O_TRUNC)
+	fmt.Fprintf(out, "            if native != 0 { std::os::unix::fs::OpenOptionsExt::custom_flags(&mut options, native as i32); }\n")
 	fmt.Fprintf(out, "        }\n")
+	fmt.Fprintf(out, "        #[cfg(not(unix))]\n")
+	fmt.Fprintf(out, "        if flag & %d != 0 { options.truncate(true); }\n", syscall.O_TRUNC)
 	// The permission bits a created file gets, before the umask, as Go's.
 	if currentExternalTypeStubs()["fs_FileMode"] {
 		out.WriteString("        let perm: Option<u32> = if let Some(v) = (&_arg2 as &dyn std::any::Any).downcast_ref::<fs_FileMode>() { Some(v.0 & 0o777) } else if let Some(v) = (&_arg2 as &dyn std::any::Any).downcast_ref::<u32>() { Some(*v & 0o777) } else { None };\n")

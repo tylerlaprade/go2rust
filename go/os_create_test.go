@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -46,8 +48,10 @@ func main() {
 		"format!(\"{} {}: file already closed\", op, self.__go_name)",
 		"if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {",
 		`path_error("open", path, err)`,
-		"if let Some(__disk) = self.__go_disk.lock().unwrap().as_mut() {",
-		"__disk.take();",
+		// Read takes the disk lock before it checks the closed flag.
+		"let mut __disk = self.__go_disk.lock().unwrap();\n            if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {",
+		"} else if let Some(__disk) = __disk.as_mut() {",
+		"if let Some(__file) = __disk.take() {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q:\n%s", want, rust)
@@ -73,7 +77,7 @@ func main() {
 	}
 	f.WriteString("line\n")
 	f.Close()
-	_, err = os.Stat("missing.txt")
+	_, err = os.OpenFile("missing.txt", os.O_RDONLY|os.O_SYNC, 0)
 	fmt.Println(os.IsNotExist(err))
 }
 `)
@@ -87,6 +91,14 @@ func main() {
 		"options.append(true);",
 		"pub fn is_not_exist<T0: 'static>(_arg0: T0) -> bool {",
 		"return io.kind() == std::io::ErrorKind::NotFound;",
+		// OpenFile's error is a *PathError; IsNotExist classifies its cause.
+		"if let Some(path_error) = err.downcast_ref::<fs_PathError>() {",
+		"return inner.downcast_ref::<std::io::Error>().map_or(false, |io| io.kind() == std::io::ErrorKind::NotFound);",
+		// O_SYNC has no OpenOptions setter and goes in with custom_flags.
+		fmt.Sprintf("let mut native = flag & %d;", syscall.O_SYNC),
+		"std::os::unix::fs::OpenOptionsExt::custom_flags(&mut options, native as i32);",
+		// Close reports a failed close(2) rather than dropping the File.
+		"if unsafe { close(__fd) } != 0 {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q:\n%s", want, rust)

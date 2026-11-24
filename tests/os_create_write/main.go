@@ -74,6 +74,13 @@ func main() {
 	fmt.Println(h.Close(), h.Close() != nil)
 	_, err = h.Read(big)
 	fmt.Println(err != nil)
+	// A closed file fails a read into a nil buffer too, but an empty ReadAt
+	// reads nothing and succeeds.
+	var none []byte
+	_, err = h.Read(none)
+	fmt.Println(err != nil)
+	n, err = h.ReadAt(big[:0], 0)
+	fmt.Println(n, err)
 
 	ap, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_TRUNC, 0)
 	fmt.Println(err)
@@ -82,6 +89,20 @@ func main() {
 	ap.Close()
 	data, _ = os.ReadFile(path)
 	fmt.Println(string(data))
+
+	sy, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_SYNC, 0)
+	fmt.Println(err)
+	sy.WriteString("z")
+	sy.Close()
+	data, _ = os.ReadFile(path)
+	fmt.Println(string(data))
+
+	// OpenFile's errors are *PathError values that os.IsNotExist and
+	// os.IsExist look inside.
+	_, err = os.OpenFile("os_create_write_missing.txt", os.O_RDONLY, 0)
+	fmt.Println(os.IsNotExist(err), os.IsExist(err))
+	_, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	fmt.Println(os.IsExist(err), os.IsNotExist(err))
 
 	// A file is not a directory, so nothing can be created inside it.
 	_, err = os.Create(path + "/x.txt")
