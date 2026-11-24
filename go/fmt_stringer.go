@@ -171,8 +171,18 @@ func fmtStringerCandidates(iface *types.Interface, subjectType types.Type) []loc
 			if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok {
 				candidate.rustType = goTypesWrappedRustType(goTypesNamedTypeToRust(named))
 			}
+			out = append(out, candidate)
+			continue
 		}
 		out = append(out, candidate)
+		// A value receiver's String is in *T's method set too, so a *T
+		// held in an interface is a Stringer as well.
+		if named, ok := types.Unalias(candidate.typ).(*types.Named); ok {
+			out = append(out, localInterfaceAssertionCandidate{
+				rustType: goTypesWrappedRustType(goTypesNamedTypeToRust(named)),
+				typ:      types.NewPointer(named),
+			})
+		}
 	}
 	return out
 }
@@ -313,15 +323,73 @@ func writeFmtStringerAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExp
 // writeFmtStringerAssertionValue writes "x.(fmt.Stringer)" for an empty
 // interface x: the fmt_Stringer, or Go's panic when x is nil or its value
 // has no String method.
+//
+// The interface's lock is let go before the panic, so a program that
+// recovers can still use the interface value.
 func writeFmtStringerAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, iface *types.Interface, sourceType types.Type) {
 	NeedGoTypeName()
-	writeFmtStringerAssertionOpen(out, e)
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let __stringer: Result<" + fmtStringerStubName + ", String> = {\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n            ")
 	writeFmtStringerDowncastChain(out, iface, sourceType, func(stringer string) {
-		out.WriteString(stringer)
+		out.WriteString("Ok(" + stringer + ")")
 	}, func() {
-		out.WriteString("panic!(\"interface conversion: {} is not fmt.Stringer: missing method String\", ")
+		out.WriteString("Err(format!(\"interface conversion: {} is not fmt.Stringer: missing method String\", ")
 		out.WriteString(goTypeNameHelperRustName)
-		out.WriteString("(&**any_val))")
+		out.WriteString("(&**any_val)))")
 	})
-	out.WriteString("\n        } else {\n            panic!(\"interface conversion: interface is nil, not fmt.Stringer\")\n        }\n    })")
+	out.WriteString("\n        } else {\n            Err(\"interface conversion: interface is nil, not fmt.Stringer\".to_string())\n        }\n        };\n")
+	out.WriteString("        match __stringer { Ok(__s) => __s, Err(__message) => panic!(\"{}\", __message) }\n    })")
+}
+
+// writeFmtStringerTypeName writes %T of a fmt.Stringer variable: the type of
+// the value it holds, which fmt_Stringer keeps in __go_value, or <nil>.
+func writeFmtStringerTypeName(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(arg)
+	if !isFmtStringerType(typ) {
+		return false
+	}
+	iface, ok := typ.Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	var cell strings.Builder
+	switch e := arg.(type) {
+	case *ast.Ident:
+		if isVarBare(e.Name) {
+			return false
+		}
+		cell.WriteString(RustIdentForUse(e))
+	case *ast.SelectorExpr:
+		TranspileExpressionContext(&cell, e, LValue)
+	case *ast.CallExpr:
+		if !typeInfo.ReturnsWrappedValue(e) {
+			return false
+		}
+		TranspileExpression(&cell, e)
+	default:
+		return false
+	}
+	for _, candidate := range fmtStringerCandidates(iface, typ) {
+		RegisterAnyCloneType(candidate.typ)
+	}
+	NeedGoTypeName()
+	out.WriteString("match (")
+	out.WriteString(cell.String())
+	out.WriteString(")")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref() { Some(__stringer) => ")
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(&*__stringer.__go_value), None => \"<nil>\" }")
+	return true
 }

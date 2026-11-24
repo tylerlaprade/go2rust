@@ -646,6 +646,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() {
+        match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Counter>>>>() {
         match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Celsius>() {
@@ -676,6 +678,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Celsius>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Counter>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
@@ -904,6 +907,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<Arc<Mutex<Option<Celsius>>>>() { return "*main.Celsius" }
     if val.is::<Arc<Mutex<Option<Counter>>>>() { return "*main.Counter" }
     if val.is::<Celsius>() { return "main.Celsius" }
     if val.is::<Counter>() { return "main.Counter" }
@@ -1155,6 +1159,11 @@ impl Counter {
     }
 }
 
+/// Stringer returns its argument as a fmt.Stringer.
+pub fn stringer(v: Arc<Mutex<Option<fmt_Stringer>>>) -> Arc<Mutex<Option<fmt_Stringer>>> {
+    return v.clone();
+}
+
 pub fn join(items: Arc<Mutex<Option<Vec<fmt_Stringer>>>>) -> Arc<Mutex<Option<String>>> {
     let mut out = Arc::new(Mutex::new(Some("".to_string())));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, it) in __range_values.iter().enumerate() {
@@ -1182,8 +1191,8 @@ pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<
         }
         __any
     });
-    if _ts_val.and_then(|__v| __v.downcast_ref::<fmt_Stringer>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Celsius>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Counter>>>>()).is_some() {
-        let x: Arc<Mutex<Option<fmt_Stringer>>> = if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<fmt_Stringer>()) { Arc::new(Mutex::new(Some(typed_val.clone()))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Celsius>()) { Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Counter>>>>()) { Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))) } else { Arc::new(Mutex::new(None)) };
+    if _ts_val.and_then(|__v| __v.downcast_ref::<fmt_Stringer>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Celsius>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Celsius>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Counter>>>>()).is_some() {
+        let x: Arc<Mutex<Option<fmt_Stringer>>> = if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<fmt_Stringer>()) { Arc::new(Mutex::new(Some(typed_val.clone()))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Celsius>()) { Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Celsius>>>>()) { Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Counter>>>>()) { Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))) } else { Arc::new(Mutex::new(None)) };
         std::mem::drop(_ts_guard);
         return Arc::new(Mutex::new(Some(format!("{}{}", "stringer ".to_string(), (*(*x.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
@@ -1205,7 +1214,7 @@ pub fn label(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Opt
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { (Arc::new(Mutex::new(Some(typed_val.clone()))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))), true) } else { (Arc::new(Mutex::new(None::<fmt_Stringer>)), false) }
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { (Arc::new(Mutex::new(Some(typed_val.clone()))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))), true) } else { (Arc::new(Mutex::new(None::<fmt_Stringer>)), false) }
         } else {
             (Arc::new(Mutex::new(None::<fmt_Stringer>)), false)
         }
@@ -1237,12 +1246,15 @@ pub fn must_string(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mut
         {
         { let new_val = ({
         let val = v.clone();
+        let __stringer: Result<fmt_Stringer, String> = {
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { typed_val.clone() } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { fmt_Stringer::__go_from_display(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { fmt_Stringer::__go_from_display_cell(typed_val.clone()) } else { panic!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val)) }
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { Ok(typed_val.clone()) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { Ok(fmt_Stringer::__go_from_display(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) } else { Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))) }
         } else {
-            panic!("interface conversion: interface is nil, not fmt.Stringer")
+            Err("interface conversion: interface is nil, not fmt.Stringer".to_string())
         }
+        };
+        match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }
     }).string(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *out.lock().unwrap() = __moved_val; };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1297,6 +1309,30 @@ fn main() {
     println!("{}", format!("{}", (*must_string(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Counter { n: Arc::new(Mutex::new(Some(4))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*must_string(Arc::new(Mutex::new(Some(Box::new(5i64) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*must_string(go_any_handle_copy(&nothing)).lock().unwrap().as_ref().unwrap())));
+
+        // A value receiver's String makes *Celsius a Stringer too.
+    println!("{} {}", format!("{}", (*label(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Celsius { deg: Arc::new(Mutex::new(Some(8))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Celsius { deg: Arc::new(Mutex::new(Some(9))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+
+        // An any conversion asserted in place.
+    {
+        let (mut st, mut ok) = ({
+        let val = Arc::new(Mutex::new(Some(Box::new(Celsius { deg: Arc::new(Mutex::new(Some(10))), ..Default::default() }) as Box<dyn Any + Send + Sync>))).clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<fmt_Stringer>() { (Arc::new(Mutex::new(Some(typed_val.clone()))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Celsius>>>>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))), true) } else if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<Counter>>>>() { (Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(typed_val.clone())))), true) } else { (Arc::new(Mutex::new(None::<fmt_Stringer>)), false) }
+        } else {
+            (Arc::new(Mutex::new(None::<fmt_Stringer>)), false)
+        }
+    });;
+        if ok {
+            println!("{} {}", format!("{}", "in place".to_string()), format!("{}", (*(*st.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));;
+        }
+    }
+    print!("{} {} {}\n", format!("{}", { let __type_name = match (s).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", { let __type_name = match (stringer(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))))).lock().unwrap().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+
+        // A failed assertion that is recovered leaves the value usable.
+    let mut five: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(5i64) as Box<dyn Any + Send + Sync>)));
+    println!("{} {}", format!("{}", (*must_string(go_any_handle_copy(&five)).lock().unwrap().as_ref().unwrap())), format!("{}", (*label(go_any_handle_copy(&five)).lock().unwrap().as_ref().unwrap())));
 
     let mut wg = WaitGroup::new();
     let mut results = Arc::new(Mutex::new(Some(vec!["".to_string(); (2) as usize])));

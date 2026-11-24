@@ -62,9 +62,12 @@ func TestFmtStringerSwitchAndAssertionMatchStringMethodTypes(t *testing.T) {
 	for _, want := range []string{
 		"_ts_val.and_then(|__v| __v.downcast_ref::<fmt_Stringer>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<",
 		"else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { (Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))), true) }",
-		"else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Counter>>>>() { fmt_Stringer::__go_from_display_cell(typed_val.clone()) }",
-		`panic!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val))`,
-		`panic!("interface conversion: interface is nil, not fmt.Stringer")`,
+		"else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Counter>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) }",
+		// A value receiver's String makes *Celsius a Stringer too.
+		"else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Celsius>>>>() { Ok(fmt_Stringer::__go_from_display_cell(typed_val.clone())) }",
+		`Err(format!("interface conversion: {} is not fmt.Stringer: missing method String", __go_type_name(&**any_val)))`,
+		`Err("interface conversion: interface is nil, not fmt.Stringer".to_string())`,
+		`match __stringer { Ok(__s) => __s, Err(__message) => panic!("{}", __message) }`,
 	} {
 		if !strings.Contains(rust, want) {
 			t.Errorf("missing %q:\n%s", want, rust)
@@ -76,7 +79,35 @@ func TestFmtStringerSwitchAndAssertionMatchStringMethodTypes(t *testing.T) {
 // directly is not routed through a cell borrow.
 func TestFmtStringerAssertionMethodReceiverIsBare(t *testing.T) {
 	rust := transpileTypedRegression(t, fmtStringerRegressionSource)
-	if !strings.Contains(rust, "panic!(\"interface conversion: interface is nil, not fmt.Stringer\")\n        }\n    }).string()") {
+	if !strings.Contains(rust, "match __stringer { Ok(__s) => __s, Err(__message) => panic!(\"{}\", __message) }\n    }).string()") {
 		t.Fatalf("String should be called on the asserted value itself:\n%s", rust)
+	}
+}
+
+// s, ok := any(c).(fmt.Stringer) goes to the fmt.Stringer writer, not the
+// shortcut that hands back the operand, and %T of a fmt.Stringer names the
+// type of the value it holds.
+func TestFmtStringerInPlaceAssertionAndTypeName(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Celsius struct{ Deg int }
+
+func (c Celsius) String() string { return fmt.Sprint(c.Deg) }
+
+func main() {
+	if st, ok := any(Celsius{1}).(fmt.Stringer); ok {
+		fmt.Printf("%T %v\n", st, st)
+	}
+}
+`)
+	for _, want := range []string{
+		"else if let Some(typed_val) = any_val.downcast_ref::<Celsius>() { (Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display(typed_val.clone())))), true) }",
+		`match (st).borrow().as_ref() { Some(__stringer) => __go_type_name(&*__stringer.__go_value), None => "<nil>" }`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
 	}
 }

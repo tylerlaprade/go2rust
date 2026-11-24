@@ -1452,6 +1452,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString("{ let __type_name = ")
 		defer out.WriteString("; __type_name }")
 	}
+	if writeFmtStringerTypeName(out, arg) {
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && !isVarBare(ident.Name) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if typ := typeInfo.GetType(ident); typ != nil {

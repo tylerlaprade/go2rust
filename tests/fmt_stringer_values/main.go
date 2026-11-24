@@ -12,6 +12,9 @@ func (c *Counter) String() string { return fmt.Sprintf("Counter<%d>", c.N) }
 
 type Plain struct{ X int }
 
+// Stringer returns its argument as a fmt.Stringer.
+func Stringer(v fmt.Stringer) fmt.Stringer { return v }
+
 func join(items []fmt.Stringer) string {
 	out := ""
 	for i, it := range items {
@@ -79,4 +82,15 @@ func main() {
 	fmt.Println(mustString(&Counter{N: 4}))
 	fmt.Println(mustString(5))
 	fmt.Println(mustString(nothing))
+
+	// A value receiver's String makes *Celsius a Stringer too.
+	fmt.Println(label(&Celsius{8}), describe(&Celsius{9}))
+	// An any conversion asserted in place.
+	if st, ok := any(Celsius{10}).(fmt.Stringer); ok {
+		fmt.Println("in place", st.String())
+	}
+	fmt.Printf("%T %T %v\n", s, Stringer(c), s)
+	// A failed assertion that is recovered leaves the value usable.
+	var five any = 5
+	fmt.Println(mustString(five), label(five))
 }

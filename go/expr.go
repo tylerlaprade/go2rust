@@ -20355,6 +20355,11 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	if targetType == nil {
 		return nil, false
 	}
+	// fmt.Stringer is a stub type: writeFmtStringerAssertionCommaOk builds
+	// its value from the operand.
+	if isFmtStringerType(targetType) {
+		return nil, false
+	}
 	targetInterface, ok := targetType.Underlying().(*types.Interface)
 	if !ok || targetInterface.NumMethods() == 0 {
 		return nil, false

@@ -15,4 +15,8 @@ unlabelled
 Counter<4>
 panic: interface conversion: int is not fmt.Stringer: missing method String
 panic: interface conversion: interface is nil, not fmt.Stringer
+labelled 8°C stringer 9°C
+in place 10°C
+main.Celsius *main.Counter 21°C
+panic: interface conversion: int is not fmt.Stringer: missing method String unlabelled
 labelled 30°C | labelled Counter<5>
