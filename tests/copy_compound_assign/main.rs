@@ -707,7 +707,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 }
 
 fn main() {
-    let mut dst = Rc::new(RefCell::new(Some(vec![0; (6) as usize])));
+    let mut dst = Rc::new(RefCell::new(Some(vec![0i64; (6) as usize])));
     let mut src1 = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
     let mut src2 = Rc::new(RefCell::new(Some(vec![4i64, 5i64, 6i64])));
 

@@ -708,7 +708,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 fn main() {
         // Slice with capacity
-    let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(10) as usize).map(|_| 0).collect(); v.truncate((3) as usize); v })));
+    let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(10) as usize).map(|_| 0i64).collect(); v.truncate((3) as usize); v })));
     print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Append beyond capacity
@@ -720,7 +720,7 @@ fn main() {
     print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy
-    let mut s3 = Rc::new(RefCell::new(Some(vec![0; (3) as usize])));
+    let mut s3 = Rc::new(RefCell::new(Some(vec![0i64; (3) as usize])));
     let mut n = {
         let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
         let _n = std::cmp::min((*s3.borrow().as_ref().unwrap()).len(), _src.len());

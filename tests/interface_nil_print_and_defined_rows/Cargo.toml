@@ -1,0 +1,11 @@
+[package]
+name = "interface_nil_print_and_defined_rows"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_nil_print_and_defined_rows"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

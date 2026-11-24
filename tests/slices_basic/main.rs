@@ -724,7 +724,7 @@ fn main() {
     println!("{} {}", format!("{}", "Capacity:".to_string()), format!("{}", (*slice.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
 
         // Make slice
-    let mut made = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(5) as usize).map(|_| 0).collect(); v.truncate((3) as usize); v })));
+    let mut made = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(5) as usize).map(|_| 0i64).collect(); v.truncate((3) as usize); v })));
     { let __idx = (0) as usize; let __rhs = 10; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = 20; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (2) as usize; let __rhs = 30; (*made.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };

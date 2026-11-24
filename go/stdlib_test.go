@@ -1851,6 +1851,24 @@ func main() {
 	}
 }
 
+// make([]byte, n) writes its zero as a u8, so the slice is a Vec<u8> even
+// when nothing later pins the element type down (DEV-171).
+func TestMakeNumericSliceWritesTypedZero(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	buf := make([]byte, 8)
+	fs := make([]float32, 2)
+	_, _ = buf, fs
+}
+`)
+	for _, want := range []string{"vec![0u8; (8) as usize]", "vec![0.0f32; (2) as usize]"} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 // %s of a []byte in a format lowered to print! prints the bytes as text,
 // not as the slice %v prints (DEV-172).
 func TestPrintfPercentSOfByteSliceWritesText(t *testing.T) {

@@ -28,7 +28,7 @@ func main() {
 	if strings.Contains(rust, "vec![Default::default(); (3) as usize]") {
 		t.Errorf("the Cells should not be clones of one value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![0; (3) as usize]") {
+	if !strings.Contains(rust, "vec![0i64; (3) as usize]") {
 		t.Errorf("a slice of ints can still be filled with vec!:\n%s", rust)
 	}
 }

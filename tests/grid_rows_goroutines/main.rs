@@ -1079,7 +1079,7 @@ impl Board {
     pub fn render(&self) -> Arc<Mutex<Option<Vec<String>>>> {
         let mut lines = Arc::new(Mutex::new(Some({ let mut v: Vec<String> = (0..(*self.h.clone().lock().unwrap().as_ref().unwrap()) as usize).map(|_| "".to_string()).collect(); v.truncate((0) as usize); v })));
         { let __range_holder = self.cells.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
-        let mut buf = Arc::new(Mutex::new(Some(vec![0; (row.len()) as usize])));
+        let mut buf = Arc::new(Mutex::new(Some(vec![0i32; (row.len()) as usize])));
         for (x, c) in row.iter().enumerate() {
         let c = &c.__go_value_clone();
         { let __idx = (x) as usize; let __rhs = ('.' as i32); (*buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
