@@ -49,6 +49,7 @@ fn go_error_chain(err: Option<Arc<dyn StdError + Send + Sync>>) -> Vec<Arc<dyn S
         if let Some(w) = e.downcast_ref::<GoWrapError>() {
             stack.extend(w.wrapped.iter().rev().cloned());
         }
+        if let Some(__v) = e.downcast_ref::<io_fs::r#mod::PathError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
         if let Some(__v) = e.downcast_ref::<fs_PathError>() { if let Some(__c) = (*__v.err.lock().unwrap()).clone() { stack.push(__c); } }
         out.push(e);
     }
@@ -62,6 +63,7 @@ fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<
     }
     let e = err;
     let mut stack: Vec<Arc<dyn StdError + Send + Sync>> = Vec::new();
+        if let Some(__v) = e.downcast_ref::<io_fs::r#mod::PathError>() { if let Some(__c) = (*__v.unwrap().lock().unwrap()).clone() { stack.push(__c); } }
         if let Some(__v) = e.downcast_ref::<fs_PathError>() { if let Some(__c) = (*__v.err.lock().unwrap()).clone() { stack.push(__c); } }
     stack.pop()
 }
@@ -91,7 +93,10 @@ fn go_errors_is(err: Option<Arc<dyn StdError + Send + Sync>>, target: Option<Arc
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
+    ::io::__go_init_all();
     ::io_fs::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     const path: &'static str = "/definitely/missing/go2rust";
 
@@ -99,7 +104,7 @@ fn main() {
     let mut target: Arc<Mutex<Option<io_fs::r#mod::PathError>>> = Arc::new(Mutex::new(None));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let mut __as_found = None; for __as_err in go_error_chain({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }) { if let Some(__as_value) = __as_err.downcast_ref::<io_fs::r#mod::PathError>() { __as_found = Some(__as_value.clone()); break; } } match __as_found { Some(__as_value) => { let new_val = Arc::new(Mutex::new(Some(__as_value))); target = new_val; true } None => false } }))).lock().unwrap().as_ref().unwrap())));
     if { let __nil_result = (*target.lock().unwrap()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", (*{ let __field = (*target.lock().unwrap().as_ref().unwrap()).op.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __tmp_x = { let __selector_holder = (*target.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "/definitely/missing/go2rust".to_string(); __tmp_x == __tmp_y }));
+        println!("{} {}", format!("{}", (*{ let __field = (*target.lock().unwrap().as_ref().unwrap()).op.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __tmp_x = { let __selector_holder = (*target.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; let __tmp_y = "/definitely/missing/go2rust".to_string(); __tmp_x == __tmp_y }));
         println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = Arc::new(Mutex::new(go_errors_unwrap({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }))); let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = io_fs::ErrNotExist.clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
     }
 }
