@@ -72,7 +72,11 @@ jobs:
 
       - name: Run tests
         id: fixtures
-        run: ./test.sh -v -t 30s
+        # A fixture that imports strings, bytes, bufio, io or another package
+        # translated from source builds those crates too, which takes 15-30s
+        # on a runner shared with the other shards. 60s is the default of
+        # tests.bats; a hang still fails.
+        run: ./test.sh -v -t 60s
 
       # The test run rewrites every generated file under tests/ and
       # tests.bats. If that changes anything, the committed snapshots are not

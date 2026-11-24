@@ -283,7 +283,11 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		bytesHandle, bytesGuard = "Arc<Mutex<Option<Vec<u8>>>>", ".lock().unwrap()"
 	}
 	trackWrapperImports()
-	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
+	handleOpen, handleClose := "Rc<RefCell<Option<", ">>>"
+	if NeedsConcurrentWrapper() {
+		handleOpen = "Arc<Mutex<Option<"
+	}
+	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard, "GO_HANDLE_OPEN", handleOpen, "GO_HANDLE_CLOSE", handleClose)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	for rustType, arm := range anyFormatArms {
@@ -790,6 +794,26 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
             return Some(format!("[{}]", items.join(" ")));
         }
     }
+    // A slice of strings, numbers or bools: the verb, with its width and
+    // flags, is applied to each element, between brackets, as fmt does
+    // (%q of []string is ["a" "b"]). An element the verb does not fit is
+    // reported in its place. A plain %v is left to Println's form below.
+    let plain_v = verb == 'v' && spec.width.is_none() && spec.precision.is_none() && !spec.plus && !spec.sharp && !spec.space;
+    macro_rules! basic_slice {
+        ($($t:ty),*) => {
+            $(if let Some(v) = value.downcast_ref::<GO_HANDLE_OPENVec<$t>GO_HANDLE_CLOSE>() {
+                if !plain_v && !sharp_v {
+                    let guard = vGO_BYTES_GUARD;
+                    let items: Vec<String> = guard.as_ref().map(|values| values.iter().map(|item| {
+                        let item: &GO_ANY_VALUE = item;
+                        go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
+                    }).collect()).unwrap_or_default();
+                    return Some(format!("[{}]", items.join(" ")));
+                }
+            })*
+        };
+    }
+    basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {

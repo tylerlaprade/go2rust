@@ -635,6 +635,10 @@ run_xfail_test() {
     run_test "tests/break_loop_inside_switch"
 }
 
+@test "bufio_reads_files" {
+    run_test "tests/bufio_reads_files"
+}
+
 @test "build_package_stub" {
     run_test "tests/build_package_stub"
 }
@@ -2391,6 +2395,10 @@ run_xfail_test() {
     run_test "tests/named_types_methods"
 }
 
+@test "native_struct_field_offset" {
+    run_test "tests/native_struct_field_offset"
+}
+
 @test "negative_named_integer_conversions" {
     run_test "tests/negative_named_integer_conversions"
 }
@@ -2481,6 +2489,10 @@ run_xfail_test() {
 
 @test "os_file_direct_close" {
     run_test "tests/os_file_direct_close"
+}
+
+@test "os_file_direct_read" {
+    run_test "tests/os_file_direct_read"
 }
 
 @test "os_file_readcloser_assignment" {
@@ -2837,6 +2849,14 @@ run_xfail_test() {
 
 @test "printf_args_lock_one_value_goroutines" {
     run_test "tests/printf_args_lock_one_value_goroutines"
+}
+
+@test "printf_basic_slice_verbs" {
+    run_test "tests/printf_basic_slice_verbs"
+}
+
+@test "printf_basic_slice_verbs_goroutines" {
+    run_test "tests/printf_basic_slice_verbs_goroutines"
 }
 
 @test "printf_nil_interface_arguments" {
@@ -3307,8 +3327,28 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_pointer_append" {
+    run_test "tests/slice_elem_pointer_append"
+}
+
+@test "slice_elem_pointer_held_edges" {
+    run_test "tests/slice_elem_pointer_held_edges"
+}
+
+@test "slice_elem_pointer_index_out_of_range" {
+    run_test "tests/slice_elem_pointer_index_out_of_range"
+}
+
+@test "slice_elem_pointer_index_out_of_range_goroutines" {
+    run_test "tests/slice_elem_pointer_index_out_of_range_goroutines"
+}
+
 @test "slice_elem_pointer_local_struct" {
     run_test "tests/slice_elem_pointer_local_struct"
+}
+
+@test "slice_elem_pointer_map" {
+    run_test "tests/slice_elem_pointer_map"
 }
 
 @test "slice_elem_pointer_short_decl" {

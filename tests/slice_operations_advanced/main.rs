@@ -201,6 +201,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -700,7 +716,7 @@ fn main() {
     print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Three-index slice
-    let mut s2 = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; let __low = (2) as usize; let __high = (5) as usize; let __max = (7) as usize; __seq.reslice3(__low, __high, __max) })));
+    let mut s2 = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; let __low = (2) as usize; let __high = (5) as usize; let __max = (7) as usize; __seq.reslice3_zeroed(__low, __high, __max) })));
     print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy

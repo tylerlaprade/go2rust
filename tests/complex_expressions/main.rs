@@ -202,6 +202,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -936,7 +952,7 @@ let mut complexResult = Arc::new(Mutex::new(Some(__go_binary_8)));
                 let __low = ({ let __v = (*idx1.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = ({ let __v = (*idx2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __max = __source_cap;
-                __seq.reslice3(__low, __high, __max)
+                __seq.reslice3_zeroed(__low, __high, __max)
             }))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
             let __tmp_y = { let __seq = { let __seq_holder = numbers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len = (*numbers.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
             __tmp_x + __tmp_y
@@ -1161,7 +1177,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
         let __low = 0;
         let __high = (5) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }.iter().copied().enumerate() {
         { let __rhs = { let __tmp_x = { let __tmp_x = i as i64; let __tmp_y = val; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = val; let __tmp_y = 3; __tmp_x % __tmp_y }); __tmp_x + __tmp_y }; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

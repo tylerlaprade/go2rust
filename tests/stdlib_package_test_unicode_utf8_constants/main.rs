@@ -288,7 +288,7 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
         let __low = (0) as usize;
         let __high = (encode_rune(errorbuf.clone(), Arc::new(Mutex::new(Some(RUNE_ERROR as i32))))) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))))); *errorbuf.lock().unwrap() = __slice_header; };
     let mut buf = Arc::new(Mutex::new(Some(vec![0; (U_T_F_MAX) as usize])));
     { let __slice_header = GoSliceHeader::go_slice_header(&(Arc::new(Mutex::new(Some({
@@ -300,7 +300,7 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
         let __low = (0) as usize;
         let __high = (encode_rune(buf.clone(), Arc::new(Mutex::new(Some(-1 as i32))))) as usize;
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))))); *buf.lock().unwrap() = __slice_header; };
     if !bytes::equal(buf.clone(), errorbuf.clone()) {
         { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("incorrect encoding [% x] for -1; expected [% x]".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(buf.clone()) as Box<dyn Any + Send + Sync>, Box::new(errorbuf.clone()) as Box<dyn Any + Send + Sync>])))); __result };

@@ -66,7 +66,7 @@ impl printer {
                 let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = ({ let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize;
                 let __max = __source_cap;
-                __seq.reslice3(__low, __high, __max)
+                __seq.reslice3_zeroed(__low, __high, __max)
             }))));
             *m.lock().unwrap() = Some(__tmp_0);
             let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;
@@ -94,7 +94,7 @@ impl printer {
                 let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
                 let __high = __seq.len();
                 let __max = __source_cap;
-                __seq.reslice3(__low, __high, __max)
+                __seq.reslice3_zeroed(__low, __high, __max)
             }))));
             *m.lock().unwrap() = Some(__tmp_0);
             let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;

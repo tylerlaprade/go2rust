@@ -1766,13 +1766,38 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState, astFilesBy
 	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
 		initDependencyCrates = pg.sortedCrateNames()
 	}
-	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules, pg.packageInitPlan(astFilesByPath))
+	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules, pg.packageInitPlan(astFilesByPath), stubIoEOFRegistration(pg.typeInfoPackagePath(), packageState))
 
 	libRsPath := filepath.Join(pg.projectPath, "lib.rs")
 	return os.WriteFile(libRsPath, []byte(libRust.String()), 0644)
 }
 
-func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string, initModules []generatedInitModule, initPlan generatedPackageInitPlan) {
+// stubIoEOFRegistration returns, for io translated from source with a
+// bridged os.File among its Readers, the init statement that hands io.EOF
+// to the stub crate, whose File returns it at the end of its input.
+func stubIoEOFRegistration(pkgPath string, packageState *PackageState) string {
+	if pkgPath != "io" || packageState == nil {
+		return ""
+	}
+	if _, ok := packageState.ExternalLocalInterfaceImpls["Reader"]["os_File"]; !ok {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString(sharedStdlibStubCrateName)
+	b.WriteString("::__go_register_io_eof((*EOF")
+	WriteBorrowMethod(&b, false)
+	b.WriteString(").clone());")
+	return b.String()
+}
+
+func (pg *ProjectGenerator) typeInfoPackagePath() string {
+	if pg.typeInfo == nil || pg.typeInfo.pkg == nil {
+		return ""
+	}
+	return pg.typeInfo.pkg.Path()
+}
+
+func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string, initModules []generatedInitModule, initPlan generatedPackageInitPlan, postInit ...string) {
 	out.WriteString("\n\nstatic __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();\n\n")
 	out.WriteString("pub fn __go_init_all() {\n")
 	out.WriteString("    __GO_INIT_ONCE.call_once(|| {\n")
@@ -1794,6 +1819,14 @@ func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string,
 			out.WriteString(initModule.initFunctionName)
 			out.WriteString("();\n")
 		}
+	}
+	for _, statement := range postInit {
+		if statement == "" {
+			continue
+		}
+		out.WriteString("        ")
+		out.WriteString(statement)
+		out.WriteString("\n")
 	}
 	out.WriteString("    });\n")
 	out.WriteString("}\n")

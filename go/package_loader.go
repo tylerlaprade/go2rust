@@ -1204,7 +1204,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}
 	}
-	writeLibraryPackageInitAll(&libRs, initDependencyCrates, initModules, packageInitPlanForModules(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo))
+	writeLibraryPackageInitAll(&libRs, initDependencyCrates, initModules, packageInitPlanForModules(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo), stubIoEOFRegistration(pkg.PkgPath, pkgState))
 
 	// Write lib.rs
 	libRsPath := filepath.Join(outputDir, "lib.rs")

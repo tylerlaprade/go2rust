@@ -201,6 +201,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -829,6 +845,15 @@ pub struct GoArrayElemMutRef<T: Clone + 'static, const N: usize> {
 
 impl<T> GoSliceElemPtr<T> {
     pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
+        // &s[i] panics, as indexing does, when i is not below len(s). A
+        // slice already borrowed for the expression is not checked.
+        if let Ok(__guard) = slice.try_borrow() {
+            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
+            if index >= __len {
+                drop(__guard);
+                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
+            }
+        }
         GoSliceElemPtr { slice, index }
     }
 
