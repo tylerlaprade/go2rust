@@ -9,6 +9,12 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::go_token::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::strconv::__go_init_all();
+    ::unicode::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut keyword = go_token::lookup(Arc::new(Mutex::new(Some("func".to_string()))));
     let mut ident = go_token::lookup(Arc::new(Mutex::new(Some("not_keyword".to_string()))));

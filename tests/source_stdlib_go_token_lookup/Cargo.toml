@@ -4,6 +4,12 @@ members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_token",
+    "vendor/internal_stringslite",
+    "vendor/math",
+    "vendor/math_bits",
+    "vendor/strconv",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -21,3 +27,9 @@ overflow-checks = false
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_token = { path = "vendor/go_token" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
+strconv = { path = "vendor/strconv" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

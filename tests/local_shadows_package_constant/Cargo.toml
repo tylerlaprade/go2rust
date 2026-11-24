@@ -1,0 +1,11 @@
+[package]
+name = "local_shadows_package_constant"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_shadows_package_constant"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

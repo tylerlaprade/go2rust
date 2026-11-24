@@ -711,9 +711,14 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
     None
 }
 
+// A nil interface value passed to a format known only at run time. The
+// arguments are boxes, which cannot be nil themselves.
+#[allow(dead_code)]
+struct GoFormatNil;
+
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1212,6 +1217,9 @@ fn go_format_is_basic(value: &dyn Any) -> bool {
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &dyn Any) -> String {
+    if value.is::<GoFormatNil>() {
+        return "<nil>".to_string();
+    }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
 }
@@ -1304,6 +1312,16 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> St
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
         // bool or a []byte is not an error, and fmt reports the verb: once
         // for a scalar, and for each byte of a []byte.
+        // A nil interface value prints <nil> for %v and %T, and fmt reports
+        // any other verb.
+        if arg.is::<GoFormatNil>() {
+            if matches!(verb, 'v' | 'T') {
+                out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
+            } else {
+                out.push_str(&format!("%!{}(<nil>)", verb));
+            }
+            continue;
+        }
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -1485,7 +1503,7 @@ fn main() {
     println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
     let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("{}", go_sprintf(&"value %8.3f out of range [%d, %d]".to_string(), &[Box::new(12.5) as Box<dyn Any>, Box::new(0i64) as Box<dyn Any>, Box::new(10i64) as Box<dyn Any>], true)))))));
     println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[Box::new("name".to_string()) as Box<dyn Any>, Box::new(2.0 / 3.0) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&"%-10s|%10.4f|\n".to_string(), &[Box::new("name".to_string()) as Box<dyn Any>, Box::new(0.6666666666666666) as Box<dyn Any>], false));
     let mut c: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(21.5)))))));
     print!("{}", go_sprintf(&"%v %s %8.2v|\n".to_string(), &[Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new((*c.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(1.5) as Box<dyn Any>], false));
     for (i, row) in vec![vec![1.0, 2.5], vec![10.25, 300.0]].iter().enumerate() {

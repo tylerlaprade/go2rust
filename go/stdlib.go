@@ -1510,6 +1510,14 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 }
 
 func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
+	// The nil literal is a nil interface value, which %v and %T print as
+	// <nil>.
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.info == nil || typeInfo.GetObject(ident) == types.Universe.Lookup("nil") {
+			out.WriteString("\"<nil>\".to_string()")
+			return
+		}
+	}
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
 		if tnIdx == argIndex {
