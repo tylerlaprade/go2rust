@@ -1363,6 +1363,10 @@ run_xfail_test() {
     run_test "tests/float_constant_expressions_fold"
 }
 
+@test "float_context_int_constants" {
+    run_test "tests/float_context_int_constants"
+}
+
 @test "fmt_errorf_interface_field" {
     run_test "tests/fmt_errorf_interface_field"
 }
