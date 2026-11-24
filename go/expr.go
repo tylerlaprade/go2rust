@@ -15305,7 +15305,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
 					// Don't add borrow/unwrap - just index directly
+					start := out.Len()
 					TranspileExpressionContext(out, e.X, LValue)
+					if written := out.String(); strings.HasPrefix(written[start:], "{") {
+						// A block followed by "[i]" at the start of a
+						// statement parses as two statements, so the
+						// block goes in parentheses.
+						out.Reset()
+						out.WriteString(written[:start])
+						out.WriteString("(")
+						out.WriteString(written[start:])
+						out.WriteString(")")
+					}
 					out.WriteString("[")
 					writeExpressionAsUsize(out, e.Index)
 					out.WriteString("]")
@@ -19485,6 +19496,12 @@ func namedIntegerTypeDefinitionStoresExternalIntegerValue(named *types.Named) bo
 }
 
 func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
+	if sliceConversionSourceIsBare(arg) {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(").clone()")
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
@@ -19507,6 +19524,13 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
+	if sliceConversionSourceIsBare(arg) {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		writeRuneSliceIteratorToString(out)
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
@@ -19530,6 +19554,21 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	writeRuneSliceIteratorToString(out)
+}
+
+// sliceConversionSourceIsBare reports whether arg, the operand of
+// string(arg) for a []byte or []rune, is a bare slice rather than a cell: a
+// row of a [][]rune, as board[i] or the value of "for _, row := range board".
+func sliceConversionSourceIsBare(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	return anyBoxedCollectionExprIsBare(arg, argType.Underlying())
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {

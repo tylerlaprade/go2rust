@@ -4786,7 +4786,10 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 					continue
 				}
 				ok, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs)
-				if !ok {
+				if !ok || sliceElemPtrAssignmentValueIsGoPtrField(rhs) {
+					// A field that holds a GoPtr, as n = n.Next does when
+					// Next is assigned slice element pointers, makes the
+					// variable a GoPtr local instead.
 					state.valid = false
 					continue
 				}
@@ -6683,14 +6686,81 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 	if !ok {
 		return false
 	}
-	out.WriteString("{ let new_val = ")
-	if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
-		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+	writeValue := func() {
+		if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
+			out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+		}
 	}
+	if indexExpr, targetField, ok := indexedStructElemGoPtrFieldTarget(sel); ok {
+		writeIndexedStructElemGoPtrFieldAssignment(out, indexExpr, targetField, writeValue)
+		return true
+	}
+	out.WriteString("{ let new_val = ")
+	writeValue()
 	out.WriteString("; ")
 	writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
 	out.WriteString(" }")
 	return true
+}
+
+// indexedStructElemGoPtrFieldTarget reports whether sel is s[i].F for a GoPtr
+// field F of a struct element of a slice or array s, and returns s[i] and F.
+func indexedStructElemGoPtrFieldTarget(sel *ast.SelectorExpr) (*ast.IndexExpr, FieldAccessInfo, bool) {
+	indexExpr, ok := unwrapParens(sel.X).(*ast.IndexExpr)
+	if !ok {
+		return nil, FieldAccessInfo{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) || expressionCallsOrReceives(indexExpr.X) {
+		return nil, FieldAccessInfo{}, false
+	}
+	switch unwrapParens(indexExpr.X).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return nil, FieldAccessInfo{}, false
+	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
+		return nil, FieldAccessInfo{}, false
+	}
+	if _, ok := types.Unalias(elemType).Underlying().(*types.Struct); !ok {
+		return nil, FieldAccessInfo{}, false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		return nil, FieldAccessInfo{}, false
+	}
+	return indexExpr, fieldInfo, true
+}
+
+// writeIndexedStructElemGoPtrFieldAssignment writes s[i].F = v for a GoPtr
+// field F, which is a plain Rust field, not a cell. The write goes to the
+// element in place: a write to a clone of the element, the usual target,
+// would be lost. As in Go, the index is evaluated before the value. Both are
+// evaluated before s is locked for writing, since either may read s. An
+// index out of range unlocks s before it panics, so that a recovered panic
+// leaves s usable, as in Go.
+func writeIndexedStructElemGoPtrFieldAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, writeValue func()) {
+	out.WriteString("{ let __idx = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let new_val = ")
+	writeValue()
+	out.WriteString("; let __seq_handle = ")
+	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else if isNamedArrayExpression(subj) {
+		writeNamedArrayInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let mut __seq_guard = __seq_handle")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __len = __seq_guard.as_ref().map(|__seq| __seq.len()).unwrap_or(0); ")
+	out.WriteString(`if __idx >= __len { std::mem::drop(__seq_guard); panic!("index out of bounds: the len is {} but the index is {}", __len, __idx); } `)
+	out.WriteString("(*__seq_guard.as_mut().unwrap())[__idx].")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(" = new_val; }")
 }
 
 func writeGoPtrAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -7246,9 +7316,45 @@ func writeSliceElemPtrFieldPointeeSelector(out *strings.Builder, base *ast.Selec
 	return true
 }
 
+// writeSliceElemPtrFieldPointeeBase writes the GoPtr field base, as in
+// base.F, whose pointee the caller then opens with with_mut. When base reads
+// an element of a sequence, as arr[0].Next does, the sequence's borrow is
+// released before the pointer is opened: the pointer may point into that same
+// sequence, and opening it for writing under the borrow panics.
+func writeSliceElemPtrFieldPointeeBase(out *strings.Builder, base *ast.SelectorExpr) {
+	if !expressionReadsSequenceElement(base.X) {
+		TranspileExpressionContext(out, base, LValue)
+		return
+	}
+	out.WriteString("{ let __ptr_base = ")
+	TranspileExpressionContext(out, base, LValue)
+	out.WriteString(".clone(); __ptr_base }")
+}
+
+// expressionReadsSequenceElement reports whether expr indexes a slice or an
+// array anywhere in its operand chain.
+func expressionReadsSequenceElement(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	for {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.IndexExpr:
+			if typeInfo == nil || !typeInfo.IsMap(e.X) {
+				return true
+			}
+			expr = e.X
+		case *ast.SelectorExpr:
+			expr = e.X
+		case *ast.StarExpr:
+			expr = e.X
+		default:
+			return false
+		}
+	}
+}
+
 func writeSliceElemPtrFieldPointeeFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
-	TranspileExpressionContext(out, base, LValue)
+	writeSliceElemPtrFieldPointeeBase(out, base)
 	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
 	out.WriteString(fieldInfo.FieldName)
 	out.WriteString(".clone()); __ptr_value }")
@@ -7256,7 +7362,7 @@ func writeSliceElemPtrFieldPointeeFieldHandle(out *strings.Builder, base *ast.Se
 
 func writeSliceElemPtrFieldPointeePromotedFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
-	TranspileExpressionContext(out, base, LValue)
+	writeSliceElemPtrFieldPointeeBase(out, base)
 	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
 	for _, embedded := range fieldInfo.EmbeddedPath {
 		out.WriteString(".")
@@ -8877,6 +8983,18 @@ func sliceElemPtrSliceLiteralPositions(lit *ast.CompositeLit) ([]int, bool) {
 		next++
 	}
 	return positions, true
+}
+
+// sliceElemPtrAssignmentValueIsGoPtrField reports whether rhs reads a
+// pointer field that holds a GoPtr: a value an Option<GoSliceElemPtr<T>>
+// variable cannot take, though a GoPtr<T> one can.
+func sliceElemPtrAssignmentValueIsGoPtrField(rhs ast.Expr) bool {
+	sel, ok := unwrapParens(rhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	_, ok = sliceElemPtrFieldInfoForSelector(sel)
+	return ok
 }
 
 // writeSliceElemStructPointerAsCell writes a pointer to a struct element of a

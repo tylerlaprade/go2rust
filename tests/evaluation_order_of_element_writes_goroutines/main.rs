@@ -1109,7 +1109,7 @@ fn main() {
 
         )
     }; (*__seq.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{} {} {}", format!("{}", "element of a slice of slices that a function returned:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(0) as usize].clone()));
+    println!("{} {} {}", format!("{}", "element of a slice of slices that a function returned:".to_string()), format!("{}", { let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ({ let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })[(0) as usize].clone()));
 
     { let new_val = "".to_string(); *order.lock().unwrap() = Some(new_val); };
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_values = vec![

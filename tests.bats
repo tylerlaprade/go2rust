@@ -1635,6 +1635,14 @@ run_xfail_test() {
     run_test "tests/goto_labels"
 }
 
+@test "grid_rows" {
+    run_test "tests/grid_rows"
+}
+
+@test "grid_rows_goroutines" {
+    run_test "tests/grid_rows_goroutines"
+}
+
 @test "hello_world" {
     run_test "tests/hello_world"
 }
@@ -3405,6 +3413,14 @@ run_xfail_test() {
 
 @test "simple_range" {
     run_test "tests/simple_range"
+}
+
+@test "slice_elem_linked_list" {
+    run_test "tests/slice_elem_linked_list"
+}
+
+@test "slice_elem_linked_list_goroutines" {
+    run_test "tests/slice_elem_linked_list_goroutines"
 }
 
 @test "slice_elem_pointer_append" {
