@@ -5,9 +5,8 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use go2rust_stdlib_stubs::*;
-use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 /// Mirrors go/ast/print.go's `n, err := fmt.Fprintf(p.output, ...)` pattern
 /// where p.output is an io.Writer. Without proper handling, the call lowers
@@ -20,11 +19,11 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut buf: Rc<RefCell<Option<bytes::buffer::Buffer>>> = Rc::new(RefCell::new(Some(Default::default())));
-    let (mut n, mut err) = { let __s = format!("answer={}", 42); (*buf.clone().borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
-        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
+    let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let (mut n, mut err) = { let __s = format!("answer={}", 42); (*buf.clone().lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        println!("{} {}", format!("{}", "err:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         return;
     }
-    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.borrow().as_ref().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {} {} {}", format!("{}", "wrote".to_string()), format!("{}", n), format!("{}", "bytes:".to_string()), format!("{}", (*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
 }

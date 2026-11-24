@@ -5,9 +5,8 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use go2rust_stdlib_stubs::*;
-use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 fn main() {
     ::internal_bytealg::__go_init_all();
@@ -17,11 +16,11 @@ fn main() {
     ::strconv::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let (mut value, mut err) = strconv::unquote(Rc::new(RefCell::new(Some("\"newline\\n\"".to_string()))));
-    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
+    let (mut value, mut err) = strconv::unquote(Arc::new(Mutex::new(Some("\"newline\\n\"".to_string()))));
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", "error".to_string()));
         return;
     }
-    print!("{}", format!("{}", { let __v = (*value.borrow().as_ref().unwrap()).clone(); __v }));
+    print!("{}", format!("{}", { let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     println!("{}", format!("{}", "ok".to_string()));
 }

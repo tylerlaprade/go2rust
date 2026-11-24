@@ -5,8 +5,7 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use go2rust_stdlib_stubs::*;
-use std::cell::{RefCell};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 /// Source-transpile demo: this fixture opts into transpiling
 /// `path/filepath` from the Go stdlib source instead of using the
@@ -28,6 +27,6 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    println!("{}", format!("{}", path_filepath::is_abs(Rc::new(RefCell::new(Some("/foo".to_string()))))));
-    println!("{}", format!("{}", path_filepath::is_abs(Rc::new(RefCell::new(Some("foo".to_string()))))));
+    println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("/foo".to_string()))))));
+    println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("foo".to_string()))))));
 }
