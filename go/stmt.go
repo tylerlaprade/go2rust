@@ -1182,6 +1182,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
 	}
+	if writeBuiltinLengthForIntegerSlot(out, rhs, expected) {
+		return
+	}
 	if writeTypeParamArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
 	}
@@ -2073,6 +2076,16 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 func writeRangeLengthExpression(out *strings.Builder, expr ast.Expr) {
 	if writePointerToArrayLen(out, expr) {
 		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		// An array's length is part of its type; a defined array type such
+		// as strings' byteReplacer has no len() of its own.
+		if typ := typeInfo.GetType(expr); typ != nil {
+			if array, ok := types.Unalias(typ).Underlying().(*types.Array); ok {
+				out.WriteString(fmt.Sprintf("(%d)", array.Len()))
+				return
+			}
+		}
 	}
 	if rangeTargetNeedsWrappedSliceGuard(expr) {
 		out.WriteString("({ let __range_holder = ")
@@ -8097,6 +8110,12 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 	// during the loop is seen, and the loop variable takes its copy of the
 	// element at the start of its iteration (writeRangeOwnedValuesAdapter
 	// and writeRangeValueIterationCopy).
+	if rangeExprIsArrayValue(rangeExpr) {
+		// An array's cell always holds it. Rust has no Default for arrays
+		// longer than 32 elements, such as a [256]byte table.
+		out.WriteString("; let __range_values = __range_guard.as_ref().cloned().expect(\"array value\"); std::mem::drop(__range_guard); ")
+		return
+	}
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); ")
 }
 
@@ -17751,4 +17770,38 @@ func writeTupleElementDroppingGuards(out *strings.Builder, value string) {
 	out.WriteString("{ let __tuple_value = ")
 	out.WriteString(value)
 	out.WriteString("; __tuple_value }")
+}
+
+// writeBuiltinLengthForIntegerSlot writes len(x) or cap(x) stored into an
+// integer element, as in skip[i] = len(pattern). Rust's len() is a usize,
+// so it takes the element's integer type.
+func writeBuiltinLengthForIntegerSlot(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	call, ok := unwrapParens(rhs).(*ast.CallExpr)
+	if !ok || expected == nil {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || (ident.Name != "len" && ident.Name != "cap") || !isBuiltinCallTarget(ident) {
+		return false
+	}
+	if _, isNamed := types.Unalias(expected).(*types.Named); isNamed {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsInteger == 0 {
+		return false
+	}
+	var length strings.Builder
+	TranspileExpression(&length, call)
+	text := length.String()
+	rustType := goTypesTypeToRust(expected)
+	if strings.HasSuffix(text, " as "+rustType) {
+		out.WriteString(text)
+		return true
+	}
+	out.WriteString("(")
+	out.WriteString(text)
+	out.WriteString(") as ")
+	out.WriteString(rustType)
+	return true
 }

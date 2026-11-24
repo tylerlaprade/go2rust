@@ -14234,6 +14234,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
+			if writeBareSliceElementNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if typeInfo != nil && typeInfo.IsChannel(e.X) {
 				if e.Op.String() == "!=" {
 					out.WriteString("!")
@@ -17805,7 +17808,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 							// []byte to string
 							WriteWrapperPrefix(out)
 							out.WriteString(stringFromUTF8Open())
-							writeUnwrappedSliceClone(out, arg)
+							if isNamedSliceExpression(arg) {
+								// A defined []byte type holds the slice inside it.
+								out.WriteString("{ let __bytes = ")
+								writeNamedSliceInnerHandleClone(out, arg)
+								out.WriteString("; let __bytes_guard = __bytes")
+								WriteBorrowMethod(out, false)
+								out.WriteString("; let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value }")
+							} else {
+								writeUnwrappedSliceClone(out, arg)
+							}
 							out.WriteString(stringFromUTF8Close())
 							WriteWrapperSuffix(out)
 							return
