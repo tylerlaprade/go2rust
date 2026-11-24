@@ -527,6 +527,14 @@ run_xfail_test() {
     run_test "tests/append_function_slice_field"
 }
 
+@test "append_growth_copies_struct_elements" {
+    run_test "tests/append_growth_copies_struct_elements"
+}
+
+@test "append_growth_copies_struct_elements_goroutines" {
+    run_test "tests/append_growth_copies_struct_elements_goroutines"
+}
+
 @test "append_interface_value" {
     run_test "tests/append_interface_value"
 }

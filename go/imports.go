@@ -184,6 +184,7 @@ type HelperTracker struct {
 	needsJsonEscape                      bool
 	needsOsFile                          bool
 	needsGoNilAny                        bool
+	needsGoSliceAppendCopying            bool
 	needsOsArgs                          bool
 	needsSliceElemPtr                    bool
 	needsGoTime                          bool
@@ -377,6 +378,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoNilAny {
 		generateGoNilAny(&result)
+	}
+
+	if ht.needsGoSliceAppendCopying {
+		generateGoSliceAppendCopying(&result)
 	}
 
 	if ht.needsAnyClone || ht.needsAnyHandleCopy {
@@ -590,6 +595,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsJsonEscape ||
 		ht.needsOsFile ||
 		ht.needsGoNilAny ||
+		ht.needsGoSliceAppendCopying ||
 		ht.needsSliceElemPtr ||
 		ht.needsGoTime ||
 		ht.needsGoTimer ||
@@ -804,6 +810,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoNilAny {
 		add(goNilAnyType)
+	}
+	if ht.needsGoSliceAppendCopying {
+		add("GoSliceAppendCopying")
 	}
 	if ht.needsSliceElemPtr {
 		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
@@ -6047,6 +6056,38 @@ func generateGoFloatStringHelper(out *strings.Builder) {
 // goNilAnyType is the payload of a bare Box<dyn Any> that holds a nil
 // interface value (see NeedGoNilAny).
 const goNilAnyType = "GoNilAny"
+
+func generateGoSliceAppendCopying(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString(`
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+`)
+	out.WriteString(visibility)
+	out.WriteString(`trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+`)
+}
 
 func generateGoNilAny(out *strings.Builder) {
 	visibility := ""

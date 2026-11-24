@@ -615,6 +615,28 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Point {
     pub x: Rc<RefCell<Option<i64>>>,
@@ -809,7 +831,7 @@ fn main() {
     { let new_val = 2; *(*p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "stored in a slice".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*p.borrow().as_ref().unwrap())));
 
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_value = (*p.borrow().as_ref().unwrap()).__go_value_clone(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *s.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_value = (*p.borrow().as_ref().unwrap()).__go_value_clone(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *s.borrow_mut() = __slice_header; };
     { let new_val = 3; *(*p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "appended".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*p.borrow().as_ref().unwrap())));
 
@@ -856,7 +878,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "assigned from an element".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*e.borrow().as_ref().unwrap())));
 
     let mut list = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) };
+    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) };
     { let new_val = 400; *(*spread.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*spread.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
@@ -872,7 +894,7 @@ fn main() {
     { let new_val = 500; *(*copied.borrow().as_ref().unwrap())[(1) as usize].clone().y.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice copied with copy".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*list.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*copied.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
-    let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) };
+    let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) };
     { let new_val = 600; *(*grown.borrow().as_ref().unwrap())[(2) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice appended to another".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*grown.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", (*grown.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }
