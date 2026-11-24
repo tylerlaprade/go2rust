@@ -3387,6 +3387,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "source_context_background" {
+    run_test "tests/source_context_background"
+}
+
 @test "source_stdlib_bytes_buffer_basic" {
     run_test "tests/source_stdlib_bytes_buffer_basic"
 }
