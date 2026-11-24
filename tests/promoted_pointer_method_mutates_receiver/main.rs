@@ -739,7 +739,7 @@ impl Basic {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.id.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.balance.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.history.clone();
+        let __go_clone_2_0 = { let __guard = self.history.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             id: __go_clone_0_0,
             balance: __go_clone_1_0,

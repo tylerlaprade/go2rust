@@ -749,9 +749,9 @@ pub struct File {
 impl File {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.name.clone();
-        let __go_clone_1_0 = self.imports.clone();
-        let __go_clone_2_0 = self.unresolved.clone();
-        let __go_clone_3_0 = self.comments.clone();
+        let __go_clone_1_0 = { let __guard = self.imports.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.unresolved.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_3_0 = { let __guard = self.comments.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
             imports: __go_clone_1_0,

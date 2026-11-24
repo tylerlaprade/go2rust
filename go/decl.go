@@ -1487,6 +1487,21 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 		out.WriteString(")")
 		return
 	}
+	if structCloneFieldCopiesSliceHeader(fieldType) {
+		// A slice field is a header over a shared array. The copy gets a
+		// cell of its own holding a copy of the header, so it shares the
+		// array but not the length: c.Tags = append(c.Tags, x) or
+		// c.Tags = nil on the copy leaves the original's slice alone.
+		out.WriteString("{ let __guard = self.")
+		out.WriteString(fieldName)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*__guard).clone())) }")
+		return
+	}
 	if structCloneFieldKeepsHandle(fieldType) {
 		out.WriteString("self.")
 		out.WriteString(fieldName)
@@ -1532,6 +1547,26 @@ func directStructFieldTypeParamName(fieldType ast.Expr) (string, bool) {
 		return "", false
 	}
 	return RustTypeNameForUse(typeParam.Obj().Name()), true
+}
+
+// structCloneFieldCopiesSliceHeader reports whether a struct's Go copy gives
+// the field of this type a cell holding a copy of the slice header: an
+// unnamed slice type, with GoSlice, whose clone is a header over the same
+// array. A defined slice type is a newtype around its handle and keeps it.
+func structCloneFieldCopiesSliceHeader(expr ast.Expr) bool {
+	if expr == nil || !goSliceModeEnabled() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).(*types.Slice)
+	return ok
 }
 
 func structCloneFieldKeepsHandle(expr ast.Expr) bool {

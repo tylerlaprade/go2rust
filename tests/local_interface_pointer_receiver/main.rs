@@ -728,7 +728,7 @@ pub struct list {
 
 impl list {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.labels.clone();
+        let __go_clone_0_0 = { let __guard = self.labels.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             labels: __go_clone_0_0,
         }

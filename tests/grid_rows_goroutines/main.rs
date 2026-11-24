@@ -938,7 +938,7 @@ pub struct Board {
 
 impl Board {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.cells.clone();
+        let __go_clone_0_0 = { let __guard = self.cells.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.w.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_1 = { let __guard = self.h.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {

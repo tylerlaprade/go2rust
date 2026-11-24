@@ -965,7 +965,7 @@ pub struct upper {
 
 impl upper {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.data.clone();
+        let __go_clone_0_0 = { let __guard = self.data.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             data: __go_clone_0_0,
         }

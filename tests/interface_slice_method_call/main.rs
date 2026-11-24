@@ -787,7 +787,7 @@ pub struct Assign {
 
 impl Assign {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.lhs.clone();
+        let __go_clone_0_0 = { let __guard = self.lhs.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             lhs: __go_clone_0_0,
         }

@@ -1473,7 +1473,7 @@ pub struct Lines {
 
 impl Lines {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.got.clone();
+        let __go_clone_0_0 = { let __guard = self.got.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.bytes.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             got: __go_clone_0_0,

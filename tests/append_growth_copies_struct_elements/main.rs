@@ -833,7 +833,7 @@ pub struct Grid {
 
 impl Grid {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.rows.clone();
+        let __go_clone_0_0 = { let __guard = self.rows.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             rows: __go_clone_0_0,
         }

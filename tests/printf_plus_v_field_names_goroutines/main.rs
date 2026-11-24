@@ -971,7 +971,7 @@ impl Line {
         let __go_clone_1_0 = { let __guard = self.from.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_1_1 = { let __guard = self.to.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         let __go_clone_2_0 = { let __guard = self.label.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_3_0 = self.tags.clone();
+        let __go_clone_3_0 = { let __guard = self.tags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_4_0 = { let __guard = self.weight.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_5_0 = { let __guard = self.ok.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {

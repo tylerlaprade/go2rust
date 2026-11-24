@@ -1,0 +1,11 @@
+[package]
+name = "exec_look_path_success"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "exec_look_path_success"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

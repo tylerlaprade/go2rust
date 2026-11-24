@@ -729,7 +729,7 @@ pub struct Decl {
 impl Decl {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.tag.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.items.clone();
+        let __go_clone_1_0 = { let __guard = self.items.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             tag: __go_clone_0_0,
             items: __go_clone_1_0,

@@ -958,6 +958,58 @@ func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
 	}
 }
 
+func TestExecLookPathStubSearchesHostPath(t *testing.T) {
+	var out strings.Builder
+	writeExecLookPathStub(&out, externalPackageStubFunction{
+		ParamCount: 1,
+		ReturnTypes: []string{
+			wrappedExternalStubType("String"),
+			wrappedExternalStubType(rustErrorPayloadTypeFor("std::error::Error", NeedsConcurrentWrapper())),
+		},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"pub fn look_path<T0: GoStringArg>",
+		"std::env::var_os(\"PATH\")",
+		"file.as_bytes().contains(&b'/')",
+		"std::vec::Vec<(std::path::PathBuf, bool)>",
+		"std::vec![(file_path, false)]",
+		"if path.is_empty() { return std::vec![]; }",
+		"std::env::split_paths(&path)",
+		"clean_path(dir.join(&file))",
+		"std::path::Component::ParentDir",
+		"let relative = !dir.is_absolute()",
+		"std::fs::metadata(&candidate)",
+		"faccessat(-100, path.as_ptr(), 1, 0x200)",
+		"if errno != 1 && errno != 38",
+		"std::os::unix::fs::PermissionsExt",
+		"mode() & 0o111",
+		"let Some(candidate_text) = candidate.to_str()",
+		"cannot run executable found relative to current directory",
+		"executable file not found",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.LookPath stub should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestAliasedExecLookPathStubIncludesStringCoercion(t *testing.T) {
+	got := generateExternalStubs(
+		nil, nil, nil, nil, nil, nil, nil,
+		map[string]*externalPackageStub{
+			"runner": {
+				Functions: map[string]externalPackageStubFunction{
+					"look_path": {ParamCount: 1, ReturnTypes: []string{wrappedExternalStubType("String"), wrappedExternalStubType(rustErrorPayloadType())}},
+				},
+			},
+		},
+	)
+	if !strings.Contains(got, "pub mod runner") || !strings.Contains(got, "pub trait GoStringArg") || !strings.Contains(got, "pub fn look_path<T0: GoStringArg>") {
+		t.Fatalf("aliased os/exec LookPath stub must include its string coercion trait:\n%s", got)
+	}
+}
+
 func TestExecCmdStubImplementsStderrPipeMethod(t *testing.T) {
 	var out strings.Builder
 	writeExecCmdTypeStub(&out, nil, map[string]externalTypeStubMethod{
@@ -1030,6 +1082,7 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::env::var(key).unwrap_or_default()",
+		"&dyn std::any::Any",
 		"downcast_ref::<" + wrappedExternalStubType("String") + ">",
 		externalStubBorrowExpr("v") + ".as_ref().cloned().unwrap_or_default()",
 		"os.Getenv bridge: expected string argument",

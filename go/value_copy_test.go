@@ -113,11 +113,12 @@ func main() {
 	_ = n
 }
 `)
-	// The copy of a Node copies pos and keeps the cells of the fields Go
-	// shares: the pointer, the slice and the map.
+	// The copy of a Node copies pos and keeps the cells of the pointer and
+	// the map. The slice gets a cell of its own holding a copy of the
+	// header, which shares the array.
 	for _, want := range []string{
 		"self.p.clone()",
-		"self.tags.clone()",
+		"{ let __guard = self.tags.borrow(); Rc::new(RefCell::new((*__guard).clone())) }",
 		"self.m.clone()",
 		"(*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone())",
 	} {

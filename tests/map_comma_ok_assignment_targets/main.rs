@@ -763,7 +763,7 @@ pub struct Holder {
 impl Holder {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.nums.clone();
-        let __go_clone_1_0 = self.plain.clone();
+        let __go_clone_1_0 = { let __guard = self.plain.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             nums: __go_clone_0_0,
             plain: __go_clone_1_0,

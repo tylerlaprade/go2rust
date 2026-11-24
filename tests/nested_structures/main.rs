@@ -852,7 +852,7 @@ pub struct Canvas {
 impl Canvas {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.shapes.clone();
+        let __go_clone_1_0 = { let __guard = self.shapes.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
             shapes: __go_clone_1_0,
@@ -1038,7 +1038,7 @@ impl Department {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.manager.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
-        let __go_clone_2_0 = self.employees.clone();
+        let __go_clone_2_0 = { let __guard = self.employees.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_3_0 = { let __guard = self.budget.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
@@ -1086,7 +1086,7 @@ pub struct Company {
 impl Company {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.departments.clone();
+        let __go_clone_1_0 = { let __guard = self.departments.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.headquarters.borrow(); Rc::new(RefCell::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             name: __go_clone_0_0,

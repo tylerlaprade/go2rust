@@ -713,7 +713,7 @@ pub struct loadError {
 
 impl loadError {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.import_stack.clone();
+        let __go_clone_0_0 = { let __guard = self.import_stack.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             import_stack: __go_clone_0_0,
         }

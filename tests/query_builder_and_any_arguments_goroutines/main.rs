@@ -154,7 +154,7 @@ pub struct Query {
 impl Query {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.table.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.wheres.clone();
+        let __go_clone_1_0 = { let __guard = self.wheres.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = { let __guard = self.order.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_3_0 = { let __guard = self.limit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_4_0 = self.params.clone();
@@ -204,7 +204,7 @@ impl User {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.age.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_2_0 = self.roles.clone();
+        let __go_clone_2_0 = { let __guard = self.roles.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
             age: __go_clone_1_0,
@@ -254,7 +254,7 @@ pub struct upperWriter {
 
 impl upperWriter {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.buf.clone();
+        let __go_clone_0_0 = { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             buf: __go_clone_0_0,
         }

@@ -306,6 +306,27 @@ before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
 
+### exec-lookpath-path-search
+
+- Location: `go/external_type_stubs.go`, `writeExecLookPathStub`
+- Go symbol: `os/exec.LookPath`
+- Transpiler gap: source-transpiled `os/exec.findExecutable` compares an error
+  to `syscall.ENOSYS` and `syscall.EPERM`. Each comparison currently emits
+  a lock on a native `usize` and a cast from `syscall_Errno` to `usize`.
+  Once those compile, `internal/syscall/unix.Eaccess` still needs its native
+  implementation. The relative-path `ErrDot` path also uses
+  `internal/godebug.Setting` methods.
+- Gap fixture: `tests/XFAIL/source_stdlib_exec_look_path/` source-maps
+  `os/exec+deps` and reaches the native/runtime boundary above.
+- Bridge regression fixtures: `tests/exec_look_path_success/` and
+  `tests/exec_look_path_success_goroutines/` cover PATH success, direct-path
+  success, a fixture-owned non-executable regular file, and a missing
+  executable.
+- Removal trigger: implement the native `Eaccess` hook and the source-tier
+  `internal/godebug` path, make the source-mapped `os/exec` LookPath fixture
+  compile and match Go (including `ErrDot`), then delete this emitter.
+- Added: 2026-11-22 (backfill of the pre-existing always-failing stub)
+
 ### io-fs-path-error
 
 - Location: `go/external_type_stubs.go`, `writeFsPathErrorStub`
