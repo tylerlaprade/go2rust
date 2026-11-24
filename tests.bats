@@ -3359,6 +3359,14 @@ run_xfail_test() {
     run_test "tests/rune_literals_in_byte_fields_goroutines"
 }
 
+@test "rune_map_keys_from_string_range" {
+    run_test "tests/rune_map_keys_from_string_range"
+}
+
+@test "rune_map_keys_from_string_range_goroutines" {
+    run_test "tests/rune_map_keys_from_string_range_goroutines"
+}
+
 @test "runtime_format_with_package_level_names" {
     run_test "tests/runtime_format_with_package_level_names"
 }

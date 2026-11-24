@@ -1591,18 +1591,21 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 	} else if hexSpec, isHexArg := hexFormats[argIndex]; isHexArg {
 		transpilePrintHexArg(out, arg, hexSpec)
 	} else if isCharArg {
+		// Only a range over a string binds a Rust char. Any other rune,
+		// such as one from a []rune, is a number: %c prints the character
+		// with that code point, and U+FFFD for one that is not valid.
 		isAlreadyChar := false
 		if ident, ok := arg.(*ast.Ident); ok {
-			if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "char" {
 				isAlreadyChar = true
 			}
 		}
 		if isAlreadyChar {
 			transpilePrintArg(out, arg)
 		} else {
-			out.WriteString("(")
+			out.WriteString("char::from_u32((")
 			transpilePrintArg(out, arg)
-			out.WriteString(") as u8 as char")
+			out.WriteString(") as i64 as u32).unwrap_or('\\u{FFFD}')")
 		}
 	} else if NeedsConcurrentWrapper() && transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
 		// All the arguments of print! live until the macro is done, and so

@@ -618,7 +618,7 @@ fn main() {
 
     let mut i = Rc::new(RefCell::new(Some(0i64)));
     while ((*i.borrow().as_ref().unwrap()) as i64) < ((*s.borrow().as_ref().unwrap()).len() as i64) {
-        print!("{} ", ({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[((*i.borrow().as_ref().unwrap())) as usize] }) as u8 as char);
+        print!("{} ", char::from_u32(({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[((*i.borrow().as_ref().unwrap())) as usize] }) as i64 as u32).unwrap_or('\u{FFFD}'));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!();
