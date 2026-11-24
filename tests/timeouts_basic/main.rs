@@ -904,19 +904,23 @@ fn main() {
     });
 
     let mut timeout1 = go_channel_after(std::time::Duration::from_millis(500));
+    {
+    let __go_select_channel_0 = c1.clone();
+    let __go_select_channel_1 = timeout1.clone();
     loop {
-        if let Some(__select_recv) = c1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let res = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut res = Arc::new(Mutex::new(Some(res)));
             println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout1.try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "timeout 1".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 
     let mut c2 = GoChannel::<String>::new_buffered(1 as usize);
@@ -931,18 +935,22 @@ fn main() {
     }
     });
     let mut timeout2 = go_channel_after(std::time::Duration::from_millis(1500));
+    {
+    let __go_select_channel_0 = c2.clone();
+    let __go_select_channel_1 = timeout2.clone();
     loop {
-        if let Some(__select_recv) = c2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let res = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut res = Arc::new(Mutex::new(Some(res)));
             println!("{}", format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(_) = timeout2.try_recv_select() {
+        if let Some(_) = __go_select_channel_1.try_recv_select() {
             println!("{}", format!("{}", "timeout 2".to_string()));
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 }

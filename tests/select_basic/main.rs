@@ -809,15 +809,18 @@ fn main() {
 
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
-        loop {
-        if let Some(__select_recv) = c1.try_recv_select() {
+        {
+    let __go_select_channel_0 = c1.clone();
+    let __go_select_channel_1 = c2.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg1 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg1 = Arc::new(Mutex::new(Some(msg1)));
             println!("{} {}", format!("{}", "received".to_string()), format!("{}", { let __v = (*msg1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
-        if let Some(__select_recv) = c2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let msg2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut msg2 = Arc::new(Mutex::new(Some(msg2)));
@@ -825,6 +828,7 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

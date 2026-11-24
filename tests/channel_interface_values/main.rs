@@ -782,6 +782,28 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -1127,8 +1149,10 @@ fn main() {
     println!("{} {}", format!("{}", "total".to_string()), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
-        loop {
-        if let Some(__select_recv) = { let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.try_recv_select() {
+        {
+    let __go_select_channel_0 = { let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let shape = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut shape = Arc::new(Mutex::new(shape));
@@ -1138,15 +1162,20 @@ fn main() {
         println!("{}", format!("{}", "nothing ready".to_string()));
         break;
     }
+    }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+    {
+    let __go_select_channel_0 = { let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.clone();
+    let mut __go_select_value_0 = Some({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(7))), h: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = (*__iface_handle.lock().unwrap()).clone(); __iface_value });
     loop {
-        if { let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.try_send({ let __iface_handle = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(7))), h: Arc::new(Mutex::new(Some(7))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))); let __iface_value = (*__iface_handle.lock().unwrap()).clone(); __iface_value }) {
+        if __go_select_channel_0.try_send_select(&mut __go_select_value_0) {
             println!("{}", format!("{}", "sent".to_string()));
             break;
         }
         println!("{}", format!("{}", "full".to_string()));
         break;
+    }
     }
     println!("{}", format!("{}", (*describe(Arc::new(Mutex::new({ let __channel = (*p.lock().unwrap().as_ref().unwrap()).out.clone(); __channel }.recv().unwrap_or_default())).clone()).lock().unwrap().as_ref().unwrap())));
 

@@ -164,6 +164,7 @@ type HelperTracker struct {
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
 	needsGoChannel                       bool
+	needsGoSelectSend                    bool
 	needsWaitGroup                       bool
 	needsGoMutex                         bool
 	needsGoRWMutex                       bool
@@ -236,6 +237,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	}
 	helperCopy := *ht
 	helperCopy.needsGoChannel = false
+	helperCopy.needsGoSelectSend = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
 	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
@@ -269,7 +271,7 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht == nil {
 		return nil
 	}
-	helperCopy := &HelperTracker{}
+	helperCopy := &HelperTracker{needsGoSelectSend: ht.needsGoSelectSend}
 	if ht.needsGoChannel || ht.needsGoContext {
 		helperCopy.needsGoChannel = true
 	}
@@ -418,6 +420,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoChannel {
 		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
+		if ht.needsGoSelectSend {
+			result.WriteString(goSelectSendHelper)
+		}
 	}
 
 	if ht.needsWaitGroup {
@@ -2489,6 +2494,32 @@ fn format_any_variadic(slice: ` + sliceType + `) -> String {
 }
 `)
 }
+
+// Keep ownership of a pending send across polls, including non-Clone interface
+// values. A full channel gives the original Rust value back to the caller.
+const goSelectSendHelper = `
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+`
 
 func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
 	code := `

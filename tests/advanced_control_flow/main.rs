@@ -1102,15 +1102,18 @@ fn main() {
     let mut ch2 = GoChannel::<String>::new_buffered(2 as usize);
 
     ch1.send(1);
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
@@ -1118,18 +1121,22 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 
     ch2.send("hello".to_string());
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
@@ -1137,18 +1144,22 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 
     ch2.send("world".to_string());
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
@@ -1157,17 +1168,21 @@ fn main() {
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
+    }
 
     ch1.send(2);
+    {
+    let __go_select_channel_0 = ch1.clone();
+    let __go_select_channel_1 = ch2.clone();
     loop {
-        if let Some(__select_recv) = ch1.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
             print!("Received int: {}\n", { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v });
             break;
         }
-        if let Some(__select_recv) = ch2.try_recv_select() {
+        if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {
             let __select_ok = __select_recv.is_some();
             let val = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut val = Arc::new(Mutex::new(Some(val)));
@@ -1175,6 +1190,7 @@ fn main() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
+    }
     }
 
     println!("{}", format!("{}", "Channel processing complete".to_string()));

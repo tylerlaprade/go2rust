@@ -1252,6 +1252,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
+	dst.needsGoSelectSend = dst.needsGoSelectSend || src.needsGoSelectSend
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
 	dst.needsGoMutex = dst.needsGoMutex || src.needsGoMutex
 	dst.needsGoRWMutex = dst.needsGoRWMutex || src.needsGoRWMutex

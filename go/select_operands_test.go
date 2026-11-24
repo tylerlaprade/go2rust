@@ -26,7 +26,7 @@ func main() {
 	}
 }
 `)
-	if !strings.Contains(rust, "{ let __select_chan_") || !strings.Contains(rust, "= go_channel_after(std::time::Duration::from_millis(1)); loop {") {
+	if !strings.Contains(rust, " = go_channel_after(std::time::Duration::from_millis(1)).clone();\n    loop {") {
 		t.Errorf("time.After should be evaluated before the polling loop:\n%s", rust)
 	}
 	if strings.Contains(rust, "go_channel_after(std::time::Duration::from_millis(1)).try_recv_select()") {
