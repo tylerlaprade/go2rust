@@ -1,0 +1,6 @@
+[log] err=<nil>
+[log] err=boom
+5 true false 3 1
+<nil> 1 <nil> <nil> boom
+nil int nil nil other 
+true nil

@@ -5335,10 +5335,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if isEmptyInterfaceType(elemType) && !isEmptyInterfaceValueExpr(expr) {
-					if nilIdent, ok := expr.(*ast.Ident); !ok || nilIdent.Name != "nil" {
-						writeBareAnyBox(out, expr)
-						return
-					}
+					writeBareAnyBox(out, expr)
+					return
 				}
 				// An interface value appended to a []interface{} is copied
 				// into a box of its own. A box cannot be cloned, so the

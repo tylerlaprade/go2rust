@@ -686,10 +686,17 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
@@ -710,6 +717,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -1868,7 +1876,7 @@ pub fn describe__int(v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>>
     {
     let _ts_subject = Rc::new(RefCell::new(Some(Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>))).clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -1897,7 +1905,7 @@ pub fn describe__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Str
     {
     let _ts_subject = Rc::new(RefCell::new(Some(Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>))).clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -1926,7 +1934,7 @@ pub fn describe__float64(v: Rc<RefCell<Option<f64>>>) -> Rc<RefCell<Option<Strin
     {
     let _ts_subject = Rc::new(RefCell::new(Some(Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>))).clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {

@@ -615,6 +615,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -633,6 +638,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<customError>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
@@ -770,6 +776,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<customError>() { return "main.customError" }
     std::any::type_name_of_val(val)
 }
@@ -1001,7 +1008,7 @@ pub fn switch_named(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mu
     {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
@@ -1026,7 +1033,7 @@ pub fn switch_anonymous(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Ar
     {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
@@ -1069,7 +1076,7 @@ fn main() {
     let mut embedded: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("embedded".to_string())))));
     println!("{} {}", format!("{}", "embedded".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", embedded.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
 
-    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bad".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<customError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })));
+    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some({ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("bad".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => if let Some(typed_val) = __err.downcast_ref::<customError>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else { Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } } })));
     let (mut asserted, mut ok) = ({
         let val = value.clone();
         let guard = val.lock().unwrap();

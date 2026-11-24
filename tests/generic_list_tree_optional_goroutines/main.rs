@@ -686,10 +686,17 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
@@ -879,6 +886,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -2077,7 +2085,7 @@ pub fn describe__int(v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> {
     {
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
@@ -2106,7 +2114,7 @@ pub fn describe__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Strin
     {
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
@@ -2135,7 +2143,7 @@ pub fn describe__float64(v: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<String>
     {
     let _ts_subject = Arc::new(Mutex::new(Some(Box::new((*v.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>))).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {

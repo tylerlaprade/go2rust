@@ -10,6 +10,11 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -27,6 +32,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<[[i64; 2]; 1]>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<[i64; 2]>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
@@ -76,12 +82,12 @@ fn main() {
     ::example_com_anyfixedarraycopy_check::__go_init_all();
 
     let mut original: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new([1i64, 2i64]) as Box<dyn Any>)));
-    println!("{} {}", format!("{}", example_com_anyfixedarraycopy_check::preserved(go_any_handle_copy(&original))), format!("{}", { let __nil_result = (*original.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", example_com_anyfixedarraycopy_check::preserved(go_any_handle_copy(&original))), format!("{}", { let __nil_result = (*original.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
     let mut copied = go_any_handle_copy(&original);
     *original.borrow_mut() = None;
-    println!("{} {}", format!("{}", { let __nil_result = (*original.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*copied.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __nil_result = (*original.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __nil_result = (*copied.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
     let mut nested: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new([[3i64, 4i64]]) as Box<dyn Any>)));
     let mut nestedCopy = go_any_handle_copy(&nested);
     *nested.borrow_mut() = None;
-    println!("{} {}", format!("{}", { let __nil_result = (*nested.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*nestedCopy.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", { let __nil_result = (*nested.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __nil_result = (*nestedCopy.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
 }

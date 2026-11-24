@@ -654,10 +654,17 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         match (*v.lock().unwrap()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Code>() {
         format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
@@ -898,6 +905,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Arc<Mutex<Option<NotFound>>>>() { return "*main.NotFound" }
     if val.is::<Arc<Mutex<Option<QueryError>>>>() { return "*main.QueryError" }
     if val.is::<Code>() { return "main.Code" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -2257,7 +2265,7 @@ pub fn find(key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Arc<dyn StdErro
         let __err_holder = ErrNotFound.clone();
         let __err_guard = __err_holder.lock().unwrap();
         match __err_guard.as_ref() {
-            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>,
             Some(__err) => {
                 if let Some(typed_val) = __err.downcast_ref::<Code>() {
                     go_box_any_with_metadata(typed_val.clone(), "basic", true)

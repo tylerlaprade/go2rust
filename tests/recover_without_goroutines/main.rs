@@ -646,10 +646,17 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
@@ -781,7 +788,7 @@ pub fn safe() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
@@ -821,7 +828,7 @@ pub fn safe_line() {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         let mut r = go_recover();
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
         println!("{} {}", format!("{}", "recovered too:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
     }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -859,7 +866,7 @@ pub fn divide(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> (i64,
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("caught: {}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };;
         }
     }
@@ -906,7 +913,7 @@ pub fn element(xs: Rc<RefCell<Option<Vec<i64>>>>, i: Rc<RefCell<Option<i64>>>) -
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "element:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
@@ -952,7 +959,7 @@ pub fn with_error() -> i64 {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let new_val = -1; *n_defer_captured.borrow_mut() = Some(new_val); };;
         }
     }
@@ -1032,7 +1039,7 @@ pub fn nested() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "outer:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
@@ -1046,7 +1053,7 @@ pub fn nested() {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "inner:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
             panic!("again");;
         }
@@ -1110,7 +1117,7 @@ pub fn no_panic() -> i64 {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.borrow()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{}", format!("{}", "never printed".to_string()));;
         }
     }

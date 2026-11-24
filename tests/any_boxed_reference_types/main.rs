@@ -735,6 +735,8 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() {
@@ -754,6 +756,11 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
     }
 }
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -771,6 +778,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<IntList>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Point>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
@@ -845,6 +853,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<IntList>() { return "main.IntList" }
     if val.is::<Point>() { return "main.Point" }
     if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() { return "map[string]bool" }
@@ -1066,7 +1075,7 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
     {
     let _ts_subject = value.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -1153,8 +1162,8 @@ pub fn classify_all(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> Rc<RefCell<
     { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for arg in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = arg;
-    let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).is_some() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&"[]int ".to_string()); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()).is_some() {
@@ -1244,8 +1253,8 @@ fn main() {
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         {
     let _ts_ref = item;
-    let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).unwrap().clone();
         let mut v = { let __slice_header = GoSliceHeader::go_slice_header(&v); Rc::new(RefCell::new(__slice_header)) };
@@ -1495,7 +1504,7 @@ let mut shared = { let __slice_header = GoSliceHeader::go_slice_header(&shared);
     {
     let _ts_subject = boxedPointer.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {

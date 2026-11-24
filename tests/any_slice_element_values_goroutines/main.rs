@@ -645,6 +645,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
@@ -708,6 +710,11 @@ fn go_any_values_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sy
     panic!("interface comparison with uncomparable dynamic type")
 }
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -725,6 +732,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
 
@@ -920,6 +928,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -1022,7 +1031,7 @@ fn main() {
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
     }))));
     println!("{}", format!("{}", format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "!".to_string())));
-    println!("{} {} {}", format!("{}", { let __nil_result = (*Arc::new(Mutex::new(Some({ let __idx = (4) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))).lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __right_holder = Arc::new(Mutex::new(Some(Box::new(1i64) as Box<dyn Any + Send + Sync>))); go_any_eq(&Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))), &__right_holder) }), format!("{}", { let __right_holder = Arc::new(Mutex::new(Some(Box::new(7i64) as Box<dyn Any + Send + Sync>))); go_any_eq(&Arc::new(Mutex::new(Some({ let __idx = (4) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))), &__right_holder) }));
+    println!("{} {} {}", format!("{}", { let __nil_result = (*Arc::new(Mutex::new(Some({ let __idx = (4) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))).lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __right_holder = Arc::new(Mutex::new(Some(Box::new(1i64) as Box<dyn Any + Send + Sync>))); go_any_eq(&Arc::new(Mutex::new(Some({ let __idx = (0) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))), &__right_holder) }), format!("{}", { let __right_holder = Arc::new(Mutex::new(Some(Box::new(7i64) as Box<dyn Any + Send + Sync>))); go_any_eq(&Arc::new(Mutex::new(Some({ let __idx = (4) as usize; let __seq_holder = mixed.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) }))), &__right_holder) }));
     let mut b = Arc::new(Mutex::new(Some(r#box { items: { let __slice_header = GoSliceHeader::go_slice_header(&mixed); Arc::new(Mutex::new(__slice_header)) }, ..Default::default() })));
     println!("{} {}", format!("{}", { let __text = match (Arc::new(Mutex::new(Some({ let __idx = (1) as usize; let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
     { let __idx = (0) as usize; let __rhs = Box::new("changed".to_string()) as Box<dyn Any + Send + Sync>; (*mixed.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
