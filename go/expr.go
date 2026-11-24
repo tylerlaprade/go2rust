@@ -13863,6 +13863,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	if ctx != AddressOf && writeWideIntConstant(out, expr) {
 		return
 	}
+	if ctx != AddressOf && writeFloatContextIntConstant(out, expr) {
+		return
+	}
 	if lit, ok := expr.(*ast.CompositeLit); ok {
 		markCompositeLiteralIntConstants(lit)
 	}
@@ -26188,6 +26191,85 @@ func writeIntegerConstForAnyBox(out *strings.Builder, expr ast.Expr) bool {
 // writeWideIntConstant writes an int constant outside the i32 range, 1 << 40
 // or math.MaxInt, as its value with an i64 suffix. An unsuffixed Rust
 // literal with nothing else to fix its type is an i32, which cannot hold it.
+// writeFloatContextIntConstant writes an integer-valued constant expression
+// that Go converts to float32 or float64, such as the -1 in []float64{-1},
+// the -3 in map[string]float64{"x": -3} or a named untyped constant k in
+// var f float64 = k, as a float literal. go/types records the float type on
+// the whole constant expression but leaves its operands untyped, so writing
+// the parts would give a Rust integer. A bare literal already takes its
+// recorded type in the BasicLit case; a rune literal does not.
+func writeFloatContextIntConstant(out *strings.Builder, expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.UnaryExpr, *ast.BinaryExpr, *ast.ParenExpr, *ast.Ident, *ast.SelectorExpr:
+	case *ast.BasicLit:
+		// var f float64 = 'a' is the float 97.
+		if e.Kind != token.CHAR {
+			return false
+		}
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[expr]
+	if !ok || tv.Value == nil {
+		return false
+	}
+	basic, ok := types.Unalias(tv.Type).(*types.Basic)
+	if !ok || (basic.Kind() != types.Float32 && basic.Kind() != types.Float64) {
+		return false
+	}
+	// The recorded value is already a float; what matters is that the
+	// parts would be written as integers.
+	if !constExprHasIntegerOperands(expr, typeInfo) {
+		return false
+	}
+	rustType := "f64"
+	if basic.Kind() == types.Float32 {
+		rustType = "f32"
+	}
+	lit, ok := constFloatLiteralForRustType(tv.Value, rustType)
+	if !ok {
+		return false
+	}
+	if strings.HasPrefix(lit, "-") {
+		lit = "(" + lit + ")"
+	}
+	out.WriteString(lit)
+	return true
+}
+
+// constExprHasIntegerOperands reports whether every operand of the constant
+// expression is an integer or rune literal or a constant of integer type.
+func constExprHasIntegerOperands(expr ast.Expr, typeInfo *TypeInfo) bool {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		return e.Kind == token.INT || e.Kind == token.CHAR
+	case *ast.ParenExpr:
+		return constExprHasIntegerOperands(e.X, typeInfo)
+	case *ast.UnaryExpr:
+		return constExprHasIntegerOperands(e.X, typeInfo)
+	case *ast.BinaryExpr:
+		return constExprHasIntegerOperands(e.X, typeInfo) && constExprHasIntegerOperands(e.Y, typeInfo)
+	case *ast.Ident:
+		return constObjectHasIntegerType(typeInfo.GetObject(e))
+	case *ast.SelectorExpr:
+		return constObjectHasIntegerType(typeInfo.GetObject(e.Sel))
+	}
+	return false
+}
+
+func constObjectHasIntegerType(obj types.Object) bool {
+	c, ok := obj.(*types.Const)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(c.Type()).(*types.Basic)
+	return ok && basic.Info()&types.IsInteger != 0
+}
+
 func writeWideIntConstant(out *strings.Builder, expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || expr == nil {
