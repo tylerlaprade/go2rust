@@ -258,7 +258,7 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
+    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?
@@ -1297,6 +1297,14 @@ run_xfail_test() {
 
 @test "exec_look_path_not_found" {
     run_test "tests/exec_look_path_not_found"
+}
+
+@test "exec_look_path_success" {
+    run_test "tests/exec_look_path_success"
+}
+
+@test "exec_look_path_success_goroutines" {
+    run_test "tests/exec_look_path_success_goroutines"
 }
 
 @test "external_atomic_int32_add" {
@@ -4325,6 +4333,10 @@ run_xfail_test() {
 
 @test "XFAIL: http_client" {
     run_xfail_test "tests/XFAIL/http_client"
+}
+
+@test "XFAIL: source_stdlib_exec_look_path" {
+    run_xfail_test "tests/XFAIL/source_stdlib_exec_look_path"
 }
 
 @test "XFAIL: source_stdlib_io_fs_os_stat" {
