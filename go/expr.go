@@ -15634,6 +15634,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						out.WriteString("])")
 						return
+					case *types.Array:
+						// An elided array, as a map value ("map[string][2]int{"a":
+						// {1, 2}}"): the bare array, which the container wraps.
+						if _, isNamed := types.Unalias(typ).(*types.Named); !isNamed && writeBareFixedArrayCompositeLiteral(out, e, typ) {
+							return
+						}
 					case *types.Struct:
 						// Handle struct literal with inferred type
 						structUnder := typ.Underlying().(*types.Struct)
