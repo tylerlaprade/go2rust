@@ -751,7 +751,7 @@ impl<T> Iterator for GoChannel<T> {
 fn main() {
     let mut values = Arc::new(Mutex::new(Some(vec!["alpha".to_string(), "beta".to_string()])));
     let mut ch = GoChannel::<String>::new_buffered((({ let __len = (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize);
-    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for value in __range_values.iter() {
+    { let __range_holder = values.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for value in __range_values.iter() {
         ch.send((*value).clone());
     } }
     ch.close();

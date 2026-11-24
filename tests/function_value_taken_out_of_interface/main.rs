@@ -713,7 +713,7 @@ fn main() {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>()).is_some() {
         let f = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };;
         println!("{} {}", format!("{}", "func".to_string()), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));;
     }

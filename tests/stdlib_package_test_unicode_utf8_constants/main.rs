@@ -247,26 +247,26 @@ pub fn test_constants(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
 }
 
 pub fn test_append_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
-    { let __range_holder = utf8map.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for m in __range_values.iter() {
+    { let __range_holder = utf8map.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for m in __range_values.iter() {
         let m = &m.__go_value_clone();
         {
-        let mut buf = append_rune(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        let mut buf = append_rune(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));
 let mut buf = { let __slice_header = GoSliceHeader::go_slice_header(&buf); Arc::new(Mutex::new(__slice_header)) };;
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*buf.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = m.str.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x != __tmp_y } {
-            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("AppendRune(nil, %#04x) = %s, want %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(buf.clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = m.str.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
+        if { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*buf.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = m.str.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; __tmp_x != __tmp_y } {
+            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("AppendRune(nil, %#04x) = %s, want %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(buf.clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = m.str.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
         }
     }
         {
         let mut buf = append_rune(
             Arc::new(Mutex::new(Some(("init".to_string()).as_bytes().to_go_slice()))),
-            Arc::new(Mutex::new(Some({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+            Arc::new(Mutex::new(Some({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))
         );
 let mut buf = { let __slice_header = GoSliceHeader::go_slice_header(&buf); Arc::new(Mutex::new(__slice_header)) };;
         if { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*buf.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = format!("{}{}", "init".to_string(), (*m.str.lock().unwrap().as_ref().unwrap()).clone()); __tmp_x != __tmp_y } {
             { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(
                 Arc::new(Mutex::new(Some("AppendRune(init, %#04x) = %s, want %s".to_string()))),
                 Arc::new(Mutex::new(Some(vec![
-                    Box::new({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>,
+                    Box::new({ let __selector_holder = m.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>,
                     Box::new(buf.clone()) as Box<dyn Any + Send + Sync>,
                     Box::new(format!("{}{}", "init".to_string(), (*m.str.lock().unwrap().as_ref().unwrap()).clone())) as Box<dyn Any + Send + Sync>,
                 ]))),
@@ -284,7 +284,7 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
         let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-        drop(__seq_guard);
+        std::mem::drop(__seq_guard);
         let __low = (0) as usize;
         let __high = (encode_rune(errorbuf.clone(), Arc::new(Mutex::new(Some(RUNE_ERROR as i32))))) as usize;
         let __max = __source_cap;
@@ -296,7 +296,7 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
         let __seq_guard = __seq_holder.lock().unwrap();
         let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
         let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
-        drop(__seq_guard);
+        std::mem::drop(__seq_guard);
         let __low = (0) as usize;
         let __high = (encode_rune(buf.clone(), Arc::new(Mutex::new(Some(-1 as i32))))) as usize;
         let __max = __source_cap;
@@ -308,24 +308,24 @@ pub fn test_negative_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
 }
 
 pub fn test_rune_len(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
-    { let __range_holder = runelentests.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for tt in __range_values.iter() {
+    { let __range_holder = runelentests.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for tt in __range_values.iter() {
         let tt = &tt.__go_value_clone();
         {
-        let mut size = rune_len(Arc::new(Mutex::new(Some({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        let mut size = rune_len(Arc::new(Mutex::new(Some({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = size; let __tmp_y = (*tt.size.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("RuneLen(%#U) = %d, want %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(size) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = tt.size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
+            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("RuneLen(%#U) = %d, want %d".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(size) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = tt.size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
         }
     }
     } }
 }
 
 pub fn test_valid_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
-    { let __range_holder = validrunetests.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for tt in __range_values.iter() {
+    { let __range_holder = validrunetests.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for tt in __range_values.iter() {
         let tt = &tt.__go_value_clone();
         {
-        let mut ok = valid_rune(Arc::new(Mutex::new(Some({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        let mut ok = valid_rune(Arc::new(Mutex::new(Some({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = ok; let __tmp_y = (*tt.ok.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("ValidRune(%#U) = %t, want %t".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(ok) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = tt.ok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
+            { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("ValidRune(%#U) = %t, want %t".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = tt.r.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(ok) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = tt.ok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };;
         }
     }
     } }
@@ -359,7 +359,9 @@ pub fn run(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>, name: Arc<Mutex<Opti
 
 fn main() {
     ::bytes::__go_init_all();
+    ::math_bits::__go_init_all();
     ::oracle_testing::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     __go_init_all();
@@ -394,7 +396,7 @@ fn main() {
         },
     ] {
         let tt = &tt.__go_value_clone();
-        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), tt.test.clone()) {
+        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), tt.test.clone()) {
         { let mut guard = passed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } else {
         { let mut guard = failed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -582,7 +582,7 @@ impl std::io::Write for GoSlice<u8> {
 
 pub fn join(prefix: Rc<RefCell<Option<String>>>, sep: Rc<RefCell<Option<String>>>, parts: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
     let mut out = { let __owned = prefix.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-    { let __range_holder = parts.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
+    { let __range_holder = parts.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { (*out.borrow_mut().as_mut().unwrap()).push_str(&format!("{}{}", (*sep.borrow().as_ref().unwrap()), p)); };
     } }
     return { let __owned = out.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };

@@ -881,7 +881,7 @@ fn main() {
     let mut handlers = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("inc".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| -> i64 {
         return { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))))]))));
-    let mut inc = ({ let val = { let __map = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"inc".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut inc = ({ let val = { let __map = { let __map_holder = handlers.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"inc".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{}", format!("{}", {
         let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = {
             let mut __f_guard = inc.lock().unwrap();
@@ -956,7 +956,7 @@ fn main() {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>()).is_some() {
         let f = _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>()).unwrap().clone();
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         {
             let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
                 let mut __f_guard = f.lock().unwrap();

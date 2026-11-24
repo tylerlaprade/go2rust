@@ -586,7 +586,7 @@ fn main() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = pairs.clone(); let __append_value = [i as i64, value]; let mut __appended: Vec<[i64; 2]> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *pairs.borrow_mut() = __slice_header; };
     }
     let mut prev = Rc::new(RefCell::new(Some([0, 0])));
-    { let __range_holder = pairs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for pair in __range_values.iter().copied() {
+    { let __range_holder = pairs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for pair in __range_values.iter().copied() {
         { let new_val = pair.clone(); *prev.borrow_mut() = Some(new_val); };
     } }
     println!("{} {} {} {}", format!("{}", (*pairs.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()), format!("{}", (*pairs.borrow().as_ref().unwrap())[(1) as usize].clone()[(1) as usize].clone()), format!("{}", (*prev.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*prev.borrow().as_ref().unwrap())[(1) as usize].clone()));

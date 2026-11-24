@@ -1175,7 +1175,7 @@ fn main() {
 
         let mut content = Arc::new(Mutex::new(Some(vec!["Hello, World!".to_string(), "This is line 2".to_string(), "Go file operations".to_string(), "Line 4 with numbers: 123".to_string(), "Final line".to_string()])));
 
-        { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, line) in __range_values.iter().enumerate() {
+        { let __range_holder = content.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, line) in __range_values.iter().enumerate() {
         let (_, mut err) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string()))))); __result };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         print!("Error writing line {}: {}\n", format!("{}", { let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -1270,7 +1270,7 @@ fn main() {
 
         let mut appendContent = Arc::new(Mutex::new(Some(vec!["Appended line 1".to_string(), "Appended line 2".to_string()])));
 
-        { let __range_holder = appendContent.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for line in __range_values.iter() {
+        { let __range_holder = appendContent.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for line in __range_values.iter() {
         let (_, mut err) = { let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(format!("{}{}", line, "\n".to_string()))))); __result };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         print!("Error appending: {}\n", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
@@ -1471,7 +1471,7 @@ fn main() {
 
         let mut files = Arc::new(Mutex::new(Some(vec![({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v }), "nonexistent.txt".to_string()])));
 
-        { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
+        { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter() {
         {
         let (_, mut err) = os::stat((*f).clone());;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
@@ -1489,7 +1489,7 @@ fn main() {
 
         let mut filesToRemove = Arc::new(Mutex::new(Some(vec![({ let __v = (*filename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*copyFilename.lock().unwrap().as_ref().unwrap()).clone(); __v }), ({ let __v = (*dataFile.lock().unwrap().as_ref().unwrap()).clone(); __v })])));
 
-        { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
+        { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter() {
         let mut err = { let __path = (*f).clone(); match std::fs::remove_file(&__path) { Ok(()) => Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), Err(e) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(e))))) } };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         print!("Error removing file '{}': {}\n", format!("{}", f), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
@@ -1501,7 +1501,7 @@ fn main() {
                 // Verify cleanup
         println!("{}", format!("{}", "\n--- Verifying cleanup ---".to_string()));
 
-        { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
+        { let __range_holder = filesToRemove.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter() {
         {
         let (_, mut err) = os::stat((*f).clone());;
         if os::is_not_exist({ let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }) {

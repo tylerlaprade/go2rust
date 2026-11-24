@@ -595,10 +595,10 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = "int".to_string(); *result.borrow_mut() = Some(new_val); };;
     } else {
-        drop(_ts_guard);
+        std::mem::drop(_ts_guard);
         { let new_val = "other".to_string(); *result.borrow_mut() = Some(new_val); };;
     }
     }

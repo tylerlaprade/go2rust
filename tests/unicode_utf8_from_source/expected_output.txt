@@ -1,0 +1,8 @@
+9786 3 3 true 1
+233 2 2 true 1
+97 1 1 true 1
+28450 3 3 true 2
+119070 4 4 true 2
+[226 152 186] false true 1
+9786 3 false true
+4 [240 157 132 158] false

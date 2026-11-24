@@ -599,7 +599,7 @@ impl GoOnce {
         let mut done = self.done.borrow_mut();
         if !*done {
             *done = true;
-            drop(done);
+            std::mem::drop(done);
             f();
         }
     }

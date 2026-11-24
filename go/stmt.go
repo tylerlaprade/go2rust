@@ -5520,6 +5520,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
+	if writeChannelReceiveHandleFor(out, expr, valueType) {
+		return
+	}
 	// The value of a range over a []any is the element's Box itself, which
 	// has no Clone; the map gets a copy of its own.
 	if isEmptyInterfaceType(valueType) && writeBareAnyReferenceWrappedClone(out, expr) {
@@ -7726,6 +7729,55 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	return true
 }
 
+// writePointerNilRebind writes `p = nil` for a pointer variable or field.
+// A pointer is the handle of its pointee's cell, and a nil pointer is a
+// handle whose cell is empty. Writing None into the cell p holds emptied
+// the pointee for every other pointer to it: after `q := p; q = nil`, p
+// was nil too, and `item = nil` in a range loop cleared the slice element
+// (DEV-142). Like any other pointer assignment, nil now replaces the
+// handle, with a fresh empty one.
+func writePointerNilRebind(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	if ident, ok := rhs.(*ast.Ident); !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(lhsType).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	switch target := unwrapParens(lhs).(type) {
+	case *ast.Ident:
+		if target.Name == "_" || isCurrentReceiverIdent(target) {
+			return false
+		}
+		if _, isGlobal := packageGlobalPointerIdent(target); isGlobal {
+			return false
+		}
+	case *ast.SelectorExpr:
+		if selection, ok := typeInfo.info.Selections[target]; !ok || selection.Kind() != types.FieldVal {
+			return false
+		}
+	default:
+		return false
+	}
+	nilHandle := zeroValueForTypesType(lhsType)
+	if nilHandle == "" {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(nilHandle)
+	out.WriteString("; ")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
+	return true
+}
+
 func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, rhs) {
 		return
@@ -8065,22 +8117,22 @@ func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
 func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, moveEmptyInterfaceValues bool) {
 	if rangeSliceElementIsEmptyInterface(rangeExpr) {
 		if moveEmptyInterfaceValues {
-			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
+			out.WriteString("; let __range_values = { let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let mut __range_values = " + stdVecPath() + "::with_capacity(__range_len); for __range_index in 0..__range_len { let mut __range_guard = __range_holder")
 			WriteBorrowMethod(out, true)
 			out.WriteString("; let __range_value = std::mem::replace(&mut __range_guard.as_mut().unwrap()[__range_index], Box::new(()) as ")
 			out.WriteString(rustAnyTraitObject())
-			out.WriteString("); drop(__range_guard); __range_values.push(__range_value); } __range_values }; ")
+			out.WriteString("); std::mem::drop(__range_guard); __range_values.push(__range_value); } __range_values }; ")
 			return
 		}
 		NeedAnyClone()
-		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); drop(__range_guard); let __range_values = 0..__range_len; ")
+		out.WriteString("; let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; ")
 		return
 	}
 	copyCall, known := elementGoValueCopyCall(rangeExpr)
 	if !known {
 		out.WriteString("; let __range_values: Vec<()> = ")
 		out.WriteString(goValueCopyNeedsTypeInfo)
-		out.WriteString("; drop(__range_guard); ")
+		out.WriteString("; std::mem::drop(__range_guard); ")
 		return
 	}
 	if copyCall != ".clone()" && rangeExprIsArrayValue(rangeExpr) {
@@ -8089,7 +8141,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 		// would clone each struct's handles and let those writes through.
 		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| __e")
 		out.WriteString(copyCall)
-		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		out.WriteString(").collect::<Vec<_>>()).unwrap_or_default(); std::mem::drop(__range_guard); ")
 		return
 	}
 	// A slice is not copied: each element is read when its turn comes. The
@@ -8097,7 +8149,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 	// during the loop is seen, and the loop variable takes its copy of the
 	// element at the start of its iteration (writeRangeOwnedValuesAdapter
 	// and writeRangeValueIterationCopy).
-	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); ")
 }
 
 // writeRangeValueIterationCopy makes the loop variable of a range over
@@ -8902,6 +8954,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
+		// true and false are constants of the universe scope; the constant
+		// path below would give them a package constant's escaped name.
+		if isPredeclaredBoolConstant(ident) {
+			out.WriteString(ident.Name)
+			return
+		}
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		isLocalConst := isLocalConstantIdent(ident)
 		varName := rustIdentForUseWithCapture(ident)
@@ -10580,7 +10638,7 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString(".unlock();")
 		return true
 	}
-	out.WriteString("drop(")
+	out.WriteString("std::mem::drop(")
 	out.WriteString(guardName)
 	out.WriteString(");")
 	delete(activeMutexGuards, key)
@@ -11787,6 +11845,14 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
+	if binding, rewritten, ok := multiValueArgumentStatement(stmt); ok {
+		// g(f()) with a multi-value f: bind f's results, then call g.
+		TranspileStatement(out, binding, fnType, fileSet, comments, lastPos, indent)
+		out.WriteString("\n")
+		out.WriteString(indent)
+		TranspileStatement(out, rewritten, fnType, fileSet, nil, nil, indent)
+		return
+	}
 	markDeclaredIntConstants(stmt)
 	if fileSet != nil {
 		if ctx := GetTranspileContext(); ctx != nil && ctx.File != nil {
@@ -11836,6 +11902,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
 		if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		} else if writeChannelHandleCopy(out, s.Value, nil) {
 		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
 			transpileChannelValue(out, s.Value)
@@ -12537,6 +12604,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Tok == token.DEFINE {
 			registerDefaultShortDeclBindings(s.Lhs)
 		}
+		if rewritten, ok := goShiftCompoundAsAssignment(s); ok {
+			TranspileStatement(out, rewritten, fnType, fileSet, comments, lastPos, indent)
+			return
+		}
 
 		// Check if this is a map index assignment using type information
 		isMapIndexAssign := false
@@ -12736,16 +12807,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				isErrorChannelRecv := channelElementIsHandleOption(unary.X)
 				if s.Tok == token.DEFINE {
 					// Generate: let (value, ok) = match ch.recv() { ... }
-					out.WriteString("let (mut ")
-					if ident, ok := s.Lhs[0].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
-					out.WriteString(", mut ")
-					if ident, ok := s.Lhs[1].(*ast.Ident); ok {
-						out.WriteString(EscapeRustIdent(ident.Name))
-					}
+					out.WriteString("let (")
+					writeCommaOkBindingName(out, s.Lhs[0])
+					out.WriteString(", ")
+					writeCommaOkBindingName(out, s.Lhs[1])
 					out.WriteString(") = match ")
-					TranspileExpression(out, unary.X)
+					writeChannelExpression(out, unary.X)
 					out.WriteString(".recv() { Some(v) => (")
 					if isErrorChannelRecv {
 						writeErrorHandleFromOptionValue(out, "v")
@@ -12772,32 +12839,52 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteWrapperSuffix(out)
 					out.WriteString(") }")
 				} else {
-					// Reassignment: value, ok = <-ch
+					// Reassignment: value, ok = <-ch. A blank target discards its
+					// value.
+					valueTarget := !isBlankIdentExpr(s.Lhs[0])
+					okTarget := !isBlankIdentExpr(s.Lhs[1])
+					writeTarget := func(lhs ast.Expr) {
+						out.WriteString(" *")
+						TranspileExpressionContext(out, lhs, LValue)
+						WriteBorrowMethod(out, true)
+					}
 					out.WriteString("match ")
-					TranspileExpression(out, unary.X)
-					out.WriteString(".recv() { Some(v) => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = v; *")
+					writeChannelExpression(out, unary.X)
+					out.WriteString(".recv() { Some(")
+					if valueTarget {
+						out.WriteString("v")
 					} else {
-						out.WriteString(" = Some(v); *")
+						out.WriteString("_")
 					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(true); }, None => { *")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					WriteBorrowMethod(out, true)
-					if isErrorChannelRecv {
-						out.WriteString(" = None::<")
-						out.WriteString(channelHandleOptionPayloadType(unary.X))
-						out.WriteString(">; *")
-					} else {
-						out.WriteString(" = Some(Default::default()); *")
+					out.WriteString(") => {")
+					if valueTarget {
+						writeTarget(s.Lhs[0])
+						if isErrorChannelRecv {
+							out.WriteString(" = v;")
+						} else {
+							out.WriteString(" = Some(v);")
+						}
 					}
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					WriteBorrowMethod(out, true)
-					out.WriteString(" = Some(false); } }")
+					if okTarget {
+						writeTarget(s.Lhs[1])
+						out.WriteString(" = Some(true);")
+					}
+					out.WriteString(" }, None => {")
+					if valueTarget {
+						writeTarget(s.Lhs[0])
+						if isErrorChannelRecv {
+							out.WriteString(" = None::<")
+							out.WriteString(channelHandleOptionPayloadType(unary.X))
+							out.WriteString(">;")
+						} else {
+							out.WriteString(" = Some(Default::default());")
+						}
+					}
+					if okTarget {
+						writeTarget(s.Lhs[1])
+						out.WriteString(" = Some(false);")
+					}
+					out.WriteString(" } }")
 				}
 			} else if isTypeAssertion && needsTupleUnpack {
 				// Handle type assertion with comma-ok: value, ok := x.(Type)
@@ -13335,6 +13422,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// GoPtr fields preserve pointer identity for slice element addresses.
 								} else if writeGoPtrAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// GoPtr locals preserve pointer identity across pointer assignment.
+								} else if writePointerNilRebind(out, s.Lhs[0], s.Rhs[0]) {
+									// A pointer variable or field takes a nil handle of its own.
 								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")
@@ -15301,7 +15390,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("; let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map }")
+			out.WriteString("; let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map }")
 		}
 
 		if isInteger {
@@ -16701,7 +16790,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
 			out.WriteString("    let _ts_owned = _ts_guard.as_ref().cloned();\n")
-			out.WriteString("    drop(_ts_guard);\n")
+			out.WriteString("    std::mem::drop(_ts_guard);\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {\n")
 			out.WriteString("        let __any = ")
 			out.WriteString(goAsAnyCall(goAsAnyQualifyingTrait(typeSwitchSubjectType), "__v.as_ref()", "__v.as_ref()"))
@@ -16858,7 +16947,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			// Case body
 			if typeSwitchSubjectHasGuard {
-				out.WriteString("        drop(_ts_guard);\n")
+				out.WriteString("        std::mem::drop(_ts_guard);\n")
 			}
 			if varName != "" && len(caseClause.List) == 1 {
 				writeGoSliceTypeSwitchBindingCopy(out, typeInfo, varName, caseClause.List[0])

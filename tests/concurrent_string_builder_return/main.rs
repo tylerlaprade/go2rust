@@ -752,7 +752,7 @@ pub fn build(done: GoChannel<bool>) -> Arc<Mutex<Option<String>>> {
     let mut output: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
     (*output.lock().unwrap().as_mut().unwrap()).push_str("ready");
     done.send(true);
-    return Arc::new(Mutex::new(Some({ let __builder = output.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    return Arc::new(Mutex::new(Some({ let __builder = output.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value })));
 }
 
 fn main() {

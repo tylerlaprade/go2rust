@@ -758,7 +758,7 @@ fn main() {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         { let __idx = (0) as usize; let __rhs = (*bit_thread.lock().unwrap().as_ref().unwrap()); let mut __seq_guard = seen_thread.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] | __rhs; };;
         done_thread.send({
-            let __tmp_x = { let __seq = { let __seq_holder = seen_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __tmp_x = { let __seq = { let __seq_holder = seen_thread.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
             let __tmp_y = 8 as u8;
             __tmp_x == __tmp_y
         });;;

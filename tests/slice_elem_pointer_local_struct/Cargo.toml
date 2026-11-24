@@ -1,0 +1,11 @@
+[package]
+name = "slice_elem_pointer_local_struct"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_elem_pointer_local_struct"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

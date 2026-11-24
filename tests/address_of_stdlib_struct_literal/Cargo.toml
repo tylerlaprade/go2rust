@@ -10,8 +10,10 @@ members = [
     "vendor/internal_race",
     "vendor/internal_sync",
     "vendor/io",
+    "vendor/math_bits",
     "vendor/sync",
     "vendor/sync_atomic",
+    "vendor/unicode",
     "vendor/unicode_utf8",
 ]
 
@@ -36,6 +38,8 @@ internal_cpu = { path = "vendor/internal_cpu" }
 internal_race = { path = "vendor/internal_race" }
 internal_sync = { path = "vendor/internal_sync" }
 io = { path = "vendor/io" }
+math_bits = { path = "vendor/math_bits" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }
+unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

@@ -647,7 +647,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }))); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = (*separator.borrow().as_ref().unwrap()).clone(); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (2) as usize; let __rhs = Rc::new(RefCell::new(Some(Comment { text: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }))); (*list.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    { let __range_holder = list.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for c in __range_values.iter() {
+    { let __range_holder = list.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for c in __range_values.iter() {
         println!("{}", format!("{}", (*(*c.borrow().as_ref().unwrap()).text.borrow().as_ref().unwrap()).clone()));
     } }
 }

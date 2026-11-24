@@ -818,7 +818,7 @@ pub fn unwrap(fields: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Field>>>>>>>) -> R
         }
     });;
         if { let __nil_result = (*id.borrow()).is_some(); __nil_result } {
-            return Rc::new(RefCell::new(Some({ let __selector_holder = (*id.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
+            return Rc::new(RefCell::new(Some({ let __selector_holder = (*id.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })));;
         }
     }
     Rc::new(RefCell::new(Some("?".to_string())))
