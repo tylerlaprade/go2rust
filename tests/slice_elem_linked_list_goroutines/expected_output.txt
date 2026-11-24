@@ -1,0 +1,6 @@
+goroutine 2
+0 10 99 
+true true
+7
+24
+1
