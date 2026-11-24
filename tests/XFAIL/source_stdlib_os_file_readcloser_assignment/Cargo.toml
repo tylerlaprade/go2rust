@@ -10,7 +10,6 @@ members = [
     "vendor/internal_bisect",
     "vendor/internal_bytealg",
     "vendor/internal_byteorder",
-    "vendor/internal_cpu",
     "vendor/internal_filepathlite",
     "vendor/internal_goarch",
     "vendor/internal_godebug",
@@ -63,7 +62,6 @@ internal_asan = { path = "vendor/internal_asan" }
 internal_bisect = { path = "vendor/internal_bisect" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_byteorder = { path = "vendor/internal_byteorder" }
-internal_cpu = { path = "vendor/internal_cpu" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_goarch = { path = "vendor/internal_goarch" }
 internal_godebug = { path = "vendor/internal_godebug" }

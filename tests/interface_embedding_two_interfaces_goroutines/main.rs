@@ -18,6 +18,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -30,7 +34,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -40,7 +44,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -79,7 +93,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -134,7 +148,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -167,6 +181,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -185,6 +200,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -396,15 +427,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -752,6 +784,58 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
+
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -852,8 +936,8 @@ impl Default for Rect {
 
 impl std::fmt::Display for Rect {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.w.lock().unwrap().as_ref().unwrap()));
-        let __go_fmt_1 = format!("{}", (*self.h.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_0 = go_float_string(((*self.w.lock().unwrap().as_ref().unwrap())) as f64, false);
+        let __go_fmt_1 = go_float_string(((*self.h.lock().unwrap().as_ref().unwrap())) as f64, false);
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }
@@ -893,7 +977,7 @@ impl Default for Square {
 
 impl std::fmt::Display for Square {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", (*self.s.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_0 = go_float_string(((*self.s.lock().unwrap().as_ref().unwrap())) as f64, false);
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
@@ -1160,7 +1244,7 @@ impl Shape for SquarePtr {
 
 pub fn total_area(shapes: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>>>>) -> f64 {
     let mut t = Arc::new(Mutex::new(Some(0.0)));
-    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
+    { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         { let __rhs = (*s.lock().unwrap().as_ref().unwrap()).area(); let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     return { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -1194,7 +1278,7 @@ fn main() {
         return {
             let __tmp_x = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1202,7 +1286,7 @@ fn main() {
             };
             let __tmp_y = {
                 let __recv = {
-                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+                    let __seq = { let __seq_holder = items_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
                     __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
                 };
                 let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area();
@@ -1212,19 +1296,19 @@ fn main() {
         };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
     let mut plain: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
-        println!("{} {} {}", format!("{}", (*(*it.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())), format!("{}", (*it.lock().unwrap().as_ref().unwrap()).area()), format!("{}", (*describe({ let __inner: Option<Box<dyn Named + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Named + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }).lock().unwrap().as_ref().unwrap())));
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
+        println!("{} {} {}", format!("{}", (*(*it.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())), { let __text = go_float_string(((*it.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text }, format!("{}", (*describe({ let __inner: Option<Box<dyn Named + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Named + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }).lock().unwrap().as_ref().unwrap())));
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = plain.clone(); let __append_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; let mut __appended: Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *plain.lock().unwrap() = __slice_header; };
     } }
-    println!("{}", format!("{}", total_area(plain.clone())));
+    println!("{}", { let __text = go_float_string((total_area(plain.clone())) as f64, false); __text });
 
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
         {
     let _ts_subject = it.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
+    std::mem::drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
         let __any = Shape::__go_as_any(__v.as_ref());
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn NamedShape + Send + Sync>>() {
@@ -1235,10 +1319,10 @@ fn main() {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rect>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Rect>()).unwrap().clone())));
-        println!("{} {} {}", format!("{}", "rect".to_string()), format!("{}", (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).w.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).h.clone(); __field }.lock().unwrap().as_ref().unwrap())));;
+        println!("{} {} {}", format!("{}", "rect".to_string()), { let __text = go_float_string(((*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).w.clone(); __field }.lock().unwrap().as_ref().unwrap())) as f64, false); __text }, { let __text = go_float_string(((*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).h.clone(); __field }.lock().unwrap().as_ref().unwrap())) as f64, false); __text });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<SquarePtr>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<SquarePtr>()).unwrap().0.clone();
-        println!("{} {}", format!("{}", "square".to_string()), format!("{}", (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).s.clone(); __field }.lock().unwrap().as_ref().unwrap())));;
+        println!("{} {}", format!("{}", "square".to_string()), { let __text = go_float_string(((*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).s.clone(); __field }.lock().unwrap().as_ref().unwrap())) as f64, false); __text });;
     }
     }
         {
@@ -1256,20 +1340,20 @@ fn main() {
         }
     });;
         if ok {
-            println!("{} {}", format!("{}", "is rect".to_string()), format!("{}", (*r.lock().unwrap().as_ref().unwrap()).area()));;
+            println!("{} {}", format!("{}", "is rect".to_string()), { let __text = go_float_string(((*r.lock().unwrap().as_ref().unwrap()).area()) as f64, false); __text });;
         }
     }
     } }
 
     let mut a: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>)));let mut b: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn NamedShape + Send + Sync>)));
-    println!("{} {}", format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = b.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __seq = { let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }));
+    println!("{} {}", format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = b.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), format!("{}", { let __left_holder = a.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __seq = { let __seq_holder = items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }));
 
         // A copy shares the fields of the struct it holds.
     let mut same = { let __iface_value = a.lock().unwrap().clone(); Arc::new(Mutex::new(__iface_value)) };
     println!("{}", format!("{}", { let __left_holder = same.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = a.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }));
     let mut sq = Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(5.0))), ..Default::default() })));
     let mut c: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(SquarePtr(sq.clone())) as Box<dyn NamedShape + Send + Sync>)));let mut d: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(SquarePtr(sq.clone())) as Box<dyn NamedShape + Send + Sync>)));
-    println!("{} {}", format!("{}", { let __left_holder = c.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = d.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), format!("{}", (*(*({
+    println!("{} {}", format!("{}", { let __left_holder = c.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn NamedShape + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = d.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn NamedShape + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_named_shape(__right), _ => false }; __eq }), { let __text = go_float_string(((*(*({
         let val = c.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -1281,16 +1365,16 @@ fn main() {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap())));
+    }).lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap())) as f64, false); __text });
 
         // A nil NamedShape converts to a nil Shape.
     let mut none: Arc<Mutex<Option<Box<dyn NamedShape + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut withNil = { let __append_target = Arc::new(Mutex::new(Some(Vec::<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::new()))).clone(); let __append_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*none.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; let mut __appended: Vec<Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) };
-    println!("{} {}", format!("{}", ({ let __len = (*withNil.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = withNil.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", ({ let __len = (*withNil.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_result = (*{ let __seq = { let __seq_holder = withNil.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none(); __nil_result }));
 
     let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>>::from([]))));
-    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
-        { let __map_key = { let __map_key_holder = (*it.lock().unwrap().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; (*byName.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __range_holder = items.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for it in __range_values.iter() {
+        { let __map_key = { let __map_key_holder = (*it.lock().unwrap().as_ref().unwrap()).name().clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = { let __inner: Option<Box<dyn Shape + Send + Sync>> = (*it.lock().unwrap()).clone().map(|__v| -> Box<dyn Shape + Send + Sync> { __v }); Arc::new(Mutex::new(__inner)) }; (*byName.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
-    println!("{} {}", format!("{}", ({ let __len = (*byName.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __recv = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"square".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }));
+    println!("{} {}", format!("{}", ({ let __len = (*byName.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), { let __text = go_float_string(({ let __recv = { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"square".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).area(); __result }) as f64, false); __text });
 }

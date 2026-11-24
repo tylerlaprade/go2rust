@@ -15,6 +15,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -27,7 +31,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -37,7 +41,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -76,7 +90,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -131,7 +145,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -164,6 +178,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -182,6 +197,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -393,15 +424,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -666,6 +698,10 @@ pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
     pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub __go_wait_for_close: bool,
+    /// How far Read has read __go_data; shared by every copy of the File.
+    pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    /// os.Stdin: Read reads the process's standard input.
+    pub __go_stdin: bool,
 }
 
 impl Default for os_File {
@@ -674,9 +710,24 @@ impl Default for os_File {
             __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
             __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             __go_wait_for_close: false,
+            __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            __go_stdin: false,
         }
     }
 }
+
+/// The end of a File's input until a source-translated io registers its
+/// io.EOF (__go_register_io_eof), the value callers compare with.
+#[derive(Debug)]
+pub struct GoStubEOF;
+
+impl std::fmt::Display for GoStubEOF {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "EOF")
+    }
+}
+
+impl std::error::Error for GoStubEOF {}
 
 impl std::fmt::Display for os_File {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -710,7 +761,7 @@ impl os_File {
         Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
@@ -720,10 +771,10 @@ impl os_File {
         };
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i64>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
@@ -736,14 +787,47 @@ impl os_File {
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (Arc::new(Mutex::new(Some::<i64>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<i64>(0))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+        // Go's Read: fill as much of p as the input has, or report the end
+        // of the input with no bytes read.
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            let mut __guard = __buf.lock().unwrap();
+            match __guard.as_mut() {
+                Some(__dst) => {
+                    let __dst = __dst.as_mut_slice();
+                    if __dst.is_empty() {
+                        (0, false)
+                    } else if self.__go_stdin {
+                        match std::io::Read::read(&mut std::io::stdin(), __dst) {
+                            Ok(0) | Err(_) => (0, true),
+                            Ok(__count) => (__count, false),
+                        }
+                    } else {
+                        let __data = self.__go_data.lock().unwrap();
+                        let __pos = self.__go_read_pos.load(std::sync::atomic::Ordering::SeqCst).min(__data.len());
+                        let __count = (__data.len() - __pos).min(__dst.len());
+                        __dst[..__count].copy_from_slice(&__data[__pos..__pos + __count]);
+                        self.__go_read_pos.store(__pos + __count, std::sync::atomic::Ordering::SeqCst);
+                        (__count, __count == 0)
+                    }
+                }
+                None => (0, false),
+            }
+        } else {
+            (0, false)
+        };
+        if __eof {
+            (0, __go_stub_eof())
+        } else {
+            let n = __n;
+            (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        }
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
         } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
@@ -766,7 +850,23 @@ impl os_File {
                 }
             }
         }
-        (Arc::new(Mutex::new(Some::<i64>(n))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+    }
+}
+
+static __GO_STUB_IO_EOF: std::sync::OnceLock<Arc<dyn StdError + Send + Sync>> = std::sync::OnceLock::new();
+
+/// io's init hands over io.EOF's value.
+pub fn __go_register_io_eof(eof: Option<Arc<dyn StdError + Send + Sync>>) {
+    if let Some(eof) = eof {
+        let _ = __GO_STUB_IO_EOF.set(eof);
+    }
+}
+
+fn __go_stub_eof() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    match __GO_STUB_IO_EOF.get() {
+        Some(__eof) => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(__eof.clone()))),
+        None => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(GoStubEOF) as Arc<dyn StdError + Send + Sync>))),
     }
 }
 
@@ -817,7 +917,7 @@ pub mod os {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
             Ok(data) => {
-                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };
+                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };
                 (Arc::new(Mutex::new(Some::<os_File>(file))), no_error())
             }
             Err(err) => (Arc::new(Mutex::new(None::<os_File>)), io_error(err)),
@@ -853,7 +953,7 @@ fn main() {
     { let (__tmp_0, __tmp_1) = os::open("go2rust-file-handle.txt".to_string()); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __nil_result = (*{ let __recv = file.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result }.lock().unwrap()).is_none(); __nil_result }));
 
-    { let (__tmp_0, __tmp_1) = os::open_file("go2rust-file-handle.txt".to_string(), 1025, fs_FileMode(0600 as u32)); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    { let (__tmp_0, __tmp_1) = os::open_file("go2rust-file-handle.txt".to_string(), 1025, fs_FileMode(0o600 as u32)); file = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", false));
         return;

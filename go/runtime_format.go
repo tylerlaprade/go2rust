@@ -242,6 +242,9 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 			if i > 0 {
 				out.WriteString(", ")
 			}
+			if writeRuntimeFormatNilArgument(out, arg) {
+				continue
+			}
 			if NeedsConcurrentWrapper() {
 				// Each argument reads its variable through a lock. Taken in
 				// one expression, the locks were all held until the call, so
@@ -280,7 +283,11 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		bytesHandle, bytesGuard = "Arc<Mutex<Option<Vec<u8>>>>", ".lock().unwrap()"
 	}
 	trackWrapperImports()
-	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard)
+	handleOpen, handleClose := "Rc<RefCell<Option<", ">>>"
+	if NeedsConcurrentWrapper() {
+		handleOpen = "Arc<Mutex<Option<"
+	}
+	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard, "GO_HANDLE_OPEN", handleOpen, "GO_HANDLE_CLOSE", handleClose)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	for rustType, arm := range anyFormatArms {
@@ -322,10 +329,20 @@ fn go_format_named_basic_value(__value: &` + anyValue + `) -> Option<` + anyBox 
 	// package, and Rust does not let a local name or a parameter be the
 	// name of one: a Go package with "var prefix" stopped the crate from
 	// compiling. The module imports only what it uses.
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString(`
+// A nil interface value passed to a format known only at run time. The
+// arguments are boxes, which cannot be nil themselves.
+#[allow(dead_code)]
+` + visibility + `struct GoFormatNil;
+`)
 	out.WriteString(`
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -777,6 +794,26 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
             return Some(format!("[{}]", items.join(" ")));
         }
     }
+    // A slice of strings, numbers or bools: the verb, with its width and
+    // flags, is applied to each element, between brackets, as fmt does
+    // (%q of []string is ["a" "b"]). An element the verb does not fit is
+    // reported in its place. A plain %v is left to Println's form below.
+    let plain_v = verb == 'v' && spec.width.is_none() && spec.precision.is_none() && !spec.plus && !spec.sharp && !spec.space;
+    macro_rules! basic_slice {
+        ($($t:ty),*) => {
+            $(if let Some(v) = value.downcast_ref::<GO_HANDLE_OPENVec<$t>GO_HANDLE_CLOSE>() {
+                if !plain_v && !sharp_v {
+                    let guard = vGO_BYTES_GUARD;
+                    let items: Vec<String> = guard.as_ref().map(|values| values.iter().map(|item| {
+                        let item: &GO_ANY_VALUE = item;
+                        go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
+                    }).collect()).unwrap_or_default();
+                    return Some(format!("[{}]", items.join(" ")));
+                }
+            })*
+        };
+    }
+    basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {
@@ -847,6 +884,9 @@ fn go_format_is_basic(value: &GO_ANY_VALUE) -> bool {
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &GO_ANY_VALUE) -> String {
+    if value.is::<GoFormatNil>() {
+        return "<nil>".to_string();
+    }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
     format!("{}={}", __go_type_name(value), text)
 }
@@ -939,6 +979,16 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
         // In fmt.Errorf %w prints an error as %v does. A number, a string, a
         // bool or a []byte is not an error, and fmt reports the verb: once
         // for a scalar, and for each byte of a []byte.
+        // A nil interface value prints <nil> for %v and %T, and fmt reports
+        // any other verb.
+        if arg.is::<GoFormatNil>() {
+            if matches!(verb, 'v' | 'T') {
+                out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
+            } else {
+                out.push_str(&format!("%!{}(<nil>)", verb));
+            }
+            continue;
+        }
         let verb = if verb == 'w' && wraps && !go_format_is_basic(arg.as_ref()) { 'v' } else { verb };
         match go_format_argument(&spec, verb, arg.as_ref()) {
             Some(text) => out.push_str(&text),
@@ -952,3 +1002,65 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
     out
 }
 `
+
+// writeRuntimeFormatNilArgument writes a format argument that can be a nil
+// interface value: the nil literal, or an interface-typed variable or field.
+// A nil one becomes a GoFormatNil box, which go_sprintf prints as fmt does;
+// the box of a value has no nil of its own.
+func writeRuntimeFormatNilArgument(out *strings.Builder, arg ast.Expr) bool {
+	anyBox := "Box<dyn Any>"
+	if NeedsConcurrentWrapper() {
+		anyBox = "Box<dyn Any + Send + Sync>"
+	}
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.info == nil || typeInfo.GetObject(ident) == types.Universe.Lookup("nil") {
+			TrackImport("Any")
+			out.WriteString("Box::new(GoFormatNil) as ")
+			out.WriteString(anyBox)
+			return true
+		}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	if _, isInterface := types.Unalias(argType).Underlying().(*types.Interface); !isInterface {
+		return false
+	}
+	if !runtimeFormatArgumentIsPure(arg) {
+		return false
+	}
+	nilIdent := ast.NewIdent("nil")
+	check := &ast.BinaryExpr{X: arg, Op: token.EQL, Y: nilIdent}
+	typeInfo.info.Types[check] = types.TypeAndValue{Type: types.Typ[types.Bool]}
+	typeInfo.info.Uses[nilIdent] = types.Universe.Lookup("nil")
+	typeInfo.info.Types[nilIdent] = types.TypeAndValue{Type: types.Typ[types.UntypedNil]}
+	TrackImport("Any")
+	out.WriteString("{ let __go_format_arg: ")
+	out.WriteString(anyBox)
+	out.WriteString(" = if ")
+	TranspileExpression(out, check)
+	out.WriteString(" { Box::new(GoFormatNil) } else { ")
+	writeVariadicPackedElementValue(out, arg, nil, nil, true)
+	out.WriteString(" }; __go_format_arg }")
+	return true
+}
+
+// runtimeFormatArgumentIsPure reports whether an argument can be read twice,
+// once to see whether it is nil and once for its value.
+func runtimeFormatArgumentIsPure(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		return e.Name != "_"
+	case *ast.ParenExpr:
+		return runtimeFormatArgumentIsPure(e.X)
+	case *ast.SelectorExpr:
+		return runtimeFormatArgumentIsPure(e.X)
+	default:
+		return false
+	}
+}

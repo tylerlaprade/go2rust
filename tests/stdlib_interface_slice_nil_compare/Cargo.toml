@@ -2,9 +2,17 @@
 [workspace]
 members = [
     ".",
+    "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_ast",
     "vendor/go_token",
+    "vendor/internal_bytealg",
+    "vendor/internal_stringslite",
+    "vendor/io",
+    "vendor/math",
+    "vendor/math_bits",
+    "vendor/strconv",
+    "vendor/strings",
     "vendor/unicode",
     "vendor/unicode_utf8",
 ]
@@ -22,8 +30,16 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }
 go_token = { path = "vendor/go_token" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+io = { path = "vendor/io" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
+strconv = { path = "vendor/strconv" }
+strings = { path = "vendor/strings" }
 unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

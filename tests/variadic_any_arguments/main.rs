@@ -17,6 +17,10 @@ pub struct GoSlice<T> {
     off: usize,
     len: usize,
     cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -29,7 +33,7 @@ impl<T> Clone for GoSlice<T> {
     /// Copies the header. The copy shares the elements, as a Go slice
     /// assignment does.
     fn clone(&self) -> Self {
-        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap }
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
     }
 }
 
@@ -39,7 +43,17 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
     }
 
     fn backing_ref(&self) -> &std::vec::Vec<T> {
@@ -78,7 +92,7 @@ impl<T> GoSlice<T> {
         if self.off + __hi > self.backing_ref().len() {
             panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
         }
-        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
     }
 
     /// Go's s[lo:hi:max].
@@ -133,7 +147,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len) }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -166,6 +180,7 @@ impl<T> GoSlice<T> {
             __backing.push(__value);
         }
         self.len += 1;
+        self.nil = false;
     }
 
     /// append for elements that cannot be copied: when the slice is full and
@@ -184,6 +199,22 @@ impl<T> GoSlice<T> {
         }
         self.store_at_end(__value);
         self.cap = self.len;
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
     }
 }
 
@@ -395,15 +426,16 @@ impl<T: Clone> GoSliceFromSlice<T> for [T] {
 }
 
 impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
     fn default() -> Self {
-        Self::new()
+        Self::nil()
     }
 }
 
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
@@ -582,6 +614,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -688,5 +725,5 @@ pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
 
 fn main() {
     let mut err = fail();
-    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>]))))));
+    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>]))))));
 }

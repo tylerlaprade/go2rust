@@ -9,12 +9,21 @@ use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn main() {
+    ::internal_bytealg::__go_init_all();
+    ::io::__go_init_all();
     ::io_fs::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let (mut info, mut err) = os::stat(".".to_string());
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
+        std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     }
     println!("{}", format!("{}", {
         let __tmp_x = (*io_fs::r#mod::FileMode::r#type(&(*(*info.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).clone();
