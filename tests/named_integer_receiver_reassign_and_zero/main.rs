@@ -860,11 +860,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
     let plain_v = verb == 'v' && spec.width.is_none() && spec.precision.is_none() && !spec.plus && !spec.sharp && !spec.space;
     macro_rules! basic_slice {
         ($($t:ty),*) => {
-            $(if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<$t>>>>>() {
+            $(if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<$t>>>>>() {
                 if !plain_v && !sharp_v {
-                    let guard = v.borrow();
+                    let guard = v.lock().unwrap();
                     let items: Vec<String> = guard.as_ref().map(|values| values.iter().map(|item| {
-                        let item: &dyn Any = item;
+                        let item: &(dyn Any + Send + Sync) = item;
                         go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
                     }).collect()).unwrap_or_default();
                     return Some(format!("[{}]", items.join(" ")));
