@@ -18756,6 +18756,35 @@ func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) boo
 		out.WriteString("unimplemented!(\"type info required for named slice conversion\")")
 		return true
 	}
+	if basic, ok := types.Unalias(sourceType).Underlying().(*types.Basic); ok && basic.Info()&types.IsString != 0 {
+		// Bytes("xyz") for type Bytes []byte, or Runes("xyz") for a []rune:
+		// the string's bytes or runes, as []byte(s) and []rune(s) give them.
+		elem, ok := targetNamed.Underlying().(*types.Slice)
+		if !ok {
+			return false
+		}
+		elemBasic, ok := types.Unalias(elem.Elem()).(*types.Basic)
+		if !ok {
+			return false
+		}
+		var conversion string
+		switch elemBasic.Kind() {
+		case types.Byte:
+			conversion = ".as_bytes()" + sliceToVecMethod()
+		case types.Rune:
+			conversion = ".chars().map(|c| c as i32).collect::<Vec<_>>()"
+		default:
+			return false
+		}
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		writeStringConversionSource(out, call.Args[0])
+		out.WriteString(conversion)
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return true
+	}
 	if _, ok := types.Unalias(sourceType).Underlying().(*types.Slice); !ok {
 		return false
 	}
@@ -19630,6 +19659,17 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
+	if isNamedSliceExpression(arg) {
+		// A defined []rune type holds the slice inside it.
+		out.WriteString("{ let __rune_slice_holder = ")
+		writeNamedSliceInnerHandleClone(out, arg)
+		out.WriteString("; let __rune_slice_guard = __rune_slice_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; (*__rune_slice_guard.as_ref().unwrap())")
+		writeRuneSliceIteratorToString(out)
+		out.WriteString(" }")
+		return
+	}
 	if sliceConversionSourceIsBare(arg) {
 		out.WriteString("(")
 		TranspileExpression(out, arg)
@@ -26020,6 +26060,11 @@ func writeNamedSliceValueForExpectedType(out *strings.Builder, arg ast.Expr, exp
 	expectedNamed, _, ok := namedSliceTypeFromType(expected)
 	if !ok {
 		return false
+	}
+	// size([]byte("four")) for a Bytes parameter: an unnamed slice goes
+	// into the defined type.
+	if writeUnnamedSliceToNamedSliceInitializer(out, arg, expected) {
+		return true
 	}
 	if _, ok := unwrapParens(arg).(*ast.SliceExpr); !ok {
 		return false

@@ -7424,6 +7424,22 @@ func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast
 	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
 		return
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		// b = []byte("x") for a variable of type Bytes []byte: the slice
+		// goes into the defined type.
+		var value strings.Builder
+		if writeUnnamedSliceToNamedSliceInitializer(&value, rhs, typeInfo.GetType(lhs)) {
+			out.WriteString("{ let new_val = ")
+			out.WriteString(value.String())
+			out.WriteString("; let __moved_val = { let mut __guard = new_val")
+			WriteBorrowMethod(out, true)
+			out.WriteString("; __guard.take() }; *")
+			TranspileExpressionContext(out, lhs, LValue)
+			WriteBorrowMethod(out, true)
+			out.WriteString(" = __moved_val; }")
+			return
+		}
+	}
 	out.WriteString("{ ")
 	out.WriteString("let new_val = ")
 	TranspileExpression(out, rhs)
@@ -8646,6 +8662,57 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 // "var name error = value" when value is not an error already but a struct
 // or pointer that implements error. It is boxed as an assignment to an error
 // variable boxes it.
+// writeUnnamedSliceToNamedSliceInitializer writes the value of
+// var b Bytes = []byte("abc"), an unnamed slice assigned to a variable of a
+// defined slice type, as the defined type holding the slice, as the
+// conversion Bytes([]byte("abc")) would.
+func writeUnnamedSliceToNamedSliceInitializer(out *strings.Builder, value ast.Expr, declared types.Type) bool {
+	targetNamed, _, ok := namedSliceTypeFromType(declared)
+	if !ok {
+		return false
+	}
+	// A type assertion here yields the asserted slice's elements, which the
+	// declaration's own path wraps.
+	if _, isAssertion := unwrapParens(value).(*ast.TypeAssertExpr); isAssertion {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(value)
+	if actual == nil {
+		return false
+	}
+	if _, ok := types.Unalias(actual).(*types.Named); ok {
+		return false
+	}
+	if _, ok := actual.Underlying().(*types.Slice); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		// "var u Numbers = s" copies s's header into a cell of its own, as
+		// "t := s" does: appending to u does not change s.
+		WriteWrapperPrefix(out)
+		if !writeOwnedExpressionValue(out, unwrapParens(value)) {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, unwrapParens(value), LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+		}
+		WriteWrapperSuffix(out)
+	default:
+		writePlainSliceHandleForNamedSliceConversion(out, value)
+	}
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -14743,6 +14810,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeUnnamedSliceToNamedSliceInitializer(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
+									// var b Bytes = []byte("abc"): the slice goes into the defined type.
 								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
 									// A struct or pointer that implements error, stored in an error variable.
 								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {

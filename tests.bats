@@ -1119,6 +1119,14 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "defined_byte_slice_conversions" {
+    run_test "tests/defined_byte_slice_conversions"
+}
+
+@test "defined_byte_slice_conversions_goroutines" {
+    run_test "tests/defined_byte_slice_conversions_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
