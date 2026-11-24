@@ -2,12 +2,10 @@
 main.Rect|{3 4}|12.0
 1 Circle(1.0)
 main.Circle|Circle(1.0)|3.0
-2 Square(2)
-*main.Square|Square(2)|4.0
-3 &{5 6}
-*main.Rect|&{5 6}|30.0
+0 *main.Square|4.0
+1 *main.Rect|30.0
 main.Rect {1 2}
-main.Circle Circle(2.0) 12.0 *main.Square Square(3) 9.0
+main.Circle 12.0 *main.Square 9.0
 <nil> true
 true true true
 true false

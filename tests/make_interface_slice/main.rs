@@ -722,7 +722,7 @@ pub struct CatPtr(pub Rc<RefCell<Option<Cat>>>);
 impl std::fmt::Display for CatPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -778,7 +778,7 @@ pub struct DogPtr(pub Rc<RefCell<Option<Dog>>>);
 impl std::fmt::Display for DogPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.borrow();
-        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 

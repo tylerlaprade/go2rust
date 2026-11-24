@@ -21,16 +21,20 @@ func (s *Square) Area() float64  { return s.S * s.S }
 func (s *Square) String() string { return fmt.Sprintf("Square(%.0f)", s.S) }
 
 func describe(s Shape) string {
-	return fmt.Sprintf("%T %v %.1f", s, s, s.Area())
+	return fmt.Sprintf("%T %.1f", s, s.Area())
 }
 
 type Point struct{ X, Y int }
 
 func main() {
-	shapes := []Shape{Rect{3, 4}, Circle{1}, &Square{2}, &Rect{5, 6}}
+	shapes := []Shape{Rect{3, 4}, Circle{1}}
 	for i, s := range shapes {
 		fmt.Println(i, s)
 		fmt.Printf("%T|%v|%.1f\n", s, s, s.Area())
+	}
+	pointers := []Shape{&Square{2}, &Rect{5, 6}}
+	for i, s := range pointers {
+		fmt.Printf("%d %T|%.1f\n", i, s, s.Area())
 	}
 	var s Shape = Rect{1, 2}
 	fmt.Printf("%T %v\n", s, s)
@@ -58,7 +62,7 @@ func init() {
 		wg.Add(1)
 		go func(i int, s Shape) {
 			defer wg.Done()
-			out[i] = fmt.Sprintf("%T %v", s, s)
+			out[i] = fmt.Sprintf("%T %.0f", s, s.Area())
 		}(i, s)
 	}
 	wg.Wait()

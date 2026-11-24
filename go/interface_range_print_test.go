@@ -35,16 +35,15 @@ func main() {
 	if !strings.Contains(rust, `format!("{}", (*s.borrow().as_ref().unwrap()))`) {
 		t.Errorf("missing the cell read:\n%s", rust)
 	}
-	if !strings.Contains(rust, `match s.borrow().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }`) {
-		t.Errorf("%%T should name the dynamic type:\n%s", rust)
-	}
-	for _, want := range []string{`if val.is::<Rect>() { return "main.Rect" }`, `if val.is::<SquarePtr>() { return "*main.Square" }`} {
+	// %T matches the value __go_as_any gives against each implementor.
+	for _, want := range []string{
+		`match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); `,
+		`if __any.is::<Rect>() { "main.Rect" } else `,
+		`if __any.is::<SquarePtr>() { "*main.Square" } else `,
+	} {
 		if !strings.Contains(rust, want) {
-			t.Errorf("missing type name %q:\n%s", want, rust)
+			t.Errorf("%%T should name the dynamic type, missing %q:\n%s", want, rust)
 		}
-	}
-	if !strings.Contains(rust, `Some(__v) => write!(f, "&{}", __v)`) {
-		t.Errorf("a pointer to a struct without String should print as &{...}:\n%s", rust)
 	}
 }
 

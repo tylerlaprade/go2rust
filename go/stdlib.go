@@ -462,8 +462,8 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 
 // writeLocalInterfaceTypeNameFormatArg writes %T of a value of one of the
 // program's interfaces, an ident held in a cell, as the type of the value it
-// holds: the trait object's __go_as_any, named by __go_type_name. Every type
-// of the package that implements the interface gets its name recorded.
+// holds: the trait object's __go_as_any, matched against every type of the
+// package that implements the interface.
 func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bool {
 	ident, ok := unwrapParens(arg).(*ast.Ident)
 	if !ok {
@@ -490,39 +490,60 @@ func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bo
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
 		return false
 	}
-	{
-		scope := named.Obj().Pkg().Scope()
-		for _, name := range scope.Names() {
-			tn, ok := scope.Lookup(name).(*types.TypeName)
-			if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) {
-				continue
+	// The names are matched here rather than through __go_type_name, whose
+	// parameter is a Send + Sync Any in some programs with goroutines while
+	// __go_as_any returns a plain one.
+	type namedRustType struct{ rust, goName string }
+	var names []namedRustType
+	ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(typ)
+	scope := named.Obj().Pkg().Scope()
+	for _, name := range scope.Names() {
+		tn, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) {
+			continue
+		}
+		if types.Implements(tn.Type(), iface) {
+			rustType, rustOK := anyCloneRustType(tn.Type())
+			goName, goOK := goDynamicTypeName(tn.Type())
+			if rustOK && goOK {
+				names = append(names, namedRustType{rustType, goName})
 			}
-			if types.Implements(tn.Type(), iface) {
-				RegisterGoTypeName(tn.Type())
-			}
-			if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
-				// A *T in one of the program's interfaces is boxed in the
-				// pointer wrapper, not as the handle.
-				if goName, ok := goDynamicTypeName(ptr); ok {
-					ifaceName, _ := transpiledNamedInterfaceTypeNameFromTypes(typ)
-					registerGoTypeNameForRustType(pointerLocalInterfaceWrapperNameForUse(tn.Name(), ifaceName), goName)
-				}
+		}
+		if ptr := types.NewPointer(tn.Type()); types.Implements(ptr, iface) {
+			// A *T in one of the program's interfaces is boxed in the
+			// pointer wrapper, not as the handle.
+			if goName, ok := goDynamicTypeName(ptr); ok {
+				names = append(names, namedRustType{pointerLocalInterfaceWrapperNameForUse(tn.Name(), ifaceName), goName})
 			}
 		}
 	}
+	slices.SortFunc(names, func(a, b namedRustType) int { return strings.Compare(a.rust, b.rust) })
+	var chain strings.Builder
+	chain.WriteString("{ let __any = ")
+	writeChain := func(value string) {
+		chain.WriteString(value)
+		chain.WriteString(".__go_as_any(); ")
+		for _, n := range names {
+			chain.WriteString("if __any.is::<")
+			chain.WriteString(n.rust)
+			chain.WriteString(">() { ")
+			chain.WriteString(strconv.Quote(n.goName))
+			chain.WriteString(" } else ")
+		}
+		chain.WriteString("{ std::any::type_name_of_val(__any) } }")
+	}
 	if isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
-		out.WriteString(goTypeNameHelperRustName)
-		out.WriteString("(")
-		out.WriteString(RustIdentForUse(ident))
-		out.WriteString(".__go_as_any())")
+		writeChain(RustIdentForUse(ident))
+		out.WriteString(chain.String())
 		return true
 	}
+	writeChain("__iface")
 	out.WriteString("{ let __type_name = match ")
 	out.WriteString(RustIdentForUse(ident))
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref() { Some(__iface) => ")
-	out.WriteString(goTypeNameHelperRustName)
-	out.WriteString("(__iface.__go_as_any()), None => \"<nil>\" }; __type_name }")
+	out.WriteString(chain.String())
+	out.WriteString(", None => \"<nil>\" }; __type_name }")
 	return true
 }
 

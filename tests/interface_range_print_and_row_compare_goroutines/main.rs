@@ -837,11 +837,6 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<Circle>() { return "main.Circle" }
-    if val.is::<CirclePtr>() { return "*main.Circle" }
-    if val.is::<Rect>() { return "main.Rect" }
-    if val.is::<RectPtr>() { return "*main.Rect" }
-    if val.is::<SquarePtr>() { return "*main.Square" }
     std::any::type_name_of_val(val)
 }
 
@@ -1109,7 +1104,7 @@ pub struct RectPtr(pub Arc<Mutex<Option<Rect>>>);
 impl std::fmt::Display for RectPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "&{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -1173,7 +1168,7 @@ pub struct CirclePtr(pub Arc<Mutex<Option<Circle>>>);
 impl std::fmt::Display for CirclePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -1233,7 +1228,7 @@ pub struct SquarePtr(pub Arc<Mutex<Option<Square>>>);
 impl std::fmt::Display for SquarePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -1259,26 +1254,25 @@ impl Shape for SquarePtr {
 }
 
 pub fn describe(s: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some(format!("{} {} {}", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))), format!("{:.1}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value })))))
+    Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{:.1}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value })))))
 }
 
 fn main() {
     __go_init_all();
-    let mut shapes = Arc::new(Mutex::new(Some(vec![
-        Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(3.0))), h: Arc::new(Mutex::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))),
-        Arc::new(Mutex::new(Some(Box::new(Circle { r: Arc::new(Mutex::new(Some(1.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))),
-        Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>))),
-        Arc::new(Mutex::new(Some(Box::new(RectPtr(Arc::new(Mutex::new(Some(Rect { w: Arc::new(Mutex::new(Some(5.0))), h: Arc::new(Mutex::new(Some(6.0))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>))),
-    ])));
+    let mut shapes = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(3.0))), h: Arc::new(Mutex::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Circle { r: Arc::new(Mutex::new(Some(1.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>)))])));
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
         println!("{} {}", format!("{}", i), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
-        print!("{}|{}|{}\n", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))), format!("{:.1}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value }));
+        print!("{}|{}|{}\n", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))), format!("{:.1}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value }));
+    } }
+    let mut pointers = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(RectPtr(Arc::new(Mutex::new(Some(Rect { w: Arc::new(Mutex::new(Some(5.0))), h: Arc::new(Mutex::new(Some(6.0))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>)))])));
+    { let __range_holder = pointers.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
+        print!("{} {}|{}\n", format!("{}", i), format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{:.1}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value }));
     } }
     let mut s: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1.0))), h: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>)));
-    print!("{} {}\n", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
+    print!("{} {}\n", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))));
     println!("{} {}", format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(Circle { r: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape + Send + Sync>)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(SquarePtr(Arc::new(Mutex::new(Some(Square { s: Arc::new(Mutex::new(Some(3.0))), ..Default::default() }))).clone())) as Box<dyn Shape + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
     let mut none: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    print!("{} {}\n", format!("{}", { let __type_name = match none.lock().unwrap().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }; __type_name }), format!("{}", { let __nil_result = (*none.lock().unwrap()).is_none(); __nil_result }));
+    print!("{} {}\n", format!("{}", { let __type_name = match none.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{}", { let __nil_result = (*none.lock().unwrap()).is_none(); __nil_result }));
 
     let mut t: Arc<Mutex<Option<[[i64; 2]; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 2, _>(|_| std::array::from_fn::<_, 2, _>(|_| 0)))));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = 5; (*t.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
@@ -1347,7 +1341,7 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = (*Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => __go_type_name(__iface.__go_as_any()), None => "<nil>" }; __type_name }), format!("{}", format!("{}", (*s.lock().unwrap().as_ref().unwrap()))))))).lock().unwrap().as_ref().unwrap()).clone(); (*out_thread.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
+            { let __idx = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = (*Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", { let __type_name = match s.lock().unwrap().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }), format!("{:.0}", { let __arg_value = (*s.lock().unwrap().as_ref().unwrap()).area(); __arg_value }))))).lock().unwrap().as_ref().unwrap()).clone(); (*out_thread.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }

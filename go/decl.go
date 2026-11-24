@@ -3801,39 +3801,6 @@ func pointerLocalInterfaceWrapperName(typeName, ifaceName string) string {
 	return strings.TrimPrefix(RustTypeNameForUse(typeName), "r#") + "Ptr"
 }
 
-// pointerLocalInterfaceWrapperDisplay is how the pointer wrapper of a local
-// interface prints the *T it holds, as fmt does at the top level: with T's
-// String method when *T has one, as & and the struct for a pointer to a
-// struct, and otherwise as the address. A struct's Display already calls its
-// String method when it has one.
-func pointerLocalInterfaceWrapperDisplay(typeName string) string {
-	named, ok := currentPackageNamedType(typeName)
-	if ok {
-		if _, isStruct := named.Underlying().(*types.Struct); isStruct {
-			if typeHasStringMethod(types.NewPointer(named)) {
-				return "write!(f, \"{}\", __v)"
-			}
-			return "write!(f, \"&{}\", __v)"
-		}
-	}
-	return "write!(f, \"{:p}\", __v as *const _)"
-}
-
-// typeHasStringMethod reports whether typ's method set has String() string.
-func typeHasStringMethod(typ types.Type) bool {
-	obj, _, _ := types.LookupFieldOrMethod(typ, true, nil, "String")
-	fn, ok := obj.(*types.Func)
-	if !ok {
-		return false
-	}
-	sig, ok := fn.Type().(*types.Signature)
-	if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 1 {
-		return false
-	}
-	basic, ok := sig.Results().At(0).Type().(*types.Basic)
-	return ok && basic.Kind() == types.String
-}
-
 func pointerLocalInterfaceWrapperNameForUse(typeName, ifaceName string) string {
 	wrapperName := pointerLocalInterfaceWrapperName(typeName, ifaceName)
 	ctx := GetTranspileContext()
@@ -3868,9 +3835,7 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 		out.WriteString("        let __guard = self.0")
 		WriteBorrowMethod(out, false)
 		out.WriteString(";\n")
-		out.WriteString("        match __guard.as_ref() { Some(__v) => ")
-		out.WriteString(pointerLocalInterfaceWrapperDisplay(typeName))
-		out.WriteString(", None => write!(f, \"<nil>\") }\n")
+		out.WriteString("        match __guard.as_ref() { Some(__v) => write!(f, \"{:p}\", __v as *const _), None => write!(f, \"<nil>\") }\n")
 		out.WriteString("    }\n")
 		out.WriteString("}\n\n")
 	}
