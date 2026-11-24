@@ -1799,6 +1799,14 @@ run_xfail_test() {
     run_test "tests/late_address_of"
 }
 
+@test "legacy_octal_literals" {
+    run_test "tests/legacy_octal_literals"
+}
+
+@test "legacy_octal_literals_goroutines" {
+    run_test "tests/legacy_octal_literals_goroutines"
+}
+
 @test "len_call_argument" {
     run_test "tests/len_call_argument"
 }
@@ -3385,6 +3393,10 @@ run_xfail_test() {
 
 @test "sort_slice" {
     run_test "tests/sort_slice"
+}
+
+@test "source_context_background" {
+    run_test "tests/source_context_background"
 }
 
 @test "source_stdlib_bytes_buffer_basic" {

@@ -56,6 +56,43 @@ func TestRustStringLiteralUsesLossyBytesForInvalidUTF8(t *testing.T) {
 	}
 }
 
+func TestRustIntegerLiteralPreservesGoValues(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want string
+	}{
+		{in: "0", want: "0"},
+		{in: "0640", want: "0o640"},
+		{in: "0_640", want: "0o640"},
+		{in: "0o6_40", want: "0o640"},
+		{in: "0O640", want: "0o640"},
+		{in: "0B1010", want: "0b1010"},
+		{in: "0X1A", want: "0x1A"},
+		{in: "123_456", want: "123_456"},
+	} {
+		if got := RustIntegerLiteral(tt.in); got != tt.want {
+			t.Fatalf("RustIntegerLiteral(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestRustFloatFromIntegerLiteralUsesGoValue(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want string
+	}{
+		{in: "0640", want: "416.0"},
+		{in: "0_640", want: "416.0"},
+		{in: "0O640", want: "416.0"},
+		{in: "0X1A", want: "26.0"},
+		{in: "123", want: "123.0"},
+	} {
+		if got := RustFloatFromIntegerLiteral(tt.in); got != tt.want {
+			t.Fatalf("RustFloatFromIntegerLiteral(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
 func TestRustConstNameDoesNotRawEscapeUppercaseKeywords(t *testing.T) {
 	got := rustConstName("type")
 	if got != "TYPE" {

@@ -105,7 +105,11 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return true
 	}
 	if _, ok := externalIntegerRustTypeForNamed(named); ok {
@@ -251,7 +255,11 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return
 	}
 	if writeUnaryIntegerLiteral(out, expr) {
@@ -553,7 +561,7 @@ func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shi
 	if !ok || lit.Kind != token.INT {
 		return false
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	out.WriteString("i32")
 	return true
 }
@@ -616,7 +624,7 @@ func writeUnaryIntegerLiteral(out *strings.Builder, expr ast.Expr) bool {
 	if unary.Op == token.SUB {
 		out.WriteString("-")
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	return true
 }
 
@@ -13498,13 +13506,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if exprType != nil {
 					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
 						// Integer literal used as float - add .0
-						out.WriteString(e.Value)
-						out.WriteString(".0")
+						out.WriteString(RustFloatFromIntegerLiteral(e.Value))
 						return
 					}
 				}
 			}
-			out.WriteString(e.Value)
+			out.WriteString(RustIntegerLiteral(e.Value))
 		case token.FLOAT:
 			if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
@@ -14692,8 +14699,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 				if isComparison && writeOrderedTypeParamValueClone(out, expr) {
@@ -14749,8 +14755,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
-				out.WriteString(xLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(xLit.Value))
 			} else {
 				writeOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
 			}
@@ -14763,8 +14768,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
-				out.WriteString(yLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(yLit.Value))
 			} else {
 				writeOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
 			}
@@ -14809,8 +14813,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.X)
 				}
@@ -14860,8 +14863,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.Y)
 				}
