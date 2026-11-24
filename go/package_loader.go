@@ -1129,7 +1129,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
-	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.Syntax))
+	pkgInterfaces := collectPackageInterfaceDecls(pkg.Syntax)
+	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(pkgInterfaces)
+	pkgState.ExternalLocalInterfaceImpls = mergeExternalLocalInterfaceImpls(pkgState.ExternalLocalInterfaceImpls, stubTypeInterfaceImpls(pkg.Types, pkgInterfaces, pl.allPackages))
 	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
