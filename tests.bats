@@ -1371,6 +1371,14 @@ run_xfail_test() {
     run_test "tests/fmt_sprintf_type_name_call"
 }
 
+@test "fmt_stringer_values" {
+    run_test "tests/fmt_stringer_values"
+}
+
+@test "fmt_stringer_values_goroutines" {
+    run_test "tests/fmt_stringer_values_goroutines"
+}
+
 @test "for_loops" {
     run_test "tests/for_loops"
 }

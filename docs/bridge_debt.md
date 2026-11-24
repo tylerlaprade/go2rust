@@ -207,6 +207,24 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-stringer**
+
+- Location: `go/fmt_stringer.go`: `writeFmtStringerStub` writes the
+  `fmt_Stringer` stub type with the text of the value it holds, and the
+  conversion, type switch and assertion writers fill it.
+- Go symbol: `fmt.Stringer` as a variable or parameter type, a `[]fmt.Stringer`,
+  `case fmt.Stringer` and `x.(fmt.Stringer)`.
+- Transpiler gap: `fmt` is bridged (fmt-runtime-format), so `fmt.Stringer` is
+  a stub type rather than a translated interface, and the stub's `String`
+  had no body. A value converted to it now carries a closure over its
+  Display impl, which calls the value's own String method (DEV-152).
+- Fixture: `tests/fmt_stringer_values/` and
+  `tests/fmt_stringer_values_goroutines/`.
+- Removal trigger: `fmt` is translated from source, or the stdlib boundary
+  puts `fmt` in the hand-written tier; then `fmt.Stringer` is an ordinary
+  interface of that package and this writer is deleted.
+- Added: 2026-11-24
+
 **fmt-print-operands**
 
 - Location: `go/stdlib.go`, `transpileFmtSprint`, `transpileFmtSprintln`,

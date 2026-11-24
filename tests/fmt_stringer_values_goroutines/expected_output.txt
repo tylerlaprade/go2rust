@@ -1,0 +1,18 @@
+21°C
+21°C
+show: Counter<1> Counter<1>
+show: Counter<2> Counter<2>
+-3°C, Counter<9>, 21°C
+stringer 5°C
+stringer Counter<2>
+other main.Counter
+int 7
+other main.Plain
+labelled 0°C
+labelled Counter<2>
+unlabelled
+unlabelled
+Counter<4>
+panic: interface conversion: int is not fmt.Stringer: missing method String
+panic: interface conversion: interface is nil, not fmt.Stringer
+labelled 30°C | labelled Counter<5>
