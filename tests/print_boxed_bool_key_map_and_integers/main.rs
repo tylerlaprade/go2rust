@@ -772,6 +772,11 @@ fn go_format_named_basic_value(__value: &dyn Any) -> Option<Box<dyn Any>> {
     None
 }
 
+// value as %+v prints it, when it is a struct.
+fn go_format_fields_value(__value: &dyn Any) -> Option<String> {
+    None
+}
+
 // A nil interface value passed to a format known only at run time. The
 // arguments are boxes, which cannot be nil themselves.
 #[allow(dead_code)]
@@ -779,7 +784,7 @@ struct GoFormatNil;
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1241,6 +1246,11 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &dyn Any) -> Optio
     // Any other value prints as Println prints it, for a plain %v. fmt
     // applies a width, a precision, a flag or another verb to each field or
     // element, which is not done here. nil is one text.
+    if plus_v && spec.width.is_none() && spec.precision.is_none() && !spec.space {
+        if let Some(text) = go_format_fields_value(value) {
+            return Some(text);
+        }
+    }
     if verb == 'v' && !plus_v && !sharp_v {
         let text = format_any(value);
         if text == "<nil>" {
