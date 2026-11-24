@@ -2,11 +2,20 @@
 [workspace]
 members = [
     ".",
+    "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
     "vendor/internal_filepathlite",
     "vendor/internal_stringslite",
+    "vendor/io",
+    "vendor/math",
+    "vendor/math_bits",
     "vendor/os_exec",
     "vendor/path_filepath",
+    "vendor/strconv",
+    "vendor/strings",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -22,8 +31,17 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
+io = { path = "vendor/io" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
 os_exec = { path = "vendor/os_exec" }
 path_filepath = { path = "vendor/path_filepath" }
+strconv = { path = "vendor/strconv" }
+strings = { path = "vendor/strings" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }
