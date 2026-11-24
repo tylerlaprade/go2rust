@@ -159,9 +159,9 @@ pub(crate) static validrunetests: std::sync::LazyLock<std::sync::Arc<std::sync::
 
 
 fn __go_init_globals() {
-    *utf8map.lock().unwrap() = Some(vec![]);
-    *runelentests.lock().unwrap() = Some(vec![]);
-    *validrunetests.lock().unwrap() = Some(vec![]);
+    *utf8map.lock().unwrap() = Some(Vec::nil());
+    *runelentests.lock().unwrap() = Some(Vec::nil());
+    *validrunetests.lock().unwrap() = Some(Vec::nil());
     {
         let mut __go_slice = Vec::<Utf8Map>::with_capacity(32);
         __go_slice.push(Utf8Map { r: Arc::new(Mutex::new(Some(0x0000 as i32))), str: Arc::new(Mutex::new(Some("\u{0}".to_string()))), ..Default::default() });
@@ -359,6 +359,8 @@ pub fn run(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>, name: Arc<Mutex<Opti
 
 fn main() {
     ::bytes::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::io::__go_init_all();
     ::math_bits::__go_init_all();
     ::oracle_testing::__go_init_all();
     ::unicode::__go_init_all();

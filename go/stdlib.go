@@ -5702,6 +5702,11 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("; if let Some(__src_values) = __src_guard.as_ref() { __values.extend(__src_values")
 			out.WriteString(goElementCopyIter(call.Args[1]))
 			out.WriteString("); }; ")
+		} else if appendExpandsStringIntoByteSlice(call) {
+			// append(w, s...) with a string s appends its bytes.
+			out.WriteString("__values.extend(")
+			writeOwnedStringStdlibArg(out, call.Args[1])
+			out.WriteString(".as_bytes().iter().cloned()); ")
 		} else {
 			out.WriteString("__values.extend(")
 			TranspileExpression(out, call.Args[1])
@@ -6143,7 +6148,7 @@ func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType strin
 
 func writeChannelCapacityAsUsize(out *strings.Builder, expr ast.Expr) {
 	if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT {
-		out.WriteString(lit.Value)
+		out.WriteString(RustIntegerLiteral(lit.Value))
 		out.WriteString(" as usize")
 		return
 	}

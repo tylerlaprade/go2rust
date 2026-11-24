@@ -49,6 +49,7 @@ pub fn int_name() -> Arc<Mutex<Option<String>>> {
 
 fn main() {
     ::go_token::__go_init_all();
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();

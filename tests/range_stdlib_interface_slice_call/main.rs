@@ -74,12 +74,16 @@ pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_
 }
 
 fn main() {
+    ::bytes::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_token::__go_init_all();
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 

@@ -11,6 +11,7 @@ fn main() {
     ::cmp::__go_init_all();
     ::go_token::__go_init_all();
     ::internal_abi::__go_init_all();
+    ::internal_bytealg::__go_init_all();
     ::internal_race::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::internal_sync::__go_init_all();

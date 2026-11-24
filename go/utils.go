@@ -2,11 +2,50 @@ package main
 
 import (
 	"go/ast"
+	"go/constant"
+	"go/token"
 	"go/types"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 )
+
+// RustIntegerLiteral preserves the value of a Go integer literal in Rust.
+// The languages share decimal and lowercase base-prefix syntax, but Go's
+// legacy octal form (0644) is decimal in Rust, and Go also accepts uppercase
+// base prefixes that Rust rejects.
+func RustIntegerLiteral(goLiteral string) string {
+	if len(goLiteral) < 2 || goLiteral[0] != '0' {
+		return goLiteral
+	}
+	digits := ""
+	prefix := ""
+	switch goLiteral[1] {
+	case 'b', 'B':
+		prefix, digits = "0b", goLiteral[2:]
+	case 'o', 'O':
+		prefix, digits = "0o", goLiteral[2:]
+	case 'x', 'X':
+		prefix, digits = "0x", goLiteral[2:]
+	default:
+		prefix, digits = "0o", goLiteral[1:]
+	}
+	digits = strings.ReplaceAll(digits, "_", "")
+	if digits == "" {
+		return "0"
+	}
+	return prefix + digits
+}
+
+// RustFloatFromIntegerLiteral writes the Go integer constant's decimal value
+// as a Rust float literal. A Rust float cannot use an integer base prefix.
+func RustFloatFromIntegerLiteral(goLiteral string) string {
+	value := constant.MakeFromLiteral(goLiteral, token.INT, 0)
+	if value.Kind() != constant.Int {
+		return goLiteral + ".0"
+	}
+	return value.ExactString() + ".0"
+}
 
 func isPredeclaredTypeName(name string) bool {
 	switch name {

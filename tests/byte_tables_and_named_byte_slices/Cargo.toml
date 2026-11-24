@@ -1,0 +1,11 @@
+[package]
+name = "byte_tables_and_named_byte_slices"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "byte_tables_and_named_byte_slices"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

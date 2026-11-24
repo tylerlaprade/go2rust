@@ -111,21 +111,25 @@ fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
 }
 
 fn main() {
+    ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::strconv::__go_init_all();
+    ::strings::__go_init_all();
+    ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     println!("{}", format!("{}", "=== Testing multiple stdlib imports ===".to_string()));
     println!("{}", format!("{}", "\n--- strings package ---".to_string()));
-    let mut upper = Arc::new(Mutex::new(Some({ let __s = "hello world".to_string(); __s.to_uppercase() })));
+    let mut upper = strings::to_upper(Arc::new(Mutex::new(Some("hello world".to_string()))));
     println!("{} {}", format!("{}", "Upper:".to_string()), format!("{}", { let __v = (*upper.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut lower = Arc::new(Mutex::new(Some({ let __s = "HELLO WORLD".to_string(); __s.to_lowercase() })));
+    let mut lower = strings::to_lower(Arc::new(Mutex::new(Some("HELLO WORLD".to_string()))));
     println!("{} {}", format!("{}", "Lower:".to_string()), format!("{}", { let __v = (*lower.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut trimmed = Arc::new(Mutex::new(Some({ let __s = "  hello  ".to_string(); __s.trim().to_string() })));
+    let mut trimmed = strings::trim_space(Arc::new(Mutex::new(Some("  hello  ".to_string()))));
     println!("{} {}", format!("{}", "Trimmed:".to_string()), format!("{}", { let __v = (*trimmed.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut split = Arc::new(Mutex::new(Some({ let __s = "a,b,c".to_string(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
+    let mut split = strings::split(Arc::new(Mutex::new(Some("a,b,c".to_string()))), Arc::new(Mutex::new(Some(",".to_string()))));
     let mut split = { let __slice_header = GoSliceHeader::go_slice_header(&split); Arc::new(Mutex::new(__slice_header)) };
     print!("Split: {}\n", format_slice(&split));
     println!("{}", format!("{}", "\n--- strconv package ---".to_string()));

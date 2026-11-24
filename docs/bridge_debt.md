@@ -87,6 +87,15 @@ such file with the one other architectures build (`stdlibNoAsmOverlays` in
 hand-written strconv, math and unicode call emitters in `go/stdlib.go` no
 longer run for programs and are left to delete.
 
+**Update 2026-11-24:** `strings`, `bytes`, `bufio` and `io` are translated
+from source by default too, with `internal/bytealg`. bytealg's
+`*_native.go` files declare assembly, so the overlay replaces each with its
+`*_generic.go` counterpart, drops `index_amd64.go` (MaxLen stays 0, as on an
+architecture without an assembly Index), and strips `bytealg.go`'s
+assembly-only `internal/cpu` offsets (`stdlibOverlayTransforms`). The
+`internal/bytealg` stub entries, among them DEV-132's `index_byte_string`
+emitter, are no longer reached and are left to delete.
+
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
 and passes. The actual blocker for retiring most rows below is that
@@ -241,6 +250,27 @@ against the `// TEMPORARY:` comments of that one file.
   an interface assertion. A type's own `Is` and `As` methods are not called
   yet; that waits for the same change.
 - Added: 2026-11-20
+
+**exec-cmd-io-field-bridge**
+
+- Location: `go/stub_io_fields.go` (`writeStubIoFieldBridges`,
+  `writeStubIoFieldBridgeValue`), `go/external_type_stubs.go`
+  (`writeExecCmdTypeStub` Stdin)
+- Go symbol: `exec.Cmd.Stdout`, `exec.Cmd.Stderr`, `exec.Cmd.Stdin`
+- Transpiler gap: `os/exec` is the OS process layer and stays a stub, but its
+  `Stdout`, `Stderr` and `Stdin` fields are `io.Writer` and `io.Reader`. With
+  `io` translated from source those are traits of the `io` crate, which
+  depends on the stub crate, so the stub crate cannot name them. The fields
+  hold `GoStubWriter`/`GoStubReader`, a closure the assignment builds over the
+  `io` trait object, which calls its `Write` or reads it to EOF. Without them
+  `go/build` (which sets `cmd.Stdout`) did not compile; a program capturing a
+  command's output in a `bytes.Buffer` now gets it, and `Stdin` reaches the
+  process. Reading the field back as an `io.Writer` is not supported.
+- Fixture: `tests/exec_command_io_fields/`, `tests/build_package_stub/`,
+  `go/stub_io_fields_test.go:TestExecCmdIoFieldsBridgeSourceIoInterfaces`
+- Removal trigger: `os/exec` translated from source, with `os.Process` and
+  the pipe syscalls as the bridge; then delete `go/stub_io_fields.go`.
+- Added: 2026-11-24
 
 ## Shims
 
