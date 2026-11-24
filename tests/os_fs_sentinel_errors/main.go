@@ -22,7 +22,9 @@ func main() {
 	fmt.Println(err)
 	fmt.Println(errors.Is(err, os.ErrNotExist), errors.Is(err, fs.ErrNotExist), errors.Is(err, os.ErrExist))
 	fmt.Println(os.ErrNotExist, fs.ErrExist, os.ErrPermission)
-	_, openErr := os.Open("/definitely/not/here")
+	// A missing file in the harness's fresh directory: nothing else can
+	// create it.
+	_, openErr := os.Open(os.Getenv("GO2RUST_TEST_TMP") + "/no-such-file")
 	fmt.Println(errors.Is(openErr, os.ErrNotExist), errors.Is(openErr, os.ErrPermission), os.IsNotExist(openErr))
 	wrapped := fmt.Errorf("stage: %w", fs.ErrPermission)
 	fmt.Println(errors.Is(wrapped, os.ErrPermission), wrapped)
