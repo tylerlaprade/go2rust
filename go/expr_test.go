@@ -7567,8 +7567,40 @@ func (o *outer) mark() {
 	if !strings.Contains(rust, "let __once =") || !strings.Contains(rust, "__once.r#do(") {
 		t.Fatalf("sync.Once.Do should clone the typed receiver before invoking Do:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(move |") || !strings.Contains(rust, ".mark()") {
-		t.Fatalf("method value argument should lower to a boxed method-value closure:\n%s", rust)
+	// o.mark runs on o itself, so the closure borrows self rather than
+	// boxing a self.clone() snapshot.
+	if !strings.Contains(rust, "__once.r#do(|| { self.mark(); })") {
+		t.Fatalf("method value of the receiver should lower to a closure that calls it on self:\n%s", rust)
+	}
+}
+
+func TestSyncOnceDoReceiverMethodValueAssignsFieldsOnReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Stats struct {
+	once   sync.Once
+	counts map[string]int
+}
+
+func (s *Stats) init() { s.counts = map[string]int{} }
+
+func (s *Stats) Get(k string) int {
+	s.once.Do(s.init)
+	return s.counts[k]
+}
+`)
+
+	if strings.Contains(rust, "let mut __recv = self.clone()") {
+		t.Fatalf("once.Do(s.init) must not run init on a self.clone() snapshot; its map assignment would be lost:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__once.r#do(|| { self.init(); })") {
+		t.Fatalf("once.Do(s.init) should call init on self:\n%s", rust)
+	}
+	// Get mutates s through init, so it needs a mutable receiver.
+	if !strings.Contains(rust, "pub fn get(&mut self") {
+		t.Fatalf("a method calling once.Do(s.init) should take &mut self when init mutates s:\n%s", rust)
 	}
 }
 
@@ -7740,8 +7772,13 @@ func (s *Setting) register() {
 	if strings.Contains(rust, "__once.r#do({ let mut __recv = self.clone(); Box::new") {
 		t.Fatalf("source-mapped sync.Once.Do should not pass a raw method-value closure to source sync::Once:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new") {
-		t.Fatalf("source-mapped sync.Once.Do should wrap method-value arguments for source sync::Once:\n%s", rust)
+	// The wrapped func runs register on the receiver itself, not on a
+	// self.clone() snapshot (DEV-166).
+	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(Box::new(move || { let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) }; __recv_ref.register(); })") {
+		t.Fatalf("source-mapped sync.Once.Do should wrap a func that calls the method on the receiver:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut __recv = self.clone()") {
+		t.Fatalf("source-mapped sync.Once.Do must not run the method on a copy of the receiver:\n%s", rust)
 	}
 }
 
@@ -10258,5 +10295,67 @@ func main() {
 	if !strings.Contains(rust, "Box::new(1i64) as Box<dyn Any>") ||
 		!strings.Contains(rust, "Box::new(\"s\".to_string()) as Box<dyn Any>") {
 		t.Fatalf("[]any literal elements should use Rust's Any trait:\n%s", rust)
+	}
+}
+
+// In a program with goroutines, GoOnce follows Go's Once: the first caller
+// runs f while holding the once's mutex, so no Do returns before f has
+// finished, and f counts as done even when it panics.
+// A source-mapped once.Do of a method that only reads the receiver leaves
+// the caller with &self, so the boxed func reaches it through a const
+// pointer: &T cannot be cast to *mut T.
+func TestSourceMappedSyncOnceDoReadOnlyMethodValueUsesConstPointer(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
+
+import "sync"
+
+type Setting struct {
+	once sync.Once
+	n    int
+}
+
+func (s *Setting) Get() {
+	go func() {}()
+	s.once.Do(s.show)
+}
+
+func (s *Setting) show() {
+	println(s.n)
+}
+`, map[string]string{"sync": "sync"})
+
+	if !strings.Contains(rust, "let __recv_ptr = self as *const Setting as usize;") ||
+		!strings.Contains(rust, "let __recv_ref: &Setting = unsafe { &*(__recv_ptr as *const Setting) }; __recv_ref.show();") {
+		t.Fatalf("a read-only method value should reach the receiver through a const pointer:\n%s", rust)
+	}
+	if strings.Contains(rust, "self as *mut Setting") {
+		t.Fatalf("&self must not be cast to *mut:\n%s", rust)
+	}
+}
+
+func TestConcurrentGoOnceWaitsForTheRunningCallback(t *testing.T) {
+	helper := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+var n int
+
+func run() {
+	go func() {}()
+	var once sync.Once
+	once.Do(func() { n++ })
+}
+`)
+	for _, want := range []string{
+		"m: std::sync::Arc<std::sync::Mutex<()>>,",
+		"let _running = self.m.lock().unwrap_or_else(|poisoned| poisoned.into_inner());",
+		"let _mark = MarkDone(&self.done);",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Errorf("missing %q:\n%s", want, helper)
+		}
+	}
+	if strings.Contains(helper, "std::mem::drop(done);\n            f();") {
+		t.Errorf("Do must not release the lock before f runs:\n%s", helper)
 	}
 }

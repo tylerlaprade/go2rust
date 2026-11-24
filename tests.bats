@@ -2055,6 +2055,10 @@ run_xfail_test() {
     run_test "tests/map_converted_numeric"
 }
 
+@test "map_field_local_alias" {
+    run_test "tests/map_field_local_alias"
+}
+
 @test "map_len_integer_key" {
     run_test "tests/map_len_integer_key"
 }
@@ -4085,6 +4089,14 @@ run_xfail_test() {
 
 @test "sync_once" {
     run_test "tests/sync_once"
+}
+
+@test "sync_once_method_value" {
+    run_test "tests/sync_once_method_value"
+}
+
+@test "sync_once_method_value_goroutines" {
+    run_test "tests/sync_once_method_value_goroutines"
 }
 
 @test "sync_once_receiver_init" {

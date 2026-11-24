@@ -9667,6 +9667,16 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 					return false
 				}
 			}
+			if argSel, ok := onceDoReceiverMethodValueArg(stmt, receiverName); ok {
+				called := methodDeclByName(methodsByReceiver[receiverKey], argSel.Sel.Name)
+				if called == nil {
+					called = promotedMethodDecl(argSel, methodsByReceiver, typeInfo)
+				}
+				if called != nil && methodMutatesReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
+					mutates = true
+					return false
+				}
+			}
 			sel, ok := stmt.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
@@ -9729,6 +9739,9 @@ func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*a
 	if !ok {
 		return nil
 	}
+	// A method promoted from an instantiated generic, Base[int], selects
+	// the instantiated method; the declaration is its origin's.
+	method = method.Origin()
 	for _, methods := range methodsByReceiver {
 		for _, decl := range methods {
 			if methodFuncForDecl(decl, typeInfo) == method {
@@ -9737,6 +9750,25 @@ func promotedMethodDecl(sel *ast.SelectorExpr, methodsByReceiver map[string][]*a
 		}
 	}
 	return nil
+}
+
+// onceDoReceiverMethodValueArg returns recv.m when call is x.Do(recv.m) with
+// recv the named receiver. once.Do(s.init) runs s.init on the receiver
+// itself, so the caller mutates the receiver when init does.
+func onceDoReceiverMethodValueArg(call *ast.CallExpr, receiverName string) (*ast.SelectorExpr, bool) {
+	fun, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || fun.Sel.Name != "Do" || len(call.Args) != 1 {
+		return nil, false
+	}
+	arg, ok := unwrapParens(call.Args[0]).(*ast.SelectorExpr)
+	if !ok {
+		return nil, false
+	}
+	ident, ok := unwrapParens(arg.X).(*ast.Ident)
+	if !ok || ident.Name != receiverName {
+		return nil, false
+	}
+	return arg, true
 }
 
 func callArgumentMayMutateReceiver(arg ast.Expr, receiverName string) bool {
@@ -9792,6 +9824,16 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiv
 				return false
 			}
 		case *ast.CallExpr:
+			if argSel, ok := onceDoReceiverMethodValueArg(stmt, receiverName); ok {
+				called := methodDeclByName(methodsForReceiverType(receiverType), argSel.Sel.Name)
+				if called == nil {
+					called = promotedMethodDeclInContext(argSel)
+				}
+				if called != nil && methodMutatesReceiverWithSeen(called, receiverNameForMethod(called), getMethodReceiverType(called), seen) {
+					mutates = true
+					return false
+				}
+			}
 			sel, ok := stmt.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
