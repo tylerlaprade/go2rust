@@ -319,7 +319,7 @@ fn main() {
             (Arc::new(Mutex::new(None::<fmt_Stringer>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", ok), format!("{}", ok2), format!("{}", format!("{}", (*st.lock().unwrap().as_ref().unwrap()))));
+    println!("{} {} {}", format!("{}", ok), format!("{}", ok2), format!("{}", match st.lock().unwrap().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
     let mut wg = WaitGroup::new();
     let mut labels = Arc::new(Mutex::new(Some(vec!["".to_string(); (2) as usize])));
     for (i, v) in vec![Box::new(example_com_fmt_stringer_imported_types_goroutines_model::r#mod::Label { text: Arc::new(Mutex::new(Some("a".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>, Box::new(Celsius { deg: Arc::new(Mutex::new(Some(4))), ..Default::default() }) as Box<dyn Any + Send + Sync>].iter().enumerate() {

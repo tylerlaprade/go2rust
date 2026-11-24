@@ -17,7 +17,8 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 	switch t := types.Unalias(typ).(type) {
 	case *types.Named:
 		if anyFormatTypeIsLocalStruct(t) {
-			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t)}, true
+			text := typeHasGoStringMethod(t) || isConcreteGoErrorValue(t)
+			return anyFormatArm{expr: `format!("{}", v)`, text: text, fields: !text}, true
 		}
 		if anyFormatTypeIsLocalNamedBasic(t) {
 			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t), namedBasic: true}, true
@@ -52,6 +53,16 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 	case *types.Slice:
 		if anyFormatElemImplementsDisplay(t.Elem()) {
 			return anyFormatArm{expr: "format_slice(v)", needsFormatSlice: true}, true
+		}
+	case *types.Array:
+		// An array of scalars is boxed as the Rust array itself.
+		if anyArrayHasCloneableScalars(t) && anyFormatElemImplementsDisplay(t.Elem()) {
+			return anyFormatArm{expr: "format_slice_values(&v[..])", needsFormatSlice: true}, true
+		}
+	case *types.Struct:
+		// An anonymous struct has a Display that prints as %v and %+v do.
+		if _, ok := anonymousStructRustType(t); ok {
+			return anyFormatArm{expr: `format!("{}", v)`, fields: true}, true
 		}
 	case *types.Map:
 		if anyFormatKeyIsOrderedBasic(t.Key()) && anyFormatElemImplementsDisplay(t.Elem()) {

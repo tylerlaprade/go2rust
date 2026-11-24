@@ -9003,6 +9003,13 @@ func writeInterfaceBoxedValueRaw(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if lit, ok := unwrapParens(expr).(*ast.CompositeLit); ok {
+			if st, ok := lit.Type.(*ast.StructType); ok {
+				// An anonymous struct gets its name when its literal is
+				// written; name it now so the boxed type is registered.
+				generateAnonymousStructType(st)
+			}
+		}
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
 	if writeFunctionValueAnyBox(out, expr) {

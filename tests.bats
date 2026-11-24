@@ -1771,6 +1771,18 @@ run_xfail_test() {
     run_test "tests/interface_mutating_method_dispatch"
 }
 
+@test "interface_nil_print_and_defined_rows" {
+    run_test "tests/interface_nil_print_and_defined_rows"
+}
+
+@test "interface_range_print_and_row_compare" {
+    run_test "tests/interface_range_print_and_row_compare"
+}
+
+@test "interface_range_print_and_row_compare_goroutines" {
+    run_test "tests/interface_range_print_and_row_compare_goroutines"
+}
+
 @test "interface_slice_element_argument" {
     run_test "tests/interface_slice_element_argument"
 }
@@ -1813,6 +1825,10 @@ run_xfail_test() {
 
 @test "interface_slice_nil_element" {
     run_test "tests/interface_slice_nil_element"
+}
+
+@test "interface_type_name_embedded_and_func" {
+    run_test "tests/interface_type_name_embedded_and_func"
 }
 
 @test "interface_values_are_copied" {
@@ -3365,6 +3381,14 @@ run_xfail_test() {
 
 @test "rune_literals_in_byte_fields_goroutines" {
     run_test "tests/rune_literals_in_byte_fields_goroutines"
+}
+
+@test "runtime_format_structs_and_arrays" {
+    run_test "tests/runtime_format_structs_and_arrays"
+}
+
+@test "runtime_format_structs_and_arrays_goroutines" {
+    run_test "tests/runtime_format_structs_and_arrays_goroutines"
 }
 
 @test "runtime_format_with_package_level_names" {

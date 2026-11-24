@@ -1,0 +1,11 @@
+[package]
+name = "runtime_format_structs_and_arrays"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "runtime_format_structs_and_arrays"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

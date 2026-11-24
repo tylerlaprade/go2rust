@@ -663,6 +663,11 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 			if _, ok := exprType.Underlying().(*types.Basic); ok {
 				return false // Basic element type - already a raw value
 			}
+			// An array or struct element of an array or slice is stored
+			// bare: the row t[0] of a [2][2]int, or ps[0] of a []Point.
+			if sequenceElementIsBareValue(ti, e, exprType) {
+				return false
+			}
 		}
 		// For non-basic element types (pointers, etc.), the element may be wrapped
 		return true
@@ -690,6 +695,30 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 		// Conservative: assume it needs unwrapping if we're not sure
 		return true
 	}
+}
+
+// sequenceElementIsBareValue reports whether e, an element of a slice or an
+// array, is an array or a struct value, which the sequence stores bare.
+func sequenceElementIsBareValue(ti *TypeInfo, e *ast.IndexExpr, elemType types.Type) bool {
+	switch types.Unalias(elemType).Underlying().(type) {
+	case *types.Array, *types.Struct:
+	default:
+		return false
+	}
+	seqType := ti.GetType(e.X)
+	if seqType == nil {
+		return false
+	}
+	// A defined slice or array type (type Rows [2][2]int) holds its
+	// elements as its underlying type does.
+	switch seq := seqType.Underlying().(type) {
+	case *types.Slice, *types.Array:
+		return true
+	case *types.Pointer:
+		_, ok := seq.Elem().Underlying().(*types.Array)
+		return ok
+	}
+	return false
 }
 
 // IsTypeConversion checks if a CallExpr is actually a type conversion

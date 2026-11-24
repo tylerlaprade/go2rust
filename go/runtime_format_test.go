@@ -372,7 +372,7 @@ func main() {
 
 	for _, want := range []string{
 		"fn go_format_is_text(__value: &dyn Any) -> bool {",
-		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, GoFormatNil};",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};",
 		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"}\nuse __go_runtime_format::go_sprintf;\n",
 	} {
@@ -449,6 +449,33 @@ func main() {
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+}
+
+// In a format only known at run time, %+v of a struct prints its field names
+// through the struct's alternate Display, and an anonymous struct and an
+// array of scalars have format_any cases (DEV-174).
+func TestRuntimeFormatPrintsStructFieldsArraysAndAnonymousStructs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Point struct{ X, Y int }
+
+func main() {
+	fmt.Printf("%+v %v %v %q\n", Point{1, 2}, struct{ A int }{3}, [2]bool{true}, 'x')
+}
+`)
+	for _, want := range []string{
+		"fn go_format_fields_value(__value: &dyn Any) -> Option<String> {",
+		"if let Some(__v) = __value.downcast_ref::<Point>() {\n        return Some(format!(\"{:#}\", __v));",
+		"if let Some(__v) = __value.downcast_ref::<AnonymousStruct1>() {\n        return Some(format!(\"{:#}\", __v));",
+		"value.downcast_ref::<[bool; 2]>()",
+		"if let Some(text) = go_format_fields_value(value) {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q:\n%s", want, rust)
 		}
 	}
 }
