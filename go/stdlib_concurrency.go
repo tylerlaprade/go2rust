@@ -228,23 +228,30 @@ var syncStdlibFunctions = map[string]bool{
 // strings.TrimPrefix or unicode.IsLetter made every value of a program
 // with no goroutine an Arc<Mutex<>>.
 var syncStdlibPackages = map[string]bool{
-	"cmp":            true,
-	"container/heap": true,
-	"container/list": true,
-	"container/ring": true,
-	"errors":         true,
-	"fmt":            true,
-	"maps":           true,
-	"math":           true,
-	"math/bits":      true,
-	"math/cmplx":     true,
-	"slices":         true,
-	"sort":           true,
-	"strconv":        true,
-	"strings":        true,
-	"unicode":        true,
-	"unicode/utf16":  true,
-	"unicode/utf8":   true,
+	"cmp":                   true,
+	"container/heap":        true,
+	"container/list":        true,
+	"container/ring":        true,
+	"errors":                true,
+	"fmt":                   true,
+	"internal/bytealg":      true,
+	"internal/filepathlite": true,
+	"internal/stringslite":  true,
+	"io/fs":                 true,
+	"maps":                  true,
+	"math":                  true,
+	"math/bits":             true,
+	"math/cmplx":            true,
+	"os":                    true,
+	"path":                  true,
+	"path/filepath":         true,
+	"slices":                true,
+	"sort":                  true,
+	"strconv":               true,
+	"strings":               true,
+	"unicode":               true,
+	"unicode/utf16":         true,
+	"unicode/utf8":          true,
 }
 
 // isAsyncStdlibFunction checks if a function call might spawn goroutines
@@ -262,8 +269,11 @@ func isAsyncStdlibFunction(pkgName, funcName string) bool {
 		return false
 	}
 
-	// For unknown stdlib functions, be conservative and assume they might be async
-	// This handles cases where we haven't catalogued every function
+	// Unknown stdlib functions remain conservative. The async list is not
+	// exhaustive: runtime.SetFinalizer and context.AfterFunc, for example, run
+	// user callbacks in their own goroutines. Pure packages belong in
+	// syncStdlibPackages above so every synchronous function is covered without
+	// maintaining a per-function list.
 	return isStdlibPackage(pkgName)
 }
 

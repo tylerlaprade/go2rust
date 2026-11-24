@@ -4,8 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::sync::{Arc, Mutex};
+use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -614,22 +615,22 @@ impl std::io::Write for GoSlice<u8> {
 
 pub mod os {
     use super::*;
-    type GoError = Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>;
+    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
 
     fn no_error() -> GoError {
-        Arc::new(Mutex::new(None))
+        Rc::new(RefCell::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
     }
 
     pub const PATH_SEPARATOR: i32 = 47;
 
-    pub fn executable() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn executable() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         match std::env::current_exe() {
-            Ok(path) => (Arc::new(Mutex::new(Some::<String>(path.to_string_lossy().into_owned()))), no_error()),
-            Err(err) => (Arc::new(Mutex::new(Some::<String>(String::new()))), io_error(err)),
+            Ok(path) => (Rc::new(RefCell::new(Some::<String>(path.to_string_lossy().into_owned()))), no_error()),
+            Err(err) => (Rc::new(RefCell::new(Some::<String>(String::new()))), io_error(err)),
         }
     }
 }
@@ -638,38 +639,6 @@ pub mod os {
 fn main() {
     let (mut first, mut firstErr) = os::executable();
     let (mut second, mut secondErr) = os::executable();
-    let mut isAbsolute = Arc::new(Mutex::new(Some({
-        let __go_cond_0 = { let __tmp_x = (({ let __len = (*first.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 0; __tmp_x > __tmp_y };
-        if __go_cond_0 {
-            let __go_cond_1 = {
-                let __go_cond_2 = {
-                    let __tmp_x = { let __s = &((*first.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
-                    let __tmp_y = os::PATH_SEPARATOR as u8;
-                    __tmp_x == __tmp_y
-                };
-                if __go_cond_2 {
-                    true
-                } else {
-                    let __go_cond_3 = {
-                        let __go_cond_4 = { let __tmp_x = (({ let __len = (*first.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 2; __tmp_x > __tmp_y };
-                        if __go_cond_4 {
-                            let __go_cond_5 = {
-                                let __tmp_x = { let __s = &((*first.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] };
-                                let __tmp_y = (':' as u8) as u8;
-                                __tmp_x == __tmp_y
-                            };
-                            __go_cond_5
-                        } else {
-                            false
-                        }
-                    };
-                    __go_cond_3
-                }
-            };
-            __go_cond_1
-        } else {
-            false
-        }
-    })));
-    println!("{} {} {} {} {}", format!("{}", { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*secondErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x != __tmp_y }), format!("{}", { let __v = (*isAbsolute.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = ({ let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = ({ let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x == __tmp_y }));
+    let mut isAbsolute = Rc::new(RefCell::new(Some(((*first.borrow().as_ref().unwrap()).len() as i64) > (0 as i64) && ({ let __s = &((*first.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } == os::PATH_SEPARATOR as u8 || (((*first.borrow().as_ref().unwrap()).len() as i64) > (2 as i64) && { let __s = &((*first.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } == (':' as u8))))));
+    println!("{} {} {} {} {}", format!("{}", { let __nil_result = (*firstErr.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*secondErr.borrow()).is_none(); __nil_result }), format!("{}", (*first.borrow().as_ref().unwrap()).clone() != "".to_string()), format!("{}", { let __v = (*isAbsolute.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*first.borrow().as_ref().unwrap()) == (*second.borrow().as_ref().unwrap())));
 }

@@ -4,7 +4,8 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::sync::{Arc, Mutex};
+use std::cell::{RefCell};
+use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -664,11 +665,11 @@ pub mod os {
 
 
 fn main() {
-    let mut rawDir = Arc::new(Mutex::new(Some((((((os::MODE_DIR).0 as u32) | 0o755))) as u32)));
-    let mut converted = Arc::new(Mutex::new(Some(fs_FileMode(0o644 as u32))));
+    let mut rawDir = Rc::new(RefCell::new(Some((((((os::MODE_DIR).0 as u32) | 0o755))) as u32)));
+    let mut converted = Rc::new(RefCell::new(Some(fs_FileMode(0o644 as u32))));
 
     println!("{}", format!("{}", !fs_FileMode::is_dir(&(fs_FileMode(0o644 as u32)))));
     println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode(((((os::MODE_DIR).0 as u32) | 0o755)) as u32)))));
-    println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode(({ let __v = (*rawDir.lock().unwrap().as_ref().unwrap()); __v }) as u32)))));
-    println!("{}", format!("{}", !fs_FileMode::is_dir(&(*converted.lock().unwrap().as_ref().unwrap()))));
+    println!("{}", format!("{}", fs_FileMode::is_dir(&(fs_FileMode((*rawDir.borrow().as_ref().unwrap()) as u32)))));
+    println!("{}", format!("{}", !fs_FileMode::is_dir(&(*converted.borrow().as_ref().unwrap()))));
 }

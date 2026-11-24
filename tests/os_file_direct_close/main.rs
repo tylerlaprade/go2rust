@@ -4,8 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::sync::{Arc, Mutex};
+use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -675,45 +676,45 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn close(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
-        Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>))
+        Rc::new(RefCell::new(None::<Rc<dyn StdError>>))
     }
 
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
             v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
-            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+            v.borrow().as_ref().cloned().unwrap_or_default()
         } else {
             Vec::new()
         };
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
             v.clone()
         } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
             (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
-            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<String>>>>() {
+            v.borrow().as_ref().cloned().unwrap_or_default()
         } else {
             String::new()
         };
         let bytes = Vec::from(value.into_bytes());
         let n = bytes.len() as i64;
         self.__go_write_bytes(&bytes);
-        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 
-    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn read<T0: 'static>(&self, arg0: T0) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         // Go's Read: fill as much of p as the input has, or report the end
         // of the input with no bytes read.
-        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
-            let mut __guard = __buf.lock().unwrap();
+        let (__n, __eof): (usize, bool) = if let Some(__buf) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+            let mut __guard = __buf.borrow_mut();
             match __guard.as_mut() {
                 Some(__dst) => {
                     let __dst = __dst.as_mut_slice();
@@ -742,15 +743,15 @@ impl os_File {
             (0, __go_stub_eof())
         } else {
             let n = __n;
-            (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+            (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
         }
     }
 
-    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
             *v
-        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
-            v.lock().unwrap().as_ref().copied().unwrap_or_default()
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
+            v.borrow().as_ref().copied().unwrap_or_default()
         } else {
             0
         };
@@ -759,8 +760,8 @@ impl os_File {
         if offset >= 0 {
             let start = offset as usize;
             if start < data.len() {
-                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
-                    let mut guard = v.lock().unwrap();
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+                    let mut guard = v.borrow_mut();
                     if let Some(target) = guard.as_mut() {
                         let count = std::cmp::min(target.len(), data.len() - start);
                         target[..count].copy_from_slice(&data[start..start + count]);
@@ -769,55 +770,57 @@ impl os_File {
                 }
             }
         }
-        (n as i64, Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (n as i64, Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 }
 
-static __GO_STUB_IO_EOF: std::sync::OnceLock<Arc<dyn StdError + Send + Sync>> = std::sync::OnceLock::new();
+thread_local! {
+    static __GO_STUB_IO_EOF: std::cell::RefCell<Option<Rc<dyn StdError>>> = std::cell::RefCell::new(None);
+}
 
 /// io's init hands over io.EOF's value.
-pub fn __go_register_io_eof(eof: Option<Arc<dyn StdError + Send + Sync>>) {
-    if let Some(eof) = eof {
-        let _ = __GO_STUB_IO_EOF.set(eof);
+pub fn __go_register_io_eof(eof: Option<Rc<dyn StdError>>) {
+    if eof.is_some() {
+        __GO_STUB_IO_EOF.with(|__slot| *__slot.borrow_mut() = eof);
     }
 }
 
-fn __go_stub_eof() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
-    match __GO_STUB_IO_EOF.get() {
-        Some(__eof) => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(__eof.clone()))),
-        None => Arc::new(Mutex::new(Some::<Arc<dyn StdError + Send + Sync>>(std::sync::Arc::new(GoStubEOF) as Arc<dyn StdError + Send + Sync>))),
-    }
+fn __go_stub_eof() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    __GO_STUB_IO_EOF.with(|__slot| match __slot.borrow().as_ref() {
+        Some(__eof) => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(__eof.clone()))),
+        None => Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(GoStubEOF) as Rc<dyn StdError>))),
+    })
 }
 
 
 pub mod os {
     use super::*;
-    pub fn pipe() -> (Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<os_File>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn pipe() -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         let data = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let closed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let read = os_File { __go_data: data.clone(), __go_closed: closed.clone(), __go_wait_for_close: true, ..Default::default() };
         let write = os_File { __go_data: data, __go_closed: closed, __go_wait_for_close: true, ..Default::default() };
-        (Arc::new(Mutex::new(Some::<os_File>(read))), Arc::new(Mutex::new(Some::<os_File>(write))), Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)))
+        (Rc::new(RefCell::new(Some::<os_File>(read))), Rc::new(RefCell::new(Some::<os_File>(write))), Rc::new(RefCell::new(None::<Rc<dyn StdError>>)))
     }
 }
 
 
 fn main() {
     let (mut read, mut write, mut err) = os::pipe();
-    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{}", format!("{}", "pipe error".to_string()));
         return;
     }
     {
-        let mut err = { let __recv = read.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
-        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        let mut err = (*read.borrow_mut().as_mut().unwrap()).close();;
+        if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
             println!("{}", format!("{}", "read close error".to_string()));;
             return;;
         }
     }
     {
-        let mut err = { let __recv = write.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
-        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        let mut err = (*write.borrow_mut().as_mut().unwrap()).close();;
+        if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
             println!("{}", format!("{}", "write close error".to_string()));;
             return;;
         }

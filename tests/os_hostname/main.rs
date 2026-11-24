@@ -4,8 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::cell::{RefCell};
 use std::error::Error as StdError;
-use std::sync::{Arc, Mutex};
+use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
@@ -614,17 +615,17 @@ impl std::io::Write for GoSlice<u8> {
 
 pub mod os {
     use super::*;
-    type GoError = Arc<Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>;
+    type GoError = Rc<RefCell<Option<std::rc::Rc<dyn std::error::Error>>>>;
 
     fn no_error() -> GoError {
-        Arc::new(Mutex::new(None))
+        Rc::new(RefCell::new(None))
     }
 
     fn io_error(err: std::io::Error) -> GoError {
-        Arc::new(Mutex::new(Some(std::sync::Arc::new(err) as std::sync::Arc<dyn std::error::Error + Send + Sync>)))
+        Rc::new(RefCell::new(Some(std::rc::Rc::new(err) as std::rc::Rc<dyn std::error::Error>)))
     }
 
-    pub fn hostname() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
+    pub fn hostname() -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         #[cfg(windows)]
         let bytes = std::env::var("COMPUTERNAME")
             .map(String::into_bytes)
@@ -653,8 +654,8 @@ pub mod os {
         });
 
         match result {
-            Ok(value) => (Arc::new(Mutex::new(Some::<String>(value))), no_error()),
-            Err(err) => (Arc::new(Mutex::new(Some::<String>(String::new()))), io_error(err)),
+            Ok(value) => (Rc::new(RefCell::new(Some::<String>(value))), no_error()),
+            Err(err) => (Rc::new(RefCell::new(Some::<String>(String::new()))), io_error(err)),
         }
     }
 }
@@ -663,5 +664,5 @@ pub mod os {
 fn main() {
     let (mut first, mut firstErr) = os::hostname();
     let (mut second, mut secondErr) = os::hostname();
-    println!("{} {} {} {}", format!("{}", { let __nil_result = (*firstErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*secondErr.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __tmp_x = ({ let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = "".to_string(); __tmp_x != __tmp_y }), format!("{}", { let __tmp_x = ({ let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = ({ let __v = (*second.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x == __tmp_y }));
+    println!("{} {} {} {}", format!("{}", { let __nil_result = (*firstErr.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*secondErr.borrow()).is_none(); __nil_result }), format!("{}", (*first.borrow().as_ref().unwrap()).clone() != "".to_string()), format!("{}", (*first.borrow().as_ref().unwrap()) == (*second.borrow().as_ref().unwrap())));
 }
