@@ -2615,6 +2615,14 @@ run_xfail_test() {
     run_test "tests/os_file_readcloser_assignment"
 }
 
+@test "os_fs_sentinel_errors" {
+    run_test "tests/os_fs_sentinel_errors"
+}
+
+@test "os_fs_sentinel_errors_goroutines" {
+    run_test "tests/os_fs_sentinel_errors_goroutines"
+}
+
 @test "os_hostname" {
     run_test "tests/os_hostname"
 }

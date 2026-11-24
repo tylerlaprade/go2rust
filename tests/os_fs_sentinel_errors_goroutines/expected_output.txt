@@ -1,0 +1,7 @@
+find "": file does not exist
+true true false
+file does not exist file already exists permission denied
+true false true
+true stage: permission denied
+true true
+[true false]
