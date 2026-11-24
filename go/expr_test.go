@@ -2137,7 +2137,9 @@ func pick(h *holder, i int) uint64 {
 	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
 		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
+	// The inner slice's block is parenthesized before it is indexed, so
+	// the index cannot be read as a statement of its own.
+	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() })[") {
 		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
 	}
 }

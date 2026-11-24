@@ -1423,6 +1423,14 @@ run_xfail_test() {
     run_test "tests/fprintf_user_defined_writer"
 }
 
+@test "fprintln_writers" {
+    run_test "tests/fprintln_writers"
+}
+
+@test "fprintln_writers_plain" {
+    run_test "tests/fprintln_writers_plain"
+}
+
 @test "full_slice_expressions" {
     run_test "tests/full_slice_expressions"
 }
@@ -1625,6 +1633,14 @@ run_xfail_test() {
 
 @test "goto_labels" {
     run_test "tests/goto_labels"
+}
+
+@test "grid_rows" {
+    run_test "tests/grid_rows"
+}
+
+@test "grid_rows_goroutines" {
+    run_test "tests/grid_rows_goroutines"
 }
 
 @test "hello_world" {
@@ -3407,6 +3423,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_linked_list" {
+    run_test "tests/slice_elem_linked_list"
+}
+
+@test "slice_elem_linked_list_goroutines" {
+    run_test "tests/slice_elem_linked_list_goroutines"
+}
+
 @test "slice_elem_pointer_append" {
     run_test "tests/slice_elem_pointer_append"
 }
@@ -3901,6 +3925,14 @@ run_xfail_test() {
 
 @test "struct_const_fields" {
     run_test "tests/struct_const_fields"
+}
+
+@test "struct_copy_slice_field" {
+    run_test "tests/struct_copy_slice_field"
+}
+
+@test "struct_copy_slice_field_goroutines" {
+    run_test "tests/struct_copy_slice_field_goroutines"
 }
 
 @test "struct_embedding" {

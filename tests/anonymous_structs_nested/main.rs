@@ -832,7 +832,7 @@ pub struct Dashboard {
 impl Dashboard {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.title.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.widgets.clone();
+        let __go_clone_1_0 = { let __guard = self.widgets.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             title: __go_clone_0_0,
             widgets: __go_clone_1_0,
@@ -1183,7 +1183,7 @@ pub struct AnonymousStruct8 {
 }
 impl AnonymousStruct8 {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.options.clone();
+        let __go_clone_0_0 = { let __guard = self.options.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             options: __go_clone_0_0,
         }

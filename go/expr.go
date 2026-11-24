@@ -7965,6 +7965,25 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	return false
 }
 
+// isCurrentReceiverFieldSelector reports whether expr is r.f for the current
+// method's receiver r.
+func isCurrentReceiverFieldSelector(expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if selection, ok := typeInfo.info.Selections[sel]; ok {
+			return selection.Kind() == types.FieldVal
+		}
+	}
+	return false
+}
+
 func writeCopySelectorFieldArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	sel, ok := arg.(*ast.SelectorExpr)
 	if !ok || !selectorFieldCallArgumentCopiesInnerValue(sel) {
@@ -12094,10 +12113,32 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		// The map cell holds the defined integer type.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
+	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
+		// map[K]T{k: v} for a struct variable v stores Go's copy of v.
+		writeExpressionWithGoCopy(out, value, copyCall)
 	} else {
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+// mapLiteralValueGoCopyCall returns the call that makes Go's copy of value, a
+// variable or field whose type's Go copy is not Clone, such as a struct. Its
+// Rust value is read out of a cell, and the map needs a value of its own.
+func mapLiteralValueGoCopyCall(value ast.Expr) (string, bool) {
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return "", false
+	}
+	if !expressionNeedsGoValueClone(value) {
+		return "", false
+	}
+	copyCall, known := goValueCopyCallForExpr(value)
+	if !known || copyCall == ".clone()" {
+		return "", false
+	}
+	return copyCall, true
 }
 
 func writeTranspiledInterfaceMapValue(out *strings.Builder, value ast.Expr, valueType types.Type) bool {
@@ -15286,7 +15327,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if isExpressionResultBare(e.X) {
 					// e.X is a bare value (e.g., result of another index, range var)
 					// Don't add borrow/unwrap - just index directly
+					start := out.Len()
 					TranspileExpressionContext(out, e.X, LValue)
+					if written := out.String(); strings.HasPrefix(written[start:], "{") {
+						// A block followed by "[i]" at the start of a
+						// statement parses as two statements, so the
+						// block goes in parentheses.
+						out.Reset()
+						out.WriteString(written[:start])
+						out.WriteString("(")
+						out.WriteString(written[start:])
+						out.WriteString(")")
+					}
 					out.WriteString("[")
 					writeExpressionAsUsize(out, e.Index)
 					out.WriteString("]")
@@ -15715,6 +15767,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						} else {
 							TranspileExpression(out, elt)
 						}
+					} else if isEmptyInterfaceType(elemType) && isCurrentReceiverFieldSelector(elt) && writeOwnedExpressionValue(out, elt) {
+						// A field of the method's receiver goes in as its
+						// value, not as the field's cell.
 					} else {
 						TranspileExpression(out, elt)
 					}
@@ -19463,6 +19518,12 @@ func namedIntegerTypeDefinitionStoresExternalIntegerValue(named *types.Named) bo
 }
 
 func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
+	if sliceConversionSourceIsBare(arg) {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(").clone()")
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
@@ -19485,6 +19546,13 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
+	if sliceConversionSourceIsBare(arg) {
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		writeRuneSliceIteratorToString(out)
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
 		out.WriteString(RustIdentForUse(ident))
@@ -19508,6 +19576,21 @@ func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	writeRuneSliceIteratorToString(out)
+}
+
+// sliceConversionSourceIsBare reports whether arg, the operand of
+// string(arg) for a []byte or []rune, is a bare slice rather than a cell: a
+// row of a [][]rune, as board[i] or the value of "for _, row := range board".
+func sliceConversionSourceIsBare(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	return anyBoxedCollectionExprIsBare(arg, argType.Underlying())
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {

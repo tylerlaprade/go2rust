@@ -713,7 +713,7 @@ pub struct dict {
 
 impl dict {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.tparams.clone();
+        let __go_clone_0_0 = { let __guard = self.tparams.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             tparams: __go_clone_0_0,
         }
@@ -737,7 +737,7 @@ pub struct reader {
 impl reader {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = self.dict.clone();
-        let __go_clone_1_0 = self.later.clone();
+        let __go_clone_1_0 = { let __guard = self.later.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             dict: __go_clone_0_0,
             later: __go_clone_1_0,

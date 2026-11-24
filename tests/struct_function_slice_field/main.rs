@@ -620,7 +620,7 @@ pub struct queue {
 
 impl queue {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.later.clone();
+        let __go_clone_0_0 = { let __guard = self.later.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             later: __go_clone_0_0,
         }

@@ -618,7 +618,7 @@ impl std::io::Write for GoSlice<u8> {
 /// match the raw slot (E0308 otherwise). Mirrors bytes' genSplit/Fields.
 fn main() {
     let mut s = Rc::new(RefCell::new(Some(("hello world".to_string()).as_bytes().to_go_slice())));
-    let mut a = Rc::new(RefCell::new(Some(vec![Vec::nil(); (2) as usize])));
+    let mut a = Rc::new(RefCell::new(Some(vec![<Vec<u8>>::nil(); (2) as usize])));
     { let __idx = (0) as usize; let __rhs = (*Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; let __low = (0) as usize; let __high = (5) as usize; let __max = (5) as usize; __seq.reslice3_zeroed(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone(); (*a.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = (*Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (6) as usize; let __high = (11) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone(); (*a.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", (*a.borrow().as_ref().unwrap())[(0) as usize].clone().len()), format!("{}", (*a.borrow().as_ref().unwrap())[(0) as usize].clone().capacity()), format!("{}", (*a.borrow().as_ref().unwrap())[(1) as usize].clone().len()));

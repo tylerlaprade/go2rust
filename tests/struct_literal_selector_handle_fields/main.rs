@@ -912,8 +912,8 @@ pub struct Config {
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.env.clone();
-        let __go_clone_1_0 = self.build_flags.clone();
+        let __go_clone_0_0 = { let __guard = self.env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.build_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = self.overlay.clone();
         Self {
             env: __go_clone_0_0,
@@ -942,8 +942,8 @@ pub struct Request {
 
 impl Request {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.env.clone();
-        let __go_clone_1_0 = self.build_flags.clone();
+        let __go_clone_0_0 = { let __guard = self.env.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.build_flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_2_0 = self.overlay.clone();
         Self {
             env: __go_clone_0_0,

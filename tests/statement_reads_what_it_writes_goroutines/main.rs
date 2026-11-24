@@ -910,7 +910,7 @@ pub struct Box_ {
 
 impl Box_ {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.items.clone();
+        let __go_clone_0_0 = { let __guard = self.items.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             items: __go_clone_0_0,
         }
@@ -1021,9 +1021,9 @@ fn main() {
     println!("{} {}", format!("{}", "index reads the slice in an increment, a compound assignment and a swap".to_string()), format!("{}", format_slice(&s2)));
 
     let mut grid = Arc::new(Mutex::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
-    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone(); (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = ({ let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })[(0) as usize].clone(); (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     { let __outer_idx = ({ let __tmp_x = (({ let __len = (*grid.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }[(1) as usize].clone()), format!("{}", { let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }[(0) as usize].clone()));
+    println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", ({ let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })[(1) as usize].clone()), format!("{}", ({ let __seq = { let __seq_holder = grid.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })[(0) as usize].clone()));
 
     let mut pts = Arc::new(Mutex::new(Some(vec![Pt { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Pt { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
     { let __idx = ({ let __tmp_x = (({ let __len = (*pts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __rhs = { let __seq = { let __seq_holder = pts.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.__go_value_clone(); (*pts.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };

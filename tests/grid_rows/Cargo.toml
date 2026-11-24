@@ -1,0 +1,11 @@
+[package]
+name = "grid_rows"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "grid_rows"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

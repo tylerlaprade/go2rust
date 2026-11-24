@@ -110,7 +110,7 @@ pub struct Command {
 
 impl Command {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.args.clone();
+        let __go_clone_0_0 = { let __guard = self.args.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             args: __go_clone_0_0,
         }

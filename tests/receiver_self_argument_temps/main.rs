@@ -713,7 +713,7 @@ pub struct r#box {
 
 impl r#box {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.items.clone();
+        let __go_clone_0_0 = { let __guard = self.items.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             items: __go_clone_0_0,
         }

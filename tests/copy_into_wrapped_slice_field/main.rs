@@ -718,7 +718,7 @@ pub struct buf {
 
 impl buf {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.dst.clone();
+        let __go_clone_0_0 = { let __guard = self.dst.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             dst: __go_clone_0_0,
         }

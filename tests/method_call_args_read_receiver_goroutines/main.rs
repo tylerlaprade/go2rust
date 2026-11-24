@@ -1676,7 +1676,7 @@ pub struct Logger {
 impl Logger {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.prefix.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.lines.clone();
+        let __go_clone_1_0 = { let __guard = self.lines.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             prefix: __go_clone_0_0,
             lines: __go_clone_1_0,
@@ -1756,7 +1756,7 @@ pub struct Stack {
 
 impl Stack {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.items.clone();
+        let __go_clone_0_0 = { let __guard = self.items.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             items: __go_clone_0_0,
         }

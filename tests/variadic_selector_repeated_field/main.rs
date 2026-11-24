@@ -885,8 +885,8 @@ pub struct source {
 impl source {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.a.clone();
-        let __go_clone_2_0 = self.b.clone();
+        let __go_clone_1_0 = { let __guard = self.a.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_2_0 = { let __guard = self.b.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             dir: __go_clone_0_0,
             a: __go_clone_1_0,
@@ -927,8 +927,8 @@ pub struct result {
 
 impl result {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.first.clone();
-        let __go_clone_1_0 = self.second.clone();
+        let __go_clone_0_0 = { let __guard = self.first.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.second.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             first: __go_clone_0_0,
             second: __go_clone_1_0,

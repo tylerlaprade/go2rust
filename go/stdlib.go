@@ -1708,6 +1708,28 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		})
 		return
 	}
+	// A file, a bytes.Buffer or a type with its own Write gets the line,
+	// as Fprint and Fprintf already do. Only os.Stdout, os.Stderr and
+	// writers the translator cannot reach print to the terminal.
+	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
+		writeFprintByteWriterTuple(out, call, func() { writeFmtFprintlnFormatCall(out, call) })
+		return
+	}
+	if fmtFprintfTargetHasUserWriteMethod(call.Args[0]) {
+		writeFprintUserWriteTuple(out, call, func() { writeFmtFprintlnFormatCall(out, call) })
+		return
+	}
+	if fmtFprintSpreadsAnySlice(call) {
+		// Fprintln(w, args...) prints each element of args.
+		if isOsStderr(call.Args[0]) {
+			out.WriteString("eprint!(\"{}\", ")
+		} else {
+			out.WriteString("print!(\"{}\", ")
+		}
+		writeFmtFprintlnFormatCall(out, call)
+		out.WriteString(")")
+		return
+	}
 	// Check if writing to stderr
 	if isOsStderr(call.Args[0]) {
 		out.WriteString("eprintln!")
@@ -1752,7 +1774,21 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+// fmtFprintSpreadsAnySlice reports whether call is Fprint(w, args...) or
+// Fprintln(w, args...) with args a []any, whose elements are the operands.
+func fmtFprintSpreadsAnySlice(call *ast.CallExpr) bool {
+	return call.Ellipsis.IsValid() && len(call.Args) == 2 && isEmptyInterfaceSliceArgument(call.Args[1])
+}
+
 func writeFmtFprintlnFormatCall(out *strings.Builder, call *ast.CallExpr) {
+	if fmtFprintSpreadsAnySlice(call) {
+		NeedFormatAnySlice()
+		TrackImport("Any")
+		out.WriteString("format!(\"{}\\n\", format_any_variadic(&")
+		writeSprintVariadicSlice(out, call.Args[1])
+		out.WriteString("))")
+		return
+	}
 	out.WriteString("format!(")
 	remaining := call.Args[1:]
 	if len(remaining) == 0 {
@@ -1812,7 +1848,11 @@ func transpileFmtFprint(out *strings.Builder, call *ast.CallExpr) {
 		return func() {
 			out.WriteString(macro)
 			out.WriteString("(")
-			if len(call.Args) > 1 {
+			if fmtFprintSpreadsAnySlice(call) {
+				// Fprint(w, args...) prints each element of args.
+				out.WriteString("\"{}\", ")
+				writeSprintVariadicAny(out, call.Args[1])
+			} else if len(call.Args) > 1 {
 				writePrintOperandsFormat(out, call.Args[1:], false)
 			} else {
 				out.WriteString("\"\"")
@@ -6010,6 +6050,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				case "bool":
 					elementType = "false"
 				}
+			}
+			if elementType == "Vec::nil()" {
+				// make([][]T, n): name the row type, which nothing later
+				// may pin down, as when every row is assigned a
+				// make([]T, m) of a struct T.
+				elementType = "<" + elementRustType + ">::nil()"
 			}
 
 			WriteWrapperPrefix(out)
