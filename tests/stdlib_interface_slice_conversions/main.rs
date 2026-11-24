@@ -119,7 +119,7 @@ fn go_resume_unrecovered_panic() {
 
 pub fn named_type() -> Arc<Mutex<Option<go_types::named::Named>>> {
     let mut obj = go_types::new_type_name(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i64))))))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some("T".to_string()))), Arc::new(Mutex::new(None)));
-    return go_types::new_named(obj.clone(), Arc::new(Mutex::new(Some(Box::new(go_types::basic::BasicPtr({ let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[2usize].clone() }.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(None)));
+    return go_types::new_named(obj.clone(), Arc::new(Mutex::new(Some(Box::new(go_types::basic::BasicPtr({ let __seq = { let __seq_holder = go_types::Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[2usize].clone() }.clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))), Arc::new(Mutex::new(None)));
 }
 
 pub fn forms(named: Arc<Mutex<Option<go_types::named::Named>>>) -> i64 {
@@ -195,6 +195,7 @@ fn main() {
     ::internal_goversion::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::internal_types_errors::__go_init_all();
+    ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_big::__go_init_all();
     ::math_bits::__go_init_all();

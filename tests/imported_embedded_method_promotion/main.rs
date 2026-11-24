@@ -150,7 +150,31 @@ pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
 
 impl<T> GoSliceElemPtr<T> {
     pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+        // &s[i] panics, as indexing does, when i is not below len(s). A
+        // slice already borrowed for the expression is not checked.
+        if let Ok(__guard) = slice.try_lock() {
+            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
+            if index >= __len {
+                drop(__guard);
+                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
+            }
+            // Hold the backing array the slice has now, not the variable.
+            let __header = (*__guard).clone();
+            drop(__guard);
+            return GoSliceElemPtr { slice: std::sync::Arc::new(std::sync::Mutex::new(__header)), index };
+        }
         GoSliceElemPtr { slice, index }
+    }
+
+    /// The array and element the pointer names, for == between pointers.
+    pub fn identity(&self) -> (usize, usize) {
+        if let Ok(__guard) = self.slice.try_lock() {
+            if let Some(__slice) = __guard.as_ref() {
+                let __base = __slice.as_slice().as_ptr() as usize;
+                return (__base.wrapping_add(self.index.wrapping_mul(std::mem::size_of::<T>())), 0);
+            }
+        }
+        (Arc::as_ptr(&self.slice) as *const () as usize, self.index)
     }
 
     pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
@@ -472,7 +496,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Arc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Arc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -484,7 +508,10 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Arc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Arc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)
@@ -494,6 +521,13 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
 }
 
 impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+    /// The pointee, read the way the generated code reads a cell in a
+    /// program with goroutines, ptr.lock().unwrap(), as borrow() is in one
+    /// without: a []*T or map[K]*T element read through the cell path.
+    pub fn lock(&self) -> Result<Option<T>, std::convert::Infallible> {
+        Ok(self.borrow())
+    }
+
     pub fn borrow(&self) -> Option<T> {
         match self {
             GoPtr::Nil => None,
@@ -676,7 +710,7 @@ pub fn force_concurrent_wrappers() {
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
 }
 
 pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) {

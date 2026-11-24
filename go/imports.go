@@ -164,12 +164,14 @@ type HelperTracker struct {
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
 	needsGoChannel                       bool
+	needsGoSelectSend                    bool
 	needsWaitGroup                       bool
 	needsGoMutex                         bool
 	needsGoRWMutex                       bool
 	needsGoOnce                          bool
 	needsGoAtomicPointer                 bool
 	needsGoTypeName                      bool
+	needsGoFloatString                   bool
 	needsGoErrorChain                    bool
 	needsGoSprintf                       bool
 	needsGoSprintfSpread                 bool
@@ -181,6 +183,7 @@ type HelperTracker struct {
 	needsRegexp                          bool
 	needsJsonEscape                      bool
 	needsOsFile                          bool
+	needsGoNilAny                        bool
 	needsOsArgs                          bool
 	needsSliceElemPtr                    bool
 	needsGoTime                          bool
@@ -235,6 +238,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	}
 	helperCopy := *ht
 	helperCopy.needsGoChannel = false
+	helperCopy.needsGoSelectSend = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
 	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
@@ -268,7 +272,7 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht == nil {
 		return nil
 	}
-	helperCopy := &HelperTracker{}
+	helperCopy := &HelperTracker{needsGoSelectSend: ht.needsGoSelectSend}
 	if ht.needsGoChannel || ht.needsGoContext {
 		helperCopy.needsGoChannel = true
 	}
@@ -371,6 +375,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateAnyEquality(&result)
 	}
 
+	if ht.needsGoNilAny {
+		generateGoNilAny(&result)
+	}
+
 	if ht.needsAnyClone || ht.needsAnyHandleCopy {
 		generateAnyClone(&result, anyCloneTypes, ht.needsAnyHandleCopy)
 	}
@@ -417,6 +425,9 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoChannel {
 		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
+		if ht.needsGoSelectSend {
+			result.WriteString(goSelectSendHelper)
+		}
 	}
 
 	if ht.needsWaitGroup {
@@ -441,6 +452,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoTypeName {
 		generateGoTypeNameHelper(&result, anyTypeNames)
+	}
+
+	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
+		generateGoFloatStringHelper(&result)
 	}
 
 	if ht.needsGoErrorChain {
@@ -564,6 +579,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoOnce ||
 		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
+		ht.needsGoFloatString ||
 		ht.needsGoErrorChain ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
@@ -573,6 +589,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsRegexp ||
 		ht.needsJsonEscape ||
 		ht.needsOsFile ||
+		ht.needsGoNilAny ||
 		ht.needsSliceElemPtr ||
 		ht.needsGoTime ||
 		ht.needsGoTimer ||
@@ -747,11 +764,16 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsGoTypeName {
 		add(goTypeNameHelperRustName)
 	}
+	// format_any and the slice and map formatters call these themselves; a
+	// module only names go_float_string when it prints a float directly.
+	if ht.needsGoFloatString {
+		add("go_float_string")
+	}
 	if ht.needsGoErrorChain {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
 	}
 	if ht.needsGoSprintf {
-		add("go_sprintf")
+		add("go_sprintf", "GoFormatNil")
 	}
 	if ht.needsGoSprintfSpread {
 		add("go_sprintf_spread")
@@ -779,6 +801,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsOsFile {
 		add("GoFile")
+	}
+	if ht.needsGoNilAny {
+		add(goNilAnyType)
 	}
 	if ht.needsSliceElemPtr {
 		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
@@ -1153,9 +1178,9 @@ func generateAnyFormatter(out *strings.Builder, anyFormatArms map[string]anyForm
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<i64>() {\n")
 	out.WriteString("        v.to_string()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f64>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_float_string(*v, false)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<f32>() {\n")
-	out.WriteString("        v.to_string()\n")
+	out.WriteString("        go_float_string(*v as f64, true)\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<String>() {\n")
 	out.WriteString("        v.clone()\n")
 	out.WriteString("    } else if let Some(v) = value.downcast_ref::<&str>() {\n")
@@ -2479,6 +2504,32 @@ fn format_any_variadic(slice: ` + sliceType + `) -> String {
 `)
 }
 
+// Keep ownership of a pending send across polls, including non-Clone interface
+// values. A full channel gives the original Rust value back to the caller.
+const goSelectSendHelper = `
+impl<T> GoChannel<T> {
+    pub fn try_send_select(&self, pending: &mut Option<T>) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let sender = self.tx.lock().unwrap().clone().expect("send on closed channel");
+        match sender.try_send(pending.take().unwrap()) {
+            Ok(()) => {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            }
+            Err(std::sync::mpsc::TrySendError::Full(value)) => {
+                *pending = Some(value);
+                false
+            }
+            Err(std::sync::mpsc::TrySendError::Disconnected(_)) => panic!("send on closed channel"),
+        }
+    }
+}
+`
+
 func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
 	code := `
 struct GoChannel<T> {
@@ -2658,6 +2709,7 @@ impl<T> Iterator for GoChannel<T> {
 		code = strings.ReplaceAll(code, "    fn try_send(", "    pub fn try_send(")
 		code = strings.ReplaceAll(code, "    fn recv(", "    pub fn recv(")
 		code = strings.ReplaceAll(code, "    fn try_recv(", "    pub fn try_recv(")
+		code = strings.ReplaceAll(code, "    fn try_recv_select(", "    pub fn try_recv_select(")
 		code = strings.ReplaceAll(code, "    fn close(", "    pub fn close(")
 		code = strings.ReplaceAll(code, "    fn is_nil(", "    pub fn is_nil(")
 		code = strings.ReplaceAll(code, "    fn len(", "    pub fn len(")
@@ -2921,7 +2973,7 @@ impl GoOnce {
         let mut done = self.done.lock().unwrap();
         if !*done {
             *done = true;
-            drop(done);
+            std::mem::drop(done);
             f();
         }
     }
@@ -2955,7 +3007,7 @@ impl GoOnce {
         let mut done = self.done.borrow_mut();
         if !*done {
             *done = true;
-            drop(done);
+            std::mem::drop(done);
             f();
         }
     }
@@ -3842,6 +3894,60 @@ fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
 `)
 }
 
+// writeSliceElemPtrConstructor writes GoSliceElemPtr::new, which checks the
+// index as &s[i] does, and identity, which pointer comparison uses.
+//
+// With GoSlice the pointer holds a copy of the slice's header in a cell of
+// its own: the copy shares the backing array, so writes through the pointer
+// reach every slice over that array, and a later assignment to the slice
+// variable (items = items[1:], or an append that grows it) leaves the
+// pointer on the element it was taken from, as in Go (DEV-149). Two
+// pointers are equal when they name the same element of the same array.
+// Without GoSlice each slice value is its own Vec, so the pointer holds the
+// variable's cell.
+func writeSliceElemPtrConstructor(out *strings.Builder, outer string, cell string, tryBorrow string) {
+	out.WriteString("    pub fn new(slice: " + outer + "<" + cell + "<Option<Vec<T>>>>, index: usize) -> Self {\n")
+	out.WriteString(`        // &s[i] panics, as indexing does, when i is not below len(s). A
+        // slice already borrowed for the expression is not checked.
+`)
+	out.WriteString("        if let Ok(__guard) = slice." + tryBorrow + "() {\n")
+	out.WriteString(`            let __len = __guard.as_ref().map_or(0, |__values| __values.len());
+            if index >= __len {
+                drop(__guard);
+                panic!("index out of bounds: the len is {} but the index is {}", __len, index);
+            }
+`)
+	if goSliceModeEnabled() {
+		out.WriteString(`            // Hold the backing array the slice has now, not the variable.
+            let __header = (*__guard).clone();
+            drop(__guard);
+`)
+		// Spelled with std paths: a package can declare a Mutex of its own.
+		cellPath := map[string]string{"Mutex": "std::sync::Mutex", "RefCell": "std::cell::RefCell"}[cell]
+		outerPath := map[string]string{"Arc": "std::sync::Arc", "Rc": "std::rc::Rc"}[outer]
+		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index };\n")
+	}
+	out.WriteString(`        }
+        GoSliceElemPtr { slice, index }
+    }
+
+    /// The array and element the pointer names, for == between pointers.
+    pub fn identity(&self) -> (usize, usize) {
+`)
+	if goSliceModeEnabled() {
+		out.WriteString("        if let Ok(__guard) = self.slice." + tryBorrow + "() {\n")
+		// The element's address in the backing array, which every header
+		// over that array shares.
+		out.WriteString(`            if let Some(__slice) = __guard.as_ref() {
+                let __base = __slice.as_slice().as_ptr() as usize;
+                return (__base.wrapping_add(self.index.wrapping_mul(std::mem::size_of::<T>())), 0);
+            }
+        }
+`)
+	}
+	out.WriteString("        (" + outer + "::as_ptr(&self.slice) as *const () as usize, self.index)\n    }\n\n")
+}
+
 func generateSliceElemPtrHelper(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
@@ -3985,11 +4091,9 @@ pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
 }
 
 impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
+`)
+		writeSliceElemPtrConstructor(out, "Arc", "Mutex", "try_lock")
+		out.WriteString(`    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
         self.slice.clone()
     }
 
@@ -4308,7 +4412,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Arc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Arc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -4320,7 +4424,10 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Arc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Arc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)
@@ -4330,6 +4437,13 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
 }
 
 impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+    /// The pointee, read the way the generated code reads a cell in a
+    /// program with goroutines, ptr.lock().unwrap(), as borrow() is in one
+    /// without: a []*T or map[K]*T element read through the cell path.
+    pub fn lock(&self) -> Result<Option<T>, std::convert::Infallible> {
+        Ok(self.borrow())
+    }
+
     pub fn borrow(&self) -> Option<T> {
         match self {
             GoPtr::Nil => None,
@@ -4509,11 +4623,9 @@ pub struct GoArrayElemMutRef<T: Clone + 'static, const N: usize> {
 }
 
 impl<T> GoSliceElemPtr<T> {
-    pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
-        GoSliceElemPtr { slice, index }
-    }
-
-    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
+`)
+		writeSliceElemPtrConstructor(out, "Rc", "RefCell", "try_borrow")
+		out.WriteString(`    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
         self.slice.clone()
     }
 
@@ -4832,7 +4944,7 @@ impl<T: 'static> GoPtr<T> {
             (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
             (GoPtr::Local(left), GoPtr::Local(right)) => Rc::ptr_eq(left, right),
             (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
-                Rc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+                left.identity() == right.identity()
             }
             (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
             _ => false,
@@ -4844,7 +4956,10 @@ impl<T: 'static> GoPtr<T> {
             GoPtr::Nil => 0,
             GoPtr::Raw(addr) => *addr,
             GoPtr::Local(value) => Rc::as_ptr(value) as usize,
-            GoPtr::SliceElem(value) => (Rc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::SliceElem(value) => {
+                let (base, index) = value.identity();
+                base.wrapping_add(index)
+            }
             GoPtr::ArrayElem(value) => {
                 let (base, index) = value.identity_dyn();
                 (base as usize).wrapping_add(index)
@@ -5905,4 +6020,95 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
     value
 }
 `)
+}
+
+// generateGoFloatStringHelper writes go_float_string, which prints a float
+// as fmt's %v does: strconv's shortest %g, with an exponent when the
+// exponent is below -4 or at least 6, and +Inf, -Inf and NaN. single prints
+// the shortest digits of the float32 the value was widened from.
+func generateGoFloatStringHelper(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+`)
+	TrackImport("Display")
+	out.WriteString("\n// A value inside a slice or a map prints as fmt prints it: a float through\n")
+	out.WriteString("// go_float_string, anything else through its Display. The element type may\n")
+	out.WriteString("// borrow, so it is recognized by name rather than by TypeId.\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
+`)
+}
+
+// goNilAnyType is the payload of a bare Box<dyn Any> that holds a nil
+// interface value (see NeedGoNilAny).
+const goNilAnyType = "GoNilAny"
+
+func generateGoNilAny(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n/// A nil interface value in a slot that holds a Box<dyn Any>, such as a\n")
+	out.WriteString("/// []any element: it copies, prints and compares as nil.\n")
+	out.WriteString("#[derive(Clone, Copy, Debug, PartialEq)]\n")
+	out.WriteString(visibility)
+	out.WriteString("struct GoNilAny;\n")
+}
+
+// writeNilAnyBox writes a Box<dyn Any> holding a nil interface value.
+func writeNilAnyBox(out *strings.Builder) {
+	NeedGoNilAny()
+	TrackImport("Any")
+	out.WriteString("Box::new(GoNilAny) as ")
+	out.WriteString(rustAnyTraitObject())
 }

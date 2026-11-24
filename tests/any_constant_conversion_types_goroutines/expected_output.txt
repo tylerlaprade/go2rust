@@ -1,0 +1,9 @@
+5 true
+2.5 97 -3
+7
+1099511627776 4 9
+int float64 int32 string
+int <nil> bool
+float64 3.5
+int string bool
+int string 6

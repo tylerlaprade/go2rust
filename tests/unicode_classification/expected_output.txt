@@ -1,0 +1,12 @@
+'a' letter,lower 'A' 'a'
+'Z' letter,upper 'Z' 'z'
+'9' digit '9' '9'
+' ' space ' ' ' '
+'\t' space '\t' '\t'
+'!' punct '!' '!'
+'é' letter,lower 'É' 'é'
+'漢' letter,han '漢' '漢'
+'ß' letter,lower 'ß' 'ß'
+'٣' digit '٣' '٣'
+'\u00a0' space '\u00a0' '\u00a0'
+words: 4 true ǅ 97

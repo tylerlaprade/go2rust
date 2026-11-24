@@ -105,7 +105,11 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return true
 	}
 	if _, ok := externalIntegerRustTypeForNamed(named); ok {
@@ -202,6 +206,22 @@ func writeNamedIntegerBinaryPrimitiveExpressionForNamed(out *strings.Builder, ex
 	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
 	}
+	if (expr.Op == token.SHL || expr.Op == token.SHR) && shiftNeedsGoCountCheck(named, expr.Y) {
+		writeGoShiftBlock(out, expr.Op, func(out *strings.Builder) {
+			out.WriteString("(")
+			writeNamedIntegerPrimitiveOperand(out, expr.X, primitiveType)
+			out.WriteString(")")
+			if primitiveType != "" {
+				out.WriteString(" as ")
+				out.WriteString(primitiveType)
+			}
+		}, func(out *strings.Builder) {
+			if !writeShiftCountPrimitiveOperand(out, expr.Y, expr) {
+				writeGoShiftCount(out, expr.Y)
+			}
+		})
+		return true
+	}
 	out.WriteString("(")
 	var left strings.Builder
 	writeNamedIntegerPrimitiveOperand(&left, expr.X, primitiveType)
@@ -235,7 +255,11 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
-		out.WriteString(RustCharLiteral(lit.Value))
+		if lit.Kind == token.INT {
+			out.WriteString(RustIntegerLiteral(lit.Value))
+		} else {
+			out.WriteString(RustCharLiteral(lit.Value))
+		}
 		return
 	}
 	if writeUnaryIntegerLiteral(out, expr) {
@@ -537,7 +561,7 @@ func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shi
 	if !ok || lit.Kind != token.INT {
 		return false
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	out.WriteString("i32")
 	return true
 }
@@ -600,7 +624,7 @@ func writeUnaryIntegerLiteral(out *strings.Builder, expr ast.Expr) bool {
 	if unary.Op == token.SUB {
 		out.WriteString("-")
 	}
-	out.WriteString(lit.Value)
+	out.WriteString(RustIntegerLiteral(lit.Value))
 	return true
 }
 
@@ -1311,10 +1335,10 @@ func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.S
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
 	if sequenceTypeIsArray(starType) {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", false)
 	} else {
-		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", true)
 	}
 	WriteWrapperSuffix(out)
@@ -1411,6 +1435,42 @@ func writeSliceBoundValue(out *strings.Builder, expr ast.Expr, fallback string) 
 	writeExpressionAsUsize(out, expr)
 }
 
+// currentSliceElemZeroFillable reports, while a slice expression is
+// written, whether its elements are of a basic type, which has a zero value
+// (Rust's Default) to fill the backing array with.
+var currentSliceElemZeroFillable bool
+
+func sliceExprElemIsBasic(e *ast.SliceExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e == nil {
+		return false
+	}
+	typ := typeInfo.GetType(e)
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	if _, isNamed := types.Unalias(slice.Elem()).(*types.Named); isNamed {
+		return false
+	}
+	_, isBasic := types.Unalias(slice.Elem()).(*types.Basic)
+	return isBasic
+}
+
+// resliceMethod is GoSlice's s[lo:hi:max]. Slicing up to the capacity
+// reaches elements an append's growth reserved but never stored, which in
+// Go are zero, as io.ReadAll's b[len(b):cap(b)] does: for basic elements
+// reslice3_zeroed stores those zeros first.
+func resliceMethod() string {
+	if currentSliceElemZeroFillable {
+		return "reslice3_zeroed"
+	}
+	return "reslice3"
+}
+
 func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max ast.Expr, defaultMax string, canExtendWithinCapacity bool) {
 	out.WriteString("; let __low = ")
 	writeSliceBoundValue(out, low, "0")
@@ -1420,7 +1480,7 @@ func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max
 	writeSliceBoundValue(out, max, defaultMax)
 	if canExtendWithinCapacity && goSliceModeEnabled() {
 		// The new header shares the backing array.
-		out.WriteString("; __seq.reslice3(__low, __high, __max) }")
+		out.WriteString("; __seq." + resliceMethod() + "(__low, __high, __max) }")
 		return
 	}
 	if canExtendWithinCapacity {
@@ -1445,7 +1505,7 @@ func writeSliceVecFromSeqMultiline(out *strings.Builder, low ast.Expr, high ast.
 	out.WriteString(";\n")
 	if canExtendWithinCapacity && goSliceModeEnabled() {
 		out.WriteString(indent)
-		out.WriteString("__seq.reslice3(__low, __high, __max)\n")
+		out.WriteString("__seq." + resliceMethod() + "(__low, __high, __max)\n")
 		out.WriteString(closeIndent)
 		out.WriteString("}")
 		return
@@ -1663,6 +1723,45 @@ func writeBareMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, ar
 	TranspileExpression(out, arg)
 }
 
+// writeBareRangeSliceArgument writes a range variable over a [][]T, held
+// bare as the element is, passed to a []T parameter, as bufio's
+// collectFragments passes each full buffer to buf.Write: the parameter
+// takes a cell of its own holding the slice header.
+func writeBareRangeSliceArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok || expected == nil {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || strings.HasPrefix(varType, GetOuterWrapperType()+"<") {
+		// A map's values come in cells of their own.
+		return false
+	}
+	goType := rangeLoopVarGoTypes[ident.Name]
+	if goType == nil {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			goType = typeInfo.GetType(ident)
+		}
+	}
+	if goType == nil {
+		return false
+	}
+	if _, isSlice := types.Unalias(goType).Underlying().(*types.Slice); !isSlice {
+		return false
+	}
+	if _, isNamed := types.Unalias(goType).(*types.Named); isNamed {
+		return false
+	}
+	if _, wantsSlice := types.Unalias(expected).Underlying().(*types.Slice); !wantsSlice {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(RustLocalIdent(ident.Name))
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
@@ -1685,6 +1784,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		return
 	}
 	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
+		return
+	}
+	if writeBareRangeSliceArgument(out, arg, expectedArgType) {
 		return
 	}
 	if typeInfo != nil && typeInfo.IsChannel(arg) {
@@ -1779,6 +1881,10 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 
 func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemTypeExpr ast.Expr, elemIsAny bool) {
 	if elemIsAny || isEmptyInterfaceTypeExpr(elemTypeExpr) {
+		if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+			writeNilAnyBox(out)
+			return
+		}
 		if writeExistingAnyVariadicElementValue(out, arg) {
 			return
 		}
@@ -1899,7 +2005,9 @@ func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __any_guard = __any_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) }")
+	out.WriteString("; match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => ")
+	writeNilAnyBox(out)
+	out.WriteString(" } }")
 	return true
 }
 
@@ -1941,6 +2049,10 @@ func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorE
 	variadicStart := sig.Params().Len() - 1
 	for i := 0; i < variadicStart && i < len(call.Args); i++ {
 		writeArgPrefix(i)
+		if !externalStdlibStubMethodCall && writeBareRangeSliceArgument(out, call.Args[i], selectedMethodParamType(sel, i)) {
+			writeArgSuffix()
+			continue
+		}
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
@@ -2920,7 +3032,7 @@ func writeNilTolerantNamedMapInnerHandleClone(out *strings.Builder, expr ast.Exp
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
 	WriteWrappedNone(out)
-	out.WriteString("); drop(__named_map_guard); __map_holder }")
+	out.WriteString("); std::mem::drop(__named_map_guard); __map_holder }")
 	return true
 }
 
@@ -2957,7 +3069,7 @@ func writeOptionalClonedMapExpression(out *strings.Builder, expr ast.Expr) {
 	writeMapHandleCloneForOp(out, expr)
 	out.WriteString("; let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }")
+	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }")
 }
 
 func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
@@ -3009,7 +3121,7 @@ func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
+		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }")
 		return true
@@ -3168,6 +3280,16 @@ func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
 			out.WriteString(".as_ref().unwrap().clone(); __channel }")
 			return
 		}
+	}
+	if index, ok := unwrapParens(expr).(*ast.IndexExpr); ok && mapIndexHoldsChannelCell(index) {
+		// A map stores a channel in its own cell. A missing key reads as
+		// the nil channel.
+		out.WriteString("{ let __channel_cell = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString("; let __channel = __channel_cell")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().cloned().unwrap_or_default(); __channel }")
+		return
 	}
 	// The expression is written aside to see whether it locks. It starts
 	// with the current line, so multiline output keeps its indentation.
@@ -6924,6 +7046,68 @@ func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+// writeSliceElemPtrEquality writes p == q where both are pointers to slice
+// elements, held as Option<GoSliceElemPtr<T>>, or nil: they are equal when
+// both are nil or both name the same element of the same array.
+func writeSliceElemPtrEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	leftIsElem, rightIsElem := sliceElemPtrComparisonOperand(expr.X), sliceElemPtrComparisonOperand(expr.Y)
+	if !leftIsElem && !rightIsElem {
+		return false
+	}
+	var left, right strings.Builder
+	if !writeSliceElemPtrComparisonOperand(&left, expr.X) || !writeSliceElemPtrComparisonOperand(&right, expr.Y) {
+		return false
+	}
+	out.WriteString("{ let __left = ")
+	out.WriteString(left.String())
+	out.WriteString("; let __right = ")
+	out.WriteString(right.String())
+	out.WriteString("; let __eq = match (&__left, &__right) { (None, None) => true, (Some(__l), Some(__r)) => __l.identity() == __r.identity(), _ => false }; ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
+func sliceElemPtrComparisonOperand(expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		return ident.Name != "nil" && isSliceElemPtrVar(ident.Name)
+	}
+	_, ok := sliceElemPtrAddressElemRustType(expr)
+	return ok
+}
+
+// writeSliceElemPtrComparisonOperand writes one side of a slice element
+// pointer comparison as an Option<GoSliceElemPtr<T>>.
+func writeSliceElemPtrComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			out.WriteString("None")
+			return true
+		}
+		if !isSliceElemPtrVar(ident.Name) {
+			return false
+		}
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return true
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(expr); !ok {
+		return false
+	}
+	unary := expr.(*ast.UnaryExpr)
+	indexExpr := unwrapParens(unary.X).(*ast.IndexExpr)
+	out.WriteString("Some(")
+	if !writeSliceElemPtrNewExpression(out, indexExpr) {
+		return false
+	}
+	out.WriteString(")")
+	return true
+}
+
 func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
@@ -6937,6 +7121,9 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(expr.X) || !typeInfo.IsPointer(expr.Y) {
 		return false
+	}
+	if writeSliceElemPtrEquality(out, expr) {
+		return true
 	}
 	trackWrapperImports()
 	var left strings.Builder
@@ -8254,6 +8441,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if isGoErrorType(elemType) {
 		return writeGoErrorHandleValue(out, expr)
 	}
+	if writeChannelHandleCopy(out, expr, elemType) {
+		return true
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
 			if elemType != nil {
@@ -8876,7 +9066,9 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __err_guard = __err_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
+	out.WriteString("; match __err_guard.as_ref() { None => ")
+	writeNilAnyBox(out)
+	out.WriteString(", Some(__err) => ")
 	if len(candidates) == 0 {
 		writeOpaqueGoErrorAnyBox(out)
 	} else {
@@ -8935,7 +9127,9 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString(indent)
 	out.WriteString("    match __err_guard.as_ref() {\n")
 	out.WriteString(indent)
-	out.WriteString("        None => panic!(\"nil error-to-any lowering requires nil interface representation\"),\n")
+	out.WriteString("        None => ")
+	writeNilAnyBox(out)
+	out.WriteString(",\n")
 	out.WriteString(indent)
 	out.WriteString("        Some(__err) => {\n")
 	for i, candidate := range candidates {
@@ -9925,6 +10119,9 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 	if (fieldExpr != nil && isChannelFieldExpr(fieldExpr)) || isChannelFieldType(expectedFieldType) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
 			out.WriteString("Default::default()")
+			return
+		}
+		if writeChannelHandleCopy(out, value, nil) {
 			return
 		}
 		TranspileExpression(out, value)
@@ -11507,6 +11704,29 @@ func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
 	return len(call.Args) >= 4 || callArgumentsShouldUseMultiline(call.Args)
 }
 
+// writeAnonymousStructSliceElemPtrFieldValue writes the value of a field of
+// an anonymous struct literal that holds a pointer to a slice element: the
+// generated struct gives the field a GoPtr, as for a named struct.
+func writeAnonymousStructSliceElemPtrFieldValue(out *strings.Builder, lit *ast.CompositeLit, field *types.Var, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return false
+	}
+	structType := typeInfo.GetType(lit)
+	if structType == nil {
+		return false
+	}
+	fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field)
+	if !ok {
+		return false
+	}
+	if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
+		return true
+	}
+	out.WriteString(`unimplemented!("GoPtr struct literal field requires compatible pointer value")`)
+	return true
+}
+
 func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
 	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
 		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
@@ -11646,6 +11866,17 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	}
 	if isGoErrorMapValueType(valueExpr, valueType) && writeGoErrorHandleValue(out, value) {
 		return
+	}
+	if valueType != nil {
+		if _, isChan := types.Unalias(valueType).Underlying().(*types.Chan); isChan {
+			var channel strings.Builder
+			if writeChannelHandleCopy(&channel, value, valueType) {
+				WriteWrapperPrefix(out)
+				out.WriteString(channel.String())
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 	}
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && isNilableWrappedMapValueType(valueType) {
 		WriteWrappedNone(out)
@@ -12659,7 +12890,7 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __cloned = ")
 	writeClonedValueFromGuard(out, expr, guardName)
-	out.WriteString("; drop(")
+	out.WriteString("; std::mem::drop(")
 	out.WriteString(guardName)
 	out.WriteString("); __cloned }")
 }
@@ -13386,13 +13617,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if exprType != nil {
 					if basic, ok := exprType.(*types.Basic); ok && (basic.Kind() == types.Float32 || basic.Kind() == types.Float64 || basic.Kind() == types.UntypedFloat) {
 						// Integer literal used as float - add .0
-						out.WriteString(e.Value)
-						out.WriteString(".0")
+						out.WriteString(RustFloatFromIntegerLiteral(e.Value))
 						return
 					}
 				}
 			}
-			out.WriteString(e.Value)
+			out.WriteString(RustIntegerLiteral(e.Value))
 		case token.FLOAT:
 			if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
@@ -14203,15 +14433,30 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteBorrowMethod(out, true)
 		out.WriteString(".as_mut().unwrap())")
 	case *ast.BinaryExpr:
+		if writeFoldedFloatConstant(out, e) {
+			return
+		}
+		if writeGoSemanticsShift(out, e) {
+			return
+		}
 		if writeNamedFloatArithmeticValue(out, e) {
 			return
 		}
 		if writeRangeRuneArithmetic(out, e) {
 			return
 		}
+		if isNilIdentExpr(e.Y) && writeSliceElemPtrMapNilComparison(out, e.X, e.Op) {
+			return
+		}
+		if isNilIdentExpr(e.X) && writeSliceElemPtrMapNilComparison(out, e.Y, e.Op) {
+			return
+		}
 		// Special handling for comparisons with nil
 		if ident, ok := e.Y.(*ast.Ident); ok && ident.Name == "nil" {
 			typeInfo := GetTypeInfo()
+			if writeBareSliceElementNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if typeInfo != nil && typeInfo.IsChannel(e.X) {
 				if e.Op.String() == "!=" {
 					out.WriteString("!")
@@ -14257,6 +14502,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 
+			if writeEmptyInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if writePointerDerefLocalInterfaceNilComparison(out, e.X, e.Op) {
 				return
 			}
@@ -14571,8 +14819,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					return
 				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 					return
 				}
 				if isComparison && writeOrderedTypeParamValueClone(out, expr) {
@@ -14628,8 +14875,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.X, e.Y, true) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
-				out.WriteString(xLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(xLit.Value))
 			} else {
 				writeOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
 			}
@@ -14642,8 +14888,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if writeConstOperand(writeConstExpressionForBinaryPeer, e.Y, e.X, false) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
-				out.WriteString(yLit.Value)
-				out.WriteString(".0")
+				out.WriteString(RustFloatFromIntegerLiteral(yLit.Value))
 			} else {
 				writeOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
 			}
@@ -14688,8 +14933,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.X)
 				}
@@ -14739,8 +14983,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {
-					out.WriteString(lit.Value)
-					out.WriteString(".0")
+					out.WriteString(RustFloatFromIntegerLiteral(lit.Value))
 				} else {
 					TranspileExpression(out, e.Y)
 				}
@@ -14900,6 +15143,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.SliceExpr:
 		// Slice expressions like arr[1:] or s[0:5] or s[0:5:7]
 		// The array/slice is wrapped, so we need to unwrap it first
+		previousZeroFillable := currentSliceElemZeroFillable
+		currentSliceElemZeroFillable = sliceExprElemIsBasic(e)
+		defer func() { currentSliceElemZeroFillable = previousZeroFillable }()
 		isStringSlice := false
 		isGoByteSequenceSlice := false
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -14948,7 +15194,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
 			out.WriteString("; let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__slice_guard)")
 			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", true)
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
@@ -15003,7 +15249,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
 				out.WriteString(";\n")
 				out.WriteString(indent)
-				out.WriteString("drop(__seq_guard)")
+				out.WriteString("std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray, indent, closeIndent)
 			} else {
 				out.WriteString("{ let __seq_holder = ")
@@ -15016,7 +15262,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
 				}
 				writeClonedValueFromGuard(out, e.X, "__seq_guard")
-				out.WriteString("; drop(__seq_guard)")
+				out.WriteString("; std::mem::drop(__seq_guard)")
 				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			}
 			WriteWrapperSuffix(out)
@@ -15262,6 +15508,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// any other interface value.
 					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
 						continue
+					}
+					// nil, and another interface value, nil or not, are boxed
+					// as every []any element is (GoNilAny for nil).
+					if isEmptyInterfaceType(elemType) {
+						if ident, ok := unwrapParens(elt).(*ast.Ident); (ok && ident.Name == "nil") || isEmptyInterfaceValueExpr(elt) {
+							writeBareAnyBox(out, elt)
+							continue
+						}
 					}
 					out.WriteString("Box::new(")
 					elementKeepsAnyHandle := false
@@ -15818,7 +16072,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
 							typedFieldType = typedStructUnder.Field(eltIndex).Type()
 						}
-						writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						var typedField *types.Var
+						if typedStructUnder != nil && eltIndex < typedStructUnder.NumFields() {
+							typedField = typedStructUnder.Field(eltIndex)
+						}
+						if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, e.Elts[eltIndex]) {
+							writeWrappedStructFieldValue(out, e.Elts[eltIndex], field.Type, typedFieldType)
+						}
 						writeAnonymousStructFieldSuffix()
 						eltIndex++
 					}
@@ -15838,7 +16098,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if typedStructUnder != nil {
 								typedFieldType = findTypesStructFieldType(typedStructUnder, key.Name)
 							}
-							writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							var typedField *types.Var
+							if typedStructUnder != nil {
+								typedField = findTypesStructField(typedStructUnder, key.Name)
+							}
+							if !writeAnonymousStructSliceElemPtrFieldValue(out, e, typedField, kv.Value) {
+								writeWrappedStructFieldValue(out, kv.Value, findStructFieldExpr(structType, key.Name), typedFieldType)
+							}
 							writeAnonymousStructFieldSuffix()
 						}
 					}
@@ -17734,7 +18000,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		// any(x) boxes x the way every other conversion to an interface
 		// does: a value that keeps its handle when boxed keeps it here too.
-		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) {
+		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) || writeIntegerConstForAnyBox(out, arg) {
 		} else if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(RustIdentForUse(ident))
@@ -17783,7 +18049,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 							// []byte to string
 							WriteWrapperPrefix(out)
 							out.WriteString(stringFromUTF8Open())
-							writeUnwrappedSliceClone(out, arg)
+							if isNamedSliceExpression(arg) {
+								// A defined []byte type holds the slice inside it.
+								out.WriteString("{ let __bytes = ")
+								writeNamedSliceInnerHandleClone(out, arg)
+								out.WriteString("; let __bytes_guard = __bytes")
+								WriteBorrowMethod(out, false)
+								out.WriteString("; let __bytes_value = __bytes_guard.as_ref().cloned().unwrap_or_default(); __bytes_value }")
+							} else {
+								writeUnwrappedSliceClone(out, arg)
+							}
 							out.WriteString(stringFromUTF8Close())
 							WriteWrapperSuffix(out)
 							return
@@ -22107,7 +22382,7 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 		writeStringsBuilderReceiverHandle(out, sel.X)
 		out.WriteString(".clone(); let __guard = __builder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value }")
+		out.WriteString("; let __value = (*__guard.as_ref().unwrap()).clone(); std::mem::drop(__guard); __value }")
 		WriteWrapperSuffix(out)
 		return true
 	case "Len":
@@ -25625,5 +25900,36 @@ func writeIntConstantWithSuffix(out *strings.Builder, expr ast.Expr, expected ty
 		out.WriteString(strconv.FormatInt(n, 10))
 		out.WriteString("i64")
 	}
+	return true
+}
+
+// writeEmptyInterfaceNilComparison writes x == nil (or !=) for an
+// interface{} value. It is nil when its cell is empty or when it holds
+// GoNilAny, the nil a []any element or a ...any argument carries.
+func writeEmptyInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isEmptyInterfaceType(typeInfo.GetType(expr)) {
+		return false
+	}
+	NeedGoNilAny()
+	if op == token.NEQ {
+		out.WriteString("!")
+	}
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
+		if varType, isRange := rangeLoopVars[ident.Name]; isRange && strings.Contains(varType, "Box<dyn Any") && !strings.HasPrefix(varType, GetOuterWrapperType()+"<") {
+			// A range variable over a []any is the element's own box.
+			out.WriteString("(**&")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(").is::<GoNilAny>()")
+			return true
+		}
+	}
+	out.WriteString("{ let __nil_result = (*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(").as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }")
 	return true
 }
