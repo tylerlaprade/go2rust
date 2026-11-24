@@ -203,6 +203,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -1055,7 +1071,7 @@ fn main() {
         let __low = (10) as usize;
         let __high = __seq.len();
         let __max = __source_cap;
-        __seq.reslice3(__low, __high, __max)
+        __seq.reslice3_zeroed(__low, __high, __max)
     }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };
     println!("{} {} {} {}", format!("{}", "append a part of the slice".to_string()), format!("{}", ({ let __len = (*n.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(12) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = n.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(13) as usize].clone() }));
 

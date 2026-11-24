@@ -200,6 +200,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -600,9 +616,9 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<u8> = (0..(4) as usize).map(|_| 0).collect(); v.truncate((2) as usize); v })));
     { let __idx = (0) as usize; let __rhs = ('g' as u8) as u8; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     { let __idx = (1) as usize; let __rhs = ('o' as u8) as u8; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))))); *s.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))); *s.borrow_mut() = __slice_header; };
     { let __idx = (2) as usize; let __rhs = ('2' as u8) as u8; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    let mut t = Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3(__low, __high, __max) })));
+    let mut t = Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = (3) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) })));
     println!("{} {} {}", format!("{}", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*s.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
     println!("{} {} {}", format!("{}", (*t.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*t.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from((*t.borrow().as_ref().unwrap()).clone())).unwrap()))).borrow().as_ref().unwrap())));
 }

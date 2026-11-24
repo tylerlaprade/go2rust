@@ -201,6 +201,22 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            let __backing = self.backing_mut();
+            if __need > __backing.len() {
+                __backing.resize(__need, T::default());
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
 impl<T: Clone> GoSlice<T> {
     /// Go's s = append(s, v): in place while there is capacity, else into a
     /// new backing array.
@@ -692,7 +708,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 fn main() {
     let mut nums = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
-    let mut all = Rc::new(RefCell::new(Some({ let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) })));
+    let mut all = Rc::new(RefCell::new(Some({ let __seq_holder = nums.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) })));
     println!("{} {} {}", format!("{}", (*all.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*all.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&all)));
 
     let mut s = Rc::new(RefCell::new(Some("hello".to_string())));
