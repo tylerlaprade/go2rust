@@ -105,7 +105,8 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
-		if lit.Kind == token.INT {
+		if lit.Kind == token.FLOAT && writeFloatLiteralAsInteger(out, lit) {
+		} else if lit.Kind == token.INT {
 			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(RustCharLiteral(lit.Value))
@@ -255,7 +256,8 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 			out.WriteString(")")
 			return
 		}
-		if lit.Kind == token.INT {
+		if lit.Kind == token.FLOAT && writeFloatLiteralAsInteger(out, lit) {
+		} else if lit.Kind == token.INT {
 			out.WriteString(RustIntegerLiteral(lit.Value))
 		} else {
 			out.WriteString(RustCharLiteral(lit.Value))
@@ -1580,6 +1582,10 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		return false
 	case *ast.TypeAssertExpr:
 		if typeInfo == nil {
+			return false
+		}
+		if _, _, ok := fmtStringerAssertionTarget(e); ok {
+			// writeFmtStringerAssertionValue yields the bare fmt_Stringer.
 			return false
 		}
 		if _, _, _, ok := anonInterfaceAssertionTarget(e); ok {
@@ -5691,15 +5697,24 @@ func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, conc
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
 	out.WriteString(goTypesNamedTypeToRust(named))
-	out.WriteString(">()).map(|__e| *__e.0")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap() == (")
-	if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
-		TranspileConstExpr(out, concreteExpr, 0)
+	if _, stub := externalIntegerRustTypeForNamed(named); stub {
+		// A stub's named integer, such as syscall.Errno, holds its value
+		// bare, and its constants are values of the type: err !=
+		// syscall.ENOENT compares the two fields.
+		out.WriteString(">()).map(|__e| __e.0 == (")
+		TranspileExpression(out, concreteExpr)
+		out.WriteString(").0).unwrap_or(false); ")
+	} else {
+		out.WriteString(">()).map(|__e| *__e.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap() == (")
+		if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
+			TranspileConstExpr(out, concreteExpr, 0)
+		}
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		out.WriteString(")).unwrap_or(false); ")
 	}
-	out.WriteString(" as ")
-	out.WriteString(rustType)
-	out.WriteString(")).unwrap_or(false); ")
 	if op == token.NEQ {
 		out.WriteString("!__matched")
 	} else {
@@ -6198,6 +6213,9 @@ func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.T
 }
 
 func writeLocalConcreteStdlibInterfaceConversion(out *strings.Builder, arg ast.Expr, targetRust string) {
+	if targetRust == fmtStringerStubName && writeFmtStringerConversion(out, arg) {
+		return
+	}
 	out.WriteString(targetRust)
 	out.WriteString("::__go_from(")
 	writeLocalConcreteStdlibInterfaceSource(out, arg)
@@ -7046,6 +7064,68 @@ func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 	}
 }
 
+// writeSliceElemPtrEquality writes p == q where both are pointers to slice
+// elements, held as Option<GoSliceElemPtr<T>>, or nil: they are equal when
+// both are nil or both name the same element of the same array.
+func writeSliceElemPtrEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	leftIsElem, rightIsElem := sliceElemPtrComparisonOperand(expr.X), sliceElemPtrComparisonOperand(expr.Y)
+	if !leftIsElem && !rightIsElem {
+		return false
+	}
+	var left, right strings.Builder
+	if !writeSliceElemPtrComparisonOperand(&left, expr.X) || !writeSliceElemPtrComparisonOperand(&right, expr.Y) {
+		return false
+	}
+	out.WriteString("{ let __left = ")
+	out.WriteString(left.String())
+	out.WriteString("; let __right = ")
+	out.WriteString(right.String())
+	out.WriteString("; let __eq = match (&__left, &__right) { (None, None) => true, (Some(__l), Some(__r)) => __l.identity() == __r.identity(), _ => false }; ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
+func sliceElemPtrComparisonOperand(expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		return ident.Name != "nil" && isSliceElemPtrVar(ident.Name)
+	}
+	_, ok := sliceElemPtrAddressElemRustType(expr)
+	return ok
+}
+
+// writeSliceElemPtrComparisonOperand writes one side of a slice element
+// pointer comparison as an Option<GoSliceElemPtr<T>>.
+func writeSliceElemPtrComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			out.WriteString("None")
+			return true
+		}
+		if !isSliceElemPtrVar(ident.Name) {
+			return false
+		}
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return true
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(expr); !ok {
+		return false
+	}
+	unary := expr.(*ast.UnaryExpr)
+	indexExpr := unwrapParens(unary.X).(*ast.IndexExpr)
+	out.WriteString("Some(")
+	if !writeSliceElemPtrNewExpression(out, indexExpr) {
+		return false
+	}
+	out.WriteString(")")
+	return true
+}
+
 func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
@@ -7059,6 +7139,9 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsPointer(expr.X) || !typeInfo.IsPointer(expr.Y) {
 		return false
+	}
+	if writeSliceElemPtrEquality(out, expr) {
+		return true
 	}
 	trackWrapperImports()
 	var left strings.Builder
@@ -13703,7 +13786,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			out.WriteString(RustIntegerLiteral(e.Value))
 		case token.FLOAT:
-			if value, ok := rustFloatLiteral(e); ok {
+			if writeFloatLiteralAsInteger(out, e) {
+				// d / 1e9 for an integer d: the constant is the integer
+				// 1000000000.
+			} else if value, ok := rustFloatLiteral(e); ok {
 				out.WriteString(value)
 			} else {
 				out.WriteString(e.Value)
@@ -14746,6 +14832,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeIdentValueClone(out, ident)
 			out.WriteString("; ")
 			out.WriteString(tempName)
+			// A named integer is a newtype without Copy, and its operators
+			// take their operands by value: d + d uses a clone on the left.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if _, named := types.Unalias(typeInfo.GetType(ident)).(*types.Named); named {
+					out.WriteString(".clone()")
+				}
+			}
 			out.WriteString(" ")
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
@@ -16242,6 +16335,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if ifaceName, _, sourceType, candidates, ok := localInterfaceAssertionTarget(e); ok {
 				writeLocalInterfaceAssertionValue(out, e, ifaceName, sourceType, candidates)
+				return
+			}
+			if iface, sourceType, ok := fmtStringerAssertionTarget(e); ok {
+				writeFmtStringerAssertionValue(out, e, iface, sourceType)
 				return
 			}
 			if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
@@ -19893,6 +19990,30 @@ func writeConstNumericConversionOperand(out *strings.Builder, arg ast.Expr, rust
 	writeConstExpressionOperandAsRustInteger(out, arg, operandRustType)
 }
 
+// writeFloatLiteralAsInteger writes a float literal that the type checker
+// gave an integer type, as 1e9 in d / 1e9 for a Duration d, as the integer
+// it denotes. Written as a float, Rust cannot combine it with the integer.
+func writeFloatLiteralAsInteger(out *strings.Builder, lit *ast.BasicLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || lit == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[lit]
+	if !ok || tv.Value == nil || tv.Type == nil {
+		return false
+	}
+	basic, ok := tv.Type.Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsInteger == 0 {
+		return false
+	}
+	value := constant.ToInt(tv.Value)
+	if value.Kind() != constant.Int {
+		return false
+	}
+	out.WriteString(value.ExactString())
+	return true
+}
+
 func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
@@ -20514,6 +20635,11 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	}
 	targetType := typeInfo.GetType(e.Type)
 	if targetType == nil {
+		return nil, false
+	}
+	// fmt.Stringer is a stub type: writeFmtStringerAssertionCommaOk builds
+	// its value from the operand.
+	if isFmtStringerType(targetType) {
 		return nil, false
 	}
 	targetInterface, ok := targetType.Underlying().(*types.Interface)
@@ -22003,6 +22129,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		return
 	}
 
+	if iface, sourceType, ok := fmtStringerAssertionTarget(e); ok {
+		writeFmtStringerAssertionCommaOk(out, e, iface, sourceType)
+		return
+	}
 	if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
 		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, iface, candidates)
 		return

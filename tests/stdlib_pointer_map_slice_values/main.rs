@@ -614,6 +614,28 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// Runs an append, __store, for elements whose Go copy is not their Clone,
+/// such as a struct of cells. When the append moves the slice to a new
+/// backing array, the elements it carried over are replaced with __copy of
+/// them, so the old array and the new one share nothing.
+trait GoSliceAppendCopying<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T);
+}
+
+impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
+    fn go_append_copying(&mut self, __store: impl FnOnce(&mut Self), __copy: impl Fn(&T) -> T) {
+        let __before = self.clone();
+        let __len = self.len();
+        __store(self);
+        if !self.shares_backing_with(&__before) {
+            for __i in 0..__len.min(self.len()) {
+                let __value = __copy(&self.as_slice()[__i]);
+                self.as_mut_slice()[__i] = __value;
+            }
+        }
+    }
+}
+
 pub struct GoLocalPtrKey<T>(pub Rc<RefCell<Option<T>>>);
 
 impl<T> Clone for GoLocalPtrKey<T> {
@@ -821,7 +843,7 @@ pub fn export_path(pkg: Rc<RefCell<Option<types_Package>>>) -> Rc<RefCell<Option
 
 pub fn remember(m: Rc<RefCell<Option<BTreeMap<GoLocalPtrKey<types_Package>, Rc<RefCell<Option<Vec<pkgObj>>>>>>>>, pkg: Rc<RefCell<Option<types_Package>>>, obj: Rc<RefCell<Option<types_Object>>>) {
     { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = Rc::new(RefCell::new(None)); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = GoLocalPtrKey::new(pkg.clone()); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&GoLocalPtrKey::new(pkg.clone())).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = pkgObj { obj: obj.clone(), name: Rc::new(RefCell::new(Some("name".to_string()))), ..Default::default() }; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(bundle { localpkg: pkg.clone(), ..Default::default() }))).clone(), ..Default::default() })));
     let mut pkgs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<types_Package>>>>>>> = Rc::new(RefCell::new(None));
     for (__range_key, objs) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {

@@ -799,7 +799,7 @@ pub fn reset(mut xs: Rc<RefCell<Option<Vec<i64>>>>) {
 pub fn push(mut xs: Rc<RefCell<Option<Vec<i64>>>>, v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut xs = Rc::new(RefCell::new((*xs.borrow()).clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = xs.clone(); let __append_value = (*v.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *xs.borrow_mut() = __slice_header; };
-    xs.clone()
+    return xs.clone();
 }
 
 pub fn reverse(xs: Rc<RefCell<Option<Vec<i64>>>>) {

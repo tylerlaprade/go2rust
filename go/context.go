@@ -1306,6 +1306,14 @@ func NeedJsonEscape() {
 	}
 }
 
+// NeedGoSliceAppendCopying marks that the program appends to a slice of
+// structs, whose growth copies the elements with go_slice_append_copying.
+func NeedGoSliceAppendCopying() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoSliceAppendCopying = true
+	}
+}
+
 // NeedGoNilAny marks that the program stores a nil interface value in a
 // slot that holds a bare Box<dyn Any>, such as a []any element or a
 // ...any argument: the box holds GoNilAny, which copies, prints and

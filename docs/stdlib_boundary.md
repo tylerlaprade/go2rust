@@ -131,6 +131,14 @@ one place.
   far less work to provide some `os` operations directly on Rust's `std::fs`.
   If so, each one is listed by name as a reviewed replacement, the way hooks
   are listed now. The package does not go back to native as a whole.
+
+  For callers using the external `io/fs` types, the direct `os.Open`
+  replacement preserves the observable `*os.PathError` shape (`Op`, `Path`, `Err`, `errors.As`, `errors.Is`, and `errors.Unwrap`).
+  The final operating-system error text is intentionally platform-specific;
+  parity tests compare the concrete fields and error category rather than a
+  Linux-only message. The source-mapped case has a distinct Rust error type
+  until the native producer returns the translated `io/fs.PathError`.
+  `tests/XFAIL/source_stdlib_os_open_path_error/` covers that boundary.
 - **`net` is source with hooks**, for the same reason as `os`.
   `net.JoinHostPort` is a colon search and a string concatenation, and a
   program that never opens a socket can use it. `net` declares three
