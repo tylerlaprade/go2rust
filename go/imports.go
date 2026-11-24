@@ -183,6 +183,7 @@ type HelperTracker struct {
 	needsRegexp                          bool
 	needsJsonEscape                      bool
 	needsOsFile                          bool
+	needsGoNilAny                        bool
 	needsOsArgs                          bool
 	needsSliceElemPtr                    bool
 	needsGoTime                          bool
@@ -372,6 +373,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsAnyEq {
 		generateAnyEquality(&result)
+	}
+
+	if ht.needsGoNilAny {
+		generateGoNilAny(&result)
 	}
 
 	if ht.needsAnyClone || ht.needsAnyHandleCopy {
@@ -584,6 +589,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsRegexp ||
 		ht.needsJsonEscape ||
 		ht.needsOsFile ||
+		ht.needsGoNilAny ||
 		ht.needsSliceElemPtr ||
 		ht.needsGoTime ||
 		ht.needsGoTimer ||
@@ -795,6 +801,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsOsFile {
 		add("GoFile")
+	}
+	if ht.needsGoNilAny {
+		add(goNilAnyType)
 	}
 	if ht.needsSliceElemPtr {
 		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
@@ -6033,4 +6042,28 @@ func generateGoFloatStringHelper(out *strings.Builder) {
     __value.to_string()
 }
 `)
+}
+
+// goNilAnyType is the payload of a bare Box<dyn Any> that holds a nil
+// interface value (see NeedGoNilAny).
+const goNilAnyType = "GoNilAny"
+
+func generateGoNilAny(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n/// A nil interface value in a slot that holds a Box<dyn Any>, such as a\n")
+	out.WriteString("/// []any element: it copies, prints and compares as nil.\n")
+	out.WriteString("#[derive(Clone, Copy, Debug, PartialEq)]\n")
+	out.WriteString(visibility)
+	out.WriteString("struct GoNilAny;\n")
+}
+
+// writeNilAnyBox writes a Box<dyn Any> holding a nil interface value.
+func writeNilAnyBox(out *strings.Builder) {
+	NeedGoNilAny()
+	TrackImport("Any")
+	out.WriteString("Box::new(GoNilAny) as ")
+	out.WriteString(rustAnyTraitObject())
 }

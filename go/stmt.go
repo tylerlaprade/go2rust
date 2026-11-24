@@ -1146,6 +1146,14 @@ func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 // expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
 // stores bare boxes).
 func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && ident.Name == "nil" {
+		writeNilAnyBox(out)
+		return
+	}
+	// An interface value is copied into a box of its own, nil as GoNilAny.
+	if isEmptyInterfaceValueExpr(expr) && writeExistingAnyBoxClone(out, expr) {
+		return
+	}
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
@@ -1192,11 +1200,8 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	// it. (A value already of interface type is handled by the local/stdlib
 	// interface paths or the generic clone below.)
 	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
-		ident, isIdent := rhs.(*ast.Ident)
-		if !isIdent || ident.Name != "nil" {
-			writeBareAnyBox(out, rhs)
-			return
-		}
+		writeBareAnyBox(out, rhs)
+		return
 	}
 	if writePointerArraySliceElementAssignmentValue(out, rhs, expected) {
 		return
@@ -16859,11 +16864,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			TranspileExpression(out, expr)
 			out.WriteString(";\n")
-			out.WriteString("    let _ts_is_nil = false;\n")
 			if NeedsConcurrentWrapper() {
 				out.WriteString("    let _ts_val: Option<&(dyn Any + Send + Sync)> = Some(_ts_ref.as_ref() as &(dyn Any + Send + Sync));\n")
 			} else {
 				out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+			}
+			if strings.Contains(rangeVarType, "Box<dyn Any") {
+				// A range variable over a []any: its nil holds GoNilAny. The
+				// variable can be a reference or an owned clone, so test the
+				// borrowed trait object rather than dereferencing it.
+				NeedGoNilAny()
+				out.WriteString("    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());\n")
+			} else {
+				out.WriteString("    let _ts_is_nil = false;\n")
 			}
 		} else if isStdlibRangeRef {
 			out.WriteString("    let _ts_is_nil = false;\n")
@@ -16885,7 +16898,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_guard = _ts_subject")
 			WriteBorrowMethod(out, false)
 			out.WriteString(";\n")
-			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
+			// A nil element of a []any holds GoNilAny.
+			NeedGoNilAny()
+			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
 			out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
 			if NeedsConcurrentWrapper() {

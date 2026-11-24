@@ -1881,6 +1881,10 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 
 func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemTypeExpr ast.Expr, elemIsAny bool) {
 	if elemIsAny || isEmptyInterfaceTypeExpr(elemTypeExpr) {
+		if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
+			writeNilAnyBox(out)
+			return
+		}
 		if writeExistingAnyVariadicElementValue(out, arg) {
 			return
 		}
@@ -2001,7 +2005,9 @@ func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
 	TranspileExpressionContext(out, arg, LValue)
 	out.WriteString(".clone(); let __any_guard = __any_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) }")
+	out.WriteString("; match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => ")
+	writeNilAnyBox(out)
+	out.WriteString(" } }")
 	return true
 }
 
@@ -8995,7 +9001,9 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __err_guard = __err_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
+	out.WriteString("; match __err_guard.as_ref() { None => ")
+	writeNilAnyBox(out)
+	out.WriteString(", Some(__err) => ")
 	if len(candidates) == 0 {
 		writeOpaqueGoErrorAnyBox(out)
 	} else {
@@ -9054,7 +9062,9 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	out.WriteString(indent)
 	out.WriteString("    match __err_guard.as_ref() {\n")
 	out.WriteString(indent)
-	out.WriteString("        None => panic!(\"nil error-to-any lowering requires nil interface representation\"),\n")
+	out.WriteString("        None => ")
+	writeNilAnyBox(out)
+	out.WriteString(",\n")
 	out.WriteString(indent)
 	out.WriteString("        Some(__err) => {\n")
 	for i, candidate := range candidates {
@@ -14427,6 +14437,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 
+			if writeEmptyInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if writePointerDerefLocalInterfaceNilComparison(out, e.X, e.Op) {
 				return
 			}
@@ -15430,6 +15443,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					// any other interface value.
 					if isEmptyInterfaceType(elemType) && writeGoErrorInterfaceAnyBox(out, elt) {
 						continue
+					}
+					// nil, and another interface value, nil or not, are boxed
+					// as every []any element is (GoNilAny for nil).
+					if isEmptyInterfaceType(elemType) {
+						if ident, ok := unwrapParens(elt).(*ast.Ident); (ok && ident.Name == "nil") || isEmptyInterfaceValueExpr(elt) {
+							writeBareAnyBox(out, elt)
+							continue
+						}
 					}
 					out.WriteString("Box::new(")
 					elementKeepsAnyHandle := false
@@ -17914,7 +17935,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		}
 		// any(x) boxes x the way every other conversion to an interface
 		// does: a value that keeps its handle when boxed keeps it here too.
-		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) {
+		if writeAnyHandleBoxInnerValue(out, arg) || writeDefinedCollectionOwnedValue(out, arg) || writeIntegerConstForAnyBox(out, arg) {
 		} else if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			out.WriteString("(*")
 			out.WriteString(RustIdentForUse(ident))
@@ -25814,5 +25835,36 @@ func writeIntConstantWithSuffix(out *strings.Builder, expr ast.Expr, expected ty
 		out.WriteString(strconv.FormatInt(n, 10))
 		out.WriteString("i64")
 	}
+	return true
+}
+
+// writeEmptyInterfaceNilComparison writes x == nil (or !=) for an
+// interface{} value. It is nil when its cell is empty or when it holds
+// GoNilAny, the nil a []any element or a ...any argument carries.
+func writeEmptyInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isEmptyInterfaceType(typeInfo.GetType(expr)) {
+		return false
+	}
+	NeedGoNilAny()
+	if op == token.NEQ {
+		out.WriteString("!")
+	}
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
+		if varType, isRange := rangeLoopVars[ident.Name]; isRange && strings.Contains(varType, "Box<dyn Any") && !strings.HasPrefix(varType, GetOuterWrapperType()+"<") {
+			// A range variable over a []any is the element's own box.
+			out.WriteString("(**&")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(").is::<GoNilAny>()")
+			return true
+		}
+	}
+	out.WriteString("{ let __nil_result = (*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(").as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }")
 	return true
 }

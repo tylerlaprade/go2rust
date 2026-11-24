@@ -1468,6 +1468,24 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 			}
 		}
 	}
+	if _, isIdent := arg.(*ast.Ident); !isIdent && isEmptyInterfaceValueExpr(arg) {
+		if _, isElement := anySequenceElementIndex(arg); !isElement {
+			// Name the type of the value the interface holds, as
+			// writeFormatAnyPrintArg prints it: not the type of its text.
+			out.WriteString("match (")
+			if _, ok := arg.(*ast.SelectorExpr); ok {
+				TranspileExpressionContext(out, arg, LValue)
+			} else {
+				TranspileExpression(out, arg)
+			}
+			out.WriteString(")")
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref() { Some(__any_value) => ")
+			out.WriteString(goTypeNameHelperRustName)
+			out.WriteString("(&**__any_value), None => \"<nil>\" }")
+			return
+		}
+	}
 	out.WriteString(goTypeNameHelperRustName)
 	out.WriteString("(")
 	if ident, ok := arg.(*ast.Ident); ok {
@@ -5317,10 +5335,8 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if isEmptyInterfaceType(elemType) && !isEmptyInterfaceValueExpr(expr) {
-					if nilIdent, ok := expr.(*ast.Ident); !ok || nilIdent.Name != "nil" {
-						writeBareAnyBox(out, expr)
-						return
-					}
+					writeBareAnyBox(out, expr)
+					return
 				}
 				// An interface value appended to a []interface{} is copied
 				// into a box of its own. A box cannot be cloned, so the
