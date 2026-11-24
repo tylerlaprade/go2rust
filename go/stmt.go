@@ -5066,16 +5066,29 @@ func namedCollectionSelectorNeedsOwnedValue(expr ast.Expr, typ types.Type) bool 
 	}
 }
 
+// writeConcurrentMapSelectorHandleClone writes m := s.data for a map field
+// as a clone of the field's handle: a map is a reference, so the variable
+// and the field are the same map (DEV-169). Copying the map's contents
+// would let m["k"] = v miss s.data. In a program without goroutines only a
+// field of an unnamed map type is shared this way; package-qualified
+// variables and named map types keep their own paths.
 func writeConcurrentMapSelectorHandleClone(out *strings.Builder, expr ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	if _, ok := expr.(*ast.SelectorExpr); !ok {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
 		return false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsMap(expr) {
 		return false
+	}
+	if !NeedsConcurrentWrapper() {
+		if typeInfo.info == nil {
+			return false
+		}
+		selection, ok := typeInfo.info.Selections[sel]
+		if !ok || selection.Kind() != types.FieldVal || isNamedMapExpression(expr) {
+			return false
+		}
 	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
