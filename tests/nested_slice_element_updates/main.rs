@@ -818,8 +818,8 @@ fn main() {
         let __go_lhs_sequence_1 = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }.clone();
         let __go_lhs_outer_index_1_0 = (1) as usize;
         let __go_lhs_index_1 = (1) as usize;
-        let __tmp_0 = { let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }[(1) as usize].clone();
-        let __tmp_1 = { let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }[(0) as usize].clone();
+        let __tmp_0 = ({ let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })[(1) as usize].clone();
+        let __tmp_1 = ({ let __seq_holder = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() })[(0) as usize].clone();
         (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_outer_index_0_0][__go_lhs_index_0] = __tmp_0;
         (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_outer_index_1_0][__go_lhs_index_1] = __tmp_1;
     };
@@ -855,7 +855,7 @@ fn main() {
     }
     println!("{}", format!("{}", format_nested_slice(&grid)));
 
-    let mut paths = Rc::new(RefCell::new(Some(vec![Vec::nil(); (4) as usize])));
+    let mut paths = Rc::new(RefCell::new(Some(vec![<Vec<i64>>::nil(); (4) as usize])));
     for i in 0..(({ let __range_holder = paths.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         { let __idx = (i) as usize; let __rhs = (*Rc::new(RefCell::new(Some(vec![0; (4) as usize]))).borrow().as_ref().unwrap()).clone(); (*paths.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         { let __outer_idx = (i) as usize; let __idx = (0) as usize; let __rhs = 1; (*paths.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };

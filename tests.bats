@@ -1627,6 +1627,14 @@ run_xfail_test() {
     run_test "tests/goto_labels"
 }
 
+@test "grid_rows" {
+    run_test "tests/grid_rows"
+}
+
+@test "grid_rows_goroutines" {
+    run_test "tests/grid_rows_goroutines"
+}
+
 @test "hello_world" {
     run_test "tests/hello_world"
 }

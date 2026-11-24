@@ -6038,6 +6038,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 					elementType = "false"
 				}
 			}
+			if elementType == "Vec::nil()" {
+				// make([][]T, n): name the row type, which nothing later
+				// may pin down, as when every row is assigned a
+				// make([]T, m) of a struct T.
+				elementType = "<" + elementRustType + ">::nil()"
+			}
 
 			WriteWrapperPrefix(out)
 			if len(call.Args) >= 3 && goSliceModeEnabled() {
