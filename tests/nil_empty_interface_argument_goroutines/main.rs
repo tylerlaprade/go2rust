@@ -613,6 +613,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -631,6 +636,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<i64>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
 
@@ -844,7 +850,7 @@ impl<T> Iterator for GoChannel<T> {
 }
 
 pub fn is_nil(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
-    return { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result };
+    return { let __nil_result = (*v.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result };
 }
 
 fn main() {

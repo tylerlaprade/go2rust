@@ -648,6 +648,8 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Code>() {
         format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<NotFound>>>>() {
         match (*v.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<QueryError>>>>() {
@@ -658,6 +660,11 @@ fn format_any(value: &dyn Any) -> String {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 #[derive(Clone, Copy)]
 struct GoAnyTypeMetadata {
@@ -727,6 +734,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Code>() { return "main.Code" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<Rc<RefCell<Option<NotFound>>>>() { return "*main.NotFound" }
     if val.is::<Rc<RefCell<Option<QueryError>>>>() { return "*main.QueryError" }
     std::any::type_name_of_val(val)
@@ -2107,7 +2115,7 @@ pub fn find(key: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Rc<dyn StdErr
         let __err_holder = ErrNotFound.clone();
         let __err_guard = __err_holder.borrow();
         match __err_guard.as_ref() {
-            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            None => Box::new(GoNilAny) as Box<dyn Any>,
             Some(__err) => {
                 if let Some(typed_val) = __err.downcast_ref::<Code>() {
                     go_box_any_with_metadata(typed_val.clone(), "basic", true)

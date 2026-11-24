@@ -613,6 +613,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -630,6 +635,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
 }
 
@@ -677,7 +683,7 @@ pub fn is_string(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
     {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -700,7 +706,7 @@ pub fn classify(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
     {
     let _ts_subject = v.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {

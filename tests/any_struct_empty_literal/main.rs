@@ -645,6 +645,8 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
@@ -655,6 +657,11 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
 fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
     format_any(value)
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
@@ -741,7 +748,7 @@ fn main() {
     }
     });
     let mut e = Arc::new(Mutex::new(Some(entry { value: Default::default() })));
-    if { let __nil_target = (*e.lock().unwrap().as_ref().unwrap()).value.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+    if { let __nil_result = (*(*e.lock().unwrap().as_ref().unwrap()).value.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
         println!("{}", format!("{}", "nil".to_string()));
     }
 }

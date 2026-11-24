@@ -614,6 +614,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -631,6 +636,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Pos>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Position>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
@@ -1075,8 +1081,8 @@ pub fn set(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
     { let __range_holder = args.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for (i, mut arg) in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
         {
     let _ts_ref = &arg;
-    let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());
     if _ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).is_some() {
         let arg = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Pos>()).unwrap().clone())));
         { let __idx = (i) as usize; let __rhs = Box::new((*position(Rc::new(RefCell::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap()).clone()) as Box<dyn Any>; (*args.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };;

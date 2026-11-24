@@ -614,6 +614,11 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -707,6 +712,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -755,7 +761,7 @@ impl errors_joinError {
 
 
 fn main() {
-    let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("x".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
+    let mut boxed: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("x".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
 
     let (mut got, mut ok) = ({
         let val = boxed.clone();
@@ -828,7 +834,7 @@ fn main() {
     {
     let _ts_subject = boxed.clone();
     let _ts_guard = _ts_subject.borrow();
-    let _ts_is_nil = _ts_guard.as_ref().is_none();
+    let _ts_is_nil = _ts_guard.as_ref().map_or(true, |__v| (**__v).is::<GoNilAny>());
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
         let mut __any = __v.as_ref() as &dyn Any;
         while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {
@@ -865,7 +871,7 @@ fn main() {
 
         // The copy is still the same error.
     let mut sentinel = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("sentinel".to_string())))));
-    let mut held: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = sentinel.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
+    let mut held: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = sentinel.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
     let mut back = Rc::new(RefCell::new(Some(({
         let val = held.clone();
         let guard = val.borrow();
@@ -878,7 +884,7 @@ fn main() {
     println!("{} {}", format!("{}", { let __left = back.clone(); let __right = sentinel.clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }), format!("{}", { let __text = match back.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // A formatted error takes the same paths.
-    let mut wrapped: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped: {}", 7)))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
+    let mut wrapped: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped: {}", 7)))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } })));
     let mut w = Rc::new(RefCell::new(Some(({
         let val = wrapped.clone();
         let guard = val.borrow();

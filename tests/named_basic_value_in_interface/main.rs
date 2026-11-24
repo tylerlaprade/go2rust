@@ -647,6 +647,8 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Celsius>() {
         format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<Level>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Name>() {
@@ -655,6 +657,11 @@ fn format_any(value: &dyn Any) -> String {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -674,6 +681,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Celsius>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Level>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Name>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
@@ -703,6 +711,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Celsius>() { return "main.Celsius" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<Level>() { return "main.Level" }
     if val.is::<Name>() { return "main.Name" }
     std::any::type_name_of_val(val)
@@ -2070,7 +2079,7 @@ fn main() {
     let mut b: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Name(Rc::new(RefCell::new(Some("x".to_string()))))) as Box<dyn Any>)));
     let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Celsius(Rc::new(RefCell::new(Some(21.5 as f64))))) as Box<dyn Any>)));
     println!("{} {} {}", format!("{}", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match b.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match c.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
-    print!("{}", go_sprintf(&"%v %d %s %v|%5v|%-4d|%x\n".to_string(), &[{ let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*b.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = b.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*c.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = c.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).is_none(); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) } }; __go_format_arg }], false));
+    print!("{}", go_sprintf(&"%v %d %s %v|%5v|%-4d|%x\n".to_string(), &[{ let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*b.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = b.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*c.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = c.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }, { let __go_format_arg: Box<dyn Any> = if { let __nil_result = (*a.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } { Box::new(GoFormatNil) } else { { let __any_holder = a.clone(); let __any_guard = __any_holder.borrow(); match __any_guard.as_ref() { Some(__any) => go_any_clone(__any.as_ref()), None => Box::new(GoNilAny) as Box<dyn Any> } } }; __go_format_arg }], false));
     let mut values = Rc::new(RefCell::new(Some(vec![Box::new(Level(Rc::new(RefCell::new(Some(1 as i64))))) as Box<dyn Any>, Box::new(Name(Rc::new(RefCell::new(Some("y".to_string()))))) as Box<dyn Any>, Box::new(Celsius(Rc::new(RefCell::new(Some((-3.0) as f64))))) as Box<dyn Any>])));
     { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for v in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         print!("{}{}", format!("{}", format_any(v.as_ref())), format!("{}", " ".to_string()));

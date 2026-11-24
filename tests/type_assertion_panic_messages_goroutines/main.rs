@@ -646,12 +646,19 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<Rect>() {
         format!("{}", v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
@@ -948,6 +955,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<Rect>() { return "main.Rect" }
     std::any::type_name_of_val(val)
 }
@@ -1051,7 +1059,7 @@ pub fn r#try(f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         {
         let mut r = go_recover();;
-        if { let __nil_result = (*r.lock().unwrap()).is_some(); __nil_result } {
+        if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }

@@ -645,6 +645,8 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
     } else if let Some(v) = value.downcast_ref::<point>() {
         format!("{}", v)
     } else {
@@ -657,6 +659,11 @@ fn format_any(value: &dyn Any) -> String {
 fn format_any_nested(value: &dyn Any) -> String {
     format_any(value)
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -675,6 +682,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<i64>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<point>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
@@ -787,6 +795,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     if val.is::<Rc<RefCell<Option<i64>>>>() { return "*int" }
     if val.is::<point>() { return "main.point" }
     std::any::type_name_of_val(val)
@@ -928,11 +937,11 @@ fn main() {
         { let new_val = Box::new(point { x: Rc::new(RefCell::new(Some(5))), y: Rc::new(RefCell::new(Some(6))), ..Default::default() }) as Box<dyn Any>; *r_closure_clone.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut() -> ()>)));
     { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = h.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    println!("{} {}", format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", { let __nil_result = (*r.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", { let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
 
     let mut typedNil: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some({ let __boxed = Box::new(Rc::new(RefCell::new(None::<i64>))) as Box<dyn Any>; go_register_any_type_with_elem::<Rc<RefCell<Option<i64>>>>("pointer", true, "basic", true); __boxed })));
     reassign(go_any_handle_copy(&typedNil));
-    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*({
+    println!("{} {}", format!("{}", { let __nil_result = (*typedNil.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __nil_result = (*({
         let val = typedNil.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
