@@ -3399,6 +3399,14 @@ run_xfail_test() {
     run_test "tests/simple_range"
 }
 
+@test "slice_elem_linked_list" {
+    run_test "tests/slice_elem_linked_list"
+}
+
+@test "slice_elem_linked_list_goroutines" {
+    run_test "tests/slice_elem_linked_list_goroutines"
+}
+
 @test "slice_elem_pointer_append" {
     run_test "tests/slice_elem_pointer_append"
 }
