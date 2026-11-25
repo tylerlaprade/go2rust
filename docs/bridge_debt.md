@@ -367,7 +367,7 @@ in the first place.
   (`externalErrorChainUnwrapArms`)
 - Go symbol: `os.Create`, `os.OpenFile`, `os.IsNotExist`, `os.IsExist`,
   `os.IsPermission`, `(fs.FileInfo).ModTime`, and `Write`, `WriteString`,
-  `Read`, `ReadAt` and `Close` on an opened file, `fmt.Fprintf` to it
+  `Read`, `ReadAt`, `Name` and `Close` on an opened file, `fmt.Fprintf` to it
 - Transpiler gap: `os.File` is the syscall layer and stays a stub.
   `os.Create` returned a separate hand-written `GoFile` type, while method
   calls on a `*os.File` are written for the stub's `os_File`, so writing to

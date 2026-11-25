@@ -237,6 +237,7 @@ impl std::fmt::Display for User {
 pub trait Writer: std::fmt::Display + Any {
     fn __go_clone_box_writer(&self) -> Box<dyn Writer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_writer(&self, other: &(dyn Writer + Send + Sync)) -> bool;
     fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>);
 }
@@ -315,7 +316,7 @@ impl User {
 
 impl upperWriter {
     pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.buf.clone(); let __append_values: Vec<_> = { let __slice_holder = Arc::new(Mutex::new(Some((*strings::to_upper(Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*p.lock().unwrap().as_ref().unwrap()).clone())).unwrap())))).lock().unwrap().as_ref().unwrap()).as_bytes().to_go_slice()))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *self.buf.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.buf.clone(); let __append_values: Vec<_> = { let __slice_holder = Arc::new(Mutex::new(Some((*strings::to_upper(Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*p.lock().unwrap().as_ref().unwrap()).clone())).unwrap())))).lock().unwrap().as_ref().unwrap()).as_bytes().to_go_slice()))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.lock().unwrap()).is_none(); Arc::new(Mutex::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *self.buf.lock().unwrap() = __slice_header; };
         (
             ({ let __len = (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64,
             Arc::new(Mutex::new(None))
@@ -364,6 +365,10 @@ impl Writer for upperWriterPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_writer(&self, other: &(dyn Writer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<upperWriterPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -384,6 +389,10 @@ impl io::r#mod::Writer for upperWriterPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_writer(&self, other: &(dyn io::r#mod::Writer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<upperWriterPtr>() {

@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
     fn count(&self) -> i64;
 }
@@ -662,6 +663,7 @@ impl std::fmt::Display for word {
 pub trait Visitor: std::fmt::Display + Any {
     fn __go_clone_box_visitor(&self) -> Box<dyn Visitor>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_visitor(&self, other: &dyn Visitor) -> bool;
     fn visit(&mut self, n: Rc<RefCell<Option<Box<dyn Node>>>>) -> Rc<RefCell<Option<Box<dyn Visitor>>>>;
 }
@@ -757,6 +759,10 @@ impl Node for wordPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_node(&self, other: &dyn Node) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<wordPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -824,6 +830,10 @@ impl Visitor for collectorPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_visitor(&self, other: &dyn Visitor) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<collectorPtr>() {

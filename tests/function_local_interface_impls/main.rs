@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 pub trait incer: std::fmt::Display + Any {
     fn __go_clone_box_incer(&self) -> Box<dyn incer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_incer(&self, other: &(dyn incer + Send + Sync)) -> bool;
     fn inc(&mut self);
 }
@@ -25,6 +26,7 @@ impl Clone for Box<dyn incer + Send + Sync> {
 pub trait namer: std::fmt::Display + Any {
     fn __go_clone_box_namer(&self) -> Box<dyn namer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool;
     fn name(&self) -> Arc<Mutex<Option<String>>>;
 }
@@ -38,6 +40,7 @@ impl Clone for Box<dyn namer + Send + Sync> {
 pub trait speaker: std::fmt::Display + Any {
     fn __go_clone_box_speaker(&self) -> Box<dyn speaker + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_speaker(&self, other: &(dyn speaker + Send + Sync)) -> bool;
     fn name(&self) -> Arc<Mutex<Option<String>>>;
     fn sound(&self) -> Arc<Mutex<Option<String>>>;
@@ -250,6 +253,10 @@ impl namer for animalPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<animalPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -314,6 +321,10 @@ impl namer for dogPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<dogPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -361,6 +372,10 @@ impl speaker for dogPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_speaker(&self, other: &(dyn speaker + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<dogPtr>() {
@@ -426,6 +441,10 @@ impl namer for catPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_namer(&self, other: &(dyn namer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<catPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -473,6 +492,10 @@ impl speaker for catPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_speaker(&self, other: &(dyn speaker + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<catPtr>() {
@@ -529,6 +552,10 @@ impl incer for counterPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_incer(&self, other: &(dyn incer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {

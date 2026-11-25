@@ -1,0 +1,7 @@
+field: runtime error: invalid memory address or nil pointer dereference
+next: runtime error: invalid memory address or nil pointer dereference
+missing: runtime error: invalid memory address or nil pointer dereference
+index: runtime error: index out of range [5] with length 3
+divide: runtime error: integer divide by zero
+worker: runtime error: invalid memory address or nil pointer dereference
+done

@@ -32,8 +32,9 @@ func main() {
 	if strings.Contains(rust, `format!("{}", s)`) {
 		t.Errorf("a range value of a local interface should be read through its cell:\n%s", rust)
 	}
-	// A nil element prints <nil>.
-	if !strings.Contains(rust, `match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }`) {
+	// A nil element prints <nil>; a non-nil one prints through __go_print
+	// (DEV-170).
+	if !strings.Contains(rust, `match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }`) {
 		t.Errorf("missing the cell read:\n%s", rust)
 	}
 	// %T matches the value __go_as_any gives against each implementor.

@@ -1785,6 +1785,18 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			writeAtomicUint64Stub(&out)
 			continue
 		}
+		if name == "atomic_Int64" {
+			writeAtomicIntegerTypeStub(&out, name, "AtomicI64", "i64")
+			continue
+		}
+		if name == "atomic_Uint32" {
+			writeAtomicIntegerTypeStub(&out, name, "AtomicU32", "u32")
+			continue
+		}
+		if name == "atomic_Bool" {
+			writeAtomicBoolStub(&out)
+			continue
+		}
 		if name == "fs_FileInfo" {
 			writeFsFileInfoStub(&out, name, methodsByType[name])
 			continue
@@ -2290,6 +2302,12 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
         self.__go_data.lock().unwrap().clone()
     }
 
+    /// File.Name: the name the File was opened with (part of the
+    /// os-file-create shim).
+    pub fn name(&self) -> STRING_TYPE {
+        NAME_VALUE
+    }
+
     pub fn close(&self) -> ERROR_TYPE {
         let mut __disk = self.__go_disk.lock().unwrap();
         if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
@@ -2610,6 +2628,7 @@ impl os_File {
 		"VEC_MUT_BORROW", vecMutBorrow,
 		"STRING_TYPE", stringType,
 		"STRING_BORROW", stringBorrow,
+		"NAME_VALUE", wrappedExternalStubExpr("String", "self.__go_name.clone()"),
 	).Replace(osFileStubCoreMethods))
 	writeStubIoEOFRegistry(out, errorInnerType, errorType)
 }
@@ -3619,12 +3638,21 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			// TEMPORARY: os-std-streams in docs/bridge_debt.md. Remove when os
 			// translates from source with syscall.Write as the bridge.
 			// os.Stdout and os.Stderr write to the process's streams. Every
-			// read of the variable is the same File, as in Go.
+			// read of the variable is the same *File, as in Go, so
+			// out == os.Stdout compares equal.
+			handleType := pkg.Variables[varName]
+			file := wrappedExternalStubExpr("os_File", "os_File { __go_std_stream: "+stream+", __go_name: \"/dev/"+strings.ToLower(varName)+"\".to_string(), ..Default::default() }")
 			out.WriteString("    pub fn " + varName + "() -> ")
-			out.WriteString(pkg.Variables[varName])
-			out.WriteString(" {\n        static __GO_FILE: std::sync::OnceLock<os_File> = std::sync::OnceLock::new();\n        ")
-			out.WriteString(wrappedExternalStubExpr("os_File", "__GO_FILE.get_or_init(|| os_File { __go_std_stream: "+stream+", __go_name: \"/dev/"+strings.ToLower(varName)+"\".to_string(), ..Default::default() }).clone()"))
-			out.WriteString("\n    }\n")
+			out.WriteString(handleType)
+			out.WriteString(" {\n")
+			if NeedsConcurrentWrapper() {
+				out.WriteString("        static __GO_FILE: std::sync::OnceLock<" + handleType + "> = std::sync::OnceLock::new();\n")
+				out.WriteString("        __GO_FILE.get_or_init(|| " + file + ").clone()\n")
+			} else {
+				out.WriteString("        thread_local! { static __GO_FILE: " + handleType + " = " + file + "; }\n")
+				out.WriteString("        __GO_FILE.with(|__file| __file.clone())\n")
+			}
+			out.WriteString("    }\n")
 		} else {
 			writeExternalPackageStubVariable(out, "os", varName, pkg.Variables[varName])
 		}
@@ -3946,7 +3974,7 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("        let path = _arg0.into_go_string();\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => {\n")
-	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, __go_name: path.clone(), ..Default::default() };\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
 	out.WriteString(", no_error())\n")

@@ -127,6 +127,10 @@ impl io::r#mod::Writer for printerPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_writer(&self, other: &(dyn io::r#mod::Writer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<printerPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
