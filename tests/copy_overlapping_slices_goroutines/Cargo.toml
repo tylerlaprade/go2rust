@@ -1,0 +1,11 @@
+[package]
+name = "copy_overlapping_slices_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "copy_overlapping_slices_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

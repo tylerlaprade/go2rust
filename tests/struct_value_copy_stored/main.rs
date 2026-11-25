@@ -956,7 +956,7 @@ fn main() {
 
     let mut copied: Rc<RefCell<Option<Vec<Point>>>> = Rc::new(RefCell::new(Some((0..((*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize).map(|_| Default::default()).collect::<Vec<Point>>())));
     let mut n = {
-        let _src = { let __copy_src_holder = list.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _src = { let __copy_src_holder = list.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min((*copied.borrow().as_ref().unwrap()).len(), _src.len());
         for _i in 0.._n {
             (*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();
