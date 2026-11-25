@@ -3016,6 +3016,52 @@ func methodFromEmbeddedInterface(ifaceName, methodName string) bool {
 	return false
 }
 
+// writeStubEmbeddedInterfaceMethods declares, in the trait of the interface
+// ifaceName, the methods of an embedded interface from a package that is
+// only a stub, whose interface is a struct and so no supertrait.
+func writeStubEmbeddedInterfaceMethods(out *strings.Builder, ifaceName string, embeddedExpr ast.Expr) {
+	if _, ok := transpiledNamedInterfaceTypeNameFromExpr(embeddedExpr); ok {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return
+	}
+	named, ok := types.Unalias(typeInfo.GetType(embeddedExpr)).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+		return
+	}
+	embedded, ok := named.Underlying().(*types.Interface)
+	if !ok {
+		return
+	}
+	for i := 0; i < embedded.NumMethods(); i++ {
+		method := embedded.Method(i)
+		sig, ok := method.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		out.WriteString("    fn ")
+		out.WriteString(ToSnakeCase(method.Name()))
+		out.WriteString("(")
+		out.WriteString(interfaceTraitMethodReceiver(ifaceName, method.Name()))
+		params := sig.Params()
+		for j := 0; j < params.Len(); j++ {
+			name := params.At(j).Name()
+			if name == "" || name == "_" {
+				name = fmt.Sprintf("__arg%d", j)
+			}
+			out.WriteString(", ")
+			out.WriteString(RustLocalIdent(name))
+			out.WriteString(": ")
+			out.WriteString(goTypesParamTypeToRust(params.At(j).Type()))
+		}
+		out.WriteString(")")
+		writeInterfaceMethodResultTypesFromFunc(out, method)
+		out.WriteString(";\n")
+	}
+}
+
 // writeTraitMethodSigFromTypes writes a Rust trait method signature derived
 // from a go/types signature. Used to emit methods inherited from embedded
 // interfaces whose declarations aren't directly walked by the AST loop.
@@ -6209,6 +6255,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		// Inherited methods come through supertraits — redeclaring them
 		// here would cause method-resolution ambiguity (E0034).
 		for _, method := range t.Methods.List {
+			if len(method.Names) == 0 {
+				// An embedded interface that is no trait of ours, such as
+				// container/heap's sort.Interface from sort's stub, cannot be
+				// a supertrait: its methods are declared here.
+				writeStubEmbeddedInterfaceMethods(out, typeSpec.Name.Name, method.Type)
+				continue
+			}
 			if len(method.Names) > 0 {
 				// Named method
 				funcType, ok := method.Type.(*ast.FuncType)
@@ -6786,6 +6839,10 @@ func sequenceDisplayFormatter(elem types.Type) (string, bool) {
 		return "", false
 	}
 	if goTypeBasicDisplayable(elem) || typeHasGoStringMethod(elem) || typeHasGoStringMethod(types.NewPointer(elem)) {
+		return "format_slice", true
+	}
+	// "type PQ []Item" holds Items, whose generated Display prints {a b}.
+	if pointerElementHasGeneratedStructDisplay(elem) {
 		return "format_slice", true
 	}
 	return "", false

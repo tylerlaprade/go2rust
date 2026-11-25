@@ -1,0 +1,39 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/container_heap",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/internal_stringslite",
+    "vendor/io",
+    "vendor/math_bits",
+    "vendor/sort",
+    "vendor/strings",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "container_heap_from_source"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "container_heap_from_source"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+container_heap = { path = "vendor/container_heap" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+io = { path = "vendor/io" }
+math_bits = { path = "vendor/math_bits" }
+sort = { path = "vendor/sort" }
+strings = { path = "vendor/strings" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

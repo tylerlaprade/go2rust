@@ -820,6 +820,12 @@ impl A {
     }
 }
 
+impl Display for A {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Grid(pub Rc<RefCell<Option<[A; 2]>>>);

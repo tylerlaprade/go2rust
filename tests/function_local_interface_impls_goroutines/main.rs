@@ -572,6 +572,7 @@ fn main() {
     ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::math_bits::__go_init_all();
+    ::sort::__go_init_all();
     ::strings::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
@@ -629,7 +630,7 @@ fn main() {
     }
     }
     } }
-    { let __sort_target = names.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+    sort::strings(names.clone());
     println!("{}", format!("{}", (*strings::join(names.clone(), Arc::new(Mutex::new(Some(",".to_string())))).lock().unwrap().as_ref().unwrap())));
     
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(0))) })));
