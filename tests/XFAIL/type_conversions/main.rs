@@ -845,7 +845,7 @@ fn main() {
     print!("rune count: {}\n", (*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
 
         // Rune slice back to string
-    let mut backToString = Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())));
+    let mut backToString = Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>())));
     print!("runes to string: {}\n", { let __v = (*backToString.borrow().as_ref().unwrap()).clone(); __v });
 
         // Boolean conversions (not direct, but showing concept)
