@@ -158,7 +158,9 @@ report_fixture_timeout() {
 # directory.
 fixture_stdin() {
     if [[ -f "$1/stdin.txt" ]]; then
-        echo "$(cd "$1" && pwd)/stdin.txt"
+        local dir
+        dir=$(cd "$1" && pwd)
+        echo "$dir/stdin.txt"
     else
         echo /dev/null
     fi
