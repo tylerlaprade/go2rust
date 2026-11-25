@@ -699,10 +699,10 @@ fn main() {
     let mut converted = Rc::new(RefCell::new(Some(0o640 as u32)));
     let mut values = Rc::new(RefCell::new(Some(vec![416i64, 416i64, 416i64, 416i64])));
 
-    println!("{}", format!("{}", LEGACY == 416));
-    println!("{}", format!("{}", UNDERSCORED == 416));
-    println!("{}", format!("{}", MODERN == 416 && UPPER_MODERN == 416));
-    println!("{}", format!("{}", HEX_UPPER == 26 && BINARY_UPPER == 10));
+    println!("{}", format!("{}", true));
+    println!("{}", format!("{}", true));
+    println!("{}", format!("{}", true && true));
+    println!("{}", format!("{}", true && true));
     println!("{}", format!("{}", returned() == 511));
     println!("{}", format!("{}", float_returned() == 416.0));
     println!("{}", format!("{}", (*converted.borrow().as_ref().unwrap()) == 416 as u32));

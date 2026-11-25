@@ -781,6 +781,6 @@ fn main() {
     let mut y: Rc<RefCell<Option<f64>>> = Rc::new(RefCell::new(Some(0.3)));
     let mut z = Rc::new(RefCell::new(Some(vec![0.3, 1.21])));
     println!("{} {} {} {} {}", { let __text = go_float_string(({ let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, { let __text = go_float_string(({ let __v = (*y.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, format!("{}", format_slice(&z)), { let __text = go_float_string((1.0) as f64, false); __text }, format!("{}", (*x.borrow().as_ref().unwrap()) == 0.3));
-    println!("{} {}", { let __text = go_float_string(((*Rc::new(RefCell::new(Some(((0.3)) as f32))).borrow().as_ref().unwrap())) as f64, true); __text }, format!("{}", 2.0 == 2.0));
+    println!("{} {}", { let __text = go_float_string(((*Rc::new(RefCell::new(Some(((0.3)) as f32))).borrow().as_ref().unwrap())) as f64, true); __text }, format!("{}", true));
     print!("{:.20}\n", 0.3);
 }

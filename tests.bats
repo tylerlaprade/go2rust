@@ -987,6 +987,10 @@ run_xfail_test() {
     run_test "tests/const_integer_call_argument"
 }
 
+@test "constant_folds_and_complex_parts" {
+    run_test "tests/constant_folds_and_complex_parts"
+}
+
 @test "constants_basic" {
     run_test "tests/constants_basic"
 }

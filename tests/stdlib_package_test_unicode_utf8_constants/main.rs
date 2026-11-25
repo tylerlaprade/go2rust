@@ -238,10 +238,10 @@ fn __go_init_globals() {
 /// Keeping the package test body unchanged makes this fixture an oracle for the
 /// source-transpiled package rather than a hand-written approximation of it.
 pub fn test_constants(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
-    if { let __tmp_x = MAX_RUNE; let __tmp_y = unicode::MAX_RUNE; __tmp_x != __tmp_y } {
+    if false {
         { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("utf8.MaxRune is wrong: %x should be %x".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(1114111i32) as Box<dyn Any + Send + Sync>, Box::new(1114111i32) as Box<dyn Any + Send + Sync>])))); __result };
     }
-    if { let __tmp_x = RUNE_ERROR; let __tmp_y = unicode::REPLACEMENT_CHAR; __tmp_x != __tmp_y } {
+    if false {
         { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.errorf(Arc::new(Mutex::new(Some("utf8.RuneError is wrong: %x should be %x".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(65533i32) as Box<dyn Any + Send + Sync>, Box::new(65533i32) as Box<dyn Any + Send + Sync>])))); __result };
     }
 }

@@ -996,8 +996,8 @@ fn main() {
     print!("complex128: {}\n", { let __v = (*c128.borrow().as_ref().unwrap()).clone(); __v });
 
         // Extract real and imaginary parts
-    let mut real = Rc::new(RefCell::new(Some((*c128.borrow().as_ref().unwrap()).re)));
-    let mut imag = Rc::new(RefCell::new(Some((*c128.borrow().as_ref().unwrap()).im)));
+    let mut real = { let __part = (*c128.borrow().as_ref().unwrap()).re; __part };
+    let mut imag = { let __part = (*c128.borrow().as_ref().unwrap()).im; __part };
     print!("real part: {:.2}\n", { let __v = (*real.borrow().as_ref().unwrap()).clone(); __v });
     print!("imaginary part: {:.2}\n", { let __v = (*imag.borrow().as_ref().unwrap()).clone(); __v });
 

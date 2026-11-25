@@ -992,7 +992,7 @@ func isBareBuiltinCall(expr ast.Expr) bool {
 		return false
 	}
 	switch ident.Name {
-	case "len", "cap", "min", "max":
+	case "len", "cap", "min", "max", "real", "imag":
 		return isBuiltinIdent(ident)
 	default:
 		return false
@@ -15018,6 +15018,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeFoldedFloatConstant(out, e) {
 			return
 		}
+		if writeFoldedConstantComparisonOrShift(out, e) {
+			return
+		}
 		if writeGoSemanticsShift(out, e) {
 			return
 		}
@@ -26773,18 +26776,27 @@ func writeWideIntConstant(out *strings.Builder, expr ast.Expr) bool {
 	if !exact || (n >= -2147483648 && n <= 2147483647 && !declaredIntConstants[expr] && !runeAsInt) {
 		return false
 	}
-	if n == -9223372036854775808 {
-		out.WriteString("i64::MIN")
-		return true
+	// int(^uint32(0)) is a conversion, whose value is in a cell like every
+	// other basic conversion's: written bare, Println took a lock on it.
+	wrap := false
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && typeConversionEmitsWrappedValue(call) {
+		wrap = true
+		WriteWrapperPrefix(out)
 	}
-	if n < 0 {
+	switch {
+	case n == -9223372036854775808:
+		out.WriteString("i64::MIN")
+	case n < 0:
 		out.WriteString("(")
 		out.WriteString(strconv.FormatInt(n, 10))
 		out.WriteString("i64)")
-		return true
+	default:
+		out.WriteString(strconv.FormatInt(n, 10))
+		out.WriteString("i64")
 	}
-	out.WriteString(strconv.FormatInt(n, 10))
-	out.WriteString("i64")
+	if wrap {
+		WriteWrapperSuffix(out)
+	}
 	return true
 }
 
