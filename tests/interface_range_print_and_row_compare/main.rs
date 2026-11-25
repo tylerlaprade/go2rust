@@ -691,6 +691,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
     fn area(&self) -> f64;
 }
@@ -886,6 +887,10 @@ impl Shape for RectPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -945,6 +950,10 @@ impl Shape for CirclePtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() }
     }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<CirclePtr>() {
@@ -1006,6 +1015,10 @@ impl Shape for SquarePtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<SquarePtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -1022,15 +1035,15 @@ pub fn describe(s: Rc<RefCell<Option<Box<dyn Shape>>>>) -> Rc<RefCell<Option<Str
 fn main() {
     let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(3.0))), h: Rc::new(RefCell::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(Circle { r: Rc::new(RefCell::new(Some(1.0))), ..Default::default() }) as Box<dyn Shape>)))])));
     { let __range_holder = shapes.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
-        println!("{} {}", format!("{}", i), format!("{}", match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
-        print!("{}|{}|{:.1}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }, (*s.borrow().as_ref().unwrap()).area());
+        println!("{} {}", format!("{}", i), format!("{}", match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
+        print!("{}|{}|{:.1}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }, (*s.borrow().as_ref().unwrap()).area());
     } }
     let mut pointers = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(SquarePtr(Rc::new(RefCell::new(Some(Square { s: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }))).clone())) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new(RectPtr(Rc::new(RefCell::new(Some(Rect { w: Rc::new(RefCell::new(Some(5.0))), h: Rc::new(RefCell::new(Some(6.0))), ..Default::default() }))).clone())) as Box<dyn Shape>)))])));
     { let __range_holder = pointers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
         print!("{} {}|{:.1}\n", i, { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, (*s.borrow().as_ref().unwrap()).area());
     } }
     let mut s: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1.0))), h: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape>)));
-    print!("{} {}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() });
+    print!("{} {}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() });
     println!("{} {}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new(Circle { r: Rc::new(RefCell::new(Some(2.0))), ..Default::default() }) as Box<dyn Shape>)))).borrow().as_ref().unwrap())), format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new(SquarePtr(Rc::new(RefCell::new(Some(Square { s: Rc::new(RefCell::new(Some(3.0))), ..Default::default() }))).clone())) as Box<dyn Shape>)))).borrow().as_ref().unwrap())));
     let mut none: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(None));
     print!("{} {}\n", { let __type_name = match none.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Circle>() { "main.Circle" } else if __any.is::<CirclePtr>() { "*main.Circle" } else if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<SquarePtr>() { "*main.Square" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, { let __nil_result = (*none.borrow()).is_none(); __nil_result });

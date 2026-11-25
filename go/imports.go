@@ -1627,6 +1627,10 @@ func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
             return format!("runtime error: index out of range [{}] with length {}", __index, __len);
         }
     }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called ` + "`Option::unwrap()`" + ` on a ` + "`None`" + ` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
     __text
 }
 `)

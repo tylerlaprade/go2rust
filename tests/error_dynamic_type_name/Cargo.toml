@@ -1,0 +1,11 @@
+[package]
+name = "error_dynamic_type_name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_dynamic_type_name"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -724,6 +724,7 @@ fn main() {
 pub trait GoAnonymousInterface1: std::fmt::Display + Any {
     fn __go_clone_box_go_anonymous_interface1(&self) -> Box<dyn GoAnonymousInterface1>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_go_anonymous_interface1(&self, other: &dyn GoAnonymousInterface1) -> bool;
     fn rhs(&self) -> Rc<RefCell<Option<types_Type>>>;
 }

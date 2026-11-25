@@ -1081,6 +1081,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Value: std::fmt::Display + Any {
     fn __go_clone_box_value(&self) -> Box<dyn Value + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_value(&self, other: &(dyn Value + Send + Sync)) -> bool;
     fn value(&self) -> f64;
 }
@@ -1242,6 +1243,10 @@ impl Value for NumberPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_value(&self, other: &(dyn Value + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<NumberPtr>() {

@@ -46,7 +46,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut h = Arc::new(Mutex::new(Some(holder { w: Arc::new(Mutex::new(Some(Box::new(bytes::buffer::BufferPtr(bytes::new_buffer(Arc::new(Mutex::new(None))).clone())) as Box<dyn io::r#mod::Writer + Send + Sync>))), ..Default::default() })));
-    let mut err = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("{}", match (*h.lock().unwrap().as_ref().unwrap()).w.lock().unwrap().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }))))));
+    let mut err = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("{}", match (*h.lock().unwrap().as_ref().unwrap()).w.lock().unwrap().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }))))));
     println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }));
 }
 

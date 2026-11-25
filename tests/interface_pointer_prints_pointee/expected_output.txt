@@ -1,0 +1,11 @@
+&{a.txt 10} a.txt 10
+&{a.txt 10}|&{name:a.txt size:10}|&{a.txt 10}
+dir:src src 0
+dir:src|dir:src|dir:src
+&{held 1}
+&{made 3}
+problem 7
+<problem 7> wrapped: problem 7
+true counter
+<nil>
+plain

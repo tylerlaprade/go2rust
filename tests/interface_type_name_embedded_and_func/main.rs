@@ -639,6 +639,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 pub trait A: std::fmt::Display + Any {
     fn __go_clone_box_a(&self) -> Box<dyn A>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_a(&self, other: &dyn A) -> bool;
     fn p_a(&self) -> i64;
 }
@@ -652,6 +653,7 @@ impl Clone for Box<dyn A> {
 pub trait B: std::fmt::Display + Any {
     fn __go_clone_box_b(&self) -> Box<dyn B>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_b(&self, other: &dyn B) -> bool;
     fn p_b(&self) -> i64;
 }
@@ -738,6 +740,7 @@ impl std::fmt::Display for T {
 pub trait Runner: std::fmt::Display + Any {
     fn __go_clone_box_runner(&self) -> Box<dyn Runner>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_runner(&self, other: &dyn Runner) -> bool;
     fn run(&self) -> Rc<RefCell<Option<String>>>;
 }
@@ -826,6 +829,10 @@ impl A for TPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_a(&self, other: &dyn A) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<TPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -865,6 +872,10 @@ impl B for TPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_b(&self, other: &dyn B) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<TPtr>() {

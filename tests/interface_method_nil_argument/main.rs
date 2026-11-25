@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_node(&self, other: &dyn Node) -> bool;
     fn node_name(&self) -> Rc<RefCell<Option<String>>>;
 }
