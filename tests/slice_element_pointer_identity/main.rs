@@ -684,6 +684,9 @@ impl std::io::Write for GoSlice<u8> {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -830,13 +833,19 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };
         }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
         if let Ok(__guard) = self.slice.try_borrow() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1059,7 +1068,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -1270,7 +1279,7 @@ impl std::fmt::Display for cell {
 /// with pointer arithmetic: two windows of one array overlap when the first
 /// element of one lies inside the other.
 pub fn overlaps(a: Rc<RefCell<Option<Vec<i64>>>>, b: Rc<RefCell<Option<Vec<i64>>>>) -> bool {
-    if (({ let __len = (*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) || (({ let __len = (*b.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
+    if ((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) || ((*b.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
         return false;
     }
     for i in 0..(({ let __range_holder = a.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
