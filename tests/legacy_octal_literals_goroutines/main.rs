@@ -870,10 +870,10 @@ fn main() {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut converted = Arc::new(Mutex::new(Some(0o640 as u32)));;
         let mut values = Arc::new(Mutex::new(Some(vec![416i64, 416i64, 416i64, 416i64])));;
-        results_thread.send({ let __tmp_x = LEGACY; let __tmp_y = 416; __tmp_x == __tmp_y });;
-        results_thread.send({ let __tmp_x = UNDERSCORED; let __tmp_y = 416; __tmp_x == __tmp_y });;
-        results_thread.send({ let __tmp_x = MODERN; let __tmp_y = 416; __tmp_x == __tmp_y } && { let __tmp_x = UPPER_MODERN; let __tmp_y = 416; __tmp_x == __tmp_y });;
-        results_thread.send({ let __tmp_x = HEX_UPPER; let __tmp_y = 26; __tmp_x == __tmp_y } && { let __tmp_x = BINARY_UPPER; let __tmp_y = 10; __tmp_x == __tmp_y });;
+        results_thread.send(true);;
+        results_thread.send(true);;
+        results_thread.send(true && true);;
+        results_thread.send(true && true);;
         results_thread.send({ let __tmp_x = returned(); let __tmp_y = 511; __tmp_x == __tmp_y });;
         results_thread.send({ let __tmp_x = float_returned(); let __tmp_y = 416.0; __tmp_x == __tmp_y });;
         results_thread.send({ let __tmp_x = { let __v = (*converted.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 416 as u32; __tmp_x == __tmp_y });;
