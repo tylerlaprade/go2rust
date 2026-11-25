@@ -11056,6 +11056,21 @@ func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) m
 	return merged
 }
 
+// stringRangeSourceIsBareVariable reports whether the source of a string
+// range is a variable that holds the String itself, not a cell: a range
+// variable over a []string ("for _, line := range lines { for _, ch :=
+// range line }") or a bare local.
+func stringRangeSourceIsBareVariable(source ast.Expr) bool {
+	ident, ok := unwrapParens(source).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) {
+		return !isWrappedRangeVarType(varType)
+	}
+	return isVarBare(ident.Name)
+}
+
 func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	receiver, ok := mutexLockReceiver(expr)
 	if !ok {
@@ -15750,6 +15765,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		// Classify a string range source before the loop's own variables are
+		// registered: in "for s := range s" the source is the outer s.
+		stringSourceIsBareVariable := isString && stringRangeSourceIsBareVariable(s.X)
+
 		var popRangeVarScope func()
 		if vt := GetVarTable(); vt != nil {
 			vt.PushScope()
@@ -15983,17 +16002,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// A named string ranges over a copy of the String it holds.
 			var namedStringSource strings.Builder
 			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
-			// A string that is itself a range variable ("for _, line := range
-			// lines { for _, ch := range line }") or a bare local is the
-			// String, not a cell.
-			isBareStringVariable := false
-			if ident, ok := unwrapParens(s.X).(*ast.Ident); ok && !hasNamedStringSource {
-				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) {
-					isBareStringVariable = !isWrappedRangeVarType(varType)
-				} else if isVarBare(ident.Name) {
-					isBareStringVariable = true
-				}
-			}
+			isBareStringVariable := stringSourceIsBareVariable && !hasNamedStringSource
 			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource || isBareStringVariable
 			writeBareStringRangeSource := func() {
 				if hasNamedStringSource {
@@ -16003,7 +16012,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					return
 				}
 				if isBareStringVariable {
-					out.WriteString(RustIdentForUse(unwrapParens(s.X).(*ast.Ident)))
+					// The loop ranges over a copy, so the body may assign
+					// the variable.
+					out.WriteString("(")
+					out.WriteString(rustIdentForUseWithCapture(unwrapParens(s.X).(*ast.Ident)))
+					out.WriteString(").clone()")
 					return
 				}
 				TranspileExpression(out, s.X)

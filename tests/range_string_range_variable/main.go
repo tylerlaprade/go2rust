@@ -37,4 +37,31 @@ func main() {
 		}
 	}
 	fmt.Println(n, count, string(initials))
+	s := "abc"
+	for s := range s {
+		fmt.Print(s, " ")
+	}
+	fmt.Println()
+	for _, line := range []string{"ab", "cd"} {
+		for _, ch := range line {
+			line = ""
+			fmt.Print(string(ch))
+		}
+		fmt.Print("[", line, "]")
+	}
+	fmt.Println()
+	var counts []func() int
+	for _, w := range []string{"xy", "zzz"} {
+		counts = append(counts, func() int {
+			n := 0
+			for range w {
+				n++
+			}
+			return n
+		})
+	}
+	for _, f := range counts {
+		fmt.Print(f(), " ")
+	}
+	fmt.Println()
 }
