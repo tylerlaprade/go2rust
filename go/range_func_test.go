@@ -96,3 +96,24 @@ outer:
 		}
 	}
 }
+
+// m = (a[0]) is written as m = a[0] is: the array holds the map bare, and
+// the variable is the map's cell.
+func TestParenthesizedBareMapElementAssignmentIsWrapped(t *testing.T) {
+	src := `package main
+
+import "fmt"
+
+func main() {
+	a := [2]map[string]int{{"x": 1}, {"y": 2}}
+	m := map[string]int{}
+	m = RHS
+	fmt.Println(m)
+}
+`
+	plain := transpileTypedRegression(t, strings.Replace(src, "RHS", "a[0]", 1))
+	paren := transpileTypedRegression(t, strings.Replace(src, "RHS", "(a[0])", 1))
+	if plain != paren {
+		t.Fatalf("m = (a[0]) differs from m = a[0]:\n%s\n----\n%s", plain, paren)
+	}
+}
