@@ -2253,6 +2253,13 @@ func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast
 		out.WriteString(" = ")
 		WriteWrappedNone(out)
 		return true
+	case *types.Chan:
+		// A channel variable is the bare GoChannel, and its Default is
+		// the nil channel. A cell around it did not compile.
+		out.WriteString(" = <")
+		out.WriteString(GoTypeToRust(typeExpr))
+		out.WriteString(">::default()")
+		return true
 	default:
 		return false
 	}
@@ -11665,6 +11672,56 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 		}
 	}
 
+	return false
+}
+
+// callOfTranslatedFuncReturnsChannel reports whether call is of a function
+// written in Go that the program translates, or of a func value, and has one
+// result, a channel. A channel is the bare GoChannel, and such a function
+// returns it as it is: an element of fanIn(gen(5), gen(5)) took a lock on
+// the channel each call returned.
+func callOfTranslatedFuncReturnsChannel(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	funType := typeInfo.GetType(call.Fun)
+	if funType == nil {
+		return false
+	}
+	// type Factory func() <-chan int is a signature underneath.
+	sig, ok := funType.Underlying().(*types.Signature)
+	if !ok || sig.Results().Len() != 1 {
+		return false
+	}
+	if _, ok := sig.Results().At(0).Type().Underlying().(*types.Chan); !ok {
+		return false
+	}
+	var name *ast.Ident
+	fun := unwrapParens(call.Fun)
+	// g[int](1) names g with its type arguments.
+	switch index := fun.(type) {
+	case *ast.IndexExpr:
+		fun = unwrapParens(index.X)
+	case *ast.IndexListExpr:
+		fun = unwrapParens(index.X)
+	}
+	switch fun := fun.(type) {
+	case *ast.Ident:
+		name = fun
+	case *ast.SelectorExpr:
+		name = fun.Sel
+	case *ast.FuncLit:
+		return true
+	default:
+		return false
+	}
+	switch obj := typeInfo.GetObject(name).(type) {
+	case *types.Var:
+		return true
+	case *types.Func:
+		return obj.Pkg() != nil && !isStubBackedStdlibPackagePath(obj.Pkg().Path())
+	}
 	return false
 }
 

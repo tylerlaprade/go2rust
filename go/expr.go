@@ -1477,8 +1477,9 @@ func writeSliceBoundValue(out *strings.Builder, expr ast.Expr, fallback string) 
 }
 
 // currentSliceElemZeroFillable reports, while a slice expression is
-// written, whether its elements are of a basic type, which has a zero value
-// (Rust's Default) to fill the backing array with.
+// written, whether its elements are of a basic type, or are slices, which
+// have a zero value (Rust's Default: GoSlice's is the nil slice) to fill the
+// backing array with. text/tabwriter grows b.lines[:n] of a [][]cell.
 var currentSliceElemZeroFillable bool
 
 func sliceExprElemIsBasic(e *ast.SliceExpr) bool {
@@ -1497,8 +1498,13 @@ func sliceExprElemIsBasic(e *ast.SliceExpr) bool {
 	if _, isNamed := types.Unalias(slice.Elem()).(*types.Named); isNamed {
 		return false
 	}
-	_, isBasic := types.Unalias(slice.Elem()).(*types.Basic)
-	return isBasic
+	switch types.Unalias(slice.Elem()).(type) {
+	case *types.Basic:
+		return true
+	case *types.Slice:
+		return goSliceModeEnabled()
+	}
+	return false
 }
 
 // resliceMethod is GoSlice's s[lo:hi:max]. Slicing up to the capacity
@@ -2001,7 +2007,7 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 	}
 	if call, ok := arg.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && !callOfTranslatedFuncReturnsChannel(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("(*")
 			TranspileExpression(out, call)
 			WriteBorrowMethod(out, false)

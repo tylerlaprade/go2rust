@@ -5868,6 +5868,14 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				return
 			}
 			if star, ok := appendPointerToSliceDerefTarget(expr); ok {
+				if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+					// *line, where line := &lines[i]: a handle of the
+					// element's value, which append copies from.
+					WriteWrapperPrefix(out)
+					writeSliceElemPtrDerefRead(out, ident)
+					WriteWrapperSuffix(out)
+					return
+				}
 				TranspileExpressionContext(out, star.X, LValue)
 				return
 			}
@@ -6357,6 +6365,14 @@ func writePointerDerefSliceLen(out *strings.Builder, expr ast.Expr) bool {
 	}
 	if _, ok := types.Unalias(ptr.Elem()).Underlying().(*types.Slice); !ok {
 		return false
+	}
+	if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		// line := &lines[i] points at an element of a slice of slices;
+		// len(*line) is the length of that element.
+		out.WriteString("(")
+		writeSliceElemPtrDerefRead(out, ident)
+		out.WriteString(".len() as i64)")
+		return true
 	}
 	out.WriteString("{ let __slice_holder = ")
 	TranspileExpressionContext(out, star.X, LValue)

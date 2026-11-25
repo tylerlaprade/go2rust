@@ -56,6 +56,7 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // timers of time_runtime.go, so a Duration is an int64 that prints as
 // 1h30m0s and Time formats and adds as in Go; internal/godebug and the
 // packages it imports read the GODEBUG settings time consults.
+// text/tabwriter is Go's elastic tabstops; its stub's methods panicked.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -77,6 +78,7 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"internal/godebug":      true,
 	"internal/bisect":       true,
 	"internal/godebugs":     true,
+	"text/tabwriter":        true,
 }
 
 // NewPackageLoader creates a new package loader
@@ -160,7 +162,30 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	pl.monomorphizeMainPackage()
+	pl.boxCapturedReboundVariables()
 	return nil
+}
+
+// boxCapturedReboundVariables gives a cell to each pointer, map or channel
+// variable of the program's own packages that a closure captures and that is
+// assigned after the closure is made; see closure_box.go.
+func (pl *PackageLoader) boxCapturedReboundVariables() {
+	paths := make([]string, 0, len(pl.allPackages))
+	for path := range pl.allPackages {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	for _, path := range paths {
+		pkg := pl.allPackages[path]
+		if pkg == nil || pkg.TypesInfo == nil || pkg.Types == nil || isStdlibPackage(pkg.PkgPath) {
+			continue
+		}
+		fileSet := pkg.Fset
+		if fileSet == nil {
+			fileSet = pl.fileSet
+		}
+		boxCapturedReboundVariables(&TypeInfo{info: pkg.TypesInfo, pkg: pkg.Types}, fileSet, pkg.Syntax)
+	}
 }
 
 // monomorphizeMainPackage writes the main package's generic declarations

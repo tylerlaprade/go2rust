@@ -751,6 +751,10 @@ run_xfail_test() {
     run_test "tests/channel_interface_values"
 }
 
+@test "channel_pipeline_call_results" {
+    run_test "tests/channel_pipeline_call_results"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
@@ -833,6 +837,14 @@ run_xfail_test() {
 
 @test "closures_basic" {
     run_test "tests/closures_basic"
+}
+
+@test "closures_rebind_captured_handles" {
+    run_test "tests/closures_rebind_captured_handles"
+}
+
+@test "closures_rebind_captured_handles_goroutines" {
+    run_test "tests/closures_rebind_captured_handles_goroutines"
 }
 
 @test "closures_sharing_a_variable" {
@@ -4429,6 +4441,10 @@ run_xfail_test() {
 
 @test "sync_once_receiver_init" {
     run_test "tests/sync_once_receiver_init"
+}
+
+@test "text_tabwriter_from_source" {
+    run_test "tests/text_tabwriter_from_source"
 }
 
 @test "tickers_basic" {
