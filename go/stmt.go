@@ -11675,6 +11675,43 @@ func callReturnsBareChannelValue(call *ast.CallExpr) bool {
 	return false
 }
 
+// callOfTranslatedFuncReturnsChannel reports whether call is of a function
+// written in Go that the program translates, or of a func value, and has one
+// result, a channel. A channel is the bare GoChannel, and such a function
+// returns it as it is: an element of fanIn(gen(5), gen(5)) took a lock on
+// the channel each call returned.
+func callOfTranslatedFuncReturnsChannel(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	sig, ok := typeInfo.GetType(call.Fun).(*types.Signature)
+	if !ok || sig.Results().Len() != 1 {
+		return false
+	}
+	if _, ok := sig.Results().At(0).Type().Underlying().(*types.Chan); !ok {
+		return false
+	}
+	var name *ast.Ident
+	switch fun := unwrapParens(call.Fun).(type) {
+	case *ast.Ident:
+		name = fun
+	case *ast.SelectorExpr:
+		name = fun.Sel
+	case *ast.FuncLit:
+		return true
+	default:
+		return false
+	}
+	switch obj := typeInfo.GetObject(name).(type) {
+	case *types.Var:
+		return true
+	case *types.Func:
+		return obj.Pkg() != nil && !isStubBackedStdlibPackagePath(obj.Pkg().Path())
+	}
+	return false
+}
+
 func isMakeChannelCall(call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) == 0 {
 		return false
