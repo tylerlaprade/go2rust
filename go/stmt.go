@@ -11685,7 +11685,12 @@ func callOfTranslatedFuncReturnsChannel(call *ast.CallExpr) bool {
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
-	sig, ok := typeInfo.GetType(call.Fun).(*types.Signature)
+	funType := typeInfo.GetType(call.Fun)
+	if funType == nil {
+		return false
+	}
+	// type Factory func() <-chan int is a signature underneath.
+	sig, ok := funType.Underlying().(*types.Signature)
 	if !ok || sig.Results().Len() != 1 {
 		return false
 	}
@@ -11693,7 +11698,15 @@ func callOfTranslatedFuncReturnsChannel(call *ast.CallExpr) bool {
 		return false
 	}
 	var name *ast.Ident
-	switch fun := unwrapParens(call.Fun).(type) {
+	fun := unwrapParens(call.Fun)
+	// g[int](1) names g with its type arguments.
+	switch index := fun.(type) {
+	case *ast.IndexExpr:
+		fun = unwrapParens(index.X)
+	case *ast.IndexListExpr:
+		fun = unwrapParens(index.X)
+	}
+	switch fun := fun.(type) {
 	case *ast.Ident:
 		name = fun
 	case *ast.SelectorExpr:

@@ -11,6 +11,7 @@ building
 20 20 20 
 recovered boom 41
 true
+bound 1
 true
 9
 map[b:2]

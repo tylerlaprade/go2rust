@@ -184,6 +184,13 @@ func (b *capturedVarBoxer) unit(fnType *ast.FuncType, recv *ast.FieldList, body 
 	// function. rangeBodies maps such a body to its range statement.
 	var stack []ast.Node
 	rangeBodies := map[*ast.BlockStmt]*ast.RangeStmt{}
+	// inList holds the statements directly in a statement list, where a
+	// statement can be put before or after them.
+	inList := map[ast.Stmt]bool{}
+	// mixedDefines holds the short variable declarations that assign a
+	// variable declared before, p, n := q, 1, and can be split into a
+	// declaration of the new variables and an assignment.
+	mixedDefines := map[*ast.AssignStmt]bool{}
 	var loops []ast.Node
 	var nodes []ast.Node
 	commAssigns := map[ast.Stmt]bool{}
@@ -225,11 +232,11 @@ func (b *capturedVarBoxer) unit(fnType *ast.FuncType, recv *ast.FieldList, body 
 			if rs := rangeBodies[node]; rs != nil {
 				stack = append(stack, rs)
 			}
-			b.markListDecls(node.List, vars, candidate, top())
+			b.markListDecls(node.List, vars, candidate, top(), inList)
 		case *ast.CaseClause:
-			b.markListDecls(node.Body, vars, candidate, top())
+			b.markListDecls(node.Body, vars, candidate, top(), inList)
 		case *ast.CommClause:
-			b.markListDecls(node.Body, vars, candidate, top())
+			b.markListDecls(node.Body, vars, candidate, top(), inList)
 			if node.Comm != nil {
 				commAssigns[node.Comm] = true
 			}
@@ -247,9 +254,12 @@ func (b *capturedVarBoxer) unit(fnType *ast.FuncType, recv *ast.FieldList, body 
 				if cv == nil {
 					continue
 				}
-				if node.Tok == token.DEFINE || commAssigns[node] {
+				if commAssigns[node] || (node.Tok == token.DEFINE && !(inList[node] && splittableDefine(node, info))) {
 					cv.rejected = true
 					continue
+				}
+				if node.Tok == token.DEFINE {
+					mixedDefines[node] = true
 				}
 				cv.assignments = append(cv.assignments, capturedVarAssignment{pos: node.Pos(), lit: top(), loops: append([]ast.Node(nil), loops...)})
 			}
@@ -385,10 +395,51 @@ func (b *capturedVarBoxer) unit(fnType *ast.FuncType, recv *ast.FieldList, body 
 		if !ok || c.Index() < 0 {
 			return true
 		}
-		for _, v := range listStmtDefinedVars(stmt, info) {
-			if cv := declaredBy[v]; cv != nil && cv.body == nil {
-				c.InsertAfter(b.cellDecl(cv))
+		defined := listStmtDefinedVars(stmt, info)
+		hasCell := func(vars []*types.Var) bool {
+			for _, v := range vars {
+				if cv := declaredBy[v]; cv != nil && cv.body == nil {
+					return true
+				}
 			}
+			return false
+		}
+		cellsAfter := func(vars []*types.Var) []ast.Stmt {
+			var cells []ast.Stmt
+			for _, v := range vars {
+				if cv := declaredBy[v]; cv != nil && cv.body == nil {
+					cells = append(cells, b.cellDecl(cv))
+				}
+			}
+			return cells
+		}
+		// var (p *Node; f = func() { p = nil }): f's literal uses p's
+		// cell, so each spec is a declaration of its own, with the cells
+		// of its variables right after it.
+		if decl, ok := stmt.(*ast.DeclStmt); ok {
+			if gen, ok := decl.Decl.(*ast.GenDecl); ok && len(gen.Specs) > 1 && hasCell(defined) {
+				var seq []ast.Stmt
+				for _, spec := range gen.Specs {
+					one := &ast.DeclStmt{Decl: &ast.GenDecl{Doc: gen.Doc, TokPos: spec.Pos(), Tok: token.VAR, Specs: []ast.Spec{spec}}}
+					seq = append(seq, one)
+					seq = append(seq, cellsAfter(listStmtDefinedVars(one, info))...)
+				}
+				c.Replace(seq[0])
+				for i := len(seq) - 1; i > 0; i-- {
+					c.InsertAfter(seq[i])
+				}
+				return true
+			}
+		}
+		// p, n := q, 1 with p given a cell: var n int; __cell_p_1.v, n = q, 1.
+		if assign, ok := stmt.(*ast.AssignStmt); ok && mixedDefines[assign] && assignWritesSelector(assign) {
+			for _, decl := range b.splitDefine(assign) {
+				c.InsertBefore(decl)
+			}
+		}
+		cells := cellsAfter(defined)
+		for i := len(cells) - 1; i >= 0; i-- {
+			c.InsertAfter(cells[i])
 		}
 		return true
 	})
@@ -406,9 +457,10 @@ func (b *capturedVarBoxer) unit(fnType *ast.FuncType, recv *ast.FieldList, body 
 
 // markListDecls marks the variables a statement of list declares, so their
 // cell can be declared after it.
-func (b *capturedVarBoxer) markListDecls(list []ast.Stmt, vars map[*types.Var]*capturedVar, candidate func(*ast.Ident, ast.Node, *ast.BlockStmt), lit ast.Node) {
+func (b *capturedVarBoxer) markListDecls(list []ast.Stmt, vars map[*types.Var]*capturedVar, candidate func(*ast.Ident, ast.Node, *ast.BlockStmt), lit ast.Node, inList map[ast.Stmt]bool) {
 	info := b.typeInfo.info
 	for _, stmt := range list {
+		inList[stmt] = true
 		for _, ident := range listStmtDefinedIdents(stmt) {
 			candidate(ident, lit, nil)
 			if v, ok := info.Defs[ident].(*types.Var); ok {
@@ -446,6 +498,62 @@ func listStmtDefinedIdents(stmt ast.Stmt) []*ast.Ident {
 		}
 	}
 	return idents
+}
+
+// splittableDefine reports whether a short variable declaration can be
+// written as a declaration of its new variables followed by an assignment:
+// no right side names a variable the statement declares, which the right
+// side would then refer to instead of the variable outside.
+func splittableDefine(assign *ast.AssignStmt, info *types.Info) bool {
+	names := map[string]bool{}
+	for _, lhs := range assign.Lhs {
+		if ident, ok := lhs.(*ast.Ident); ok && info.Defs[ident] != nil {
+			names[ident.Name] = true
+		}
+	}
+	ok := true
+	for _, rhs := range assign.Rhs {
+		ast.Inspect(rhs, func(n ast.Node) bool {
+			if ident, isIdent := n.(*ast.Ident); isIdent && names[ident.Name] {
+				ok = false
+			}
+			return ok
+		})
+	}
+	return ok
+}
+
+// assignWritesSelector reports whether a left side of assign is no longer
+// an identifier: a variable given a cell, written through it.
+func assignWritesSelector(assign *ast.AssignStmt) bool {
+	for _, lhs := range assign.Lhs {
+		if _, ok := lhs.(*ast.SelectorExpr); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// splitDefine turns p, n := q, 1 into an assignment, and returns the
+// declarations of its new variables, var n int, to put before it.
+func (b *capturedVarBoxer) splitDefine(assign *ast.AssignStmt) []ast.Stmt {
+	info := b.typeInfo.info
+	var decls []ast.Stmt
+	for i, lhs := range assign.Lhs {
+		ident, ok := lhs.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		v, ok := info.Defs[ident].(*types.Var)
+		if !ok {
+			continue
+		}
+		r := &rangeFuncRewrite{typeInfo: b.typeInfo, pos: ident.Pos()}
+		decls = append(decls, &ast.DeclStmt{Decl: &ast.GenDecl{TokPos: ident.Pos(), Tok: token.VAR, Specs: []ast.Spec{&ast.ValueSpec{Names: []*ast.Ident{ident}, Type: r.typeExpr(v.Type())}}}})
+		assign.Lhs[i] = r.use(v)
+	}
+	assign.Tok = token.ASSIGN
+	return decls
 }
 
 func listStmtDefinedVars(stmt ast.Stmt, info *types.Info) []*types.Var {

@@ -1603,6 +1603,7 @@ fn main() {
         let mut __rf_done_2: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         let __cell_q_10_closure_clone = __cell_q_10.clone(); { let __f_holder = nodes(Arc::new(Mutex::new(Some(vec![1, 2, 3])))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Node>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Node>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |__rf_param_2_0: Arc<Mutex<Option<Node>>>| -> bool {
         { let new_val = __rf_param_2_0.clone(); (*__cell_q_10_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
+        println!("{} {}", format!("{}", "bound".to_string()), format!("{}", (*(*(*__cell_q_10_closure_clone.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
         { let new_val = Arc::new(Mutex::new(None)); (*__cell_q_10_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
         return false;
         true

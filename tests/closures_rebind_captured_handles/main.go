@@ -159,6 +159,7 @@ func main() {
 	// A range over a function: its body is the yield function.
 	var q *Node
 	for q = range nodes(1, 2, 3) {
+		fmt.Println("bound", q.V)
 		q = nil
 		break
 	}

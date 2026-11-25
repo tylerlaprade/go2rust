@@ -176,3 +176,87 @@ func main() {
 		t.Fatalf("want two anonymous structs:\n%s", rust)
 	}
 }
+
+// p, n := q, 1 assigns p, which a closure uses, and declares n.
+func TestMixedShortDeclarationAssignsThroughTheCell(t *testing.T) {
+	got := boxedGo(t, `package main
+
+type Node struct{ V int }
+
+func main() {
+	var p *Node
+	read := func() *Node { return p }
+	p, n := &Node{}, 1
+	_, _ = read(), n
+}
+`)
+	if !strings.Contains(got, "var n int __cell_p_1.v, n = &Node{}, 1") {
+		t.Fatalf("p, n := was not split:\n%s", got)
+	}
+}
+
+// var (p *Node; f = func() { p = nil }): f's literal uses p's cell, which is
+// declared between the two specs.
+func TestGroupedDeclarationIsSplitAtTheCell(t *testing.T) {
+	got := boxedGo(t, `package main
+
+type Node struct{ V int }
+
+func main() {
+	var (
+		p *Node
+		f = func() { p = nil }
+	)
+	f()
+	_ = p
+}
+`)
+	if !strings.Contains(got, "var p *Node __cell_p_1 := struct { v *Node }{p} var f = func() { __cell_p_1.v = nil }") {
+		t.Fatalf("the declaration was not split:\n%s", got)
+	}
+}
+
+// x, err := f(x) cannot declare x first: the right side's x is the outer one.
+func TestShortDeclarationThatShadowsOnItsRightIsLeftAlone(t *testing.T) {
+	src := `package main
+
+type Node struct{ V int }
+
+func next(n *Node) (*Node, error) { return n, nil }
+
+func main() {
+	var p *Node
+	read := func() *Node { return p }
+	x := &Node{}
+	{
+		x, p := next(x)
+		_, _ = x, p
+	}
+	p, x2 := next(x)
+	_, _, _ = read(), x2, p
+}
+`
+	got := boxedGo(t, src)
+	if !strings.Contains(got, "__cell_p_1.v, x2 = next(x)") {
+		t.Fatalf("p, x2 := next(x) was not split:\n%s", got)
+	}
+}
+
+// struct{ f func(a int) } and struct{ f func(b int) } are one Go type, and so
+// one Rust struct.
+func TestIdenticalAnonymousStructsWithOtherParameterNamesAreOneRustStruct(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	a := struct{ f func(a int) int }{func(a int) int { return a + 1 }}
+	b := struct{ f func(b int) int }{func(b int) int { return b * 2 }}
+	a = b
+	fmt.Println(a.f(3))
+}
+`)
+	if strings.Contains(rust, "AnonymousStruct2") {
+		t.Fatalf("want one anonymous struct:\n%s", rust)
+	}
+}
