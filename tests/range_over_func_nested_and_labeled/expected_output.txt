@@ -1,0 +1,23 @@
+row 1 v 0
+  stopped at 1
+row 2 v 0
+row 2 v 1
+  stopped at 2
+row 3 v 0
+  stopped at 1
+last b 1
+a 0 b 0
+  stopped at 1
+a 1 b 0
+a 1 b 1
+  stopped at 2
+a 2 b 0
+  stopped at 1
+  stopped at 2
+  stopped at 2
+b2 true
+ false
+  stopped at 7
+  stopped at 3
+37
+total 4

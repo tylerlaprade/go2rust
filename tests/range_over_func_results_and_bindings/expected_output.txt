@@ -1,0 +1,15 @@
+[1 2] 2
+[3] 1
+true a
+a1 <nil>
+7
+1 [0 9]
+stopped at 0
+z true 0 0
+pointers 1
+1 true w
+7 1
+C
+2 5 2 2
+shadowed seq ranges over a func
+1 true 2 true
