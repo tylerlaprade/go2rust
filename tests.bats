@@ -1659,6 +1659,10 @@ run_xfail_test() {
     run_test "tests/go_names_drop"
 }
 
+@test "go_statement_any_capture" {
+    run_test "tests/go_statement_any_capture"
+}
+
 @test "goroutine_capture_rust_keyword" {
     run_test "tests/goroutine_capture_rust_keyword"
 }
@@ -2853,6 +2857,10 @@ run_xfail_test() {
 
 @test "package_interface_concrete_equality" {
     run_test "tests/package_interface_concrete_equality"
+}
+
+@test "package_level_waitgroup_mutex" {
+    run_test "tests/package_level_waitgroup_mutex"
 }
 
 @test "package_named_const_argument" {

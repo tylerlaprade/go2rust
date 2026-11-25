@@ -1,0 +1,11 @@
+[package]
+name = "go_statement_any_capture"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "go_statement_any_capture"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

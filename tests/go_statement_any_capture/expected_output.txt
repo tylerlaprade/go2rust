@@ -1,0 +1,3 @@
+[a b]
+arg 42
+captured text
