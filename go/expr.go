@@ -2967,6 +2967,14 @@ func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.E
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
+	if _, ok := inner.(*ast.CompositeLit); ok {
+		// IDs{} is the newtype value itself, with no cell around it:
+		// append(S{}, s...) in slices.Clone.
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpressionContext(out, inner, LValue)
+		out.WriteString("; __named_slice.0.clone() }")
+		return true
+	}
 	if allowNilSlot {
 		// A nil assignment can clear the outer slot. For nil comparison,
 		// this represents the same value as a named slice with a nil handle.

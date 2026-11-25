@@ -866,7 +866,7 @@ impl Box_ {
 /// takes its lock.
 fn main() {
     let mut s = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
-    { let __idx = (((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = 5; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = ((({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let __rhs = 5; (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "index reads the slice".to_string()), format!("{}", format_slice(&s)));
     { let __idx = (0) as usize; let __rhs = (*s.borrow().as_ref().unwrap())[(1) as usize].clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "value reads the slice".to_string()), format!("{}", format_slice(&s)));
@@ -887,15 +887,15 @@ fn main() {
     println!("{} {}", format!("{}", "compound, increment, swap".to_string()), format!("{}", format_slice(&s)));
 
     let mut s2 = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
-    { let __idx = (((*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let mut __seq_guard = s2.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
-    { let __idx = (((*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = (*s2.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __seq_guard = s2.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
+    { let __idx = ((({ let __len = (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let mut __seq_guard = s2.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1; }
+    { let __idx = ((({ let __len = (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let __rhs = (*s2.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __seq_guard = s2.borrow_mut(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     {
         let __go_lhs_sequence_0 = s2.clone();
-        let __go_lhs_index_0 = (((*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize;
+        let __go_lhs_index_0 = ((({ let __len = (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize;
         let __go_lhs_sequence_1 = s2.clone();
         let __go_lhs_index_1 = (0) as usize;
         let __tmp_0 = (*s2.borrow().as_ref().unwrap())[(0) as usize].clone();
-        let __tmp_1 = (*s2.borrow().as_ref().unwrap())[(((*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone();
+        let __tmp_1 = (*s2.borrow().as_ref().unwrap())[((({ let __len = (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize].clone();
         (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
         (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
@@ -903,11 +903,11 @@ fn main() {
 
     let mut grid = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
     { let __outer_idx = (0) as usize; let __idx = (1) as usize; let __rhs = (*grid.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone(); (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
-    { let __outer_idx = (((*grid.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
+    { let __outer_idx = ((({ let __len = (*grid.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let __idx = (0) as usize; let __rhs = 5; (*grid.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "slice of slices".to_string()), format!("{}", (*grid.borrow().as_ref().unwrap())[(0) as usize].clone()[(1) as usize].clone()), format!("{}", (*grid.borrow().as_ref().unwrap())[(1) as usize].clone()[(0) as usize].clone()));
 
     let mut pts = Rc::new(RefCell::new(Some(vec![Pt { x: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Pt { x: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    { let __idx = (((*pts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = (*pts.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); (*pts.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = ((({ let __len = (*pts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let __rhs = (*pts.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); (*pts.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "struct element".to_string()), format!("{}", (*(*pts.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow().as_ref().unwrap())));
 
     let mut arr = Rc::new(RefCell::new(Some([1i64, 2i64, 3i64])));
@@ -916,7 +916,7 @@ fn main() {
     println!("{} {}", format!("{}", "through a pointer to an array".to_string()), format!("{}", format_slice(&arr)));
 
     let mut w = Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()])));
-    { let __idx = (((*w.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize; let __rhs = format!("{}{}", (*w.borrow().as_ref().unwrap())[(0) as usize].clone(), "!".to_string()); (*w.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    { let __idx = ((({ let __len = (*w.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize; let __rhs = format!("{}{}", (*w.borrow().as_ref().unwrap())[(0) as usize].clone(), "!".to_string()); (*w.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", "strings".to_string()), format!("{}", format_slice(&w)));
 
     let mut a = Rc::new(RefCell::new(Some([1i64, 2i64, 3i64])));
@@ -930,31 +930,31 @@ fn main() {
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64)))), ("b".to_string(), Rc::new(RefCell::new(Some(2i64))))]))));
     { let __map_holder = m.clone(); let __key = "a".to_string(); let __rhs = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + __rhs); };
-    { let __map_key = "c".to_string(); let __map_value = Rc::new(RefCell::new(Some(({ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } as i64) + ((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "c".to_string(); let __map_value = Rc::new(RefCell::new(Some(({ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } as i64) + (({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "map".to_string()), format!("{}", format_map(&m)));
 
     let mut n = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = (*n.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = ({ let __len = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values = vec![(*n.borrow().as_ref().unwrap())[(1) as usize].clone(), (*n.borrow().as_ref().unwrap())[(2) as usize].clone()]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
     println!("{} {}", format!("{}", "append reads the slice".to_string()), format!("{}", format_slice(&n)));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values: Vec<_> = { let __slice_holder = n.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *n.borrow_mut() = __slice_header; };
-    println!("{} {} {}", format!("{}", "append the slice to itself".to_string()), format!("{}", format_slice(&n)), format!("{}", (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {}", format!("{}", "append the slice to itself".to_string()), format!("{}", format_slice(&n)), format!("{}", ({ let __len = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_values: Vec<_> = { let __slice_holder = Rc::new(RefCell::new(Some({ let __seq_holder = n.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (10) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *n.borrow_mut() = __slice_header; };
-    println!("{} {} {} {}", format!("{}", "append a part of the slice".to_string()), format!("{}", (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*n.borrow().as_ref().unwrap())[(12) as usize].clone()), format!("{}", (*n.borrow().as_ref().unwrap())[(13) as usize].clone()));
+    println!("{} {} {} {}", format!("{}", "append a part of the slice".to_string()), format!("{}", ({ let __len = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*n.borrow().as_ref().unwrap())[(12) as usize].clone()), format!("{}", (*n.borrow().as_ref().unwrap())[(13) as usize].clone()));
 
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*b.borrow().as_ref().unwrap()).items.clone(); let __append_value = (*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *(*b.borrow().as_ref().unwrap()).items.borrow_mut() = __slice_header; };
     (*b.borrow_mut().as_mut().unwrap()).dup();
     println!("{} {}", format!("{}", "append to a field".to_string()), format!("{}", format_slice_values(&(*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone())));
 
     let n_closure_clone = n.clone(); let mut total = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
-        return (*n_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;
+        return ({ let __len = (*n_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;
     }) as Box<dyn FnMut() -> i64>)));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = total.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
-    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", (*n.borrow().as_ref().unwrap())[(((*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone()));
+    println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", (*n.borrow().as_ref().unwrap())[((({ let __len = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize].clone()));
 
     let mut byKey = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64]))))]))));
     { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone(); let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = ({ let __len = (*{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*byKey.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {}", format!("{}", "append to a slice in a map".to_string()), format!("{}", format_slice(&{ let __map_holder = byKey.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })));
 }

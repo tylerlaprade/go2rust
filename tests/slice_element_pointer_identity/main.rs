@@ -1279,7 +1279,7 @@ impl std::fmt::Display for cell {
 /// with pointer arithmetic: two windows of one array overlap when the first
 /// element of one lies inside the other.
 pub fn overlaps(a: Rc<RefCell<Option<Vec<i64>>>>, b: Rc<RefCell<Option<Vec<i64>>>>) -> bool {
-    if ((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) || ((*b.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+    if (({ let __len = (*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) || (({ let __len = (*b.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         return false;
     }
     for i in 0..(({ let __range_holder = a.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {

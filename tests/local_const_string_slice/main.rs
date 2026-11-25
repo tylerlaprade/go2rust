@@ -688,5 +688,5 @@ pub fn build_args() -> Rc<RefCell<Option<Vec<String>>>> {
 fn main() {
     let mut args = build_args();
     let mut args = { let __slice_header = GoSliceHeader::go_slice_header(&args); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*args.borrow().as_ref().unwrap())[(2) as usize].clone() == "{{.Path}}\n".to_string()));
+    println!("{} {}", format!("{}", ({ let __len = (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*args.borrow().as_ref().unwrap())[(2) as usize].clone() == "{{.Path}}\n".to_string()));
 }

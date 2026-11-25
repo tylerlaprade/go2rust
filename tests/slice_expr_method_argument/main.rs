@@ -700,7 +700,7 @@ impl std::fmt::Display for sink {
 
 impl sink {
     pub fn count(&self, values: Rc<RefCell<Option<Vec<u8>>>>) -> i64 {
-        (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+        ({ let __len = (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
     }
 }
 

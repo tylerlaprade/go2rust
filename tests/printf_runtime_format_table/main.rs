@@ -1578,7 +1578,7 @@ fn main() {
     let mut texts = Rc::new(RefCell::new(Some(vec!["hi".to_string(), "".to_string(), "h\u{e9}llo w\u{f6}rld".to_string(), "tab\there".to_string(), "quote\"d".to_string(), "back\\slash".to_string(), "new\nline".to_string(), "bell\u{7}".to_string(), "`tick`".to_string()])));
     { let __range_holder = stringFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {
         let mut i = Rc::new(RefCell::new(Some(0i64)));
-    while ((*i.borrow().as_ref().unwrap()) as i64) < ((*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) {
+    while ((*i.borrow().as_ref().unwrap()) as i64) < (({ let __len = (*texts.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) {
         show(Rc::new(RefCell::new(Some((*format).clone()))), sprintf(Rc::new(RefCell::new(Some((*format).clone()))), Rc::new(RefCell::new(Some(vec![Box::new((*texts.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone()) as Box<dyn Any>])))));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }

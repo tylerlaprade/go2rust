@@ -1647,8 +1647,8 @@ impl Lines {
         { let new_val = Rc::new(RefCell::new(Some({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); let __high = (((*s.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *s.borrow_mut() = __moved_val; };
     }
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.got.clone(); let __append_value = (*s.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.got.borrow_mut() = __slice_header; };
-        { let __target = self.bytes.clone(); let __rhs = (*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        ((*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64, Rc::new(RefCell::new(None)))
+        { let __target = self.bytes.clone(); let __rhs = ({ let __len = (*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        (({ let __len = (*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64, Rc::new(RefCell::new(None)))
     }
 }
 

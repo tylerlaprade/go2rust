@@ -973,5 +973,5 @@ fn main() {
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8(std::vec::Vec::from(((*bufs.borrow().as_ref().unwrap())[(1) as usize].clone()).clone())).unwrap()))).borrow().as_ref().unwrap())));
 
     let mut empty = Rc::new(RefCell::new(Some(vec![<Vec<Cell>>::nil(); (2) as usize])));
-    println!("{} {} {}", format!("{}", (*empty.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_element = (*empty.borrow().as_ref().unwrap())[(0) as usize].clone(); __nil_element.is_nil() }), format!("{}", (*empty.borrow().as_ref().unwrap())[(1) as usize].clone().len()));
+    println!("{} {} {}", format!("{}", ({ let __len = (*empty.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_element = (*empty.borrow().as_ref().unwrap())[(0) as usize].clone(); __nil_element.is_nil() }), format!("{}", (*empty.borrow().as_ref().unwrap())[(1) as usize].clone().len()));
 }

@@ -747,7 +747,7 @@ fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<O
 }
 
 pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
-    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+    ({ let __len = (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
 }
 
 pub fn label(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {

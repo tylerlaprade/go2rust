@@ -234,6 +234,9 @@ func (pl *PackageLoader) monomorphizeMainPackage() {
 		fileSet = pl.fileSet
 	}
 	imp := pl.projectImporter()
+	if pl.monomorphizeWithStdlibGenerics(pkg, fileSet, imp) {
+		return
+	}
 	files, ok := monomorphizeGenericsWith(pkg.PkgPath, pkg.Syntax, fileSet, imp)
 	if !ok {
 		return
@@ -245,6 +248,47 @@ func (pl *PackageLoader) monomorphizeMainPackage() {
 	pkg.Syntax = files
 	pkg.Types = ti.pkg
 	pkg.TypesInfo = ti.info
+}
+
+// monomorphizeWithStdlibGenerics copies the generic functions of slices,
+// maps and cmp that pkg calls into it (stdlib_generic_inline.go) and
+// monomorphizes the result, and reports whether it did. The packages the
+// copies import are collected as pkg's imports are.
+func (pl *PackageLoader) monomorphizeWithStdlibGenerics(pkg *packages.Package, fileSet *token.FileSet, imp *projectImporter) bool {
+	inlined, deps, ok := inlineStdlibGenerics(pkg, fileSet, imp)
+	if !ok {
+		return false
+	}
+	checkImp := stdlibInlineImporter{base: imp, deps: deps}
+	files, ok := monomorphizeGenericsWith(pkg.PkgPath, inlined, fileSet, checkImp)
+	if !ok {
+		stdlibInlineDebugf("%s: the copies do not monomorphize", pkg.PkgPath)
+		return false
+	}
+	ti, err := NewTypeInfoWithImporter(pkg.PkgPath, files, fileSet, checkImp)
+	if err != nil || ti == nil {
+		stdlibInlineDebugf("%s: the monomorphized copies do not type-check: %v", pkg.PkgPath, err)
+		return false
+	}
+	pkg.Syntax = files
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
+	paths := make([]string, 0, len(deps))
+	for path := range deps {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	for _, path := range paths {
+		if _, ok := pkg.Imports[path]; ok || !filesImportPath(files, path) {
+			continue
+		}
+		if pkg.Imports == nil {
+			pkg.Imports = map[string]*packages.Package{}
+		}
+		pkg.Imports[path] = deps[path]
+		pl.collectAllPackagesFrom(deps[path], false)
+	}
+	return true
 }
 
 func packageLoadBuildFlags(goFlags string) []string {

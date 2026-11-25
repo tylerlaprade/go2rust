@@ -794,7 +794,7 @@ pub fn pair_o_k(prev: Rc<RefCell<Option<Box<dyn Spec>>>>, next: Rc<RefCell<Optio
 fn main() {
     let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(ImportSpec { name: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() }) as Box<dyn Spec>)))])));
     { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
-        if (i as i64) == (((*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64) as i64) {
+        if (i as i64) == ((({ let __len = (*specs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64) as i64) {
         continue
     }
         println!("{}", format!("{}", pair_o_k(s.clone(), (*specs.borrow().as_ref().unwrap())[(i as i64 + 1) as usize].clone().clone())));

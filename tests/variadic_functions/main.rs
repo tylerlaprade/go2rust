@@ -741,14 +741,14 @@ pub fn sum(numbers: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
 }
 
 pub fn average(numbers: Rc<RefCell<Option<Vec<f64>>>>) -> f64 {
-    if ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+    if (({ let __len = (*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         return 0.0;
     }
     let mut total = Rc::new(RefCell::new(Some(0.0)));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for num in __range_values.iter().copied() {
         { let __rhs = num; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
-    return (*total.borrow().as_ref().unwrap()) / (*Rc::new(RefCell::new(Some((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as f64))).borrow().as_ref().unwrap());
+    return (*total.borrow().as_ref().unwrap()) / (*Rc::new(RefCell::new(Some(({ let __len = (*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as f64))).borrow().as_ref().unwrap());
 }
 
 pub fn print_strings(prefix: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) {
@@ -773,7 +773,7 @@ pub fn min(first: Rc<RefCell<Option<i64>>>, rest: Rc<RefCell<Option<Vec<i64>>>>)
 }
 
 pub fn concat(separator: Rc<RefCell<Option<String>>>, strings: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<String>>> {
-    if ((*strings.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+    if (({ let __len = (*strings.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         return Rc::new(RefCell::new(Some("".to_string())));
     }
     let mut result = Rc::new(RefCell::new(Some((*strings.borrow().as_ref().unwrap())[(0) as usize].clone())));

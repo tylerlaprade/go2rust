@@ -1382,7 +1382,7 @@ fn main() {
     }
     { let new_val = 99; *(*(*ptrs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).price.borrow_mut() = Some(new_val); };
     { let __target = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).price.clone(); let __rhs = 1; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    println!("{} {} {} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone()), format!("{}", (*ptrs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone()), format!("{}", ({ let __len = (*ptrs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __range_holder = ptrs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { let __target = (*p.borrow().as_ref().unwrap()).price.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } }
@@ -1400,5 +1400,5 @@ fn main() {
     { let __range_holder = both.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { let __target = (*p.borrow().as_ref().unwrap()).title.clone(); (*__target.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
     } }
-    println!("{} {}", format!("{}", format_slice(&items)), format!("{}", (*both.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", format_slice(&items)), format!("{}", ({ let __len = (*both.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

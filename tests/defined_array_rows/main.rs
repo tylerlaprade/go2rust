@@ -987,7 +987,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*w.borrow().as_ref().unwrap())), format!("{}", (*w.borrow().as_ref().unwrap()).first()), format!("{}", (*w.borrow().as_ref().unwrap()).sum()));
 
     let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rows>>>>::from([("id".to_string(), identity())]))));
-    println!("{} {}", format!("{}", { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"id".to_string())).map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone()).unwrap_or_else(|| Rows(Rc::new(RefCell::new(Some(std::array::from_fn(|_| std::array::from_fn::<_, 2, _>(|_| 0))))))) }), format!("{}", (*byName.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", { let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"id".to_string())).map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone()).unwrap_or_else(|| Rows(Rc::new(RefCell::new(Some(std::array::from_fn(|_| std::array::from_fn::<_, 2, _>(|_| 0))))))) }), format!("{}", ({ let __len = (*byName.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     { let __range_holder = { let __named_array = (*id.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().expect("array value"); std::mem::drop(__range_guard); for (i, row) in __range_values.iter().copied().enumerate() {
         println!("{} {} {}", format!("{}", i), format!("{}", format_slice_values(&row)), format!("{}", row[(0) as usize].clone() + row[(1) as usize].clone()));

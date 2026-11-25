@@ -802,7 +802,7 @@ impl std::fmt::Display for buf {
 
 impl buf {
     pub fn fill(&mut self, src: Rc<RefCell<Option<Vec<u8>>>>) {
-        { let new_val = Rc::new(RefCell::new(Some(vec![0u8; ((*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize]))); self.dst = new_val; };
+        { let new_val = Rc::new(RefCell::new(Some(vec![0u8; (({ let __len = (*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize]))); self.dst = new_val; };
         {
             let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
             let _n = std::cmp::min((*self.dst.borrow().as_ref().unwrap()).len(), _src.len());

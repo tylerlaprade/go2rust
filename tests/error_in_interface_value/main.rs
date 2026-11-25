@@ -1000,7 +1000,7 @@ pub fn show(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
 }
 
 pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
-    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+    ({ let __len = (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
 }
 
 /// kind tells values apart with a type switch, the way a handler does.
