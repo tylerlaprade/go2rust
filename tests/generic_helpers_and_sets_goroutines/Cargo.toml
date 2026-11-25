@@ -2,6 +2,7 @@
 [workspace]
 members = [
     ".",
+    "vendor/cmp",
     "vendor/go2rust_stdlib_stubs",
     "vendor/internal_bytealg",
     "vendor/internal_stringslite",
@@ -25,6 +26,7 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
+cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_stringslite = { path = "vendor/internal_stringslite" }

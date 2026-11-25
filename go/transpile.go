@@ -75,6 +75,16 @@ var activeMutexGuards = make(map[string]string)
 
 var currentLoopDepth int
 
+// enterClosureBody starts a function literal's body outside any loop: a
+// loop around the literal does not run its body, so a Lock in it takes a
+// guard, as in a function's own body. It returns the function that restores
+// the loop depth.
+func enterClosureBody() func() {
+	oldLoopDepth := currentLoopDepth
+	currentLoopDepth = 0
+	return func() { currentLoopDepth = oldLoopDepth }
+}
+
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
 
