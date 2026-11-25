@@ -322,13 +322,13 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            let __mutex_guard_source_4549141 = mu_thread.clone(); let __mutex_guard_4549141 = __mutex_guard_source_4549141.guard();;
+            let __mutex_guard_source_677 = mu_thread.clone(); let __mutex_guard_677 = __mutex_guard_source_677.guard();;
             report(
                 Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))),
                 Arc::new(Mutex::new(Some("worker".to_string()))),
                 Arc::new(Mutex::new(Some({ let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i })))
             );;
-            std::mem::drop(__mutex_guard_4549141);;
+            std::mem::drop(__mutex_guard_677);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
