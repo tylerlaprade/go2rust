@@ -1,0 +1,11 @@
+[package]
+name = "sync_map_methods"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sync_map_methods"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
