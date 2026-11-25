@@ -1495,7 +1495,7 @@ impl Name {
 
 impl Flag {
     pub fn toggle(&mut self) {
-        { let new_val = Flag(Rc::new(RefCell::new(Some(!((*self.0.borrow().as_ref().unwrap())))))); *self = new_val; };
+        { let new_val = Flag(Rc::new(RefCell::new(Some(!((*self.0.borrow().as_ref().unwrap())))))); let __new_value = new_val.0.borrow_mut().take(); *self.0.borrow_mut() = __new_value; };
     }
 }
 

@@ -4042,6 +4042,16 @@ func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExp
 	}
 	out.WriteString("{ let new_val = ")
 	TranspileExpression(out, rhs)
+	if currentReceiverScalarTypeDefinition() {
+		// The receiver's cell may be another pointer's, as the cell of the
+		// *int that (*intValue)(p) converts: write the value into it.
+		out.WriteString("; let __new_value = new_val.0")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".take(); *self.0")
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = __new_value; }")
+		return true
+	}
 	out.WriteString("; *self = new_val; }")
 	return true
 }
@@ -13360,9 +13370,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else if writeGoSliceHeaderAssignment(out, s) {
 			// A slice variable keeps its cell and takes the new header.
 		} else if isChannelAssignment(s) {
-			writeChannelAssignmentTarget(out, s.Lhs[0])
-			out.WriteString(" = ")
-			writeChannelAssignmentValue(out, s.Rhs[0])
+			if writeGoPtrFieldChannelAssignment(out, s.Lhs[0], s.Rhs[0]) {
+				// t.C = c through a GoPtr, as time.NewTicker sets its channel.
+			} else {
+				writeChannelAssignmentTarget(out, s.Lhs[0])
+				out.WriteString(" = ")
+				writeChannelAssignmentValue(out, s.Rhs[0])
+			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
 			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
 			s.Tok == token.AND_ASSIGN || s.Tok == token.AND_NOT_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
@@ -18133,6 +18147,32 @@ func isChannelAssignment(s *ast.AssignStmt) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
+}
+
+// writeGoPtrFieldChannelAssignment writes p.C = c for a channel field of the
+// struct a GoPtr local points at. A channel field holds its handle bare, so
+// the assignment replaces the field inside the pointee.
+func writeGoPtrFieldChannelAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isGoPtrVar(ident.Name) {
+		return false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		return false
+	}
+	out.WriteString("{ let __new_channel = ")
+	writeChannelAssignmentValue(out, rhs)
+	out.WriteString("; ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(" = __new_channel); }")
+	return true
 }
 
 func writeChannelAssignmentTarget(out *strings.Builder, lhs ast.Expr) {

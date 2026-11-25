@@ -13,6 +13,7 @@ fn main() {
     ::bytes::__go_init_all();
     ::go_build::__go_init_all();
     ::internal_abi::__go_init_all();
+    ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_filepathlite::__go_init_all();
     ::internal_godebug::__go_init_all();

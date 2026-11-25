@@ -1010,6 +1010,13 @@ impl<T: Clone + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
+    }
+
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
         let result = f(&mut value);
@@ -1417,7 +1424,7 @@ fn main() {
     let mut r = Rc::new(RefCell::new(Some(Registry { all: Rc::new(RefCell::new(Some(vec![Employee { name: Rc::new(RefCell::new(Some("ann".to_string()))), dept: Rc::new(RefCell::new(Some("eng".to_string()))), salary: Rc::new(RefCell::new(Some(100))), ..Default::default() }, Employee { name: Rc::new(RefCell::new(Some("bo".to_string()))), dept: Rc::new(RefCell::new(Some("ops".to_string()))), salary: Rc::new(RefCell::new(Some(80))), ..Default::default() }, Employee { name: Rc::new(RefCell::new(Some("cy".to_string()))), dept: Rc::new(RefCell::new(Some("eng".to_string()))), salary: Rc::new(RefCell::new(Some(120))), ..Default::default() }]))), ..Default::default() })));
     (*r.borrow_mut().as_mut().unwrap()).index();
     { let __range_holder = { let __map_holder = (*r.borrow().as_ref().unwrap()).by_dept.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"eng".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
-        raise((*e).clone(), Rc::new(RefCell::new(Some(10))));
+        raise(e.clone(), Rc::new(RefCell::new(Some(10))));
     } }
     raise({ let __elem_ptr = GoSliceElemPtr::new((*r.borrow().as_ref().unwrap()).all.clone(), (1) as usize); Rc::new(RefCell::new((*__elem_ptr.borrow()).clone())) }, Rc::new(RefCell::new(Some(50))));
     { let new_val = "CY".to_string(); *{ let __ptr_value = (*r.borrow().as_ref().unwrap()).top.with_mut(|__ptr_value| __ptr_value.name.clone()); __ptr_value }.borrow_mut() = Some(new_val); };

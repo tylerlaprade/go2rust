@@ -4104,7 +4104,14 @@ func registerPackageTypeModuleNamesForFile(pkgState *PackageState, file *ast.Fil
 	if pkgState.TypeModuleNames == nil {
 		pkgState.TypeModuleNames = make(map[string]string)
 	}
+	if pkgState.MethodDeclModuleNames == nil {
+		pkgState.MethodDeclModuleNames = make(map[*ast.FuncDecl]string)
+	}
 	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Recv != nil {
+			pkgState.MethodDeclModuleNames[fn] = moduleName
+			continue
+		}
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.TYPE {
 			continue
@@ -4204,10 +4211,46 @@ func registerTypeDefinitionForTypeExpr(name string, expr ast.Expr) {
 	if name == "" || expr == nil {
 		return
 	}
+	expr = typeDefinitionStoredTypeExpr(expr)
 	RegisterTypeDefinition(name, typeDefinitionUnderlyingName(expr))
 	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
 		RegisterTypeDefinitionUnderlyingType(name, typ)
 	}
+}
+
+// typeDefinitionStoredTypeExpr gives the type that the newtype of a type
+// definition stores. In `type B A`, where A is a named number, string or bool
+// that is itself a newtype (declared in this package or translated from
+// source, as time.Duration is), B stores the basic value, as `type B int64`
+// does: Go gives B the underlying type of A and none of its methods, and B's
+// conversions read and write its cell as that basic type. For any other type
+// it is expr.
+func typeDefinitionStoredTypeExpr(expr ast.Expr) ast.Expr {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return expr
+	}
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok || typ == nil {
+		return expr
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.TypeArgs().Len() > 0 {
+		return expr
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Kind() == types.UnsafePointer || basic.Info()&types.IsUntyped != 0 {
+		return expr
+	}
+	if pkg := named.Obj().Pkg(); pkg != typeInfo.pkg && isStubBackedStdlibPackagePath(pkg.Path()) {
+		return expr
+	}
+	stored := &ast.Ident{NamePos: expr.Pos(), Name: basic.Name()}
+	typeInfo.info.Types[stored] = types.TypeAndValue{Type: basic}
+	if obj, ok := types.Universe.Lookup(basic.Name()).(*types.TypeName); ok {
+		typeInfo.info.Uses[stored] = obj
+	}
+	return stored
 }
 
 func typeSpecHasFunctionSignature(typeSpec *ast.TypeSpec) bool {
@@ -4753,6 +4796,10 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		switch fn.Name.Name {
 		case "expList":
 			writeInternalBuildcfgExpListIntrinsicBody(out, fn, indent)
+			return true
+		}
+	case "time":
+		if writeTimeRuntimeHookBody(out, fn, indent) {
 			return true
 		}
 	case "internal/godebug":
@@ -6292,6 +6339,12 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		} else {
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
+			if stored := typeDefinitionStoredTypeExpr(t); stored != t {
+				storedSpec := *typeSpec
+				storedSpec.Type = stored
+				typeSpec = &storedSpec
+				t = stored
+			}
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
 			canDeriveDebug := typeDefinitionCanDeriveDebug(typeSpec)
 			customDefault, hasCustomDefault := typeDefinitionCustomDefaultValue(typeSpec)

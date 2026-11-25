@@ -8430,6 +8430,16 @@ func writeGoPtrRawPointerValue(out *strings.Builder, arg ast.Expr, elemRustType 
 			if writeEmbeddedOwnerGoPtrValue(out, target, source, helperQualifier) {
 				return true
 			}
+			var layout strings.Builder
+			if writeLayoutCompatibleStructPointerConversion(&layout, target, source) {
+				// (*Ticker)(unsafe.Pointer(newTimer(...))): a Ticker that
+				// shares the Timer's fields, not a raw address.
+				writeGoPtrQualifiedConstructor(out, helperQualifier, "local")
+				out.WriteString("(")
+				out.WriteString(layout.String())
+				out.WriteString(")")
+				return true
+			}
 		}
 	}
 	info, ok := goPtrInfoForPointerType(typeInfo.GetType(arg))

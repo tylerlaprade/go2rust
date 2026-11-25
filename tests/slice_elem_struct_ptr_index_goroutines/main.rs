@@ -1270,6 +1270,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
+    }
+
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
         let result = f(&mut value);
@@ -1696,7 +1703,7 @@ fn main() {
     let mut r = Arc::new(Mutex::new(Some(Registry { all: Arc::new(Mutex::new(Some(vec![Employee { name: Arc::new(Mutex::new(Some("ann".to_string()))), dept: Arc::new(Mutex::new(Some("eng".to_string()))), salary: Arc::new(Mutex::new(Some(100))), ..Default::default() }, Employee { name: Arc::new(Mutex::new(Some("bo".to_string()))), dept: Arc::new(Mutex::new(Some("ops".to_string()))), salary: Arc::new(Mutex::new(Some(80))), ..Default::default() }, Employee { name: Arc::new(Mutex::new(Some("cy".to_string()))), dept: Arc::new(Mutex::new(Some("eng".to_string()))), salary: Arc::new(Mutex::new(Some(120))), ..Default::default() }]))), ..Default::default() })));
     { let __recv = r.clone(); let __recv_ptr: *mut Registry = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Registry }; let __result = unsafe { &mut *__recv_ptr }.index(); __result };
     { let __range_holder = { let __map = { let __map_holder = (*r.lock().unwrap().as_ref().unwrap()).by_dept.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"eng".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
-        raise((*e).clone(), Arc::new(Mutex::new(Some(10))));
+        raise(e.clone(), Arc::new(Mutex::new(Some(10))));
     } }
     raise(
         { let __elem_ptr = GoSliceElemPtr::new((*r.lock().unwrap().as_ref().unwrap()).all.clone(), (1) as usize); Arc::new(Mutex::new((*__elem_ptr.borrow()).clone())) },
@@ -1725,7 +1732,7 @@ fn main() {
     let mut mu = GoMutex::new();
     { let __range_holder = { let __map = { let __map_holder = (*r.lock().unwrap().as_ref().unwrap()).by_dept.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"eng".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for e in __range_values.iter() {
         wg.add(1);
-        let mu_thread = mu.clone(); let wg_thread = wg.clone(); let __go_arg_0 = (*e).clone(); std::thread::spawn(move || {
+        let mu_thread = mu.clone(); let wg_thread = wg.clone(); let __go_arg_0 = e.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |e: Arc<Mutex<Option<Employee>>>| {

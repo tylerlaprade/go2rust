@@ -247,6 +247,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
+    }
+
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
         let result = f(&mut value);
@@ -710,11 +717,11 @@ pub fn force_concurrent_wrappers() {
 }
 
 pub fn pick_name(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
+    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[{ let __named_value = (*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as usize].clone() })))
 }
 
 pub fn touch_name_ptr(names: Arc<Mutex<Option<Vec<String>>>>, idx: Arc<Mutex<Option<example_com_importedembed_base::r#mod::Index>>>) {
-    let _ = GoSliceElemPtr::new(names.clone(), (*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize);
+    let _ = GoSliceElemPtr::new(names.clone(), { let __named_value = (*{ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as usize);
 }
 
 fn main() {

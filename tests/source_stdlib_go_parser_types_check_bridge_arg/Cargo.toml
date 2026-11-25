@@ -14,6 +14,7 @@ members = [
     "vendor/go_types",
     "vendor/go_version",
     "vendor/internal_abi",
+    "vendor/internal_bisect",
     "vendor/internal_buildcfg",
     "vendor/internal_bytealg",
     "vendor/internal_cpu",
@@ -67,6 +68,7 @@ go_token = { path = "vendor/go_token" }
 go_types = { path = "vendor/go_types" }
 go_version = { path = "vendor/go_version" }
 internal_abi = { path = "vendor/internal_abi" }
+internal_bisect = { path = "vendor/internal_bisect" }
 internal_buildcfg = { path = "vendor/internal_buildcfg" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_cpu = { path = "vendor/internal_cpu" }

@@ -1511,7 +1511,7 @@ fn __go_init_globals() {
 impl Perm {
     pub fn has(&self, q: Arc<Mutex<Option<Perm>>>) -> bool {
         return {
-            let __tmp_x = Perm(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & (*{ let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()))))));
+            let __tmp_x = Perm(Arc::new(Mutex::new(Some(({ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } & { let __named_value = (*{ let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value })))));
             let __tmp_y = ({ let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v });
             __tmp_x == __tmp_y
         };

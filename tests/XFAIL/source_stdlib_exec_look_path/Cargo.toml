@@ -4,8 +4,11 @@ members = [
     ".",
     "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bisect",
     "vendor/internal_bytealg",
     "vendor/internal_filepathlite",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
     "vendor/internal_stringslite",
     "vendor/io",
     "vendor/math",
@@ -14,6 +17,7 @@ members = [
     "vendor/path_filepath",
     "vendor/strconv",
     "vendor/strings",
+    "vendor/time",
     "vendor/unicode",
     "vendor/unicode_utf8",
 ]
@@ -33,8 +37,11 @@ overflow-checks = false
 [dependencies]
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bisect = { path = "vendor/internal_bisect" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 io = { path = "vendor/io" }
 math = { path = "vendor/math" }
@@ -43,5 +50,6 @@ os_exec = { path = "vendor/os_exec" }
 path_filepath = { path = "vendor/path_filepath" }
 strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
+time = { path = "vendor/time" }
 unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

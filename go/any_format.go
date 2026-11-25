@@ -110,7 +110,12 @@ func anyFormatTypeIsLocalNamedBasic(typ types.Type) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return false
+	}
+	// A package translated from source gives its exported types the same
+	// Display, as time does time.Duration.
+	if pkg := named.Obj().Pkg(); pkg != typeInfo.pkg && (!named.Obj().Exported() || isStubBackedStdlibPackagePath(pkg.Path())) {
 		return false
 	}
 	return named.Obj().Parent() == named.Obj().Pkg().Scope()

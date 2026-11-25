@@ -1423,6 +1423,10 @@ run_xfail_test() {
     run_test "tests/flag_parsing"
 }
 
+@test "flag_set_parse_writes_targets" {
+    run_test "tests/flag_set_parse_writes_targets"
+}
+
 @test "float_constant_expressions_fold" {
     run_test "tests/float_constant_expressions_fold"
 }
@@ -2603,6 +2607,10 @@ run_xfail_test() {
     run_test "tests/named_type_comparisons"
 }
 
+@test "named_type_over_named_basic" {
+    run_test "tests/named_type_over_named_basic"
+}
+
 @test "named_type_over_struct_fields" {
     run_test "tests/named_type_over_struct_fields"
 }
@@ -2669,6 +2677,14 @@ run_xfail_test() {
 
 @test "nil_empty_interface_argument_goroutines" {
     run_test "tests/nil_empty_interface_argument_goroutines"
+}
+
+@test "nil_receiver_method_in_other_file" {
+    run_test "tests/nil_receiver_method_in_other_file"
+}
+
+@test "nil_receiver_method_on_reassigned_range_value" {
+    run_test "tests/nil_receiver_method_on_reassigned_range_value"
 }
 
 @test "nil_receiver_methods" {
@@ -3021,6 +3037,14 @@ run_xfail_test() {
 
 @test "pointer_composite_assignment" {
     run_test "tests/pointer_composite_assignment"
+}
+
+@test "pointer_conversion_shares_pointee" {
+    run_test "tests/pointer_conversion_shares_pointee"
+}
+
+@test "pointer_conversion_shares_pointee_goroutines" {
+    run_test "tests/pointer_conversion_shares_pointee_goroutines"
 }
 
 @test "pointer_field_handle_assignment" {
@@ -4341,6 +4365,10 @@ run_xfail_test() {
 
 @test "time_duration_field_assignment" {
     run_test "tests/time_duration_field_assignment"
+}
+
+@test "time_from_source" {
+    run_test "tests/time_from_source"
 }
 
 @test "time_operations" {
