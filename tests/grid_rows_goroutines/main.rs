@@ -1087,7 +1087,7 @@ impl Board {
         { let __idx = (x) as usize; let __rhs = ('#' as i32); (*buf.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
     }
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = lines.clone(); let __append_value = (*Arc::new(Mutex::new(Some((*buf.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))).lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *lines.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = lines.clone(); let __append_value = (*Arc::new(Mutex::new(Some((*buf.lock().unwrap().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *lines.lock().unwrap() = __slice_header; };
     } }
         return lines.clone();
     }
@@ -1149,7 +1149,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
     wg.wait();
     { let __range_holder = rows.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
-        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some((row).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))).lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some((row).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).lock().unwrap().as_ref().unwrap())));
     } }
 
     let mut b = new_board(Arc::new(Mutex::new(Some(5))), Arc::new(Mutex::new(Some(5))));
@@ -1173,15 +1173,15 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
     { let __outer_idx = (1) as usize; let __idx = (1) as usize; let __rhs = ('X' as i32); (*board.lock().unwrap().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     { let __range_holder = board.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for row in __range_values.iter() {
-        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some((row).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))).lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*Arc::new(Mutex::new(Some((row).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).lock().unwrap().as_ref().unwrap())));
     } }
-    println!("{} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = board.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = Arc::new(Mutex::new(Some({
+    println!("{} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = board.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some({ let __rune_slice_holder = Arc::new(Mutex::new(Some({
         let mut __seq = { let __seq = { let __seq_holder = board.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
         let __low = (1) as usize;
         let __high = __seq.len();
         let __max = __seq.capacity();
         __seq.reslice3_zeroed(__low, __high, __max)
-    }))).clone(); let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); (*__rune_slice_guard.as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>() }))).lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = (*Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = board.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()))).lock().unwrap().as_ref().unwrap()).len(); __len })));
+    }))).clone(); let __rune_slice_guard = __rune_slice_holder.lock().unwrap(); (*__rune_slice_guard.as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>() }))).lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = (*Arc::new(Mutex::new(Some(({ let __seq = { let __seq_holder = board.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).lock().unwrap().as_ref().unwrap()).len(); __len })));
 
     let mut bufs = Arc::new(Mutex::new(Some(vec![{ let __slice_holder = Arc::new(Mutex::new(Some(("ab".to_string()).as_bytes().to_go_slice()))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = Arc::new(Mutex::new(Some(("cd".to_string()).as_bytes().to_go_slice()))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])));
     { let __range_holder = bufs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for buf in __range_values.iter() {

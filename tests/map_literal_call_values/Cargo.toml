@@ -1,0 +1,11 @@
+[package]
+name = "map_literal_call_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_literal_call_values"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

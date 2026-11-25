@@ -613,6 +613,68 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+fn format_nested_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Inner]>,
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        format_nested_slice_values(s.as_ref())
+    } else {
+        "[]".to_string()
+    }
+}
+fn format_nested_slice_values<T, Inner>(slice: &[Inner]) -> String
+where
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
+    format!("[{}]", formatted.join(" "))
+}
 
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
@@ -888,6 +950,20 @@ impl Default for Rows {
 impl Rows {
     pub fn __go_value_clone(&self) -> Self {
         Rows(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for Rows {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.borrow().clone();
+        let __right = other.0.borrow().clone();
+        __left == __right
+    }
+}
+
+impl Display for Rows {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_nested_slice(&self.0))
     }
 }
 

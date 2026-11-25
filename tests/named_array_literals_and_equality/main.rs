@@ -1356,7 +1356,7 @@ fn __go_init_globals() {
 
 
 pub fn get(cr: GoPtr<CR>, i: Rc<RefCell<Option<i64>>>) -> i32 {
-    { let __seq_holder = { let __named_array = (*{ let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.delta.clone()); __ptr_value }.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = ((*i.borrow().as_ref().unwrap())) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }
+    return { let __seq_holder = { let __named_array = (*{ let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.delta.clone()); __ptr_value }.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = ((*i.borrow().as_ref().unwrap())) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() };
 }
 
 pub fn lookup(lo: Rc<RefCell<Option<u32>>>) -> Option<GoSliceElemPtr<CR>> {

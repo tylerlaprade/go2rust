@@ -10427,7 +10427,8 @@ func main() {
 		"let mut e = Rc::new(RefCell::new(n.borrow().clone()));",
 		"let mut ch2 = ch.clone();",
 		"let mut ch3 = ch.clone();",
-		"Numbers(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone()))))",
+		// The defined slice takes a copy of s's header, nil or not.
+		"Numbers(Rc::new(RefCell::new(s.borrow().clone())))",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("expected %q:\n%s", want, rust)
