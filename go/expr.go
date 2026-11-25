@@ -1173,9 +1173,28 @@ func isExpressionResultBare(expr ast.Expr) bool {
 		// bare Rust value at the call site; their consumers must not wrap
 		// the result through .borrow().as_ref().unwrap().
 		return callReturnsBareScalar(e)
+	case *ast.UnaryExpr:
+		// A channel holds its slices and maps bare, so <-ch is one.
+		return e.Op == token.ARROW && channelElemIsBareCollection(e)
 	default:
 		return false
 	}
+}
+
+// channelElemIsBareCollection reports whether expr has an unnamed slice or
+// map type, which a channel holds as the bare collection.
+func channelElemIsBareCollection(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch t := types.Unalias(typeInfo.GetType(expr)).(type) {
+	case *types.Slice:
+		return !isEmptyInterfaceType(t.Elem())
+	case *types.Map:
+		return true
+	}
+	return false
 }
 
 func indexExpressionResultKeepsHandle(expr *ast.IndexExpr, typeInfo *TypeInfo) bool {

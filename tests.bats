@@ -771,6 +771,14 @@ run_xfail_test() {
     run_test "tests/channel_send_shadowed_identifiers"
 }
 
+@test "channel_slice_and_map_values" {
+    run_test "tests/channel_slice_and_map_values"
+}
+
+@test "channel_slice_and_map_values_workers" {
+    run_test "tests/channel_slice_and_map_values_workers"
+}
+
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
 }
