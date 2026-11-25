@@ -1,0 +1,11 @@
+[package]
+name = "receiver_field_boxed_in_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "receiver_field_boxed_in_interface"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -551,6 +551,14 @@ run_xfail_test() {
     run_test "tests/append_nil_to_nested_slice"
 }
 
+@test "append_nothing_keeps_nil" {
+    run_test "tests/append_nothing_keeps_nil"
+}
+
+@test "append_nothing_keeps_nil_goroutines" {
+    run_test "tests/append_nothing_keeps_nil_goroutines"
+}
+
 @test "append_result_is_a_new_header" {
     run_test "tests/append_result_is_a_new_header"
 }
@@ -1205,6 +1213,14 @@ run_xfail_test() {
 
 @test "error_custom_type_in_interface_goroutines" {
     run_test "tests/error_custom_type_in_interface_goroutines"
+}
+
+@test "error_dynamic_type_name" {
+    run_test "tests/error_dynamic_type_name"
+}
+
+@test "error_dynamic_type_name_goroutines" {
+    run_test "tests/error_dynamic_type_name_goroutines"
 }
 
 @test "error_equivalent_interface" {
@@ -3359,6 +3375,14 @@ run_xfail_test() {
     run_test "tests/receiver_field_argument_snapshot"
 }
 
+@test "receiver_field_boxed_in_interface" {
+    run_test "tests/receiver_field_boxed_in_interface"
+}
+
+@test "receiver_field_boxed_in_interface_goroutines" {
+    run_test "tests/receiver_field_boxed_in_interface_goroutines"
+}
+
 @test "receiver_pointer_field_literal" {
     run_test "tests/receiver_pointer_field_literal"
 }
@@ -3369,6 +3393,14 @@ run_xfail_test() {
 
 @test "recover_named_type_assertion" {
     run_test "tests/recover_named_type_assertion"
+}
+
+@test "recover_nil_pointer_runtime_error" {
+    run_test "tests/recover_nil_pointer_runtime_error"
+}
+
+@test "recover_nil_pointer_runtime_error_goroutines" {
+    run_test "tests/recover_nil_pointer_runtime_error_goroutines"
 }
 
 @test "recover_without_goroutines" {
@@ -3809,6 +3841,14 @@ run_xfail_test() {
 
 @test "star_pointer_incdec" {
     run_test "tests/star_pointer_incdec"
+}
+
+@test "state_machine_closure_table" {
+    run_test "tests/state_machine_closure_table"
+}
+
+@test "state_machine_closure_table_goroutines" {
+    run_test "tests/state_machine_closure_table_goroutines"
 }
 
 @test "stateful_goroutines" {
