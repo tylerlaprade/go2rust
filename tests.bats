@@ -979,6 +979,18 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "container_list_and_ring" {
+    run_test "tests/container_list_and_ring"
+}
+
+@test "container_list_and_ring_goroutines" {
+    run_test "tests/container_list_and_ring_goroutines"
+}
+
+@test "container_list_lru" {
+    run_test "tests/container_list_lru"
+}
+
 @test "context_err_error_return" {
     run_test "tests/context_err_error_return"
 }
@@ -3473,6 +3485,14 @@ run_xfail_test() {
 
 @test "receiver_pointer_field_literal" {
     run_test "tests/receiver_pointer_field_literal"
+}
+
+@test "receiver_pointer_identity" {
+    run_test "tests/receiver_pointer_identity"
+}
+
+@test "receiver_pointer_identity_goroutines" {
+    run_test "tests/receiver_pointer_identity_goroutines"
 }
 
 @test "receiver_self_argument_temps" {
