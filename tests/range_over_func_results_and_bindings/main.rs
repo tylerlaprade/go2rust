@@ -1108,27 +1108,24 @@ fn main() {
     }
     println!("{} {}", format!("{}", "pointers".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut last: Arc<Mutex<Option<item>>> = Arc::new(Mutex::new(None));
+    let mut __cell_last_1 = Arc::new(Mutex::new(Some(AnonymousStruct1 { v: last.clone() })));
     let mut at: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut __rf_done_9: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-    let mut __rf_bound_9_1: Arc<Mutex<Option<[Arc<Mutex<Option<item>>>; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 1, _>(|_| Arc::new(Mutex::new(None))))));
-    { let __idx = (0) as usize; let __rhs = last.clone(); (*__rf_bound_9_1.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    let __rf_bound_9_1_closure_clone = __rf_bound_9_1.clone(); let mut at_closure_clone = at.clone(); let mut last_closure_clone = last.clone(); wanted(Arc::new(Mutex::new(Some(Box::new(move |__rf_param_9_0: Arc<Mutex<Option<i64>>>, __rf_param_9_1: Arc<Mutex<Option<item>>>| -> bool {
+    let __cell_last_1_closure_clone = __cell_last_1.clone(); let mut at_closure_clone = at.clone(); wanted(Arc::new(Mutex::new(Some(Box::new(move |__rf_param_9_0: Arc<Mutex<Option<i64>>>, __rf_param_9_1: Arc<Mutex<Option<item>>>| -> bool {
         { let new_val = __rf_param_9_0.lock().unwrap().as_ref().unwrap().clone(); *at_closure_clone.lock().unwrap() = Some(new_val); };
-        { let new_val = __rf_param_9_1.clone(); last_closure_clone = new_val; };
-        { let __idx = (0) as usize; let __rhs = __rf_param_9_1.clone(); (*__rf_bound_9_1_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let new_val = __rf_param_9_1.clone(); (*__cell_last_1_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
         true
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<item>>>) -> bool + Send + Sync>))));
-    { let new_val = { let __seq = { let __seq_holder = __rf_bound_9_1.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); last = new_val; };
     if { let __v = (*__rf_done_9.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return;
     }
     println!("{} {} {}", format!("{}", { let __v = (*at.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", {
-        let __left = last.clone();
+        let __left = (*__cell_last_1.lock().unwrap().as_ref().unwrap()).v.clone();
         let __right = (*want.lock().unwrap().as_ref().unwrap()).clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
-    }), format!("{}", (*{ let __field = (*last.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+    }), format!("{}", (*(*(*__cell_last_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
     let mut __rf_done_10: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
     maps(Arc::new(Mutex::new(Some(Box::new(move |__rf_param_10_0: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>| -> bool {
         let mut mm = __rf_param_10_0.clone();
@@ -1187,6 +1184,28 @@ fn main() {
     let (mut c, mut s2) = (Arc::new(Mutex::new(Some(2i64))), { let __tuple_value = Arc::new(Mutex::new(s1.lock().unwrap().clone())); __tuple_value });
     println!("{} {} {} {}", format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*m2.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*s2.lock().unwrap()).is_none(); __nil_result }));
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct AnonymousStruct1 {
+    pub v: Arc<Mutex<Option<item>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.v.clone();
+        Self {
+            v: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
 
 pub(crate) fn __go_init_all() {
     self::__go_init_globals();

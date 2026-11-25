@@ -835,6 +835,14 @@ run_xfail_test() {
     run_test "tests/closures_basic"
 }
 
+@test "closures_rebind_captured_handles" {
+    run_test "tests/closures_rebind_captured_handles"
+}
+
+@test "closures_rebind_captured_handles_goroutines" {
+    run_test "tests/closures_rebind_captured_handles_goroutines"
+}
+
 @test "closures_sharing_a_variable" {
     run_test "tests/closures_sharing_a_variable"
 }
