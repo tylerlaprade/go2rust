@@ -108,12 +108,28 @@ func generateGoErrorChainHelper(out *strings.Builder) {
 	userArms := errorChainUnwrapArms() + externalArms
 	match := "std::ptr::addr_eq(&**e, &*target)"
 	nativeIs := ""
-	fs := currentExternalPackageStubs()["fs"]
-	if externalArms != "" || (fs != nil && fs.Variables["ErrNotExist"] != "") {
+	if externalArms != "" || packageStubsUseFilesystemSentinel(currentExternalPackageStubs()) {
 		match += " || go_native_error_is(e, &target)"
 		nativeIs = `
+// A filesystem sentinel of the stub crate (fs.ErrNotExist, ErrExist,
+// ErrPermission, and os's names for them): an I/O error of its kind with no
+// OS code and Go's text, or none.
+fn go_native_error_is_sentinel(e: &std::io::Error) -> bool {
+    if e.raw_os_error().is_some() {
+        return false;
+    }
+    let text = match e.kind() {
+        std::io::ErrorKind::NotFound => "file does not exist",
+        std::io::ErrorKind::AlreadyExists => "file already exists",
+        std::io::ErrorKind::PermissionDenied => "permission denied",
+        _ => return false,
+    };
+    e.get_ref().map_or(true, |inner| inner.to_string() == text)
+}
+
 // Go compares syscall.Errno values by their numeric code. Its Is method
-// additionally recognizes the filesystem sentinel when it is the target.
+// additionally recognizes the filesystem sentinel of its kind when it is
+// the target.
 fn go_native_error_is(err: &ERR, target: &ERR) -> bool {
     let (Some(err), Some(target)) = (
         err.downcast_ref::<std::io::Error>(),
@@ -122,8 +138,8 @@ fn go_native_error_is(err: &ERR, target: &ERR) -> bool {
     if let Some(target_code) = target.raw_os_error() {
         return err.raw_os_error() == Some(target_code);
     }
-    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
-        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+    go_native_error_is_sentinel(target) && err.kind() == target.kind()
+        && (err.raw_os_error().is_some() || go_native_error_is_sentinel(err))
 }
 `
 	}
