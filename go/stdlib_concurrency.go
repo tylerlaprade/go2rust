@@ -163,13 +163,19 @@ var syncStdlibFunctions = map[string]bool{
 	"bytes.Buffer":   true,
 
 	// sort - Sorting is synchronous
-	"sort.Ints":        true,
-	"sort.Strings":     true,
-	"sort.Float64s":    true,
-	"sort.Sort":        true,
-	"sort.Slice":       true,
-	"sort.SliceStable": true,
-	"sort.Search":      true,
+	"sort.Ints":           true,
+	"sort.Strings":        true,
+	"sort.Float64s":       true,
+	"sort.Sort":           true,
+	"sort.Stable":         true,
+	"sort.IsSorted":       true,
+	"sort.Reverse":        true,
+	"sort.Slice":          true,
+	"sort.SliceStable":    true,
+	"sort.Search":         true,
+	"sort.SearchInts":     true,
+	"sort.SearchFloat64s": true,
+	"sort.SearchStrings":  true,
 
 	// slices - Generic slice helpers are synchronous
 	"slices.Contains":       true,

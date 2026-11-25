@@ -8,6 +8,7 @@ members = [
     "vendor/io",
     "vendor/math",
     "vendor/math_bits",
+    "vendor/sort",
     "vendor/strings",
     "vendor/unicode",
     "vendor/unicode_utf8",
@@ -32,6 +33,7 @@ internal_stringslite = { path = "vendor/internal_stringslite" }
 io = { path = "vendor/io" }
 math = { path = "vendor/math" }
 math_bits = { path = "vendor/math_bits" }
+sort = { path = "vendor/sort" }
 strings = { path = "vendor/strings" }
 unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

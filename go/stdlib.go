@@ -1792,6 +1792,13 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 	// <nil>.
 	if ident, ok := unwrapParens(arg).(*ast.Ident); ok && ident.Name == "nil" {
 		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.info == nil || typeInfo.GetObject(ident) == types.Universe.Lookup("nil") {
+			if slices.Contains(pointerIndices, argIndex) {
+				// %p of the nil interface is a bad verb: %!p(<nil>). The
+				// format string holds {:p}, so the value is one whose
+				// Pointer impl prints that.
+				out.WriteString("{ struct __GoBadPointerVerb; impl std::fmt::Pointer for __GoBadPointerVerb { fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result { f.write_str(\"%!p(<nil>)\") } } __GoBadPointerVerb }")
+				return
+			}
 			out.WriteString("\"<nil>\".to_string()")
 			return
 		}

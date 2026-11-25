@@ -1911,13 +1911,35 @@ func typeAliasSkipsLocalImpl(typeName string) bool {
 	return IsTypeAlias(typeName) && !IsFunctionTypeAlias(typeName)
 }
 
+// explicitInterfaceMethods are the methods an interface's own trait
+// declares: its explicit methods, and those of an embedded interface from a
+// stub-backed package, whose interface is a struct and no supertrait
+// (writeStubEmbeddedInterfaceMethods).
 func explicitInterfaceMethods(iface *types.Interface) []*types.Func {
 	if iface == nil {
 		return nil
 	}
 	methods := make([]*types.Func, 0, iface.NumExplicitMethods())
+	seen := map[string]bool{}
 	for i := 0; i < iface.NumExplicitMethods(); i++ {
 		methods = append(methods, iface.ExplicitMethod(i))
+		seen[iface.ExplicitMethod(i).Name()] = true
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+			continue
+		}
+		embedded, ok := named.Underlying().(*types.Interface)
+		if !ok {
+			continue
+		}
+		for j := 0; j < embedded.NumMethods(); j++ {
+			if method := embedded.Method(j); !seen[method.Name()] {
+				seen[method.Name()] = true
+				methods = append(methods, method)
+			}
+		}
 	}
 	return methods
 }
