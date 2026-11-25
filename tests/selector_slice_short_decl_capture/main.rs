@@ -823,6 +823,7 @@ impl std::fmt::Display for reader {
 
 impl reader {
     pub fn collect(&mut self, vals: Rc<RefCell<Option<Vec<i64>>>>) {
+        let mut vals = Rc::new(RefCell::new((*vals.borrow()).clone()));
         let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
         let mut tparams = { let __slice_header = GoSliceHeader::go_slice_header(&tparams); Rc::new(RefCell::new(__slice_header)) };
         let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Box::new(move || {

@@ -466,6 +466,7 @@ pub fn recovered() -> Arc<Mutex<Option<Node>>> {
 }
 
 pub fn nodes(vs: Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Node>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    let mut vs = Arc::new(Mutex::new((*vs.lock().unwrap()).clone()));
     let vs_closure_clone = vs.clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Node>>>) -> bool + Send + Sync>>>>| {
         { let __range_holder = vs_closure_clone.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for v in __range_values.iter().copied() {
         if !{

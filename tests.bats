@@ -1551,6 +1551,10 @@ run_xfail_test() {
     run_test "tests/full_slice_expressions"
 }
 
+@test "func_field_call_literal_args" {
+    run_test "tests/func_field_call_literal_args"
+}
+
 @test "func_literal_keyword_params" {
     run_test "tests/func_literal_keyword_params"
 }
@@ -3137,6 +3141,18 @@ run_xfail_test() {
 
 @test "pointer_string_calls_helper" {
     run_test "tests/pointer_string_calls_helper"
+}
+
+@test "pointer_to_pointer_receiver_field" {
+    run_test "tests/pointer_to_pointer_receiver_field"
+}
+
+@test "pointer_to_pointer_slots" {
+    run_test "tests/pointer_to_pointer_slots"
+}
+
+@test "pointer_to_pointer_slots_goroutines" {
+    run_test "tests/pointer_to_pointer_slots_goroutines"
 }
 
 @test "pointers_basic" {

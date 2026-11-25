@@ -382,6 +382,7 @@ impl sort::r#mod::Interface for byXPtr {
 }
 
 pub fn first_at_least(values: Arc<Mutex<Option<Vec<i64>>>>, limit: Arc<Mutex<Option<i64>>>) -> i64 {
+    let mut values = Arc::new(Mutex::new((*values.lock().unwrap()).clone()));
     let limit_closure_clone = limit.clone(); let values_closure_clone = values.clone(); return sort::search(Arc::new(Mutex::new(Some(({ let __len = (*values_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))), Arc::new(Mutex::new(Some({ let values_closure_clone_closure_clone = values_closure_clone.clone(); Box::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __seq = { let __seq_holder = values_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
