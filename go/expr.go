@@ -13849,6 +13849,17 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	if !isPackageVarSelector(receiver) {
 		return false, false
 	}
+	if isSharedStdStreamSelector(receiver) {
+		// os.Stdout and os.Stderr are one shared handle. Call the method on
+		// a copy of the File, which shares its state, so the handle is not
+		// locked while the arguments run: os.Stdout.WriteString(
+		// os.Stdout.Name()) reads the same handle again.
+		out.WriteString("{ let __std_stream = (*")
+		TranspileExpressionContext(out, receiver, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); __std_stream }.")
+		return true, false
+	}
 	typeInfo := GetTypeInfo()
 	needsMut := methodCallNeedsMutableReceiver(method)
 	isStdlibReceiver := false

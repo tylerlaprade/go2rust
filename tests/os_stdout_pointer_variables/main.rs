@@ -108,6 +108,14 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
     }), format!("{}", { let __nil_result = (*errOut.lock().unwrap()).is_some(); __nil_result }));
+    { let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.write_string(Arc::new(Mutex::new(Some(format!("{}{}", (*{ let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.name().lock().unwrap().as_ref().unwrap()), "\n".to_string())))));
+    {
+        let (mut f, mut err) = os::open("/dev/null".to_string());;
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
+            println!("{}", format!("{}", (*{ let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));;
+            { let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
+        }
+    }
     let mut files = Arc::new(Mutex::new(Some(vec![{ let __field = os::Stdout().clone(); __field }, { let __field = os::Stderr().clone(); __field }])));
     { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, f) in __range_values.iter().enumerate() {
         println!("{} {} {}", format!("{}", i), format!("{}", {

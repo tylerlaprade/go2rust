@@ -33,6 +33,12 @@ func main() {
 	var errOut *os.File
 	errOut = os.Stderr
 	fmt.Println(errOut == os.Stderr, errOut != nil)
+	// A call on os.Stdout whose argument reads os.Stdout again.
+	os.Stdout.WriteString(os.Stdout.Name() + "\n")
+	if f, err := os.Open("/dev/null"); err == nil {
+		fmt.Println(f.Name())
+		f.Close()
+	}
 	files := []*os.File{os.Stdout, os.Stderr}
 	for i, f := range files {
 		fmt.Println(i, f == os.Stdout, f.Name())

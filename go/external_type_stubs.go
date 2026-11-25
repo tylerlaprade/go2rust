@@ -3962,7 +3962,7 @@ func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString("        let path = _arg0.into_go_string();\n")
 	out.WriteString("        match std::fs::read(&path) {\n")
 	out.WriteString("            Ok(data) => {\n")
-	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, __go_name: path.clone(), ..Default::default() };\n")
 	out.WriteString("                (")
 	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
 	out.WriteString(", no_error())\n")
