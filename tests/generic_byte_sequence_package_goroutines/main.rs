@@ -283,6 +283,9 @@ fn main() {
     let mut t = { let __slice_header = GoSliceHeader::go_slice_header(&t); Arc::new(Mutex::new(__slice_header)) };
     { let __idx = (0) as usize; let __rhs = ('H' as u8) as u8; (*t.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*b.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*t.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap())));
+    let mut short = Arc::new(Mutex::new(Some({ let mut v: Vec<u8> = (0..(8) as usize).map(|_| 0u8).collect(); v.truncate((1) as usize); v })));
+    { let __idx = (0) as usize; let __rhs = ('a' as u8) as u8; (*short.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {}", format!("{}", format_slice(&example_com_seqpkggo_seq::mid::<Vec<u8>>(short.clone(), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(5)))))), format!("{}", ({ let __len = (*example_com_seqpkggo_seq::mid::<Vec<u8>>(short.clone(), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(5)))).lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut wg = WaitGroup::new();
     let mut counts = Arc::new(Mutex::new(Some(vec![0i64; (2) as usize])));
     for (i, s) in vec!["a1".to_string(), "22b3".to_string()].iter().enumerate() {

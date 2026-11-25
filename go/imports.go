@@ -2499,7 +2499,9 @@ func generateGoByteSequence(out *strings.Builder) {
 	// string, and of a []byte a slice that shares its backing array.
 	byteSliceReslice := "self[start..end].to_vec()"
 	if goSliceModeEnabled() {
-		byteSliceReslice = "self.reslice(start, end)"
+		// s[i:j] may reach past len(s) up to cap(s): those bytes are
+		// zero, as reslice3_zeroed stores them.
+		byteSliceReslice = "self.reslice3_zeroed(start, end, self.capacity())"
 	}
 	// go_to_bytes is []byte(s): a string's bytes in a new slice, and a
 	// []byte itself, sharing its backing array.

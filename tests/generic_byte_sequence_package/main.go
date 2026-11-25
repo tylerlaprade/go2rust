@@ -21,4 +21,8 @@ func main() {
 	t := seq.Trim(b, 1)
 	t[0] = 'H'
 	fmt.Println(string(b), string(t))
+	// s[i:j] may reach past len(s), up to cap(s), where the bytes are zero.
+	short := make([]byte, 1, 8)
+	short[0] = 'a'
+	fmt.Println(seq.Mid(short, 0, 5), len(seq.Mid(short, 0, 5)))
 }
