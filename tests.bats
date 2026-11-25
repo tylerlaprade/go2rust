@@ -153,6 +153,16 @@ report_fixture_timeout() {
 
 # Helper function that handles transpilation, Rust compilation, and output comparison
 # Takes test_dir and go_output as parameters
+# fixture_stdin is the input a fixture's program reads: its stdin.txt, or
+# nothing.
+fixture_stdin() {
+    if [[ -f "$1/stdin.txt" ]]; then
+        echo "$1/stdin.txt"
+    else
+        echo /dev/null
+    fi
+}
+
 run_transpile_and_compare() {
     local test_dir="$1"
     local go_output="$2"
@@ -258,7 +268,7 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1); then
+    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1 < "$(fixture_stdin "$test_dir")"); then
         rust_exit_code=0
     else
         rust_exit_code=$?
@@ -306,6 +316,7 @@ run_test() {
 
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f fixture_stdin
     export -f compare_outputs
     export -f note_fixture_phase
     export -f fixture_config_value
@@ -345,6 +356,7 @@ run_xfail_test() {
     
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f fixture_stdin
     export -f compare_outputs
     export -f note_fixture_phase
     export -f fixture_config_value
@@ -1487,6 +1499,14 @@ run_xfail_test() {
     run_test "tests/fmt_println_repeated_selector_concurrent"
 }
 
+@test "fmt_scan_stdin" {
+    run_test "tests/fmt_scan_stdin"
+}
+
+@test "fmt_scan_strings_and_readers" {
+    run_test "tests/fmt_scan_strings_and_readers"
+}
+
 @test "fmt_sprint_and_sprintln" {
     run_test "tests/fmt_sprint_and_sprintln"
 }
@@ -1497,6 +1517,10 @@ run_xfail_test() {
 
 @test "fmt_sprintf_type_name_call" {
     run_test "tests/fmt_sprintf_type_name_call"
+}
+
+@test "fmt_sscan_operands" {
+    run_test "tests/fmt_sscan_operands"
 }
 
 @test "fmt_stringer_imported_types" {

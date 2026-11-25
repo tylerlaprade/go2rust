@@ -1,0 +1,27 @@
+2 <nil> 10 20
+4 <nil> 7 hello 3.5 true
+1 EOF true false
+0 EOF true
+0 expected integer
+4 <nil> -3 1000
+0 unsigned integer overflow on token 300 0
+2 <nil> +Inf
+3 <nil> true
+0 syntax error scanning boolean
+2 <nil> 4 5
+1 unexpected newline 4
+2 expected newline 4 5
+2 <nil> bob 42
+2 <nil> 7 8
+2 <nil> 3 4
+0 input does not match format
+2 <nil> 12 ab
+2 <nil> 3.25 255
+2 <nil> Z 9
+1 EOF
+2 <nil> hi there x
+2 <nil> 1 2
+3 6 end 1 <nil>
+0 EOF
+2 <nil> 9 8
+1 <nil> v

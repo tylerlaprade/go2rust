@@ -180,6 +180,7 @@ type HelperTracker struct {
 	needsGoFloatString         bool
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
+	needsGoFmtScan             bool
 	needsGoSprintfSpread       bool
 	needsBase64                bool
 	needsSha256                bool
@@ -497,6 +498,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoSprintf {
 		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
+	}
+
+	if ht.needsGoFmtScan {
+		generateGoFmtScan(&result)
 	}
 
 	if ht.needsBase64 {
@@ -821,6 +826,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoSprintfSpread {
 		add("go_sprintf_spread")
+	}
+	if ht.needsGoFmtScan {
+		add("go_fmt_scan", "GoScanError", "GoScanRunes", "GoScanRuneFns", "GoScanTarget", "go_scan_string_source", "go_scan_stdin_source")
 	}
 	if ht.needsBase64 {
 		add("go_base64_encode", "go_base64_decode", "go_base64_value")

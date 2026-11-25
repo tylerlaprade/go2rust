@@ -207,6 +207,35 @@ against the `// TEMPORARY:` comments of that one file.
   helper moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-19
 
+**fmt-scan**
+
+- Location: `go/fmt_scan_runtime.go`, `generateGoFmtScan`: the generated Rust
+  scanner `go_fmt_scan`, its rune sources (`go_scan_string_source`,
+  `go_scan_stdin_source`, `GoScanRuneFns`) and its operands (`GoScanTarget`).
+  Calls are written by `writeFmtScanCall` in `go/fmt_scan.go`, registered for
+  `fmt.Scan`, `Scanln`, `Scanf`, `Sscan`, `Sscanln`, `Sscanf`, `Fscan`,
+  `Fscanln` and `Fscanf` in `go/stdlib.go`.
+- Go symbol: those nine functions, with operands that are pointers to a
+  bool, an integer, a float, a string or a `[]byte`. `Fscan` reads
+  `os.Stdin`, or a reader whose type has `ReadRune` and `UnreadRune`, such
+  as `*bufio.Reader` and `*strings.Reader`, through those methods.
+- Transpiler gap: `fmt` is bridged (fmt-runtime-format). Its scanner sets an
+  operand of any other type through `reflect`. The scanner here follows
+  `fmt/scan.go` (`ss`, `readRune`, `SkipSpace`, `scanInt`, `floatToken`,
+  `advance`, `doScanf`) for the operands its `scanOne` sets without
+  reflect. Before this helper every scanning function was a stub that
+  panicked (DEV-217).
+- Not covered: an operand of a defined type (`*Celsius`), a `Scanner`
+  implementation, complex numbers, a hex float, and a reader that is not
+  `os.Stdin` and has no `ReadRune`. Such a call compiles and panics when it
+  runs.
+- Fixture: `tests/fmt_scan_strings_and_readers/`, `tests/fmt_scan_stdin/`
+  (which reads its `stdin.txt`) and `tests/fmt_sscan_operands/`.
+- Removal trigger: `fmt` is translated from source, which needs `reflect`.
+  Or the stdlib boundary puts `fmt` in the hand-written tier; then the
+  scanner moves into that runtime and this row is deleted with the move.
+- Added: 2026-11-25
+
 **fmt-stringer**
 
 - Location: `go/fmt_stringer.go`. `writeFmtStringerStub` writes the

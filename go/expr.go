@@ -7700,6 +7700,14 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 		// Range values for slice elements are bare references; wrap a temporary handle.
 	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
 		writeNamedSliceInnerHandleClone(out, indexExpr.X)
+	} else if _, inner := unwrapParens(indexExpr.X).(*ast.IndexExpr); inner && goSliceModeEnabled() {
+		// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no cell
+		// of its own. A new cell around a copy of it shares its backing,
+		// so the element pointer writes into grid.
+		WriteWrapperPrefix(out)
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
 		out.WriteString(".clone()")
