@@ -1191,6 +1191,14 @@ run_xfail_test() {
     run_test "tests/error_custom_type_in_interface_goroutines"
 }
 
+@test "error_dynamic_type_name" {
+    run_test "tests/error_dynamic_type_name"
+}
+
+@test "error_dynamic_type_name_goroutines" {
+    run_test "tests/error_dynamic_type_name_goroutines"
+}
+
 @test "error_equivalent_interface" {
     run_test "tests/error_equivalent_interface"
 }

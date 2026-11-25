@@ -574,6 +574,77 @@ func writeLocalInterfaceTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bo
 	return true
 }
 
+// writeErrorTypeNameFormatArg writes %T of an error value: the name of the
+// error it holds, not of its text (DEV-186). The package's own error types
+// are matched by downcasting: "main.T" for one whose Error has a value
+// receiver, "*main.T" for a pointer receiver. A wrap from fmt.Errorf with
+// %w is *fmt.wrapError, and errors.Join's error *errors.joinError (as is a
+// fmt.Errorf with several %w, which Go calls *fmt.wrapErrors). Any other
+// error, as errors.New and fmt.Errorf without %w make, is
+// *errors.errorString. A nil error is <nil>.
+func writeErrorTypeNameFormatArg(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return false
+	}
+	if !isGoErrorType(typeInfo.GetType(arg)) {
+		return false
+	}
+	var value strings.Builder
+	if !writeGoErrorOptionValue(&value, arg) {
+		return false
+	}
+	errorIface, ok := types.Universe.Lookup("error").Type().Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	type namedRustType struct{ rust, goName string }
+	var names []namedRustType
+	scope := typeInfo.pkg.Scope()
+	for _, name := range scope.Names() {
+		tn, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok || tn.IsAlias() || types.IsInterface(tn.Type()) || sourceMappedDeclIsPruned(tn) {
+			continue
+		}
+		if named, ok := tn.Type().(*types.Named); !ok || named.TypeParams().Len() > 0 {
+			continue
+		}
+		if _, isFunc := tn.Type().Underlying().(*types.Signature); isFunc {
+			continue
+		}
+		rustType, ok := anyCloneRustType(tn.Type())
+		if !ok {
+			continue
+		}
+		goType := types.Type(nil)
+		if types.Implements(tn.Type(), errorIface) {
+			goType = tn.Type()
+		} else if types.Implements(types.NewPointer(tn.Type()), errorIface) {
+			goType = types.NewPointer(tn.Type())
+		}
+		if goType == nil {
+			continue
+		}
+		if goName, ok := goDynamicTypeName(goType); ok {
+			names = append(names, namedRustType{rustType, goName})
+		}
+	}
+	slices.SortFunc(names, func(a, b namedRustType) int { return strings.Compare(a.rust, b.rust) })
+	NeedGoErrorChain()
+	out.WriteString("{ let __err = ")
+	out.WriteString(value.String())
+	out.WriteString("; let __type_name: &'static str = match __err.as_ref() { None => \"<nil>\", Some(__e) => ")
+	for _, n := range names {
+		out.WriteString("if __e.downcast_ref::<")
+		out.WriteString(n.rust)
+		out.WriteString(">().is_some() { ")
+		out.WriteString(strconv.Quote(n.goName))
+		out.WriteString(" } else ")
+	}
+	out.WriteString("if let Some(__wrap) = __e.downcast_ref::<GoWrapError>() { if __wrap.many { \"*errors.joinError\" } else { \"*fmt.wrapError\" } } else { \"*errors.errorString\" } }; __type_name }")
+	return true
+}
+
 // rangeVarHoldsWrappedCell reports whether ident is a range loop variable
 // whose value is a cell: the value of "for _, s := range shapes" for a
 // []Shape of a local interface Shape. It is not bare, though range
@@ -1578,6 +1649,9 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	}
 	NeedGoTypeName()
 	if writeLocalInterfaceTypeNameFormatArg(out, arg) {
+		return
+	}
+	if writeErrorTypeNameFormatArg(out, arg) {
 		return
 	}
 	var payload strings.Builder
