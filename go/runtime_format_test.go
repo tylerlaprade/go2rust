@@ -479,3 +479,45 @@ func main() {
 		}
 	}
 }
+
+// %x of an array applies to each element. The Rust format wrote it around
+// the printed text, format!("{:x}", format_slice(&nums)), which does not
+// compile, so the call goes to go_sprintf, which knows the array's elements.
+func TestElementVerbOfAnArrayGoesToTheRuntimeFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	nums := [3]int{1, 2, 3}
+	fmt.Printf("%v %x\n", nums, nums)
+	fmt.Printf("%v %d\n", nums, nums)
+}
+`)
+
+	for _, want := range []string{
+		`go_sprintf(&"%v %x\n".to_string()`,
+		"fn go_format_elements(__value: &dyn Any) -> Option<Vec<Box<dyn Any>>> {",
+		"if let Some(__v) = __value.downcast_ref::<[i64; 3]>() {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, `go_sprintf(&"%v %d\n"`) {
+		t.Fatalf("%%v and %%d of an array should stay a Rust format:\n%s", rust)
+	}
+}
+
+func TestFormatVerbsInOrder(t *testing.T) {
+	verbs, ok := formatVerbsInOrder("%5v|%-3d %% %+.2f %#x")
+	if !ok || string(verbs) != "vdfx" {
+		t.Fatalf("got %q, %v", verbs, ok)
+	}
+	if _, ok := formatVerbsInOrder("%[1]d"); ok {
+		t.Fatal("an argument index should not be read")
+	}
+	if _, ok := formatVerbsInOrder("%*d"); ok {
+		t.Fatal("a * width should not be read")
+	}
+}

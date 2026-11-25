@@ -57,7 +57,8 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 	case *types.Array:
 		// An array of scalars is boxed as the Rust array itself.
 		if anyArrayHasCloneableScalars(t) && anyFormatElemImplementsDisplay(t.Elem()) {
-			return anyFormatArm{expr: "format_slice_values(&v[..])", needsFormatSlice: true}, true
+			_, flat := types.Unalias(t.Elem()).(*types.Basic)
+			return anyFormatArm{expr: "format_slice_values(&v[..])", needsFormatSlice: true, elements: flat}, true
 		}
 	case *types.Struct:
 		// An anonymous struct has a Display that prints as %v and %+v do.

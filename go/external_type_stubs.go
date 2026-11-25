@@ -424,8 +424,13 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 			continue
 		}
 		named, ok := externalEmbeddedNamed(field.Type)
+		local := false
 		if !ok {
-			continue
+			named, ok = localEmbeddedNamedWithInterfaceMethods(field.Type)
+			if !ok {
+				continue
+			}
+			local = true
 		}
 
 		rustTypeName := goTypesNamedTypeToRust(named)
@@ -437,16 +442,24 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 		methodSet := types.NewMethodSet(methodSetType)
 		for i := 0; i < methodSet.Len(); i++ {
 			fn, ok := methodSet.At(i).Obj().(*types.Func)
-			if !ok || !fn.Exported() {
+			if !ok || (!fn.Exported() && !local) {
 				continue
 			}
 			methodName := fn.Name()
 			rustMethodName := ToSnakeCase(methodName)
+			if local {
+				rustMethodName = rustMethodNameForTypesFunc(fn)
+			}
 			if existingRustNames[rustMethodName] {
 				continue
 			}
 			sig, ok := fn.Type().(*types.Signature)
 			if !ok {
+				continue
+			}
+			if local && !signatureIsInterfaceMethod(sig) {
+				// A method declared on a struct of the package has a
+				// FuncDecl, and collectPromotedMethods forwards it.
 				continue
 			}
 
@@ -484,6 +497,46 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 
 func promotedExternalFieldUsesRawStorage(expr ast.Expr) bool {
 	return isSourceMappedSyncParam(expr)
+}
+
+// localEmbeddedNamedWithInterfaceMethods reports an embedded field whose
+// type is declared in the package being translated and is an interface, or
+// is a struct that has methods of an interface it embeds itself. Those
+// methods have no FuncDecls for collectPromotedMethods to forward. Without a
+// forwarder, a promoted call on the outer struct, and the outer struct's impl
+// of the interface, resolved to the trait method itself and recursed until
+// the stack overflowed.
+func localEmbeddedNamedWithInterfaceMethods(expr ast.Expr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil || expr == nil {
+		return nil, false
+	}
+	if star, ok := expr.(*ast.StarExpr); ok {
+		expr = star.X
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return nil, false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg || named.TypeParams().Len() > 0 || named.TypeArgs().Len() > 0 {
+		return nil, false
+	}
+	switch named.Underlying().(type) {
+	case *types.Interface, *types.Struct:
+		return named, true
+	}
+	return nil, false
+}
+
+// signatureIsInterfaceMethod reports whether sig is the signature of a method
+// of an interface, rather than of a method declared on a type.
+func signatureIsInterfaceMethod(sig *types.Signature) bool {
+	if sig == nil || sig.Recv() == nil {
+		return false
+	}
+	_, ok := sig.Recv().Type().Underlying().(*types.Interface)
+	return ok
 }
 
 func externalEmbeddedNamed(expr ast.Expr) (*types.Named, bool) {
