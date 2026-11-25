@@ -1559,6 +1559,14 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_byte_sequence_package" {
+    run_test "tests/generic_byte_sequence_package"
+}
+
+@test "generic_byte_sequence_package_goroutines" {
+    run_test "tests/generic_byte_sequence_package_goroutines"
+}
+
 @test "generic_cache_and_grouping" {
     run_test "tests/generic_cache_and_grouping"
 }
@@ -2749,6 +2757,14 @@ run_xfail_test() {
 
 @test "os_stdout_as_writer_goroutines" {
     run_test "tests/os_stdout_as_writer_goroutines"
+}
+
+@test "os_stdout_pointer_variables" {
+    run_test "tests/os_stdout_pointer_variables"
+}
+
+@test "os_stdout_pointer_variables_goroutines" {
+    run_test "tests/os_stdout_pointer_variables_goroutines"
 }
 
 @test "package_any_value_from_caller" {
@@ -4393,6 +4409,14 @@ run_xfail_test() {
 
 @test "typeblock_ptr_to_any_struct" {
     run_test "tests/typeblock_ptr_to_any_struct"
+}
+
+@test "typed_pointer_var_shares_pointee" {
+    run_test "tests/typed_pointer_var_shares_pointee"
+}
+
+@test "typed_pointer_var_shares_pointee_goroutines" {
+    run_test "tests/typed_pointer_var_shares_pointee_goroutines"
 }
 
 @test "types_config_check_bridge" {

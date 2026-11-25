@@ -1,0 +1,11 @@
+[package]
+name = "typed_pointer_var_shares_pointee"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "typed_pointer_var_shares_pointee"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

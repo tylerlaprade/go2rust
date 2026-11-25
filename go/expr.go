@@ -1353,10 +1353,10 @@ func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".go_to_string()")
 }
 
-func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+func writeGoByteSequenceSlice(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
 	NeedGoByteSequence()
 	writeGoByteSequenceReceiver(out, expr)
-	out.WriteString(".go_slice_to_string(")
+	out.WriteString(".go_slice(")
 	if low != nil {
 		writeExpressionAsUsize(out, low)
 	} else {
@@ -7238,10 +7238,10 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
 	}
-	if sel, ok := expr.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+	if sel, ok := expr.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) && !isSharedStdStreamSelector(sel) {
 		return false
 	}
-	if sel, ok := expr.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+	if sel, ok := expr.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) && !isSharedStdStreamSelector(sel) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -7278,6 +7278,21 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+// isSharedStdStreamSelector reports whether sel is os.Stdout or os.Stderr.
+// The stub returns the same *File handle on every read of either, so two
+// reads are the same pointer and compare with ptr_eq, as in Go.
+func isSharedStdStreamSelector(sel *ast.SelectorExpr) bool {
+	if sel == nil || sel.Sel == nil || (sel.Sel.Name != "Stdout" && sel.Sel.Name != "Stderr") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[sel.Sel].(*types.Var)
+	return ok && obj.Pkg() != nil && obj.Pkg().Path() == "os" && isStubBackedStdlibPackagePath("os")
 }
 
 func pointerEqualityShouldUseMultiline(leftText, rightText string) bool {
@@ -13867,6 +13882,17 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	if !isPackageVarSelector(receiver) {
 		return false, false
 	}
+	if isSharedStdStreamSelector(receiver) {
+		// os.Stdout and os.Stderr are one shared handle. Call the method on
+		// a copy of the File, which shares its state, so the handle is not
+		// locked while the arguments run: os.Stdout.WriteString(
+		// os.Stdout.Name()) reads the same handle again.
+		out.WriteString("{ let __std_stream = (*")
+		TranspileExpressionContext(out, receiver, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone(); __std_stream }.")
+		return true, false
+	}
 	typeInfo := GetTypeInfo()
 	needsMut := methodCallNeedsMutableReceiver(method)
 	isStdlibReceiver := false
@@ -15544,8 +15570,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		subjectIsArray := sliceExpressionSubjectIsArray(e.X)
 
 		if isGoByteSequenceSlice {
+			// s[i:j] of a []byte | string type parameter has the type
+			// parameter's type, not string (DEV-29).
 			WriteWrapperPrefix(out)
-			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
+			writeGoByteSequenceSlice(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
@@ -18283,6 +18311,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 			switch elemType {
 			case "byte", "uint8":
+				if typeInfo := GetTypeInfo(); typeInfo != nil && goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(call.Args[0])) {
+					// []byte(s) of a []byte | string type parameter.
+					NeedGoByteSequence()
+					WriteWrapperPrefix(out)
+					writeGoByteSequenceReceiver(out, call.Args[0])
+					out.WriteString(".go_to_bytes()")
+					WriteWrapperSuffix(out)
+					return
+				}
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
 				writeStringConversionSource(out, call.Args[0])
