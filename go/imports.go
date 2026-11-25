@@ -178,6 +178,7 @@ type HelperTracker struct {
 	needsGoAtomicPointer       bool
 	needsGoTypeName            bool
 	needsGoFloatString         bool
+	needsGoComplexDisplay      bool // the program has complex numbers
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
 	needsGoFmtScan             bool
@@ -489,7 +490,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
-		generateGoFloatStringHelper(&result)
+		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay)
 	}
 
 	if ht.needsGoErrorChain {
@@ -4160,24 +4161,18 @@ func writeSliceElemPtrConstructor(out *strings.Builder, outer string, cell strin
 		out.WriteString(`            // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            // The element's address, taken now: nothing else can lock
-            // the copy, and == need not wait for it.
-            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
 `)
 		// Spelled with std paths: a package can declare a Mutex of its own.
 		cellPath := map[string]string{"Mutex": "std::sync::Mutex", "RefCell": "std::cell::RefCell"}[cell]
 		outerPath := map[string]string{"Arc": "std::sync::Arc", "Rc": "std::rc::Rc"}[outer]
-		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index, id: __id };\n")
+		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index };\n")
 	}
 	out.WriteString(`        }
-        GoSliceElemPtr { slice, index, id: None }
+        GoSliceElemPtr { slice, index }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
-        if let Some(__id) = self.id {
-            return __id;
-        }
 `)
 	if goSliceModeEnabled() {
 		out.WriteString("        if let Ok(__guard) = self.slice." + tryBorrow + "() {\n")
@@ -4202,9 +4197,6 @@ func generateSliceElemPtrHelper(out *strings.Builder) {
 pub struct GoSliceElemPtr<T> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
-    /// The element's identity when the pointer was made with the slice
-    /// free to borrow; otherwise identity reads it from the slice.
-    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -4554,7 +4546,7 @@ impl<T: Send + Sync + 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -4744,9 +4736,6 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
-    /// The element's identity when the pointer was made with the slice
-    /// free to borrow; otherwise identity reads it from the slice.
-    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -5096,7 +5085,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -6202,7 +6191,7 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
 // as fmt's %v does: strconv's shortest %g, with an exponent when the
 // exponent is below -4 or at least 6, and +Inf, -Inf and NaN. single prints
 // the shortest digits of the float32 the value was widened from.
-func generateGoFloatStringHelper(out *strings.Builder) {
+func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool) {
 	visibility := ""
 	if generatingPublicHelpers {
 		visibility = "pub "
@@ -6260,7 +6249,26 @@ func generateGoFloatStringHelper(out *strings.Builder) {
         // T is f32.
         return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
-    __value.to_string()
+`)
+	if complexDisplay {
+		// num::Complex is #[repr(C)] with re and im, so it has the layout
+		// of a two-element array. fmt prints (1-2i).
+		out.WriteString(`    if __name == "num_complex::Complex<f64>" || __name == "num_complex::Complex<f32>" {
+        let __single = __name.ends_with("f32>");
+        let (__re, __im) = if __single {
+            let __parts = unsafe { &*(__value as *const T as *const [f32; 2]) };
+            (__parts[0] as f64, __parts[1] as f64)
+        } else {
+            let __parts = unsafe { &*(__value as *const T as *const [f64; 2]) };
+            (__parts[0], __parts[1])
+        };
+        let __im_text = go_float_string(__im, __single);
+        let __plus = if __im_text.starts_with('-') || __im_text.starts_with('+') { "" } else { "+" };
+        return format!("({}{}{}i)", go_float_string(__re, __single), __plus, __im_text);
+    }
+`)
+	}
+	out.WriteString(`    __value.to_string()
 }
 `)
 }

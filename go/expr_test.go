@@ -1753,7 +1753,7 @@ func isZero(z complex128) bool {
 	if strings.Contains(rust, "let __tmp_y = 0;") {
 		t.Fatalf("complex comparison should not leave an integer zero peer:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __tmp_y = num::Complex::<f64>::new(0.0, 0.0)") {
+	if !strings.Contains(rust, "== num::Complex::<f64>::new(0.0 as f64, 0.0 as f64))") {
 		t.Fatalf("complex comparison should cast zero to the peer complex type:\n%s", rust)
 	}
 }

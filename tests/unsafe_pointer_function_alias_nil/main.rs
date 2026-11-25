@@ -682,9 +682,6 @@ impl std::io::Write for GoSlice<u8> {
 pub struct GoSliceElemPtr<T> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
-    /// The element's identity when the pointer was made with the slice
-    /// free to borrow; otherwise identity reads it from the slice.
-    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -831,19 +828,13 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            // The element's address, taken now: nothing else can lock
-            // the copy, and == need not wait for it.
-            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
-            return GoSliceElemPtr { slice: std::sync::Arc::new(std::sync::Mutex::new(__header)), index, id: __id };
+            return GoSliceElemPtr { slice: std::sync::Arc::new(std::sync::Mutex::new(__header)), index };
         }
-        GoSliceElemPtr { slice, index, id: None }
+        GoSliceElemPtr { slice, index }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
-        if let Some(__id) = self.id {
-            return __id;
-        }
         if let Ok(__guard) = self.slice.try_lock() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1066,7 +1057,7 @@ impl<T: Send + Sync + 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }

@@ -1,10 +1,10 @@
 [package]
-name = "slice_element_pointer_identity_goroutines"
+name = "runtime_scheduler_calls"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "slice_element_pointer_identity_goroutines"
+name = "runtime_scheduler_calls"
 path = "main.rs"
 
 [profile.dev]

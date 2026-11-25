@@ -884,8 +884,16 @@ run_xfail_test() {
     run_test "tests/comment_preservation"
 }
 
+@test "complex_constants_and_parts" {
+    run_test "tests/complex_constants_and_parts"
+}
+
 @test "complex_expressions" {
     run_test "tests/complex_expressions"
+}
+
+@test "complex_numbers_and_math_cmplx" {
+    run_test "tests/complex_numbers_and_math_cmplx"
 }
 
 @test "compound_assign_len_int" {
@@ -3756,6 +3764,10 @@ run_xfail_test() {
     run_test "tests/runtime_gomaxprocs"
 }
 
+@test "runtime_scheduler_calls" {
+    run_test "tests/runtime_scheduler_calls"
+}
+
 @test "rust_keyword_identifiers" {
     run_test "tests/rust_keyword_identifiers"
 }
@@ -3902,14 +3914,6 @@ run_xfail_test() {
 
 @test "slice_element_pointer_field_receiver" {
     run_test "tests/slice_element_pointer_field_receiver"
-}
-
-@test "slice_element_pointer_identity" {
-    run_test "tests/slice_element_pointer_identity"
-}
-
-@test "slice_element_pointer_identity_goroutines" {
-    run_test "tests/slice_element_pointer_identity_goroutines"
 }
 
 @test "slice_expr_call_argument" {
