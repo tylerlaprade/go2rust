@@ -1,0 +1,15 @@
+before the buffer
+buffered bytes: 25
+direct: 1
+through a variable
+io.WriteString
+WriteString
+Write
+6 <nil>
+to stderr
+stderr: 3
+worker: 0
+worker: 1
+worker: 4
+buffered line
+buffered 2
