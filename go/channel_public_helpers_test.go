@@ -14,7 +14,7 @@ func TestSharedHelperChannelExposesSelectReceive(t *testing.T) {
 	generatingPublicHelpers = true
 	defer func() { generatingPublicHelpers = previous }()
 	var out strings.Builder
-	generateGoChannelHelper(&out, false)
+	generateGoChannelHelper(&out, false, false)
 	code := out.String()
 	for _, want := range []string{"pub fn try_recv_select(&self)", "pub fn try_recv(&self)"} {
 		if !strings.Contains(code, want) {

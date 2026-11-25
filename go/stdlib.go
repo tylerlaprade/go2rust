@@ -8192,6 +8192,11 @@ func writeTimeDurationBinaryExpression(out *strings.Builder, expr *ast.BinaryExp
 	if expr == nil || expr.Op != token.MUL {
 		return false
 	}
+	// Translated from source, time.Duration is an int64, not std's
+	// Duration: n * time.Microsecond is ordinary integer arithmetic.
+	if isSourceMappedPackagePath("time") {
+		return false
+	}
 	if _, _, ok := durationBinaryParts(expr); !ok {
 		return false
 	}

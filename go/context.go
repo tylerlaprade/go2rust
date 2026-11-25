@@ -40,6 +40,7 @@ type PackageState struct {
 	TypeDefinitionUnderlyingTypes map[string]types.Type
 	TypeAliases                   map[string]bool
 	TypeModuleNames               map[string]string
+	MethodDeclModuleNames         map[*ast.FuncDecl]string
 	FunctionTypeAliases           map[string]bool
 	FunctionTypeAliasBoxTypes     map[string]string
 	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
@@ -1162,6 +1163,26 @@ func currentPackageHelperRustTypePath(named *types.Named, rustType string) (stri
 		return "", false
 	}
 	return "crate::" + moduleName + "::" + rustType, true
+}
+
+// NeedGoChannelIdentity marks that we need GoChannel::go_identity, the
+// address an unsafe.Pointer to a channel holds.
+func NeedGoChannelIdentity() {
+	NeedGoChannel()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoChannelIdentity = true
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoChannelIdentity = true
+	})
+}
+
+// NeedGoTimeRuntime marks that we need the clock and timers that time's
+// runtime hooks call.
+func NeedGoTimeRuntime() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoTimeRuntime = true
+	}
 }
 
 // NeedGoByteSequence marks that we need the GoByteSequence helper trait.

@@ -1709,7 +1709,7 @@ var _ positioner = atPos(0)
 	}
 }
 
-func TestDefinedTypeOverImportedNamedIntegerConversionKeepsNamedValue(t *testing.T) {
+func TestDefinedTypeOverImportedNamedIntegerStoresTheNumber(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -1754,14 +1754,17 @@ func wrap(pos dep.Pos) positioner {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
+	// atPos has dep.Pos's underlying type and stores the int, so the
+	// conversion reads the number out of pos.
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "atPos(Rc::new(RefCell::new(Some((*(*pos.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()) as i32") ||
-		strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some((*(*pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i32") {
-		t.Fatalf("conversion to defined type over imported named integer should keep the named value:\n%s", mainRS)
+	if !strings.Contains(mainRS, "pub struct atPos(pub Rc<RefCell<Option<i64>>>);") {
+		t.Fatalf("a defined type over an imported named integer should store the number:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "atPos(Rc::new(RefCell::new(Some((*pos.borrow().as_ref().unwrap()).clone()))") &&
-		!strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some((*pos.lock().unwrap().as_ref().unwrap()).clone()))") {
-		t.Fatalf("conversion to defined type over imported named integer should wrap a cloned named value:\n%s", mainRS)
+	if strings.Contains(mainRS, "atPos(Rc::new(RefCell::new(Some((*pos.borrow().as_ref().unwrap()).clone()))") {
+		t.Fatalf("conversion to a defined type over an imported named integer should not store the named value:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, ".0.borrow().as_ref().unwrap()") {
+		t.Fatalf("conversion to a defined type over an imported named integer should read the number:\n%s", mainRS)
 	}
 }
 
@@ -3240,7 +3243,7 @@ func Use(exporter Exporter) {
 	}
 }
 
-func TestGoTimeHelperIncludesIsZeroAndFormatMethods(t *testing.T) {
+func TestTimeFromSourceHasIsZeroAndFormatMethods(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3262,12 +3265,24 @@ func main() {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
-	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "fn is_zero(&self)") {
-		t.Fatalf("GoTime helper should include IsZero support, got:\n%s", mainRS)
+	// time is translated from source: Time's methods are in its crate.
+	files, err := filepath.Glob(filepath.Join(tempDir, "vendor", "time", "*.rs"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("time should be translated into vendor/time, got %v (%v)", files, err)
 	}
-	if !strings.Contains(mainRS, "fn format(&self") {
-		t.Fatalf("GoTime helper should include Format support, got:\n%s", mainRS)
+	var timeRS strings.Builder
+	for _, file := range files {
+		timeRS.WriteString(mustReadFile(t, file))
+	}
+	if !strings.Contains(timeRS.String(), "fn is_zero(&self)") {
+		t.Fatalf("time's Time should have IsZero, got:\n%s", timeRS.String())
+	}
+	if !strings.Contains(timeRS.String(), "fn format(&self") {
+		t.Fatalf("time's Time should have Format, got:\n%s", timeRS.String())
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, ".is_zero(") || !strings.Contains(mainRS, ".format(") {
+		t.Fatalf("main should call Time's IsZero and Format, got:\n%s", mainRS)
 	}
 }
 
@@ -3575,18 +3590,18 @@ func TestMultiFileStdlibHelpersUseSharedCrateRootInclude(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "clock.go"), `package main
 
-import "time"
-
-func Made() time.Time {
-	return time.Unix(1, 0)
+// Made returns a channel holding one value. GoChannel is a shared
+// helper: time, which was the example here, is translated from source.
+func Made() chan int64 {
+	c := make(chan int64, 1)
+	c <- 1
+	return c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "consume.go"), `package main
 
-import "time"
-
-func UnixSecond(t time.Time) int64 {
-	return t.Unix()
+func UnixSecond(c chan int64) int64 {
+	return <-c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
@@ -3612,21 +3627,21 @@ func main() {
 	}
 
 	helpersRS := mustReadFile(t, filepath.Join(tempDir, packageHelperIncludeFile))
-	if !strings.Contains(helpersRS, "struct GoTime") {
-		t.Fatalf("package helper include should define GoTime once, got:\n%s", helpersRS)
+	if !strings.Contains(helpersRS, "struct GoChannel") {
+		t.Fatalf("package helper include should define GoChannel once, got:\n%s", helpersRS)
 	}
 
 	clockRS := mustReadFile(t, filepath.Join(tempDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(tempDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(withoutGoSliceUses(code), "use crate::{GoTime, go_time_civil_from_days};") {
+		if !strings.Contains(withoutGoSliceUses(code), "use crate::{GoChannel};") {
 			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "use crate::*;") {
 			t.Fatalf("%s should not glob-import the crate root for helpers, got:\n%s", name, code)
 		}
-		if strings.Contains(code, "struct GoTime") {
-			t.Fatalf("%s should not define a file-local GoTime, got:\n%s", name, code)
+		if strings.Contains(code, "struct GoChannel") {
+			t.Fatalf("%s should not define a file-local GoChannel, got:\n%s", name, code)
 		}
 	}
 }
@@ -3739,18 +3754,18 @@ go 1.22
 `)
 	writeTestFile(t, filepath.Join(tempDir, "dep", "clock.go"), `package dep
 
-import "time"
-
-func Made() time.Time {
-	return time.Unix(1, 0)
+// Made returns a channel holding one value. GoChannel is a shared
+// helper: time, which was the example here, is translated from source.
+func Made() chan int64 {
+	c := make(chan int64, 1)
+	c <- 1
+	return c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "dep", "consume.go"), `package dep
 
-import "time"
-
-func UnixSecond(t time.Time) int64 {
-	return t.Unix()
+func UnixSecond(c chan int64) int64 {
+	return <-c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
@@ -3771,14 +3786,14 @@ func main() {
 	depDir := filepath.Join(tempDir, "vendor", "example_com_dep")
 	depLib := mustReadFile(t, filepath.Join(depDir, "lib.rs"))
 	if strings.Contains(depLib, `include!("__go2rust_helpers.rs");`) {
-		t.Fatalf("external package should use shared GoTime instead of a package-scoped helper include, got:\n%s", depLib)
+		t.Fatalf("external package should use shared GoChannel instead of a package-scoped helper include, got:\n%s", depLib)
 	}
 	if !strings.Contains(depLib, "pub use go2rust_stdlib_stubs::*;") {
 		t.Fatalf("external package should re-export shared stdlib helpers, got:\n%s", depLib)
 	}
 	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
-	if !strings.Contains(sharedLib, "pub struct GoTime") {
-		t.Fatalf("shared stdlib helper crate should define exported GoTime once, got:\n%s", sharedLib)
+	if !strings.Contains(sharedLib, "pub struct GoChannel") {
+		t.Fatalf("shared stdlib helper crate should define exported GoChannel once, got:\n%s", sharedLib)
 	}
 
 	clockRS := mustReadFile(t, filepath.Join(depDir, "clock.rs"))
@@ -3790,13 +3805,13 @@ func main() {
 		if strings.Contains(code, "use crate::*;") {
 			t.Fatalf("%s should not glob-import the crate root for helpers, got:\n%s", name, code)
 		}
-		if strings.Contains(code, "struct GoTime") {
-			t.Fatalf("%s should not define a file-local GoTime, got:\n%s", name, code)
+		if strings.Contains(code, "struct GoChannel") {
+			t.Fatalf("%s should not define a file-local GoChannel, got:\n%s", name, code)
 		}
 	}
 }
 
-func TestSharedStdlibHelperGoTimeCrossesTranspiledCrates(t *testing.T) {
+func TestSharedStdlibHelperGoChannelCrossesTranspiledCrates(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3804,18 +3819,18 @@ go 1.22
 `)
 	writeTestFile(t, filepath.Join(tempDir, "clock", "clock.go"), `package clock
 
-import "time"
-
-func Made() time.Time {
-	return time.Unix(1, 0)
+// Made returns a channel holding one value. GoChannel is a shared
+// helper: time, which was the example here, is translated from source.
+func Made() chan int64 {
+	c := make(chan int64, 1)
+	c <- 1
+	return c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "consume", "consume.go"), `package consume
 
-import "time"
-
-func UnixSecond(t time.Time) int64 {
-	return t.Unix()
+func UnixSecond(c chan int64) int64 {
+	return <-c
 }
 `)
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
@@ -3837,15 +3852,15 @@ func main() {
 	}
 
 	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
-	if !strings.Contains(sharedLib, "pub struct GoTime") {
-		t.Fatalf("shared stdlib helper crate should define exported GoTime once, got:\n%s", sharedLib)
+	if !strings.Contains(sharedLib, "pub struct GoChannel") {
+		t.Fatalf("shared stdlib helper crate should define exported GoChannel once, got:\n%s", sharedLib)
 	}
 
 	for _, importPath := range []string{"example.com/mainmod/clock", "example.com/mainmod/consume"} {
 		crateName := RustCrateNameForGoImportPath(importPath)
 		libRS := mustReadFile(t, filepath.Join(tempDir, "vendor", crateName, "lib.rs"))
 		if strings.Contains(libRS, `include!("__go2rust_helpers.rs");`) {
-			t.Fatalf("%s should use shared GoTime instead of a package-local helper include, got:\n%s", crateName, libRS)
+			t.Fatalf("%s should use shared GoChannel instead of a package-local helper include, got:\n%s", crateName, libRS)
 		}
 		if !strings.Contains(libRS, "pub use go2rust_stdlib_stubs::*;") {
 			t.Fatalf("%s should re-export shared stdlib helpers, got:\n%s", crateName, libRS)
@@ -3859,8 +3874,8 @@ func main() {
 				continue
 			}
 			code := mustReadFile(t, filepath.Join(tempDir, "vendor", crateName, entry.Name()))
-			if strings.Contains(code, "struct GoTime") {
-				t.Fatalf("%s/%s should not define a crate-local GoTime, got:\n%s", crateName, entry.Name(), code)
+			if strings.Contains(code, "struct GoChannel") {
+				t.Fatalf("%s/%s should not define a crate-local GoChannel, got:\n%s", crateName, entry.Name(), code)
 			}
 		}
 	}
@@ -4492,7 +4507,7 @@ func start() {
 	}
 }
 
-func TestConcurrentNamedTypeOverNamedScalarGlobalZeroPreservesInnerName(t *testing.T) {
+func TestConcurrentNamedTypeOverNamedScalarGlobalZeroMatchesItsNewtype(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -4515,12 +4530,13 @@ func start() {
 		t.Fatalf("Generate() error = %v", err)
 	}
 
+	// atPos has Pos's underlying type, int, and its newtype stores the int.
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(0))))") {
-		t.Fatalf("named type over named scalar zero value should not erase inner named type, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "pub struct atPos(pub Arc<Mutex<Option<i64>>>);") {
+		t.Fatalf("a named type over a named scalar should store the number, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(Pos(") {
-		t.Fatalf("named type over named scalar zero value should wrap the inner named zero value, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(0))))") || strings.Contains(mainRS, "atPos(Arc::new(Mutex::new(Some(Pos(") {
+		t.Fatalf("the zero value of a named type over a named scalar should be its newtype over the number 0, got:\n%s", mainRS)
 	}
 }
 
@@ -4630,7 +4646,7 @@ func (c Code) String() string {
 	if strings.Contains(mainRS, "c.lock().unwrap()") {
 		t.Fatalf("type-definition method body should translate receiver uses through self, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()) as i64") {
+	if !strings.Contains(mainRS, "{ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } as i64") {
 		t.Fatalf("type-definition receiver conversion should use self.0, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(*self.0.lock().unwrap().as_ref().unwrap()).clone()") {

@@ -111,13 +111,17 @@ fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
 }
 
 fn main() {
+    ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
     ::strconv::__go_init_all();
     ::strings::__go_init_all();
+    ::time::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
@@ -152,10 +156,10 @@ fn main() {
     print!("Max(10, 20): {:.0}\n", math::max(Arc::new(Mutex::new(Some(10.0))), Arc::new(Mutex::new(Some(20.0)))));
     print!("Min(10, 20): {:.0}\n", math::min(Arc::new(Mutex::new(Some(10.0))), Arc::new(Mutex::new(Some(20.0)))));
     println!("{}", format!("{}", "\n--- time package ---".to_string()));
-    let mut localFixed = Arc::new(Mutex::new(Some(GoTime::from_unix(1700000000 as i64, 0 as i64))));
+    let mut localFixed = time::unix(Arc::new(Mutex::new(Some(1700000000 as i64))), Arc::new(Mutex::new(Some(0 as i64))));
     let mut fixed = (*localFixed.lock().unwrap().as_ref().unwrap()).u_t_c();
     println!("{} {}", format!("{}", "Fixed timestamp:".to_string()), format!("{}", (*fixed.lock().unwrap().as_ref().unwrap()).unix()));
-    let mut later = (*fixed.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some(std::time::Duration::from_secs(3600)))));
+    let mut later = (*fixed.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some(time::HOUR as i64))))))));
     println!("{} {}", format!("{}", "One hour later:".to_string()), format!("{}", (*later.lock().unwrap().as_ref().unwrap()).unix()));
     println!("{}", format!("{}", "\n--- os package ---".to_string()));
     println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = go_os_args().clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));

@@ -134,6 +134,13 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
+		if NeedsConcurrentWrapper() {
+			// As below: d - d%m reads the receiver's cell twice.
+			out.WriteString("{ let __named_value = ")
+			TranspileExpression(out, expr)
+			out.WriteString("; __named_value }")
+			return true
+		}
 		TranspileExpression(out, expr)
 		return true
 	}
@@ -145,6 +152,16 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		value.WriteString(".as_ref().unwrap())")
 	} else {
 		TranspileExpression(&value, expr)
+	}
+	if NeedsConcurrentWrapper() {
+		// A let drops the guard at once: d - d%m locks d's cell twice in
+		// one expression, which a Mutex would wait on forever.
+		out.WriteString("{ let __named_value = (*")
+		out.WriteString(value.String())
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()); __named_value }")
+		return true
 	}
 	out.WriteString("(*")
 	out.WriteString(value.String())
@@ -179,8 +196,11 @@ func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.U
 				return true
 			}
 		}
-		out.WriteString("-")
+		// -Duration(d) of a uint64 d negates the int64 the conversion
+		// gives, not d: "-(d) as i64" would negate the u64.
+		out.WriteString("-(")
 		writeNamedIntegerPrimitiveExpression(out, expr.X)
+		out.WriteString(")")
 		return true
 	default:
 		return false
@@ -13078,7 +13098,10 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			capturedClone = true
 		}
 	}
-	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+	// A wrapped value is a handle, owned when the loop clones its elements
+	// because the body assigns the variable, and borrowed otherwise.
+	// name.clone() gives the handle either way.
+	if (varType == "ref_value" || strings.HasPrefix(varType, "&")) && !isWrappedRangeVarType(varType) {
 		if isCopyTypeForRangeRef(ident) {
 			out.WriteString("*")
 			out.WriteString(name)
@@ -13113,14 +13136,8 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			out.WriteString(copyCall)
 			return true
 		}
-		if strings.HasPrefix(varType, "&") {
-			out.WriteString("(*")
-			out.WriteString(name)
-			out.WriteString(").clone()")
-		} else {
-			out.WriteString(name)
-			out.WriteString(".clone()")
-		}
+		out.WriteString(name)
+		out.WriteString(".clone()")
 		return true
 	}
 	if bareRangeVarNeedsClone(varType) {
@@ -19198,6 +19215,9 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 		writePointerTypeConversionFromUnsafePointer(out, target, source)
 		return
 	}
+	if writeSamePointeePointerConversion(out, target, source) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
@@ -19209,17 +19229,6 @@ func writeNamedScalarPointerTypeConversion(out *strings.Builder, target ast.Expr
 	if !ok || targetType == nil {
 		return false
 	}
-	targetNamed, ok := types.Unalias(targetType).(*types.Named)
-	if !ok || targetNamed.Obj() == nil {
-		return false
-	}
-	if _, ok := LookupTypeDefinition(targetNamed.Obj().Name()); !ok {
-		return false
-	}
-	targetBasic, ok := types.Unalias(targetNamed.Underlying()).(*types.Basic)
-	if !ok || targetBasic.Kind() == types.Invalid {
-		return false
-	}
 	sourceType := typeInfo.GetType(source)
 	if sourceType == nil {
 		return false
@@ -19228,18 +19237,92 @@ func writeNamedScalarPointerTypeConversion(out *strings.Builder, target ast.Expr
 	if !ok {
 		return false
 	}
-	sourceBasic, ok := types.Unalias(sourcePtr.Elem()).(*types.Basic)
+	targetNamed, targetIsNewtype := namedBasicCellNewtype(targetType)
+	sourceNamed, sourceIsNewtype := namedBasicCellNewtype(sourcePtr.Elem())
+	if !targetIsNewtype && !sourceIsNewtype {
+		return false
+	}
+	targetBasic, ok := types.Unalias(targetType).Underlying().(*types.Basic)
+	if !ok || targetBasic.Kind() == types.Invalid {
+		return false
+	}
+	sourceBasic, ok := types.Unalias(sourcePtr.Elem()).Underlying().(*types.Basic)
 	if !ok || !types.Identical(targetBasic, sourceBasic) {
 		return false
 	}
+	if sourceNamed != nil && targetNamed != nil && types.Identical(sourceNamed, targetNamed) {
+		return false
+	}
 
-	WriteWrapperPrefix(out)
-	out.WriteString(goTypesNamedTypeToRust(targetNamed))
-	out.WriteString("(")
+	if !sourceIsNewtype {
+		// (*intValue)(p) for a p of type *int: the newtype holds p's cell.
+		WriteWrapperPrefix(out)
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		writePointerHandleExpression(out, source)
+		out.WriteString(")")
+		WriteWrapperSuffix(out)
+		return true
+	}
+	// (*durationValue)(p) for a p of type *time.Duration, and back: both
+	// newtypes hold a cell of the same number, so the result holds p's.
+	// (*int64)(d) is that cell itself.
+	writeResult := func(cell string) {
+		if !targetIsNewtype {
+			out.WriteString(cell)
+			return
+		}
+		WriteWrapperPrefix(out)
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		out.WriteString(cell)
+		out.WriteString(")")
+		WriteWrapperSuffix(out)
+	}
+	if ident, ok := unwrapParens(source).(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !currentReceiverRustAliasIsPointerHandle {
+		// A pointer method's receiver is the newtype itself.
+		writeResult(currentReceiverRustName() + ".0.clone()")
+		return true
+	}
+	out.WriteString("{ let __newtype_source = ")
 	writePointerHandleExpression(out, source)
-	out.WriteString(")")
-	WriteWrapperSuffix(out)
+	out.WriteString("; let __newtype_guard = __newtype_source")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __newtype_guard.as_ref() { Some(__newtype_value) => ")
+	writeResult("__newtype_value.0.clone()")
+	out.WriteString(", None => ")
+	if targetIsNewtype {
+		writeTypedWrappedNone(out, goTypesNamedTypeToRust(targetNamed))
+	} else {
+		writeTypedWrappedNone(out, goTypesTypeToRust(targetBasic))
+	}
+	out.WriteString(" } }")
 	return true
+}
+
+// namedBasicCellNewtype reports whether typ is a named number, string or bool
+// whose Rust type is a newtype holding a cell of that basic value: one
+// declared in this package or translated from source, as time.Duration is.
+func namedBasicCellNewtype(typ types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.TypeArgs().Len() > 0 {
+		return nil, false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Kind() == types.Invalid || basic.Kind() == types.UnsafePointer {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && named.Obj().Pkg() == typeInfo.pkg {
+		if _, ok := LookupTypeDefinition(named.Obj().Name()); !ok {
+			return nil, false
+		}
+		return named, true
+	}
+	if isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+		return nil, false
+	}
+	return named, true
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
@@ -19247,6 +19330,12 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 		return
 	}
 	if writeEmbeddedOwnerPointerConversion(out, target, source) {
+		return
+	}
+	if writeLayoutCompatibleStructPointerConversion(out, target, source) {
+		return
+	}
+	if writeChannelWordPointerConversion(out, target, source) {
 		return
 	}
 	targetType := pointerConversionTargetTypeToRust(target)

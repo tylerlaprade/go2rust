@@ -1397,9 +1397,9 @@ impl std::fmt::Display for Stamp {
 
 impl Duration {
     pub fn seconds(&self) -> f64 {
-        let mut sec = Arc::new(Mutex::new(Some(Duration(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) / SECOND as i64))))))));
-        let mut nsec = Arc::new(Mutex::new(Some(Duration(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) % SECOND as i64))))))));
-        return { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e+09; __tmp_x / __tmp_y }; __tmp_x + __tmp_y };
+        let mut sec = Arc::new(Mutex::new(Some(Duration(Arc::new(Mutex::new(Some(({ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } / SECOND as i64))))))));
+        let mut nsec = Arc::new(Mutex::new(Some(Duration(Arc::new(Mutex::new(Some(({ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } % SECOND as i64))))))));
+        return { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_value = (*{ let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __named_value = (*{ let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e+09; __tmp_x / __tmp_y }; __tmp_x + __tmp_y };
     }
 }
 
@@ -1407,8 +1407,8 @@ impl Stamp {
     /// A float literal used as an integer: 1e9 is the integer 1000000000.
     pub fn add(&self, d: Arc<Mutex<Option<Duration>>>) -> Arc<Mutex<Option<Stamp>>> {
         let mut __self = self.__go_value_clone();
-        let mut dsec = Arc::new(Mutex::new(Some(((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) / 1000000000))) as i64)));
-        let mut nsec = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.nsec.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) % 1000000000))) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut dsec = Arc::new(Mutex::new(Some(((({ let __named_value = (*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } / 1000000000))) as i64)));
+        let mut nsec = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.nsec.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(((({ let __named_value = (*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } % 1000000000))) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
         if { let __tmp_x = { let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1000000000 as i32; __tmp_x >= __tmp_y } {
         { let mut guard = dsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __rhs = 1000000000 as i32; let mut guard = nsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };

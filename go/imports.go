@@ -164,6 +164,8 @@ type HelperTracker struct {
 	needsEmbeddedOwnerRegistry           bool
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
+	needsGoTimeRuntime                   bool
+	needsGoChannelIdentity               bool
 	needsGoChannel                       bool
 	needsGoSelectSend                    bool
 	needsWaitGroup                       bool
@@ -242,6 +244,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	}
 	helperCopy := *ht
 	helperCopy.needsGoChannel = false
+	helperCopy.needsGoChannelIdentity = false
 	helperCopy.needsGoSelectSend = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
@@ -280,6 +283,10 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	helperCopy := &HelperTracker{needsGoSelectSend: ht.needsGoSelectSend}
 	if ht.needsGoChannel || ht.needsGoContext {
 		helperCopy.needsGoChannel = true
+	}
+	if ht.needsGoChannelIdentity {
+		helperCopy.needsGoChannel = true
+		helperCopy.needsGoChannelIdentity = true
 	}
 	if ht.needsGoContext {
 		helperCopy.needsGoContext = true
@@ -438,8 +445,12 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoInteger(&result)
 	}
 
+	if ht.needsGoTimeRuntime {
+		generateGoTimeRuntime(&result)
+	}
+
 	if ht.needsGoChannel {
-		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone)
+		generateGoChannelHelper(&result, ht.needsGoTypeParamFieldClone, ht.needsGoChannelIdentity)
 		if ht.needsGoSelectSend {
 			result.WriteString(goSelectSendHelper)
 		}
@@ -584,6 +595,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsEmbeddedOwnerRegistry ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
+		ht.needsGoTimeRuntime ||
 		ht.needsGoChannel ||
 		ht.needsWaitGroup ||
 		ht.needsGoMutex ||
@@ -757,6 +769,12 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoInteger {
 		add("GoInteger", "go_integer_from_i128", "go_integer_cast", "go_integer_add_one", "go_integer_sub_one")
+	}
+	if ht.needsGoTimeRuntime {
+		add("go_time_runtime_nano")
+		if NeedsConcurrentWrapper() {
+			add("go_time_timer_start", "go_time_timer_stop", "go_time_timer_reset")
+		}
 	}
 	if ht.needsGoChannel {
 		add("GoChannel")
@@ -2698,7 +2716,7 @@ impl<T> GoChannel<T> {
 }
 `
 
-func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool) {
+func generateGoChannelHelper(out *strings.Builder, needsGoTypeParamFieldClone bool, needsIdentity bool) {
 	code := `
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
@@ -2869,7 +2887,23 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 `
+	if needsIdentity {
+		code += `
+impl<T> GoChannel<T> {
+    /// The address an unsafe.Pointer to this channel holds in Go: 0 for a
+    /// nil channel, otherwise one address that every handle shares.
+    fn go_identity(&self) -> usize {
+        if self.is_nil() {
+            0
+        } else {
+            std::sync::Arc::as_ptr(&self.rx) as *const () as usize
+        }
+    }
+}
+`
+	}
 	if generatingPublicHelpers {
+		code = strings.ReplaceAll(code, "    fn go_identity(", "    pub fn go_identity(")
 		code = strings.ReplaceAll(code, "struct GoChannel<T>", "pub struct GoChannel<T>")
 		code = strings.ReplaceAll(code, "    fn new(", "    pub fn new(")
 		code = strings.ReplaceAll(code, "    fn new_buffered(", "    pub fn new_buffered(")
@@ -4349,6 +4383,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
+    }
+
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
         let result = f(&mut value);
@@ -4879,6 +4920,13 @@ impl<T: Clone + 'static, const N: usize> GoArrayElemPtr<T, N> {
             index: self.index,
             value: self.backing.borrow_at(self.index),
         }
+    }
+
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
     }
 
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
