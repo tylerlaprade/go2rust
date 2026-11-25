@@ -2495,11 +2495,22 @@ thread_local! {
 }
 
 func generateGoByteSequence(out *strings.Builder) {
+	// go_slice is s[start:end] of the sequence's own type: a substring of a
+	// string, and of a []byte a slice that shares its backing array.
+	byteSliceReslice := "self[start..end].to_vec()"
+	if goSliceModeEnabled() {
+		byteSliceReslice = "self.reslice(start, end)"
+	}
+	// go_to_bytes is []byte(s): a string's bytes in a new slice, and a
+	// []byte itself, sharing its backing array.
+	stringToBytes := "self.as_bytes()" + sliceToVecMethod()
 	out.WriteString(`
 pub trait GoByteSequence: Clone {
     fn go_len(&self) -> usize;
     fn go_byte(&self, index: usize) -> u8;
     fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String;
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self;
+    fn go_to_bytes(&self) -> Vec<u8>;
 
     fn go_to_string(&self) -> String {
         self.go_slice_to_string(0, None)
@@ -2520,6 +2531,15 @@ impl GoByteSequence for String {
         self[start..end].to_string()
     }
 
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self {
+        let end = end.unwrap_or_else(|| self.len());
+        self[start..end].to_string()
+    }
+
+    fn go_to_bytes(&self) -> Vec<u8> {
+        ` + stringToBytes + `
+    }
+
     fn go_to_string(&self) -> String {
         self.clone()
     }
@@ -2537,6 +2557,15 @@ impl GoByteSequence for Vec<u8> {
     fn go_slice_to_string(&self, start: usize, end: Option<usize>) -> String {
         let end = end.unwrap_or_else(|| self.len());
         String::from_utf8(self[start..end].to_vec()).unwrap()
+    }
+
+    fn go_slice(&self, start: usize, end: Option<usize>) -> Self {
+        let end = end.unwrap_or_else(|| self.len());
+        ` + byteSliceReslice + `
+    }
+
+    fn go_to_bytes(&self) -> Vec<u8> {
+        self.clone()
     }
 
     fn go_to_string(&self) -> String {

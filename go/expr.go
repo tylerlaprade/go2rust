@@ -1353,10 +1353,10 @@ func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".go_to_string()")
 }
 
-func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+func writeGoByteSequenceSlice(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
 	NeedGoByteSequence()
 	writeGoByteSequenceReceiver(out, expr)
-	out.WriteString(".go_slice_to_string(")
+	out.WriteString(".go_slice(")
 	if low != nil {
 		writeExpressionAsUsize(out, low)
 	} else {
@@ -15524,8 +15524,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		subjectIsArray := sliceExpressionSubjectIsArray(e.X)
 
 		if isGoByteSequenceSlice {
+			// s[i:j] of a []byte | string type parameter has the type
+			// parameter's type, not string (DEV-29).
 			WriteWrapperPrefix(out)
-			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
+			writeGoByteSequenceSlice(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
@@ -18263,6 +18265,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 			switch elemType {
 			case "byte", "uint8":
+				if typeInfo := GetTypeInfo(); typeInfo != nil && goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(call.Args[0])) {
+					// []byte(s) of a []byte | string type parameter.
+					NeedGoByteSequence()
+					WriteWrapperPrefix(out)
+					writeGoByteSequenceReceiver(out, call.Args[0])
+					out.WriteString(".go_to_bytes()")
+					WriteWrapperSuffix(out)
+					return
+				}
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
 				writeStringConversionSource(out, call.Args[0])

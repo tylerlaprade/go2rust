@@ -1535,6 +1535,14 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_byte_sequence_package" {
+    run_test "tests/generic_byte_sequence_package"
+}
+
+@test "generic_byte_sequence_package_goroutines" {
+    run_test "tests/generic_byte_sequence_package_goroutines"
+}
+
 @test "generic_cache_and_grouping" {
     run_test "tests/generic_cache_and_grouping"
 }
