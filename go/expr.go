@@ -1353,10 +1353,10 @@ func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".go_to_string()")
 }
 
-func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+func writeGoByteSequenceSlice(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
 	NeedGoByteSequence()
 	writeGoByteSequenceReceiver(out, expr)
-	out.WriteString(".go_slice_to_string(")
+	out.WriteString(".go_slice(")
 	if low != nil {
 		writeExpressionAsUsize(out, low)
 	} else {
@@ -2060,7 +2060,7 @@ func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorE
 			continue
 		}
 		if externalStdlibStubMethodCall {
-			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
+			writeExternalStubMethodCallArgument(out, sel, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
 			writeBareMethodCallArgument(out, sel, call.Args[i], i)
 		} else {
@@ -7373,6 +7373,27 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+// wrappedSyncValueSharesStateOnClone reports whether ident is a variable
+// held in a cell whose type is sync.WaitGroup, sync.Mutex, sync.RWMutex or
+// sync.Map.
+// Their Rust values share one state between clones, so a method can be
+// called on a clone without holding the variable's cell.
+func wrappedSyncValueSharesStateOnClone(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || ident == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "sync" {
+		return false
+	}
+	switch named.Obj().Name() {
+	case "WaitGroup", "Mutex", "RWMutex", "Map":
+		return true
+	}
+	return false
 }
 
 func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
@@ -13690,7 +13711,7 @@ func writeNamedIntegerValueReceiverMethodCall(out *strings.Builder, sel *ast.Sel
 				args.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(&args, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(&args, sel, arg, i)
 			} else {
@@ -15570,8 +15591,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		subjectIsArray := sliceExpressionSubjectIsArray(e.X)
 
 		if isGoByteSequenceSlice {
+			// s[i:j] of a []byte | string type parameter has the type
+			// parameter's type, not string (DEV-29).
 			WriteWrapperPrefix(out)
-			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
+			writeGoByteSequenceSlice(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
@@ -18332,6 +18355,15 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 			switch elemType {
 			case "byte", "uint8":
+				if typeInfo := GetTypeInfo(); typeInfo != nil && goTypeParamHasStringByteSliceConstraint(typeInfo.GetType(call.Args[0])) {
+					// []byte(s) of a []byte | string type parameter.
+					NeedGoByteSequence()
+					WriteWrapperPrefix(out)
+					writeGoByteSequenceReceiver(out, call.Args[0])
+					out.WriteString(".go_to_bytes()")
+					WriteWrapperSuffix(out)
+					return
+				}
 				// []byte(string) conversion
 				WriteWrapperPrefix(out)
 				writeStringConversionSource(out, call.Args[0])
@@ -23445,7 +23477,7 @@ func writeElemPtrCallResultFieldMethodCall(out *strings.Builder, fieldSel *ast.S
 				args.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(&args, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(&args, sel, arg, i)
 			} else {
@@ -23482,7 +23514,7 @@ func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr,
 				out.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(out, sel, arg, i)
 			} else {
@@ -23817,7 +23849,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
-					writeExternalStubCallArgument(out, arg, expectedArgType)
+					writeExternalStubMethodCallArgument(out, sel, arg, expectedArgType)
 					continue
 				}
 				if expectedArgType != nil {
@@ -24072,7 +24104,17 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
-				if needsUnwrap {
+				if needsUnwrap && wrappedSyncValueSharesStateOnClone(ident) {
+					// A sync.WaitGroup, Mutex, RWMutex or Map in a cell: call
+					// the method on a copy of the handle, which shares its
+					// state. Holding the variable's own lock across wg.Wait()
+					// kept every goroutine's wg.Done() waiting for it, and a
+					// Range callback that changed the map waited for it too.
+					out.WriteString("{ let __sync_value = (*")
+					out.WriteString(receiverName)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).clone(); __sync_value }.")
+				} else if needsUnwrap {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
 					needsMut := methodCallNeedsMutableReceiver(sel)
@@ -24349,7 +24391,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(", ")
 				}
 				if externalStdlibStubMethodCall {
-					writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
+					writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
 				} else if bareArgumentMethodCall {
 					writeBareMethodCallArgument(out, sel, arg, i)
 				} else {

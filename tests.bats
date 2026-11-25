@@ -1559,6 +1559,14 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_byte_sequence_package" {
+    run_test "tests/generic_byte_sequence_package"
+}
+
+@test "generic_byte_sequence_package_goroutines" {
+    run_test "tests/generic_byte_sequence_package_goroutines"
+}
+
 @test "generic_cache_and_grouping" {
     run_test "tests/generic_cache_and_grouping"
 }
@@ -1649,6 +1657,10 @@ run_xfail_test() {
 
 @test "go_names_drop" {
     run_test "tests/go_names_drop"
+}
+
+@test "go_statement_any_capture" {
+    run_test "tests/go_statement_any_capture"
 }
 
 @test "goroutine_capture_rust_keyword" {
@@ -2845,6 +2857,10 @@ run_xfail_test() {
 
 @test "package_interface_concrete_equality" {
     run_test "tests/package_interface_concrete_equality"
+}
+
+@test "package_level_waitgroup_mutex" {
+    run_test "tests/package_level_waitgroup_mutex"
 }
 
 @test "package_named_const_argument" {
@@ -4269,6 +4285,14 @@ run_xfail_test() {
 
 @test "switch_strings" {
     run_test "tests/switch_strings"
+}
+
+@test "sync_map_methods" {
+    run_test "tests/sync_map_methods"
+}
+
+@test "sync_map_methods_goroutines" {
+    run_test "tests/sync_map_methods_goroutines"
 }
 
 @test "sync_once" {
