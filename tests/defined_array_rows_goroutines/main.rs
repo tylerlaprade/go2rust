@@ -1248,9 +1248,9 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            mu_thread.lock();;
+            let __mutex_guard_source_1650 = mu_thread.clone(); let __mutex_guard_1650 = __mutex_guard_source_1650.guard();;
             (*shared_thread.lock().unwrap().as_mut().unwrap()).place(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("O".to_string()))));;
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_1650);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
