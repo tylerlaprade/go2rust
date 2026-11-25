@@ -169,6 +169,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Stringer: std::fmt::Display + Any {
     fn __go_clone_box_stringer(&self) -> Box<dyn Stringer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_stringer(&self, other: &(dyn Stringer + Send + Sync)) -> bool;
     fn string(&self) -> Arc<Mutex<Option<String>>>;
 }
@@ -424,6 +425,10 @@ impl Stringer for PointPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() }
+    }
     fn __go_eq_stringer(&self, other: &(dyn Stringer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<PointPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -479,6 +484,10 @@ impl Stringer for TempPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() }
     }
     fn __go_eq_stringer(&self, other: &(dyn Stringer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<TempPtr>() {

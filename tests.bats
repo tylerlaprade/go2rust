@@ -551,6 +551,14 @@ run_xfail_test() {
     run_test "tests/append_nil_to_nested_slice"
 }
 
+@test "append_nothing_keeps_nil" {
+    run_test "tests/append_nothing_keeps_nil"
+}
+
+@test "append_nothing_keeps_nil_goroutines" {
+    run_test "tests/append_nothing_keeps_nil_goroutines"
+}
+
 @test "append_result_is_a_new_header" {
     run_test "tests/append_result_is_a_new_header"
 }
@@ -601,6 +609,14 @@ run_xfail_test() {
 
 @test "atomic_operations" {
     run_test "tests/atomic_operations"
+}
+
+@test "atomic_typed_counters" {
+    run_test "tests/atomic_typed_counters"
+}
+
+@test "atomic_typed_counters_plain" {
+    run_test "tests/atomic_typed_counters_plain"
 }
 
 @test "base64_encoding" {
@@ -1207,6 +1223,14 @@ run_xfail_test() {
     run_test "tests/error_custom_type_in_interface_goroutines"
 }
 
+@test "error_dynamic_type_name" {
+    run_test "tests/error_dynamic_type_name"
+}
+
+@test "error_dynamic_type_name_goroutines" {
+    run_test "tests/error_dynamic_type_name_goroutines"
+}
+
 @test "error_equivalent_interface" {
     run_test "tests/error_equivalent_interface"
 }
@@ -1793,6 +1817,18 @@ run_xfail_test() {
 
 @test "interface_nil_print_and_defined_rows" {
     run_test "tests/interface_nil_print_and_defined_rows"
+}
+
+@test "interface_pointer_prints_pointee" {
+    run_test "tests/interface_pointer_prints_pointee"
+}
+
+@test "interface_pointer_prints_pointee_goroutines" {
+    run_test "tests/interface_pointer_prints_pointee_goroutines"
+}
+
+@test "interface_pointer_shapes_print" {
+    run_test "tests/interface_pointer_shapes_print"
 }
 
 @test "interface_range_print_and_row_compare" {
@@ -3307,6 +3343,14 @@ run_xfail_test() {
     run_test "tests/range_string_method_argument"
 }
 
+@test "range_string_range_variable" {
+    run_test "tests/range_string_range_variable"
+}
+
+@test "range_string_range_variable_goroutines" {
+    run_test "tests/range_string_range_variable_goroutines"
+}
+
 @test "range_string_rune_call_switch" {
     run_test "tests/range_string_rune_call_switch"
 }
@@ -3373,6 +3417,14 @@ run_xfail_test() {
 
 @test "recover_named_type_assertion" {
     run_test "tests/recover_named_type_assertion"
+}
+
+@test "recover_nil_pointer_runtime_error" {
+    run_test "tests/recover_nil_pointer_runtime_error"
+}
+
+@test "recover_nil_pointer_runtime_error_goroutines" {
+    run_test "tests/recover_nil_pointer_runtime_error_goroutines"
 }
 
 @test "recover_without_goroutines" {

@@ -1785,6 +1785,18 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			writeAtomicUint64Stub(&out)
 			continue
 		}
+		if name == "atomic_Int64" {
+			writeAtomicIntegerTypeStub(&out, name, "AtomicI64", "i64")
+			continue
+		}
+		if name == "atomic_Uint32" {
+			writeAtomicIntegerTypeStub(&out, name, "AtomicU32", "u32")
+			continue
+		}
+		if name == "atomic_Bool" {
+			writeAtomicBoolStub(&out)
+			continue
+		}
 		if name == "fs_FileInfo" {
 			writeFsFileInfoStub(&out, name, methodsByType[name])
 			continue

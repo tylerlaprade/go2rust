@@ -753,6 +753,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
     fn area(&self) -> f64;
 }
@@ -836,6 +837,7 @@ impl std::fmt::Display for Spare__int {
 pub trait Runner: std::fmt::Display + Any {
     fn __go_clone_box_runner(&self) -> Box<dyn Runner>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_runner(&self, other: &dyn Runner) -> bool;
     fn run(&self) -> Rc<RefCell<Option<String>>>;
 }
@@ -1041,6 +1043,10 @@ impl Shape for RectPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -1097,6 +1103,10 @@ impl Shape for Spare__intPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<Spare__intPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -1128,15 +1138,15 @@ impl SecondMethods for Second {
 
 fn main() {
     for s in &vec![Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(3.0))), h: Rc::new(RefCell::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape>)))] {
-        println!("{}", format!("{}", match s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
+        println!("{}", format!("{}", match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
         print!("{}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<Spare__int>() { "main.Spare__int" } else if __any.is::<Spare__intPtr>() { "*main.Spare__int" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name });
     }
     let mut none: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(None));
-    println!("{}", format!("{}", match none.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
+    println!("{}", format!("{}", match none.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
     let mut h = Rc::new(RefCell::new(Some(Holder { s: Default::default() })));
-    println!("{}", format!("{}", match (*h.borrow().as_ref().unwrap()).s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
+    println!("{}", format!("{}", match (*h.borrow().as_ref().unwrap()).s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1.0))), h: Rc::new(RefCell::new(Some(1.0))), ..Default::default() }) as Box<dyn Shape>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *(*h.borrow_mut().as_mut().unwrap()).s.borrow_mut() = __iface_value; };
-    println!("{}", format!("{}", match (*h.borrow().as_ref().unwrap()).s.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
+    println!("{}", format!("{}", match (*h.borrow().as_ref().unwrap()).s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
     let mut sp: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(Spare__int { v: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Box<dyn Shape>)));
     println!("{}", { let __text = go_float_string(((*sp.borrow().as_ref().unwrap()).area()) as f64, false); __text });
     let mut rs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(FirstAsRunner(Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {

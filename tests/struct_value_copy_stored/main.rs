@@ -716,6 +716,7 @@ impl std::fmt::Display for Line {
 pub trait Shape: std::fmt::Display + Any {
     fn __go_clone_box_shape(&self) -> Box<dyn Shape>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool;
     fn area(&self) -> i64;
 }
@@ -811,6 +812,10 @@ impl Shape for RectPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<RectPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -878,7 +883,7 @@ fn main() {
     println!("{} {} {}", format!("{}", "assigned from an element".to_string()), format!("{}", (*s.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*e.borrow().as_ref().unwrap())));
 
     let mut list = Rc::new(RefCell::new(Some(vec![Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }, Point { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) };
+    let mut spread = { let __append_target = Rc::new(RefCell::new(Some(Vec::<Point>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) };
     { let new_val = 400; *(*spread.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "slice copied with append".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*spread.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
@@ -894,7 +899,7 @@ fn main() {
     { let new_val = 500; *(*copied.borrow().as_ref().unwrap())[(1) as usize].clone().y.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice copied with copy".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*list.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*copied.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
-    let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) };
+    let mut grown = { let __append_target = spread.clone(); let __append_values: Vec<_> = { let __slice_holder = list.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().map(|__go_elem| __go_elem.__go_value_clone()).collect(); let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.extend(__append_values); }, |__go_elem| __go_elem.__go_value_clone()); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) };
     { let new_val = 600; *(*grown.borrow().as_ref().unwrap())[(2) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {} {} {}", format!("{}", "slice appended to another".to_string()), format!("{}", (*list.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*grown.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", (*grown.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

@@ -92,6 +92,10 @@ impl Shape for CirclePtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_shape(&self, other: &dyn Shape) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<CirclePtr>() {
             Rc::ptr_eq(&self.0, &__other.0)

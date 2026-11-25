@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
     fn read(&self) -> i64;
 }
@@ -662,6 +663,7 @@ impl std::fmt::Display for counter {
 pub trait Valuer: std::fmt::Display + Any {
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool;
     fn value(&self) -> i64;
 }
@@ -751,6 +753,10 @@ impl Reader for counterPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -806,6 +812,10 @@ impl Valuer for numberPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_valuer(&self, other: &dyn Valuer) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<numberPtr>() {

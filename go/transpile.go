@@ -1380,6 +1380,7 @@ func writeAnonymousInterfaceAssertionTrait(out *strings.Builder, trait anonymous
 	out.WriteString(rustLocalInterfaceTraitObject(trait.name))
 	out.WriteString(";\n")
 	out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
+	writeGoPrintTraitMethod(out)
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(&self, other: ")
