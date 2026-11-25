@@ -1228,6 +1228,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
 	dst.needsGoAnyRuntimeOps = dst.needsGoAnyRuntimeOps || src.needsGoAnyRuntimeOps
+	dst.needsAnyPointerFormatter = dst.needsAnyPointerFormatter || src.needsAnyPointerFormatter
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {

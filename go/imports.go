@@ -161,6 +161,9 @@ type HelperTracker struct {
 	needsGoConstStrEq                    bool
 	needsGoAnyTypeMetadata               bool
 	needsGoAnyRuntimeOps                 bool
+	// needsAnyPointerFormatter says a run-time registration of a pointer
+	// type formats it with go_format_any_pointer.
+	needsAnyPointerFormatter bool
 	needsEmbeddedOwnerRegistry           bool
 	needsGoByteSequence                  bool
 	needsGoInteger                       bool
@@ -339,7 +342,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	// format_any prints boxed slices and maps through the typed formatters,
 	// so it needs them even when no typed print site asked for them.
-	needsFormatAnyPointer := false
+	needsFormatAnyPointer := ht.needsAnyPointerFormatter
 	if ht.needsFormatAny {
 		for _, arm := range anyFormatArms {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
@@ -592,6 +595,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoConstStrEq ||
 		ht.needsGoAnyTypeMetadata ||
 		ht.needsGoAnyRuntimeOps ||
+		ht.needsAnyPointerFormatter ||
 		ht.needsEmbeddedOwnerRegistry ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
@@ -721,6 +725,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatAny {
 		add("format_any")
+	}
+	if ht.needsAnyPointerFormatter {
+		add("go_format_any_pointer")
 	}
 	if ht.needsFormatAnySlice {
 		add("format_any_slice", "format_any_variadic")

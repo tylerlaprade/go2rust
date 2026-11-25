@@ -9007,6 +9007,13 @@ func writeRuntimeAnyTypeRegistration(out *strings.Builder, typ types.Type) bool 
 	}
 	NeedGoAnyRuntimeOps()
 	RegisterAnyCloneType(typ)
+	if helpers := activeHelperTracker(); helpers != nil {
+		// The registration formats the value with the arm's helpers, which
+		// this crate writes even when it has no format_any of its own.
+		helpers.needsAnyPointerFormatter = helpers.needsAnyPointerFormatter || formatArm.needsFormatPointer
+		helpers.needsFormatMap = helpers.needsFormatMap || formatArm.needsFormatMap
+		helpers.needsFormatSlice = helpers.needsFormatSlice || formatArm.needsFormatSlice
+	}
 	out.WriteString("go_register_any_runtime_type::<")
 	out.WriteString(rustType)
 	out.WriteString(">(")
