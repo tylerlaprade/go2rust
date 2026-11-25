@@ -1,0 +1,7 @@
+[1 2] 2
+[3] 1
+true a
+a1 <nil>
+7
+1 [0 9]
+stopped at 0

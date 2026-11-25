@@ -5,6 +5,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -63,10 +64,14 @@ type rangeFuncRewrite struct {
 	label       string
 	innerLabels map[string]bool
 	done        *types.Var
-	results     []*types.Var
-	// namedResults is true when the enclosing function names its results,
-	// so a bare return returns them.
-	namedResults bool
+	// results holds, per result of the enclosing function, a [1]T whose
+	// element a return in the body stores the result in. An element write
+	// reaches the array the yield function captured, where an assignment to
+	// a captured pointer variable would not. namedResults holds the named
+	// result each one copies for a bare return, nil for a blank or unnamed
+	// one.
+	results      []*types.Var
+	namedResults []*types.Var
 	hasResults   bool
 	// next numbers the branch to a loop around this one that the body took,
 	// from 1, and branches holds those branches.
@@ -75,15 +80,107 @@ type rangeFuncRewrite struct {
 	suffix   string
 }
 
+// typeExpr gives the syntax of type t, each part recorded with its type, as
+// a parameter written in the program would have it: []int is an ArrayType
+// over the ident int, not an ident named "[]int".
 func (r *rangeFuncRewrite) typeExpr(t types.Type) ast.Expr {
-	expr := &ast.Ident{NamePos: r.pos, Name: types.TypeString(t, func(p *types.Package) string {
+	expr := r.typeSyntax(t)
+	r.typeInfo.info.Types[expr] = types.TypeAndValue{Type: t}
+	return expr
+}
+
+func (r *rangeFuncRewrite) typeName(obj types.Object, t types.Type) ast.Expr {
+	name := &ast.Ident{NamePos: r.pos, Name: obj.Name()}
+	r.typeInfo.info.Uses[name] = obj
+	r.typeInfo.info.Types[name] = types.TypeAndValue{Type: t}
+	if obj.Pkg() == nil || obj.Pkg() == r.typeInfo.pkg {
+		return name
+	}
+	pkg := &ast.Ident{NamePos: r.pos, Name: obj.Pkg().Name()}
+	r.typeInfo.info.Uses[pkg] = types.NewPkgName(r.pos, r.typeInfo.pkg, obj.Pkg().Name(), obj.Pkg())
+	return &ast.SelectorExpr{X: pkg, Sel: name}
+}
+
+func (r *rangeFuncRewrite) fieldList(tuple *types.Tuple) *ast.FieldList {
+	list := &ast.FieldList{Opening: r.pos}
+	for i := 0; i < tuple.Len(); i++ {
+		list.List = append(list.List, &ast.Field{Type: r.typeExpr(tuple.At(i).Type())})
+	}
+	return list
+}
+
+func (r *rangeFuncRewrite) typeSyntax(t types.Type) ast.Expr {
+	switch tt := t.(type) {
+	case *types.Basic:
+		return r.typeName(types.Universe.Lookup(tt.Name()), t)
+	case *types.Alias:
+		return r.typeName(tt.Obj(), t)
+	case *types.TypeParam:
+		return r.typeName(tt.Obj(), t)
+	case *types.Named:
+		base := r.typeName(tt.Obj(), t)
+		args := tt.TypeArgs()
+		if args == nil || args.Len() == 0 {
+			return base
+		}
+		indices := make([]ast.Expr, args.Len())
+		for i := range indices {
+			indices[i] = r.typeExpr(args.At(i))
+		}
+		if len(indices) == 1 {
+			return &ast.IndexExpr{X: base, Index: indices[0]}
+		}
+		return &ast.IndexListExpr{X: base, Indices: indices}
+	case *types.Pointer:
+		return &ast.StarExpr{Star: r.pos, X: r.typeExpr(tt.Elem())}
+	case *types.Slice:
+		return &ast.ArrayType{Lbrack: r.pos, Elt: r.typeExpr(tt.Elem())}
+	case *types.Array:
+		length := &ast.BasicLit{ValuePos: r.pos, Kind: token.INT, Value: strconv.FormatInt(tt.Len(), 10)}
+		r.typeInfo.info.Types[length] = types.TypeAndValue{Type: types.Typ[types.UntypedInt], Value: constant.MakeInt64(tt.Len())}
+		return &ast.ArrayType{Lbrack: r.pos, Len: length, Elt: r.typeExpr(tt.Elem())}
+	case *types.Map:
+		return &ast.MapType{Map: r.pos, Key: r.typeExpr(tt.Key()), Value: r.typeExpr(tt.Elem())}
+	case *types.Chan:
+		dir := ast.SEND | ast.RECV
+		switch tt.Dir() {
+		case types.SendOnly:
+			dir = ast.SEND
+		case types.RecvOnly:
+			dir = ast.RECV
+		}
+		return &ast.ChanType{Begin: r.pos, Dir: dir, Value: r.typeExpr(tt.Elem())}
+	case *types.Signature:
+		fn := &ast.FuncType{Func: r.pos, Params: r.fieldList(tt.Params())}
+		if tt.Results().Len() > 0 {
+			fn.Results = r.fieldList(tt.Results())
+		}
+		return fn
+	case *types.Interface:
+		if tt.Empty() {
+			return r.typeName(types.Universe.Lookup("any"), t)
+		}
+	case *types.Struct:
+		fields := &ast.FieldList{Opening: r.pos}
+		for i := 0; i < tt.NumFields(); i++ {
+			field := tt.Field(i)
+			f := &ast.Field{Type: r.typeExpr(field.Type())}
+			if !field.Anonymous() {
+				name := &ast.Ident{NamePos: r.pos, Name: field.Name()}
+				r.typeInfo.info.Defs[name] = field
+				f.Names = []*ast.Ident{name}
+			}
+			fields.List = append(fields.List, f)
+		}
+		return &ast.StructType{Struct: r.pos, Fields: fields}
+	}
+	// Any other type keeps its spelling, with the type recorded.
+	return &ast.Ident{NamePos: r.pos, Name: types.TypeString(t, func(p *types.Package) string {
 		if r.typeInfo.pkg != nil && p == r.typeInfo.pkg {
 			return ""
 		}
 		return p.Name()
 	})}
-	r.typeInfo.info.Types[expr] = types.TypeAndValue{Type: t}
-	return expr
 }
 
 func (r *rangeFuncRewrite) use(v *types.Var) *ast.Ident {
@@ -91,6 +188,16 @@ func (r *rangeFuncRewrite) use(v *types.Var) *ast.Ident {
 	r.typeInfo.info.Uses[ident] = v
 	r.typeInfo.info.Types[ident] = types.TypeAndValue{Type: v.Type()}
 	return ident
+}
+
+// resultSlot is the element of a [1]T result variable.
+func (r *rangeFuncRewrite) resultSlot(v *types.Var) ast.Expr {
+	array, _ := v.Type().(*types.Array)
+	index := &ast.IndexExpr{X: r.use(v), Lbrack: r.pos, Index: r.intLit(0), Rbrack: r.pos}
+	if array != nil {
+		r.typeInfo.info.Types[index] = types.TypeAndValue{Type: array.Elem()}
+	}
+	return index
 }
 
 func (r *rangeFuncRewrite) boolLit(value bool) *ast.Ident {
@@ -158,12 +265,26 @@ func (r *rangeFuncRewrite) rewriteStmt(stmt ast.Stmt, inLoop bool, inSwitch bool
 		}, Rbrace: s.End()}
 	case *ast.ReturnStmt:
 		var list []ast.Stmt
-		if len(s.Results) > 0 {
+		if len(s.Results) == len(r.results) {
+			// Each result goes to its own private slot, so storing them in
+			// turn is storing them at once.
+			for i, v := range r.results {
+				list = append(list, r.assign(r.resultSlot(v), s.Results[i], s.Pos()))
+			}
+		} else if len(s.Results) > 0 {
+			// return f() of a call with several results.
 			lhs := make([]ast.Expr, len(r.results))
 			for i, v := range r.results {
-				lhs[i] = r.use(v)
+				lhs[i] = r.resultSlot(v)
 			}
 			list = append(list, &ast.AssignStmt{Lhs: lhs, TokPos: s.Pos(), Tok: token.ASSIGN, Rhs: s.Results})
+		} else {
+			// A bare return returns the named results as they are now.
+			for i, named := range r.namedResults {
+				if named != nil {
+					list = append(list, r.assign(r.resultSlot(r.results[i]), r.use(named), s.Pos()))
+				}
+			}
 		}
 		list = append(list,
 			r.assign(r.use(r.done), r.boolLit(true), s.Pos()),
@@ -307,25 +428,35 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 				return nil, false
 			}
 			r.hasResults = true
-			if len(field.Names) > 0 {
-				r.namedResults = true
-				for _, name := range field.Names {
+			names := field.Names
+			if len(names) == 0 {
+				names = []*ast.Ident{nil}
+			}
+			for _, name := range names {
+				var named *types.Var
+				if name != nil && name.Name != "_" {
 					v, ok := typeInfo.info.Defs[name].(*types.Var)
 					if !ok {
 						return nil, false
 					}
-					r.results = append(r.results, v)
+					named = v
 				}
-				continue
+				v, decl := r.newVar("__rf_result_"+r.suffix+"_"+itoaRangeFunc(len(r.results)), types.NewArray(resultType, 1))
+				r.results = append(r.results, v)
+				r.namedResults = append(r.namedResults, named)
+				prelude = append(prelude, decl)
 			}
-			v, decl := r.newVar("__rf_result_"+r.suffix+"_"+itoaRangeFunc(len(r.results)), resultType)
-			r.results = append(r.results, v)
-			prelude = append(prelude, decl)
 		}
 	}
 
+	// The yield function's parameters are its own. for k, v := range seq
+	// gives each iteration new k and v, bound from them, which the body can
+	// change without changing what seq passed. for k, v = range seq assigns
+	// k and then v, as Go's own lowering of a range over a function does:
+	// for i, a[i] = range seq indexes a with the new i, unlike the same
+	// range over a slice.
 	params := &ast.FieldList{Opening: s.For}
-	var bindings []ast.Stmt
+	var lhs, rhs []ast.Expr
 	for i := 0; i < yield.Params().Len(); i++ {
 		bound := s.Key
 		if i == 1 {
@@ -336,18 +467,22 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 		if ident, ok := bound.(*ast.Ident); ok && ident.Name == "_" {
 			bound = nil
 		}
-		switch {
-		case bound == nil:
-		case s.Tok == token.DEFINE:
-			name = bound.(*ast.Ident)
-		default:
-			// for k, v = range seq assigns each k and v to the variables.
+		if bound != nil {
 			param := types.NewVar(s.For, typeInfo.pkg, "__rf_param_"+r.suffix+"_"+itoaRangeFunc(i), paramType)
 			name = &ast.Ident{NamePos: s.For, Name: param.Name()}
 			typeInfo.info.Defs[name] = param
-			bindings = append(bindings, r.assign(bound, r.use(param), s.For))
+			lhs = append(lhs, bound)
+			rhs = append(rhs, r.use(param))
 		}
 		params.List = append(params.List, &ast.Field{Names: []*ast.Ident{name}, Type: r.typeExpr(paramType)})
+	}
+	var bindings []ast.Stmt
+	if len(lhs) > 0 && s.Tok == token.DEFINE {
+		bindings = append(bindings, &ast.AssignStmt{Lhs: lhs, TokPos: s.For, Tok: token.DEFINE, Rhs: rhs})
+	} else {
+		for i := range lhs {
+			bindings = append(bindings, r.assign(lhs[i], rhs[i], s.For))
+		}
 	}
 	body := r.rewriteStmt(s.Body, false, false).(*ast.BlockStmt)
 	body.List = append(append(bindings, body.List...), &ast.ReturnStmt{Return: s.Body.Rbrace, Results: []ast.Expr{r.boolLit(true)}})
@@ -362,10 +497,10 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 	}
 	stmts := append(prelude, &ast.ExprStmt{X: call})
 	var after []ast.Stmt
-	if r.hasResults && !r.namedResults {
+	if r.hasResults {
 		results := make([]ast.Expr, len(r.results))
 		for i, v := range r.results {
-			results[i] = r.use(v)
+			results[i] = r.resultSlot(v)
 		}
 		after = []ast.Stmt{&ast.ReturnStmt{Return: s.End(), Results: results}}
 	} else {

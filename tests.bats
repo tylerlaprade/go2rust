@@ -3319,6 +3319,10 @@ run_xfail_test() {
     run_test "tests/range_over_func_nested_and_labeled_goroutines"
 }
 
+@test "range_over_func_results_and_bindings" {
+    run_test "tests/range_over_func_results_and_bindings"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
