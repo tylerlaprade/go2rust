@@ -8931,6 +8931,18 @@ func mapOperandHandleCanBeHeld(mapExpr ast.Expr) bool {
 	return true
 }
 
+// exprHasFuncLit reports whether expr contains a function literal.
+func exprHasFuncLit(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if _, ok := n.(*ast.FuncLit); ok {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
@@ -13181,7 +13193,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if typeInfo := GetTypeInfo(); typeInfo != nil {
 					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
-				out.WriteString("{ let __map_key = ")
+				// A closure on the right ("m.handlers[k] = func() { m.n++ }")
+				// moves the captured clone of m into itself, so the map's
+				// handle is taken first, as Go evaluates the map operand
+				// before the value.
+				holdsMapHandle := exprHasFuncLit(s.Rhs[0]) && mapOperandHandleCanBeHeld(indexExpr.X)
+				out.WriteString("{ ")
+				if holdsMapHandle {
+					out.WriteString("let __map_holder = ")
+					writeMapHandleCloneForOp(out, indexExpr.X)
+					out.WriteString("; ")
+				}
+				out.WriteString("let __map_key = ")
 				if mapAssignmentKeyRequiresTypeDrivenConversion(keyType) || !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
@@ -13191,7 +13214,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
-				writeMapHandleForOp(out, indexExpr.X)
+				if holdsMapHandle {
+					out.WriteString("__map_holder")
+				} else {
+					writeMapHandleForOp(out, indexExpr.X)
+				}
 				WriteBorrowMethod(out, true)
 				writeMapMutationUnwrap(out, indexExpr.X)
 				out.WriteString(").insert(__map_key, __map_value); }")
