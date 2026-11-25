@@ -162,8 +162,35 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	pl.monomorphizeMainPackage()
+	pl.rewriteMainPointerSlots()
 	pl.boxCapturedReboundVariables()
 	return nil
+}
+
+// rewriteMainPointerSlots makes each **T of the main package a slot that
+// rebinds the pointer it points at; see pointer_slot.go.
+func (pl *PackageLoader) rewriteMainPointerSlots() {
+	pkg := pl.mainPkg
+	if pkg == nil || pkg.Types == nil || pkg.TypesInfo == nil || len(pkg.Syntax) == 0 {
+		return
+	}
+	fileSet := pkg.Fset
+	if fileSet == nil {
+		fileSet = pl.fileSet
+	}
+	imp := pl.projectImporter()
+	files, ok := rewritePointerSlots(pkg.PkgPath, pkg.Syntax, fileSet, pkg.TypesInfo, imp)
+	if !ok {
+		return
+	}
+	ti, err := NewTypeInfoWithImporter(pkg.PkgPath, files, fileSet, imp)
+	if err != nil || ti == nil {
+		pointerSlotDebugf("%s: the rewrite does not type-check: %v", pkg.PkgPath, err)
+		return
+	}
+	pkg.Syntax = files
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
 }
 
 // boxCapturedReboundVariables gives a cell to each pointer, map or channel

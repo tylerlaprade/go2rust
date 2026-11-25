@@ -254,6 +254,32 @@ impl std::fmt::Display for Vec_ {
 }
 
 
+#[derive(Clone, Default)]
+pub struct __ptrSlot_int {
+    pub get: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync>>>>,
+    pub set: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>,
+}
+
+impl __ptrSlot_int {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.get.clone();
+        let __go_clone_1_0 = self.set.clone();
+        Self {
+            get: __go_clone_0_0,
+            set: __go_clone_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for __ptrSlot_int {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", "<func>");
+        let __go_fmt_1 = format!("{}", "<func>");
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 impl Vec_ {
     pub fn add(&self, o: Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> {
         Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.x.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*o.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))), y: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.y.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*o.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))), ..Default::default() })))
@@ -384,9 +410,18 @@ fn main() {
     println!("{} {} {} {} {} {}", format!("{}", { let __tmp_x = { let __v = (*u.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 31; __tmp_x << __tmp_y }), format!("{}", !({ let __v = (*u.lock().unwrap().as_ref().unwrap()); __v })), format!("{}", 9223372036854775807i64), format!("{}", i64::MIN), format!("{}", 4294967295i64), { let __text = go_float_string((math::PI) as f64, false); __text });
     let mut x = Arc::new(Mutex::new(Some(10i64)));
     let mut ptr = x.clone();
-    let mut pp = Arc::new(Mutex::new(Some(ptr.clone())));
-    { let new_val = 20; *(*pp.lock().unwrap().as_mut().unwrap()).lock().unwrap() = Some(new_val); };
-    println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x == __tmp_y }));
+    let mut __cell_ptr_1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { v: ptr.clone() })));
+    let __cell_ptr_1_closure_clone = __cell_ptr_1.clone(); let mut pp = Arc::new(Mutex::new(Some(__ptrSlot_int {
+        get: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Box::new(move || -> Arc<Mutex<Option<i64>>> {
+        return (*__cell_ptr_1_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone();
+    }) as Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> }))),
+        set: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Box::new(move |__slot_v1: Arc<Mutex<Option<i64>>>| {
+        { let new_val = __slot_v1.clone(); (*__cell_ptr_1_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> }))),
+        ..Default::default()
+    })));
+    { let new_val = 20; *{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.lock().unwrap() = Some(new_val); };
+    println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*(*__cell_ptr_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x == __tmp_y }));
 }
 
 #[derive(Debug, Clone)]
@@ -434,7 +469,36 @@ impl std::fmt::Display for AnonymousStruct1 {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct AnonymousStruct2 {
+    pub v: Arc<Mutex<Option<i64>>>,
+}
+impl AnonymousStruct2 {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.v.clone();
+        Self {
+            v: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
 impl GoValueClone for Vec_ {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for __ptrSlot_int {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

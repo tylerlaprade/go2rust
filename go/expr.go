@@ -25901,6 +25901,16 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 			return
 		}
 	}
+	// A map, slice or array literal is its own cell, as in the argument
+	// loop of a call by name; a struct literal is wrapped below.
+	if lit, ok := arg.(*ast.CompositeLit); ok {
+		_, isNamed := lit.Type.(*ast.Ident)
+		_, isStruct := lit.Type.(*ast.StructType)
+		if lit.Type != nil && !isNamed && !isStruct {
+			TranspileExpression(out, arg)
+			return
+		}
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
