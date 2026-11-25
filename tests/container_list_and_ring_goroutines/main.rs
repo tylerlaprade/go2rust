@@ -148,15 +148,13 @@ fn main() {
     println!();
     let mut r = container_ring::new(Arc::new(Mutex::new(Some(4))));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.len(); __result }; __tmp_x < __tmp_y } {
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = container_ring::__go_nil_recv_ring_len(r.clone()); __tmp_x < __tmp_y } {
         { let new_val = Box::new({ let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }) as Box<dyn Any + Send + Sync>; *(*r.lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
         { let new_val = { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.next(); __result }.clone(); r = new_val; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.r#do(
-        Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
+    container_ring::__go_nil_recv_ring_r_do(r.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
         print!("{}{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", " ".to_string()));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))),
-    ); __result };
-    println!("{}", format!("{}", { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.len(); __result }));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
+    println!("{}", format!("{}", container_ring::__go_nil_recv_ring_len(r.clone())));
 }

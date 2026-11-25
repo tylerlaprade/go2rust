@@ -134,13 +134,13 @@ fn main() {
     println!();
     let mut r = container_ring::new(Rc::new(RefCell::new(Some(4))));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
-    while (*i.borrow().as_ref().unwrap()) < (*r.borrow_mut().as_mut().unwrap()).len() {
+    while (*i.borrow().as_ref().unwrap()) < container_ring::__go_nil_recv_ring_len(r.clone()) {
         { let new_val = Box::new({ let __bin_i = (*i.borrow().as_ref().unwrap()).clone(); __bin_i * __bin_i }) as Box<dyn Any>; *(*r.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };
         { let new_val = (*r.borrow_mut().as_mut().unwrap()).next().clone(); r = new_val; };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    (*r.borrow_mut().as_mut().unwrap()).r#do(Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {
+    container_ring::__go_nil_recv_ring_r_do(r.clone(), Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {
         print!("{}{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
     }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Any>>>>) -> ()>))));
-    println!("{}", format!("{}", (*r.borrow_mut().as_mut().unwrap()).len()));
+    println!("{}", format!("{}", container_ring::__go_nil_recv_ring_len(r.clone())));
 }
