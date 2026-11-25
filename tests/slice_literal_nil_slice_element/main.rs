@@ -128,7 +128,7 @@ impl std::fmt::Display for source {
 pub fn flatten(groups: Arc<Mutex<Option<Vec<Vec<String>>>>>) -> Arc<Mutex<Option<Vec<String>>>> {
     let mut out: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
     { let __range_holder = groups.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for group in __range_values.iter() {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_values: Vec<_> = group.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *out.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out.clone(); let __append_values: Vec<_> = group.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.lock().unwrap()).is_none(); Arc::new(Mutex::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *out.lock().unwrap() = __slice_header; };
     } }
     return out.clone();
 }

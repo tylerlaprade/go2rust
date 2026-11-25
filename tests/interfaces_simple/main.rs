@@ -669,6 +669,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait geometry: std::fmt::Display + Any {
     fn __go_clone_box_geometry(&self) -> Box<dyn geometry>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_geometry(&self, other: &dyn geometry) -> bool;
     fn area(&self) -> f64;
     fn perim(&self) -> f64;
@@ -777,6 +778,10 @@ impl geometry for rectPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_geometry(&self, other: &dyn geometry) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<rectPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)
@@ -787,7 +792,7 @@ impl geometry for rectPtr {
 }
 
 pub fn measure(g: Rc<RefCell<Option<Box<dyn geometry>>>>) {
-    println!("{}", format!("{}", match g.borrow().as_ref() { Some(__iface) => format!("{}", __iface), None => "<nil>".to_string() }));
+    println!("{}", format!("{}", match g.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
     println!("{}", { let __text = go_float_string(((*g.borrow().as_ref().unwrap()).area()) as f64, false); __text });
     println!("{}", { let __text = go_float_string(((*g.borrow().as_ref().unwrap()).perim()) as f64, false); __text });
 }

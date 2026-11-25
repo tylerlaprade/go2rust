@@ -1,0 +1,6 @@
+-1 main.NotFound not found: -1
+11 *main.Limit over 10
+5 *errors.errorString five
+7 *fmt.wrapError seven: not found: 7
+3 <nil> <nil>
+main.NotFound|*errors.joinError

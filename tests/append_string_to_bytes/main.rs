@@ -652,11 +652,11 @@ impl label {
 }
 
 pub fn append_string(dst: Rc<RefCell<Option<Vec<u8>>>>, s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-    { let __append_target = dst.clone(); let __append_values: Vec<_> = (*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) }
+    { let __append_target = dst.clone(); let __append_values: Vec<_> = (*s.borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) }
 }
 
 pub fn append_method(dst: Rc<RefCell<Option<Vec<u8>>>>, l: Rc<RefCell<Option<label>>>) -> Rc<RefCell<Option<Vec<u8>>>> {
-    { let __append_target = dst.clone(); let __append_values: Vec<_> = (*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) }
+    { let __append_target = dst.clone(); let __append_values: Vec<_> = (*(*l.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap()).clone().as_bytes().iter().cloned().collect(); let mut __appended: Vec<u8> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) }
 }
 
 fn main() {

@@ -100,6 +100,10 @@ impl Stepper for CounterPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_stepper(&self, other: &dyn Stepper) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<CounterPtr>() {
             Rc::ptr_eq(&self.0, &__other.0)

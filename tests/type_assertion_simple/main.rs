@@ -639,6 +639,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 pub trait hasName: std::fmt::Display + Any {
     fn __go_clone_box_has_name(&self) -> Box<dyn hasName>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_has_name(&self, other: &dyn hasName) -> bool;
     fn name(&self) -> Rc<RefCell<Option<String>>>;
 }
