@@ -11068,6 +11068,35 @@ func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) m
 	return merged
 }
 
+// goStmtCapturedNameIsEmptyInterface reports whether name, a variable a go
+// statement captures, has an empty interface type, as goFunc's arg does in
+// "go arg.(func())()".
+func goStmtCapturedNameIsEmptyInterface(call *ast.CallExpr, name string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || call == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(call, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+		if !ok {
+			return true
+		}
+		if iface, ok := types.Unalias(obj.Type()).Underlying().(*types.Interface); ok && iface.NumMethods() == 0 {
+			found = true
+		}
+		return false
+	})
+	return found
+}
+
 func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	receiver, ok := mutexLockReceiver(expr)
 	if !ok {
@@ -17097,6 +17126,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// The goroutine works on the variable itself, as a closure does.
 				out.WriteString(source)
 				out.WriteString(".clone(); ")
+			} else if goStmtCapturedNameIsEmptyInterface(s.Call, varName) {
+				// An interface{} value in Box<dyn Any> has no Clone: copy it
+				// through the value registry, as an assignment of it does.
+				NeedAnyHandleCopy()
+				out.WriteString("go_any_handle_copy(&")
+				out.WriteString(source)
+				out.WriteString("); ")
 			} else {
 				// A loop variable, or a value passed as an argument: Go copies
 				// it when the go statement runs.

@@ -7360,6 +7360,26 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 	return true
 }
 
+// wrappedSyncValueSharesStateOnClone reports whether ident is a variable
+// held in a cell whose type is sync.WaitGroup, sync.Mutex or sync.RWMutex.
+// Their Rust values share one state between clones, so a method can be
+// called on a clone without holding the variable's cell.
+func wrappedSyncValueSharesStateOnClone(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || ident == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "sync" {
+		return false
+	}
+	switch named.Obj().Name() {
+	case "WaitGroup", "Mutex", "RWMutex":
+		return true
+	}
+	return false
+}
+
 func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 	ident, ok := expr.(*ast.Ident)
 	if !ok {
@@ -23992,7 +24012,16 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
-				if needsUnwrap {
+				if needsUnwrap && wrappedSyncValueSharesStateOnClone(ident) {
+					// A package-level sync.WaitGroup, Mutex or RWMutex: call
+					// the method on a copy of the handle, which shares its
+					// state. Holding the variable's own lock across wg.Wait()
+					// kept every goroutine's wg.Done() waiting for it.
+					out.WriteString("{ let __sync_value = (*")
+					out.WriteString(receiverName)
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap()).clone(); __sync_value }.")
+				} else if needsUnwrap {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
 					needsMut := methodCallNeedsMutableReceiver(sel)
