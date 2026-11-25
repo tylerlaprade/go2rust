@@ -1504,6 +1504,10 @@ run_xfail_test() {
     run_test "tests/fmt_println_repeated_selector_concurrent"
 }
 
+@test "fmt_scan_edge_cases" {
+    run_test "tests/fmt_scan_edge_cases"
+}
+
 @test "fmt_scan_stdin" {
     run_test "tests/fmt_scan_stdin"
 }
@@ -4754,6 +4758,10 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
+}
+
+@test "XFAIL: fmt_scan_defined_type" {
+    run_xfail_test "tests/XFAIL/fmt_scan_defined_type"
 }
 
 @test "XFAIL: http_client" {

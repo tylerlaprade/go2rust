@@ -225,12 +225,23 @@ against the `// TEMPORARY:` comments of that one file.
   `advance`, `doScanf`) for the operands its `scanOne` sets without
   reflect. Before this helper every scanning function was a stub that
   panicked (DEV-217).
-- Not covered: an operand of a defined type (`*Celsius`), a `Scanner`
-  implementation, complex numbers, a hex float, and a reader that is not
-  `os.Stdin` and has no `ReadRune`. Such a call compiles and panics when it
-  runs.
+- Not covered, each compiling and panicking when it runs with a message
+  that names it: an operand of a defined type (`*Celsius`), a `Scanner`
+  implementation or a complex number; operands passed on with `a...`; a
+  reader that is not `os.Stdin` and has no `ReadRune() (rune, int, error)`
+  and `UnreadRune() error`; and a scanned string that is not UTF-8, as
+  `%x` or `%q` can give, which a Rust `String` cannot hold (`[]byte`
+  operands keep any bytes). Everything else the scanner reads returns Go's
+  error through `err`, malformed numbers included.
+- Not covered either: `Scan` and `Fscan(os.Stdin, …)` read the process's
+  standard input, not whatever a program assigned to `os.Stdin`.
+- Gap fixture: `tests/XFAIL/fmt_scan_defined_type/` scans into a
+  `*Celsius` and a `*Level`, which Go sets through `reflect`.
 - Fixture: `tests/fmt_scan_strings_and_readers/`, `tests/fmt_scan_stdin/`
-  (which reads its `stdin.txt`) and `tests/fmt_sscan_operands/`.
+  (which reads its `stdin.txt`), `tests/fmt_sscan_operands/` and
+  `tests/fmt_scan_edge_cases/` (hex floats, binary exponents, widths, `%q`
+  bytes, malformed UTF-8, a reader's own error, `io.EOF` from a file that
+  does not import io).
 - Removal trigger: `fmt` is translated from source, which needs `reflect`.
   Or the stdlib boundary puts `fmt` in the hand-written tier; then the
   scanner moves into that runtime and this row is deleted with the move.

@@ -110,50 +110,77 @@ enum GoScanError {
     Msg(String),
 }
 
-// Where the scanner reads runes from: fmt's io.RuneScanner.
+// Where the scanner reads runes from: fmt's io.RuneScanner. Ok(None) is
+// the end of the input; Err is a read error, which the scan returns.
 trait GoScanRunes {
-    fn go_read_rune(&mut self) -> Option<char>;
+    fn go_read_rune(&mut self) -> Result<Option<char>, String>;
     fn go_unread_rune(&mut self);
 }
 
 // fmt's readRune: UTF-8 from a byte source that cannot unread, with one
 // rune of lookahead that is lost when the scan ends.
-struct GoScanReadRune<F: FnMut() -> Option<u8>> {
+struct GoScanReadRune<F: FnMut() -> Result<Option<u8>, String>> {
     next_byte: F,
     pending: std::vec::Vec<u8>,
     peek: Option<char>,
     last: Option<char>,
 }
 
-impl<F: FnMut() -> Option<u8>> GoScanReadRune<F> {
+impl<F: FnMut() -> Result<Option<u8>, String>> GoScanReadRune<F> {
     fn new(next_byte: F) -> Self {
         GoScanReadRune { next_byte, pending: std::vec::Vec::new(), peek: None, last: None }
     }
 
-    fn read_byte(&mut self) -> Option<u8> {
+    fn read_byte(&mut self) -> Result<Option<u8>, String> {
         if !self.pending.is_empty() {
-            return Some(self.pending.remove(0));
+            return Ok(Some(self.pending.remove(0)));
         }
         (self.next_byte)()
     }
 }
 
-impl<F: FnMut() -> Option<u8>> GoScanRunes for GoScanReadRune<F> {
-    fn go_read_rune(&mut self) -> Option<char> {
+// utf8.FullRune of a prefix: whether more bytes can still make it one rune.
+fn go_scan_wants_more(bytes: &[u8]) -> bool {
+    let first = bytes[0];
+    let want = match first {
+        0xC2..=0xDF => 2,
+        0xE0..=0xEF => 3,
+        0xF0..=0xF4 => 4,
+        _ => 1,
+    };
+    if bytes.len() >= want {
+        return false;
+    }
+    // A byte that cannot continue the rune ends it now.
+    let (lo, hi) = match (first, bytes.len()) {
+        (0xE0, 1) => (0xA0, 0xBF),
+        (0xED, 1) => (0x80, 0x9F),
+        (0xF0, 1) => (0x90, 0xBF),
+        (0xF4, 1) => (0x80, 0x8F),
+        _ => (0x80, 0xBF),
+    };
+    bytes[1..].iter().enumerate().all(|(k, &b)| if k == 0 { b >= lo && b <= hi } else { (0x80..=0xBF).contains(&b) })
+}
+
+impl<F: FnMut() -> Result<Option<u8>, String>> GoScanRunes for GoScanReadRune<F> {
+    fn go_read_rune(&mut self) -> Result<Option<char>, String> {
         if let Some(r) = self.peek.take() {
             self.last = Some(r);
-            return Some(r);
+            return Ok(Some(r));
         }
-        let first = self.read_byte()?;
+        let first = match self.read_byte()? {
+            None => return Ok(None),
+            Some(b) => b,
+        };
         if first < 0x80 {
             let r = first as char;
             self.last = Some(r);
-            return Some(r);
+            return Ok(Some(r));
         }
-        let want = if first >= 0xF0 { 4 } else if first >= 0xE0 { 3 } else if first >= 0xC0 { 2 } else { 1 };
+        // As readRune: read until the bytes are a full rune, or cannot be.
         let mut bytes: std::vec::Vec<u8> = std::vec![first];
-        while bytes.len() < want {
-            match self.read_byte() {
+        while go_scan_wants_more(&bytes) {
+            match self.read_byte()? {
                 Some(b) => bytes.push(b),
                 None => break,
             }
@@ -161,14 +188,16 @@ impl<F: FnMut() -> Option<u8>> GoScanRunes for GoScanReadRune<F> {
         let r = match std::str::from_utf8(&bytes) {
             Ok(text) => text.chars().next().unwrap_or('\u{FFFD}'),
             Err(_) => {
-                // Bad UTF-8 is one U+FFFD for its first byte; the rest
-                // is read again.
-                self.pending.extend_from_slice(&bytes[1..]);
+                // Bad UTF-8 is one U+FFFD for its first byte; the bytes
+                // after it are read again, before any pending ones.
+                let mut rest = bytes[1..].to_vec();
+                rest.extend_from_slice(&self.pending);
+                self.pending = rest;
                 '\u{FFFD}'
             }
         };
         self.last = Some(r);
-        Some(r)
+        Ok(Some(r))
     }
 
     fn go_unread_rune(&mut self) {
@@ -181,12 +210,12 @@ impl<F: FnMut() -> Option<u8>> GoScanRunes for GoScanReadRune<F> {
 // An io.RuneScanner of the program, as *bufio.Reader or *strings.Reader:
 // its own ReadRune and UnreadRune.
 struct GoScanRuneFns<'a> {
-    read: Box<dyn FnMut() -> Option<char> + 'a>,
+    read: Box<dyn FnMut() -> Result<Option<char>, String> + 'a>,
     unread: Box<dyn FnMut() + 'a>,
 }
 
 impl<'a> GoScanRunes for GoScanRuneFns<'a> {
-    fn go_read_rune(&mut self) -> Option<char> {
+    fn go_read_rune(&mut self) -> Result<Option<char>, String> {
         (self.read)()
     }
 
@@ -195,7 +224,7 @@ impl<'a> GoScanRunes for GoScanRuneFns<'a> {
     }
 }
 
-fn go_scan_string_source(text: String) -> GoScanReadRune<impl FnMut() -> Option<u8>> {
+fn go_scan_string_source(text: String) -> GoScanReadRune<impl FnMut() -> Result<Option<u8>, String>> {
     let bytes = text.into_bytes();
     let mut at = 0usize;
     GoScanReadRune::new(move || {
@@ -203,17 +232,22 @@ fn go_scan_string_source(text: String) -> GoScanReadRune<impl FnMut() -> Option<
         if b.is_some() {
             at += 1;
         }
-        b
+        Ok(b)
     })
 }
 
-fn go_scan_stdin_source() -> GoScanReadRune<impl FnMut() -> Option<u8>> {
+// The process's standard input, which os.Stdin reads too.
+fn go_scan_stdin_source() -> GoScanReadRune<impl FnMut() -> Result<Option<u8>, String>> {
     GoScanReadRune::new(|| {
         use std::io::Read;
         let mut byte = [0u8; 1];
-        match std::io::stdin().lock().read(&mut byte) {
-            Ok(1) => Some(byte[0]),
-            _ => None,
+        loop {
+            match std::io::stdin().lock().read(&mut byte) {
+                Ok(0) => return Ok(None),
+                Ok(_) => return Ok(Some(byte[0])),
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(format!("read /dev/stdin: {}", e)),
+            }
         }
     })
 }
@@ -240,6 +274,9 @@ struct GoScanState<'a> {
     arg_limit: usize,
     limit: usize,
     max_wid: usize,
+    // A read error ends the input; the scan returns it instead of the
+    // operand it was reading, as fmt's getRune does.
+    read_err: Option<String>,
 }
 
 fn go_scan_is_space(r: char) -> bool {
@@ -345,7 +382,6 @@ fn go_scan_parse_digits(s: &str, base: u32) -> Result<Option<u64>, ()> {
         }
     }
     let mut value: u64 = 0;
-    let mut overflow = false;
     let mut underscores = false;
     let mut any = false;
     for c in digits.chars() {
@@ -360,7 +396,8 @@ fn go_scan_parse_digits(s: &str, base: u32) -> Result<Option<u64>, ()> {
         any = true;
         match value.checked_mul(base as u64).and_then(|v| v.checked_add(d)) {
             Some(v) => value = v,
-            None => overflow = true,
+            // strconv reports the range at the digit that overflows.
+            None => return Ok(None),
         }
     }
     if !any && !(base0 && base == 8 && digits.is_empty()) {
@@ -368,9 +405,6 @@ fn go_scan_parse_digits(s: &str, base: u32) -> Result<Option<u64>, ()> {
     }
     if underscores && !go_scan_underscore_ok(s) {
         return Err(());
-    }
-    if overflow {
-        return Ok(None);
     }
     Ok(Some(value))
 }
@@ -387,6 +421,14 @@ impl<'a> GoScanState<'a> {
             arg_limit: GO_SCAN_HUGE_WID,
             limit: GO_SCAN_HUGE_WID,
             max_wid: GO_SCAN_HUGE_WID,
+            read_err: None,
+        }
+    }
+
+    fn check_read(&mut self) -> Result<(), GoScanError> {
+        match self.read_err.take() {
+            Some(e) => Err(GoScanError::Msg(e)),
+            None => Ok(()),
         }
     }
 
@@ -394,7 +436,10 @@ impl<'a> GoScanState<'a> {
         if self.at_eof || self.count >= self.arg_limit {
             return None;
         }
-        match self.rs.go_read_rune() {
+        match self.rs.go_read_rune().unwrap_or_else(|e| {
+            self.read_err = Some(e);
+            None
+        }) {
             Some(r) => {
                 self.count += 1;
                 if self.nl_is_end && r == '\n' {
@@ -709,7 +754,16 @@ impl<'a> GoScanState<'a> {
             let value: f64 = lower.parse().map_err(|_| syntax())?;
             return Ok(value);
         }
-        if body.starts_with("0x") || !body.chars().any(|c| c.is_ascii_digit()) {
+        if body.starts_with("0x") {
+            return go_scan_parse_hex_float(&lower, bit_size).ok_or_else(syntax).and_then(|v| {
+                if v.is_infinite() {
+                    Err(GoScanError::Msg(format!("strconv.ParseFloat: parsing {}: value out of range", go_scan_quote(text))))
+                } else {
+                    Ok(v)
+                }
+            });
+        }
+        if !body.chars().any(|c| c.is_ascii_digit()) {
             return Err(syntax());
         }
         let plain: String;
@@ -739,9 +793,21 @@ impl<'a> GoScanState<'a> {
     fn convert_float(&self, text: &str, bit_size: u32) -> Result<f64, GoScanError> {
         if let Some(p) = text.find('p') {
             if !text.contains(|c| c == 'x' || c == 'X') {
-                let mantissa = Self::parse_float(&text[..p], bit_size)?;
-                let exp: i32 = text[p + 1..].parse().map_err(|_| GoScanError::Msg(format!("strconv.Atoi: parsing {}: invalid syntax", go_scan_quote(text))))?;
-                return Ok(mantissa * 2f64.powi(exp));
+                // fmt's own decimal mantissa with a binary exponent, 1.5p3:
+                // math.Ldexp of the two, with the exponent an int.
+                let mantissa = Self::parse_float(&text[..p], bit_size).map_err(|e| match e {
+                    GoScanError::Msg(m) => GoScanError::Msg(m.replacen(&go_scan_quote(&text[..p]), &go_scan_quote(text), 1)),
+                    other => other,
+                })?;
+                let exp_text = &text[p + 1..];
+                let exp: i64 = match exp_text.parse::<i64>() {
+                    Ok(e) => e,
+                    Err(_) if !exp_text.is_empty() && exp_text.trim_start_matches(|c| c == '+' || c == '-').chars().all(|c| c.is_ascii_digit()) && !exp_text.trim_start_matches(|c| c == '+' || c == '-').is_empty() => {
+                        return Err(GoScanError::Msg(format!("strconv.Atoi: parsing {}: value out of range", go_scan_quote(text))));
+                    }
+                    Err(_) => return Err(GoScanError::Msg(format!("strconv.Atoi: parsing {}: invalid syntax", go_scan_quote(text)))),
+                };
+                return Ok(go_scan_ldexp(mantissa, exp));
             }
         }
         Self::parse_float(text, bit_size)
@@ -756,7 +822,7 @@ impl<'a> GoScanState<'a> {
         self.convert_float(&tok, bit_size)
     }
 
-    fn quoted_string(&mut self) -> Result<String, GoScanError> {
+    fn quoted_string(&mut self) -> Result<std::vec::Vec<u8>, GoScanError> {
         self.not_eof()?;
         let quote = self.get_rune();
         match quote {
@@ -768,7 +834,7 @@ impl<'a> GoScanState<'a> {
                     }
                     self.buf.push(r);
                 }
-                Ok(self.buf.clone())
+                Ok(self.buf.clone().into_bytes())
             }
             Some('"') => {
                 self.buf.push('"');
@@ -824,7 +890,7 @@ impl<'a> GoScanState<'a> {
         self.skip_space()?;
         self.not_eof()?;
         match verb {
-            'q' => self.quoted_string().map(|s| s.into_bytes()),
+            'q' => self.quoted_string(),
             'x' | 'X' => self.hex_bytes(),
             _ => self.token(true).map(|s| s.into_bytes()),
         }
@@ -841,30 +907,41 @@ impl<'a> GoScanState<'a> {
 
     fn scan_one(&mut self, verb: char, target: &mut GoScanTarget) -> Result<(), GoScanError> {
         self.buf.clear();
+        // Each value is stored only if no read failed while it was read.
         match target {
             GoScanTarget::Bool(set) => {
-                let v = self.scan_bool(verb)?;
-                set(v);
+                let v = self.scan_bool(verb);
+                self.check_read()?;
+                set(v?);
             }
             GoScanTarget::Int(bits, set) => {
-                let v = self.scan_int(verb, *bits)?;
-                set(v);
+                let v = self.scan_int(verb, *bits);
+                self.check_read()?;
+                set(v?);
             }
             GoScanTarget::Uint(bits, set) => {
-                let v = self.scan_uint(verb, *bits)?;
-                set(v);
+                let v = self.scan_uint(verb, *bits);
+                self.check_read()?;
+                set(v?);
             }
             GoScanTarget::Float(bits, set) => {
-                let v = self.scan_float(verb, *bits)?;
-                set(v);
+                let v = self.scan_float(verb, *bits);
+                self.check_read()?;
+                set(v?);
             }
             GoScanTarget::Str(set) => {
-                let v = self.convert_bytes(verb)?;
-                set(String::from_utf8_lossy(&v).into_owned());
+                let v = self.convert_bytes(verb);
+                self.check_read()?;
+                match String::from_utf8(v?) {
+                    Ok(text) => set(text),
+                    // A Go string holds any bytes, a Rust String only UTF-8.
+                    Err(_) => panic!("fmt scan: a string that is not UTF-8, as %x or %q can give, is not supported; see docs/bridge_debt.md fmt-scan"),
+                }
             }
             GoScanTarget::Bytes(set) => {
-                let v = self.convert_bytes(verb)?;
-                set(v);
+                let v = self.convert_bytes(verb);
+                self.check_read()?;
+                set(v?);
             }
         }
         Ok(())
@@ -886,6 +963,9 @@ impl<'a> GoScanState<'a> {
                     _ => {}
                 }
             }
+        }
+        if let Err(e) = self.check_read() {
+            return (n, Some(e));
         }
         (n, None)
     }
@@ -972,7 +1052,9 @@ impl<'a> GoScanState<'a> {
             let end = format.len() as i64 - 1;
             let mut i = 0usize;
             while (i as i64) <= end {
-                let w = self.advance(&format[i..])?;
+                let w = self.advance(&format[i..]);
+                self.check_read()?;
+                let w = w?;
                 if w > 0 {
                     i += w as usize;
                     continue;
@@ -989,6 +1071,14 @@ impl<'a> GoScanState<'a> {
                 let mut wid_present = false;
                 if (i as i64) < end {
                     while (i as i64) < end && bytes[i].is_ascii_digit() {
+                        // parsenum's tooLarge: a width over a million is
+                        // dropped, and the verb is the format's last byte.
+                        if width > 1_000_000 {
+                            width = 0;
+                            wid_present = false;
+                            i = end as usize;
+                            break;
+                        }
                         width = width * 10 + (bytes[i] - b'0') as usize;
                         wid_present = true;
                         i += 1;
@@ -1027,51 +1117,133 @@ impl<'a> GoScanState<'a> {
     }
 }
 
-// strconv.Unquote of a double-quoted string.
-fn go_scan_unquote(text: &str) -> Option<String> {
+// strconv.Unquote of a double-quoted string, as bytes: \xNN and octal
+// escapes are bytes, \u and \U escapes and other text are UTF-8.
+fn go_scan_unquote(text: &str) -> Option<std::vec::Vec<u8>> {
     let inner = text.strip_prefix('"')?.strip_suffix('"')?;
-    let mut out = String::new();
+    let mut out: std::vec::Vec<u8> = std::vec::Vec::new();
     let mut chars = inner.chars();
+    let mut utf8 = [0u8; 4];
     while let Some(c) = chars.next() {
         if c == '"' || c == '\n' {
             return None;
         }
         if c != '\\' {
-            out.push(c);
+            out.extend_from_slice(c.encode_utf8(&mut utf8).as_bytes());
             continue;
         }
         let escape = chars.next()?;
+        let simple = match escape {
+            'n' => Some('\n'),
+            't' => Some('\t'),
+            'r' => Some('\r'),
+            'a' => Some('\u{7}'),
+            'b' => Some('\u{8}'),
+            'f' => Some('\u{c}'),
+            'v' => Some('\u{b}'),
+            '\\' => Some('\\'),
+            '"' => Some('"'),
+            _ => None,
+        };
+        if let Some(c) = simple {
+            out.push(c as u8);
+            continue;
+        }
         match escape {
-            'n' => out.push('\n'),
-            't' => out.push('\t'),
-            'r' => out.push('\r'),
-            'a' => out.push('\u{7}'),
-            'b' => out.push('\u{8}'),
-            'f' => out.push('\u{c}'),
-            'v' => out.push('\u{b}'),
-            '\\' => out.push('\\'),
-            '"' => out.push('"'),
-            '\'' => return None,
-            'x' | 'u' | 'U' => {
-                let len = match escape { 'x' => 2, 'u' => 4, _ => 8 };
+            'x' => {
+                let hex: String = (0..2).filter_map(|_| chars.next()).collect();
+                if hex.len() != 2 {
+                    return None;
+                }
+                out.push(u8::from_str_radix(&hex, 16).ok()?);
+            }
+            'u' | 'U' => {
+                let len = if escape == 'u' { 4 } else { 8 };
                 let hex: String = (0..len).filter_map(|_| chars.next()).collect();
                 if hex.len() != len {
                     return None;
                 }
                 let value = u32::from_str_radix(&hex, 16).ok()?;
-                out.push(char::from_u32(value)?);
+                out.extend_from_slice(char::from_u32(value)?.encode_utf8(&mut utf8).as_bytes());
             }
             '0'..='7' => {
                 let mut value = escape.to_digit(8)?;
                 for _ in 0..2 {
                     value = value * 8 + chars.next()?.to_digit(8)?;
                 }
-                out.push(char::from_u32(value)?);
+                if value > 255 {
+                    return None;
+                }
+                out.push(value as u8);
             }
             _ => return None,
         }
     }
     Some(out)
+}
+
+// math.Ldexp: frac times two to the exp, without overflowing on the way.
+fn go_scan_ldexp(frac: f64, exp: i64) -> f64 {
+    if frac == 0.0 || !frac.is_finite() {
+        return frac;
+    }
+    let mut value = frac;
+    let mut exp = exp.clamp(-2200, 2200) as i32;
+    while exp > 0 {
+        let step = exp.min(1000);
+        value *= 2f64.powi(step);
+        exp -= step;
+    }
+    while exp < 0 {
+        let step = exp.max(-1000);
+        value *= 2f64.powi(step);
+        exp -= step;
+    }
+    value
+}
+
+// strconv.ParseFloat of a hexadecimal float: 0x, hex digits with an
+// optional point, and a binary exponent p.
+fn go_scan_parse_hex_float(lower: &str, bit_size: u32) -> Option<f64> {
+    let (negative, rest) = match lower.as_bytes().first() {
+        Some(b'-') => (true, &lower[1..]),
+        Some(b'+') => (false, &lower[1..]),
+        _ => (false, lower),
+    };
+    let rest = rest.strip_prefix("0x")?;
+    let p = rest.find('p')?;
+    let (digits, exp_text) = (&rest[..p], &rest[p + 1..]);
+    let digits: String = digits.chars().filter(|&c| c != '_').collect();
+    let mut mantissa: u128 = 0;
+    let mut scale: i64 = 0;
+    let mut seen_point = false;
+    let mut any = false;
+    for c in digits.chars() {
+        if c == '.' {
+            if seen_point {
+                return None;
+            }
+            seen_point = true;
+            continue;
+        }
+        let d = c.to_digit(16)? as u128;
+        any = true;
+        if mantissa < (1u128 << 120) {
+            mantissa = mantissa * 16 + d;
+            if seen_point {
+                scale -= 4;
+            }
+        } else if !seen_point {
+            scale += 4;
+        }
+    }
+    if !any {
+        return None;
+    }
+    let exp: i64 = exp_text.parse().ok()?;
+    let value = go_scan_ldexp(mantissa as f64, exp + scale);
+    let value = if bit_size == 32 { value as f32 as f64 } else { value };
+    Some(if negative { -value } else { value })
 }
 
 // go_fmt_scan scans runes into targets as fmt.Fscan (mode 's'),
@@ -1678,9 +1850,9 @@ fn main() {
     println!("{} {} {}", format!("{}", { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }), format!("{}", k), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut r#in = bufio::new_reader(Arc::new(Mutex::new(Some(Box::new((*os::Stdin().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Reader + Send + Sync>))));
     let mut w1: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));let mut w2: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-    { let mut __scan_src = GoScanRuneFns { read: Box::new(|| { let (__scan_r, _, __scan_e) = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_rune(); __result }; if (*__scan_e.lock().unwrap()).is_none() { char::from_u32(__scan_r as u32) } else { None } }), unread: Box::new(|| { let _ = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.unread_rune(); __result }; }) }; let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Str({ let __scan_h = w1.clone(); Box::new(move |__scan_v: String| { *__scan_h.lock().unwrap() = Some(__scan_v); }) }), GoScanTarget::Str({ let __scan_h = w2.clone(); Box::new(move |__scan_v: String| { *__scan_h.lock().unwrap() = Some(__scan_v); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Arc::new(Mutex::new(None)), Some(GoScanError::Eof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(__scan_msg))))) }) };
+    { let mut __scan_src = GoScanRuneFns { read: Box::new(|| { let (__scan_r, _, __scan_e) = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_rune(); __result }; let __scan_text = (*__scan_e.lock().unwrap()).as_ref().map(|__scan_x| __scan_x.to_string()); match __scan_text { None => Ok(char::from_u32(__scan_r as u32)), Some(__scan_t) if __scan_t == "EOF" => Ok(None), Some(__scan_t) => Err(__scan_t) } }), unread: Box::new(|| { let _ = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.unread_rune(); __result }; }) }; let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Str({ let __scan_h = w1.clone(); Box::new(move |__scan_v: String| { *__scan_h.lock().unwrap() = Some(__scan_v); }) }), GoScanTarget::Str({ let __scan_h = w2.clone(); Box::new(move |__scan_v: String| { *__scan_h.lock().unwrap() = Some(__scan_v); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Arc::new(Mutex::new(None)), Some(GoScanError::Eof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(__scan_msg))))) }) };
     let mut x: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
-    { let (__tmp_0, __tmp_1) = { let mut __scan_src = GoScanRuneFns { read: Box::new(|| { let (__scan_r, _, __scan_e) = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_rune(); __result }; if (*__scan_e.lock().unwrap()).is_none() { char::from_u32(__scan_r as u32) } else { None } }), unread: Box::new(|| { let _ = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.unread_rune(); __result }; }) }; let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Int(64, { let __scan_h = x.clone(); Box::new(move |__scan_v: i64| { *__scan_h.lock().unwrap() = Some(__scan_v as i64); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Arc::new(Mutex::new(None)), Some(GoScanError::Eof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(__scan_msg))))) }) }; k = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    { let (__tmp_0, __tmp_1) = { let mut __scan_src = GoScanRuneFns { read: Box::new(|| { let (__scan_r, _, __scan_e) = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_rune(); __result }; let __scan_text = (*__scan_e.lock().unwrap()).as_ref().map(|__scan_x| __scan_x.to_string()); match __scan_text { None => Ok(char::from_u32(__scan_r as u32)), Some(__scan_t) if __scan_t == "EOF" => Ok(None), Some(__scan_t) => Err(__scan_t) } }), unread: Box::new(|| { let _ = { let __recv = r#in.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.unread_rune(); __result }; }) }; let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Int(64, { let __scan_h = x.clone(); Box::new(move |__scan_v: i64| { *__scan_h.lock().unwrap() = Some(__scan_v as i64); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Arc::new(Mutex::new(None)), Some(GoScanError::Eof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(__scan_msg))))) }) }; k = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     println!("{} {} {} {} {}", format!("{}", { let __v = (*w1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*w2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", k), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     { let (__tmp_0, __tmp_1) = { let mut __scan_src = go_scan_stdin_source(); let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Int(64, { let __scan_h = x.clone(); Box::new(move |__scan_v: i64| { *__scan_h.lock().unwrap() = Some(__scan_v as i64); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Arc::new(Mutex::new(None)), Some(GoScanError::Eof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(__scan_msg))))) }) }; k = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     println!("{} {}", format!("{}", k), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

@@ -71,4 +71,9 @@ func main() {
 	if !strings.Contains(rust, `panic!("fmt.Sscan: an operand`) {
 		t.Fatalf("an operand of a defined type is not refused:\n%s", rust)
 	}
+	// The refusal's (n, err) has a typed error, so a call whose result is
+	// dropped still type-checks; tests/fmt_scan_edge_cases builds one.
+	if !strings.Contains(rust, "#[allow(unreachable_code)] (0 as i64, ") || !strings.Contains(rust, "String::new()") {
+		t.Fatalf("the refusal's error has no type:\n%s", rust)
+	}
 }

@@ -112,7 +112,13 @@ func writeFmtScanUnsupported(out *strings.Builder, name string, reason string) {
 	out.WriteString(" is not supported; see docs/bridge_debt.md fmt-scan\"); #[allow(unreachable_code)] (0 as ")
 	out.WriteString(rustIntType())
 	out.WriteString(", ")
-	WriteWrappedNone(out)
+	// An error of a known type, so the tuple's type is known when nothing
+	// uses it.
+	WriteWrapperPrefix(out)
+	out.WriteString(rustErrorFromTextStart())
+	out.WriteString("String::new()")
+	out.WriteString(rustErrorFromTextEnd())
+	WriteWrapperSuffix(out)
 	out.WriteString(") }")
 }
 
@@ -183,11 +189,12 @@ func writeFmtScanCall(out *strings.Builder, call *ast.CallExpr, name string) {
 		writeOwnedStringStdlibArg(out, call.Args[0])
 		out.WriteString(")")
 	case readerFns != nil:
+		// A reader's io.EOF ends the input; another error is the scan's.
 		out.WriteString("GoScanRuneFns { read: Box::new(|| { let (__scan_r, _, __scan_e) = ")
 		out.WriteString(readerFns.read)
-		out.WriteString("; if (*__scan_e")
+		out.WriteString("; let __scan_text = (*__scan_e")
 		WriteBorrowMethod(out, false)
-		out.WriteString(").is_none() { char::from_u32(__scan_r as u32) } else { None } }), unread: Box::new(|| { let _ = ")
+		out.WriteString(").as_ref().map(|__scan_x| __scan_x.to_string()); match __scan_text { None => Ok(char::from_u32(__scan_r as u32)), Some(__scan_t) if __scan_t == \"EOF\" => Ok(None), Some(__scan_t) => Err(__scan_t) } }), unread: Box::new(|| { let _ = ")
 		out.WriteString(readerFns.unread)
 		out.WriteString("; }) }")
 	default:
@@ -278,8 +285,14 @@ func writeFmtScanTarget(out *strings.Builder, arg ast.Expr, target fmtScanTarget
 }
 
 func fmtScanOperandIsGoPtr(arg ast.Expr) bool {
-	ident, ok := unwrapParens(arg).(*ast.Ident)
-	return ok && isGoPtrIdent(ident)
+	switch e := unwrapParens(arg).(type) {
+	case *ast.Ident:
+		return isGoPtrIdent(e)
+	case *ast.CallExpr:
+		_, ok := goPtrResultInfoForCall(e, 0)
+		return ok
+	}
+	return false
 }
 
 // goSliceFromVecExpr is the Rust of a []byte holding the bytes of vec.
@@ -366,8 +379,18 @@ func fmtScanRuneScannerCalls(call *ast.CallExpr, reader ast.Expr) (*fmtScanReade
 			return nil, false
 		}
 	}
+	// io.RuneScanner's methods exactly: ReadRune() (rune, int, error) and
+	// UnreadRune() error.
 	sig, ok := typeInfo.GetType(readCall.Fun).(*types.Signature)
-	if !ok || sig.Results().Len() != 3 {
+	if !ok || sig.Params().Len() != 0 || sig.Results().Len() != 3 ||
+		!types.Identical(sig.Results().At(0).Type(), types.Typ[types.Int32]) ||
+		!types.Identical(sig.Results().At(1).Type(), types.Typ[types.Int]) ||
+		!types.Identical(sig.Results().At(2).Type(), types.Universe.Lookup("error").Type()) {
+		return nil, false
+	}
+	unreadSig, ok := typeInfo.GetType(unreadCall.Fun).(*types.Signature)
+	if !ok || unreadSig.Params().Len() != 0 || unreadSig.Results().Len() != 1 ||
+		!types.Identical(unreadSig.Results().At(0).Type(), types.Universe.Lookup("error").Type()) {
 		return nil, false
 	}
 	var read, unread strings.Builder
@@ -396,22 +419,38 @@ func writeFmtScanIoError(out *strings.Builder, call *ast.CallExpr, name, text st
 	WriteWrapperSuffix(out)
 }
 
+// fmtScanIoVar is io.EOF or io.ErrUnexpectedEOF, checked in a file of the
+// package that imports io: the call's own file if it does, or another. The
+// Rust of the variable is the same in every file, so the package's other
+// files compare the error with the same value.
 func fmtScanIoVar(call *ast.CallExpr, name string) (ast.Expr, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil || !isSourceMappedPackagePath("io") {
 		return nil, false
 	}
-	for scope := typeInfo.pkg.Scope().Innermost(call.Pos()); scope != nil && scope != typeInfo.pkg.Scope(); scope = scope.Parent() {
+	check := func(scope *types.Scope, pos token.Pos) (ast.Expr, bool) {
 		for _, local := range scope.Names() {
 			pkgName, ok := scope.Lookup(local).(*types.PkgName)
 			if !ok || pkgName.Imported() == nil || pkgName.Imported().Path() != "io" {
 				continue
 			}
 			sel := &ast.SelectorExpr{X: ast.NewIdent(local), Sel: ast.NewIdent(name)}
-			if err := types.CheckExpr(token.NewFileSet(), typeInfo.pkg, call.Pos(), sel, typeInfo.info); err != nil {
+			if err := types.CheckExpr(token.NewFileSet(), typeInfo.pkg, pos, sel, typeInfo.info); err != nil {
 				return nil, false
 			}
 			return sel, true
+		}
+		return nil, false
+	}
+	for scope := typeInfo.pkg.Scope().Innermost(call.Pos()); scope != nil && scope != typeInfo.pkg.Scope(); scope = scope.Parent() {
+		if expr, ok := check(scope, call.Pos()); ok {
+			return expr, true
+		}
+	}
+	for i := 0; i < typeInfo.pkg.Scope().NumChildren(); i++ {
+		file := typeInfo.pkg.Scope().Child(i)
+		if expr, ok := check(file, file.Pos()); ok {
+			return expr, true
 		}
 	}
 	return nil, false
