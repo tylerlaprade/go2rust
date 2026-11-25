@@ -8,7 +8,7 @@ use std::rc::{Rc};
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
 pub struct GoSlice<T> {
-    backing: std::sync::Arc<std::cell::UnsafeCell<std::vec::Vec<T>>>,
+    backing: std::sync::Arc<std::cell::UnsafeCell<GoSliceStore<T>>>,
     off: usize,
     len: usize,
     cap: usize,
@@ -16,6 +16,15 @@ pub struct GoSlice<T> {
     /// its cell; this one is for slices held bare, such as the elements of
     /// a [][]byte, whose zero value is nil too.
     nil: bool,
+}
+
+/// A slice's backing array: one the slices own, or the elements of a Go
+/// array held in a cell, which a[lo:hi] slices in place. The cell is kept
+/// alive by the slice, so the elements do not move while it is held.
+#[allow(dead_code)]
+pub enum GoSliceStore<T> {
+    Owned(std::vec::Vec<T>),
+    Array { ptr: *mut T, len: usize, owner: Box<dyn std::any::Any> },
 }
 
 unsafe impl<T: Send> Send for GoSlice<T> {}
@@ -38,12 +47,12 @@ impl<T> GoSlice<T> {
     }
 
     pub fn with_capacity(__cap: usize) -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::with_capacity(__cap))), off: 0, len: 0, cap: __cap, nil: false }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(std::vec::Vec::with_capacity(__cap)))), off: 0, len: 0, cap: __cap, nil: false }
     }
 
     /// The nil slice: no elements, no backing array of its own.
     pub fn nil() -> Self {
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(std::vec::Vec::new())), off: 0, len: 0, cap: 0, nil: true }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(std::vec::Vec::new()))), off: 0, len: 0, cap: 0, nil: true }
     }
 
     /// Go's s == nil.
@@ -51,13 +60,29 @@ impl<T> GoSlice<T> {
         self.nil
     }
 
-    fn backing_ref(&self) -> &std::vec::Vec<T> {
-        unsafe { &*self.backing.get() }
+    fn backing_ref(&self) -> &[T] {
+        match unsafe { &*self.backing.get() } {
+            GoSliceStore::Owned(__elems) => __elems,
+            GoSliceStore::Array { ptr, len, .. } => unsafe { std::slice::from_raw_parts(*ptr, *len) },
+        }
     }
 
     #[allow(clippy::mut_from_ref)]
-    fn backing_mut(&self) -> &mut std::vec::Vec<T> {
-        unsafe { &mut *self.backing.get() }
+    fn backing_mut(&self) -> &mut [T] {
+        match unsafe { &mut *self.backing.get() } {
+            GoSliceStore::Owned(__elems) => __elems,
+            GoSliceStore::Array { ptr, len, .. } => unsafe { std::slice::from_raw_parts_mut(*ptr, *len) },
+        }
+    }
+
+    /// The backing Vec, which can grow; None for an array's elements, which
+    /// hold every element up to the capacity already.
+    #[allow(clippy::mut_from_ref)]
+    fn backing_vec(&self) -> Option<&mut std::vec::Vec<T>> {
+        match unsafe { &mut *self.backing.get() } {
+            GoSliceStore::Owned(__elems) => Some(__elems),
+            GoSliceStore::Array { .. } => None,
+        }
     }
 
     pub fn as_slice(&self) -> &[T] {
@@ -134,7 +159,10 @@ impl<T> GoSlice<T> {
     fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
         let (__off, __len) = (self.off, self.len);
         let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
-        let mut __elems = std::mem::take(__backing.get_mut());
+        let mut __elems = match __backing.get_mut() {
+            GoSliceStore::Owned(__elems) => std::mem::take(__elems),
+            GoSliceStore::Array { .. } => return None,
+        };
         __elems.truncate(__off + __len);
         __elems.drain(..__off);
         Some(__elems)
@@ -142,7 +170,7 @@ impl<T> GoSlice<T> {
 
     fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __cap.max(__len), nil: false }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(__elems))), off: 0, len: __len, cap: __cap.max(__len), nil: false }
     }
 
     /// The capacity Go's append gives a slice that must grow to hold
@@ -172,7 +200,7 @@ impl<T> GoSlice<T> {
         if __at < __backing.len() {
             __backing[__at] = __value;
         } else {
-            __backing.push(__value);
+            self.backing_vec().expect("an array's slice stores within the array").push(__value);
         }
         self.len += 1;
         self.nil = false;
@@ -197,6 +225,44 @@ impl<T> GoSlice<T> {
     }
 }
 
+impl<T: 'static> GoSlice<T> {
+    /// Go's a[lo:hi:max] of an array a held in a single-threaded cell: a
+    /// slice over a's own elements, so a write through either one is seen
+    /// through the other.
+    pub fn from_array_rc_cell<const N: usize>(__cell: &std::rc::Rc<std::cell::RefCell<Option<[T; N]>>>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        let __ptr = match unsafe { &mut *__cell.as_ptr() } {
+            Some(__array) => __array.as_mut_ptr(),
+            None => panic!("runtime error: invalid memory address or nil pointer dereference"),
+        };
+        Self::over_array(__ptr, N, Box::new(__cell.clone()), __lo, __hi, __max)
+    }
+
+    /// Go's a[lo:hi:max] of an array a held in a goroutine-safe cell.
+    pub fn from_array_arc_cell<const N: usize>(__cell: &std::sync::Arc<std::sync::Mutex<Option<[T; N]>>>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        let __ptr = match __cell.lock().unwrap_or_else(|__poisoned| __poisoned.into_inner()).as_mut() {
+            Some(__array) => __array.as_mut_ptr(),
+            None => panic!("runtime error: invalid memory address or nil pointer dereference"),
+        };
+        Self::over_array(__ptr, N, Box::new(__cell.clone()), __lo, __hi, __max)
+    }
+
+    fn over_array(__ptr: *mut T, __len: usize, __owner: Box<dyn std::any::Any>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi > __max || __max > __len {
+            panic!("runtime error: slice bounds out of range [:{}] with length {}", __hi.max(__max), __len);
+        }
+        if __lo > __hi {
+            panic!("runtime error: slice bounds out of range [{}:{}]", __lo, __hi);
+        }
+        GoSlice {
+            backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Array { ptr: __ptr, len: __len, owner: __owner })),
+            off: __lo,
+            len: __hi - __lo,
+            cap: __max - __lo,
+            nil: false,
+        }
+    }
+}
+
 impl<T: Clone + Default> GoSlice<T> {
     /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
     /// capacity the backing array may not have stored the elements, after an
@@ -204,9 +270,10 @@ impl<T: Clone + Default> GoSlice<T> {
     pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
         if __hi <= self.cap && __max <= self.cap {
             let __need = self.off + __hi;
-            let __backing = self.backing_mut();
-            if __need > __backing.len() {
-                __backing.resize(__need, T::default());
+            if let Some(__backing) = self.backing_vec() {
+                if __need > __backing.len() {
+                    __backing.resize(__need, T::default());
+                }
             }
         }
         self.reslice3(__lo, __hi, __max)
@@ -430,7 +497,7 @@ impl<T> Default for GoSlice<T> {
 impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
     fn from(__elems: std::vec::Vec<T>) -> Self {
         let __len = __elems.len();
-        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(__elems)), off: 0, len: __len, cap: __len, nil: false }
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(__elems))), off: 0, len: __len, cap: __len, nil: false }
     }
 }
 
