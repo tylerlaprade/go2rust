@@ -2007,7 +2007,7 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 	}
 	if call, ok := arg.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
-		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && !callOfTranslatedFuncReturnsChannel(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("(*")
 			TranspileExpression(out, call)
 			WriteBorrowMethod(out, false)

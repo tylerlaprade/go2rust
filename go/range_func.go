@@ -196,8 +196,50 @@ func (r *rangeFuncRewrite) use(v *types.Var) *ast.Ident {
 	return ident
 }
 
-// resultSlot is the element of a [1]T result variable.
+// slotType is the type of a variable whose element or field the yield
+// function writes a value of type t to: [1]T, or struct{ v T } for a map,
+// which an array holds bare, without a nil.
+func (r *rangeFuncRewrite) slotType(t types.Type) types.Type {
+	if _, ok := t.Underlying().(*types.Map); ok {
+		return types.NewStruct([]*types.Var{types.NewField(r.pos, r.typeInfo.pkg, "v", t, false)}, nil)
+	}
+	return types.NewArray(t, 1)
+}
+
+// newSlotVar declares a slot variable of slotType(t). A struct slot is put
+// in the scope at the loop, so that its field selector is type-checked.
+func (r *rangeFuncRewrite) newSlotVar(name string, t types.Type) (*types.Var, ast.Stmt) {
+	v, decl := r.newVar(name, r.slotType(t))
+	if _, ok := v.Type().(*types.Struct); ok {
+		if scope := scopeAtPos(r.typeInfo.pkg, r.pos); scope != nil {
+			scope.Insert(v)
+		}
+	}
+	return v, decl
+}
+
+// scopeAtPos is the innermost scope at pos, as types.CheckExpr finds it.
+func scopeAtPos(pkg *types.Package, pos token.Pos) *types.Scope {
+	if pkg == nil {
+		return nil
+	}
+	for i := 0; i < pkg.Scope().NumChildren(); i++ {
+		if scope := pkg.Scope().Child(i).Innermost(pos); scope != nil {
+			return scope
+		}
+	}
+	return nil
+}
+
+// resultSlot is the element of a [1]T slot variable, or the field of a
+// struct{ v T } one.
 func (r *rangeFuncRewrite) resultSlot(v *types.Var) ast.Expr {
+	if _, ok := v.Type().(*types.Struct); ok {
+		sel := &ast.SelectorExpr{X: &ast.Ident{NamePos: r.pos, Name: v.Name()}, Sel: &ast.Ident{NamePos: r.pos, Name: "v"}}
+		if err := types.CheckExpr(token.NewFileSet(), r.typeInfo.pkg, r.pos, sel, r.typeInfo.info); err == nil {
+			return sel
+		}
+	}
 	array, _ := v.Type().(*types.Array)
 	index := &ast.IndexExpr{X: r.use(v), Lbrack: r.pos, Index: r.intLit(0), Rbrack: r.pos}
 	if array != nil {
@@ -447,7 +489,7 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 					}
 					named = v
 				}
-				v, decl := r.newVar("__rf_result_"+r.suffix+"_"+itoaRangeFunc(len(r.results)), types.NewArray(resultType, 1))
+				v, decl := r.newSlotVar("__rf_result_"+r.suffix+"_"+itoaRangeFunc(len(r.results)), resultType)
 				r.results = append(r.results, v)
 				r.namedResults = append(r.namedResults, named)
 				prelude = append(prelude, decl)
@@ -489,24 +531,25 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 	} else {
 		for i := range lhs {
 			bindings = append(bindings, r.assign(lhs[i], rhs[i], s.For))
-			// A pointer or channel variable is its handle, and the yield
-			// function assigns only its own copy of it. The value bound
-			// last goes through a [1]T, whose element the yield function
-			// writes, to the variable once seq is back. A package global
-			// is written in place, which seq can write after its last
-			// yield too. A map variable is a handle as well, but an array
-			// holds its maps bare, without a nil; it waits on DEV-205.
+			// A pointer, map or channel variable is its handle, and the
+			// yield function assigns only its own copy of it. The value
+			// bound last goes through a slot, whose element the yield
+			// function writes, to the variable once seq is back. A package
+			// global is written in place, which seq can write after its
+			// last yield too. A variable that the body assigns as well is
+			// given a cell before translation (closure_box.go), and is no
+			// longer an identifier here.
 			ident, ok := lhs[i].(*ast.Ident)
 			if !ok || isPackageGlobalObjectIdent(ident) {
 				continue
 			}
 			targetType := typeInfo.GetType(ident)
 			switch types.Unalias(targetType).Underlying().(type) {
-			case *types.Pointer, *types.Chan:
+			case *types.Pointer, *types.Chan, *types.Map:
 			default:
 				continue
 			}
-			v, decl := r.newVar("__rf_bound_"+r.suffix+"_"+itoaRangeFunc(i), types.NewArray(targetType, 1))
+			v, decl := r.newSlotVar("__rf_bound_"+r.suffix+"_"+itoaRangeFunc(i), targetType)
 			prelude = append(prelude, decl, r.assign(r.resultSlot(v), ident, s.For))
 			bindings = append(bindings, r.assign(r.resultSlot(v), rhs[i], s.For))
 			target := &ast.Ident{NamePos: ident.Pos(), Name: ident.Name}
