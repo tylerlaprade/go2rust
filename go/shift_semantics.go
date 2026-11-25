@@ -205,6 +205,50 @@ func basicIntegerBits(basic *types.Basic) int {
 // 0.1 + 0.2 as the value Go computes for it. Go evaluates constant
 // expressions exactly and rounds once, so 0.1 + 0.2 is 0.3; Rust's
 // floating-point addition gives 0.30000000000000004.
+// writeFoldedConstantComparisonOrShift writes the value the type checker
+// computed for a comparison of constants, or a shift of a typed integer
+// constant. Go computes those exactly, while Rust evaluates
+// -math.MinInt64 == math.MinInt64 or int32(-1) >> 40 at run time, which its
+// arithmetic_overflow lint rejects.
+func writeFoldedConstantComparisonOrShift(out *strings.Builder, e *ast.BinaryExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || e == nil {
+		return false
+	}
+	tv, ok := typeInfo.info.Types[e]
+	if !ok || tv.Value == nil || tv.Type == nil {
+		return false
+	}
+	if _, isNamed := types.Unalias(tv.Type).(*types.Named); isNamed {
+		return false
+	}
+	basic, ok := types.Unalias(tv.Type).(*types.Basic)
+	if !ok {
+		return false
+	}
+	switch {
+	case tv.Value.Kind() == constant.Bool && basic.Info()&types.IsBoolean != 0:
+		switch e.Op {
+		case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+		default:
+			return false
+		}
+		out.WriteString(strconv.FormatBool(constant.BoolVal(tv.Value)))
+		return true
+	case tv.Value.Kind() == constant.Int && (e.Op == token.SHL || e.Op == token.SHR) && basic.Info()&types.IsUntyped == 0:
+		rustType := rustCastForExpectedBasic(basic)
+		if rustType == "" || !constantFitsRustInteger(tv.Value, rustType) {
+			return false
+		}
+		out.WriteString("(")
+		out.WriteString(tv.Value.ExactString())
+		out.WriteString(rustType)
+		out.WriteString(")")
+		return true
+	}
+	return false
+}
+
 func writeFoldedFloatConstant(out *strings.Builder, e *ast.BinaryExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || e == nil {

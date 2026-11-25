@@ -1,0 +1,26 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/math",
+    "vendor/math_bits",
+]
+
+[package]
+name = "constant_folds_and_complex_parts"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "constant_folds_and_complex_parts"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+num = "0.4"
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }

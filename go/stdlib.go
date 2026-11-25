@@ -7254,9 +7254,9 @@ func transpileReal(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	WriteWrapperPrefix(out)
+	// The part is a bare float, as len's result is a bare int: a print of
+	// real(c) wrote the cell into go_float_string.
 	writeComplexComponentValue(out, call.Args[0], "re")
-	out.WriteString(")))")
 }
 
 // transpileImag handles the imag() builtin function
@@ -7265,9 +7265,7 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	WriteWrapperPrefix(out)
 	writeComplexComponentValue(out, call.Args[0], "im")
-	out.WriteString(")))")
 }
 
 func writeComplexComponentValue(out *strings.Builder, expr ast.Expr, component string) {
@@ -7277,11 +7275,14 @@ func writeComplexComponentValue(out *strings.Builder, expr ast.Expr, component s
 		out.WriteString(component)
 		return
 	}
-	out.WriteString("(*")
+	// The block lets go of the lock: []float64{real(c), imag(c)} took it
+	// twice in one statement and waited on itself.
+	out.WriteString("{ let __part = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).")
 	out.WriteString(component)
+	out.WriteString("; __part }")
 }
 
 // Helper function to format maps like Go does

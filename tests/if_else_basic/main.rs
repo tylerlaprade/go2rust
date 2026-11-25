@@ -680,13 +680,13 @@ impl std::io::Write for GoSlice<u8> {
 
 
 fn main() {
-    if 7 % 2 == 0 {
+    if false {
         println!("{}", format!("{}", "7 is even".to_string()));
     } else {
         println!("{}", format!("{}", "7 is odd".to_string()));
     }
 
-    if 8 % 4 == 0 {
+    if true {
         println!("{}", format!("{}", "8 is divisible by 4".to_string()));
     }
 

@@ -1555,7 +1555,7 @@ fn main() {
     }.lock().unwrap().as_ref().unwrap())));
     let mut x: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(250)));
     { let __rhs = 10 as u8; let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    println!("{} {} {} {} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = 1; let __tmp_y = 10; __tmp_x << __tmp_y }), format!("{}", { let __tmp_x = 0xff; let __tmp_y = 0x0f; __tmp_x & ! __tmp_y }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x / __tmp_y }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x % __tmp_y }));
+    println!("{} {} {} {} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (1024i64)), format!("{}", { let __tmp_x = 0xff; let __tmp_y = 0x0f; __tmp_x & ! __tmp_y }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x / __tmp_y }), format!("{}", { let __tmp_x = -(7); let __tmp_y = 2; __tmp_x % __tmp_y }));
     eprintln!("{}", format!("{}", "to stderr".to_string()));
     let mut b = Arc::new(Mutex::new(Some(("hello".to_string()).as_bytes().to_go_slice())));
     { let __idx = (0) as usize; let __rhs = ('H' as u8) as u8; (*b.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
