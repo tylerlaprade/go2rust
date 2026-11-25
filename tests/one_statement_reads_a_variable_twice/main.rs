@@ -895,7 +895,7 @@ fn main() {
     println!("{} {}", format!("{}", "paren".to_string()), format!("{}", two(Rc::new(RefCell::new(Some({ let __arg_value = ((*x.borrow().as_ref().unwrap())); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = -(((*x.borrow().as_ref().unwrap()))); __arg_value }))))));
     println!("{} {}", format!("{}", "bit".to_string()), format!("{}", two(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) & 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) | 1; __arg_value }))))));
     println!("{} {}", format!("{}", "cmp".to_string()), format!("{}", flags(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) > 2; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) < 9; __arg_value }))))));
-    println!("{} {}", format!("{}", "byte".to_string()), format!("{}", two(Rc::new(RefCell::new(Some({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64))), Rc::new(RefCell::new(Some({ let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64))))));
+    println!("{} {}", format!("{}", "byte".to_string()), format!("{}", two(Rc::new(RefCell::new(Some({ let __arg_value = { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = { let __s = &((*s.borrow().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64; __arg_value }))))));
 
     { let new_val = 3; *x.borrow_mut() = Some(new_val); };
     { let new_val = "abc".to_string(); *s.borrow_mut() = Some(new_val); };

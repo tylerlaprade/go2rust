@@ -149,7 +149,7 @@ fn main() {
         let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = f_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        println!("{}", format!("{}", (*example_com_package_stdlib_interface_argument_helper::r#use(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*example_com_package_stdlib_interface_argument_helper::r#use(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value })))).lock().unwrap().as_ref().unwrap())));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

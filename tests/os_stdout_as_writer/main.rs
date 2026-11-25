@@ -141,7 +141,7 @@ fn main() {
 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let mut w = bufio::new_writer(Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))));
+        let mut w = bufio::new_writer(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))));
         let w_defer_captured = w.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = w_defer_captured.clone(); let __recv_ptr: *mut bufio::r#mod::Writer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Writer }; let __result = unsafe { &mut *__recv_ptr }.flush(); __result };
     }));
@@ -152,11 +152,11 @@ fn main() {
         report(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some("direct".to_string()))), Arc::new(Mutex::new(Some(1))));
         let mut out = os::Stdout().clone();
         { let __s = format!("{}\n", format!("{}", "through a variable".to_string())); (*out.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
-        io::write_string(Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some("io.WriteString\n".to_string()))));
+        io::write_string(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some("io.WriteString\n".to_string()))));
         { let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.write_string(Arc::new(Mutex::new(Some("WriteString\n".to_string()))));
         let (mut n, mut err) = { let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.write(Arc::new(Mutex::new(Some(("Write\n".to_string()).as_bytes().to_go_slice()))));
         println!("{} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-        let mut e = bufio::new_writer(Arc::new(Mutex::new(Some(Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))));
+        let mut e = bufio::new_writer(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))));
         { let __s = format!("{}\n", format!("{}", "to stderr".to_string())); (*e.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         { let __recv = e.clone(); let __recv_ptr: *mut bufio::r#mod::Writer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Writer }; let __result = unsafe { &mut *__recv_ptr }.flush(); __result };
         report(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some("stderr".to_string()))), Arc::new(Mutex::new(Some(3))));

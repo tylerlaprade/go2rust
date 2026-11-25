@@ -877,7 +877,7 @@ impl pkgReader {
 
 pub fn schedule(pr: Rc<RefCell<Option<pkgReader>>>, named: Rc<RefCell<Option<named>>>, rhs: Rc<RefCell<Option<named>>>) {
     let mut pk = pr.clone();
-    let named_closure_clone = named.clone(); let pk_closure_clone = pk.clone(); let rhs_closure_clone = rhs.clone(); { let __recv = pk_closure_clone.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).later_for(named_closure_clone.clone(), Rc::new(RefCell::new(Some({ let named_closure_clone_closure_clone = named_closure_clone.clone(); let pk_closure_clone_closure_clone = pk_closure_clone.clone(); Box::new(move || {
+    let named_closure_clone = named.clone(); let pk_closure_clone = pk.clone(); let rhs_closure_clone = rhs.clone(); { let __method_args = (named_closure_clone.clone(), Rc::new(RefCell::new(Some({ let named_closure_clone_closure_clone = named_closure_clone.clone(); let pk_closure_clone_closure_clone = pk_closure_clone.clone(); Box::new(move || {
         { let __map_handle = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).later_fors.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(named_closure_clone_closure_clone.clone())); };
         {
         let (mut i, mut ok) = { let __map_holder = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).later_fors.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(rhs_closure_clone.clone()))) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };;
@@ -889,16 +889,16 @@ pub fn schedule(pr: Rc<RefCell<Option<pkgReader>>>, named: Rc<RefCell<Option<nam
         }
     }
         { let __target = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).hits.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }) as Box<dyn FnMut() -> ()> })))); __result };
+    }) as Box<dyn FnMut() -> ()> }))),); { let __recv = pk_closure_clone.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).later_for(__method_args.0, __method_args.1); __result } };
 }
 
 fn main() {
     let mut pr = Rc::new(RefCell::new(Some(pkgReader { later_fns: Default::default(), later_fors: Default::default(), hits: Rc::new(RefCell::new(Some(0))) })));
     let mut a = Rc::new(RefCell::new(Some(named { id: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(named { id: Rc::new(RefCell::new(Some("b".to_string()))), ..Default::default() })));
-    let pr_closure_clone = pr.clone(); { let __recv = pr_closure_clone.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).later_for(b.clone(), Rc::new(RefCell::new(Some({ let pr_closure_clone_closure_clone = pr_closure_clone.clone(); Box::new(move || {
+    let pr_closure_clone = pr.clone(); { let __method_args = (b.clone(), Rc::new(RefCell::new(Some({ let pr_closure_clone_closure_clone = pr_closure_clone.clone(); Box::new(move || {
         { let __target = (*pr_closure_clone_closure_clone.borrow().as_ref().unwrap()).hits.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut() -> ()> })))); __result };
+    }) as Box<dyn FnMut() -> ()> }))),); { let __recv = pr_closure_clone.clone(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).later_for(__method_args.0, __method_args.1); __result } };
     schedule(pr.clone(), a.clone(), b.clone());
     { let __f_holder = (*(*pr.borrow().as_ref().unwrap()).later_fns.borrow().as_ref().unwrap())[(1) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     println!("{}", format!("{}", (*(*pr.borrow().as_ref().unwrap()).hits.borrow().as_ref().unwrap())));

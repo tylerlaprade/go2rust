@@ -1070,14 +1070,13 @@ fn main() {
     };
     println!("{}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut g = Arc::new(Mutex::new(Some(Grid { cells: Arc::new(Mutex::new(Some(vec![5i64, 6i64]))), ..Default::default() })));
-    { let __recv = g.clone(); let __recv_ptr: *mut Grid = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Grid }; let __result = unsafe { &mut *__recv_ptr }.put(
+    { let __method_args = (
     Arc::new(Mutex::new(Some(0))),
     Arc::new(Mutex::new(Some({
         let __tmp_x = { let __seq = { let __seq_holder = (*g.lock().unwrap().as_ref().unwrap()).cells.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
         let __tmp_y = 1;
         __tmp_x + __tmp_y
-    }))),
-); __result };
+    }))),); { let __recv = g.clone(); let __recv_ptr: *mut Grid = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Grid }; let __result = unsafe { &mut *__recv_ptr }.put(__method_args.0, __method_args.1); __result } };
     println!("{}", format!("{}", format_slice_values(&(*{ let __field = (*g.lock().unwrap().as_ref().unwrap()).cells.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
     let mut done = GoChannel::<Vec<i64>>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {

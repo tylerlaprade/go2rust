@@ -24122,10 +24122,34 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			if !isExternalStdlibStubCall {
 				goPtrHelperQualifier = packageSelectorCrateName(sel)
 			}
+			// As in the loop below for the package's own functions, each
+			// argument is read before the call (scopeCallArgumentGuards).
+			pkgCallOut := out
+			var pkgArgOut *strings.Builder
+			pkgArgSeed := 0
+			pkgArgIsFuncLit := false
+			flushPkgArg := func() {
+				if pkgArgOut != nil {
+					text := pkgArgOut.String()[pkgArgSeed:]
+					if !pkgArgIsFuncLit {
+						text = scopeCallArgumentGuards(text)
+					}
+					pkgCallOut.WriteString(text)
+					pkgArgOut = nil
+				}
+			}
 			for i, arg := range call.Args {
+				flushPkgArg()
+				out = pkgCallOut
 				if i > 0 {
 					out.WriteString(", ")
 				}
+				seed := currentLineText(pkgCallOut)
+				pkgArgOut = &strings.Builder{}
+				pkgArgOut.WriteString(seed)
+				pkgArgSeed = len(seed)
+				_, pkgArgIsFuncLit = arg.(*ast.FuncLit)
+				out = pkgArgOut
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
 					writeExternalStubMethodCallArgument(out, sel, arg, expectedArgType)
@@ -24225,6 +24249,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 				out.WriteString(")))")
 			}
+			flushPkgArg()
+			out = pkgCallOut
 			out.WriteString(")")
 			return
 		}
@@ -26001,7 +26027,7 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 // still be borrowing s while f writes to it (DEV-218); the block ends the
 // guard with the value.
 func writeCallArgumentValueScoped(out *strings.Builder, value string) {
-	if strings.HasPrefix(value, "{") || !rustTextTakesGuard(value) {
+	if rustTextIsOneBlock(value) || !rustTextTakesGuard(value) {
 		out.WriteString(value)
 		return
 	}
@@ -26034,6 +26060,40 @@ func scopeCallArgumentGuards(arg string) string {
 	writeCallArgumentValueScoped(&out, value)
 	out.WriteString(")))")
 	return out.String()
+}
+
+// rustTextIsOneBlock reports whether generated Rust is a single block,
+// { ... }, whose guards end inside it. { m[k] } + s[0] starts with a block
+// but borrows s after it.
+func rustTextIsOneBlock(text string) bool {
+	if !strings.HasPrefix(text, "{") || !strings.HasSuffix(text, "}") {
+		return false
+	}
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 && i != len(text)-1 {
+				return false
+			}
+		}
+	}
+	return depth == 0
 }
 
 // rustParensBalanced reports whether the parentheses of generated Rust

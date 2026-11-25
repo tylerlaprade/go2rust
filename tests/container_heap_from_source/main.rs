@@ -864,7 +864,7 @@ pub fn dijkstra(g: Arc<Mutex<Option<BTreeMap<i64, Arc<Mutex<Option<Vec<Edge>>>>>
             __tmp_x < __tmp_y
         } {
             { let __idx = ((*e.to.lock().unwrap().as_ref().unwrap())) as usize; let __rhs = { let __v = (*nd.lock().unwrap().as_ref().unwrap()).clone(); __v }; (*dist.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };;
-            container_heap::push(Arc::new(Mutex::new(Some(Box::new(PQPtr(pq.clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Item { node: Arc::new(Mutex::new(Some({ let __selector_holder = e.to.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), dist: Arc::new(Mutex::new(Some({ let __arg_holder = nd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Box<dyn Any + Send + Sync>))));;
+            container_heap::push(Arc::new(Mutex::new(Some(Box::new(PQPtr(pq.clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_value = Box::new(Item { node: Arc::new(Mutex::new(Some({ let __selector_holder = e.to.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), dist: Arc::new(Mutex::new(Some({ let __arg_holder = nd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }) as Box<dyn Any + Send + Sync>; __arg_value }))));;
         }
     }
     } }

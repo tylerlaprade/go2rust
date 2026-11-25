@@ -1107,8 +1107,8 @@ fn main() {
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x < __tmp_y })))
     )));
     println!("{} {}", format!("{}", "byte".to_string()), format!("{}", two(
-        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64))),
-        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64)))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64; __arg_value })))
     )));
 
     { let new_val = 3; *x.lock().unwrap() = Some(new_val); };

@@ -130,10 +130,9 @@ fn main() {
     { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.insert_after(Arc::new(Mutex::new(Some(Box::new(2i64) as Box<dyn Any + Send + Sync>))), e1.clone()); __result };
     print_list(l.clone());
     { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.move_to_back(e1.clone()); __result };
-    { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.move_before(
+    { let __method_args = (
     e4.clone(),
-    { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.front(); __result },
-); __result };
+    { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.front(); __result },); { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.move_before(__method_args.0, __method_args.1); __result } };
     print_list(l.clone());
     { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.remove(e4.clone()); __result };
     let mut other = container_list::new();

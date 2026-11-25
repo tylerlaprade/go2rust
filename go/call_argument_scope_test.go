@@ -53,3 +53,51 @@ func TestScopeCallArgumentGuards(t *testing.T) {
 		}
 	}
 }
+
+func TestCallArgumentStartingWithABlockIsStillScoped(t *testing.T) {
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	in := prefix.String() + "{ let __v = 1; __v } + (*s.borrow().as_ref().unwrap())[0]" + ")))"
+	want := prefix.String() + "{ let __arg_value = { let __v = 1; __v } + (*s.borrow().as_ref().unwrap())[0]; __arg_value }" + ")))"
+	if got := scopeCallArgumentGuards(in); got != want {
+		t.Errorf("a value that only starts with a block should be scoped:\n got %q\nwant %q", got, want)
+	}
+	for text, want := range map[string]bool{
+		"{ a }":         true,
+		"{ a } + { b }": false,
+		"{ \"}\" }":     true,
+		"{ '}' }":       true,
+		"x":             false,
+		"{ { a } }":     true,
+		"{ a }.clone()": false,
+	} {
+		if got := rustTextIsOneBlock(text); got != want {
+			t.Errorf("rustTextIsOneBlock(%q) = %v, want %v", text, got, want)
+		}
+	}
+}
+
+func TestPointerMethodArgumentsAreReadBeforeTheReceiverWithGoroutines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Grid struct{ Cells []int }
+
+func (g *Grid) Put(i, v int) { g.Cells[i] = v }
+
+func main() {
+	g := &Grid{Cells: []int{5, 6}}
+	g.Put(0, g.Cells[1]+1)
+	done := make(chan bool)
+	go func() { done <- true }()
+	<-done
+}
+`)
+	at := strings.Index(rust, "let __method_args = (")
+	recv := strings.Index(rust, "let __recv_ptr")
+	if at < 0 || recv < 0 || at > recv {
+		t.Fatalf("the arguments should be read before the receiver's pointer is made:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".put(__method_args.0, __method_args.1)") {
+		t.Fatalf("the call should take the arguments read before it:\n%s", rust)
+	}
+}
