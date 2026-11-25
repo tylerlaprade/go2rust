@@ -1,0 +1,1100 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+/// A Go slice: an offset, a length and a capacity over a backing array that
+/// every slice made from it shares. Every name below that a binding uses
+/// starts with __, so no package-level variable of the program shadows it.
+pub struct GoSlice<T> {
+    backing: std::sync::Arc<std::cell::UnsafeCell<GoSliceStore<T>>>,
+    off: usize,
+    len: usize,
+    cap: usize,
+    /// Whether this is the nil slice. A slice variable's nil is the None in
+    /// its cell; this one is for slices held bare, such as the elements of
+    /// a [][]byte, whose zero value is nil too.
+    nil: bool,
+}
+
+/// A slice's backing array: one the slices own, or the elements of a Go
+/// array held in a cell, which a[lo:hi] slices in place. The cell is kept
+/// alive by the slice, so the elements do not move while it is held.
+#[allow(dead_code)]
+pub enum GoSliceStore<T> {
+    Owned(std::vec::Vec<T>),
+    Array { ptr: *mut T, len: usize, owner: Box<dyn std::any::Any> },
+}
+
+unsafe impl<T: Send> Send for GoSlice<T> {}
+unsafe impl<T: Send + Sync> Sync for GoSlice<T> {}
+
+/// The prelude's Vec and vec! are Go slices in generated code.
+pub type Vec<T> = GoSlice<T>;
+
+impl<T> Clone for GoSlice<T> {
+    /// Copies the header. The copy shares the elements, as a Go slice
+    /// assignment does.
+    fn clone(&self) -> Self {
+        GoSlice { backing: self.backing.clone(), off: self.off, len: self.len, cap: self.cap, nil: self.nil }
+    }
+}
+
+impl<T> GoSlice<T> {
+    pub fn new() -> Self {
+        Self::from(std::vec::Vec::new())
+    }
+
+    pub fn with_capacity(__cap: usize) -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(std::vec::Vec::with_capacity(__cap)))), off: 0, len: 0, cap: __cap, nil: false }
+    }
+
+    /// The nil slice: no elements, no backing array of its own.
+    pub fn nil() -> Self {
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(std::vec::Vec::new()))), off: 0, len: 0, cap: 0, nil: true }
+    }
+
+    /// Go's s == nil.
+    pub fn is_nil(&self) -> bool {
+        self.nil
+    }
+
+    fn backing_ref(&self) -> &[T] {
+        match unsafe { &*self.backing.get() } {
+            GoSliceStore::Owned(__elems) => __elems,
+            GoSliceStore::Array { ptr, len, .. } => unsafe { std::slice::from_raw_parts(*ptr, *len) },
+        }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    fn backing_mut(&self) -> &mut [T] {
+        match unsafe { &mut *self.backing.get() } {
+            GoSliceStore::Owned(__elems) => __elems,
+            GoSliceStore::Array { ptr, len, .. } => unsafe { std::slice::from_raw_parts_mut(*ptr, *len) },
+        }
+    }
+
+    /// The backing Vec, which can grow; None for an array's elements, which
+    /// hold every element up to the capacity already.
+    #[allow(clippy::mut_from_ref)]
+    fn backing_vec(&self) -> Option<&mut std::vec::Vec<T>> {
+        match unsafe { &mut *self.backing.get() } {
+            GoSliceStore::Owned(__elems) => Some(__elems),
+            GoSliceStore::Array { .. } => None,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.backing_ref()[self.off..self.off + self.len]
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        let (__off, __len) = (self.off, self.len);
+        &mut self.backing_mut()[__off..__off + __len]
+    }
+
+    /// Go's cap(s).
+    pub fn capacity(&self) -> usize {
+        self.cap
+    }
+
+    /// Whether two slices share their backing array.
+    pub fn shares_backing_with(&self, __other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.backing, &__other.backing)
+    }
+
+    /// Go's s[lo:hi].
+    pub fn reslice(&self, __lo: usize, __hi: usize) -> Self {
+        if __lo > __hi || __hi > self.cap {
+            panic!("runtime error: slice bounds out of range [{}:{}] with capacity {}", __lo, __hi, self.cap);
+        }
+        if self.off + __hi > self.backing_ref().len() {
+            panic!("slice [{}:{}] reaches past the elements GoSlice has stored", __lo, __hi);
+        }
+        GoSlice { backing: self.backing.clone(), off: self.off + __lo, len: __hi - __lo, cap: self.cap - __lo, nil: self.nil }
+    }
+
+    /// Go's s[lo:hi:max].
+    pub fn reslice3(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __max > self.cap || __hi > __max {
+            panic!("runtime error: slice bounds out of range [{}:{}:{}] with capacity {}", __lo, __hi, __max, self.cap);
+        }
+        let mut __slice = self.reslice(__lo, __hi);
+        __slice.cap = __max - __lo;
+        __slice
+    }
+
+    /// Go's s = s[:n] when n is at most len(s).
+    pub fn truncate(&mut self, __n: usize) {
+        if __n < self.len {
+            self.len = __n;
+        }
+    }
+
+    /// Go's s = s[:0].
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    #[allow(unused_variables)]
+    pub fn reserve(&mut self, __additional: usize) {}
+
+    /// Keeps the elements the predicate accepts, in order, at the front.
+    pub fn retain<F: FnMut(&T) -> bool>(&mut self, mut __keep: F) {
+        let mut __kept = 0;
+        {
+            let __window = self.as_mut_slice();
+            for __index in 0..__window.len() {
+                if __keep(&__window[__index]) {
+                    __window.swap(__kept, __index);
+                    __kept += 1;
+                }
+            }
+        }
+        self.len = __kept;
+    }
+
+    /// Moves the slice's elements out when no other slice shares them.
+    fn take_unique(&mut self) -> Option<std::vec::Vec<T>> {
+        let (__off, __len) = (self.off, self.len);
+        let __backing = std::sync::Arc::get_mut(&mut self.backing)?;
+        let mut __elems = match __backing.get_mut() {
+            GoSliceStore::Owned(__elems) => std::mem::take(__elems),
+            GoSliceStore::Array { .. } => return None,
+        };
+        __elems.truncate(__off + __len);
+        __elems.drain(..__off);
+        Some(__elems)
+    }
+
+    fn fresh(__elems: std::vec::Vec<T>, __cap: usize) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(__elems))), off: 0, len: __len, cap: __cap.max(__len), nil: false }
+    }
+
+    /// The capacity Go's append gives a slice that must grow to hold
+    /// __needed elements.
+    fn grown_cap(&self, __needed: usize) -> usize {
+        let __old = self.cap;
+        let __doubled = __old + __old;
+        if __needed > __doubled {
+            return __needed;
+        }
+        if __old < 256 {
+            return __doubled.max(1);
+        }
+        let mut __grown = __old;
+        while __grown < __needed {
+            __grown += (__grown + 3 * 256) / 4;
+        }
+        __grown
+    }
+
+    /// Stores a value at index len(s) of the backing array: the in-place
+    /// half of Go's append. The backing Vec has room for the capacity, so
+    /// pushing onto it never moves elements other slices are reading.
+    fn store_at_end(&mut self, __value: T) {
+        let __at = self.off + self.len;
+        let __backing = self.backing_mut();
+        if __at < __backing.len() {
+            __backing[__at] = __value;
+        } else {
+            self.backing_vec().expect("an array's slice stores within the array").push(__value);
+        }
+        self.len += 1;
+        self.nil = false;
+    }
+
+    /// append for elements that cannot be copied: when the slice is full and
+    /// shares its backing array, the value goes at the end of that array.
+    fn push_without_copy(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        if let Some(mut __elems) = self.take_unique() {
+            __elems.reserve(__cap.saturating_sub(__elems.len()));
+            __elems.push(__value);
+            *self = Self::fresh(__elems, __cap);
+            return;
+        }
+        self.store_at_end(__value);
+        self.cap = self.len;
+    }
+}
+
+impl<T: 'static> GoSlice<T> {
+    /// Go's a[lo:hi:max] of an array a held in a single-threaded cell: a
+    /// slice over a's own elements, so a write through either one is seen
+    /// through the other.
+    pub fn from_array_rc_cell<const N: usize>(__cell: &std::rc::Rc<std::cell::RefCell<Option<[T; N]>>>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        let __ptr = match unsafe { &mut *__cell.as_ptr() } {
+            Some(__array) => __array.as_mut_ptr(),
+            None => panic!("runtime error: invalid memory address or nil pointer dereference"),
+        };
+        Self::over_array(__ptr, N, Box::new(__cell.clone()), __lo, __hi, __max)
+    }
+
+    /// Go's a[lo:hi:max] of an array a held in a goroutine-safe cell.
+    pub fn from_array_arc_cell<const N: usize>(__cell: &std::sync::Arc<std::sync::Mutex<Option<[T; N]>>>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        let __ptr = match __cell.lock().unwrap_or_else(|__poisoned| __poisoned.into_inner()).as_mut() {
+            Some(__array) => __array.as_mut_ptr(),
+            None => panic!("runtime error: invalid memory address or nil pointer dereference"),
+        };
+        Self::over_array(__ptr, N, Box::new(__cell.clone()), __lo, __hi, __max)
+    }
+
+    fn over_array(__ptr: *mut T, __len: usize, __owner: Box<dyn std::any::Any>, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi > __max || __max > __len {
+            panic!("runtime error: slice bounds out of range [:{}] with length {}", __hi.max(__max), __len);
+        }
+        if __lo > __hi {
+            panic!("runtime error: slice bounds out of range [{}:{}]", __lo, __hi);
+        }
+        GoSlice {
+            backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Array { ptr: __ptr, len: __len, owner: __owner })),
+            off: __lo,
+            len: __hi - __lo,
+            cap: __max - __lo,
+            nil: false,
+        }
+    }
+}
+
+impl<T: Clone + Default> GoSlice<T> {
+    /// Go's s[lo:hi:max] for an element type with a zero value. Up to the
+    /// capacity the backing array may not have stored the elements, after an
+    /// append grew it; in Go they are zero, so the zeros are stored first.
+    pub fn reslice3_zeroed(&self, __lo: usize, __hi: usize, __max: usize) -> Self {
+        if __hi <= self.cap && __max <= self.cap {
+            let __need = self.off + __hi;
+            if let Some(__backing) = self.backing_vec() {
+                if __need > __backing.len() {
+                    __backing.resize(__need, T::default());
+                }
+            }
+        }
+        self.reslice3(__lo, __hi, __max)
+    }
+}
+
+impl<T: Clone> GoSlice<T> {
+    /// Go's s = append(s, v): in place while there is capacity, else into a
+    /// new backing array.
+    pub fn push(&mut self, __value: T) {
+        if self.len < self.cap {
+            self.store_at_end(__value);
+            return;
+        }
+        let __cap = self.grown_cap(self.len + 1);
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.push(__value);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's append(s, v), leaving s as it was.
+    pub fn appended(&self, __value: T) -> Self {
+        let mut __result = self.clone();
+        __result.push(__value);
+        __result
+    }
+
+    /// Go's s = append(s, xs...).
+    pub fn extend_from_slice(&mut self, __values: &[T]) {
+        if self.len + __values.len() <= self.cap {
+            for __value in __values {
+                self.store_at_end(__value.clone());
+            }
+            return;
+        }
+        let __cap = self.grown_cap(self.len + __values.len());
+        let mut __elems = match self.take_unique() {
+            Some(__elems) => __elems,
+            None => self.as_slice().to_vec(),
+        };
+        __elems.reserve(__cap.saturating_sub(__elems.len()));
+        __elems.extend_from_slice(__values);
+        *self = Self::fresh(__elems, __cap);
+    }
+
+    /// Go's s = append(s, xs...) from values.
+    pub fn extend<I: IntoIterator<Item = T>>(&mut self, __values: I) {
+        let __values: std::vec::Vec<T> = __values.into_iter().collect();
+        self.extend_from_slice(&__values);
+    }
+
+    /// Removes and returns the last element: Go's v := s[len(s)-1];
+    /// s = s[:len(s)-1].
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        let __last = self.as_slice()[self.len - 1].clone();
+        self.len -= 1;
+        Some(__last)
+    }
+
+    pub fn insert(&mut self, __index: usize, __value: T) {
+        if __index > self.len {
+            panic!("insertion index (is {}) should be <= len (is {})", __index, self.len);
+        }
+        self.push(__value);
+        self.as_mut_slice()[__index..].rotate_right(1);
+    }
+
+    pub fn remove(&mut self, __index: usize) -> T {
+        let __removed = self.as_slice()[__index].clone();
+        self.as_mut_slice()[__index..].rotate_left(1);
+        self.len -= 1;
+        __removed
+    }
+
+    pub fn split_off(&mut self, __at: usize) -> Self {
+        let __tail = Self::from(self.as_slice()[__at..].to_vec());
+        self.len = __at;
+        __tail
+    }
+
+    pub fn drain<R: std::ops::RangeBounds<usize>>(&mut self, __range: R) -> std::vec::IntoIter<T> {
+        let mut __elems = self.as_slice().to_vec();
+        let __drained: std::vec::Vec<T> = __elems.drain(__range).collect();
+        let __cap = self.cap;
+        *self = Self::fresh(__elems, __cap);
+        __drained.into_iter()
+    }
+
+    pub fn resize(&mut self, __new_len: usize, __value: T) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more = std::vec::from_elem(__value, __new_len - self.len);
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn resize_with<F: FnMut() -> T>(&mut self, __new_len: usize, mut __make: F) {
+        if __new_len <= self.len {
+            self.len = __new_len;
+        } else {
+            let __more: std::vec::Vec<T> = (self.len..__new_len).map(|_| __make()).collect();
+            self.extend_from_slice(&__more);
+        }
+    }
+
+    pub fn into_std_vec(self) -> std::vec::Vec<T> {
+        self.as_slice().to_vec()
+    }
+
+    pub fn into_boxed_slice(self) -> Box<[T]> {
+        self.as_slice().to_vec().into_boxed_slice()
+    }
+}
+
+/// The values appended by append(s, xs...) to a slice of interface values:
+/// always a slice built for the append, which nothing else holds.
+pub trait GoSliceBoxedValues<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T>;
+}
+
+impl<T> GoSliceBoxedValues<T> for std::vec::Vec<T> {
+    fn into_boxed_values(self) -> std::vec::Vec<T> {
+        self
+    }
+}
+
+impl<T> GoSliceBoxedValues<T> for GoSlice<T> {
+    fn into_boxed_values(mut self) -> std::vec::Vec<T> {
+        match self.take_unique() {
+            Some(__elems) => __elems,
+            None => panic!("append of interface values held by another slice"),
+        }
+    }
+}
+
+/// Go's append for interface values, which have no Clone. When the slice
+/// is full and shares its backing array, the new element goes at the end of
+/// that array instead of into a copy.
+pub trait GoSliceAppendBoxed<T> {
+    fn push(&mut self, __value: T);
+    fn extend<I: GoSliceBoxedValues<T>>(&mut self, __values: I);
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any>> for GoSlice<Box<dyn std::any::Any>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+impl GoSliceAppendBoxed<Box<dyn std::any::Any + Send + Sync>> for GoSlice<Box<dyn std::any::Any + Send + Sync>> {
+    fn push(&mut self, __value: Box<dyn std::any::Any + Send + Sync>) {
+        self.push_without_copy(__value);
+    }
+    fn extend<I: GoSliceBoxedValues<Box<dyn std::any::Any + Send + Sync>>>(&mut self, __values: I) {
+        for __value in __values.into_boxed_values() {
+            self.push_without_copy(__value);
+        }
+    }
+}
+
+/// Reads the header of a slice value, whichever form the value has.
+pub trait GoSliceHeader<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>>;
+}
+
+impl<T> GoSliceHeader<T> for GoSlice<T> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        Some(self.clone())
+    }
+}
+
+impl<T> GoSliceHeader<T> for Option<GoSlice<T>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::rc::Rc<std::cell::RefCell<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.borrow().clone()
+    }
+}
+
+impl<T> GoSliceHeader<T> for std::sync::Arc<std::sync::Mutex<Option<GoSlice<T>>>> {
+    fn go_slice_header(&self) -> Option<GoSlice<T>> {
+        self.lock().unwrap().clone()
+    }
+}
+
+/// Copies a Rust slice into a new Go slice.
+pub trait GoSliceFromSlice<T> {
+    fn to_go_slice(&self) -> GoSlice<T>;
+}
+
+impl<T: Clone> GoSliceFromSlice<T> for [T] {
+    fn to_go_slice(&self) -> GoSlice<T> {
+        GoSlice::from(self.to_vec())
+    }
+}
+
+impl<T> Default for GoSlice<T> {
+    /// A slice's zero value is nil.
+    fn default() -> Self {
+        Self::nil()
+    }
+}
+
+impl<T> From<std::vec::Vec<T>> for GoSlice<T> {
+    fn from(__elems: std::vec::Vec<T>) -> Self {
+        let __len = __elems.len();
+        GoSlice { backing: std::sync::Arc::from(std::cell::UnsafeCell::new(GoSliceStore::Owned(__elems))), off: 0, len: __len, cap: __len, nil: false }
+    }
+}
+
+impl<T: Clone> From<&[T]> for GoSlice<T> {
+    fn from(__elems: &[T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T: Clone> From<&mut [T]> for GoSlice<T> {
+    fn from(__elems: &mut [T]) -> Self {
+        Self::from(__elems.to_vec())
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for GoSlice<T> {
+    fn from(__elems: [T; N]) -> Self {
+        Self::from(std::vec::Vec::from(__elems))
+    }
+}
+
+impl From<&str> for GoSlice<u8> {
+    fn from(__text: &str) -> Self {
+        Self::from(__text.as_bytes().to_vec())
+    }
+}
+
+impl From<String> for GoSlice<u8> {
+    fn from(__text: String) -> Self {
+        Self::from(__text.into_bytes())
+    }
+}
+
+impl<T: Clone> From<GoSlice<T>> for std::vec::Vec<T> {
+    fn from(__slice: GoSlice<T>) -> Self {
+        __slice.as_slice().to_vec()
+    }
+}
+
+impl<T> std::ops::Deref for GoSlice<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for GoSlice<T> {
+    fn deref_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> AsRef<[T]> for GoSlice<T> {
+    fn as_ref(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> AsMut<[T]> for GoSlice<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::borrow::Borrow<[T]> for GoSlice<T> {
+    fn borrow(&self) -> &[T] {
+        self.as_slice()
+    }
+}
+
+impl<T> std::borrow::BorrowMut<[T]> for GoSlice<T> {
+    fn borrow_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+impl<T> std::iter::FromIterator<T> for GoSlice<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(__values: I) -> Self {
+        Self::from(__values.into_iter().collect::<std::vec::Vec<T>>())
+    }
+}
+
+impl<T: Clone> IntoIterator for GoSlice<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+    fn into_iter(mut self) -> Self::IntoIter {
+        match self.take_unique() {
+            Some(__elems) => __elems.into_iter(),
+            None => self.as_slice().to_vec().into_iter(),
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a GoSlice<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut GoSlice<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(__f)
+    }
+}
+
+/// Go's %v of a slice: the elements' %v between brackets.
+impl<T: std::fmt::Display> std::fmt::Display for GoSlice<T> {
+    fn fmt(&self, __f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        __f.write_str("[")?;
+        for (__index, __value) in self.as_slice().iter().enumerate() {
+            if __index > 0 {
+                __f.write_str(" ")?;
+            }
+            write!(__f, "{}", __value)?;
+        }
+        __f.write_str("]")
+    }
+}
+
+impl<T: PartialEq> PartialEq for GoSlice<T> {
+    fn eq(&self, __other: &Self) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: PartialEq> PartialEq<[T]> for GoSlice<T> {
+    fn eq(&self, __other: &[T]) -> bool {
+        self.as_slice() == __other
+    }
+}
+
+impl<T: PartialEq> PartialEq<std::vec::Vec<T>> for GoSlice<T> {
+    fn eq(&self, __other: &std::vec::Vec<T>) -> bool {
+        self.as_slice() == __other.as_slice()
+    }
+}
+
+impl<T: Eq> Eq for GoSlice<T> {}
+
+impl<T: PartialOrd> PartialOrd for GoSlice<T> {
+    fn partial_cmp(&self, __other: &Self) -> Option<std::cmp::Ordering> {
+        self.as_slice().partial_cmp(__other.as_slice())
+    }
+}
+
+impl<T: Ord> Ord for GoSlice<T> {
+    fn cmp(&self, __other: &Self) -> std::cmp::Ordering {
+        self.as_slice().cmp(__other.as_slice())
+    }
+}
+
+impl<T: std::hash::Hash> std::hash::Hash for GoSlice<T> {
+    fn hash<H: std::hash::Hasher>(&self, __state: &mut H) {
+        self.as_slice().hash(__state)
+    }
+}
+
+impl std::io::Write for GoSlice<u8> {
+    fn write(&mut self, __bytes: &[u8]) -> std::io::Result<usize> {
+        self.extend_from_slice(__bytes);
+        Ok(__bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    capacity: usize,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: cap,
+        }
+    }
+
+    fn send(&self, val: T) {
+        if self.is_nil() {
+            return;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.send(val).is_ok() && self.capacity > 0 {
+                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.try_send(val).is_ok() {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().try_recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+
+    fn is_nil(&self) -> bool {
+        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn len(&self) -> usize {
+        self.len.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+            is_nil: self.is_nil.clone(),
+            len: self.len.clone(),
+            capacity: self.capacity,
+        }
+    }
+}
+
+impl<T> Default for GoChannel<T> {
+    fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for GoChannel<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoChannel")
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
+}
+
+pub fn count(n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    let n_closure_clone = n.clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>| {
+        let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        if !{
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = r#yield.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                i.clone()
+            )
+        } {
+        println!("{} {}", format!("{}", "  stopped at".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        return;
+    }
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>)));
+}
+
+pub fn pairs(r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) {
+    for (i, s) in vec!["a".to_string(), "b".to_string(), "c".to_string()].iter().enumerate() {
+        if !{
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> = {
+                let mut __f_guard = r#yield.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(s.clone()))),
+                Arc::new(Mutex::new(Some(i as i64)))
+            )
+        } {
+        return;
+    }
+    }
+}
+
+pub fn find_pair(target: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<String>>>, bool) {
+    let mut name: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+    let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+
+    let mut __rf_done_1: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    let mut __rf_done_1_closure_clone = __rf_done_1.clone(); let mut found_closure_clone = found.clone(); let mut name_closure_clone = name.clone(); let target_closure_clone = target.clone(); pairs(Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<String>>>, i: Arc<Mutex<Option<i64>>>| -> bool {
+        let mut __rf_done_2: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+        let mut __rf_done_2_closure_clone = __rf_done_2.clone(); let mut found_closure_clone_closure_clone = found_closure_clone.clone(); let i_closure_clone = i.clone(); let mut name_closure_clone_closure_clone = name_closure_clone.clone(); let s_closure_clone = s.clone(); let target_closure_clone_closure_clone = target_closure_clone.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(3)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |j: Arc<Mutex<Option<i64>>>| -> bool {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*target_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        { let new_val = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", { let __v = (*s_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name_closure_clone_closure_clone.lock().unwrap() = __moved_val; };
+        {
+            {
+                let __tmp_0 = ({ let __v = (*name_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                let __tmp_1 = true;
+                *name_closure_clone_closure_clone.lock().unwrap() = Some(__tmp_0);
+                *found_closure_clone_closure_clone.lock().unwrap() = Some(__tmp_1);
+            };
+            { let new_val = true; *__rf_done_2_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+        if { let __v = (*__rf_done_2.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        {
+            { let new_val = true; *__rf_done_1_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
+    if { let __v = (*__rf_done_1.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return (name.clone(), (*found.lock().unwrap().as_ref().unwrap()));
+    }
+    return (name.clone(), (*found.lock().unwrap().as_ref().unwrap()));
+}
+
+pub fn first_over(limit: Arc<Mutex<Option<i64>>>) -> i64 {
+    let mut __rf_done_3: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    let mut __rf_result_3_0: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+    let mut __rf_done_3_closure_clone = __rf_done_3.clone(); let mut __rf_result_3_0_closure_clone = __rf_result_3_0.clone(); let limit_closure_clone = limit.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(10)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
+        let mut __rf_done_4: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+        let mut __rf_result_4_0: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+        let mut __rf_done_4_closure_clone = __rf_done_4.clone(); let mut __rf_result_4_0_closure_clone = __rf_result_4_0.clone(); let i_closure_clone = i.clone(); let limit_closure_clone_closure_clone = limit_closure_clone.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(10)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |j: Arc<Mutex<Option<i64>>>| -> bool {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*limit_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
+        {
+            { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *__rf_result_4_0_closure_clone.lock().unwrap() = Some(new_val); };
+            { let new_val = true; *__rf_done_4_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+        if { let __v = (*__rf_done_4.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        {
+            { let new_val = __rf_result_4_0.lock().unwrap().as_ref().unwrap().clone(); *__rf_result_3_0_closure_clone.lock().unwrap() = Some(new_val); };
+            { let new_val = true; *__rf_done_3_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+    if { let __v = (*__rf_done_3.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return { let __v = (*__rf_result_3_0.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    }
+    -(1)
+}
+
+fn main() {
+    'outer: for row in vec![1i64, 2i64, 3i64].iter().copied() {
+        let mut __rf_done_5: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+        let mut __rf_next_5: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+        let mut __rf_next_5_closure_clone = __rf_next_5.clone(); let row_closure_clone = row.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(5)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| -> bool {
+        if { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = row_closure_clone; __tmp_x == __tmp_y } {
+        {
+            { let new_val = 1; *__rf_next_5_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        if { let __tmp_x = row_closure_clone; let __tmp_y = 3; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        {
+            { let new_val = 2; *__rf_next_5_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        println!("{} {} {} {}", format!("{}", "row".to_string()), format!("{}", row_closure_clone), format!("{}", "v".to_string()), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+        if { let __v = (*__rf_done_5.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return;
+    }
+        if { let __tmp_x = { let __v = (*__rf_next_5.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        continue 'outer
+    }
+        if { let __tmp_x = { let __v = (*__rf_next_5.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
+        break 'outer
+    }
+        println!("{} {}", format!("{}", "end row".to_string()), format!("{}", row));
+    }
+
+    let mut s: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+    let mut k: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+    let mut __rf_done_6: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    let mut k_closure_clone = k.clone(); let mut s_closure_clone = s.clone(); pairs(Arc::new(Mutex::new(Some(Box::new(move |__rf_param_6_0: Arc<Mutex<Option<String>>>, __rf_param_6_1: Arc<Mutex<Option<i64>>>| -> bool {
+        { let new_val = __rf_param_6_0.lock().unwrap().as_ref().unwrap().clone(); *s_closure_clone.lock().unwrap() = Some(new_val); };
+        { let new_val = __rf_param_6_1.lock().unwrap().as_ref().unwrap().clone(); *k_closure_clone.lock().unwrap() = Some(new_val); };
+        if { let __tmp_x = { let __v = (*k_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        return false;
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
+    if { let __v = (*__rf_done_6.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return;
+    }
+    println!("{} {} {}", format!("{}", "last".to_string()), format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+    let mut __rf_done_7: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    let mut __rf_done_7_closure_clone = __rf_done_7.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(3)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |a: Arc<Mutex<Option<i64>>>| -> bool {
+        let mut __rf_done_8: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+        let mut __rf_next_8: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+        let mut __rf_next_8_closure_clone = __rf_next_8.clone(); let a_closure_clone = a.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(3)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |b: Arc<Mutex<Option<i64>>>| -> bool {
+        if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
+        {
+            { let new_val = 1; *__rf_next_8_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        if { let __tmp_x = { let __v = (*a_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        {
+            { let new_val = 2; *__rf_next_8_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        println!("{} {} {} {}", format!("{}", "a".to_string()), format!("{}", { let __v = (*a_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "b".to_string()), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+        if { let __v = (*__rf_done_8.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        {
+            { let new_val = true; *__rf_done_7_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        if { let __tmp_x = { let __v = (*__rf_next_8.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        return true;
+    }
+        if { let __tmp_x = { let __v = (*__rf_next_8.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
+        return false;
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+    if { let __v = (*__rf_done_7.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return;
+    }
+
+    let (mut __go_mv_1_0, mut __go_mv_1_1) = find_pair(Arc::new(Mutex::new(Some(3))));
+    println!("{} {}", format!("{}", { let __v = (*__go_mv_1_0.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", __go_mv_1_1));
+    let (mut __go_mv_2_0, mut __go_mv_2_1) = find_pair(Arc::new(Mutex::new(Some(9))));
+    println!("{} {}", format!("{}", { let __v = (*__go_mv_2_0.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", __go_mv_2_1));
+    println!("{}", format!("{}", first_over(Arc::new(Mutex::new(Some(20))))));
+    let mut total = Arc::new(Mutex::new(Some(0i64)));
+    let mut __rf_done_9: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    let mut total_closure_clone = total.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(4)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |_: Arc<Mutex<Option<i64>>>| -> bool {
+        { let mut guard = total_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+    if { let __v = (*__rf_done_9.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return;
+    }
+    println!("{} {}", format!("{}", "total".to_string()), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    let mut done = GoChannel::<i64>::new();
+    let done_thread = done.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        let mut sum = Arc::new(Mutex::new(Some(0i64)));;
+        let mut __rf_done_10: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+let mut __rf_done_10_closure_clone = __rf_done_10.clone(); let mut sum_closure_clone = sum.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(4)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
+        let mut __rf_done_11: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+        let mut __rf_next_11: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
+        let mut __rf_next_11_closure_clone = __rf_next_11.clone(); let i_closure_clone = i.clone(); let mut sum_closure_clone_closure_clone = sum_closure_clone.clone(); { let __f_holder = count(Arc::new(Mutex::new(Some(4)))); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(move |j: Arc<Mutex<Option<i64>>>| -> bool {
+        if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
+        {
+            { let new_val = 1; *__rf_next_11_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        { let __rhs = { let __tmp_x = { let __v = (*i_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let mut guard = sum_closure_clone_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+        if { let __v = (*__rf_done_11.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        {
+            { let new_val = true; *__rf_done_10_closure_clone.lock().unwrap() = Some(new_val); };
+            return false;
+        }
+    }
+        if { let __tmp_x = { let __v = (*__rf_next_11.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        return true;
+    }
+        true
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>)))) };
+if { let __v = (*__rf_done_10.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        return;
+    };
+        done_thread.send((*sum.lock().unwrap().as_ref().unwrap()));;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
+    });
+    println!("{} {}", format!("{}", "sum".to_string()), format!("{}", done.recv().unwrap_or_default()));
+}

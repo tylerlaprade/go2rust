@@ -15616,6 +15616,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				isSlice = true
 			}
 		}
+		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel && writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
+			return
+		}
 		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
 			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
 			out.WriteString("unimplemented!(\"type info required for range statement\");")
@@ -17744,6 +17747,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n")
 			out.WriteString(indent)
 			out.WriteString("}")
+			return
+		}
+		if rangeStmt, ok := s.Stmt.(*ast.RangeStmt); ok && writeRangeOverFuncStatement(out, rangeStmt, s.Label.Name, fnType, fileSet, comments, lastPos, indent) {
 			return
 		}
 		// Set the pending label for the next loop statement to consume

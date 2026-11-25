@@ -1,0 +1,11 @@
+[package]
+name = "range_over_func_nested_and_labeled"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_over_func_nested_and_labeled"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

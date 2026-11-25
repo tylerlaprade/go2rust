@@ -3303,6 +3303,22 @@ run_xfail_test() {
     run_test "tests/range_over_any_slice_values_goroutines"
 }
 
+@test "range_over_func" {
+    run_test "tests/range_over_func"
+}
+
+@test "range_over_func_goroutines" {
+    run_test "tests/range_over_func_goroutines"
+}
+
+@test "range_over_func_nested_and_labeled" {
+    run_test "tests/range_over_func_nested_and_labeled"
+}
+
+@test "range_over_func_nested_and_labeled_goroutines" {
+    run_test "tests/range_over_func_nested_and_labeled_goroutines"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
