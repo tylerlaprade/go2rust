@@ -4439,6 +4439,10 @@ run_xfail_test() {
     run_test "tests/sync_once_receiver_init"
 }
 
+@test "text_tabwriter_from_source" {
+    run_test "tests/text_tabwriter_from_source"
+}
+
 @test "tickers_basic" {
     run_test "tests/tickers_basic"
 }
