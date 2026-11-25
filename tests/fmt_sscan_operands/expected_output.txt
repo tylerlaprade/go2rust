@@ -1,0 +1,9 @@
+3 <nil> 12 cm
+[[0 1 2] [3 4 5]]
+[3 4 50] 50
+[1.5 2.25 -3]
+{5 -2} <nil>
+input does not match format
+3 <nil> abc Z 255
+1 <nil> 50
+2 <nil> 123 45

@@ -1324,6 +1324,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoFloatString = dst.needsGoFloatString || src.needsGoFloatString
 	dst.needsGoErrorChain = dst.needsGoErrorChain || src.needsGoErrorChain
 	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf
+	dst.needsGoFmtScan = dst.needsGoFmtScan || src.needsGoFmtScan
 	dst.needsGoSprintfSpread = dst.needsGoSprintfSpread || src.needsGoSprintfSpread
 	dst.needsBase64 = dst.needsBase64 || src.needsBase64
 	dst.needsSha256 = dst.needsSha256 || src.needsSha256

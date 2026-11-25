@@ -7700,6 +7700,14 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 		// Range values for slice elements are bare references; wrap a temporary handle.
 	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
 		writeNamedSliceInnerHandleClone(out, indexExpr.X)
+	} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
+		// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no cell
+		// of its own. A new cell around a copy of it shares its backing,
+		// so the element pointer writes into grid.
+		WriteWrapperPrefix(out)
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
 		out.WriteString(".clone()")
@@ -7708,6 +7716,28 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
 	return true
+}
+
+// indexesSliceOrArray reports whether e indexes a slice or an array, whose
+// elements are held bare, not a map, whose lookup is a cell of its own.
+func indexesSliceOrArray(e *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	t := typeInfo.GetType(e.X)
+	if t == nil {
+		return false
+	}
+	u := t.Underlying()
+	if ptr, ok := u.(*types.Pointer); ok {
+		u = ptr.Elem().Underlying()
+	}
+	switch u.(type) {
+	case *types.Slice, *types.Array:
+		return true
+	}
+	return false
 }
 
 func writeRangeSliceElemPtrSequenceHandle(out *strings.Builder, expr ast.Expr) bool {

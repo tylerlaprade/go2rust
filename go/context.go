@@ -1319,6 +1319,14 @@ func NeedGoSprintf() {
 	}
 }
 
+// NeedGoFmtScan marks that we need go_fmt_scan, the scanner of fmt.Scan,
+// Sscan, Fscan and their ln and f forms.
+func NeedGoFmtScan() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFmtScan = true
+	}
+}
+
 // NeedGoSprintfSpread marks that we need go_sprintf_spread as well, for a
 // call that passes its arguments on as a slice.
 func NeedGoSprintfSpread() {

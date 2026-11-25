@@ -1,0 +1,4 @@
+3 [10 20 30] ann 9.5 2 <nil>
+9 2 <nil>
+foo bar 42 1 <nil>
+0 EOF
