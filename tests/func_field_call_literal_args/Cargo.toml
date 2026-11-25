@@ -1,0 +1,11 @@
+[package]
+name = "func_field_call_literal_args"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "func_field_call_literal_args"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

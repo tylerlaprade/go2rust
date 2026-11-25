@@ -1554,6 +1554,7 @@ pub fn sum(nums: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
 }
 
 pub fn apply(fs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>> {
+    let mut fs = Arc::new(Mutex::new((*fs.lock().unwrap()).clone()));
     let fs_closure_clone = fs.clone(); return Arc::new(Mutex::new(Some(Box::new(move |mut x: Arc<Mutex<Option<i64>>>| -> i64 {
         { let __range_holder = fs_closure_clone.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         { let new_val = {

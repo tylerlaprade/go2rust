@@ -1,0 +1,11 @@
+[package]
+name = "interface_embeds_fmt_stringer"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_embeds_fmt_stringer"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

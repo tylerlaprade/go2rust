@@ -9,6 +9,7 @@ import (
 	"go/types"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 var currentReturnStatementIsTail bool
@@ -12893,6 +12894,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if !tailReturn {
 				out.WriteString(" ")
 			}
+			// A tail value whose Rust starts with a block, { let __seq_holder
+			// = ...; ... } < { ... } for h[i] < h[j] of a named slice, would
+			// be read by Rust as a block statement and then a stray <. The
+			// value is written aside and put in parentheses when more of the
+			// expression follows that block (tailValueNeedsParens). The aside
+			// builder starts with the current line, whose indentation the
+			// multiline writers read (currentLineIndent).
+			tailOut := out
+			var tailValue *strings.Builder
+			tailLinePrefix := ""
+			if tailReturn && len(s.Results) == 1 && !fnHasMultipleResultSlots(fnType) {
+				tailLinePrefix = currentLineText(out)
+				tailValue = &strings.Builder{}
+				tailValue.WriteString(tailLinePrefix)
+				out = tailValue
+			}
 			// Check if we need a tuple for multiple return values
 			needsTuple := len(s.Results) > 1
 			multilineReturnTuple := needsTuple && returnResultsShouldUseMultiline(s.Results)
@@ -13419,6 +13436,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(returnTupleIndent)
 				}
 				out.WriteString(")")
+			}
+			if tailValue != nil {
+				out = tailOut
+				value := strings.TrimPrefix(tailValue.String(), tailLinePrefix)
+				if tailValueNeedsParens(value) {
+					out.WriteString("(")
+					out.WriteString(value)
+					out.WriteString(")")
+				} else {
+					out.WriteString(value)
+				}
 			}
 		} else if tailReturn {
 			out.WriteString("()")
@@ -18861,4 +18889,58 @@ func writeBuiltinLengthForIntegerSlot(out *strings.Builder, rhs ast.Expr, expect
 	out.WriteString(") as ")
 	out.WriteString(rustType)
 	return true
+}
+
+// tailValueNeedsParens reports whether a tail expression starts with a
+// block that more of the expression follows, as "{ a } < { b }" does. Rust
+// parses such a leading block as a statement, so the expression needs
+// parentheses. A value that is one block is a valid tail expression as it
+// is. When the scan cannot tell, the value is parenthesized.
+func tailValueNeedsParens(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if !strings.HasPrefix(trimmed, "{") {
+		return false
+	}
+	end, ok := rustBlockEnd(trimmed)
+	return !ok || end != len(trimmed)-1
+}
+
+// rustBlockEnd returns the index of the brace that closes the block opening
+// at code[0], skipping string and character literals. It reports false for
+// a raw string or anything else it does not scan.
+func rustBlockEnd(code string) (int, bool) {
+	depth := 0
+	for i := 0; i < len(code); i++ {
+		switch c := code[i]; c {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i, true
+			}
+		case '"':
+			if i > 0 && (code[i-1] == 'r' || code[i-1] == '#') {
+				return 0, false
+			}
+			for i++; i < len(code) && code[i] != '"'; i++ {
+				if code[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			// A character literal: 'x', '\n', '\u{7b}'. A lifetime such as
+			// 'a has no closing quote and is skipped as one character.
+			if i+3 < len(code) && code[i+1] == '\\' {
+				j := strings.IndexByte(code[i+3:], '\'')
+				if j < 0 {
+					return 0, false
+				}
+				i += 3 + j
+			} else if _, size := utf8.DecodeRuneInString(code[i+1:]); i+1+size < len(code) && code[i+1+size] == '\'' {
+				i += 1 + size
+			}
+		}
+	}
+	return 0, false
 }

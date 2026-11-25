@@ -835,7 +835,7 @@ func writeGoSliceParamHeaderCopiesFor(out *strings.Builder, fnType *ast.FuncType
 			if _, ok := types.Unalias(obj.Type()).(*types.Slice); !ok {
 				continue
 			}
-			if !funcBodyReassignsVar(body, obj, typeInfo) {
+			if !funcBodyReassignsVar(body, obj, typeInfo) && !funcLitInBodyUsesVar(body, obj, typeInfo) {
 				continue
 			}
 			rustName := RustLocalIdent(name.Name)
@@ -852,6 +852,31 @@ func writeGoSliceParamHeaderCopiesFor(out *strings.Builder, fnType *ast.FuncType
 			out.WriteString(").clone()));\n")
 		}
 	}
+}
+
+// funcLitInBodyUsesVar reports whether a function literal in body uses obj.
+// The closure keeps the parameter's cell after the call returns, so the
+// parameter needs a header of its own: a later x = y in the caller must not
+// change the slice the closure sees.
+func funcLitInBodyUsesVar(body *ast.BlockStmt, obj types.Object, typeInfo *TypeInfo) bool {
+	found := false
+	ast.Inspect(body, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		lit, ok := node.(*ast.FuncLit)
+		if !ok {
+			return true
+		}
+		ast.Inspect(lit.Body, func(inner ast.Node) bool {
+			if ident, ok := inner.(*ast.Ident); ok && typeInfo.info.Uses[ident] == obj {
+				found = true
+			}
+			return !found
+		})
+		return false
+	})
+	return found
 }
 
 // funcBodyReassignsVar reports whether body assigns to obj or takes its
