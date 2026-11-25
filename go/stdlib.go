@@ -7012,18 +7012,29 @@ func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 		return
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(expr) && !isExpressionResultBare(expr) {
+		// A GoSlice clone shares its backing array, which copy(s[i+1:], s[i:])
+		// writes while it reads: take the values first, as memmove does.
+		snapshot := ".clone()"
+		if goSliceModeEnabled() {
+			snapshot = ".to_vec()"
+		}
 		if _, isSliceExpr := unwrapParens(expr).(*ast.SliceExpr); isSliceExpr {
 			out.WriteString("(*")
 			TranspileExpression(out, expr)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()")
+			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(snapshot)
 			return
 		}
 		out.WriteString("{ let __copy_src_holder = ")
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone(); let __copy_src_guard = __copy_src_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; __copy_src_guard.as_ref().cloned().unwrap_or_default() }")
+		if goSliceModeEnabled() {
+			out.WriteString("; __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() }")
+		} else {
+			out.WriteString("; __copy_src_guard.as_ref().cloned().unwrap_or_default() }")
+		}
 		return
 	}
 	out.WriteString("(")
