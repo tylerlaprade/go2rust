@@ -1355,6 +1355,10 @@ run_xfail_test() {
     run_test "tests/evaluation_order_of_element_writes_goroutines"
 }
 
+@test "everyday_shapes_animals_errors" {
+    run_test "tests/everyday_shapes_animals_errors"
+}
+
 @test "exec_command_args_stub" {
     run_test "tests/exec_command_args_stub"
 }
@@ -2009,6 +2013,10 @@ run_xfail_test() {
 
 @test "len_call_argument" {
     run_test "tests/len_call_argument"
+}
+
+@test "len_in_composite_literals" {
+    run_test "tests/len_in_composite_literals"
 }
 
 @test "len_of_computed_values" {
@@ -3189,6 +3197,14 @@ run_xfail_test() {
 
 @test "printf_basic_slice_verbs_goroutines" {
     run_test "tests/printf_basic_slice_verbs_goroutines"
+}
+
+@test "printf_local_interface_values" {
+    run_test "tests/printf_local_interface_values"
+}
+
+@test "printf_local_interface_values_goroutines" {
+    run_test "tests/printf_local_interface_values_goroutines"
 }
 
 @test "printf_nil_interface_arguments" {

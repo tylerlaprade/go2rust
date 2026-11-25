@@ -1,0 +1,7 @@
+&{Ada L} (*main.Person) is Ada L
+Pet<cat> (main.Pet) is a cat
+R7 (*main.Robot) is robot 7
+<nil> <nil>
+&{First:Ada Last:L}|R7
+bad Pet<cat>
+R7 (*main.Robot) is robot 7

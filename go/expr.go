@@ -12370,6 +12370,14 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
+	if lenCapCallNeedsExpectedIntCast(value, valueType) {
+		// map[string]int{k: len(k)}: len is a usize, the value an int.
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, value)
+		out.WriteString(" as " + rustIntType())
+		WriteWrapperSuffix(out)
+		return
+	}
 	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
 		if named, sliceType, ok := namedSliceTypeFromType(valueType); ok {
 			// The map stores the defined slice in its own cell. The slice

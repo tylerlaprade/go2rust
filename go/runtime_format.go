@@ -1064,7 +1064,9 @@ func writeRuntimeFormatNilArgument(out *strings.Builder, arg ast.Expr) bool {
 	out.WriteString(" = if ")
 	TranspileExpression(out, check)
 	out.WriteString(" { Box::new(GoFormatNil) } else { ")
-	writeVariadicPackedElementValue(out, arg, nil, nil, true)
+	if !writeLocalInterfaceDynamicValueBox(out, arg) {
+		writeVariadicPackedElementValue(out, arg, nil, nil, true)
+	}
 	out.WriteString(" }; __go_format_arg }")
 	return true
 }

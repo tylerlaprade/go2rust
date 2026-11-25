@@ -1,0 +1,23 @@
+main.Rect   14.000 {3 4}
+main.Circle    6.283 Circle(1.0)
+total=15.14
+Rex barks | Rex makes a sound
+Max lab
+lookup failed: not found: z true z
+0 3 6
+integer 42
+string "hi"
+slice of 1
+nil
+stringer Circle(2.0)
+other float64
+A B C/D C/D F 
+["a" "b" "" "c"] 4
+a|b||c ababab HÉLLO
+0 strconv.Atoi: parsing "12x": invalid syntax
+Max barks Max makes a sound
+4 1024 240 -3 -1
+to stderr
+Hello [101 108]
+0:h 1:é 3:y 
+   42|42   |00042|ff|FF|10|101|1.234568e+03|1.2e-05|    3.14|{W:1 H:2}
