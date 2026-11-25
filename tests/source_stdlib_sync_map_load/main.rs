@@ -108,7 +108,7 @@ fn main() {
     ::sync_atomic::__go_init_all();
 
     let mut m: Arc<Mutex<Option<sync::hashtriemap::Map>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*m.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new("value".to_string()) as Box<dyn Any + Send + Sync>))));
-    let (mut value, mut ok) = (*m.lock().unwrap().as_ref().unwrap()).load(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))));
+    { let __sync_value = (*m.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.store(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new("value".to_string()) as Box<dyn Any + Send + Sync>))));
+    let (mut value, mut ok) = { let __sync_value = (*m.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.load(Arc::new(Mutex::new(Some(Box::new("key".to_string()) as Box<dyn Any + Send + Sync>))));
     println!("{} {}", format!("{}", { let __text = match value.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", ok));
 }

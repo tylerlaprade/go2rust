@@ -4287,6 +4287,14 @@ run_xfail_test() {
     run_test "tests/switch_strings"
 }
 
+@test "sync_map_methods" {
+    run_test "tests/sync_map_methods"
+}
+
+@test "sync_map_methods_goroutines" {
+    run_test "tests/sync_map_methods_goroutines"
+}
+
 @test "sync_once" {
     run_test "tests/sync_once"
 }
