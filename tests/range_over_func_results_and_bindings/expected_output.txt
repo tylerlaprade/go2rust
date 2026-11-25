@@ -5,3 +5,7 @@ a1 <nil>
 7
 1 [0 9]
 stopped at 0
+z true 0 0
+pointers 1
+1 true w
+1 true 2 true

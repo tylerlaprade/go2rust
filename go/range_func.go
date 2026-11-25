@@ -112,7 +112,13 @@ func (r *rangeFuncRewrite) fieldList(tuple *types.Tuple) *ast.FieldList {
 func (r *rangeFuncRewrite) typeSyntax(t types.Type) ast.Expr {
 	switch tt := t.(type) {
 	case *types.Basic:
-		return r.typeName(types.Universe.Lookup(tt.Name()), t)
+		obj := types.Universe.Lookup(tt.Name())
+		if tt.Kind() == types.UnsafePointer {
+			obj = types.Unsafe.Scope().Lookup("Pointer")
+		}
+		if obj != nil {
+			return r.typeName(obj, t)
+		}
 	case *types.Alias:
 		return r.typeName(tt.Obj(), t)
 	case *types.TypeParam:
@@ -477,11 +483,33 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 		params.List = append(params.List, &ast.Field{Names: []*ast.Ident{name}, Type: r.typeExpr(paramType)})
 	}
 	var bindings []ast.Stmt
+	var copyBacks []ast.Stmt
 	if len(lhs) > 0 && s.Tok == token.DEFINE {
 		bindings = append(bindings, &ast.AssignStmt{Lhs: lhs, TokPos: s.For, Tok: token.DEFINE, Rhs: rhs})
 	} else {
 		for i := range lhs {
 			bindings = append(bindings, r.assign(lhs[i], rhs[i], s.For))
+			// A pointer or channel variable is its handle, and the yield
+			// function assigns only its own copy of it. The value bound
+			// last goes through a [1]T, whose element the yield function
+			// writes, to the variable once seq is back.
+			ident, ok := lhs[i].(*ast.Ident)
+			if !ok {
+				continue
+			}
+			targetType := typeInfo.GetType(ident)
+			switch types.Unalias(targetType).Underlying().(type) {
+			case *types.Pointer, *types.Chan:
+			default:
+				continue
+			}
+			v, decl := r.newVar("__rf_bound_"+r.suffix+"_"+itoaRangeFunc(i), types.NewArray(targetType, 1))
+			prelude = append(prelude, decl, r.assign(r.resultSlot(v), ident, s.For))
+			bindings = append(bindings, r.assign(r.resultSlot(v), rhs[i], s.For))
+			target := &ast.Ident{NamePos: ident.Pos(), Name: ident.Name}
+			typeInfo.info.Uses[target] = typeInfo.info.Uses[ident]
+			typeInfo.info.Types[target] = types.TypeAndValue{Type: targetType}
+			copyBacks = append(copyBacks, r.assign(target, r.resultSlot(v), s.End()))
 		}
 	}
 	body := r.rewriteStmt(s.Body, false, false).(*ast.BlockStmt)
@@ -496,6 +524,7 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 		prelude = append(prelude, nextDecl)
 	}
 	stmts := append(prelude, &ast.ExprStmt{X: call})
+	stmts = append(stmts, copyBacks...)
 	var after []ast.Stmt
 	if r.hasResults {
 		results := make([]ast.Expr, len(r.results))
