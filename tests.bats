@@ -3299,6 +3299,14 @@ run_xfail_test() {
     run_test "tests/range_string_method_argument"
 }
 
+@test "range_string_range_variable" {
+    run_test "tests/range_string_range_variable"
+}
+
+@test "range_string_range_variable_goroutines" {
+    run_test "tests/range_string_range_variable_goroutines"
+}
+
 @test "range_string_rune_call_switch" {
     run_test "tests/range_string_rune_call_switch"
 }
