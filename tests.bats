@@ -587,6 +587,14 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_slice_shares_elements" {
+    run_test "tests/array_slice_shares_elements"
+}
+
+@test "array_slice_shares_elements_goroutines" {
+    run_test "tests/array_slice_shares_elements_goroutines"
+}
+
 @test "arrays_basic" {
     run_test "tests/arrays_basic"
 }
