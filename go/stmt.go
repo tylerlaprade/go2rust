@@ -4929,6 +4929,19 @@ func writeWrappedCollectionCopyFromIdent(out *strings.Builder, ident *ast.Ident,
 		out.WriteString(".clone()")
 		return true
 	}
+	if _, isSlice := types.Unalias(typ).Underlying().(*types.Slice); isSlice && !isCurrentReceiverIdent(ident) {
+		// The new cell holds a copy of s's Option, so a nil s gives a nil
+		// t instead of unwrapping a None (DEV-182).
+		name := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			name = RustLocalIdent(renamed)
+		}
+		out.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(")
+		out.WriteString(name)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone()))")
+		return true
+	}
 	WriteWrapperPrefix(out)
 	writeIdentValueClone(out, ident)
 	WriteWrapperSuffix(out)
@@ -11088,6 +11101,13 @@ func stableStatementPosID(pos token.Pos) int {
 		if position.IsValid() {
 			return position.Offset
 		}
+	}
+	// The statement is not in the file set at hand. Its raw position counts
+	// every file loaded before it, the Go toolchain's own sources among them,
+	// so it changes with the Go version. Count from the function body
+	// instead, which comes from the same file set.
+	if currentFunctionBody != nil && currentFunctionBody.Pos().IsValid() && pos >= currentFunctionBody.Pos() {
+		return int(pos - currentFunctionBody.Pos())
 	}
 	return int(pos)
 }

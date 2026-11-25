@@ -951,7 +951,7 @@ impl Display for ExprList {
 
 
 pub fn pad_exprs(elts: Arc<Mutex<Option<Vec<ast_Expr>>>>, length: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Vec<ast_Expr>>>> {
-    let mut values = Arc::new(Mutex::new(Some(({ let __v = (*elts.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let mut values = Arc::new(Mutex::new(elts.lock().unwrap().clone()));
     while { let __tmp_x = (({ let __len = (*values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64); __tmp_x < __tmp_y } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = values.clone(); let __append_value = Default::default(); let mut __appended: Vec<ast_Expr> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *values.lock().unwrap() = __slice_header; };
     }

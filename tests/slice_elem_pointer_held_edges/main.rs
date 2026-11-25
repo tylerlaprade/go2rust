@@ -1282,7 +1282,7 @@ fn main() {
     println!("{} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __left_addr = { let __ptr = (*ptrs.borrow().as_ref().unwrap())[(0) as usize].clone(); __ptr.addr() }; let __right_addr = { let __ptr = (*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone(); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq }));
 
         // Alias of a slice.
-    let mut alias: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(Some((*src.borrow().as_ref().unwrap()).clone())));
+    let mut alias: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(src.borrow().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = alias.clone(); let __append_value = GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), (2) as usize)); let mut __appended: Vec<GoPtr<Item>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *alias.borrow_mut() = __slice_header; };
     println!("{} {}", format!("{}", (*alias.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*(*(*alias.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

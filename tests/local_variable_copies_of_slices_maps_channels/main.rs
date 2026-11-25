@@ -965,12 +965,12 @@ pub fn sum(xs: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
 fn main() {
         // Appending to the copy of a slice leaves the original's length alone.
     let mut prev = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
-    let mut next = Arc::new(Mutex::new(Some(({ let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let mut next = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = next.clone(); let __append_value = 3; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *next.lock().unwrap() = __slice_header; };
     println!("{} {} {}", format!("{}", format_slice(&prev)), format!("{}", format_slice(&next)), format!("{}", sum(next.clone())));
 
-    let mut a = Arc::new(Mutex::new(Some(({ let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
-    let mut b: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(Some(({ let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let mut a = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
+    let mut b: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = a.clone(); let __append_value = 4; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *a.lock().unwrap() = __slice_header; };
     println!("{} {} {} {}", format!("{}", ({ let __len = (*prev.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = (*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
 
@@ -980,7 +980,7 @@ fn main() {
     let mut queue = Arc::new(Mutex::new(Some(vec![1i64])));
     let mut level = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = (({ let __len = (*queue.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        let mut cur = Arc::new(Mutex::new(Some(({ let __v = (*queue.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+        let mut cur = Arc::new(Mutex::new(queue.lock().unwrap().clone()));
         { let __slice_header = None; *queue.lock().unwrap() = __slice_header; };
         println!("{} {}", format!("{}", { let __v = (*level.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&cur)));
         { let __range_holder = cur.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for n in __range_values.iter().copied() {
@@ -1003,7 +1003,7 @@ fn main() {
 
         // Named slice and map types.
     let mut n = Arc::new(Mutex::new(Some(Numbers(Arc::new(Mutex::new(Some(vec![4i64, 5i64])))))));
-    let mut n2 = Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let mut n2 = Arc::new(Mutex::new(n.lock().unwrap().clone()));
     { let new_val = { let __base = { let __named_slice = (*n2.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.push(6); Arc::new(Mutex::new(Some(Numbers(Arc::new(Mutex::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n2.lock().unwrap() = __moved_val; };
     println!("{} {} {}", format!("{}", { let __slice_holder = { let __named_slice = (*n.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = (*n2.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __seq_holder = { let __named_slice = (*n2.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_index = (2) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }));
     let mut tab = Arc::new(Mutex::new(Some(Table(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))))));
@@ -1013,7 +1013,7 @@ fn main() {
 
         // A slice of structs: the copy reaches the same structs.
     let mut ps = Arc::new(Mutex::new(Some(vec![Point { x: Arc::new(Mutex::new(Some(1))), ..Default::default() }, Point { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }])));
-    let mut qs = Arc::new(Mutex::new(Some(({ let __v = (*ps.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+    let mut qs = Arc::new(Mutex::new(ps.lock().unwrap().clone()));
     { let new_val = 22; *{ let __seq = { let __seq_holder = qs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*{ let __seq = { let __seq_holder = ps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
