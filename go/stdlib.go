@@ -857,6 +857,11 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					// The field's cell, which format_map takes; reading the
 					// field gives the map inside it.
 					TranspileExpressionContext(out, arg, LValue)
+				} else if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.ARROW && isExpressionResultBare(arg) {
+					// A received map is bare: give format_map a handle.
+					WriteWrapperPrefix(out)
+					TranspileExpression(out, arg)
+					WriteWrapperSuffix(out)
 				} else {
 					TranspileExpression(out, arg)
 				}

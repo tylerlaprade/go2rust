@@ -11428,6 +11428,26 @@ func isPredeclaredBoolConstant(ident *ast.Ident) bool {
 
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
+// channelOfBareCollections reports whether ch's elements are unnamed slices
+// or maps, which it holds bare.
+func channelOfBareCollections(ch ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	chanType, ok := types.Unalias(typeInfo.GetType(ch)).Underlying().(*types.Chan)
+	if !ok {
+		return false
+	}
+	switch t := types.Unalias(chanType.Elem()).(type) {
+	case *types.Slice:
+		return !isEmptyInterfaceType(t.Elem())
+	case *types.Map:
+		return true
+	}
+	return false
+}
+
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	// For string literals, just output the value directly
 	if lit, ok := expr.(*ast.BasicLit); ok {
@@ -11550,6 +11570,17 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	// An element of a slice or an array, and the target of a pointer, is
 	// copied when it is sent.
 	if writeGoValueCopyOfElement(out, expr) {
+		return
+	}
+
+	// A channel holds its slices and maps bare: ch <- []int{1, 2} and
+	// ch <- s[1:] send the collection out of its new handle.
+	if channelElemIsBareCollection(expr) && !isExpressionResultBare(expr) {
+		out.WriteString("{ let __sent = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; let __sent_guard = __sent")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __sent_guard.as_ref().cloned().unwrap_or_default() }")
 		return
 	}
 
@@ -12527,7 +12558,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(".send(")
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
-		if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		if ident, ok := s.Value.(*ast.Ident); ok && ident.Name == "nil" && channelOfBareCollections(s.Chan) {
+			// The channel holds its slices and maps bare, and a bare one
+			// cannot be nil: an empty one is sent.
+			out.WriteString("Default::default()")
+		} else if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
 		} else if writeChannelHandleCopy(out, s.Value, nil) {
 		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
