@@ -83,12 +83,20 @@ func rewritePointerSlots(path string, files []*ast.File, fset *token.FileSet, in
 		info:    ti.info,
 		pkg:     ti.pkg,
 		slots:   map[string]*pointerSlot{},
-		byType:  map[string]*pointerSlot{},
 		actions: map[ast.Node]pointerSlotAction{},
 
 		slotVars:      map[*types.Var]bool{},
 		keptAddrVars:  map[*types.Var]bool{},
 		unboxableVars: map[*types.Var]bool{},
+		sourceNames:   map[string]bool{},
+	}
+	for _, file := range copies {
+		ast.Inspect(file, func(n ast.Node) bool {
+			if id, ok := n.(*ast.Ident); ok {
+				r.sourceNames[id.Name] = true
+			}
+			return true
+		})
 	}
 	for _, file := range copies {
 		r.analyze(file)
@@ -96,6 +104,12 @@ func rewritePointerSlots(path string, files []*ast.File, fset *token.FileSet, in
 			pointerSlotDebugf("%s: %v", path, r.err)
 			return nil, false
 		}
+	}
+	// A method of the package can satisfy an interface of another package,
+	// which keeps its **T: the rewritten method would no longer match it.
+	if name, ok := r.slottedMethodOfImportedInterface(copies); ok {
+		pointerSlotDebugf("%s: the method %s may implement an interface of another package", path, name)
+		return nil, false
 	}
 	// A slot's set function assigns a local variable from a closure, which
 	// reaches the variable only once boxCapturedReboundVariables gives it
@@ -244,8 +258,6 @@ const (
 	slotActionNil
 	// new(*T).
 	slotActionNew
-	// &*pp, which is pp.
-	slotActionAddrDeref
 	// A node a parent action rewrites.
 	slotActionSkip
 )
@@ -269,7 +281,6 @@ type pointerSlotRewriter struct {
 	info    *types.Info
 	pkg     *types.Package
 	slots   map[string]*pointerSlot
-	byType  map[string]*pointerSlot
 	actions map[ast.Node]pointerSlotAction
 	err     error
 	stack   []ast.Node
@@ -282,6 +293,9 @@ type pointerSlotRewriter struct {
 	slotVars      map[*types.Var]bool
 	keptAddrVars  map[*types.Var]bool
 	unboxableVars map[*types.Var]bool
+	// sourceNames are the identifiers of the package, which the names of
+	// the rewrite's own variables must not shadow.
+	sourceNames map[string]bool
 }
 
 func (r *pointerSlotRewriter) fail(format string, args ...any) {
@@ -291,10 +305,12 @@ func (r *pointerSlotRewriter) fail(format string, args ...any) {
 }
 
 func (r *pointerSlotRewriter) slotFor(held types.Type) *pointerSlot {
-	key := types.TypeString(held, nil)
-	if slot := r.byType[key]; slot != nil {
-		return slot
+	for _, slot := range r.slots {
+		if types.Identical(slot.held, held) {
+			return slot
+		}
 	}
+	key := types.TypeString(held, nil)
 	if _, ok := r.typeExpr(held); !ok {
 		r.fail("the slot of %s cannot name its type", key)
 		return nil
@@ -306,7 +322,6 @@ func (r *pointerSlotRewriter) slotFor(held types.Type) *pointerSlot {
 	}
 	slot := &pointerSlot{name: name, held: held}
 	r.slots[name] = slot
-	r.byType[key] = slot
 	return slot
 }
 
@@ -637,6 +652,11 @@ func (r *pointerSlotRewriter) analyzeSlotSource(e ast.Expr, slot *pointerSlot) {
 			} else if sel.Kind() != types.FieldVal {
 				r.fail("& of a method")
 				return
+			} else if r.selectionThroughEmbeddedPointer(sel) {
+				// &o.P for a P promoted through an embedded *Inner points at
+				// the Inner o has now; the slot would follow o.Inner.
+				r.fail("& of a field promoted through an embedded pointer")
+				return
 			}
 			if r.isPointerReceiver(x.X) {
 				// A method's pointer receiver is the struct, not its handle,
@@ -677,14 +697,16 @@ func (r *pointerSlotRewriter) analyzeSlotSource(e ast.Expr, slot *pointerSlot) {
 				return
 			}
 			indexType := r.typeOf(x.Index)
-			if b, ok := indexType.(*types.Basic); !ok || b.Info()&types.IsUntyped != 0 {
+			if b, ok := indexType.(*types.Basic); ok && b.Info()&types.IsUntyped != 0 {
 				indexType = types.Typ[types.Int]
+			} else if _, ok := r.typeExpr(indexType); !ok {
+				r.fail("an index of type %s", indexType)
+				return
 			}
 			r.actions[e] = pointerSlotAction{kind: slotActionAddrIndex, slot: slot, indexedType: paramType, indexType: indexType}
 		case *ast.StarExpr:
-			// &*pp is pp.
-			r.actions[e] = pointerSlotAction{kind: slotActionAddrDeref}
-			r.actions[x] = pointerSlotAction{kind: slotActionSkip}
+			// &*pp panics when pp is nil, which pp itself does not.
+			r.fail("&*pp")
 		default:
 			r.fail("& of %T", x)
 		}
@@ -695,6 +717,81 @@ func (r *pointerSlotRewriter) analyzeSlotSource(e ast.Expr, slot *pointerSlot) {
 			}
 		}
 	}
+}
+
+// slottedMethodOfImportedInterface returns a method whose signature has a
+// **T and whose name is the name of an exported method of an interface
+// declared in a package the package imports, directly or not.
+func (r *pointerSlotRewriter) slottedMethodOfImportedInterface(files []*ast.File) (string, bool) {
+	slotted := map[string]bool{}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if ok && fn.Recv != nil && ast.IsExported(fn.Name.Name) && r.subtreeHasSlotType(fn.Type) {
+				slotted[fn.Name.Name] = true
+			}
+		}
+	}
+	if len(slotted) == 0 {
+		return "", false
+	}
+	seen := map[*types.Package]bool{}
+	var found string
+	var visit func(p *types.Package)
+	visit = func(p *types.Package) {
+		if p == nil || seen[p] || found != "" {
+			return
+		}
+		seen[p] = true
+		scope := p.Scope()
+		for _, name := range scope.Names() {
+			tn, ok := scope.Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			iface, ok := tn.Type().Underlying().(*types.Interface)
+			if !ok {
+				continue
+			}
+			for i := 0; i < iface.NumMethods(); i++ {
+				if slotted[iface.Method(i).Name()] {
+					found = iface.Method(i).Name()
+					return
+				}
+			}
+		}
+		for _, imp := range p.Imports() {
+			visit(imp)
+		}
+	}
+	for _, imp := range r.pkg.Imports() {
+		visit(imp)
+	}
+	return found, found != ""
+}
+
+// selectionThroughEmbeddedPointer reports whether sel reaches its field
+// through an embedded field of pointer type.
+func (r *pointerSlotRewriter) selectionThroughEmbeddedPointer(sel *types.Selection) bool {
+	index := sel.Index()
+	if len(index) < 2 {
+		return false
+	}
+	t := sel.Recv()
+	for _, i := range index[:len(index)-1] {
+		if ptr, ok := t.Underlying().(*types.Pointer); ok {
+			t = ptr.Elem()
+		}
+		st, ok := t.Underlying().(*types.Struct)
+		if !ok || i >= st.NumFields() {
+			return true
+		}
+		t = st.Field(i).Type()
+		if _, ok := t.Underlying().(*types.Pointer); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // isPointerReceiver reports whether e is the pointer receiver of the
@@ -939,8 +1036,13 @@ func (r *pointerSlotRewriter) apply(file *ast.File) {
 }
 
 func (r *pointerSlotRewriter) tempName(base string) string {
-	r.nextVar++
-	return "__slot_" + base + strconv.Itoa(r.nextVar)
+	for {
+		r.nextVar++
+		name := "__slot_" + base + strconv.Itoa(r.nextVar)
+		if !r.sourceNames[name] {
+			return name
+		}
+	}
 }
 
 func (r *pointerSlotRewriter) rewriteNode(n ast.Node, action pointerSlotAction) ast.Node {
@@ -971,8 +1073,6 @@ func (r *pointerSlotRewriter) rewriteNode(n ast.Node, action pointerSlotAction) 
 			side = bin.Y
 		}
 		return &ast.BinaryExpr{X: &ast.SelectorExpr{X: side, Sel: ast.NewIdent(pointerSlotGet)}, Op: bin.Op, Y: ast.NewIdent("nil")}
-	case slotActionAddrDeref:
-		return ast.Unparen(n.(*ast.UnaryExpr).X).(*ast.StarExpr).X
 	case slotActionAddrVar:
 		x := ast.Unparen(n.(*ast.UnaryExpr).X)
 		return r.slotLiteral(slot, func() ast.Expr { return x }, func() ast.Expr { return x })

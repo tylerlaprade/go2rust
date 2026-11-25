@@ -129,6 +129,13 @@ func main() {
 	links := []*LNode{nil, nil}
 	push(&links[1], 6)
 	fmt.Println(links[0] == nil, links[1].v)
+	// The slot of &links[0] keeps the element it was taken from, after
+	// links is given another slice.
+	first := &links[0]
+	old := links
+	links = []*LNode{{v: 2}, nil}
+	push(first, 5)
+	fmt.Println(old[0].v, links[0].v)
 
 	h := Holder{slot: &head}
 	push(h.slot, 3)

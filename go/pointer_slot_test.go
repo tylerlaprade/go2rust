@@ -110,6 +110,43 @@ func main() {
 	fmt.Printf("%T\n", &p)
 }
 `,
+		"&*pp, which panics for a nil pp": `package main
+
+func same(pp **int) **int { return &*pp }
+
+func main() {
+	var p *int
+	_ = same(&p)
+}
+`,
+		"a field promoted through an embedded pointer": `package main
+
+type Inner struct{ P *int }
+
+type Outer struct{ *Inner }
+
+func set(pp **int, v *int) { *pp = v }
+
+func main() {
+	o := Outer{&Inner{}}
+	v := 1
+	set(&o.P, &v)
+}
+`,
+		"a method another package's interface may name": `package main
+
+import "flag"
+
+type S struct{}
+
+func (S) Set(pp **int) error { return nil }
+
+func main() {
+	var p *int
+	_ = S{}.Set(&p)
+	_ = flag.Parse
+}
+`,
 		"only an address converted to an interface": `package main
 
 import "fmt"
@@ -151,5 +188,30 @@ func main() {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
+	}
+}
+
+func TestPointerSlotsKeepTheIndexTypeAndAvoidSourceNames(t *testing.T) {
+	out, ok := rewritePointerSlotsSource(t, `package main
+
+type Index int
+
+func set(pp **int, v *int) { *pp = v }
+
+func main() {
+	__slot_v3 := 7
+	links := make([]*int, 2)
+	var i Index = 1
+	set(&links[i], &__slot_v3)
+}
+`)
+	if !ok {
+		t.Fatal("the rewrite kept the file")
+	}
+	if !strings.Contains(out, "Index) __ptrSlot_int") {
+		t.Errorf("the index parameter does not keep its type:\n%s", out)
+	}
+	if strings.Count(out, "__slot_v3") != 2 {
+		t.Errorf("a generated name shadows the program's __slot_v3:\n%s", out)
 	}
 }
