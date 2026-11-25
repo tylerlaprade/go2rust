@@ -1135,6 +1135,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Event: std::fmt::Display + Any {
     fn __go_clone_box_event(&self) -> Box<dyn Event + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_event(&self, other: &(dyn Event + Send + Sync)) -> bool;
     fn kind(&self) -> Arc<Mutex<Option<String>>>;
 }
@@ -1314,6 +1315,10 @@ impl Event for ClickPtr {
     fn __go_as_any(&self) -> &dyn Any {
         self
     }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
+    }
     fn __go_eq_event(&self, other: &(dyn Event + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<ClickPtr>() {
             Arc::ptr_eq(&self.0, &__other.0)
@@ -1369,6 +1374,10 @@ impl Event for KeyPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_event(&self, other: &(dyn Event + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<KeyPtr>() {

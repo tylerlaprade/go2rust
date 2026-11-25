@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Speaker: std::fmt::Display + Any {
     fn __go_clone_box_speaker(&self) -> Box<dyn Speaker>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_speaker(&self, other: &dyn Speaker) -> bool;
     fn speak(&self) -> i64;
 }

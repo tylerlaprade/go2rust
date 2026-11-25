@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_reader(&self, other: &dyn Reader) -> bool;
     fn read(&self) -> i64;
 }

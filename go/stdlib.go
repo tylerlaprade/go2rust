@@ -719,9 +719,21 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			} else {
 				// It's a named interface - use Display formatting
 				// Check if it's a bare interface param (&dyn Trait) - use directly
+				// A value held in one of the program's interfaces prints
+				// through `__go_print`, which prints a *T as Go does.
+				ifacePrint := func(recv string) string {
+					if call, ok := goPrintCall(argType, recv+".as_ref()", recv+".as_ref()", printArgPlusV); ok {
+						return call
+					}
+					return "format!(\"{}\", " + recv + ")"
+				}
 				if ident, ok := arg.(*ast.Ident); ok && isVarBare(ident.Name) && !rangeVarHoldsWrappedCell(ident) {
 					// Interface parameter is already &dyn Trait with Display supertrait
-					out.WriteString(RustIdentForUse(ident))
+					if call, ok := goPrintCall(argType, RustIdentForUse(ident), RustIdentForUse(ident), printArgPlusV); ok {
+						out.WriteString(call)
+					} else {
+						out.WriteString(RustIdentForUse(ident))
+					}
 				} else {
 					// This will use the Display impl of the concrete type.
 					// A variable or field holding a nil interface value
@@ -730,29 +742,35 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 						out.WriteString("match ")
 						out.WriteString(RustIdentForUse(ident))
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						out.WriteString(".as_ref() { Some(__iface) => " + ifacePrint("__iface") + ", None => \"<nil>\".to_string() }")
 						return
 					}
 					if _, ok := arg.(*ast.SelectorExpr); ok {
 						out.WriteString("match ")
 						TranspileExpressionContext(out, arg, LValue)
 						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref() { Some(__iface) => format!(\"{}\", __iface), None => \"<nil>\".to_string() }")
+						out.WriteString(".as_ref() { Some(__iface) => " + ifacePrint("__iface") + ", None => \"<nil>\".to_string() }")
 						return
 					}
-					out.WriteString("format!(\"{}\", ")
 					if assertion, ok := arg.(*ast.TypeAssertExpr); ok && isFmtStringerAssertion(assertion) {
 						// x.(fmt.Stringer) yields the bare fmt_Stringer.
-						TranspileExpression(out, arg)
-					} else {
-						// Complex expression
-						out.WriteString("(*(")
+						out.WriteString("format!(\"{}\", ")
 						TranspileExpression(out, arg)
 						out.WriteString(")")
-						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())")
+					} else {
+						// Complex expression
+						var recv strings.Builder
+						recv.WriteString("(*(")
+						TranspileExpression(&recv, arg)
+						recv.WriteString(")")
+						WriteBorrowMethod(&recv, false)
+						recv.WriteString(".as_ref().unwrap())")
+						if call, ok := goPrintCall(argType, recv.String(), recv.String()+".as_ref()", printArgPlusV); ok {
+							out.WriteString(call)
+						} else {
+							out.WriteString("format!(\"{}\", " + recv.String() + ")")
+						}
 					}
-					out.WriteString(")")
 				}
 			}
 			return
