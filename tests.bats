@@ -154,10 +154,11 @@ report_fixture_timeout() {
 # Helper function that handles transpilation, Rust compilation, and output comparison
 # Takes test_dir and go_output as parameters
 # fixture_stdin is the input a fixture's program reads: its stdin.txt, or
-# nothing.
+# nothing. The path is absolute, since the programs run in the fixture's
+# directory.
 fixture_stdin() {
     if [[ -f "$1/stdin.txt" ]]; then
-        echo "$1/stdin.txt"
+        echo "$(cd "$1" && pwd)/stdin.txt"
     else
         echo /dev/null
     fi
@@ -268,7 +269,9 @@ run_transpile_and_compare() {
     local rust_exit_code
     note_fixture_phase "cargo run"
     : > "$cargo_output_file"
-    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1 < "$(fixture_stdin "$test_dir")"); then
+    local stdin_file
+    stdin_file=$(fixture_stdin "$test_dir")
+    if (cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet >"$cargo_output_file" 2>&1 < "$stdin_file"); then
         rust_exit_code=0
     else
         rust_exit_code=$?
