@@ -1060,9 +1060,9 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            mu_thread.lock();;
+            let __mutex_guard_source_875 = mu_thread.clone(); let __mutex_guard_875 = __mutex_guard_source_875.guard();;
             { let __map_key = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __map_value = Arc::new(Mutex::new(Some([({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), { let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }]))); (*squares_thread.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_875);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
