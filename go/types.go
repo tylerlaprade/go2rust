@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -703,19 +704,53 @@ func getStructSignature(structType *ast.StructType) string {
 		if nestedStruct, ok := field.Type.(*ast.StructType); ok {
 			// For nested anonymous structs, include their full signature
 			sig.WriteString(getStructSignature(nestedStruct))
+		} else if typ := anonymousStructFieldType(field.Type); typ != nil {
+			// The field's type, so that struct{ v *Node } and
+			// struct{ v *int } are two Rust structs. The kind of syntax
+			// node alone, *ast.StarExpr for both, made them one.
+			sig.WriteString(types.TypeString(typ, nil))
 		} else {
-			// For other types, just use the type string representation
-			sig.WriteString(fmt.Sprintf("%T", field.Type))
+			sig.WriteString(types.ExprString(field.Type))
 		}
 	}
 	sig.WriteString("}")
 	return sig.String()
 }
 
+// anonymousStructGoTypes holds the Go type of each registered anonymous
+// struct's syntax, so that two spellings of one type, such as
+// struct{ f func(a int) } and struct{ f func(b int) }, are one Rust struct.
+// It is keyed by syntax node: anonymousStructs, which names the nodes, is
+// the current package's.
+var anonymousStructGoTypes = map[*ast.StructType]types.Type{}
+
+// anonymousStructNameForGoType is the current package's anonymous struct of
+// a type identical to typ, in the order the structs were named.
+func anonymousStructNameForGoType(typ types.Type) string {
+	if typ == nil {
+		return ""
+	}
+	best := ""
+	for name, node := range anonymousStructs {
+		registered, ok := anonymousStructGoTypes[node]
+		if !ok || !types.Identical(typ, registered) {
+			continue
+		}
+		if best == "" || len(name) < len(best) || (len(name) == len(best) && name < best) {
+			best = name
+		}
+	}
+	return best
+}
+
 // generateAnonymousStructType generates a unique type name for an anonymous struct
 func generateAnonymousStructType(structType *ast.StructType) string {
 	// Check if we've already generated a type for this struct signature
 	sig := getStructSignature(structType)
+	goType := anonymousStructFieldType(structType)
+	if typeName := anonymousStructNameForGoType(goType); typeName != "" {
+		anonymousStructTypeMap[sig] = typeName
+	}
 	if typeName, exists := anonymousStructTypeMap[sig]; exists {
 		if _, registered := structDefs[typeName]; !registered {
 			registerStructDef(typeName, structType)
@@ -736,6 +771,9 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	typeName := fmt.Sprintf("AnonymousStruct%d", anonymousStructCounter)
 	anonymousStructs[typeName] = structType
 	anonymousStructTypeMap[sig] = typeName
+	if goType != nil {
+		anonymousStructGoTypes[structType] = goType
+	}
 	if anonymousStructModuleNames == nil {
 		anonymousStructModuleNames = make(map[string]string)
 	}
@@ -755,11 +793,39 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	return typeName
 }
 
-// lookupAnonymousStructName finds the anonymous struct name for a *types.Struct
-// by matching field names against registered anonymous structs.
+func anonymousStructFieldType(expr ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	return typeInfo.GetType(expr)
+}
+
+// lookupAnonymousStructName finds the anonymous struct name for a *types.Struct:
+// the registered anonymous struct of the identical type, or else the first,
+// by name, whose field names match.
 func lookupAnonymousStructName(structType *types.Struct) string {
+	names := make([]string, 0, len(anonymousStructs))
+	for anonName := range anonymousStructs {
+		names = append(names, anonName)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		if len(names[i]) != len(names[j]) {
+			return len(names[i]) < len(names[j])
+		}
+		return names[i] < names[j]
+	})
+	if anonName := anonymousStructNameForGoType(structType); anonName != "" {
+		return anonName
+	}
+	for _, anonName := range names {
+		if typ := anonymousStructFieldType(anonymousStructs[anonName]); typ != nil && types.Identical(typ, structType) {
+			return anonName
+		}
+	}
 	numFields := structType.NumFields()
-	for anonName, anonAST := range anonymousStructs {
+	for _, anonName := range names {
+		anonAST := anonymousStructs[anonName]
 		// Count AST fields (expand grouped names)
 		astFieldCount := 0
 		for _, field := range anonAST.Fields.List {
@@ -855,6 +921,15 @@ func GoTypeToRust(expr ast.Expr) string {
 	// Channel types are not wrapped - GoChannel is already a shared, cloneable type
 	if _, isChan := expr.(*ast.ChanType); isChan {
 		return baseType
+	}
+	// Nor is an alias of one from another package, producer.Stream for
+	// type Stream = <-chan int, which a local alias's IsTypeAlias covers.
+	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
+		if _, isAlias := typ.(*types.Alias); isAlias {
+			if _, isChan := types.Unalias(typ).(*types.Chan); isChan {
+				return baseType
+			}
+		}
 	}
 
 	// Bare sync helper types handle synchronization internally. Other sync
