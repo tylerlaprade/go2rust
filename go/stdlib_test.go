@@ -1535,7 +1535,10 @@ func fill(dst []byte, src []byte) int {
 		strings.Contains(rust, "src.lock().unwrap().as_ref().unwrap()).clone()") {
 		t.Fatalf("copy source should not unwrap nil slices:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__copy_src_guard.as_ref().cloned().unwrap_or_default()") {
+	// With GoSlice the source's values are taken before the copy stores any,
+	// as memmove does; a nil source is empty either way.
+	if !strings.Contains(rust, "__copy_src_guard.as_ref().cloned().unwrap_or_default()") &&
+		!strings.Contains(rust, "__copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default()") {
 		t.Fatalf("copy source should clone-or-default nil slices:\n%s", rust)
 	}
 }

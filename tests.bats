@@ -1007,6 +1007,14 @@ run_xfail_test() {
     run_test "tests/copy_into_wrapped_slice_field"
 }
 
+@test "copy_overlapping_slices" {
+    run_test "tests/copy_overlapping_slices"
+}
+
+@test "copy_overlapping_slices_goroutines" {
+    run_test "tests/copy_overlapping_slices_goroutines"
+}
+
 @test "cross_file_calls_into_main_file" {
     run_test "tests/cross_file_calls_into_main_file"
 }

@@ -789,7 +789,7 @@ fn main() {
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0i64; (3) as usize])));
     let mut n = {
-        let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min((*s3.borrow().as_ref().unwrap()).len(), _src.len());
         for _i in 0.._n {
             (*s3.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
