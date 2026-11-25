@@ -17677,6 +17677,11 @@ func writeMethodValueReceiverSnapshot(out *strings.Builder, expr ast.Expr) {
 		TranspileExpression(out, expr)
 		return
 	}
+	// Rect{2, 5}.Area binds a new value, which has no cell to read.
+	if lit, ok := unwrapParens(expr).(*ast.CompositeLit); ok {
+		TranspileExpression(out, lit)
+		return
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
@@ -25928,6 +25933,15 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	}
 	if ident, ok := arg.(*ast.Ident); ok && isChannelFieldType(expected) {
 		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) && writeOwnedRangeValue(out, ident) {
+			return
+		}
+	}
+	// A map, slice or array literal is its own cell, as in the argument
+	// loop of a call by name; a struct literal is wrapped below.
+	if lit, ok := arg.(*ast.CompositeLit); ok {
+		switch lit.Type.(type) {
+		case *ast.MapType, *ast.ArrayType:
+			TranspileExpression(out, arg)
 			return
 		}
 	}

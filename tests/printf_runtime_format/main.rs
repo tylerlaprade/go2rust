@@ -1076,6 +1076,7 @@ pub fn show_pair(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
 /// later formats inside a closure. The closure holds the format and the
 /// arguments, and the arguments are used again after it is made.
 pub fn later(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
+    let mut args = Arc::new(Mutex::new((*args.lock().unwrap()).clone()));
     let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.lock().unwrap().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>)));

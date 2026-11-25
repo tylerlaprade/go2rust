@@ -1012,6 +1012,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "container_heap_from_source" {
+    run_test "tests/container_heap_from_source"
+}
+
 @test "container_list_and_ring" {
     run_test "tests/container_list_and_ring"
 }
@@ -1580,6 +1584,10 @@ run_xfail_test() {
     run_test "tests/full_slice_expressions"
 }
 
+@test "func_field_call_literal_args" {
+    run_test "tests/func_field_call_literal_args"
+}
+
 @test "func_literal_keyword_params" {
     run_test "tests/func_literal_keyword_params"
 }
@@ -1886,6 +1894,10 @@ run_xfail_test() {
 
 @test "interface_embedding_two_interfaces_goroutines" {
     run_test "tests/interface_embedding_two_interfaces_goroutines"
+}
+
+@test "interface_embeds_fmt_stringer" {
+    run_test "tests/interface_embeds_fmt_stringer"
 }
 
 @test "interface_field_selector_assign" {
@@ -3164,6 +3176,18 @@ run_xfail_test() {
     run_test "tests/pointer_string_calls_helper"
 }
 
+@test "pointer_to_pointer_receiver_field" {
+    run_test "tests/pointer_to_pointer_receiver_field"
+}
+
+@test "pointer_to_pointer_slots" {
+    run_test "tests/pointer_to_pointer_slots"
+}
+
+@test "pointer_to_pointer_slots_goroutines" {
+    run_test "tests/pointer_to_pointer_slots_goroutines"
+}
+
 @test "pointers_basic" {
     run_test "tests/pointers_basic"
 }
@@ -3300,6 +3324,10 @@ run_xfail_test() {
     run_test "tests/printf_s_byte_slice"
 }
 
+@test "printf_verbs_and_literal_method_values" {
+    run_test "tests/printf_verbs_and_literal_method_values"
+}
+
 @test "printf_verbs_without_a_rust_equivalent" {
     run_test "tests/printf_verbs_without_a_rust_equivalent"
 }
@@ -3358,6 +3386,10 @@ run_xfail_test() {
 
 @test "range_bound_borrow_released_goroutines" {
     run_test "tests/range_bound_borrow_released_goroutines"
+}
+
+@test "range_copy_pointer_method_and_struct_type_name" {
+    run_test "tests/range_copy_pointer_method_and_struct_type_name"
 }
 
 @test "range_defined_float_call_argument" {
@@ -3958,6 +3990,10 @@ run_xfail_test() {
 
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
+}
+
+@test "sort_reverse_and_search_sorted" {
+    run_test "tests/sort_reverse_and_search_sorted"
 }
 
 @test "sort_slice" {

@@ -9,6 +9,7 @@ import (
 	"go/types"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 var currentReturnStatementIsTail bool
@@ -8512,7 +8513,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 // the loops that bind the variable to a reference to the element; without
 // it "p.X = 1" in the loop writes into the slice. The loops that bind an
 // owned value copy in writeRangeOwnedValuesAdapter.
-func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr) {
+func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr, body *ast.BlockStmt) {
 	ident, ok := value.(*ast.Ident)
 	if !ok || ident.Name == "_" {
 		return
@@ -8524,10 +8525,59 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 	name := RustLocalIdent(ident.Name)
 	out.WriteString("        let ")
 	out.WriteString(name)
-	out.WriteString(" = &")
+	if rangeBodyCallsPointerMethodOn(body, ident) {
+		// The copy is the loop's own: a pointer method called on it borrows
+		// it mutably, and changes only the copy.
+		out.WriteString(" = &mut ")
+	} else {
+		out.WriteString(" = &")
+	}
 	out.WriteString(name)
 	out.WriteString(copyCall)
 	out.WriteString(";\n")
+}
+
+// rangeBodyCallsPointerMethodOn reports whether body calls a method with a
+// pointer receiver on the range variable ident, as v.Scale(2) does.
+func rangeBodyCallsPointerMethodOn(body *ast.BlockStmt, ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Defs[ident]
+	if obj == nil {
+		obj = typeInfo.info.Uses[ident]
+	}
+	if obj == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		recv, ok := unwrapParens(sel.X).(*ast.Ident)
+		if !ok || typeInfo.info.Uses[recv] != obj {
+			return true
+		}
+		if selection := typeInfo.info.Selections[sel]; selection != nil && selection.Kind() == types.MethodVal {
+			if sig, ok := selection.Obj().Type().(*types.Signature); ok && sig.Recv() != nil {
+				if _, isPtr := types.Unalias(sig.Recv().Type()).(*types.Pointer); isPtr {
+					found = true
+				}
+			}
+		}
+		return true
+	})
+	return found
 }
 
 // writeMapRangeValueIterationCopy makes the value variable of a range over a
@@ -12844,6 +12894,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if !tailReturn {
 				out.WriteString(" ")
 			}
+			// A tail value whose Rust starts with a block, { let __seq_holder
+			// = ...; ... } < { ... } for h[i] < h[j] of a named slice, would
+			// be read by Rust as a block statement and then a stray <. The
+			// value is written aside and put in parentheses when more of the
+			// expression follows that block (tailValueNeedsParens). The aside
+			// builder starts with the current line, whose indentation the
+			// multiline writers read (currentLineIndent).
+			tailOut := out
+			var tailValue *strings.Builder
+			tailLinePrefix := ""
+			if tailReturn && len(s.Results) == 1 && !fnHasMultipleResultSlots(fnType) {
+				tailLinePrefix = currentLineText(out)
+				tailValue = &strings.Builder{}
+				tailValue.WriteString(tailLinePrefix)
+				out = tailValue
+			}
 			// Check if we need a tuple for multiple return values
 			needsTuple := len(s.Results) > 1
 			multilineReturnTuple := needsTuple && returnResultsShouldUseMultiline(s.Results)
@@ -13370,6 +13436,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(returnTupleIndent)
 				}
 				out.WriteString(")")
+			}
+			if tailValue != nil {
+				out = tailOut
+				value := strings.TrimPrefix(tailValue.String(), tailLinePrefix)
+				if tailValueNeedsParens(value) {
+					out.WriteString("(")
+					out.WriteString(value)
+					out.WriteString(")")
+				} else {
+					out.WriteString(value)
+				}
 			}
 		} else if tailReturn {
 			out.WriteString("()")
@@ -16573,7 +16650,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(" {\n")
 		out.WriteString(rangePrelude)
 		if rangeValueBoundByReference {
-			writeRangeValueIterationCopy(out, s.X, s.Value)
+			writeRangeValueIterationCopy(out, s.X, s.Value, s.Body)
 		}
 		if isMap && valueBindingTemp == "" {
 			writeMapRangeValueIterationCopy(out, mapValueGoType, s.Value)
@@ -18812,4 +18889,58 @@ func writeBuiltinLengthForIntegerSlot(out *strings.Builder, rhs ast.Expr, expect
 	out.WriteString(") as ")
 	out.WriteString(rustType)
 	return true
+}
+
+// tailValueNeedsParens reports whether a tail expression starts with a
+// block that more of the expression follows, as "{ a } < { b }" does. Rust
+// parses such a leading block as a statement, so the expression needs
+// parentheses. A value that is one block is a valid tail expression as it
+// is. When the scan cannot tell, the value is parenthesized.
+func tailValueNeedsParens(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if !strings.HasPrefix(trimmed, "{") {
+		return false
+	}
+	end, ok := rustBlockEnd(trimmed)
+	return !ok || end != len(trimmed)-1
+}
+
+// rustBlockEnd returns the index of the brace that closes the block opening
+// at code[0], skipping string and character literals. It reports false for
+// a raw string or anything else it does not scan.
+func rustBlockEnd(code string) (int, bool) {
+	depth := 0
+	for i := 0; i < len(code); i++ {
+		switch c := code[i]; c {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i, true
+			}
+		case '"':
+			if i > 0 && (code[i-1] == 'r' || code[i-1] == '#') {
+				return 0, false
+			}
+			for i++; i < len(code) && code[i] != '"'; i++ {
+				if code[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			// A character literal: 'x', '\n', '\u{7b}'. A lifetime such as
+			// 'a has no closing quote and is skipped as one character.
+			if i+3 < len(code) && code[i+1] == '\\' {
+				j := strings.IndexByte(code[i+3:], '\'')
+				if j < 0 {
+					return 0, false
+				}
+				i += 3 + j
+			} else if _, size := utf8.DecodeRuneInString(code[i+1:]); i+1+size < len(code) && code[i+1+size] == '\'' {
+				i += 1 + size
+			}
+		}
+	}
+	return 0, false
 }

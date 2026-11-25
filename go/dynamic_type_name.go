@@ -12,6 +12,19 @@ import (
 // interface literals, anything that depends on a type parameter); callers
 // then leave the type unnamed instead of printing something Go would not.
 func goDynamicTypeName(typ types.Type) (string, bool) {
+	return goTypeNameSpelling(typ, false)
+}
+
+// goStaticTypeName is goDynamicTypeName for a type known while
+// translating, as %T of a variable: it also spells struct literals, as
+// struct { Name string; Age int }. A name found at run time goes through a
+// registry keyed by the Rust type, where struct literals of two packages
+// could share a key; a static name does not.
+func goStaticTypeName(typ types.Type) (string, bool) {
+	return goTypeNameSpelling(typ, true)
+}
+
+func goTypeNameSpelling(typ types.Type, structs bool) (string, bool) {
 	if typ == nil {
 		return "", false
 	}
@@ -31,35 +44,35 @@ func goDynamicTypeName(typ types.Type) (string, bool) {
 		}
 		return obj.Pkg().Name() + "." + obj.Name(), true
 	case *types.Pointer:
-		elem, ok := goDynamicTypeName(t.Elem())
+		elem, ok := goTypeNameSpelling(t.Elem(), structs)
 		if !ok {
 			return "", false
 		}
 		return "*" + elem, true
 	case *types.Slice:
-		elem, ok := goDynamicTypeName(t.Elem())
+		elem, ok := goTypeNameSpelling(t.Elem(), structs)
 		if !ok {
 			return "", false
 		}
 		return "[]" + elem, true
 	case *types.Array:
-		elem, ok := goDynamicTypeName(t.Elem())
+		elem, ok := goTypeNameSpelling(t.Elem(), structs)
 		if !ok {
 			return "", false
 		}
 		return "[" + strconv.FormatInt(t.Len(), 10) + "]" + elem, true
 	case *types.Map:
-		key, ok := goDynamicTypeName(t.Key())
+		key, ok := goTypeNameSpelling(t.Key(), structs)
 		if !ok {
 			return "", false
 		}
-		elem, ok := goDynamicTypeName(t.Elem())
+		elem, ok := goTypeNameSpelling(t.Elem(), structs)
 		if !ok {
 			return "", false
 		}
 		return "map[" + key + "]" + elem, true
 	case *types.Chan:
-		elem, ok := goDynamicTypeName(t.Elem())
+		elem, ok := goTypeNameSpelling(t.Elem(), structs)
 		if !ok {
 			return "", false
 		}
@@ -73,6 +86,32 @@ func goDynamicTypeName(typ types.Type) (string, bool) {
 			return "chan (" + elem + ")", true
 		}
 		return "chan " + elem, true
+	case *types.Struct:
+		if !structs {
+			return "", false
+		}
+		// As reflect writes it: struct { Name string; Age int }, with an
+		// embedded field as its type alone and a tag quoted after the type.
+		if t.NumFields() == 0 {
+			return "struct {}", true
+		}
+		fields := make([]string, 0, t.NumFields())
+		for i := 0; i < t.NumFields(); i++ {
+			field := t.Field(i)
+			fieldType, ok := goTypeNameSpelling(field.Type(), structs)
+			if !ok {
+				return "", false
+			}
+			text := fieldType
+			if !field.Embedded() {
+				text = field.Name() + " " + fieldType
+			}
+			if tag := t.Tag(i); tag != "" {
+				text += " " + strconv.Quote(tag)
+			}
+			fields = append(fields, text)
+		}
+		return "struct { " + strings.Join(fields, "; ") + " }", true
 	case *types.Signature:
 		return goDynamicSignatureTypeName(t)
 	case *types.Interface:

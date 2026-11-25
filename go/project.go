@@ -266,6 +266,24 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 		// Regular type checking for projects without external dependencies
 		typeInfo, err := NewTypeInfo(astFiles, fileSet)
+		// Each **T becomes a slot that rebinds the pointer it points at.
+		if err == nil && typeInfo != nil {
+			if slotted, ok := rewritePointerSlots("", astFiles, fileSet, typeInfo.info, nil); ok {
+				if slottedInfo, slottedErr := NewTypeInfo(slotted, fileSet); slottedErr == nil && slottedInfo != nil {
+					for i, file := range astFiles {
+						for path, byPath := range astFilesByPath {
+							if byPath == file {
+								astFilesByPath[path] = slotted[i]
+							}
+						}
+					}
+					astFiles = slotted
+					typeInfo = slottedInfo
+				} else {
+					pointerSlotDebugf("the rewrite does not type-check: %v", slottedErr)
+				}
+			}
+		}
 		if err != nil {
 			// Log warning but continue - we'll handle missing type info in individual functions
 			fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)

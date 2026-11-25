@@ -57,6 +57,10 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // 1h30m0s and Time formats and adds as in Go; internal/godebug and the
 // packages it imports read the GODEBUG settings time consults.
 // text/tabwriter is Go's elastic tabstops; its stub's methods panicked.
+// sort is Go's pdqsort, Search and Reverse over a sort.Interface; its stub's
+// SearchInts and the like panicked, and Reverse and IsSorted had no body.
+// container/heap is Go's heap over the program's own sort.Interface; its
+// stub's Push, Pop and Fix panicked.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -79,6 +83,8 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"internal/bisect":       true,
 	"internal/godebugs":     true,
 	"text/tabwriter":        true,
+	"container/heap":        true,
+	"sort":                  true,
 }
 
 // NewPackageLoader creates a new package loader
@@ -162,8 +168,35 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	pl.monomorphizeMainPackage()
+	pl.rewriteMainPointerSlots()
 	pl.boxCapturedReboundVariables()
 	return nil
+}
+
+// rewriteMainPointerSlots makes each **T of the main package a slot that
+// rebinds the pointer it points at; see pointer_slot.go.
+func (pl *PackageLoader) rewriteMainPointerSlots() {
+	pkg := pl.mainPkg
+	if pkg == nil || pkg.Types == nil || pkg.TypesInfo == nil || len(pkg.Syntax) == 0 {
+		return
+	}
+	fileSet := pkg.Fset
+	if fileSet == nil {
+		fileSet = pl.fileSet
+	}
+	imp := pl.projectImporter()
+	files, ok := rewritePointerSlots(pkg.PkgPath, pkg.Syntax, fileSet, pkg.TypesInfo, imp)
+	if !ok {
+		return
+	}
+	ti, err := NewTypeInfoWithImporter(pkg.PkgPath, files, fileSet, imp)
+	if err != nil || ti == nil {
+		pointerSlotDebugf("%s: the rewrite does not type-check: %v", pkg.PkgPath, err)
+		return
+	}
+	pkg.Syntax = files
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
 }
 
 // boxCapturedReboundVariables gives a cell to each pointer, map or channel
