@@ -1,0 +1,11 @@
+[package]
+name = "goroutine_defer_unlock_in_loop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goroutine_defer_unlock_in_loop"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -7441,8 +7441,34 @@ func functionTypeExprUsesWrappedHandle(expr ast.Expr) (bool, bool) {
 	return ok, true
 }
 
+// writeUnnamedSliceToNamedSliceAssignment writes "b = raw" or
+// "b = []byte("x")" for a variable of type Bytes []byte: the slice goes
+// into the defined type.
+func writeUnnamedSliceToNamedSliceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	var value strings.Builder
+	if !writeUnnamedSliceToNamedSliceInitializer(&value, rhs, typeInfo.GetType(lhs)) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(value.String())
+	out.WriteString("; let __moved_val = { let mut __guard = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() }; *")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __moved_val; }")
+	return true
+}
+
 func writeMoveWrappedInnerAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
 	if writeCurrentReceiverLocalAssignment(out, lhs, rhs) {
+		return
+	}
+	if writeUnnamedSliceToNamedSliceAssignment(out, lhs, rhs) {
 		return
 	}
 	out.WriteString("{ ")
@@ -8667,6 +8693,62 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 // "var name error = value" when value is not an error already but a struct
 // or pointer that implements error. It is boxed as an assignment to an error
 // variable boxes it.
+// writeUnnamedSliceToNamedSliceInitializer writes the value of
+// var b Bytes = []byte("abc"), an unnamed slice assigned to a variable of a
+// defined slice type, as the defined type holding the slice, as the
+// conversion Bytes([]byte("abc")) would.
+func writeUnnamedSliceToNamedSliceInitializer(out *strings.Builder, value ast.Expr, declared types.Type) bool {
+	targetNamed, _, ok := namedSliceTypeFromType(declared)
+	if !ok {
+		return false
+	}
+	// A type assertion here yields the asserted slice's elements, which the
+	// declaration's own path wraps.
+	if _, isAssertion := unwrapParens(value).(*ast.TypeAssertExpr); isAssertion {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(value)
+	if actual == nil {
+		return false
+	}
+	if _, ok := types.Unalias(actual).(*types.Named); ok {
+		return false
+	}
+	if _, ok := actual.Underlying().(*types.Slice); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		// "var u Numbers = s" copies s's header into a cell of its own:
+		// appending to u does not change s, and a nil s gives a nil u.
+		out.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(")
+		TranspileExpressionContext(out, unwrapParens(value), LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone()))")
+	default:
+		// An element of a [][]byte is the row itself, not a handle: it goes
+		// into a cell of its own.
+		if typeInfo.ReturnsWrappedValue(unwrapParens(value)) {
+			writePlainSliceHandleForNamedSliceConversion(out, value)
+		} else {
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, value)
+			out.WriteString(".clone()")
+			WriteWrapperSuffix(out)
+		}
+	}
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeConcreteErrorVarInitializer(out *strings.Builder, typeExpr ast.Expr, value ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -11030,6 +11112,21 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 }
 
 // isMutexUnlockDefer checks if a defer statement is mu.Unlock() on a sync.Mutex
+// mutexUnlockDeferHasGuard reports whether the mutex that call unlocks was
+// locked with a guard that is still held.
+func mutexUnlockDeferHasGuard(call *ast.CallExpr) bool {
+	receiver, ok := syncMutexMethodReceiver(call, "Unlock")
+	if !ok {
+		return false
+	}
+	key, ok := mutexReceiverKey(receiver)
+	if !ok {
+		return false
+	}
+	_, guarded := activeMutexGuards[key]
+	return guarded
+}
+
 func isMutexUnlockDefer(call *ast.CallExpr) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || sel.Sel.Name != "Unlock" {
@@ -13862,6 +13959,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Pointer assignment replaces the handle to preserve aliasing.
+								} else if writeUnnamedSliceToNamedSliceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// b = raw for a variable of a defined slice type.
 								} else if writeSliceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Slice assignment replaces the handle to preserve slice-header aliasing.
 								} else if writeCurrentReceiverLocalAssignment(out, s.Lhs[0], s.Rhs[0]) {
@@ -14774,6 +14873,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeUnnamedSliceToNamedSliceInitializer(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
+									// var b Bytes = []byte("abc"): the slice goes into the defined type.
 								} else if valueSpec.Type != nil && writeConcreteErrorVarInitializer(out, valueSpec.Type, valueSpec.Values[i]) {
 									// A struct or pointer that implements error, stored in an error variable.
 								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
@@ -16735,8 +16836,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("\n    }")
 
 	case *ast.DeferStmt:
-		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)
-		if isMutexUnlockDefer(s.Call) {
+		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles
+		// unlock). With no guard for the mutex, a function that has a defer
+		// stack runs the Unlock from it.
+		if isMutexUnlockDefer(s.Call) && (!currentFunctionHasDefer || mutexUnlockDeferHasGuard(s.Call)) {
 			out.WriteString("// mu.Unlock() handled by RAII guard")
 			break
 		}
@@ -16987,6 +17090,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			oldFunctionHasDefer := currentFunctionHasDefer
 			currentFunctionHasDefer = hasClosureDefer
 			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+			defer enterClosureBody()()
 			if hasClosureDefer {
 				out.WriteString(deferStackDecl() + "\n        ")
 			}

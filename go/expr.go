@@ -2504,6 +2504,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -2578,6 +2579,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -17526,6 +17528,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	// Find captured variables
 	captured := capturedVarsForFuncLit(funcLit)
@@ -18059,6 +18062,11 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 		if vt := GetVarTable(); vt != nil {
 			if info := vt.Lookup(ident.Name); info != nil {
 				rustType := strings.TrimPrefix(info.RustType, "&")
+				// A named function type ("type Op func(*Bank) error") is
+				// the wrapped cell; the call goes through the Box inside.
+				if boxType, ok := FunctionTypeAliasBox(rustType); ok {
+					return boxType
+				}
 				if isFunctionValueRustType(rustType) {
 					return rustType
 				}
@@ -18469,7 +18477,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(*")
 				out.WriteString(RustIdentForUse(ident))
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+				out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()")
 				WriteWrapperSuffix(out)
 				return
 			case "u8":
@@ -18797,6 +18805,38 @@ func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) boo
 	sourceType := typeInfo.GetType(call.Args[0])
 	if sourceType == nil {
 		out.WriteString("unimplemented!(\"type info required for named slice conversion\")")
+		return true
+	}
+	if basic, ok := types.Unalias(sourceType).Underlying().(*types.Basic); ok && basic.Info()&types.IsString != 0 {
+		// Bytes("xyz") for type Bytes []byte, or Runes("xyz") for a []rune:
+		// the string's bytes or runes, as []byte(s) and []rune(s) give them.
+		elem, ok := targetNamed.Underlying().(*types.Slice)
+		if !ok {
+			return false
+		}
+		elemBasic, ok := types.Unalias(elem.Elem()).(*types.Basic)
+		if !ok {
+			return false
+		}
+		var conversion string
+		switch elemBasic.Kind() {
+		case types.Byte:
+			conversion = ".as_bytes()" + sliceToVecMethod()
+		case types.Rune:
+			conversion = ".chars().map(|c| c as i32).collect::<Vec<_>>()"
+		default:
+			return false
+		}
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		// A defined string type ("type Text string") holds its String.
+		if !writeNamedStringNewtypeInnerValue(out, call.Args[0]) {
+			writeStringConversionSource(out, call.Args[0])
+		}
+		out.WriteString(conversion)
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
 		return true
 	}
 	if _, ok := types.Unalias(sourceType).Underlying().(*types.Slice); !ok {
@@ -19673,6 +19713,18 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 }
 
 func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
+	if isNamedSliceExpression(arg) {
+		// A defined []rune type holds the slice inside it.
+		out.WriteString("{ let __rune_slice_holder = ")
+		writeNamedSliceInnerHandleClone(out, arg)
+		out.WriteString("; let __rune_slice_guard = __rune_slice_holder")
+		WriteBorrowMethod(out, false)
+		// A nil slice converts to "".
+		out.WriteString("; match __rune_slice_guard.as_ref() { Some(__runes) => (*__runes)")
+		writeRuneSliceIteratorToString(out)
+		out.WriteString(", None => String::new() } }")
+		return
+	}
 	if sliceConversionSourceIsBare(arg) {
 		out.WriteString("(")
 		TranspileExpression(out, arg)
@@ -19721,7 +19773,7 @@ func sliceConversionSourceIsBare(arg ast.Expr) bool {
 }
 
 func writeRuneSliceIteratorToString(out *strings.Builder) {
-	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()")
 }
 
 func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {
@@ -26063,6 +26115,11 @@ func writeNamedSliceValueForExpectedType(out *strings.Builder, arg ast.Expr, exp
 	expectedNamed, _, ok := namedSliceTypeFromType(expected)
 	if !ok {
 		return false
+	}
+	// size([]byte("four")) for a Bytes parameter: an unnamed slice goes
+	// into the defined type.
+	if writeUnnamedSliceToNamedSliceInitializer(out, arg, expected) {
+		return true
 	}
 	if _, ok := unwrapParens(arg).(*ast.SliceExpr); !ok {
 		return false
