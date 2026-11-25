@@ -138,7 +138,7 @@ func alias(x nat) {
 	}
 }
 
-func TestSliceElemPointerEqualityComparesHandleAndIndex(t *testing.T) {
+func TestSliceElemPointerEqualityComparesIdentity(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 type Word uint
@@ -152,8 +152,8 @@ func alias(x, y nat) bool {
 	if strings.Contains(rust, "__left.borrow") || strings.Contains(rust, "__left.lock") {
 		t.Fatalf("slice element pointer equality should not treat GoSliceElemPtr as a wrapped pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "::ptr_eq(&__left.slice, &__right.slice)") || !strings.Contains(rust, "__left.index == __right.index") {
-		t.Fatalf("slice element pointer equality should compare the sequence handle and index:\n%s", rust)
+	if !strings.Contains(rust, "__left.identity() == __right.identity()") {
+		t.Fatalf("slice element pointer equality should compare the elements' identities:\n%s", rust)
 	}
 }
 

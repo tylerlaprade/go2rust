@@ -787,7 +787,7 @@ fn main() {
     println!("{} {}", format!("{}", "Sub-slice [1:4]:".to_string()), format!("{}", format_slice(&subSlice)));
 
         // Length and capacity
-    println!("{} {}", format!("{}", "Length:".to_string()), format!("{}", (*slice.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", "Length:".to_string()), format!("{}", ({ let __len = (*slice.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{} {}", format!("{}", "Capacity:".to_string()), format!("{}", (*slice.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
 
         // Make slice

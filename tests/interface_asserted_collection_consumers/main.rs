@@ -683,10 +683,10 @@ impl std::io::Write for GoSlice<u8> {
 
 fn main() {
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any>)));
-    println!("{}", format!("{}", (*({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut boundSlice = ({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     let mut boundSlice = { let __slice_header = GoSliceHeader::go_slice_header(&boundSlice); Rc::new(RefCell::new(__slice_header)) };
-    println!("{}", format!("{}", (*boundSlice.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*boundSlice.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     let mut y: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(3i64))))])))).clone()) as Box<dyn Any>)));
     println!("{}", format!("{}", { let __map_holder = ({ let val = y.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));

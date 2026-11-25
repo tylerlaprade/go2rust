@@ -682,15 +682,40 @@ impl std::io::Write for GoSlice<u8> {
 fn main() {
     let mut numbers = Rc::new(RefCell::new(Some(vec![1i64, 3i64, 5i64, 7i64])));
     let mut words = Rc::new(RefCell::new(Some(vec!["red".to_string(), "green".to_string(), "blue".to_string()])));
-
-    println!("{} {}", format!("{}", "has 3:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __slice_holder = numbers.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = 3; __slice.contains(&__value) }))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "has 4:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __slice_holder = numbers.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = 4; __slice.contains(&__value) }))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "has green:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __slice_holder = words.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = "green".to_string(); __slice.contains(&__value) }))).borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "has yellow:".to_string()), format!("{}", (*Rc::new(RefCell::new(Some({ let __slice_holder = words.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = "yellow".to_string(); __slice.contains(&__value) }))).borrow().as_ref().unwrap())));
-    if (*Rc::new(RefCell::new(Some({ let __slice_holder = numbers.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = 5; __slice.contains(&__value) }))).borrow().as_ref().unwrap()) {
+    println!("{} {}", format!("{}", "has 3:".to_string()), format!("{}", __slices__contains__slice_int__int(numbers.clone(), Rc::new(RefCell::new(Some(3))))));
+    println!("{} {}", format!("{}", "has 4:".to_string()), format!("{}", __slices__contains__slice_int__int(numbers.clone(), Rc::new(RefCell::new(Some(4))))));
+    println!("{} {}", format!("{}", "has green:".to_string()), format!("{}", __slices__contains__slice_string__string(words.clone(), Rc::new(RefCell::new(Some("green".to_string()))))));
+    println!("{} {}", format!("{}", "has yellow:".to_string()), format!("{}", __slices__contains__slice_string__string(words.clone(), Rc::new(RefCell::new(Some("yellow".to_string()))))));
+    if __slices__contains__slice_int__int(numbers.clone(), Rc::new(RefCell::new(Some(5)))) {
         println!("{}", format!("{}", "condition number hit".to_string()));
     }
-    if !(*Rc::new(RefCell::new(Some({ let __slice_holder = words.clone(); let __slice_guard = __slice_holder.borrow(); let __slice = __slice_guard.as_ref().unwrap(); let __value = "yellow".to_string(); __slice.contains(&__value) }))).borrow().as_ref().unwrap()) {
+    if !__slices__contains__slice_string__string(words.clone(), Rc::new(RefCell::new(Some("yellow".to_string())))) {
         println!("{}", format!("{}", "condition word miss".to_string()));
     }
+}
+
+pub fn __slices__contains__slice_int__int(s: Rc<RefCell<Option<Vec<i64>>>>, v: Rc<RefCell<Option<i64>>>) -> bool {
+    __slices__index__slice_int__int(s.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) >= 0
+}
+
+pub fn __slices__contains__slice_string__string(s: Rc<RefCell<Option<Vec<String>>>>, v: Rc<RefCell<Option<String>>>) -> bool {
+    __slices__index__slice_string__string(s.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) >= 0
+}
+
+pub fn __slices__index__slice_int__int(s: Rc<RefCell<Option<Vec<i64>>>>, v: Rc<RefCell<Option<i64>>>) -> i64 {
+    for i in 0..(({ let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        if (*v.borrow().as_ref().unwrap()) == (*s.borrow().as_ref().unwrap())[(i) as usize].clone() {
+        return i as i64;
+    }
+    }
+    -(1)
+}
+
+pub fn __slices__index__slice_string__string(s: Rc<RefCell<Option<Vec<String>>>>, v: Rc<RefCell<Option<String>>>) -> i64 {
+    for i in 0..(({ let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        if (*v.borrow().as_ref().unwrap()) == (*s.borrow().as_ref().unwrap())[(i) as usize].clone() {
+        return i as i64;
+    }
+    }
+    -(1)
 }

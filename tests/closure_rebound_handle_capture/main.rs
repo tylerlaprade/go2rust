@@ -794,7 +794,7 @@ pub fn grouped() -> i64 {
         if { let __nil_result = (*typ_closure_clone.borrow()).is_none(); __nil_result } {
         return -(1);
     }
-        let mut n = Rc::new(RefCell::new(Some((*names_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)));
+        let mut n = Rc::new(RefCell::new(Some(({ let __len = (*names_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
         { let __slice_header = None; *names_closure_clone.borrow_mut() = __slice_header; };
         return (*n.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut() -> i64>)));

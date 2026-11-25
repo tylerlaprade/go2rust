@@ -148,11 +148,18 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	// package loader; explicitly source-transpiled stdlib packages use the same
 	// path so compiler packages such as go/types are real crates, not semantic
 	// stubs.
+	// A program that calls slices or maps is loaded too, so the generic
+	// functions it calls are copied from their source and instantiated
+	// (stdlib_generic_inline.go).
 	needsPackageLoader := false
 	for _, file := range astFiles {
 		for _, imp := range file.Imports {
 			path := strings.Trim(imp.Path.Value, `"`)
 			if !isStdlibPackage(path) || shouldTranspileStdlibPackage(path) {
+				needsPackageLoader = true
+				break
+			}
+			if _, copied := stdlibGenericInlinePrefixes[path]; copied && pg.externalMode == ModeTranspile && os.Getenv("GO2RUST_GENERIC_RUST") != "1" {
 				needsPackageLoader = true
 				break
 			}

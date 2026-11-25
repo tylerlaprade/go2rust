@@ -1656,7 +1656,7 @@ func clearValue(x int) int {
 		t.Fatalf("clear(named slice) should write the typed element zero value:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __clear_start = (1) as usize") ||
-		!strings.Contains(rust, "__clear_seq[__clear_i] = 0;") {
+		!strings.Contains(rust, "for __clear_elem in __clear_window.as_mut_slice().iter_mut() { *__clear_elem = 0; }") {
 		t.Fatalf("clear(slice expr) should zero the selected byte range:\n%s", rust)
 	}
 }
@@ -1673,8 +1673,8 @@ func Delete[S ~[]E, E any](s S, i int, j int) S {
 	if strings.Contains(rust, `unimplemented!("clear requires map or slice type")`) {
 		t.Fatalf("clear on generic slice constraint should use the go/types core slice type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "for __clear_i in __clear_start..__clear_end") ||
-		!strings.Contains(rust, "__clear_seq[__clear_i] = Default::default();") {
+	if !strings.Contains(rust, "__clear_seq.reslice3_zeroed(__clear_start, __clear_end, __clear_cap)") ||
+		!strings.Contains(rust, "*__clear_elem = Default::default();") {
 		t.Fatalf("clear on generic slice constraint should zero the selected range:\n%s", rust)
 	}
 }

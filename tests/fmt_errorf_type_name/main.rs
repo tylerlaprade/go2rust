@@ -4,7 +4,6 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
@@ -681,34 +680,12 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i64>() { return "int" }
-    if val.is::<i32>() { return "int32" }
-    if val.is::<char>() { return "int32" }
-    if val.is::<i8>() { return "int8" }
-    if val.is::<i16>() { return "int16" }
-    if val.is::<u64>() { return "uint" }
-    if val.is::<u32>() { return "uint32" }
-    if val.is::<u8>() { return "uint8" }
-    if val.is::<u16>() { return "uint16" }
-    if val.is::<f64>() { return "float64" }
-    if val.is::<f32>() { return "float32" }
-    if val.is::<bool>() { return "bool" }
-    if val.is::<String>() { return "string" }
-    if val.is::<Vec<i64>>() { return "[]int" }
-    if val.is::<Vec<i32>>() { return "[]int32" }
-    if val.is::<Vec<f64>>() { return "[]float64" }
-    if val.is::<Vec<String>>() { return "[]string" }
-    if val.is::<Vec<bool>>() { return "[]bool" }
-    std::any::type_name_of_val(val)
-}
-
 pub fn label() -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some("x".to_string())))
 }
 
 fn main() {
-    let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("bad type {}", __go_type_name(&(*label().borrow().as_ref().unwrap()))))))));
+    let mut err = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("bad type {}", { let _ = label(); "string" }))))));
     println!("{}", format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut value = label();
     println!("{}", format!("{}", { let __text = match Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("stored type {}", "string")))))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

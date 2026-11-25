@@ -4161,18 +4161,24 @@ func writeSliceElemPtrConstructor(out *strings.Builder, outer string, cell strin
 		out.WriteString(`            // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
 `)
 		// Spelled with std paths: a package can declare a Mutex of its own.
 		cellPath := map[string]string{"Mutex": "std::sync::Mutex", "RefCell": "std::cell::RefCell"}[cell]
 		outerPath := map[string]string{"Arc": "std::sync::Arc", "Rc": "std::rc::Rc"}[outer]
-		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index };\n")
+		out.WriteString("            return GoSliceElemPtr { slice: " + outerPath + "::new(" + cellPath + "::new(__header)), index, id: __id };\n")
 	}
 	out.WriteString(`        }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
 `)
 	if goSliceModeEnabled() {
 		out.WriteString("        if let Ok(__guard) = self.slice." + tryBorrow + "() {\n")
@@ -4197,6 +4203,9 @@ func generateSliceElemPtrHelper(out *strings.Builder) {
 pub struct GoSliceElemPtr<T> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -4546,7 +4555,7 @@ impl<T: Send + Sync + 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -4736,6 +4745,9 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -5085,7 +5097,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }

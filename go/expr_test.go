@@ -1775,7 +1775,7 @@ func add(valueStart []int, steps []string) []int {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "let __append_value = (*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") {
+	if !strings.Contains(rust, "let __append_value = ({ let __len = (*steps.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;") {
 		t.Fatalf("append len() to []int should cast usize length to Go int:\n%s", rust)
 	}
 }

@@ -6,7 +6,6 @@ macro_rules! vec {
 }
 use go2rust_stdlib_stubs::*;
 use num::Complex;
-use std::any::Any;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 
@@ -50,28 +49,6 @@ where
     } else {
         "[]".to_string()
     }
-}
-
-fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i64>() { return "int" }
-    if val.is::<i32>() { return "int32" }
-    if val.is::<char>() { return "int32" }
-    if val.is::<i8>() { return "int8" }
-    if val.is::<i16>() { return "int16" }
-    if val.is::<u64>() { return "uint" }
-    if val.is::<u32>() { return "uint32" }
-    if val.is::<u8>() { return "uint8" }
-    if val.is::<u16>() { return "uint16" }
-    if val.is::<f64>() { return "float64" }
-    if val.is::<f32>() { return "float32" }
-    if val.is::<bool>() { return "bool" }
-    if val.is::<String>() { return "string" }
-    if val.is::<Vec<i64>>() { return "[]int" }
-    if val.is::<Vec<i32>>() { return "[]int32" }
-    if val.is::<Vec<f64>>() { return "[]float64" }
-    if val.is::<Vec<String>>() { return "[]string" }
-    if val.is::<Vec<bool>>() { return "[]bool" }
-    std::any::type_name_of_val(val)
 }
 
 fn go_float_string(__value: f64, __single: bool) -> String {
@@ -152,7 +129,7 @@ fn main() {
     println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4294967296; __tmp_x == __tmp_y }));
     let mut c = Arc::new(Mutex::new(Some(num::Complex::new(1.5 as f64, -(2) as f64))));
     println!("{} {}", { let __text = go_float_string(({ let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }) as f64, false); __text }, { let __text = go_float_string(({ let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }) as f64, false); __text });
-    print!("{} {} {}\n", format!("{}", { let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }), format!("{:.2}", { let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }), format!("{}", { let __type_name = __go_type_name(&{ let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }); __type_name }));
+    print!("{} {} {}\n", format!("{}", { let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }), format!("{:.2}", { let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }), format!("{}", { let _ = { let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }; "float64" }));
     let mut sum = Arc::new(Mutex::new(Some({ let __tmp_x = { let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }; let __tmp_y = { let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }; __tmp_x + __tmp_y })));
     let mut parts = Arc::new(Mutex::new(Some(vec![{ let __part = (*c.lock().unwrap().as_ref().unwrap()).re; __part }, { let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }])));
     println!("{} {} {}", { let __text = go_float_string(({ let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, format!("{}", format_slice(&parts)), { let __text = go_float_string((math::abs(Arc::new(Mutex::new(Some({ let __part = (*c.lock().unwrap().as_ref().unwrap()).im; __part }))))) as f64, false); __text });

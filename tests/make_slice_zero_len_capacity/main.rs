@@ -775,7 +775,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 fn main() {
     let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0i64).collect(); v.truncate((0) as usize); v })));
-    println!("{} {} {}", format!("{}", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", { let __nil_result = (*s.borrow()).is_none(); __nil_result }));
+    println!("{} {} {}", format!("{}", ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", { let __nil_result = (*s.borrow()).is_none(); __nil_result }));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_values = vec![7, 8]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *s.borrow_mut() = __slice_header; };
-    println!("{} {} {}", format!("{}", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&s)));
+    println!("{} {} {}", format!("{}", ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&s)));
 }

@@ -777,6 +777,9 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -923,13 +926,19 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };
         }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
         if let Ok(__guard) = self.slice.try_borrow() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1152,7 +1161,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -1454,7 +1463,7 @@ fn __go_init_globals() {
 
 pub fn lookup_case_range(r: Rc<RefCell<Option<i32>>>, caseRange: Rc<RefCell<Option<Vec<CaseRange>>>>) -> Option<GoSliceElemPtr<CaseRange>> {
     let mut lo = Rc::new(RefCell::new(Some(0i64)));
-    let mut hi = Rc::new(RefCell::new(Some((*caseRange.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)));
+    let mut hi = Rc::new(RefCell::new(Some(({ let __len = (*caseRange.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
     while (*lo.borrow().as_ref().unwrap()) < (*hi.borrow().as_ref().unwrap()) {
         let mut m = Rc::new(RefCell::new(Some((((*Rc::new(RefCell::new(Some((((*lo.borrow().as_ref().unwrap()) + (*hi.borrow().as_ref().unwrap()))) as u64))).borrow().as_ref().unwrap()) >> 1)) as i64)));
         let mut cr: Option<GoSliceElemPtr<CaseRange>> = Some(GoSliceElemPtr::new(caseRange.clone(), ((*m.borrow().as_ref().unwrap())) as usize));

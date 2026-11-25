@@ -1547,5 +1547,5 @@ fn main() {
     print!("{:>5}|{:<5}|\n", String::from_utf8(std::vec::Vec::from((*bs.borrow().as_ref().unwrap()).clone())).unwrap(), String::from_utf8(std::vec::Vec::from((*bs.borrow().as_ref().unwrap()).clone())).unwrap());
     let mut s = Rc::new(RefCell::new(Some(format!("<{}>", String::from_utf8(std::vec::Vec::from((*Rc::new(RefCell::new(Some({ let __seq_holder = bs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone())).unwrap()))));
     println!("{}", format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }));
-    print!("{} and {}\n", String::from_utf8(std::vec::Vec::from((*bs.borrow().as_ref().unwrap()).clone())).unwrap(), (*bs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+    print!("{} and {}\n", String::from_utf8(std::vec::Vec::from((*bs.borrow().as_ref().unwrap()).clone())).unwrap(), ({ let __len = (*bs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }));
 }

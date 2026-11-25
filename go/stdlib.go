@@ -1713,13 +1713,22 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	// here instead of probing the value at run time. Naming a variable has no
 	// side effects to preserve, and a nil slice, map or pointer has nothing
 	// to probe.
-	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
-		if typeInfo := GetTypeInfo(); typeInfo != nil {
-			if typ := typeInfo.GetType(ident); typ != nil && !types.IsInterface(typ) {
-				if goName, ok := goStaticTypeName(typ); ok {
+	// Any other operand of a concrete type is named here too, after it is
+	// evaluated for its effects: a []T is printed as a slice whatever its
+	// defined type, so the value does not tell IDs from []int.
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(arg); typ != nil && !types.IsInterface(typ) && !isUntypedBasic(typ) {
+			if goName, ok := goStaticTypeName(typ); ok {
+				if _, isIdent := unwrapParens(arg).(*ast.Ident); isIdent {
 					out.WriteString(strconv.Quote(goName))
 					return
 				}
+				out.WriteString("{ let _ = ")
+				TranspileExpression(out, arg)
+				out.WriteString("; ")
+				out.WriteString(strconv.Quote(goName))
+				out.WriteString(" }")
+				return
 			}
 		}
 	}
@@ -5024,21 +5033,52 @@ func transpileBuiltinMinMax(out *strings.Builder, call *ast.CallExpr, op string)
 		return
 	}
 
+	// A named scalar such as Celsius is a newtype over a cell: min and max
+	// are taken over the values it holds, and the result is a Celsius.
+	named, _ := types.Unalias(resultType).(*types.Named)
+	if named != nil && !isNamedScalarNewtype(named) {
+		named = nil
+	}
 	args := make([]string, 0, len(call.Args))
 	for _, arg := range call.Args {
 		var argOut strings.Builder
-		writeBuiltinMinMaxArg(&argOut, arg, basic)
+		if named != nil {
+			writeBuiltinMinMaxNamedArg(&argOut, arg, basic)
+		} else {
+			writeBuiltinMinMaxArg(&argOut, arg, basic)
+		}
 		args = append(args, argOut.String())
 	}
 	expr := args[0]
 	for _, arg := range args[1:] {
-		if basic.Kind() == types.Float32 || basic.Kind() == types.Float64 {
-			expr = "(" + expr + ")." + op + "(" + arg + ")"
+		if basic.Info()&types.IsFloat != 0 {
+			expr = builtinFloatMinMax(op, expr, arg)
 		} else {
 			expr = "std::cmp::" + op + "(" + expr + ", " + arg + ")"
 		}
 	}
+	if named != nil {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		out.WriteString(expr)
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return
+	}
 	out.WriteString(expr)
+}
+
+// builtinFloatMinMax writes Go's min or max of two floats: NaN when either
+// is NaN, and of a negative and a positive zero, the negative one for min
+// and the positive one for max. Rust's f64::max returns the operand that is
+// not NaN.
+func builtinFloatMinMax(op, left, right string) string {
+	pick := "__r < __l || (__r == __l && __r.is_sign_negative())"
+	if op == "max" {
+		pick = "__r > __l || (__r == __l && __r.is_sign_positive())"
+	}
+	return "{ let __l = " + left + "; let __r = " + right + "; if __l.is_nan() || __r.is_nan() { __l + __r } else if " + pick + " { __r } else { __l } }"
 }
 
 func writeBuiltinMinMaxArg(out *strings.Builder, arg ast.Expr, basic *types.Basic) {
@@ -5051,6 +5091,34 @@ func writeBuiltinMinMaxArg(out *strings.Builder, arg ast.Expr, basic *types.Basi
 	out.WriteString(" as ")
 	out.WriteString(goTypesTypeToRust(basic))
 	out.WriteString(")")
+}
+
+// writeBuiltinMinMaxNamedArg writes the value an argument of a named
+// scalar type holds: a constant as the value, anything else through the
+// newtype's handle.
+func writeBuiltinMinMaxNamedArg(out *strings.Builder, arg ast.Expr, basic *types.Basic) {
+	if basic.Info()&types.IsString != 0 {
+		writeStringSequenceValue(out, arg)
+		return
+	}
+	rustType := goTypesTypeToRust(basic)
+	if value, ok := constExpressionValue(arg); ok {
+		if basic.Info()&types.IsFloat != 0 {
+			var lit strings.Builder
+			if writeRustFloatLiteral(&lit, value) {
+				out.WriteString("(" + lit.String() + " as " + rustType + ")")
+				return
+			}
+		} else if value.Kind() == constant.Int {
+			out.WriteString("(" + value.ExactString() + " as " + rustType + ")")
+			return
+		}
+	}
+	out.WriteString("(*(")
+	writeUnwrappedForFormat(out, arg)
+	out.WriteString(").0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
 func transpileMathUnary(out *strings.Builder, call *ast.CallExpr, method string) {
@@ -6312,8 +6380,12 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 		// len() returns the length of arrays, slices, maps, strings, or channels.
 		// With goroutines, reading the length locks the value; the block
 		// ends the lock with the length, so another argument of the same
-		// call can lock it again.
-		if NeedsConcurrentWrapper() && !isExpressionResultBare(call.Args[0]) {
+		// call can lock it again. Without them, the borrow of a slice or
+		// map would last as long as the statement: f(s, len(s)) would
+		// still be borrowing s while f writes to it.
+		_, isSelector := call.Args[0].(*ast.SelectorExpr)
+		mutableContainer := typeInfo != nil && (typeInfo.IsSlice(call.Args[0]) || typeInfo.IsMap(call.Args[0])) && !isSelector
+		if (NeedsConcurrentWrapper() || mutableContainer) && !isExpressionResultBare(call.Args[0]) {
 			out.WriteString("({ let __len = ")
 			defer out.WriteString("; __len })")
 		}
@@ -6846,6 +6918,14 @@ func writeClearSliceExpr(out *strings.Builder, slice *ast.SliceExpr, zeroValue s
 	writeClearSliceHandle(out, slice.X)
 	out.WriteString("; let mut __clear_guard = __clear_holder")
 	WriteBorrowMethod(out, true)
+	if goSliceModeEnabled() {
+		// s[lo:hi] reaches up to cap(s), as in Delete's clear(s[len(s):oldlen]);
+		// the window shares s's backing array.
+		out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { let __clear_cap = __clear_seq.capacity(); let mut __clear_window = __clear_seq.reslice3_zeroed(__clear_start, __clear_end, __clear_cap); for __clear_elem in __clear_window.as_mut_slice().iter_mut() { *__clear_elem = ")
+		out.WriteString(zeroValue)
+		out.WriteString("; } } }")
+		return
+	}
 	out.WriteString("; if let Some(__clear_seq) = __clear_guard.as_mut() { assert!(__clear_start <= __clear_end && __clear_end <= __clear_seq.len()); for __clear_i in __clear_start..__clear_end { __clear_seq[__clear_i] = ")
 	out.WriteString(zeroValue)
 	out.WriteString("; } } }")
@@ -8529,4 +8609,10 @@ func makeElementsNeedOwnValues(sliceTypeExpr ast.Expr) bool {
 		return false
 	}
 	return typeNeedsGoValueClone(sliceType.Elem())
+}
+
+// isUntypedBasic reports whether typ is an untyped constant's or nil's type.
+func isUntypedBasic(typ types.Type) bool {
+	basic, ok := typ.(*types.Basic)
+	return ok && basic.Info()&types.IsUntyped != 0
 }

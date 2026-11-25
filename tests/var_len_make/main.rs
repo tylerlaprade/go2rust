@@ -681,7 +681,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn main() {
     let mut names = Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string(), "gamma".to_string()])));
-    let mut n = Rc::new(RefCell::new(Some((*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)));let mut out = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*n.borrow().as_ref().unwrap())) as usize])));
+    let mut n = Rc::new(RefCell::new(Some(({ let __len = (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));let mut out = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*n.borrow().as_ref().unwrap())) as usize])));
     { let __idx = (1) as usize; let __rhs = "beta".to_string(); (*out.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {}", format!("{}", (*out.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*out.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {}", format!("{}", ({ let __len = (*out.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*out.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

@@ -776,15 +776,15 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 fn main() {
         // Slice with capacity
     let mut s = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(10) as usize).map(|_| 0i64).collect(); v.truncate((3) as usize); v })));
-    print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
+    print!("len={} cap={} {}\n", ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Append beyond capacity
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_values = vec![1, 2, 3, 4, 5, 6, 7, 8]; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *s.borrow_mut() = __slice_header; };
-    print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
+    print!("len={} cap={} {}\n", ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Three-index slice
     let mut s2 = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; let __low = (2) as usize; let __high = (5) as usize; let __max = (7) as usize; __seq.reslice3_zeroed(__low, __high, __max) })));
-    print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
+    print!("s2: len={} cap={} {}\n", ({ let __len = (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0i64; (3) as usize])));

@@ -922,7 +922,7 @@ fn main() {
         // String to rune slice
     let mut runes = Rc::new(RefCell::new(Some(("Hello, \u{4e16}\u{754c}".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>())));
     print!("string to runes: {}\n", format_slice(&runes));
-    print!("rune count: {}\n", (*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+    print!("rune count: {}\n", ({ let __len = (*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }));
 
         // Rune slice back to string
     let mut backToString = Rc::new(RefCell::new(Some((*runes.borrow().as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>())));

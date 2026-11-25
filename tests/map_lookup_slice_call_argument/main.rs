@@ -681,7 +681,7 @@ impl std::io::Write for GoSlice<u8> {
 
 
 pub fn count(names: Rc<RefCell<Option<Vec<String>>>>) -> i64 {
-    (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+    ({ let __len = (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
 }
 
 fn main() {
