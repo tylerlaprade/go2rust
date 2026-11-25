@@ -2967,6 +2967,14 @@ func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.E
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
+	if _, ok := inner.(*ast.CompositeLit); ok {
+		// IDs{} is the newtype value itself, with no cell around it:
+		// append(S{}, s...) in slices.Clone.
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpressionContext(out, inner, LValue)
+		out.WriteString("; __named_slice.0.clone() }")
+		return true
+	}
 	if allowNilSlot {
 		// A nil assignment can clear the outer slot. For nil comparison,
 		// this represents the same value as a named slice with a nil handle.
@@ -7669,9 +7677,9 @@ func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) b
 	if !writeSliceElemPtrNewExpression(out, rightIndex) {
 		return false
 	}
-	out.WriteString("; let __eq = ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left.slice, &__right.slice) && __left.index == __right.index; ")
+	// identity is the element's address in the backing array, which two
+	// headers over one array share; the header cells differ.
+	out.WriteString("; let __eq = __left.identity() == __right.identity(); ")
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}

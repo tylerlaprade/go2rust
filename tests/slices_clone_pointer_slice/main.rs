@@ -4,7 +4,6 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -681,87 +680,6 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-pub trait GoComparable {
-    fn go_eq(&self, other: &Self) -> bool;
-    fn go_hash(&self, seed: usize) -> usize;
-}
-
-fn go_hash_value<T: std::hash::Hash>(value: &T, seed: usize) -> usize {
-    let mut __hasher = std::collections::hash_map::DefaultHasher::new();
-    std::hash::Hash::hash(&seed, &mut __hasher);
-    std::hash::Hash::hash(value, &mut __hasher);
-    std::hash::Hasher::finish(&__hasher) as usize
-}
-
-macro_rules! impl_go_comparable_hash {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoComparable for $t {
-            fn go_eq(&self, other: &Self) -> bool { self == other }
-            fn go_hash(&self, seed: usize) -> usize { go_hash_value(self, seed) }
-        })*
-    };
-}
-
-impl_go_comparable_hash!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, String, &'static str);
-
-impl GoComparable for f32 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-impl GoComparable for f64 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-fn go_any_comparable_eq(left: &(dyn Any), right: &(dyn Any)) -> bool {
-    if left.type_id() != right.type_id() {
-        return false;
-    }
-    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
-    panic!("interface comparison with uncomparable dynamic type")
-}
-
-fn go_any_comparable_hash(value: &(dyn Any), seed: usize) -> usize {
-    if let Some(v) = value.downcast_ref::<i32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<usize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<isize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<f64>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<f32>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<String>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<&str>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<bool>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<char>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    panic!("interface hash with uncomparable dynamic type")
-}
-
-impl GoComparable for Box<dyn Any> {
-    fn go_eq(&self, other: &Self) -> bool { go_any_comparable_eq(self.as_ref(), other.as_ref()) }
-    fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
-}
-
 #[derive(Debug, Clone)]
 pub struct pkg {
     pub path: Rc<RefCell<Option<String>>>,
@@ -792,22 +710,18 @@ impl std::fmt::Display for pkg {
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
-impl GoComparable for pkg {
-    fn go_eq(&self, other: &Self) -> bool {
-        std::ptr::eq(self, other)
-    }
-    fn go_hash(&self, seed: usize) -> usize {
-        let mut __hasher = std::collections::hash_map::DefaultHasher::new();
-        std::hash::Hash::hash(&seed, &mut __hasher);
-        std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);
-        std::hash::Hasher::finish(&__hasher) as usize
-    }
-}
 
 
 fn main() {
     let mut pkgs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("root".to_string()))), ..Default::default() }))), Rc::new(RefCell::new(Some(pkg { path: Rc::new(RefCell::new(Some("dep".to_string()))), ..Default::default() })))])));
-    let mut list = Rc::new(RefCell::new(Some((*Rc::new(RefCell::new(Some({ let __seq_holder = pkgs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone())));
+    let mut list = __slices__clone__slice_ptr_pkg__ptr_pkg(Rc::new(RefCell::new(Some({ let __seq_holder = pkgs.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3(__low, __high, __max) }))));
     let mut list = { let __slice_header = GoSliceHeader::go_slice_header(&list); Rc::new(RefCell::new(__slice_header)) };
-    println!("{}", format!("{}", (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+}
+
+pub fn __slices__clone__slice_ptr_pkg__ptr_pkg(s: Rc<RefCell<Option<Vec<Rc<RefCell<Option<pkg>>>>>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<pkg>>>>>>> {
+    if { let __nil_result = (*s.borrow()).is_none(); __nil_result } {
+        return Rc::new(RefCell::new(None));
+    }
+    { let __append_target = Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<pkg>>>>::new()))).clone(); let __append_values: Vec<_> = { let __slice_holder = s.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<Rc<RefCell<Option<pkg>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) }
 }

@@ -697,7 +697,7 @@ fn main() {
         { let __map_key = (*name.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some(pkgPath.clone()))); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
     }
-    println!("{}", format!("{}", (*paths.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*paths.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{}", format!("{}", { let __map_holder = seen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"crate".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) } != "".to_string()));
     println!("{}", format!("{}", { let __map_holder = seen.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"dep".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) } != "".to_string()));
 }

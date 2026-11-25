@@ -707,6 +707,9 @@ impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -853,13 +856,19 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };
         }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
         if let Ok(__guard) = self.slice.try_borrow() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1082,7 +1091,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -1327,7 +1336,7 @@ fn main() {
 
     let mut queue = Rc::new(RefCell::new(Some(vec![10i64, 20i64, 30i64])));
     let mut heads: Rc<RefCell<Option<Vec<GoPtr<i64>>>>> = Rc::new(RefCell::new(None));
-    while ((*queue.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) > (0 as i64) {
+    while (({ let __len = (*queue.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) > (0 as i64) {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = heads.clone(); let __append_value = GoPtr::slice_elem(GoSliceElemPtr::new(queue.clone(), (0) as usize)); let mut __appended: Vec<GoPtr<i64>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *heads.borrow_mut() = __slice_header; };
         { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = queue.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))); *queue.borrow_mut() = __slice_header; };
     }

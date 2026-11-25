@@ -1,0 +1,11 @@
+[package]
+name = "slice_element_pointer_identity"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "slice_element_pointer_identity"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

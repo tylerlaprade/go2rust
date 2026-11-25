@@ -777,6 +777,9 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -923,13 +926,19 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };
         }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
         if let Ok(__guard) = self.slice.try_borrow() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1152,7 +1161,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -1373,7 +1382,7 @@ fn main() {
     }
     { let new_val = 99; *(*(*ptrs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).price.borrow_mut() = Some(new_val); };
     { let __target = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).price.clone(); let __rhs = 1; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    println!("{} {} {} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone()), format!("{}", (*ptrs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*(*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).title.borrow().as_ref().unwrap()).clone()), format!("{}", ({ let __len = (*ptrs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __range_holder = ptrs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { let __target = (*p.borrow().as_ref().unwrap()).price.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } }
@@ -1391,5 +1400,5 @@ fn main() {
     { let __range_holder = both.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { let __target = (*p.borrow().as_ref().unwrap()).title.clone(); (*__target.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
     } }
-    println!("{} {}", format!("{}", format_slice(&items)), format!("{}", (*both.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", format_slice(&items)), format!("{}", ({ let __len = (*both.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

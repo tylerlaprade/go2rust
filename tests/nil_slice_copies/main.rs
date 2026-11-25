@@ -800,9 +800,9 @@ fn main() {
     let mut t = Rc::new(RefCell::new(s.borrow().clone()));
     let mut u: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(s.borrow().clone()));
     let mut w = Rc::new(RefCell::new(s.borrow().clone()));
-    println!("{} {} {} {}", format!("{}", { let __nil_result = (*t.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*u.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*w.borrow()).is_none(); __nil_result }), format!("{}", (*t.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {} {}", format!("{}", { let __nil_result = (*t.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*u.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*w.borrow()).is_none(); __nil_result }), format!("{}", ({ let __len = (*t.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = t.clone(); let __append_value = 1; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *t.borrow_mut() = __slice_header; };
-    println!("{} {} {}", format!("{}", { let __nil_result = (*s.borrow()).is_none(); __nil_result }), format!("{}", format_slice(&t)), format!("{}", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {}", format!("{}", { let __nil_result = (*s.borrow()).is_none(); __nil_result }), format!("{}", format_slice(&t)), format!("{}", ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut a = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
     let mut b = Rc::new(RefCell::new(a.borrow().clone()));
     { let __idx = (0) as usize; let __rhs = 9; (*b.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };

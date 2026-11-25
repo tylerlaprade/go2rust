@@ -30,12 +30,12 @@ fn main() {
 
         // Access slice - transpiler needs to know Numbers is a slice
     print!("First number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(0) as usize].clone());
-    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[(((*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)) as usize].clone());
+    print!("Last number: {}\n", (*Numbers.borrow().as_ref().unwrap())[((({ let __len = (*Numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize].clone());
 
         // Access map of slices - complex type resolution
     let mut admins = { let __map_holder = Groups.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"admins".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     let mut admins = { let __slice_header = GoSliceHeader::go_slice_header(&admins); Rc::new(RefCell::new(__slice_header)) };
-    print!("Admin count: {}\n", (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+    print!("Admin count: {}\n", ({ let __len = (*admins.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }));
     print!("First admin: {}\n", (*admins.borrow().as_ref().unwrap())[(0) as usize].clone());
 
         // Iterate over map - requires knowing the type

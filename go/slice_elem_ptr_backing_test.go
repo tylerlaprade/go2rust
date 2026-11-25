@@ -27,8 +27,9 @@ func TestSliceElemPtrHoldsBackingArray(t *testing.T) {
 	rust := transpileTypedRegression(t, sliceElemPtrBackingSource)
 	for _, want := range []string{
 		"let __header = (*__guard).clone();",
-		"return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };",
+		"return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };",
 		"pub fn identity(&self) -> (usize, usize) {",
+		"if let Some(__id) = self.id {",
 		"let __base = __slice.as_slice().as_ptr() as usize;",
 		"(Some(__l), Some(__r)) => __l.identity() == __r.identity()",
 	} {

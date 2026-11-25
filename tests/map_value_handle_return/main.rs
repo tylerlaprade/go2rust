@@ -741,7 +741,7 @@ fn __go_init_globals() {
 
 
 pub fn lookup(methods: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>>>>>>, receiver: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Method>>>>>>> {
-    if (*receiver.borrow().as_ref().unwrap()).clone() != "".to_string() && ((*{ let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) > (0 as i64) {
+    if (*receiver.borrow().as_ref().unwrap()).clone() != "".to_string() && (({ let __len = (*{ let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) > (0 as i64) {
         return { let __map_holder = methods.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*receiver.borrow().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
     }
     fallback.clone()
@@ -758,7 +758,7 @@ fn main() {
     let mut got = { let __slice_header = GoSliceHeader::go_slice_header(&got); Rc::new(RefCell::new(__slice_header)) };
     let mut emptyReceiver = lookup(methods.clone(), Rc::new(RefCell::new(Some("".to_string()))));
     let mut emptyReceiver = { let __slice_header = GoSliceHeader::go_slice_header(&emptyReceiver); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*got.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*emptyReceiver.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", ({ let __len = (*got.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len = (*emptyReceiver.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }
 
 pub(crate) fn __go_init_all() {

@@ -681,7 +681,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn main() {
     let mut data = Rc::new(RefCell::new(Some(("abcdef".to_string()).as_bytes().to_go_slice())));
-    let mut limit = Rc::new(RefCell::new(Some(std::cmp::min(((*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64), (3 as i64)))));
+    let mut limit = Rc::new(RefCell::new(Some(std::cmp::min((({ let __len = (*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64), (3 as i64)))));
     println!("{}", format!("{}", { let __v = (*limit.borrow().as_ref().unwrap()).clone(); __v }));
     println!("{}", format!("{}", std::cmp::max((2 as i64), ((*limit.borrow().as_ref().unwrap()) as i64))));
     println!("{}", format!("{}", std::cmp::min("beta".to_string(), "alpha".to_string())));

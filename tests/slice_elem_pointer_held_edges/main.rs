@@ -685,6 +685,9 @@ impl std::io::Write for GoSlice<u8> {
 pub struct GoSliceElemPtr<T> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
+    /// The element's identity when the pointer was made with the slice
+    /// free to borrow; otherwise identity reads it from the slice.
+    id: Option<(usize, usize)>,
 }
 
 pub struct GoSliceElemRef<T: Clone> {
@@ -831,13 +834,19 @@ impl<T> GoSliceElemPtr<T> {
             // Hold the backing array the slice has now, not the variable.
             let __header = (*__guard).clone();
             drop(__guard);
-            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index };
+            // The element's address, taken now: nothing else can lock
+            // the copy, and == need not wait for it.
+            let __id = __header.as_ref().map(|__slice| ((__slice.as_slice().as_ptr() as usize).wrapping_add(index.wrapping_mul(std::mem::size_of::<T>())), 0));
+            return GoSliceElemPtr { slice: std::rc::Rc::new(std::cell::RefCell::new(__header)), index, id: __id };
         }
-        GoSliceElemPtr { slice, index }
+        GoSliceElemPtr { slice, index, id: None }
     }
 
     /// The array and element the pointer names, for == between pointers.
     pub fn identity(&self) -> (usize, usize) {
+        if let Some(__id) = self.id {
+            return __id;
+        }
         if let Ok(__guard) = self.slice.try_borrow() {
             if let Some(__slice) = __guard.as_ref() {
                 let __base = __slice.as_slice().as_ptr() as usize;
@@ -1060,7 +1069,7 @@ impl<T: 'static> Clone for GoPtr<T> {
             GoPtr::Nil => GoPtr::Nil,
             GoPtr::Raw(addr) => GoPtr::Raw(*addr),
             GoPtr::Local(value) => GoPtr::Local(value.clone()),
-            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index }),
+            GoPtr::SliceElem(value) => GoPtr::SliceElem(GoSliceElemPtr { slice: value.slice.clone(), index: value.index, id: value.id }),
             GoPtr::ArrayElem(value) => GoPtr::ArrayElem(value.clone()),
         }
     }
@@ -1333,7 +1342,7 @@ fn main() {
     let mut dst: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(None));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = dst.clone(); let __append_values: Vec<_> = { let __slice_holder = src.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<GoPtr<Item>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *dst.borrow_mut() = __slice_header; };
     { let __target = (*(*dst.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).price.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    println!("{} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", (*dst.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", ({ let __len = (*dst.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
         // A source holding nil, spread into a destination that also takes an address.
     let mut maybe: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(Some(Vec::<GoPtr<Item>>::new())));
@@ -1346,7 +1355,7 @@ fn main() {
         // Keyed literal declaration.
     let mut keyed: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(Some(vec![GoPtr::nil(), GoPtr::nil()])));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keyed.clone(); let __append_value = GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), (2) as usize)); let mut __appended: Vec<GoPtr<Item>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *keyed.borrow_mut() = __slice_header; };
-    println!("{} {} {}", format!("{}", (*keyed.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __nil_ptr = (*keyed.borrow().as_ref().unwrap())[(0) as usize].clone(); __nil_ptr.is_nil() }), format!("{}", (*(*(*keyed.borrow().as_ref().unwrap())[(2) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
+    println!("{} {} {}", format!("{}", ({ let __len = (*keyed.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __nil_ptr = (*keyed.borrow().as_ref().unwrap())[(0) as usize].clone(); __nil_ptr.is_nil() }), format!("{}", (*(*(*keyed.borrow().as_ref().unwrap())[(2) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 
         // Appending an element read from the same slice.
     let mut ptrs: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(Some(Vec::<GoPtr<Item>>::new())));
@@ -1358,7 +1367,7 @@ fn main() {
         // Alias of a slice.
     let mut alias: Rc<RefCell<Option<Vec<GoPtr<Item>>>>> = Rc::new(RefCell::new(src.borrow().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = alias.clone(); let __append_value = GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), (2) as usize)); let mut __appended: Vec<GoPtr<Item>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *alias.borrow_mut() = __slice_header; };
-    println!("{} {}", format!("{}", (*alias.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*(*(*alias.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
+    println!("{} {}", format!("{}", ({ let __len = (*alias.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*(*(*alias.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }
 
 pub(crate) fn __go_init_all() {

@@ -787,7 +787,7 @@ pub fn fail() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
 }
 
 pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
-    (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+    ({ let __len = (*args.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
 }
 
 fn main() {
