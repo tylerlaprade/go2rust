@@ -1,0 +1,5 @@
+[{3 0} {0 3}] 600
+[]struct { Name string; Age int }
+struct { main.Base; Note string "json:\"note\"" }
+struct {}
+map[string][]struct { X float64; Y float64 }

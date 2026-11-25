@@ -1679,7 +1679,7 @@ func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
 			if typ := typeInfo.GetType(ident); typ != nil && !types.IsInterface(typ) {
-				if goName, ok := goDynamicTypeName(typ); ok {
+				if goName, ok := goStaticTypeName(typ); ok {
 					out.WriteString(strconv.Quote(goName))
 					return
 				}

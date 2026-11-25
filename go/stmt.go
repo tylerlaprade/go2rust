@@ -8513,7 +8513,7 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr, m
 // the loops that bind the variable to a reference to the element; without
 // it "p.X = 1" in the loop writes into the slice. The loops that bind an
 // owned value copy in writeRangeOwnedValuesAdapter.
-func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr) {
+func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, value ast.Expr, body *ast.BlockStmt) {
 	ident, ok := value.(*ast.Ident)
 	if !ok || ident.Name == "_" {
 		return
@@ -8525,10 +8525,59 @@ func writeRangeValueIterationCopy(out *strings.Builder, rangeExpr ast.Expr, valu
 	name := RustLocalIdent(ident.Name)
 	out.WriteString("        let ")
 	out.WriteString(name)
-	out.WriteString(" = &")
+	if rangeBodyCallsPointerMethodOn(body, ident) {
+		// The copy is the loop's own: a pointer method called on it borrows
+		// it mutably, and changes only the copy.
+		out.WriteString(" = &mut ")
+	} else {
+		out.WriteString(" = &")
+	}
 	out.WriteString(name)
 	out.WriteString(copyCall)
 	out.WriteString(";\n")
+}
+
+// rangeBodyCallsPointerMethodOn reports whether body calls a method with a
+// pointer receiver on the range variable ident, as v.Scale(2) does.
+func rangeBodyCallsPointerMethodOn(body *ast.BlockStmt, ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if body == nil || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj := typeInfo.info.Defs[ident]
+	if obj == nil {
+		obj = typeInfo.info.Uses[ident]
+	}
+	if obj == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		recv, ok := unwrapParens(sel.X).(*ast.Ident)
+		if !ok || typeInfo.info.Uses[recv] != obj {
+			return true
+		}
+		if selection := typeInfo.info.Selections[sel]; selection != nil && selection.Kind() == types.MethodVal {
+			if sig, ok := selection.Obj().Type().(*types.Signature); ok && sig.Recv() != nil {
+				if _, isPtr := types.Unalias(sig.Recv().Type()).(*types.Pointer); isPtr {
+					found = true
+				}
+			}
+		}
+		return true
+	})
+	return found
 }
 
 // writeMapRangeValueIterationCopy makes the value variable of a range over a
@@ -16601,7 +16650,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(" {\n")
 		out.WriteString(rangePrelude)
 		if rangeValueBoundByReference {
-			writeRangeValueIterationCopy(out, s.X, s.Value)
+			writeRangeValueIterationCopy(out, s.X, s.Value, s.Body)
 		}
 		if isMap && valueBindingTemp == "" {
 			writeMapRangeValueIterationCopy(out, mapValueGoType, s.Value)
