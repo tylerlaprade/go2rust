@@ -603,6 +603,14 @@ run_xfail_test() {
     run_test "tests/atomic_operations"
 }
 
+@test "atomic_typed_counters" {
+    run_test "tests/atomic_typed_counters"
+}
+
+@test "atomic_typed_counters_plain" {
+    run_test "tests/atomic_typed_counters_plain"
+}
+
 @test "base64_encoding" {
     run_test "tests/base64_encoding"
 }
