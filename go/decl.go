@@ -6393,6 +6393,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				TrackImport("Formatter")
 				if arrayFormatter == "format_slice_wrapped_stringer" {
 					NeedFormatSliceWrappedStringer()
+				} else if arrayFormatter == "format_nested_slice" {
+					NeedFormatNestedSlice()
 				} else {
 					NeedFormatSlice()
 				}
@@ -6639,6 +6641,12 @@ func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) 
 	case *types.Slice:
 		return sequenceDisplayFormatter(seq.Elem())
 	case *types.Array:
+		// "type Board [3][3]int" holds a plain Rust array of arrays.
+		if row, ok := types.Unalias(seq.Elem()).(*types.Array); ok && arrayCellIsPrintedBasic(row.Elem()) {
+			if _, deeper := types.Unalias(row.Elem()).(*types.Array); !deeper {
+				return "format_nested_slice", true
+			}
+		}
 		return sequenceDisplayFormatter(seq.Elem())
 	default:
 		return "", false

@@ -1,0 +1,11 @@
+[package]
+name = "mutex_defer_unlock_closure_in_loop"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mutex_defer_unlock_closure_in_loop"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

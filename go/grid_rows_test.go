@@ -30,7 +30,7 @@ func main() {
 			t.Errorf("a bare row should not be borrowed as a cell (%q):\n%s", bad, rust)
 		}
 	}
-	if !strings.Contains(rust, "(row).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()") {
+	if !strings.Contains(rust, "(row).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()") {
 		t.Errorf("missing the rune row conversion:\n%s", rust)
 	}
 }

@@ -1119,6 +1119,22 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "defined_array_rows" {
+    run_test "tests/defined_array_rows"
+}
+
+@test "defined_array_rows_goroutines" {
+    run_test "tests/defined_array_rows_goroutines"
+}
+
+@test "defined_byte_slice_conversions" {
+    run_test "tests/defined_byte_slice_conversions"
+}
+
+@test "defined_byte_slice_conversions_goroutines" {
+    run_test "tests/defined_byte_slice_conversions_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
@@ -1615,6 +1631,10 @@ run_xfail_test() {
     run_test "tests/goroutine_capture_rust_keyword"
 }
 
+@test "goroutine_defer_unlock_in_loop" {
+    run_test "tests/goroutine_defer_unlock_in_loop"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -2091,6 +2111,14 @@ run_xfail_test() {
     run_test "tests/map_len_value_assignment"
 }
 
+@test "map_literal_call_values" {
+    run_test "tests/map_literal_call_values"
+}
+
+@test "map_literal_call_values_goroutines" {
+    run_test "tests/map_literal_call_values_goroutines"
+}
+
 @test "map_literal_defined_integer_types" {
     run_test "tests/map_literal_defined_integer_types"
 }
@@ -2303,6 +2331,10 @@ run_xfail_test() {
     run_test "tests/mutex_counter"
 }
 
+@test "mutex_defer_unlock_closure_in_loop" {
+    run_test "tests/mutex_defer_unlock_closure_in_loop"
+}
+
 @test "mutex_direct_unlock" {
     run_test "tests/mutex_direct_unlock"
 }
@@ -2353,6 +2385,14 @@ run_xfail_test() {
 
 @test "named_func_type_interface_param" {
     run_test "tests/named_func_type_interface_param"
+}
+
+@test "named_func_type_slice_calls" {
+    run_test "tests/named_func_type_slice_calls"
+}
+
+@test "named_func_type_slice_calls_goroutines" {
+    run_test "tests/named_func_type_slice_calls_goroutines"
 }
 
 @test "named_int_constants_print_through_string" {

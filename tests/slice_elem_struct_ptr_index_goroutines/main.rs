@@ -1663,9 +1663,9 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            mu_thread.lock();;
+            let __mutex_guard_source_1303 = mu_thread.clone(); let __mutex_guard_1303 = __mutex_guard_source_1303.guard();;
             { let __target = (*e.lock().unwrap().as_ref().unwrap()).salary.clone(); let __rhs = 10; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };;
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_1303);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
