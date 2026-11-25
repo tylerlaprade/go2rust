@@ -10419,12 +10419,12 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"let mut t = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
-		"let mut a = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
-		"let mut b: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone())));",
+		"let mut t = Rc::new(RefCell::new(s.borrow().clone()));",
+		"let mut a = Rc::new(RefCell::new(s.borrow().clone()));",
+		"let mut b: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(s.borrow().clone()));",
 		"let mut d = m.clone();",
 		"let mut f = m.clone();",
-		"let mut e = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()).clone())));",
+		"let mut e = Rc::new(RefCell::new(n.borrow().clone()));",
 		"let mut ch2 = ch.clone();",
 		"let mut ch3 = ch.clone();",
 		"Numbers(Rc::new(RefCell::new(Some((*s.borrow().as_ref().unwrap()).clone()))))",

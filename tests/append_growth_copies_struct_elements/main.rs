@@ -851,7 +851,7 @@ impl std::fmt::Display for Grid {
 fn main() {
         // A full slice grows into a new array: the old one keeps its elements.
     let mut small: Rc<RefCell<Option<Vec<Item>>>> = Rc::new(RefCell::new(Some({ let mut v: Vec<Item> = (0..(1) as usize).map(|_| Default::default()).collect(); v.truncate((1) as usize); v })));
-    let mut old = Rc::new(RefCell::new(Some((*small.borrow().as_ref().unwrap()).clone())));
+    let mut old = Rc::new(RefCell::new(small.borrow().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = small.clone(); let __append_value = Item { name: Rc::new(RefCell::new(Some("b".to_string()))), at: Rc::new(RefCell::new(Some(Point::default()))) }; let mut __appended: Vec<Item> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *small.borrow_mut() = __slice_header; };
     { let new_val = "changed".to_string(); *(*old.borrow().as_ref().unwrap())[(0) as usize].clone().name.borrow_mut() = Some(new_val); };
     { let new_val = 7; *(*(*old.borrow().as_ref().unwrap())[(0) as usize].clone().at.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
@@ -868,7 +868,7 @@ fn main() {
 
         // Room left: the append writes into the same array, as in Go.
     let mut roomy: Rc<RefCell<Option<Vec<Point>>>> = Rc::new(RefCell::new(Some({ let mut v: Vec<Point> = (0..(4) as usize).map(|_| Default::default()).collect(); v.truncate((1) as usize); v })));
-    let mut alias = Rc::new(RefCell::new(Some((*roomy.borrow().as_ref().unwrap()).clone())));
+    let mut alias = Rc::new(RefCell::new(roomy.borrow().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = roomy.clone(); let __append_value = Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }; let mut __appended: Vec<Point> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) })); *roomy.borrow_mut() = __slice_header; };
     { let new_val = 5; *(*alias.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", (*(*roomy.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())), format!("{}", (*(*alias.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow().as_ref().unwrap())));

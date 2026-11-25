@@ -2563,6 +2563,14 @@ run_xfail_test() {
     run_test "tests/nil_receiver_unsafe_pointer_result"
 }
 
+@test "nil_slice_copies" {
+    run_test "tests/nil_slice_copies"
+}
+
+@test "nil_slice_copies_goroutines" {
+    run_test "tests/nil_slice_copies_goroutines"
+}
+
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
 }
