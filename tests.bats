@@ -3211,6 +3211,10 @@ run_xfail_test() {
     run_test "tests/printf_local_interface_values_goroutines"
 }
 
+@test "printf_map_of_maps" {
+    run_test "tests/printf_map_of_maps"
+}
+
 @test "printf_nil_interface_arguments" {
     run_test "tests/printf_nil_interface_arguments"
 }
