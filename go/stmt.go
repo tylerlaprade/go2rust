@@ -11015,6 +11015,21 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 }
 
 // isMutexUnlockDefer checks if a defer statement is mu.Unlock() on a sync.Mutex
+// mutexUnlockDeferHasGuard reports whether the mutex that call unlocks was
+// locked with a guard that is still held.
+func mutexUnlockDeferHasGuard(call *ast.CallExpr) bool {
+	receiver, ok := syncMutexMethodReceiver(call, "Unlock")
+	if !ok {
+		return false
+	}
+	key, ok := mutexReceiverKey(receiver)
+	if !ok {
+		return false
+	}
+	_, guarded := activeMutexGuards[key]
+	return guarded
+}
+
 func isMutexUnlockDefer(call *ast.CallExpr) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || sel.Sel.Name != "Unlock" {
@@ -16720,8 +16735,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("\n    }")
 
 	case *ast.DeferStmt:
-		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)
-		if isMutexUnlockDefer(s.Call) {
+		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles
+		// unlock). With no guard for the mutex, a function that has a defer
+		// stack runs the Unlock from it.
+		if isMutexUnlockDefer(s.Call) && (!currentFunctionHasDefer || mutexUnlockDeferHasGuard(s.Call)) {
 			out.WriteString("// mu.Unlock() handled by RAII guard")
 			break
 		}
@@ -16972,6 +16989,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			oldFunctionHasDefer := currentFunctionHasDefer
 			currentFunctionHasDefer = hasClosureDefer
 			defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+			defer enterClosureBody()()
 			if hasClosureDefer {
 				out.WriteString(deferStackDecl() + "\n        ")
 			}

@@ -1615,6 +1615,10 @@ run_xfail_test() {
     run_test "tests/goroutine_capture_rust_keyword"
 }
 
+@test "goroutine_defer_unlock_in_loop" {
+    run_test "tests/goroutine_defer_unlock_in_loop"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -2295,6 +2299,10 @@ run_xfail_test() {
     run_test "tests/mutex_counter"
 }
 
+@test "mutex_defer_unlock_closure_in_loop" {
+    run_test "tests/mutex_defer_unlock_closure_in_loop"
+}
+
 @test "mutex_direct_unlock" {
     run_test "tests/mutex_direct_unlock"
 }
@@ -2345,6 +2353,14 @@ run_xfail_test() {
 
 @test "named_func_type_interface_param" {
     run_test "tests/named_func_type_interface_param"
+}
+
+@test "named_func_type_slice_calls" {
+    run_test "tests/named_func_type_slice_calls"
+}
+
+@test "named_func_type_slice_calls_goroutines" {
+    run_test "tests/named_func_type_slice_calls_goroutines"
 }
 
 @test "named_int_constants_print_through_string" {

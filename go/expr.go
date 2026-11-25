@@ -2504,6 +2504,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -2578,6 +2579,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
@@ -17518,6 +17520,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+	defer enterClosureBody()()
 
 	// Find captured variables
 	captured := capturedVarsForFuncLit(funcLit)
@@ -18051,6 +18054,11 @@ func functionBoxTypeForCallTarget(expr ast.Expr) string {
 		if vt := GetVarTable(); vt != nil {
 			if info := vt.Lookup(ident.Name); info != nil {
 				rustType := strings.TrimPrefix(info.RustType, "&")
+				// A named function type ("type Op func(*Bank) error") is
+				// the wrapped cell; the call goes through the Box inside.
+				if boxType, ok := FunctionTypeAliasBox(rustType); ok {
+					return boxType
+				}
 				if isFunctionValueRustType(rustType) {
 					return rustType
 				}

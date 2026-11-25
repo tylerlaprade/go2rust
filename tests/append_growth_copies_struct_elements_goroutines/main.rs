@@ -1183,9 +1183,9 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            mu_thread.lock();;
+            let __mutex_guard_source_1627 = mu_thread.clone(); let __mutex_guard_1627 = __mutex_guard_source_1627.guard();;
             { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = shared_thread.clone(); let __append_value = Point { x: Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), y: Arc::new(Mutex::new(Some(0))), ..Default::default() }; let mut __appended: Vec<Point> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Arc::new(Mutex::new(Some(__appended))) })); *shared_thread.lock().unwrap() = __slice_header; };;
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_1627);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
