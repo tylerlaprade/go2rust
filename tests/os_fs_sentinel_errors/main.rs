@@ -1782,6 +1782,12 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
+    /// File.Name: the name the File was opened with (part of the
+    /// os-file-create shim).
+    pub fn name(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some::<String>(self.__go_name.clone())))
+    }
+
     pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         let mut __disk = self.__go_disk.lock().unwrap();
         if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
@@ -2182,7 +2188,7 @@ pub mod os {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
             Ok(data) => {
-                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, ..Default::default() };
+                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::from(data))), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false, __go_name: path.clone(), ..Default::default() };
                 (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
             }
             Err(err) => (Rc::new(RefCell::new(None::<os_File>)), path_error("open", path, err)),

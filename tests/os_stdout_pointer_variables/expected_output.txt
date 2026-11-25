@@ -1,0 +1,10 @@
+to stdout
+true true false true
+logger 1
+writer
+true true false
+true true
+/dev/stdout
+/dev/null
+0 true /dev/stdout
+1 false /dev/stderr

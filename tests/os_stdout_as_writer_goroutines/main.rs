@@ -301,8 +301,8 @@ fn main() {
         let mut out = os::Stdout().clone();
         { let __s = format!("{}\n", format!("{}", "through a variable".to_string())); (*out.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         io::write_string(Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some("io.WriteString\n".to_string()))));
-        (*os::Stdout().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("WriteString\n".to_string()))));
-        let (mut n, mut err) = (*os::Stdout().lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some(("Write\n".to_string()).as_bytes().to_go_slice()))));
+        { let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.write_string(Arc::new(Mutex::new(Some("WriteString\n".to_string()))));
+        let (mut n, mut err) = { let __std_stream = (*os::Stdout().lock().unwrap().as_ref().unwrap()).clone(); __std_stream }.write(Arc::new(Mutex::new(Some(("Write\n".to_string()).as_bytes().to_go_slice()))));
         println!("{} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         let mut e = bufio::new_writer(Arc::new(Mutex::new(Some(Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))));
         { let __s = format!("{}\n", format!("{}", "to stderr".to_string())); (*e.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };

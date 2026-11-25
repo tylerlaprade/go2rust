@@ -8005,6 +8005,42 @@ func writePointerNilRebind(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) boo
 	return true
 }
 
+// typedPointerVarTakesPointerHandle reports whether "var p *T = value"
+// copies value's pointer handle into p. That is so when T is a pointer type
+// and value is a pointer variable, field, element or package variable such as
+// os.Stdout: wrapping it again made a pointer to a pointer, which does not
+// compile, and copied the pointee instead of sharing it.
+func typedPointerVarTakesPointerHandle(typeExpr ast.Expr, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || typeExpr == nil || value == nil {
+		return false
+	}
+	declared := typeInfo.info.TypeOf(typeExpr)
+	if declared == nil {
+		return false
+	}
+	if _, ok := types.Unalias(declared).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	switch v := unwrapParens(value).(type) {
+	case *ast.Ident:
+		if v.Name == "nil" {
+			return false
+		}
+		if rangeLoopVarGoTypeIsPointer(v.Name) {
+			return true
+		}
+	case *ast.SelectorExpr:
+	case *ast.IndexExpr:
+		if _, isMap := types.Unalias(typeInfo.info.TypeOf(v.X)).Underlying().(*types.Map); isMap {
+			return false
+		}
+	default:
+		return false
+	}
+	return typeInfo.IsPointer(value)
+}
+
 func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, rhs) {
 		return
@@ -15033,6 +15069,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Inferred named-integer vars store the named value, not the emitted primitive const.
 								} else if valueSpec.Type != nil && writeWrappedConstVarInitializer(out, name, valueSpec.Values[i]) {
 									// Typed const initializers are cast through the LHS type from go/types.
+								} else if valueSpec.Type != nil && typedPointerVarTakesPointerHandle(valueSpec.Type, valueSpec.Values[i]) {
+									// var p *T = q: p holds q's handle, as p := q does.
+									writePointerHandleValueClone(out, valueSpec.Values[i])
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok {
 									isInterface := false
 									if valueSpec.Type != nil {
