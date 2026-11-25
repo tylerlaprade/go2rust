@@ -751,6 +751,10 @@ run_xfail_test() {
     run_test "tests/channel_interface_values"
 }
 
+@test "channel_pipeline_call_results" {
+    run_test "tests/channel_pipeline_call_results"
+}
+
 @test "channel_receive_closed" {
     run_test "tests/channel_receive_closed"
 }
