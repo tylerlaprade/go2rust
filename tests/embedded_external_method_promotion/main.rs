@@ -795,7 +795,7 @@ pub struct writer {
 
 impl writer {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.buffer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.buffer.lock().unwrap(); Arc::new(Mutex::new((*__guard).as_ref().map(|__go_field| __go_field.__go_value_clone()))) };
         Self {
             buffer: __go_clone_0_0,
         }

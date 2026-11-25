@@ -29,7 +29,9 @@ func typeNeedsGoValueClone(typ types.Type) bool {
 		return false
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
-		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStdlibPackage(obj.Pkg().Path()) {
+		// A stub's type has no copy helper; a package translated from
+		// source declares its structs as the program's are.
+		if obj := named.Obj(); obj != nil && obj.Pkg() != nil && isStubBackedStdlibPackagePath(obj.Pkg().Path()) {
 			return false
 		}
 		switch named.Underlying().(type) {

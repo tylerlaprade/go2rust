@@ -1,0 +1,11 @@
+[package]
+name = "pointer_conversion_shares_pointee"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_conversion_shares_pointee"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

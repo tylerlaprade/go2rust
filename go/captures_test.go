@@ -467,12 +467,14 @@ func (check *Checker) run(pos Pos) {
 		t.Fatalf("closure body end not found:\n%s", rust)
 	}
 	body = body[:bodyEnd]
-	if strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*pos.borrow()") ||
-		strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*pos.lock()") {
+	// atPos stores Pos's number, which the conversion reads out of the
+	// captured Pos.
+	if strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*(*pos.borrow()") ||
+		strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*(*pos.lock()") {
 		t.Fatalf("named integer conversion inside moved closure should not read the outer capture:\n%s", rust)
 	}
-	if !strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*pos_closure_clone_closure_clone.borrow()") &&
-		!strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*pos_closure_clone_closure_clone.lock()") {
+	if !strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*(*pos_closure_clone_closure_clone.borrow()") &&
+		!strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*(*pos_closure_clone_closure_clone.lock()") {
 		t.Fatalf("named integer conversion inside moved closure should read the inner capture clone:\n%s", rust)
 	}
 }

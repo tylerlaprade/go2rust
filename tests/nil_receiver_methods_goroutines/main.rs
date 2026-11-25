@@ -512,7 +512,7 @@ pub fn more() {
     println!("{} {} {}", format!("{}", __go_nil_recv_counter_hit(c.clone())), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).hits.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_nil_recv_counter_hit(missing.clone())));
     let mut cs = Arc::new(Mutex::new(Some(vec![c.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Counter { ..Default::default() })))])));
     { let __range_holder = cs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter() {
-        print!("{}{}", format!("{}", __go_nil_recv_counter_hit((*x).clone())), format!("{}", " ".to_string()));
+        print!("{}{}", format!("{}", __go_nil_recv_counter_hit(x.clone())), format!("{}", " ".to_string()));
     } }
     println!();
     let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counter>>>>::from([("a".to_string(), c.clone())]))));

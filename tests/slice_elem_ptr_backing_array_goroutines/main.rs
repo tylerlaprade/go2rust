@@ -1107,6 +1107,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
         }
     }
 
+    /// The element as the guard of a cell, for code written against a
+    /// Mutex-held value: sync/atomic's Load and Store on &a[i].
+    #[allow(dead_code)]
+    pub fn lock(&self) -> Result<GoArrayElemMutRef<T, N>, std::convert::Infallible> {
+        Ok(self.borrow_mut())
+    }
+
     pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         let mut value = self.backing.borrow_at(self.index).expect("nil pointer dereference");
         let result = f(&mut value);

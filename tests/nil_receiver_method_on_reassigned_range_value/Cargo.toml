@@ -1,0 +1,11 @@
+[package]
+name = "nil_receiver_method_on_reassigned_range_value"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nil_receiver_method_on_reassigned_range_value"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

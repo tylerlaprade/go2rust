@@ -4042,6 +4042,16 @@ func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExp
 	}
 	out.WriteString("{ let new_val = ")
 	TranspileExpression(out, rhs)
+	if currentReceiverScalarTypeDefinition() {
+		// The receiver's cell may be another pointer's, as the cell of the
+		// *int that (*intValue)(p) converts: write the value into it.
+		out.WriteString("; let __new_value = new_val.0")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".take(); *self.0")
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = __new_value; }")
+		return true
+	}
 	out.WriteString("; *self = new_val; }")
 	return true
 }
@@ -11428,6 +11438,26 @@ func isPredeclaredBoolConstant(ident *ast.Ident) bool {
 
 // transpileChannelValue writes a value suitable for sending on a channel.
 // Channel values are bare (unwrapped), so we need to unwrap wrapped variables.
+// channelOfBareCollections reports whether ch's elements are unnamed slices
+// or maps, which it holds bare.
+func channelOfBareCollections(ch ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	chanType, ok := types.Unalias(typeInfo.GetType(ch)).Underlying().(*types.Chan)
+	if !ok {
+		return false
+	}
+	switch t := types.Unalias(chanType.Elem()).(type) {
+	case *types.Slice:
+		return !isEmptyInterfaceType(t.Elem())
+	case *types.Map:
+		return true
+	}
+	return false
+}
+
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	// For string literals, just output the value directly
 	if lit, ok := expr.(*ast.BasicLit); ok {
@@ -11550,6 +11580,17 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	// An element of a slice or an array, and the target of a pointer, is
 	// copied when it is sent.
 	if writeGoValueCopyOfElement(out, expr) {
+		return
+	}
+
+	// A channel holds its slices and maps bare: ch <- []int{1, 2} and
+	// ch <- s[1:] send the collection out of its new handle.
+	if channelElemIsBareCollection(expr) && !isExpressionResultBare(expr) {
+		out.WriteString("{ let __sent = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; let __sent_guard = __sent")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __sent_guard.as_ref().cloned().unwrap_or_default() }")
 		return
 	}
 
@@ -12527,7 +12568,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(".send(")
 		// Unwrap the value if it's wrapped
 		typeInfo := GetTypeInfo()
-		if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		if ident, ok := s.Value.(*ast.Ident); ok && ident.Name == "nil" && channelOfBareCollections(s.Chan) {
+			// The channel holds its slices and maps bare, and a bare one
+			// cannot be nil: an empty one is sent.
+			out.WriteString("Default::default()")
+		} else if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
 		} else if writeChannelHandleCopy(out, s.Value, nil) {
 		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
@@ -13325,9 +13370,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else if writeGoSliceHeaderAssignment(out, s) {
 			// A slice variable keeps its cell and takes the new header.
 		} else if isChannelAssignment(s) {
-			writeChannelAssignmentTarget(out, s.Lhs[0])
-			out.WriteString(" = ")
-			writeChannelAssignmentValue(out, s.Rhs[0])
+			if writeGoPtrFieldChannelAssignment(out, s.Lhs[0], s.Rhs[0]) {
+				// t.C = c through a GoPtr, as time.NewTicker sets its channel.
+			} else {
+				writeChannelAssignmentTarget(out, s.Lhs[0])
+				out.WriteString(" = ")
+				writeChannelAssignmentValue(out, s.Rhs[0])
+			}
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
 			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
 			s.Tok == token.AND_ASSIGN || s.Tok == token.AND_NOT_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
@@ -18098,6 +18147,32 @@ func isChannelAssignment(s *ast.AssignStmt) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
+}
+
+// writeGoPtrFieldChannelAssignment writes p.C = c for a channel field of the
+// struct a GoPtr local points at. A channel field holds its handle bare, so
+// the assignment replaces the field inside the pointee.
+func writeGoPtrFieldChannelAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || !isGoPtrVar(ident.Name) {
+		return false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		return false
+	}
+	out.WriteString("{ let __new_channel = ")
+	writeChannelAssignmentValue(out, rhs)
+	out.WriteString("; ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(" = __new_channel); }")
+	return true
 }
 
 func writeChannelAssignmentTarget(out *strings.Builder, lhs ast.Expr) {

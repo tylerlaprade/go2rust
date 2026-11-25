@@ -52,6 +52,7 @@ fn main() {
     ::go_types::__go_init_all();
     ::go_version::__go_init_all();
     ::internal_abi::__go_init_all();
+    ::internal_bisect::__go_init_all();
     ::internal_buildcfg::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_cpu::__go_init_all();

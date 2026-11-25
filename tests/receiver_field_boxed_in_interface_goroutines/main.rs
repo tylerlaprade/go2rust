@@ -2564,7 +2564,7 @@ impl std::fmt::Display for M {
 
 impl State {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(["idle".to_string(), "busy".to_string()]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(["idle".to_string(), "busy".to_string()]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[{ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } as usize].clone() })))
     }
 }
 
@@ -2609,7 +2609,7 @@ fn main() {
         }
     });;
         if ok {
-            println!("{} {}", format!("{}", "held".to_string()), format!("{}", (*Arc::new(Mutex::new(Some((*{ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap())));;
+            println!("{} {}", format!("{}", "held".to_string()), format!("{}", (*Arc::new(Mutex::new(Some({ let __named_value = (*{ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as i64))).lock().unwrap().as_ref().unwrap())));;
         }
     }
     let mut v = Arc::new(Mutex::new(Some(M { state: Arc::new(Mutex::new(Some(State(Arc::new(Mutex::new(Some(0 as i64))))))), plain: Arc::new(Mutex::new(Some(Plain(Arc::new(Mutex::new(Some(3 as i64))))))), ..Default::default() })));
