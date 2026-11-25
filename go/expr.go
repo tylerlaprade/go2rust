@@ -8868,6 +8868,19 @@ func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {
 		writeIdentValueClone(out, ident)
 		return
 	}
+	if sel, ok := unwrapParens(expr).(*ast.SelectorExpr); ok && typeInfo != nil && typeInfo.info != nil {
+		// A struct field is a cell. Read the value out of it: a field of
+		// the method receiver reads as the cell itself (`self.state.clone()`),
+		// so cloning that boxed the cell, and printing it from an interface
+		// panicked.
+		if selection, ok := typeInfo.info.Selections[sel]; ok && selection.Kind() == types.FieldVal {
+			out.WriteString("(*")
+			TranspileExpressionContext(out, sel, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return
+		}
+	}
 	TranspileExpression(out, expr)
 	out.WriteString(".clone()")
 }
