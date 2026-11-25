@@ -3383,6 +3383,14 @@ run_xfail_test() {
     run_test "tests/recover_named_type_assertion"
 }
 
+@test "recover_nil_pointer_runtime_error" {
+    run_test "tests/recover_nil_pointer_runtime_error"
+}
+
+@test "recover_nil_pointer_runtime_error_goroutines" {
+    run_test "tests/recover_nil_pointer_runtime_error_goroutines"
+}
+
 @test "recover_without_goroutines" {
     run_test "tests/recover_without_goroutines"
 }
