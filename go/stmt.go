@@ -11114,6 +11114,13 @@ func stableStatementPosID(pos token.Pos) int {
 			return position.Offset
 		}
 	}
+	// The statement is not in the file set at hand. Its raw position counts
+	// every file loaded before it, the Go toolchain's own sources among them,
+	// so it changes with the Go version. Count from the function body
+	// instead, which comes from the same file set.
+	if currentFunctionBody != nil && currentFunctionBody.Pos().IsValid() && pos >= currentFunctionBody.Pos() {
+		return int(pos - currentFunctionBody.Pos())
+	}
 	return int(pos)
 }
 
