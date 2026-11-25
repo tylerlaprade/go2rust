@@ -7095,18 +7095,49 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 		trackWrapperImports()
 		out.WriteString("{ let __peer = ")
 		writePointerHandleExpression(out, otherExpr)
+		if !currentReceiverRustAliasIsPointerHandle {
+			// The receiver is the struct inside the cell of the handle the
+			// method was called on, which that call holds: when the peer is
+			// that handle, the receiver lies in its cell, and locking it
+			// again would wait forever. That needs no lock to tell.
+			out.WriteString("; let __peer_cell = ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&__peer) as usize; let __self_addr = ")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(" as *const _ as usize; let __eq = (__self_addr >= __peer_cell && __self_addr < __peer_cell + std::mem::size_of_val(&*__peer)) || {")
+		}
 		out.WriteString("; let __peer_guard = __peer")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); ")
+		identityField, hasIdentity := pointerIdentityField(typeInfo.GetType(receiverExpr))
+		if otherField, ok := pointerIdentityField(typeInfo.GetType(otherExpr)); !ok || otherField != identityField {
+			hasIdentity = false
+		}
 		if currentReceiverRustAliasIsPointerHandle {
 			out.WriteString("let __self_guard = ")
 			out.WriteString(currentReceiverRustName())
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __self_ptr = __self_guard.as_ref().map(|__v| __v as *const _ as usize); let __eq = __peer_ptr == __self_ptr; ")
+		} else if hasIdentity {
+			// A handle made from the receiver holds a copy that shares
+			// the receiver's field cells: it points at the same struct.
+			out.WriteString("let __peer_id = __peer_guard.as_ref().map(|__v| ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&__v.")
+			out.WriteString(identityField)
+			out.WriteString(") as *const () as usize); let __self_ptr = ")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(" as *const _ as usize; let __self_id = ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".")
+			out.WriteString(identityField)
+			out.WriteString(") as *const () as usize; __peer_ptr == Some(__self_ptr) || __peer_id == Some(__self_id) }; ")
 		} else {
 			out.WriteString("let __self_ptr = ")
 			out.WriteString(currentReceiverRustName())
-			out.WriteString(" as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); ")
+			out.WriteString(" as *const _ as usize; __peer_ptr == Some(__self_ptr) }; ")
 		}
 		if expr.Op == token.NEQ {
 			out.WriteString("!")
@@ -7259,7 +7290,7 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	leftText := left.String()
 	rightText := right.String()
 	if pointerEqualityShouldUseMultiline(leftText, rightText) {
-		writeMultilinePointerEquality(out, leftText, rightText, expr.Op)
+		writeMultilinePointerEquality(out, leftText, rightText, expr.Op, typeInfo.GetType(expr.X), typeInfo.GetType(expr.Y))
 		return true
 	}
 	out.WriteString("{ let __left = ")
@@ -7272,12 +7303,89 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString(").is_none(); let __eq = __both_nil || ")
 	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left, &__right); ")
+	out.WriteString("::ptr_eq(&__left, &__right)")
+	writeSameStructObjectTerm(out, typeInfo.GetType(expr.X), typeInfo.GetType(expr.Y), "__left", "__right")
+	out.WriteString("; ")
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+// pointerIdentityField names the field whose cell identifies the struct
+// that a pointer of type typ points at: the first field of a basic,
+// pointer, slice or map type, which is always held in a cell. A pointer
+// method's receiver is the struct, not its handle, so storing or returning
+// it makes a new handle around a copy that shares every field's cell: the
+// same Go pointer, but not the same handle. A Go copy of the struct has new
+// cells, and two allocations never share one.
+func pointerIdentityField(typ types.Type) (string, bool) {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	if args := named.TypeArgs(); args != nil && args.Len() > 0 {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || (named.Obj().Pkg() != typeInfo.pkg && isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())) {
+		return "", false
+	}
+	st, ok := named.Underlying().(*types.Struct)
+	if !ok {
+		return "", false
+	}
+	for i := 0; i < st.NumFields(); i++ {
+		field := st.Field(i)
+		if field.Name() == "_" || field.Anonymous() {
+			continue
+		}
+		switch t := types.Unalias(field.Type()).(type) {
+		case *types.Basic:
+			if t.Kind() == types.UnsafePointer {
+				continue
+			}
+			return ToSnakeCase(field.Name()), true
+		case *types.Pointer, *types.Slice, *types.Map:
+			return ToSnakeCase(field.Name()), true
+		}
+	}
+	return "", false
+}
+
+// writeSameStructObjectTerm writes, after the ptr_eq of two pointer
+// handles left and right, " || " and whether they point at the same struct
+// by the cell of its identity field. Each handle is locked on its own, after
+// ptr_eq has found them to be different handles.
+func writeSameStructObjectTerm(out *strings.Builder, leftType, rightType types.Type, left, right string) {
+	field, ok := pointerIdentityField(leftType)
+	if !ok {
+		return
+	}
+	if rightField, ok := pointerIdentityField(rightType); !ok || rightField != field {
+		return
+	}
+	identity := func(handle string) string {
+		var b strings.Builder
+		b.WriteString(handle)
+		WriteBorrowMethod(&b, false)
+		b.WriteString(".as_ref().map(|__v| ")
+		b.WriteString(GetOuterWrapperType())
+		b.WriteString("::as_ptr(&__v.")
+		b.WriteString(field)
+		b.WriteString(") as *const () as usize)")
+		return b.String()
+	}
+	out.WriteString(" || { let __left_id = ")
+	out.WriteString(identity(left))
+	out.WriteString("; let __right_id = ")
+	out.WriteString(identity(right))
+	out.WriteString("; __left_id.is_some() && __left_id == __right_id }")
 }
 
 // isSharedStdStreamSelector reports whether sel is os.Stdout or os.Stderr.
@@ -7306,7 +7414,7 @@ func pointerEqualityShouldUseMultiline(leftText, rightText string) bool {
 	return strings.Contains(leftText, "\n") || strings.Contains(rightText, "\n") || inlineLen > maxInlineWrappedSlotAssignmentLen
 }
 
-func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText string, op token.Token) {
+func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText string, op token.Token, leftType, rightType types.Type) {
 	indent := currentLineIndent(out)
 	out.WriteString("{\n")
 	out.WriteString(indent)
@@ -7326,7 +7434,9 @@ func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText str
 	out.WriteString(indent)
 	out.WriteString("    let __eq = __both_nil || ")
 	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left, &__right);\n")
+	out.WriteString("::ptr_eq(&__left, &__right)")
+	writeSameStructObjectTerm(out, leftType, rightType, "__left", "__right")
+	out.WriteString(";\n")
 	out.WriteString(indent)
 	out.WriteString("    ")
 	if op == token.NEQ {

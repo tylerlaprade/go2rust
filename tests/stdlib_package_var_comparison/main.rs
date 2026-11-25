@@ -57,7 +57,7 @@ fn main() {
         let __left = (*go_types::Unsafe.lock().unwrap().as_ref().unwrap()).clone();
         let __right = (*go_types::Unsafe.lock().unwrap().as_ref().unwrap()).clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
-        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.path) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.path) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }));
 }

@@ -717,7 +717,7 @@ pub fn changed__ptr__var(r#in: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Var>>>>>>
         return false;
     }
     let mut u = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>> = { let mut __f_guard = subst.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*r#in.borrow().as_ref().unwrap())[(0) as usize].clone()) };
-    return { let __left = u.clone(); let __right = (*r#in.borrow().as_ref().unwrap())[(0) as usize].clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right); !__eq };
+    return { let __left = u.clone(); let __right = (*r#in.borrow().as_ref().unwrap())[(0) as usize].clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right) || { let __left_id = __left.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id }; !__eq };
 }
 
 fn main() {
