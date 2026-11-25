@@ -1,0 +1,7 @@
+0 ok 5
+1 error: negative -5
+2 ok -15
+trim="go to rust"
+upper="  GO TO RUST  "
+Hi!
+hi

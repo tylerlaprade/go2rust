@@ -3159,6 +3159,13 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		pkgNames = append(pkgNames, pkgName)
 	}
 	slices.Sort(pkgNames)
+	if packageStubsUseFilesystemSentinel(packageStubs) {
+		if needsSeparator || out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		needsSeparator = true
+		writeStubFilesystemSentinels(out)
+	}
 	for _, pkgName := range pkgNames {
 		pkg := packageStubs[pkgName]
 		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0 && len(pkg.Variables) == 0) {
@@ -4407,6 +4414,63 @@ fn __go_stub_eof() -> %s {
 `, errorInnerType, errorInnerType, errorType, registered, fallback)
 }
 
+// stubFilesystemSentinels are io/fs's ErrNotExist, ErrExist and
+// ErrPermission, which os also exports: each one's Rust I/O error kind and
+// Go's text.
+var stubFilesystemSentinels = []struct{ name, kind, text string }{
+	{"ErrNotExist", "NotFound", "file does not exist"},
+	{"ErrExist", "AlreadyExists", "file already exists"},
+	{"ErrPermission", "PermissionDenied", "permission denied"},
+}
+
+// stubFilesystemSentinelIndex returns the index in stubFilesystemSentinels
+// of the fs or os variable varName.
+func stubFilesystemSentinelIndex(pkgName, varName string) (int, bool) {
+	if pkgName != "fs" && pkgName != "os" {
+		return 0, false
+	}
+	for i, sentinel := range stubFilesystemSentinels {
+		if sentinel.name == varName {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// packageStubsUseFilesystemSentinel reports whether the fs or os stub has a
+// variable that is one of stubFilesystemSentinels.
+func packageStubsUseFilesystemSentinel(packageStubs map[string]*externalPackageStub) bool {
+	for _, pkgName := range []string{"fs", "os"} {
+		if pkg := packageStubs[pkgName]; pkg != nil {
+			for varName := range pkg.Variables {
+				if _, ok := stubFilesystemSentinelIndex(pkgName, varName); ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Part of the io-fs-err-not-exist shim in docs/bridge_debt.md. The filesystem
+// sentinels, made once, so that every read of one is the same error.
+func writeStubFilesystemSentinels(out *strings.Builder) {
+	errorType := externalStubErrorInnerType()
+	values := make([]string, len(stubFilesystemSentinels))
+	for i, sentinel := range stubFilesystemSentinels {
+		values[i] = rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::new(std::io::ErrorKind::"+sentinel.kind+", \""+sentinel.text+"\")")
+	}
+	list := strings.Join(values, ", ")
+	n := len(stubFilesystemSentinels)
+	if NeedsConcurrentWrapper() {
+		fmt.Fprintf(out, "static __GO_FS_SENTINELS: std::sync::OnceLock<[%s; %d]> = std::sync::OnceLock::new();\n\n", errorType, n)
+		fmt.Fprintf(out, "/// fs.ErrNotExist, ErrExist and ErrPermission, and os's names for them.\npub fn __go_fs_sentinel(index: usize) -> %s {\n    __GO_FS_SENTINELS.get_or_init(|| [%s])[index].clone()\n}\n", errorType, list)
+		return
+	}
+	fmt.Fprintf(out, "thread_local! {\n    static __GO_FS_SENTINELS: [%s; %d] = [%s];\n}\n\n", errorType, n, list)
+	fmt.Fprintf(out, "/// fs.ErrNotExist, ErrExist and ErrPermission, and os's names for them.\npub fn __go_fs_sentinel(index: usize) -> %s {\n    __GO_FS_SENTINELS.with(|__sentinels| __sentinels[index].clone())\n}\n", errorType)
+}
+
 func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
@@ -4414,10 +4478,12 @@ func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varN
 	out.WriteString(rustType)
 	out.WriteString(" {\n")
 	out.WriteString("        ")
-	if pkgName == "fs" && varName == "ErrNotExist" {
+	if index, ok := stubFilesystemSentinelIndex(pkgName, varName); ok {
 		// TEMPORARY: io-fs-err-not-exist in docs/bridge_debt.md. Remove when the
-		// source-transpiled io/fs sentinel is available to ordinary callers.
-		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::from(std::io::ErrorKind::NotFound)")))
+		// source-transpiled io/fs sentinels are available to ordinary callers.
+		// os.ErrNotExist is fs.ErrNotExist in Go, and so on for the others:
+		// each read is the same error, so == compares them as Go does.
+		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), fmt.Sprintf("crate::__go_fs_sentinel(%d)", index)))
 	} else {
 		writeExternalStubDefaultValue(out, rustType)
 	}

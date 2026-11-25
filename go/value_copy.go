@@ -80,8 +80,7 @@ func writeNamedArrayPartialEq(out *strings.Builder, typeSpec *ast.TypeSpec, rust
 	if !ok {
 		return
 	}
-	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
-	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+	if !arrayCellIsPrintedBasic(array.Elem()) {
 		return
 	}
 	out.WriteString("\nimpl PartialEq for ")
@@ -97,6 +96,22 @@ func writeNamedArrayPartialEq(out *strings.Builder, typeSpec *ast.TypeSpec, rust
 	out.WriteString("        __left == __right\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+// arrayCellIsPrintedBasic reports whether elem is a bool, number or string,
+// or an unnamed array of them at any depth: "[3]int" and "[2][2]int". Such an
+// array is a plain Rust array, which compares and prints its cells.
+func arrayCellIsPrintedBasic(elem types.Type) bool {
+	for {
+		elem = types.Unalias(elem)
+		array, ok := elem.(*types.Array)
+		if !ok {
+			break
+		}
+		elem = array.Elem()
+	}
+	basic, ok := elem.(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
 func writeNamedArrayValueClone(out *strings.Builder, typeSpec *ast.TypeSpec, rustTypeName string) {

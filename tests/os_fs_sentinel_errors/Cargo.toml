@@ -1,0 +1,11 @@
+[package]
+name = "os_fs_sentinel_errors"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_fs_sentinel_errors"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

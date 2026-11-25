@@ -392,16 +392,25 @@ in the first place.
 ### io-fs-err-not-exist
 
 - Location: `go/external_type_stubs.go`,
-  `writeExternalPackageStubVariable`
-- Go symbol: `io/fs.ErrNotExist`
+  `writeExternalPackageStubVariable`, `writeStubFilesystemSentinels`;
+  `go/error_chain.go` (`go_native_error_is`)
+- Go symbol: `io/fs.ErrNotExist`, `io/fs.ErrExist`, `io/fs.ErrPermission`,
+  and `os.ErrNotExist`, `os.ErrExist`, `os.ErrPermission`, which are the
+  same errors
 - Transpiler gap: external package variables cannot refer to the
-  source-transpiled sentinel, so the ordinary stub maps it to Rust
-  `ErrorKind::NotFound`.
+  source-transpiled sentinels, so the ordinary stub makes each one a Rust
+  I/O error of its kind (`NotFound`, `AlreadyExists`, `PermissionDenied`)
+  with Go's text. Each is made once, so `os.ErrNotExist == fs.ErrNotExist`
+  and every read is the same error. `errors.Is` matches a sentinel, and an
+  OS error of the sentinel's kind, as `syscall.Errno.Is` does. The os
+  names were nil before (2026-11-24), so `errors.Is(err, os.ErrNotExist)`
+  was false and `%w` of one printed `%!w(<nil>)`.
 - Fixture: `tests/os_open_path_error/` and
-  `tests/os_open_path_error_goroutines/`. The source-mode regression is
-  `tests/XFAIL/source_stdlib_os_open_path_error/`.
-- Removal trigger: source-map the `io/fs` sentinel for ordinary callers and
-  route `errors.Is` through it, then delete the external-stub branch.
+  `tests/os_open_path_error_goroutines/`, `tests/os_fs_sentinel_errors/`
+  and `tests/os_fs_sentinel_errors_goroutines/`. The source-mode
+  regression is `tests/XFAIL/source_stdlib_os_open_path_error/`.
+- Removal trigger: source-map the `io/fs` sentinels for ordinary callers and
+  route `errors.Is` through them, then delete the external-stub branch.
 - Added: 2026-11-20
 
 ### json-marshal-helpers

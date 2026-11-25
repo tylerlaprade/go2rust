@@ -50,7 +50,10 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // bytes, bufio and io are Go's code too, so a bufio.Scanner reads from a
 // strings.Reader through io.Reader as Go's does; internal/bytealg uses the
 // generic Go search the other architectures build (stdlibNoAsmOverlays).
+// cmp is Go's generic Compare, Less and Or; its stubs had no bodies, so
+// cmp.Compare panicked.
 var defaultSourceStdlibPackages = map[string]bool{
+	"cmp":                   true,
 	"path/filepath":         true,
 	"internal/filepathlite": true,
 	"internal/stringslite":  true,
