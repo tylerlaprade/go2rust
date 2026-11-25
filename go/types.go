@@ -6,6 +6,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -703,9 +704,13 @@ func getStructSignature(structType *ast.StructType) string {
 		if nestedStruct, ok := field.Type.(*ast.StructType); ok {
 			// For nested anonymous structs, include their full signature
 			sig.WriteString(getStructSignature(nestedStruct))
+		} else if typ := anonymousStructFieldType(field.Type); typ != nil {
+			// The field's type, so that struct{ v *Node } and
+			// struct{ v *int } are two Rust structs. The kind of syntax
+			// node alone, *ast.StarExpr for both, made them one.
+			sig.WriteString(types.TypeString(typ, nil))
 		} else {
-			// For other types, just use the type string representation
-			sig.WriteString(fmt.Sprintf("%T", field.Type))
+			sig.WriteString(types.ExprString(field.Type))
 		}
 	}
 	sig.WriteString("}")
@@ -755,11 +760,36 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	return typeName
 }
 
-// lookupAnonymousStructName finds the anonymous struct name for a *types.Struct
-// by matching field names against registered anonymous structs.
+func anonymousStructFieldType(expr ast.Expr) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	return typeInfo.GetType(expr)
+}
+
+// lookupAnonymousStructName finds the anonymous struct name for a *types.Struct:
+// the registered anonymous struct of the identical type, or else the first,
+// by name, whose field names match.
 func lookupAnonymousStructName(structType *types.Struct) string {
+	names := make([]string, 0, len(anonymousStructs))
+	for anonName := range anonymousStructs {
+		names = append(names, anonName)
+	}
+	sort.Slice(names, func(i, j int) bool {
+		if len(names[i]) != len(names[j]) {
+			return len(names[i]) < len(names[j])
+		}
+		return names[i] < names[j]
+	})
+	for _, anonName := range names {
+		if typ := anonymousStructFieldType(anonymousStructs[anonName]); typ != nil && types.Identical(typ, structType) {
+			return anonName
+		}
+	}
 	numFields := structType.NumFields()
-	for anonName, anonAST := range anonymousStructs {
+	for _, anonName := range names {
+		anonAST := anonymousStructs[anonName]
 		// Count AST fields (expand grouped names)
 		astFieldCount := 0
 		for _, field := range anonAST.Fields.List {

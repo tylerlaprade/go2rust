@@ -2253,6 +2253,13 @@ func writeNilZeroValueInitializerFromTypeInfo(out *strings.Builder, typeExpr ast
 		out.WriteString(" = ")
 		WriteWrappedNone(out)
 		return true
+	case *types.Chan:
+		// A channel variable is the bare GoChannel, and its Default is
+		// the nil channel. A cell around it did not compile.
+		out.WriteString(" = <")
+		out.WriteString(GoTypeToRust(typeExpr))
+		out.WriteString(">::default()")
+		return true
 	default:
 		return false
 	}

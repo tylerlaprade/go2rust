@@ -1,0 +1,18 @@
+3 2 1 
+map[a:1 b:2] 2
+6 6
+true
+1 false
+7 <nil>
+not found: zz
+building
+1 1
+9 1
+20 20 20 
+recovered boom 41
+true
+true
+9
+map[b:2]
+true map[a:1]
+done 42

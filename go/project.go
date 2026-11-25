@@ -270,6 +270,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			// Log warning but continue - we'll handle missing type info in individual functions
 			fmt.Fprintf(os.Stderr, "Warning: Type checking incomplete: %v\n", err)
 			fmt.Fprintf(os.Stderr, "Generated code may contain errors where type information is required\n")
+		} else {
+			boxCapturedReboundVariables(typeInfo, fileSet, astFiles)
 		}
 		pg.typeInfo = typeInfo
 
