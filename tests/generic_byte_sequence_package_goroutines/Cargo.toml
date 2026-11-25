@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_seqpkggo_seq",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "generic_byte_sequence_package_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_byte_sequence_package_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_seqpkggo_seq = { path = "vendor/example_com_seqpkggo_seq" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
