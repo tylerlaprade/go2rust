@@ -55,7 +55,86 @@ func expandedFormat(call *ast.CallExpr, formatIndex int) (string, bool) {
 	if !namedScalarArgsUseDisplay(format, call.Args[formatIndex+1:]) {
 		return "", false
 	}
+	if !compositeArgsUseDisplay(format, call.Args[formatIndex+1:]) {
+		return "", false
+	}
 	return format, true
+}
+
+// compositeArgsUseDisplay reports whether every slice, array, map or struct
+// argument is formatted with %v, %s, %d, %T or %p. Those print the value as
+// Println does, or its type or address. Any other verb, such as %x of a
+// [3]int, applies to each element or field, which the Rust format does not
+// do: format!("{:x}", ...) of the printed text did not compile. A []byte or
+// [N]byte is left out, since %x of its bytes is written while translating.
+func compositeArgsUseDisplay(quoted string, args []ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return true
+	}
+	var verbs []byte
+	parsed := false
+	for index, arg := range args {
+		if !formatArgIsComposite(typeInfo.GetType(arg)) {
+			continue
+		}
+		if !parsed {
+			format, err := strconv.Unquote(quoted)
+			if err != nil {
+				return false
+			}
+			var ok bool
+			if verbs, ok = formatVerbsInOrder(format); !ok {
+				return false
+			}
+			parsed = true
+		}
+		if index >= len(verbs) || strings.IndexByte("vsdTp", verbs[index]) < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func formatArgIsComposite(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	var elem types.Type
+	switch t := typ.Underlying().(type) {
+	case *types.Slice:
+		elem = t.Elem()
+	case *types.Array:
+		elem = t.Elem()
+	case *types.Map, *types.Struct:
+		return true
+	default:
+		return false
+	}
+	basic, ok := types.Unalias(elem).Underlying().(*types.Basic)
+	return !ok || basic.Kind() != types.Byte
+}
+
+// formatVerbsInOrder returns the verb of each argument of format, in order.
+// A format with an argument index or a * width is not read.
+func formatVerbsInOrder(format string) ([]byte, bool) {
+	var verbs []byte
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		i++
+		for i < len(format) && strings.IndexByte("+-# 0123456789.", format[i]) >= 0 {
+			i++
+		}
+		if i >= len(format) || format[i] == '[' || format[i] == '*' {
+			return nil, false
+		}
+		if format[i] != '%' {
+			verbs = append(verbs, format[i])
+		}
+	}
+	return verbs, true
 }
 
 // namedScalarArgsUseDisplay reports whether every argument of a type the
@@ -291,6 +370,7 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	var fieldTypes []string
+	var elementTypes []string
 	for rustType, arm := range anyFormatArms {
 		if arm.text {
 			textTypes = append(textTypes, rustType)
@@ -301,7 +381,11 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 		if arm.fields {
 			fieldTypes = append(fieldTypes, rustType)
 		}
+		if arm.elements {
+			elementTypes = append(elementTypes, rustType)
+		}
 	}
+	sort.Strings(elementTypes)
 	sort.Strings(textTypes)
 	sort.Strings(namedBasicTypes)
 	sort.Strings(fieldTypes)
@@ -338,6 +422,15 @@ fn go_format_fields_value(__value: &` + anyValue + `) -> Option<String> {`)
 		out.WriteString("\n    if let Some(__v) = __value.downcast_ref::<" + rustType + ">() {\n        return Some(format!(\"{:#}\", __v));\n    }")
 	}
 	out.WriteString("\n    None\n}\n")
+	// An array is boxed as the Rust array, whose length is part of its
+	// type, so each one the program formats is named here.
+	out.WriteString(`
+// The elements of value, boxed, when it is an array of basic values.
+fn go_format_elements(__value: &` + anyValue + `) -> Option<Vec<` + anyBox + `>> {`)
+	for _, rustType := range elementTypes {
+		out.WriteString("\n    if let Some(__v) = __value.downcast_ref::<" + rustType + ">() {\n        return Some(__v.iter().map(|__e| Box::new(__e.clone()) as " + anyBox + ").collect());\n    }")
+	}
+	out.WriteString("\n    None\n}\n")
 	// The rest is in a module of its own. The crate root, where helpers are
 	// written, imports every package-level variable and constant of the Go
 	// package, and Rust does not let a local name or a parameter be the
@@ -356,7 +449,7 @@ fn go_format_fields_value(__value: &` + anyValue + `) -> Option<String> {`)
 	out.WriteString(`
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -828,6 +921,23 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &GO_ANY_VALUE) -> 
         };
     }
     basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);
+    // An array of them the same way. An array of bytes is the text or the
+    // hex of those bytes for %s, %q, %x and %X, as a []byte is.
+    if !plain_v && !sharp_v {
+        if let Some(items) = go_format_elements(value) {
+            let bytes: Option<Vec<u8>> = items.iter().map(|item| item.downcast_ref::<u8>().copied()).collect();
+            if let Some(bytes) = bytes.filter(|bytes| !bytes.is_empty()) {
+                if let Some(text) = go_format_bytes(spec, verb, &bytes) {
+                    return Some(text);
+                }
+            }
+            let items: Vec<String> = items.iter().map(|item| {
+                let item: &GO_ANY_VALUE = item.as_ref();
+                go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
+            }).collect();
+            return Some(format!("[{}]", items.join(" ")));
+        }
+    }
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {

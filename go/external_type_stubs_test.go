@@ -1897,3 +1897,44 @@ stdlib, don't bridge it". To resolve:
 			registryPath)
 	}
 }
+
+// A struct that embeds one of the package's interfaces forwards the
+// interface's methods to the field. Without the forwarder, Loud::name(self)
+// in the impl of Animal was the trait method itself, and recursed.
+func TestEmbeddedLocalInterfaceMethodsAreForwarded(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Animal interface {
+	Name() string
+	sound() string
+}
+
+type Dog struct{}
+
+func (Dog) Name() string  { return "rex" }
+func (Dog) sound() string { return "woof" }
+
+type Loud struct{ Animal }
+
+type Outer struct{ *Loud }
+
+func main() {
+	l := &Loud{Dog{}}
+	o := Outer{l}
+	var a Animal = o
+	fmt.Println(l.Name(), o.sound(), a.Name())
+}
+`)
+
+	for _, want := range []string{
+		"impl Loud {\n    pub fn name(&self) -> Rc<RefCell<Option<String>>> {\n        let embedded = self.animal.clone();",
+		"    pub fn sound(&self) -> Rc<RefCell<Option<String>>> {\n        let embedded = self.animal.clone();",
+		"    pub fn sound(&self) -> Rc<RefCell<Option<String>>> {\n        let embedded = self.loud.clone();",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in:\n%s", want, rust)
+		}
+	}
+}

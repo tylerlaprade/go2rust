@@ -348,6 +348,11 @@ fn go_format_fields_value(__value: &(dyn Any + Send + Sync)) -> Option<String> {
     None
 }
 
+// The elements of value, boxed, when it is an array of basic values.
+fn go_format_elements(__value: &(dyn Any + Send + Sync)) -> Option<Vec<Box<dyn Any + Send + Sync>>> {
+    None
+}
+
 // A nil interface value passed to a format known only at run time. The
 // arguments are boxes, which cannot be nil themselves.
 #[allow(dead_code)]
@@ -355,7 +360,7 @@ struct GoFormatNil;
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -806,6 +811,23 @@ fn go_format_argument(spec: &GoFormatSpec, verb: char, value: &(dyn Any + Send +
         };
     }
     basic_slice!(String, i64, i32, i16, i8, u64, u32, u16, f64, f32, bool);
+    // An array of them the same way. An array of bytes is the text or the
+    // hex of those bytes for %s, %q, %x and %X, as a []byte is.
+    if !plain_v && !sharp_v {
+        if let Some(items) = go_format_elements(value) {
+            let bytes: Option<Vec<u8>> = items.iter().map(|item| item.downcast_ref::<u8>().copied()).collect();
+            if let Some(bytes) = bytes.filter(|bytes| !bytes.is_empty()) {
+                if let Some(text) = go_format_bytes(spec, verb, &bytes) {
+                    return Some(text);
+                }
+            }
+            let items: Vec<String> = items.iter().map(|item| {
+                let item: &(dyn Any + Send + Sync) = item.as_ref();
+                go_format_argument(spec, verb, item).unwrap_or_else(|| format!("%!{}({})", verb, go_format_typed_value(spec, item)))
+            }).collect();
+            return Some(format!("[{}]", items.join(" ")));
+        }
+    }
     // A value with a String or an Error method is the text that method
     // returns, for the verbs that print a string.
     if go_format_is_text(value) && !sharp_v && matches!(verb, 'v' | 's' | 'q' | 'x' | 'X') {

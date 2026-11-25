@@ -1,0 +1,11 @@
+[package]
+name = "printf_map_of_maps"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_map_of_maps"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

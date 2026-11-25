@@ -237,6 +237,10 @@ type anyFormatArm struct {
 	// fields says the value is a struct whose Display writes the field
 	// names when asked for the alternate form, which is how %+v prints it.
 	fields bool
+	// elements says the value is an array of basic values, boxed as the Rust
+	// array. A format known only at run time applies a verb such as %q or
+	// %x to each element, as it does for a slice.
+	elements bool
 }
 
 var generatingPublicHelpers bool
