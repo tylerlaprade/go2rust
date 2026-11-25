@@ -5225,6 +5225,8 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		return false
 	}
 	out.WriteString("{ let new_val = ")
+	// m = (a[0]) is m = a[0].
+	rhs = unwrapParens(rhs)
 	switch rhs.(type) {
 	case *ast.Ident, *ast.SelectorExpr:
 		TranspileExpressionContext(out, rhs, LValue)
