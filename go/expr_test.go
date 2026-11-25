@@ -6157,6 +6157,13 @@ func cut() []byte {
 	if strings.Contains(rust, ".capacity()") || strings.Contains(rust, "resize_with") {
 		t.Fatalf("array slicing should use array length, not Vec capacity helpers:\n%s", rust)
 	}
+	if goSliceModeEnabled() {
+		// The slice is over the array's own elements, up to len(array).
+		if !strings.Contains(rust, "GoSlice::from_array_rc_cell(&__array_cell, (1) as usize, (3) as usize, 65)") {
+			t.Fatalf("array slicing should preserve Go len(array)-low capacity:\n%s", rust)
+		}
+		return
+	}
 	if !strings.Contains(rust, "let __max = __source_cap;") ||
 		!strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
 		t.Fatalf("array slicing should preserve Go len(array)-low capacity:\n%s", rust)

@@ -15577,6 +15577,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperSuffix(out)
 		} else if writeGoPtrPointedArraySliceExpression(out, e) {
 			// GoPtr pointer-to-array helper slice.
+		} else if !isStringSlice && writeArrayCellSliceExpression(out, e) {
+			// A slice of an array in a cell shares the array's elements.
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
