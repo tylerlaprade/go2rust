@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
@@ -647,10 +648,19 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<Celsius>() {
         format!("{}", v)
+    } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
+        "<nil>".to_string()
+    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
+        match (*v.borrow()).as_ref() { Some(__err) => format!("{}", __err), None => "<nil>".to_string() }
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
 }
+
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
 
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -670,6 +680,8 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Celsius>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
 }
 
@@ -713,6 +725,80 @@ fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<O
     None
 }
 
+struct GoPointerError<T> {
+    handle: Rc<RefCell<Option<T>>>,
+}
+
+impl<T> GoPointerError<T> {
+    fn new(handle: Rc<RefCell<Option<T>>>) -> Self { Self { handle } }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let guard = self.handle.borrow();
+        match guard.as_ref() {
+            Some(value) => write!(f, "{}", value),
+            None => Ok(()),
+        }
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Debug for GoPointerError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+impl<T: std::fmt::Display + 'static> std::error::Error for GoPointerError<T> {}
+
+#[derive(Clone, Copy)]
+struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &dyn Any) -> usize {
+    value as *const dyn Any as *const () as usize
+}
+
+fn go_register_any_type<T: Any + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_register_any_type_with_elem<T: Any + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+// Boxes value as itself and records what kind of Go type it is. Every reader
+// of an interface value looks for the value's own type in the box, so the
+// box must hold nothing else: a wrapper around the value would be a type no
+// reader knows.
+fn go_box_any_with_metadata<T: Any + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any> {
+    go_register_any_type::<T>(kind, comparable);
+    Box::new(value) as Box<dyn Any>
+}
+
+fn go_register_any_value_metadata(value: &dyn Any, kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+fn go_any_type_metadata(value: &dyn Any) -> Option<GoAnyTypeMetadata> {
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -733,6 +819,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Celsius>() { return "main.Celsius" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -787,6 +874,50 @@ fn go_display_value<T: Display>(__value: &T) -> String {
     }
     __value.to_string()
 }
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_errorString;
+
+impl std::fmt::Display for errors_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_errorString>")
+    }
+}
+
+impl std::error::Error for errors_errorString {}
+
+
+impl errors_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_joinError;
+
+impl std::fmt::Display for errors_joinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_joinError>")
+    }
+}
+
+impl std::error::Error for errors_joinError {}
+
+
+impl errors_joinError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
+        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Celsius(pub Rc<RefCell<Option<f64>>>);
@@ -1044,11 +1175,67 @@ fn main() {
     let mut total = Rc::new(RefCell::new(Some(0i64)));
     { let __range_holder = vals.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for x in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
         { let __rhs = ({
-        let any_val = &x;
-        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "int")).clone()
+        let any_val: &dyn Any = x.as_ref();
+        any_val.downcast_ref::<i64>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "int")).clone()
     }) * 10; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
     println!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
+    for x in &vec![{ let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(7i64) as Box<dyn Any>] {
+        {
+        let (mut err, mut ok) = ({
+        let val = Rc::new(RefCell::new(Some(go_any_clone(x.as_ref()))));
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() {
+                ({ let __err_source = typed_val; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }, true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
+            } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>() {
+                (Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))), true)
+            } else {
+                (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
+            }
+        } else {
+            (Rc::new(RefCell::new(None::<Rc<dyn StdError>>)), false)
+        }
+    });;
+        if ok {
+            println!("{} {}", format!("{}", "err".to_string()), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));;
+        }
+    }
+        {
+    let _ts_ref = x;
+    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);
+    let _ts_is_nil = _ts_val.map_or(false, |__v| __v.is::<GoNilAny>());
+    if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()).is_some() {
+        let w = if let Some(__err_handle) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>()) { { let __err_source = __err_handle; let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) } } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>()) { Rc::new(RefCell::new(Some(Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError>))) } else { unreachable!("type switch error case matched no error payload") };
+        println!("{} {}", format!("{}", "error".to_string()), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", ({
+        let any_val: &dyn Any = x.as_ref();
+        { if let Some(__err_handle) = any_val.downcast_ref::<Rc<RefCell<Option<Rc<dyn StdError>>>>>() { (*__err_handle.borrow()).clone().expect("type assertion failed") } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_errorString>>>>() { Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError> } else if let Some(typed_val) = any_val.downcast_ref::<Rc<RefCell<Option<errors_joinError>>>>() { Rc::new(GoPointerError::new(typed_val.clone())) as Rc<dyn StdError> } else { panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "error") } }
+    }))))).borrow().as_ref().unwrap())));;
+    } else {
+        let w = _ts_val.unwrap();
+        {
+        let (mut n, mut ok) = ({
+        let val = Rc::new(RefCell::new(Some(go_any_clone(w))));
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<i64>() {
+                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+            } else {
+                (Rc::new(RefCell::new(Some(0))), false)
+            }
+        } else {
+            (Rc::new(RefCell::new(Some(0))), false)
+        }
+    });;
+        if ok {
+            println!("{} {}", format!("{}", "int".to_string()), format!("{}", (*n.borrow().as_ref().unwrap()) + 1));;
+        }
+    };
+    }
+    }
+    }
     let (mut a, mut b) = (go_any_handle_copy(&v), go_any_handle_copy(&s));
     println!("{} {}", format!("{}", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match b.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 }

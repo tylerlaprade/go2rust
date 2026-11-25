@@ -3,7 +3,10 @@
 // for a range value over a []any, and a, b := v, s copies interface values.
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Celsius float64
 
@@ -23,6 +26,19 @@ func main() {
 		total += x.(int) * 10
 	}
 	fmt.Println(total)
+	for _, x := range []any{errors.New("boom"), 7} {
+		if err, ok := x.(error); ok {
+			fmt.Println("err", err.Error())
+		}
+		switch w := x.(type) {
+		case error:
+			fmt.Println("error", x.(error).Error())
+		default:
+			if n, ok := w.(int); ok {
+				fmt.Println("int", n+1)
+			}
+		}
+	}
 	a, b := v, s
 	fmt.Println(a, b)
 }

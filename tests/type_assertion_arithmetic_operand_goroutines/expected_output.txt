@@ -3,3 +3,6 @@
 true true false
 36
 60
+err boom
+error boom
+int 8

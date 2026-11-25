@@ -10097,6 +10097,26 @@ func rangeVarIsAnyBoxRef(ident *ast.Ident) bool {
 	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(ident))
 }
 
+// rustAnyValueRefType is the type of a reference to an interface{} value
+// itself: &dyn Any, with Send and Sync in goroutine mode.
+func rustAnyValueRefType() string {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		return "&(dyn Any + Send + Sync)"
+	}
+	return "&dyn Any"
+}
+
+// writeBareAnyReferenceValue writes the value an interface{} the
+// isBareAnyReferenceExpr way holds, as a reference to it: a range value over
+// a []any is its box, and other such bindings refer to the value already.
+func writeBareAnyReferenceValue(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	if rangeVarIsAnyBoxRef(ident) {
+		out.WriteString(".as_ref()")
+	}
+}
+
 func isBareAnyReferenceExpr(expr ast.Expr) bool {
 	ident, ok := unwrapParens(expr).(*ast.Ident)
 	if !ok || ident.Name == "nil" {
@@ -16697,17 +16717,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if !targetKeepsAnyHandle && isBareAnyReferenceExpr(e.X) {
-				// A range value over a []any is the box itself, not a cell.
+				// A range value over a []any is the box itself, not a cell,
+				// and a bare interface{} binding refers to the value.
 				out.WriteString("({\n")
-				out.WriteString("        let any_val = &")
-				out.WriteString(rustIdentForUseWithCapture(unwrapParens(e.X).(*ast.Ident)))
+				out.WriteString("        let any_val: ")
+				out.WriteString(rustAnyValueRefType())
+				out.WriteString(" = ")
+				writeBareAnyReferenceValue(out, unwrapParens(e.X).(*ast.Ident))
 				out.WriteString(";\n")
 				out.WriteString("        ")
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				withTypeAssertionFailure(e, "&**any_val", func() {
-					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, false)
+				withTypeAssertionFailure(e, "any_val", func() {
+					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
 				})
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
@@ -21132,8 +21155,8 @@ func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 		NeedAnyClone()
 		WriteWrapperPrefix(out)
 		out.WriteString("go_any_clone(")
-		out.WriteString(rustIdentForUseWithCapture(unwrapParens(expr).(*ast.Ident)))
-		out.WriteString(".as_ref())")
+		writeBareAnyReferenceValue(out, unwrapParens(expr).(*ast.Ident))
+		out.WriteString(")")
 		WriteWrapperSuffix(out)
 		return
 	}
