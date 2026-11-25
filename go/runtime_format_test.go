@@ -372,7 +372,7 @@ func main() {
 
 	for _, want := range []string{
 		"fn go_format_is_text(__value: &dyn Any) -> bool {",
-		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, GoFormatNil};",
+		"#[allow(unused_imports)]\nmod __go_runtime_format {\n    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil};",
 		"\npub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any>], wraps: bool) -> String {",
 		"}\nuse __go_runtime_format::go_sprintf;\n",
 	} {

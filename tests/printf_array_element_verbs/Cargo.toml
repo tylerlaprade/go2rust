@@ -1,0 +1,11 @@
+[package]
+name = "printf_array_element_verbs"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "printf_array_element_verbs"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -3191,6 +3191,10 @@ run_xfail_test() {
     run_test "tests/printf_args_lock_one_value_goroutines"
 }
 
+@test "printf_array_element_verbs" {
+    run_test "tests/printf_array_element_verbs"
+}
+
 @test "printf_basic_slice_verbs" {
     run_test "tests/printf_basic_slice_verbs"
 }
@@ -3253,6 +3257,10 @@ run_xfail_test() {
 
 @test "printf_width_decimal" {
     run_test "tests/printf_width_decimal"
+}
+
+@test "promoted_interface_methods" {
+    run_test "tests/promoted_interface_methods"
 }
 
 @test "promoted_pointer_index_field_assign" {
