@@ -4295,6 +4295,14 @@ run_xfail_test() {
     run_test "tests/switch_strings"
 }
 
+@test "sync_map_methods" {
+    run_test "tests/sync_map_methods"
+}
+
+@test "sync_map_methods_goroutines" {
+    run_test "tests/sync_map_methods_goroutines"
+}
+
 @test "sync_once" {
     run_test "tests/sync_once"
 }
@@ -4349,6 +4357,14 @@ run_xfail_test() {
 
 @test "type_assert_shadow_range" {
     run_test "tests/type_assert_shadow_range"
+}
+
+@test "type_assertion_arithmetic_operand" {
+    run_test "tests/type_assertion_arithmetic_operand"
+}
+
+@test "type_assertion_arithmetic_operand_goroutines" {
+    run_test "tests/type_assertion_arithmetic_operand_goroutines"
 }
 
 @test "type_assertion_method_receiver" {

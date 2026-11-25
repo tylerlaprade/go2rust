@@ -2060,7 +2060,7 @@ func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorE
 			continue
 		}
 		if externalStdlibStubMethodCall {
-			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
+			writeExternalStubMethodCallArgument(out, sel, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
 			writeBareMethodCallArgument(out, sel, call.Args[i], i)
 		} else {
@@ -7376,7 +7376,8 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 }
 
 // wrappedSyncValueSharesStateOnClone reports whether ident is a variable
-// held in a cell whose type is sync.WaitGroup, sync.Mutex or sync.RWMutex.
+// held in a cell whose type is sync.WaitGroup, sync.Mutex, sync.RWMutex or
+// sync.Map.
 // Their Rust values share one state between clones, so a method can be
 // called on a clone without holding the variable's cell.
 func wrappedSyncValueSharesStateOnClone(ident *ast.Ident) bool {
@@ -7389,7 +7390,7 @@ func wrappedSyncValueSharesStateOnClone(ident *ast.Ident) bool {
 		return false
 	}
 	switch named.Obj().Name() {
-	case "WaitGroup", "Mutex", "RWMutex":
+	case "WaitGroup", "Mutex", "RWMutex", "Map":
 		return true
 	}
 	return false
@@ -10115,6 +10116,26 @@ func rangeVarIsAnyBoxRef(ident *ast.Ident) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(ident))
+}
+
+// rustAnyValueRefType is the type of a reference to an interface{} value
+// itself: &dyn Any, with Send and Sync in goroutine mode.
+func rustAnyValueRefType() string {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		return "&(dyn Any + Send + Sync)"
+	}
+	return "&dyn Any"
+}
+
+// writeBareAnyReferenceValue writes the value an interface{} the
+// isBareAnyReferenceExpr way holds, as a reference to it: a range value over
+// a []any is its box, and other such bindings refer to the value already.
+func writeBareAnyReferenceValue(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	if rangeVarIsAnyBoxRef(ident) {
+		out.WriteString(".as_ref()")
+	}
 }
 
 func isBareAnyReferenceExpr(expr ast.Expr) bool {
@@ -13690,7 +13711,7 @@ func writeNamedIntegerValueReceiverMethodCall(out *strings.Builder, sel *ast.Sel
 				args.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(&args, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(&args, sel, arg, i)
 			} else {
@@ -16718,6 +16739,29 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			anyHandleType, _, targetKeepsAnyHandle := typeAssertionAnyHandleTarget(e)
 			if writeAnySliceElementAssertionValue(out, e, rustType, assertionReturnsPointer, targetIsError) {
+				return
+			}
+			if !targetKeepsAnyHandle && isBareAnyReferenceExpr(e.X) {
+				// A range value over a []any is the box itself, not a cell,
+				// and a bare interface{} binding refers to the value.
+				out.WriteString("({\n")
+				out.WriteString("        let any_val: ")
+				out.WriteString(rustAnyValueRefType())
+				out.WriteString(" = ")
+				writeBareAnyReferenceValue(out, unwrapParens(e.X).(*ast.Ident))
+				out.WriteString(";\n")
+				out.WriteString("        ")
+				if assertionReturnsPointer {
+					WriteWrapperPrefix(out)
+				}
+				withTypeAssertionFailure(e, "any_val", func() {
+					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, targetIsError && typeAssertionSourceIsEmptyInterface(e.X))
+				})
+				if assertionReturnsPointer {
+					WriteWrapperSuffix(out)
+				}
+				out.WriteString("\n")
+				out.WriteString("    })")
 				return
 			}
 			out.WriteString("({\n")
@@ -21139,6 +21183,17 @@ func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 			}
 		}
 	}
+	if isBareAnyReferenceExpr(expr) {
+		// A range value over a []any is the box itself, not a cell: the
+		// assertion opens a cell holding a copy of it.
+		NeedAnyClone()
+		WriteWrapperPrefix(out)
+		out.WriteString("go_any_clone(")
+		writeBareAnyReferenceValue(out, unwrapParens(expr).(*ast.Ident))
+		out.WriteString(")")
+		WriteWrapperSuffix(out)
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(".clone()")
@@ -23424,7 +23479,7 @@ func writeElemPtrCallResultFieldMethodCall(out *strings.Builder, fieldSel *ast.S
 				args.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(&args, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(&args, sel, arg, i)
 			} else {
@@ -23461,7 +23516,7 @@ func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr,
 				out.WriteString(", ")
 			}
 			if externalStdlibStubMethodCall {
-				writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
+				writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
 			} else if bareArgumentMethodCall {
 				writeBareMethodCallArgument(out, sel, arg, i)
 			} else {
@@ -23796,7 +23851,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
-					writeExternalStubCallArgument(out, arg, expectedArgType)
+					writeExternalStubMethodCallArgument(out, sel, arg, expectedArgType)
 					continue
 				}
 				if expectedArgType != nil {
@@ -24052,10 +24107,11 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if needsUnwrap && wrappedSyncValueSharesStateOnClone(ident) {
-					// A package-level sync.WaitGroup, Mutex or RWMutex: call
+					// A sync.WaitGroup, Mutex, RWMutex or Map in a cell: call
 					// the method on a copy of the handle, which shares its
 					// state. Holding the variable's own lock across wg.Wait()
-					// kept every goroutine's wg.Done() waiting for it.
+					// kept every goroutine's wg.Done() waiting for it, and a
+					// Range callback that changed the map waited for it too.
 					out.WriteString("{ let __sync_value = (*")
 					out.WriteString(receiverName)
 					WriteBorrowMethod(out, false)
@@ -24337,7 +24393,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(", ")
 				}
 				if externalStdlibStubMethodCall {
-					writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
+					writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
 				} else if bareArgumentMethodCall {
 					writeBareMethodCallArgument(out, sel, arg, i)
 				} else {

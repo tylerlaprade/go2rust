@@ -1797,6 +1797,10 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			writeAtomicBoolStub(&out)
 			continue
 		}
+		if name == "sync_Map" {
+			writeSyncMapStub(&out)
+			continue
+		}
 		if name == "fs_FileInfo" {
 			writeFsFileInfoStub(&out, name, methodsByType[name])
 			continue

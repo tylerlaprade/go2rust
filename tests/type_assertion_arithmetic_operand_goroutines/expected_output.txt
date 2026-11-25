@@ -1,0 +1,8 @@
+10 18 1 1
+5 gopher 40
+true true false
+36
+60
+err boom
+error boom
+int 8

@@ -1730,7 +1730,26 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	return true
 }
 
+// shortDeclTargetIsEmptyInterface reports whether lhs, a name a short
+// variable declaration defines, has an empty interface type.
+func shortDeclTargetIsEmptyInterface(lhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	typeInfo := GetTypeInfo()
+	if !ok || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	if obj := typeInfo.info.Defs[ident]; obj != nil {
+		return isEmptyInterfaceType(obj.Type())
+	}
+	return isEmptyInterfaceValueExpr(lhs)
+}
+
 func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, newBinding bool) {
+	if newBinding && shortDeclTargetIsEmptyInterface(lhs) && writeEmptyInterfaceHandleClone(out, rhs) {
+		// An interface{} variable is its handle: a, b := <-ch, x gives a
+		// the received handle and b a copy of x's, not a cell around one.
+		return
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && newBinding {
 		// m, n := make(map[int]*T), 0 where m holds slice element pointers:
 		// the initializer gives the map its GoPtr values, as a single
