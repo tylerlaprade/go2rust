@@ -68,8 +68,25 @@ fn go_errors_unwrap(err: Option<Arc<dyn StdError + Send + Sync>>) -> Option<Arc<
     stack.pop()
 }
 
+// A filesystem sentinel of the stub crate (fs.ErrNotExist, ErrExist,
+// ErrPermission, and os's names for them): an I/O error of its kind with no
+// OS code and Go's text, or none.
+fn go_native_error_is_sentinel(e: &std::io::Error) -> bool {
+    if e.raw_os_error().is_some() {
+        return false;
+    }
+    let text = match e.kind() {
+        std::io::ErrorKind::NotFound => "file does not exist",
+        std::io::ErrorKind::AlreadyExists => "file already exists",
+        std::io::ErrorKind::PermissionDenied => "permission denied",
+        _ => return false,
+    };
+    e.get_ref().map_or(true, |inner| inner.to_string() == text)
+}
+
 // Go compares syscall.Errno values by their numeric code. Its Is method
-// additionally recognizes the filesystem sentinel when it is the target.
+// additionally recognizes the filesystem sentinel of its kind when it is
+// the target.
 fn go_native_error_is(err: &Arc<dyn StdError + Send + Sync>, target: &Arc<dyn StdError + Send + Sync>) -> bool {
     let (Some(err), Some(target)) = (
         err.downcast_ref::<std::io::Error>(),
@@ -78,8 +95,8 @@ fn go_native_error_is(err: &Arc<dyn StdError + Send + Sync>, target: &Arc<dyn St
     if let Some(target_code) = target.raw_os_error() {
         return err.raw_os_error() == Some(target_code);
     }
-    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
-        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+    go_native_error_is_sentinel(target) && err.kind() == target.kind()
+        && (err.raw_os_error().is_some() || go_native_error_is_sentinel(err))
 }
 
 // Two errors are the same error when they point to the same value, as ==

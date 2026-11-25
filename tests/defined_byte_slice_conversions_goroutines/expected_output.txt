@@ -1,0 +1,11 @@
+xyz abc hi 3
+ABC yz
+xyz [97 98 99]
+5 héllo
+reassigned 4
+body
+rAw RAw!
+hey 3
+true 0 true
+2 8 true
+G0 G1

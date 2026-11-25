@@ -1513,7 +1513,7 @@ fn __go_init_globals() {
 
 
 pub fn get(cr: GoPtr<CR>, i: Arc<Mutex<Option<i64>>>) -> i32 {
-    { let __seq_holder = { let __named_array = (*{ let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.delta.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }
+    return { let __seq_holder = { let __named_array = (*{ let __ptr_value = cr.with_mut(|__ptr_value| __ptr_value.delta.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() };
 }
 
 pub fn lookup(lo: Arc<Mutex<Option<u32>>>) -> Option<GoSliceElemPtr<CR>> {

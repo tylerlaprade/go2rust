@@ -670,8 +670,25 @@ fn go_errors_unwrap(err: Option<Rc<dyn StdError>>) -> Option<Rc<dyn StdError>> {
     stack.pop()
 }
 
+// A filesystem sentinel of the stub crate (fs.ErrNotExist, ErrExist,
+// ErrPermission, and os's names for them): an I/O error of its kind with no
+// OS code and Go's text, or none.
+fn go_native_error_is_sentinel(e: &std::io::Error) -> bool {
+    if e.raw_os_error().is_some() {
+        return false;
+    }
+    let text = match e.kind() {
+        std::io::ErrorKind::NotFound => "file does not exist",
+        std::io::ErrorKind::AlreadyExists => "file already exists",
+        std::io::ErrorKind::PermissionDenied => "permission denied",
+        _ => return false,
+    };
+    e.get_ref().map_or(true, |inner| inner.to_string() == text)
+}
+
 // Go compares syscall.Errno values by their numeric code. Its Is method
-// additionally recognizes the filesystem sentinel when it is the target.
+// additionally recognizes the filesystem sentinel of its kind when it is
+// the target.
 fn go_native_error_is(err: &Rc<dyn StdError>, target: &Rc<dyn StdError>) -> bool {
     let (Some(err), Some(target)) = (
         err.downcast_ref::<std::io::Error>(),
@@ -680,8 +697,8 @@ fn go_native_error_is(err: &Rc<dyn StdError>, target: &Rc<dyn StdError>) -> bool
     if let Some(target_code) = target.raw_os_error() {
         return err.raw_os_error() == Some(target_code);
     }
-    target.kind() == std::io::ErrorKind::NotFound && target.get_ref().is_none()
-        && err.kind() == std::io::ErrorKind::NotFound && err.get_ref().is_none()
+    go_native_error_is_sentinel(target) && err.kind() == target.kind()
+        && (err.raw_os_error().is_some() || go_native_error_is_sentinel(err))
 }
 
 // Two errors are the same error when they point to the same value, as ==
@@ -741,6 +758,9 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// os.Stdout (1) or os.Stderr (2): writes go to the process's standard
+    /// output or error, through the same handle as print!.
+    pub __go_std_stream: u8,
     /// The file os.Create opened: reads and writes go to it, and Close
     /// closes it.
     pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
@@ -759,6 +779,7 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_std_stream: 0,
             __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
             __go_name: String::new(),
             __go_handle_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -835,6 +856,21 @@ impl os_File {
         let mut __disk = self.__go_disk.lock().unwrap();
         if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
             return (0, Some(self.__go_closed_error("write")));
+        }
+        if self.__go_std_stream != 0 {
+            drop(__disk);
+            // os.Stdout is not buffered in Go: each write reaches it.
+            let __result = if self.__go_std_stream == 1 {
+                let mut __out = std::io::stdout().lock();
+                std::io::Write::write_all(&mut __out, data).and_then(|_| std::io::Write::flush(&mut __out))
+            } else {
+                let mut __out = std::io::stderr().lock();
+                std::io::Write::write_all(&mut __out, data)
+            };
+            return match __result {
+                Ok(()) => (data.len(), None),
+                Err(__err) => (0, Some(self.__go_op_error("write", __err))),
+            };
         }
         if let Some(__file) = __disk.as_mut() {
             let mut __done = 0usize;
@@ -1116,10 +1152,20 @@ impl os_PathError {
 }
 
 
+thread_local! {
+    static __GO_FS_SENTINELS: [Rc<dyn StdError>; 3] = [std::rc::Rc::new(std::io::Error::new(std::io::ErrorKind::NotFound, "file does not exist")) as std::rc::Rc<dyn std::error::Error>, std::rc::Rc::new(std::io::Error::new(std::io::ErrorKind::AlreadyExists, "file already exists")) as std::rc::Rc<dyn std::error::Error>, std::rc::Rc::new(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied")) as std::rc::Rc<dyn std::error::Error>];
+}
+
+/// fs.ErrNotExist, ErrExist and ErrPermission, and os's names for them.
+pub fn __go_fs_sentinel(index: usize) -> Rc<dyn StdError> {
+    __GO_FS_SENTINELS.with(|__sentinels| __sentinels[index].clone())
+}
+
+
 pub mod fs {
     use super::*;
     pub fn ErrNotExist() -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
-        Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(std::rc::Rc::new(std::io::Error::from(std::io::ErrorKind::NotFound)) as std::rc::Rc<dyn std::error::Error>)))
+        Rc::new(RefCell::new(Some::<Rc<dyn StdError>>(crate::__go_fs_sentinel(0))))
     }
 }
 

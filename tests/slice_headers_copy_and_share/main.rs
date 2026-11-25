@@ -862,7 +862,7 @@ fn main() {
     let mut a = { let __slice_header = GoSliceHeader::go_slice_header(&a); Rc::new(RefCell::new(__slice_header)) };
     println!("{} {} {}", format!("{}", "append within capacity:".to_string()), format!("{}", format_slice(&base)), format!("{}", format_slice(&a)));
 
-    let mut ys = Rc::new(RefCell::new(Some((*base.borrow().as_ref().unwrap()).clone())));
+    let mut ys = Rc::new(RefCell::new(base.borrow().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ys.clone(); let __append_value = 4; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *ys.borrow_mut() = __slice_header; };
     { let __idx = (0) as usize; let __rhs = -1; (*ys.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "alias then append:".to_string()), format!("{}", format_slice(&base)), format!("{}", format_slice(&ys)));

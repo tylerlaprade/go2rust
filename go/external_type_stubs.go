@@ -2247,6 +2247,21 @@ const osFileStubCoreMethods = `    pub fn __go_write_bytes(&self, data: &[u8]) {
         if self.__go_handle_closed.load(std::sync::atomic::Ordering::SeqCst) {
             return (0, Some(self.__go_closed_error("write")));
         }
+        if self.__go_std_stream != 0 {
+            drop(__disk);
+            // os.Stdout is not buffered in Go: each write reaches it.
+            let __result = if self.__go_std_stream == 1 {
+                let mut __out = std::io::stdout().lock();
+                std::io::Write::write_all(&mut __out, data).and_then(|_| std::io::Write::flush(&mut __out))
+            } else {
+                let mut __out = std::io::stderr().lock();
+                std::io::Write::write_all(&mut __out, data)
+            };
+            return match __result {
+                Ok(()) => (data.len(), None),
+                Err(__err) => (0, Some(self.__go_op_error("write", __err))),
+            };
+        }
         if let Some(__file) = __disk.as_mut() {
             let mut __done = 0usize;
             while __done < data.len() {
@@ -2520,6 +2535,9 @@ pub struct os_File {
     pub __go_read_pos: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// os.Stdin: Read reads the process's standard input.
     pub __go_stdin: bool,
+    /// os.Stdout (1) or os.Stderr (2): writes go to the process's standard
+    /// output or error, through the same handle as print!.
+    pub __go_std_stream: u8,
     /// The file os.Create opened: reads and writes go to it, and Close
     /// closes it.
     pub __go_disk: std::sync::Arc<std::sync::Mutex<Option<std::fs::File>>>,
@@ -2538,6 +2556,7 @@ impl Default for os_File {
             __go_wait_for_close: false,
             __go_read_pos: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             __go_stdin: false,
+            __go_std_stream: 0,
             __go_disk: std::sync::Arc::new(std::sync::Mutex::new(None)),
             __go_name: String::new(),
             __go_handle_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
@@ -3140,6 +3159,13 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 		pkgNames = append(pkgNames, pkgName)
 	}
 	slices.Sort(pkgNames)
+	if packageStubsUseFilesystemSentinel(packageStubs) {
+		if needsSeparator || out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		needsSeparator = true
+		writeStubFilesystemSentinels(out)
+	}
 	for _, pkgName := range pkgNames {
 		pkg := packageStubs[pkgName]
 		if pkg == nil || (len(pkg.Functions) == 0 && len(pkg.Constants) == 0 && len(pkg.Variables) == 0) {
@@ -3588,6 +3614,16 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			out.WriteString(pkg.Variables[varName])
 			out.WriteString(" {\n        ")
 			out.WriteString(wrappedExternalStubExpr("os_File", "os_File { __go_stdin: true, ..Default::default() }"))
+			out.WriteString("\n    }\n")
+		} else if stream, isStd := map[string]string{"Stdout": "1", "Stderr": "2"}[varName]; isStd && strings.Contains(pkg.Variables[varName], "os_File") {
+			// TEMPORARY: os-std-streams in docs/bridge_debt.md. Remove when os
+			// translates from source with syscall.Write as the bridge.
+			// os.Stdout and os.Stderr write to the process's streams. Every
+			// read of the variable is the same File, as in Go.
+			out.WriteString("    pub fn " + varName + "() -> ")
+			out.WriteString(pkg.Variables[varName])
+			out.WriteString(" {\n        static __GO_FILE: std::sync::OnceLock<os_File> = std::sync::OnceLock::new();\n        ")
+			out.WriteString(wrappedExternalStubExpr("os_File", "__GO_FILE.get_or_init(|| os_File { __go_std_stream: "+stream+", __go_name: \"/dev/"+strings.ToLower(varName)+"\".to_string(), ..Default::default() }).clone()"))
 			out.WriteString("\n    }\n")
 		} else {
 			writeExternalPackageStubVariable(out, "os", varName, pkg.Variables[varName])
@@ -4378,6 +4414,63 @@ fn __go_stub_eof() -> %s {
 `, errorInnerType, errorInnerType, errorType, registered, fallback)
 }
 
+// stubFilesystemSentinels are io/fs's ErrNotExist, ErrExist and
+// ErrPermission, which os also exports: each one's Rust I/O error kind and
+// Go's text.
+var stubFilesystemSentinels = []struct{ name, kind, text string }{
+	{"ErrNotExist", "NotFound", "file does not exist"},
+	{"ErrExist", "AlreadyExists", "file already exists"},
+	{"ErrPermission", "PermissionDenied", "permission denied"},
+}
+
+// stubFilesystemSentinelIndex returns the index in stubFilesystemSentinels
+// of the fs or os variable varName.
+func stubFilesystemSentinelIndex(pkgName, varName string) (int, bool) {
+	if pkgName != "fs" && pkgName != "os" {
+		return 0, false
+	}
+	for i, sentinel := range stubFilesystemSentinels {
+		if sentinel.name == varName {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// packageStubsUseFilesystemSentinel reports whether the fs or os stub has a
+// variable that is one of stubFilesystemSentinels.
+func packageStubsUseFilesystemSentinel(packageStubs map[string]*externalPackageStub) bool {
+	for _, pkgName := range []string{"fs", "os"} {
+		if pkg := packageStubs[pkgName]; pkg != nil {
+			for varName := range pkg.Variables {
+				if _, ok := stubFilesystemSentinelIndex(pkgName, varName); ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Part of the io-fs-err-not-exist shim in docs/bridge_debt.md. The filesystem
+// sentinels, made once, so that every read of one is the same error.
+func writeStubFilesystemSentinels(out *strings.Builder) {
+	errorType := externalStubErrorInnerType()
+	values := make([]string, len(stubFilesystemSentinels))
+	for i, sentinel := range stubFilesystemSentinels {
+		values[i] = rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::new(std::io::ErrorKind::"+sentinel.kind+", \""+sentinel.text+"\")")
+	}
+	list := strings.Join(values, ", ")
+	n := len(stubFilesystemSentinels)
+	if NeedsConcurrentWrapper() {
+		fmt.Fprintf(out, "static __GO_FS_SENTINELS: std::sync::OnceLock<[%s; %d]> = std::sync::OnceLock::new();\n\n", errorType, n)
+		fmt.Fprintf(out, "/// fs.ErrNotExist, ErrExist and ErrPermission, and os's names for them.\npub fn __go_fs_sentinel(index: usize) -> %s {\n    __GO_FS_SENTINELS.get_or_init(|| [%s])[index].clone()\n}\n", errorType, list)
+		return
+	}
+	fmt.Fprintf(out, "thread_local! {\n    static __GO_FS_SENTINELS: [%s; %d] = [%s];\n}\n\n", errorType, n, list)
+	fmt.Fprintf(out, "/// fs.ErrNotExist, ErrExist and ErrPermission, and os's names for them.\npub fn __go_fs_sentinel(index: usize) -> %s {\n    __GO_FS_SENTINELS.with(|__sentinels| __sentinels[index].clone())\n}\n", errorType)
+}
+
 func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varName string, rustType string) {
 	out.WriteString("    pub fn ")
 	out.WriteString(varName)
@@ -4385,10 +4478,12 @@ func writeExternalPackageStubVariable(out *strings.Builder, pkgName string, varN
 	out.WriteString(rustType)
 	out.WriteString(" {\n")
 	out.WriteString("        ")
-	if pkgName == "fs" && varName == "ErrNotExist" {
+	if index, ok := stubFilesystemSentinelIndex(pkgName, varName); ok {
 		// TEMPORARY: io-fs-err-not-exist in docs/bridge_debt.md. Remove when the
-		// source-transpiled io/fs sentinel is available to ordinary callers.
-		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), rustErrorFromValueFor("std::error::Error", NeedsConcurrentWrapper(), "std::io::Error::from(std::io::ErrorKind::NotFound)")))
+		// source-transpiled io/fs sentinels are available to ordinary callers.
+		// os.ErrNotExist is fs.ErrNotExist in Go, and so on for the others:
+		// each read is the same error, so == compares them as Go does.
+		out.WriteString(wrappedExternalStubExpr(externalStubErrorInnerType(), fmt.Sprintf("crate::__go_fs_sentinel(%d)", index)))
 	} else {
 		writeExternalStubDefaultValue(out, rustType)
 	}

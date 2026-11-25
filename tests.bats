@@ -1119,6 +1119,22 @@ run_xfail_test() {
     run_test "tests/defer_statements"
 }
 
+@test "defined_array_rows" {
+    run_test "tests/defined_array_rows"
+}
+
+@test "defined_array_rows_goroutines" {
+    run_test "tests/defined_array_rows_goroutines"
+}
+
+@test "defined_byte_slice_conversions" {
+    run_test "tests/defined_byte_slice_conversions"
+}
+
+@test "defined_byte_slice_conversions_goroutines" {
+    run_test "tests/defined_byte_slice_conversions_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
@@ -2059,6 +2075,14 @@ run_xfail_test() {
     run_test "tests/make_struct_slice_elements_goroutines"
 }
 
+@test "map_array_values_print" {
+    run_test "tests/map_array_values_print"
+}
+
+@test "map_array_values_print_goroutines" {
+    run_test "tests/map_array_values_print_goroutines"
+}
+
 @test "map_comma_ok_assignment_targets" {
     run_test "tests/map_comma_ok_assignment_targets"
 }
@@ -2093,6 +2117,14 @@ run_xfail_test() {
 
 @test "map_len_value_assignment" {
     run_test "tests/map_len_value_assignment"
+}
+
+@test "map_literal_call_values" {
+    run_test "tests/map_literal_call_values"
+}
+
+@test "map_literal_call_values_goroutines" {
+    run_test "tests/map_literal_call_values_goroutines"
 }
 
 @test "map_literal_defined_integer_types" {
@@ -2587,6 +2619,14 @@ run_xfail_test() {
     run_test "tests/nil_receiver_unsafe_pointer_result"
 }
 
+@test "nil_slice_copies" {
+    run_test "tests/nil_slice_copies"
+}
+
+@test "nil_slice_copies_goroutines" {
+    run_test "tests/nil_slice_copies_goroutines"
+}
+
 @test "non_blocking_channels" {
     run_test "tests/non_blocking_channels"
 }
@@ -2639,6 +2679,14 @@ run_xfail_test() {
     run_test "tests/os_file_readcloser_assignment"
 }
 
+@test "os_fs_sentinel_errors" {
+    run_test "tests/os_fs_sentinel_errors"
+}
+
+@test "os_fs_sentinel_errors_goroutines" {
+    run_test "tests/os_fs_sentinel_errors_goroutines"
+}
+
 @test "os_hostname" {
     run_test "tests/os_hostname"
 }
@@ -2661,6 +2709,14 @@ run_xfail_test() {
 
 @test "os_stat_fileinfo_isdir" {
     run_test "tests/os_stat_fileinfo_isdir"
+}
+
+@test "os_stdout_as_writer" {
+    run_test "tests/os_stdout_as_writer"
+}
+
+@test "os_stdout_as_writer_goroutines" {
+    run_test "tests/os_stdout_as_writer_goroutines"
 }
 
 @test "package_any_value_from_caller" {
