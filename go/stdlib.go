@@ -827,8 +827,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				return
 			}
 			if ident, ok := arg.(*ast.Ident); ok {
-				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					out.WriteString("format_slice_values(")
+					// A row copied out of an array of arrays is the array
+					// itself, not a reference to it.
+					if strings.HasPrefix(varType, "[") {
+						out.WriteString("&")
+					}
 					out.WriteString(RustIdentForUse(ident))
 					out.WriteString(")")
 					return
@@ -2226,8 +2231,13 @@ func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.T
 	if typeInfo == nil || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
 		return false
 	}
-	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
-	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+	// The newtype's Display prints the cells: "[3]int", or the rows of
+	// "[2][2]int".
+	if row, isRow := types.Unalias(array.Elem()).(*types.Array); isRow {
+		if _, deeper := types.Unalias(row.Elem()).(*types.Array); deeper || !arrayCellIsPrintedBasic(row.Elem()) {
+			return false
+		}
+	} else if !arrayCellIsPrintedBasic(array.Elem()) {
 		return false
 	}
 	TranspileExpression(out, arg)

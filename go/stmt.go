@@ -248,6 +248,12 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 				return true
 			}
 		}
+	case *ast.IndexExpr:
+		// An element of a named array ("type Row [3]int") is read through
+		// a `{ let __seq_holder = ... }` block.
+		if isNamedArrayExpression(e.X) {
+			return true
+		}
 	}
 	return false
 }
@@ -1264,6 +1270,12 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			out.WriteString(".clone()")
 			return
 		}
+		// A string in a variable is copied into the element; reading it
+		// out of its cell would move it ("s[i] = name").
+		if typeInfo := GetTypeInfo(); typeInfo != nil && isWrappedValueIdent(ident) && typeInfo.IsString(ident) {
+			writeIdentValueClone(out, ident)
+			return
+		}
 	}
 
 	// A struct held in a variable, or read from "s[i]" or "*p", is copied into
@@ -1819,13 +1831,19 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	// the sequence calls a function ("rows()[i()][j()] = v()"), so its
 	// handle is then taken first and held, not locked.
 	holdsSequence := expressionCallsOrReceives(root)
-	// A named slice ("type Matrix [][]float64") keeps its elements in the
-	// handle inside the newtype.
+	// A named slice or array ("type Matrix [][]float64", "type Board
+	// [3][3]int") keeps its elements in the handle inside the newtype.
 	_, _, namedSequence := namedSliceTypeForExpr(root)
+	_, _, namedArray := namedArrayTypeForExpr(root)
 	out.WriteString("{ ")
 	if namedSequence {
 		out.WriteString("let __seq = ")
 		writeNamedSliceInnerHandleClone(out, root)
+		out.WriteString("; ")
+		holdsSequence = true
+	} else if namedArray {
+		out.WriteString("let __seq = ")
+		writeNamedArrayInnerHandleClone(out, root)
 		out.WriteString("; ")
 		holdsSequence = true
 	} else if holdsSequence {
@@ -9629,6 +9647,16 @@ func nestedSequenceIndexChain(seq ast.Expr) (ast.Expr, []ast.Expr, bool) {
 		}
 		switch types.Unalias(containerType).Underlying().(type) {
 		case *types.Array, *types.Slice:
+		case *types.Pointer:
+			// A pointer to an array ("b *[3][3]string", or "b *Board", the
+			// receiver of "func (b *Board) Place") indexes the array it
+			// points to.
+			if _, isNamed := types.Unalias(containerType).(*types.Named); isNamed {
+				return nil, nil, false
+			}
+			if _, pointsToArray := types.Unalias(containerType).Underlying().(*types.Pointer).Elem().Underlying().(*types.Array); !pointsToArray {
+				return nil, nil, false
+			}
 		default:
 			return nil, nil, false
 		}
