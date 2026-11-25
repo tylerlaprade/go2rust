@@ -551,6 +551,14 @@ run_xfail_test() {
     run_test "tests/append_nil_to_nested_slice"
 }
 
+@test "append_nothing_keeps_nil" {
+    run_test "tests/append_nothing_keeps_nil"
+}
+
+@test "append_nothing_keeps_nil_goroutines" {
+    run_test "tests/append_nothing_keeps_nil_goroutines"
+}
+
 @test "append_result_is_a_new_header" {
     run_test "tests/append_result_is_a_new_header"
 }
