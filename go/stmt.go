@@ -1818,6 +1818,9 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		}
 		return
 	}
+	if ident, ok := rhs.(*ast.Ident); ok && newBinding && writeMultiShortDeclCollectionCopy(out, ident) {
+		return
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 		// Copied by value from an existing wrapped value.
 		return
@@ -1831,6 +1834,43 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		TranspileExpression(out, rhs)
 	}
 	WriteWrapperSuffix(out)
+}
+
+// writeMultiShortDeclCollectionCopy writes a, m := x, m0 for a variable m0
+// of an unnamed map or slice type as m := m0 alone does: a map variable
+// shares m0's map, and a slice variable gets a copy of m0's header. Either
+// may be nil, which reading the value out of the cell would unwrap.
+func writeMultiShortDeclCollectionCopy(out *strings.Builder, ident *ast.Ident) bool {
+	if ident.Name == "nil" || isVarBare(ident.Name) || isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, isVar := typeInfo.GetObject(ident).(*types.Var); !isVar || isPackageGlobalObjectIdent(ident) {
+		return false
+	}
+	switch t := types.Unalias(typeInfo.GetType(ident)).(type) {
+	case *types.Map:
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(".clone()")
+		return true
+	case *types.Slice:
+		if isEmptyInterfaceType(t.Elem()) {
+			return false
+		}
+		WriteWrapperOptionPrefix(out)
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".clone()")
+		WriteWrapperOptionSuffix(out)
+		return true
+	}
+	return false
 }
 
 func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
@@ -5178,12 +5218,22 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		return false
 	}
 	out.WriteString("{ let new_val = ")
+	// m = (a[0]) is m = a[0].
+	rhs = unwrapParens(rhs)
 	switch rhs.(type) {
 	case *ast.Ident, *ast.SelectorExpr:
 		TranspileExpressionContext(out, rhs, LValue)
 		out.WriteString(".clone()")
 	default:
-		TranspileExpression(out, rhs)
+		if index, ok := rhs.(*ast.IndexExpr); ok && isExpressionResultBare(index) && !indexExpressionResultKeepsHandle(index, typeInfo) {
+			// m = arr[0] of an array or slice of maps, which holds
+			// them bare: the variable is the map's cell.
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, rhs)
+			WriteWrapperSuffix(out)
+		} else {
+			TranspileExpression(out, rhs)
+		}
 	}
 	out.WriteString("; ")
 	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
@@ -15626,6 +15676,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.RangeStmt:
+		// A range over a function is told by the Go type of s.X, before
+		// any name-keyed collection kind: an inner seq of func type can
+		// shadow an outer seq slice.
+		if writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
+			return
+		}
 		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
@@ -17793,6 +17849,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("\n")
 			out.WriteString(indent)
 			out.WriteString("}")
+			return
+		}
+		if rangeStmt, ok := s.Stmt.(*ast.RangeStmt); ok && writeRangeOverFuncStatement(out, rangeStmt, s.Label.Name, fnType, fileSet, comments, lastPos, indent) {
 			return
 		}
 		// Set the pending label for the next loop statement to consume

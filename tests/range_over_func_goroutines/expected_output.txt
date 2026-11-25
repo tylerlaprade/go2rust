@@ -1,0 +1,10 @@
+stopped at 3
+300 true
+-1 false
+stopped at 2
+012
+32
+[1 2 3]
+tick
+tick
+6
