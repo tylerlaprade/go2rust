@@ -492,9 +492,12 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 			// A pointer or channel variable is its handle, and the yield
 			// function assigns only its own copy of it. The value bound
 			// last goes through a [1]T, whose element the yield function
-			// writes, to the variable once seq is back.
+			// writes, to the variable once seq is back. A package global
+			// is written in place, which seq can write after its last
+			// yield too. A map variable is a handle as well, but an array
+			// holds its maps bare, without a nil; it waits on DEV-205.
 			ident, ok := lhs[i].(*ast.Ident)
-			if !ok {
+			if !ok || isPackageGlobalObjectIdent(ident) {
 				continue
 			}
 			targetType := typeInfo.GetType(ident)

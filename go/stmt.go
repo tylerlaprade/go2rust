@@ -1818,7 +1818,7 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		}
 		return
 	}
-	if ident, ok := rhs.(*ast.Ident); ok && writeMultiShortDeclCollectionCopy(out, ident) {
+	if ident, ok := rhs.(*ast.Ident); ok && newBinding && writeMultiShortDeclCollectionCopy(out, ident) {
 		return
 	}
 	if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
@@ -5213,7 +5213,15 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		TranspileExpressionContext(out, rhs, LValue)
 		out.WriteString(".clone()")
 	default:
-		TranspileExpression(out, rhs)
+		if index, ok := rhs.(*ast.IndexExpr); ok && isExpressionResultBare(index) && !indexExpressionResultKeepsHandle(index, typeInfo) {
+			// m = arr[0] of an array or slice of maps, which holds
+			// them bare: the variable is the map's cell.
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, rhs)
+			WriteWrapperSuffix(out)
+		} else {
+			TranspileExpression(out, rhs)
+		}
 	}
 	out.WriteString("; ")
 	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
@@ -15617,6 +15625,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.RangeStmt:
+		// A range over a function is told by the Go type of s.X, before
+		// any name-keyed collection kind: an inner seq of func type can
+		// shadow an outer seq slice.
+		if writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
+			return
+		}
 		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
@@ -15655,9 +15669,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if _, ok := trackedRangeElemRustType(s.X); ok {
 				isSlice = true
 			}
-		}
-		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel && writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
-			return
 		}
 		if !isMap && !isString && !isInteger && !isSlice && !isArray && !isChannel {
 			out.WriteString("/* ERROR: Cannot determine range type - type information required */\n")
