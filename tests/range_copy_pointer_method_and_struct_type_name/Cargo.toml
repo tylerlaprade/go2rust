@@ -1,0 +1,11 @@
+[package]
+name = "range_copy_pointer_method_and_struct_type_name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_copy_pointer_method_and_struct_type_name"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

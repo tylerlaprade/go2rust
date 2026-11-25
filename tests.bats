@@ -3327,6 +3327,10 @@ run_xfail_test() {
     run_test "tests/range_bound_borrow_released_goroutines"
 }
 
+@test "range_copy_pointer_method_and_struct_type_name" {
+    run_test "tests/range_copy_pointer_method_and_struct_type_name"
+}
+
 @test "range_defined_float_call_argument" {
     run_test "tests/range_defined_float_call_argument"
 }
