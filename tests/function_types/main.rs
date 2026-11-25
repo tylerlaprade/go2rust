@@ -866,7 +866,7 @@ pub fn filter(numbers: Rc<RefCell<Option<Vec<i64>>>>, pred: Predicate) -> Rc<Ref
 }
 
 pub fn transform(numbers: Rc<RefCell<Option<Vec<i64>>>>, op: UnaryOp) -> Rc<RefCell<Option<Vec<i64>>>> {
-    let mut result = Rc::new(RefCell::new(Some(vec![0i64; ((*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut result = Rc::new(RefCell::new(Some(vec![0i64; (({ let __len = (*numbers.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     { let __range_holder = numbers.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, num) in __range_values.iter().copied().enumerate() {
         { let __idx = (i) as usize; let __rhs = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = op.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(num)))) }; (*result.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
@@ -946,7 +946,7 @@ fn main() {
 
     let mut reversed = process_string(Rc::new(RefCell::new(Some("hello".to_string()))), Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         let mut runes = Rc::new(RefCell::new(Some(((*s.borrow().as_ref().unwrap())).chars().map(|c| c as i32).collect::<Vec<_>>())));
-        let (mut i, mut j) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some(((*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)))));
+        let (mut i, mut j) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some((({ let __len = (*runes.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)))));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
         {
             let __go_lhs_sequence_0 = runes.clone();

@@ -1316,8 +1316,8 @@ func wait(files []string) {
 		strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))") {
 		t.Fatalf("sync.WaitGroup.Add should not pass len() as usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") &&
-		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)") {
+	if !strings.Contains(rust, ".add(({ let __len = (*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)") &&
+		!strings.Contains(rust, ".add(({ let __len = (*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)") {
 		t.Fatalf("sync.WaitGroup.Add should cast len() to Go int:\n%s", rust)
 	}
 }
@@ -1649,8 +1649,8 @@ func search(a []int) int {
 		strings.Contains(rust, "let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));") {
 		t.Fatalf("multi-name short declaration should not leave len as bare usize:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") &&
-		!strings.Contains(rust, "Arc::new(Mutex::new(Some((*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)))") {
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(({ let __len = (*a.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)))") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(Some(({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)))") {
 		t.Fatalf("multi-name short declaration should wrap len as Go int:\n%s", rust)
 	}
 }
@@ -6651,8 +6651,8 @@ func bump(m map[int]int) {
 }
 `)
 
-	if !strings.Contains(rust, "let __key = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") &&
-		!strings.Contains(rust, "let __key = (*m.lock()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64;") {
+	if !strings.Contains(rust, "let __key = ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;") &&
+		!strings.Contains(rust, "let __key = ({ let __len = (*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;") {
 		t.Fatalf("map update should cast len from usize to its Go int key type:\n%s", rust)
 	}
 }

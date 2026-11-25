@@ -696,7 +696,7 @@ fn main() {
 
     let mut count = Rc::new(RefCell::new(Some(0i64)));
     for (targetName, sourceNames) in { let __range_holder = conversions.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
-        if ((*sourceNames.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+        if (({ let __len = (*sourceNames.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         continue
     }
         if { let __map_holder = sourceNames.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"Source".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {

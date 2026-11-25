@@ -779,7 +779,7 @@ fn main() {
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = s.clone(); let __append_values = vec!["b".to_string(), "c".to_string()]; let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *s.borrow_mut() = __slice_header; };
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", format_slice(&s)));
 
-    let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+    let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); (({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize])));
     {
         let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min((*c.borrow().as_ref().unwrap()).len(), _src.len());

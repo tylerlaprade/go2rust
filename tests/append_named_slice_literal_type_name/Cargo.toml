@@ -1,0 +1,11 @@
+[package]
+name = "append_named_slice_literal_type_name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "append_named_slice_literal_type_name"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

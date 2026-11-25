@@ -560,6 +560,10 @@ run_xfail_test() {
     run_test "tests/append_interface_value_goroutines"
 }
 
+@test "append_named_slice_literal_type_name" {
+    run_test "tests/append_named_slice_literal_type_name"
+}
+
 @test "append_nil_selector_slice_expansion" {
     run_test "tests/append_nil_selector_slice_expansion"
 }
@@ -708,6 +712,10 @@ run_xfail_test() {
     run_test "tests/builtin_min_max"
 }
 
+@test "builtin_min_max_named_and_nan" {
+    run_test "tests/builtin_min_max_named_and_nan"
+}
+
 @test "byte_char_comparisons" {
     run_test "tests/byte_char_comparisons"
 }
@@ -730,6 +738,10 @@ run_xfail_test() {
 
 @test "bytes_buffer_zero_value" {
     run_test "tests/bytes_buffer_zero_value"
+}
+
+@test "call_argument_len_of_written_slice" {
+    run_test "tests/call_argument_len_of_written_slice"
 }
 
 @test "cap_struct_slice_field" {
@@ -3978,6 +3990,14 @@ run_xfail_test() {
 
 @test "slices_delete" {
     run_test "tests/slices_delete"
+}
+
+@test "slices_maps_cmp_from_source" {
+    run_test "tests/slices_maps_cmp_from_source"
+}
+
+@test "slices_maps_cmp_from_source_goroutines" {
+    run_test "tests/slices_maps_cmp_from_source_goroutines"
 }
 
 @test "slices_sort_func" {

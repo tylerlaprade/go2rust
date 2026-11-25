@@ -693,6 +693,6 @@ fn main() {
     let mut words = pair(Rc::new(RefCell::new(Some("go".to_string()))), Rc::new(RefCell::new(Some("rust".to_string()))));
     let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Rc::new(RefCell::new(__slice_header)) };
 
-    println!("{} {}", format!("{}", (*nums.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*nums.borrow().as_ref().unwrap())[(0) as usize].clone()));
-    println!("{} {} {}", format!("{}", (*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*words.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*words.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {}", format!("{}", ({ let __len = (*nums.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*nums.borrow().as_ref().unwrap())[(0) as usize].clone()));
+    println!("{} {} {}", format!("{}", ({ let __len = (*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*words.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*words.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

@@ -845,8 +845,8 @@ fn main() {
     { let __range_holder = words.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
         { let __map_key = w.clone(); let __map_value = Rc::new(RefCell::new(Some(w.len() as i64))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
-    let mut s = Rc::new(RefCell::new(Some(vec![(*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64, (*words.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i64])));
-    let mut st = Rc::new(RefCell::new(Some(stat { name: Rc::new(RefCell::new(Some("x".to_string()))), size: Rc::new(RefCell::new(Some((*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64))), ..Default::default() })));
-    let mut arr = Rc::new(RefCell::new(Some([(*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64, 1i64])));
+    let mut s = Rc::new(RefCell::new(Some(vec![({ let __len = (*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64, (*words.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i64])));
+    let mut st = Rc::new(RefCell::new(Some(stat { name: Rc::new(RefCell::new(Some("x".to_string()))), size: Rc::new(RefCell::new(Some(({ let __len = (*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))), ..Default::default() })));
+    let mut arr = Rc::new(RefCell::new(Some([({ let __len = (*words.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64, 1i64])));
     println!("{} {} {} {}", format!("{}", format_map(&m)), format!("{}", format_slice(&s)), format!("{}", (*st.borrow().as_ref().unwrap())), format!("{}", format_slice(&arr)));
 }

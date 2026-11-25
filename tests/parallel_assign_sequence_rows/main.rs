@@ -847,7 +847,7 @@ fn main() {
     println!("{} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(((*grid.borrow().as_ref().unwrap())[(0) as usize].clone()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(((*grid.borrow().as_ref().unwrap())[(1) as usize].clone()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(((*grid.borrow().as_ref().unwrap())[(2) as usize].clone()).iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>()))).borrow().as_ref().unwrap())));
 
     let mut m = Rc::new(RefCell::new(Some(vec![vec![1i64, 2i64], vec![3i64, 4i64]])));
-    let (mut i, mut j) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some(((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (1 as i64)))));
+    let (mut i, mut j) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some((({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)))));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
         {
             let __go_lhs_sequence_0 = m.clone();
@@ -867,7 +867,7 @@ fn main() {
         };
     }
     println!("{}", format!("{}", format_nested_slice(&m)));
-    let (mut row, mut n) = (Rc::new(RefCell::new(Some((*m.borrow().as_ref().unwrap())[(0) as usize].clone()))), Rc::new(RefCell::new(Some((*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64))));
+    let (mut row, mut n) = (Rc::new(RefCell::new(Some((*m.borrow().as_ref().unwrap())[(0) as usize].clone()))), Rc::new(RefCell::new(Some(({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))));
     { let __idx = (0) as usize; let __rhs = 99; (*row.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", format_slice(&row)), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_nested_slice(&m)));
 

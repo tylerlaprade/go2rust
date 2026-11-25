@@ -887,7 +887,7 @@ impl appendWriter {
 
     pub fn write(&mut self, p: Rc<RefCell<Option<Vec<u8>>>>) -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
         { let new_val = { let __base = self.0.clone(); let __base_guard = __base.borrow(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); std::mem::drop(__base_guard); __values.extend((*p.borrow().as_ref().unwrap()).iter().cloned()); Rc::new(RefCell::new(Some(appendWriter(Rc::new(RefCell::new(Some(__values))))))) }; *self = new_val.borrow_mut().take().unwrap_or_default(); };
-        ((*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64, Rc::new(RefCell::new(None)))
+        (({ let __len = (*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64, Rc::new(RefCell::new(None)))
     }
 }
 

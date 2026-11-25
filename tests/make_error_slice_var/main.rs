@@ -681,7 +681,7 @@ impl std::io::Write for GoSlice<u8> {
 
 
 pub fn collect(names: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> {
-    let mut n = Rc::new(RefCell::new(Some((*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)));let mut errs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None::<Rc<dyn StdError>>)); ((*n.borrow().as_ref().unwrap())) as usize])));
+    let mut n = Rc::new(RefCell::new(Some(({ let __len = (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));let mut errs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None::<Rc<dyn StdError>>)); ((*n.borrow().as_ref().unwrap())) as usize])));
     { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
         let errs_closure_clone = errs.clone(); let i_closure_clone = i.clone(); let name_closure_clone = name.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let __idx = (i_closure_clone) as usize; let __rhs = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(name_closure_clone.clone()))))); (*errs_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
@@ -693,5 +693,5 @@ pub fn collect(names: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<Vec
 fn main() {
     let mut errs = collect(Rc::new(RefCell::new(Some(vec!["alpha".to_string(), "beta".to_string()]))));
     let mut errs = { let __slice_header = GoSliceHeader::go_slice_header(&errs); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {}", format!("{}", (*errs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*errs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", ({ let __len = (*errs.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", (*errs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
 }

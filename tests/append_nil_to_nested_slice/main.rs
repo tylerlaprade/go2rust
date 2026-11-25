@@ -690,7 +690,7 @@ fn main() {
     }
     } }
     {
-            let __go_print_arg_0 = format!("{}", (*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+            let __go_print_arg_0 = format!("{}", ({ let __len = (*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }));
             eprintln!("{}", __go_print_arg_0)
         };
     {

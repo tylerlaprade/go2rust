@@ -1454,7 +1454,7 @@ fn __go_init_globals() {
 
 pub fn lookup_case_range(r: Rc<RefCell<Option<i32>>>, caseRange: Rc<RefCell<Option<Vec<CaseRange>>>>) -> Option<GoSliceElemPtr<CaseRange>> {
     let mut lo = Rc::new(RefCell::new(Some(0i64)));
-    let mut hi = Rc::new(RefCell::new(Some((*caseRange.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64)));
+    let mut hi = Rc::new(RefCell::new(Some(({ let __len = (*caseRange.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
     while (*lo.borrow().as_ref().unwrap()) < (*hi.borrow().as_ref().unwrap()) {
         let mut m = Rc::new(RefCell::new(Some((((*Rc::new(RefCell::new(Some((((*lo.borrow().as_ref().unwrap()) + (*hi.borrow().as_ref().unwrap()))) as u64))).borrow().as_ref().unwrap()) >> 1)) as i64)));
         let mut cr: Option<GoSliceElemPtr<CaseRange>> = Some(GoSliceElemPtr::new(caseRange.clone(), ((*m.borrow().as_ref().unwrap())) as usize));

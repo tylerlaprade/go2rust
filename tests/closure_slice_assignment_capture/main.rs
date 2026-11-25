@@ -687,5 +687,5 @@ fn main() {
 
     { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> ()> = { let mut __f_guard = set.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(vec![4i64, 5i64])))) };
     println!("{}", format!("{}", (*result.borrow().as_ref().unwrap())[(0) as usize].clone()));
-    println!("{}", format!("{}", (*result.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*result.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

@@ -725,7 +725,7 @@ fn main() {
     let mut xl = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(term { v: Rc::new(RefCell::new(Some(1))), ..Default::default() }))), Rc::new(RefCell::new(Some(term { v: Rc::new(RefCell::new(Some(2))), ..Default::default() }))), Rc::new(RefCell::new(Some(term { v: Rc::new(RefCell::new(Some(3))), ..Default::default() })))])));
     { let __range_holder = xl.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, mut xi) in __range_values.iter().cloned().enumerate() {
         let mut j = Rc::new(RefCell::new(Some(i as i64 + 1)));
-    while ((*j.borrow().as_ref().unwrap()) as i64) < ((*xl.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) {
+    while ((*j.borrow().as_ref().unwrap()) as i64) < (({ let __len = (*xl.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) {
         let mut xj = (*xl.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone();
         {
         let (mut u1, mut u2) = __go_nil_recv_term_union(xi.clone(), xj.clone());;

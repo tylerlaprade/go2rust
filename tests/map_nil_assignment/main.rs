@@ -905,7 +905,7 @@ pub fn direct_assignment() {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut values: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));
         let (mut missing, mut ok) = { let __map_holder = values.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&"missing".to_string())) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };
-        println!("{} {} {} {}", format!("{}", { let __nil_result = (*values.borrow()).is_none(); __nil_result }), format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", { let __v = (*missing.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
+        println!("{} {} {} {}", format!("{}", { let __nil_result = (*values.borrow()).is_none(); __nil_result }), format!("{}", ({ let __len = (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __v = (*missing.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", ok));
         for _ in { let __range_holder = values.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         println!("{}", format!("{}", "unexpected range value".to_string()));
     }

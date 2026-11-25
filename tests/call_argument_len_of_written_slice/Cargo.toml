@@ -1,0 +1,11 @@
+[package]
+name = "call_argument_len_of_written_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "call_argument_len_of_written_slice"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

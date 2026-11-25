@@ -737,11 +737,11 @@ impl std::fmt::Display for Error {
 
 fn main() {
     let mut stack = Rc::new(RefCell::new(Some(vec!["importer".to_string(), "imported".to_string()])));
-    let mut importingPkg = Rc::new(RefCell::new(Some((*stack.borrow().as_ref().unwrap())[(((*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) - (2 as i64)) as usize].clone())));
+    let mut importingPkg = Rc::new(RefCell::new(Some((*stack.borrow().as_ref().unwrap())[((({ let __len = (*stack.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (2 as i64)) as usize].clone())));
     let mut additionalErrors = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<Error>>>>>::new())));
 
     { let __map_key = (*importingPkg.borrow().as_ref().unwrap()).clone(); let __map_value = { let __slice = { let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&(*importingPkg.borrow().as_ref().unwrap()).clone()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = Error { msg: Rc::new(RefCell::new(Some({ let __arg_holder = importingPkg.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.go_append_copying(|__go_slice| { __go_slice.push(__append_value); }, |__go_elem| __go_elem.__go_value_clone()); Rc::new(RefCell::new(Some(__appended))) }; (*additionalErrors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
-    println!("{}", format!("{}", (*additionalErrors.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*additionalErrors.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{}", format!("{}", (*(*{ let __map_holder = additionalErrors.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"importer".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap())[(0) as usize].clone().msg.borrow().as_ref().unwrap()).clone()));
 }

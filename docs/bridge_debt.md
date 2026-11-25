@@ -247,6 +247,33 @@ against the `// TEMPORARY:` comments of that one file.
   scanner moves into that runtime and this row is deleted with the move.
 - Added: 2026-11-25
 
+**slices-maps-source-overrides**
+
+- Location: `go/stdlib_generic_inline.go`, `stdlibGenericOverrides`: Go
+  source that replaces two declarations when the generic functions of
+  `slices`, `maps` and `cmp` that the main package calls are copied into it
+  from their source and instantiated.
+- Go symbol: `slices.overlaps`, which `Insert` and `Replace` call, and
+  `maps.Clone`.
+- Transpiler gap: `overlaps` compares the addresses of two slices' elements
+  with `unsafe.Pointer` arithmetic, which has no translation; the override
+  asks whether the first element of one is an element of the other with
+  `&a[i] == &b[0]`, which is the same question for two windows of one array.
+  `maps.Clone` calls the runtime's `maps.clone`, which has no Go body; the
+  override makes the copy by ranging over the map.
+- Not covered: the overrides scan the slices, where `overlaps` compares two
+  pairs of addresses. A main package whose instantiations cannot be written
+  (a type argument declared inside a function, or a slice stored inside a
+  slice) keeps the older mappings in `go/stdlib.go`, and so do other
+  packages of the program.
+- Fixture: `tests/slices_maps_cmp_from_source/` and
+  `tests/slices_maps_cmp_from_source_goroutines/` (`Insert` and `Replace`
+  with values that overlap the slice, `maps.Clone` of a nil map).
+- Removal trigger: `unsafe.Pointer` arithmetic over slice elements, and
+  `maps.clone` in the runtime tier, translate; then the overrides are
+  deleted and the copies use `slices` and `maps` as they are.
+- Added: 2026-11-25
+
 **fmt-stringer**
 
 - Location: `go/fmt_stringer.go`. `writeFmtStringerStub` writes the

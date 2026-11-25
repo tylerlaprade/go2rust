@@ -704,7 +704,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
 
 fn main() {
     let mut list = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("s".to_string()) as Box<dyn Any>])));
-    println!("{} {} {}", format!("{}", (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", ({
+    println!("{} {} {}", format!("{}", ({ let __len = (*list.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({
         let __idx = (0) as usize;
         let __seq_holder = list.clone();
         let __seq_guard = __seq_holder.borrow();

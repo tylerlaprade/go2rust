@@ -838,7 +838,7 @@ fn main() {
     let __cell_got_1_closure_clone = __cell_got_1.clone(); let mut s = Rc::new(RefCell::new(Some(S { set: Rc::new(RefCell::new(Some(Box::new(move |m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>| {
         { let new_val = m.clone(); (*__cell_got_1_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
     }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()>))), sl: Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<Vec<i64>>>>| -> i64 {
-        (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+        ({ let __len = (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
     }) as Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> i64>))), arr: Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<[i64; 2]>>>| -> i64 {
         (*a.borrow().as_ref().unwrap())[(0) as usize].clone() + (*a.borrow().as_ref().unwrap())[(1) as usize].clone()
     }) as Box<dyn FnMut(Rc<RefCell<Option<[i64; 2]>>>) -> i64>))), pt: Rc::new(RefCell::new(Some(Box::new(move |p: Rc<RefCell<Option<P>>>| -> i64 {
