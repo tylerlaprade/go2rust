@@ -1,0 +1,6 @@
+no "stop" from busy
+"go" busy 7 7 x
+busy "x"
+busy idle
+held 1
+"z" idle 3
