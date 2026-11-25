@@ -3,13 +3,17 @@
 members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bisect",
     "vendor/internal_bytealg",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
     "vendor/internal_stringslite",
     "vendor/io",
     "vendor/math",
     "vendor/math_bits",
     "vendor/strconv",
     "vendor/strings",
+    "vendor/time",
     "vendor/unicode",
     "vendor/unicode_utf8",
 ]
@@ -28,12 +32,16 @@ overflow-checks = false
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bisect = { path = "vendor/internal_bisect" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 io = { path = "vendor/io" }
 math = { path = "vendor/math" }
 math_bits = { path = "vendor/math_bits" }
 strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
+time = { path = "vendor/time" }
 unicode = { path = "vendor/unicode" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

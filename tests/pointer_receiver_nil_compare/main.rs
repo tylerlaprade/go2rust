@@ -715,7 +715,7 @@ impl std::fmt::Display for node {
 impl node {
     pub fn same(&self, other: Rc<RefCell<Option<node>>>) -> bool {
         if false || { let __nil_result = (*other.borrow()).is_none(); __nil_result } {
-        return { let __peer = other.clone(); let __peer_guard = __peer.borrow(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
+        return { let __peer = other.clone(); let __peer_cell = Rc::as_ptr(&__peer) as usize; let __self_addr = self as *const _ as usize; let __eq = (__self_addr >= __peer_cell && __self_addr < __peer_cell + std::mem::size_of_val(&*__peer)) || {; let __peer_guard = __peer.borrow(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __peer_id = __peer_guard.as_ref().map(|__v| Rc::as_ptr(&__v.value) as *const () as usize); let __self_ptr = self as *const _ as usize; let __self_id = Rc::as_ptr(&self.value) as *const () as usize; __peer_ptr == Some(__self_ptr) || __peer_id == Some(__self_id) }; __eq };
     }
         return (*self.value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
     }
@@ -729,7 +729,7 @@ fn main() {
 
 pub fn __go_nil_recv_node_same(n: Rc<RefCell<Option<node>>>, other: Rc<RefCell<Option<node>>>) -> bool {
     if { let __nil_result = (*n.borrow()).is_none(); __nil_result } || { let __nil_result = (*other.borrow()).is_none(); __nil_result } {
-        return { let __left = n.clone(); let __right = other.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right); __eq };
+        return { let __left = n.clone(); let __right = other.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right) || { let __left_id = __left.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.value) as *const () as usize); let __right_id = __right.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.value) as *const () as usize); __left_id.is_some() && __left_id == __right_id }; __eq };
     }
     return (*(*n.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) == (*(*other.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap());
 }

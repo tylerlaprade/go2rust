@@ -1,0 +1,6 @@
+go 3
+rust 2
+zig 1
+true 0
+[4 5] 2
+got [7] 7

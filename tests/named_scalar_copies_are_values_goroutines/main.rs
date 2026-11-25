@@ -1664,7 +1664,7 @@ impl Name {
 
 impl Flag {
     pub fn toggle(&mut self) {
-        { let new_val = Flag(Arc::new(Mutex::new(Some(!((*self.0.lock().unwrap().as_ref().unwrap())))))); *self = new_val; };
+        { let new_val = Flag(Arc::new(Mutex::new(Some(!((*self.0.lock().unwrap().as_ref().unwrap())))))); let __new_value = new_val.0.lock().unwrap().take(); *self.0.lock().unwrap() = __new_value; };
     }
 }
 
@@ -1713,7 +1713,7 @@ fn main() {
     println!("{} {}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*t.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
     let mut counters = Arc::new(Mutex::new(Some(vec![Counter(Arc::new(Mutex::new(Some(1 as i64)))), Counter(Arc::new(Mutex::new(Some(2 as i64)))), Counter(Arc::new(Mutex::new(Some(3 as i64))))])));
-    let mut first = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = counters.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()))))))));
+    let mut first = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some({ let __named_value = (*{ let __seq = { let __seq_holder = counters.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()); __named_value })))))));
     (*first.lock().unwrap().as_mut().unwrap()).inc();
     { let __range_holder = counters.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for mut c in __range_values.iter().cloned() {
         c.inc();
@@ -1724,7 +1724,7 @@ fn main() {
     { let __recv = p.clone(); let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result };
     println!("{} {}", format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut byName = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counter>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some(10 as i64))))))))]))));
-    let mut v = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some((*{ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Arc::new(Mutex::new(Some(0))))) }.0.lock().unwrap().as_ref().unwrap()))))))));
+    let mut v = Arc::new(Mutex::new(Some(Counter(Arc::new(Mutex::new(Some({ let __named_value = (*{ let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Arc::new(Mutex::new(Some(0))))) }.0.lock().unwrap().as_ref().unwrap()); __named_value })))))));
     (*v.lock().unwrap().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", { let __map = { let __map_holder = byName.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| Counter(Arc::new(Mutex::new(Some(0))))) }), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

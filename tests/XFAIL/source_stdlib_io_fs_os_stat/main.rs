@@ -16,9 +16,15 @@ use std::sync::{Arc, Mutex};
 struct GoNilAny;
 
 fn main() {
+    ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::io_fs::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::time::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let (mut info, mut err) = os::stat(".".to_string());

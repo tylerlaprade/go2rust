@@ -1927,8 +1927,9 @@ func small(w Word) bool {
 		t.Fatalf("primitive shift count should use the named integer inner value, not the wrapper:\n%s", rust)
 	}
 	// The count can reach the width, so the shift checks it (Go's rules);
-	// the count is the named integer's inner value.
-	if !strings.Contains(rust, "let __shift_c = ((*{ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap())) as i128;") {
+	// the count is the named integer's inner value, read through a let so
+	// its lock is not held for the rest of the expression.
+	if !strings.Contains(rust, "let __shift_c = ({ let __named_value = (*{ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value }) as i128;") {
 		t.Fatalf("primitive shift count should unwrap the named integer inner value:\n%s", rust)
 	}
 }

@@ -8,26 +8,17 @@ use go2rust_stdlib_stubs::*;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
-
-
-fn go_channel_after(duration: std::time::Duration) -> GoChannel<GoTime> {
-    let channel = GoChannel::<GoTime>::new_buffered(1);
-    let thread_channel = channel.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(duration);
-        thread_channel.send(GoTime::now());
-        thread_channel.close();
-    });
-    channel
-}
 
 fn main() {
+    ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
     ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::math_bits::__go_init_all();
     ::strings::__go_init_all();
+    ::time::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
@@ -50,7 +41,7 @@ fn main() {
         {
     let __go_select_channel_0 = words.clone();
     let __go_select_channel_1 = done.clone();
-    let __go_select_channel_2 = go_channel_after(std::time::Duration::from_secs(5)).clone();
+    let __go_select_channel_2 = time::after(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((5 as i64 * time::SECOND) as i64)))))))).clone();
     loop {
         if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
@@ -74,7 +65,7 @@ fn main() {
     }
     println!("{}", format!("{}", (*strings::join(got.clone(), Arc::new(Mutex::new(Some(" ".to_string())))).lock().unwrap().as_ref().unwrap())));
     let mut ticks = Arc::new(Mutex::new(Some(0i64)));
-    let mut timer = go_channel_after(std::time::Duration::from_millis(20));
+    let mut timer = time::after(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((20 as i64 * time::MILLISECOND) as i64))))))));
     let mut stop = Arc::new(Mutex::new(Some(false)));
     while !{ let __v = (*stop.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         {
@@ -85,7 +76,7 @@ fn main() {
             break;
         }
         { let mut guard = ticks.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        std::thread::sleep(std::time::Duration::from_nanos(1000000));
+        time::sleep(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some(time::MILLISECOND as i64))))))));
         break;
     }
     }

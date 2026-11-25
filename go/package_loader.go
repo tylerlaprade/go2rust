@@ -51,9 +51,15 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // strings.Reader through io.Reader as Go's does; internal/bytealg uses the
 // generic Go search the other architectures build (stdlibNoAsmOverlays).
 // cmp is Go's generic Compare, Less and Or; its stubs had no bodies, so
-// cmp.Compare panicked.
+// cmp.Compare panicked. container/list and container/ring are Go's linked
+// lists, whose stubs panicked too. time is Go's code over the clock and
+// timers of time_runtime.go, so a Duration is an int64 that prints as
+// 1h30m0s and Time formats and adds as in Go; internal/godebug and the
+// packages it imports read the GODEBUG settings time consults.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
+	"container/list":        true,
+	"container/ring":        true,
 	"path/filepath":         true,
 	"internal/filepathlite": true,
 	"internal/stringslite":  true,
@@ -67,6 +73,10 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"bytes":                 true,
 	"bufio":                 true,
 	"io":                    true,
+	"time":                  true,
+	"internal/godebug":      true,
+	"internal/bisect":       true,
+	"internal/godebugs":     true,
 }
 
 // NewPackageLoader creates a new package loader

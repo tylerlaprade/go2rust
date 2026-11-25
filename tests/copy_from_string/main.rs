@@ -728,7 +728,7 @@ fn main() {
     let mut n4 = {
         let _dst_start = (1) as usize;
         let _dst_len = ((3) as usize) - _dst_start;
-        let _src = (*Rc::new(RefCell::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (0) as usize; let __high = (2) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))).borrow().as_ref().unwrap()).clone();
+        let _src = (*Rc::new(RefCell::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (0) as usize; let __high = (2) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))).borrow().as_ref().unwrap()).to_vec();
         let _n = std::cmp::min(_dst_len, _src.len());
         for _i in 0.._n {
             (*buf3.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();

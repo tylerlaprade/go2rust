@@ -771,6 +771,14 @@ run_xfail_test() {
     run_test "tests/channel_send_shadowed_identifiers"
 }
 
+@test "channel_slice_and_map_values" {
+    run_test "tests/channel_slice_and_map_values"
+}
+
+@test "channel_slice_and_map_values_workers" {
+    run_test "tests/channel_slice_and_map_values_workers"
+}
+
 @test "channel_struct_fields" {
     run_test "tests/channel_struct_fields"
 }
@@ -971,6 +979,18 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "container_list_and_ring" {
+    run_test "tests/container_list_and_ring"
+}
+
+@test "container_list_and_ring_goroutines" {
+    run_test "tests/container_list_and_ring_goroutines"
+}
+
+@test "container_list_lru" {
+    run_test "tests/container_list_lru"
+}
+
 @test "context_err_error_return" {
     run_test "tests/context_err_error_return"
 }
@@ -1005,6 +1025,14 @@ run_xfail_test() {
 
 @test "copy_into_wrapped_slice_field" {
     run_test "tests/copy_into_wrapped_slice_field"
+}
+
+@test "copy_overlapping_slices" {
+    run_test "tests/copy_overlapping_slices"
+}
+
+@test "copy_overlapping_slices_goroutines" {
+    run_test "tests/copy_overlapping_slices_goroutines"
 }
 
 @test "cross_file_calls_into_main_file" {
@@ -1409,6 +1437,10 @@ run_xfail_test() {
 
 @test "flag_parsing" {
     run_test "tests/flag_parsing"
+}
+
+@test "flag_set_parse_writes_targets" {
+    run_test "tests/flag_set_parse_writes_targets"
 }
 
 @test "float_constant_expressions_fold" {
@@ -2595,6 +2627,10 @@ run_xfail_test() {
     run_test "tests/named_type_comparisons"
 }
 
+@test "named_type_over_named_basic" {
+    run_test "tests/named_type_over_named_basic"
+}
+
 @test "named_type_over_struct_fields" {
     run_test "tests/named_type_over_struct_fields"
 }
@@ -2661,6 +2697,14 @@ run_xfail_test() {
 
 @test "nil_empty_interface_argument_goroutines" {
     run_test "tests/nil_empty_interface_argument_goroutines"
+}
+
+@test "nil_receiver_method_in_other_file" {
+    run_test "tests/nil_receiver_method_in_other_file"
+}
+
+@test "nil_receiver_method_on_reassigned_range_value" {
+    run_test "tests/nil_receiver_method_on_reassigned_range_value"
 }
 
 @test "nil_receiver_methods" {
@@ -3013,6 +3057,14 @@ run_xfail_test() {
 
 @test "pointer_composite_assignment" {
     run_test "tests/pointer_composite_assignment"
+}
+
+@test "pointer_conversion_shares_pointee" {
+    run_test "tests/pointer_conversion_shares_pointee"
+}
+
+@test "pointer_conversion_shares_pointee_goroutines" {
+    run_test "tests/pointer_conversion_shares_pointee_goroutines"
 }
 
 @test "pointer_field_handle_assignment" {
@@ -3449,6 +3501,14 @@ run_xfail_test() {
 
 @test "receiver_pointer_field_literal" {
     run_test "tests/receiver_pointer_field_literal"
+}
+
+@test "receiver_pointer_identity" {
+    run_test "tests/receiver_pointer_identity"
+}
+
+@test "receiver_pointer_identity_goroutines" {
+    run_test "tests/receiver_pointer_identity_goroutines"
 }
 
 @test "receiver_self_argument_temps" {
@@ -4341,6 +4401,10 @@ run_xfail_test() {
 
 @test "time_duration_field_assignment" {
     run_test "tests/time_duration_field_assignment"
+}
+
+@test "time_from_source" {
+    run_test "tests/time_from_source"
 }
 
 @test "time_operations" {

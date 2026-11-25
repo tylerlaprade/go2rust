@@ -1150,7 +1150,7 @@ impl Value for int64ValPtr {
 }
 
 pub fn negate(y: Rc<RefCell<Option<int64Val>>>) -> Rc<RefCell<Option<Box<dyn Value>>>> {
-    let mut z = Rc::new(RefCell::new(Some(int64Val(Rc::new(RefCell::new(Some(-(*(*y.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))))))));
+    let mut z = Rc::new(RefCell::new(Some(int64Val(Rc::new(RefCell::new(Some(-((*(*y.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap())))))))));
     return Rc::new(RefCell::new(Some(Box::new((*z.borrow().as_ref().unwrap()).clone()) as Box<dyn Value>)));
 }
 

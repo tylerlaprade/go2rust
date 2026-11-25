@@ -1668,7 +1668,7 @@ impl Money {
         let mut sign = Arc::new(Mutex::new(Some("".to_string())));
         if { let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } {
         { let new_val = "-".to_string(); *sign.lock().unwrap() = Some(new_val); };
-        { let new_val = Money(Arc::new(Mutex::new(Some(-(*__self.0.lock().unwrap().as_ref().unwrap()))))); __self = new_val; };
+        { let new_val = Money(Arc::new(Mutex::new(Some(-({ let __named_value = (*__self.0.lock().unwrap().as_ref().unwrap()); __named_value }))))); __self = new_val; };
     }
         return Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%s$%d.%02d".to_string(), &[{ let __go_format_arg = Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x / __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __tmp_x = ({ let __v = (*__self.0.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = Money(Arc::new(Mutex::new(Some(100 as i64)))); __tmp_x % __tmp_y }.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)))));
     }
@@ -1682,7 +1682,7 @@ impl Base {
 
 impl Item {
     pub fn total(&self) -> Arc<Mutex<Option<Money>>> {
-        return Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*self.price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i64))))))));
+        return Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(({ let __named_value = (*(*self.price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } * { let __selector_holder = self.qty.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned } as i64))))))));
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1757,7 +1757,7 @@ impl Inventory {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.log.clone(); let __append_value = format!("{}{}", "sold out ".to_string(), { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.log.lock().unwrap() = __slice_header; };
     }
         return (
-            Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(((*(*(*it.lock().unwrap().as_ref().unwrap()).price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) * ({ let __v = (*qty.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))),
+            Arc::new(Mutex::new(Some(Money(Arc::new(Mutex::new(Some(({ let __named_value = (*(*(*it.lock().unwrap().as_ref().unwrap()).price.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } * ({ let __v = (*qty.lock().unwrap().as_ref().unwrap()); __v }) as i64)))))))),
             Arc::new(Mutex::new(None))
         );
     }
