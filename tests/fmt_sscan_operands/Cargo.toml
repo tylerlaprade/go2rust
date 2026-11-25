@@ -1,0 +1,11 @@
+[package]
+name = "fmt_sscan_operands"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_sscan_operands"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

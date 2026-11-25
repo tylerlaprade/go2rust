@@ -1,0 +1,11 @@
+2 <nil> -1
+1 <nil> +Inf
+1 <nil> 12
+1 too many operands 7
+0 strconv.ParseUint: parsing "18446744073709551616_": value out of range
+1 <nil> [255 65 195 169]
+0 invalid syntax
+4 <nil> 65533 65533 A B
+1 <nil> [1 9]
+1 boom 1
+EOF true true

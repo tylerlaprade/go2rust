@@ -469,6 +469,8 @@ func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
 		return index == 0
 	case "strings.Cut":
 		return index == 2
+	case "fmt.Scan", "fmt.Scanln", "fmt.Scanf", "fmt.Sscan", "fmt.Sscanln", "fmt.Sscanf", "fmt.Fscan", "fmt.Fscanln", "fmt.Fscanf":
+		return index == 0
 	case "sort.Search":
 		return index == 0
 	case "sort.Find":

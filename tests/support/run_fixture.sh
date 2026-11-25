@@ -48,7 +48,8 @@ fi
 
 # Run Go version
 note_fixture_phase "go run"
-if ! go_output=$(cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" go run . 2>&1); then
+stdin_file=$(fixture_stdin "$test_dir")
+if ! go_output=$(cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" go run . 2>&1 < "$stdin_file"); then
     echo "Go compilation/execution failed:"
     echo "$go_output"
     exit 1
