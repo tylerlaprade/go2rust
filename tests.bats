@@ -3355,6 +3355,14 @@ run_xfail_test() {
     run_test "tests/receiver_field_argument_snapshot"
 }
 
+@test "receiver_field_boxed_in_interface" {
+    run_test "tests/receiver_field_boxed_in_interface"
+}
+
+@test "receiver_field_boxed_in_interface_goroutines" {
+    run_test "tests/receiver_field_boxed_in_interface_goroutines"
+}
+
 @test "receiver_pointer_field_literal" {
     run_test "tests/receiver_pointer_field_literal"
 }
@@ -3805,6 +3813,14 @@ run_xfail_test() {
 
 @test "star_pointer_incdec" {
     run_test "tests/star_pointer_incdec"
+}
+
+@test "state_machine_closure_table" {
+    run_test "tests/state_machine_closure_table"
+}
+
+@test "state_machine_closure_table_goroutines" {
+    run_test "tests/state_machine_closure_table_goroutines"
 }
 
 @test "stateful_goroutines" {
