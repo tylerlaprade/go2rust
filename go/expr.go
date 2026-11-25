@@ -16696,6 +16696,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeAnySliceElementAssertionValue(out, e, rustType, assertionReturnsPointer, targetIsError) {
 				return
 			}
+			if !targetKeepsAnyHandle && isBareAnyReferenceExpr(e.X) {
+				// A range value over a []any is the box itself, not a cell.
+				out.WriteString("({\n")
+				out.WriteString("        let any_val = &")
+				out.WriteString(rustIdentForUseWithCapture(unwrapParens(e.X).(*ast.Ident)))
+				out.WriteString(";\n")
+				out.WriteString("        ")
+				if assertionReturnsPointer {
+					WriteWrapperPrefix(out)
+				}
+				withTypeAssertionFailure(e, "&**any_val", func() {
+					writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError, false)
+				})
+				if assertionReturnsPointer {
+					WriteWrapperSuffix(out)
+				}
+				out.WriteString("\n")
+				out.WriteString("    })")
+				return
+			}
 			out.WriteString("({\n")
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)
@@ -21105,6 +21125,17 @@ func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 				return
 			}
 		}
+	}
+	if isBareAnyReferenceExpr(expr) {
+		// A range value over a []any is the box itself, not a cell: the
+		// assertion opens a cell holding a copy of it.
+		NeedAnyClone()
+		WriteWrapperPrefix(out)
+		out.WriteString("go_any_clone(")
+		out.WriteString(rustIdentForUseWithCapture(unwrapParens(expr).(*ast.Ident)))
+		out.WriteString(".as_ref())")
+		WriteWrapperSuffix(out)
+		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString(rustIdentForUseWithCapture(ident))

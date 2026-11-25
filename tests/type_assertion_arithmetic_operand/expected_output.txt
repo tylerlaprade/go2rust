@@ -1,0 +1,6 @@
+10 18 1 1
+5 gopher 40
+true true false
+36
+60
+9 go

@@ -691,6 +691,14 @@ func (ti *TypeInfo) NeedsUnwrapping(expr ast.Expr) bool {
 	case *ast.ParenExpr:
 		// Check the inner expression
 		return ti.NeedsUnwrapping(e.X)
+	case *ast.TypeAssertExpr:
+		// v.(int) yields the int itself, copied out of the interface.
+		if exprType := ti.GetType(e); exprType != nil {
+			if _, ok := exprType.Underlying().(*types.Basic); ok {
+				return false
+			}
+		}
+		return true
 	default:
 		// Conservative: assume it needs unwrapping if we're not sure
 		return true
