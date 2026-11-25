@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex};
 pub trait positioner: std::fmt::Display + Any {
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_positioner(&self, other: &(dyn positioner + Send + Sync)) -> bool;
     fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>>;
 }
@@ -25,6 +26,7 @@ impl Clone for Box<dyn positioner + Send + Sync> {
 pub trait named: std::fmt::Display + Any {
     fn __go_clone_box_named(&self) -> Box<dyn named + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_named(&self, other: &(dyn named + Send + Sync)) -> bool;
     fn string(&self) -> Arc<Mutex<Option<String>>>;
 }

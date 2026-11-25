@@ -825,6 +825,7 @@ impl PartialEq for counter {
 pub trait valueReader: std::fmt::Display + Any {
     fn __go_clone_box_value_reader(&self) -> Box<dyn valueReader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool;
     fn value(&self) -> i64;
 }
@@ -893,6 +894,10 @@ impl valueReader for counterPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_value_reader(&self, other: &(dyn valueReader + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<counterPtr>() {

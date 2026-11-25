@@ -3862,7 +3862,7 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 	for _, method := range explicitInterfaceMethods(ifaceType) {
 		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName, ifaceName)
 	}
-	writePointerLocalInterfaceSupportImpl(out, ifaceName, wrapperName, ifaceType)
+	writePointerLocalInterfaceSupportImpl(out, typeName, ifaceName, wrapperName, ifaceType)
 	out.WriteString("}")
 }
 
@@ -3928,7 +3928,7 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 	out.WriteString("    }\n")
 }
 
-func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrapperName string, ifaceType *types.Interface) {
+func writePointerLocalInterfaceSupportImpl(out *strings.Builder, typeName, ifaceName, wrapperName string, ifaceType *types.Interface) {
 	TrackImport("Any")
 	traitSnake := traitMethodSuffix(ifaceName)
 	hasEmbedded := ifaceType != nil && interfaceTypeHasNamedEmbedded(ifaceType)
@@ -3948,6 +3948,7 @@ func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrap
 		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
 		out.WriteString("        self\n")
 		out.WriteString("    }\n")
+		writePointerWrapperGoPrintMethod(out, typeName)
 	}
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
@@ -6149,6 +6150,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString(";\n")
 		if len(embeddedTraits) == 0 {
 			out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
+			writeGoPrintTraitMethod(out)
 		}
 		out.WriteString("    fn __go_eq_")
 		out.WriteString(traitSnake)

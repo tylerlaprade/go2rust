@@ -13,6 +13,7 @@ macro_rules! vec {
 pub trait Stepper: std::fmt::Display + Any {
     fn __go_clone_box_stepper(&self) -> Box<dyn Stepper>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_stepper(&self, other: &dyn Stepper) -> bool;
     fn step(&mut self);
     fn value(&self) -> i64;

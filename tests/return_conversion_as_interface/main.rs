@@ -617,6 +617,7 @@ impl std::io::Write for GoSlice<u8> {
 pub trait Value: std::fmt::Display + Any {
     fn __go_clone_box_value(&self) -> Box<dyn Value>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_value(&self, other: &dyn Value) -> bool;
     fn kind(&self) -> Rc<RefCell<Option<String>>>;
 }
