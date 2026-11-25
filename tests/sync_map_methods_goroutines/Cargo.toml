@@ -1,0 +1,11 @@
+[package]
+name = "sync_map_methods_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sync_map_methods_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
