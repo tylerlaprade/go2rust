@@ -870,6 +870,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				writeMapOfArraysDisplay(out, formatter, writeHandle)
 				return
 			}
+			if mapValuesAreBasicMaps(argType) {
+				writeMapOfMapsDisplay(out, writeHandle)
+				return
+			}
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
@@ -2348,6 +2352,41 @@ func mapArrayValueFormatter(mapType types.Type) (string, bool) {
 		return "format_nested_slice_values", true
 	}
 	return "", false
+}
+
+// mapValuesAreBasicMaps reports whether mapType is a map whose values are
+// maps of numbers, strings or bools, map[string]map[string]int.
+func mapValuesAreBasicMaps(mapType types.Type) bool {
+	if mapType == nil {
+		return false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	if named, ok := types.Unalias(m.Elem()).(*types.Named); ok && typeHasGoStringMethod(named) {
+		return false
+	}
+	inner, ok := m.Elem().Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(inner.Elem()).(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+}
+
+// writeMapOfMapsDisplay prints a map whose values are maps as fmt does,
+// map[a:map[b:2]], in key order. Each value is the cell of an inner map,
+// which format_map takes; the inner map has no Display of its own.
+func writeMapOfMapsDisplay(out *strings.Builder, writeHandle func()) {
+	NeedFormatMap()
+	TrackImport("Display")
+	TrackImport("Ord")
+	out.WriteString("{ let __map_holder = ")
+	writeHandle()
+	out.WriteString(".clone(); let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // writeMapOfArraysDisplay prints a map whose values are arrays as fmt does,

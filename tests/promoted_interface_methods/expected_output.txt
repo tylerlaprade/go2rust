@@ -1,0 +1,7 @@
+rex WOOF!
+rex WOOF!
+x true [put a put b] [a b]
+a=x b=y 
+a=X b=Y c=Z 
+[put a put b put c] 3
+false
