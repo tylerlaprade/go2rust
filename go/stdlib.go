@@ -5928,6 +5928,16 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(").clone().unwrap_or_default(); __appended")
 			out.WriteString(store)
 			out.WriteString("; ")
+			if call.Ellipsis.IsValid() || len(call.Args) == 1 {
+				// append(s, xs...) with no xs, or append(s), returns s:
+				// a nil s stays nil (DEV-187).
+				out.WriteString("let __append_was_nil = (*__append_target")
+				WriteBorrowMethod(out, false)
+				out.WriteString(").is_none(); ")
+				out.WriteString(GetOuterWrapperType() + "::new(" + GetInnerWrapperType() + "::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) }))")
+				out.WriteString(" }")
+				return
+			}
 			WriteWrapperPrefix(out)
 			out.WriteString("__appended")
 			WriteWrapperSuffix(out)

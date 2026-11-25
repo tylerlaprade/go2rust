@@ -1,0 +1,6 @@
+true 0
+true
+false [1 2]
+false 0
+true
+[a]
