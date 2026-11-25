@@ -683,7 +683,7 @@ fn main() {
     let mut dst = Rc::new(RefCell::new(Some(("abc".to_string()).as_bytes().to_go_slice())));
     let mut src: Rc<RefCell<Option<Vec<u8>>>> = Rc::new(RefCell::new(None));
     let mut n = {
-        let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min((*dst.borrow().as_ref().unwrap()).len(), _src.len());
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();

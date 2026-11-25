@@ -1,0 +1,25 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/container_list",
+    "vendor/container_ring",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "container_list_and_ring_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "container_list_and_ring_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+container_list = { path = "vendor/container_list" }
+container_ring = { path = "vendor/container_ring" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }

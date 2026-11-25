@@ -782,7 +782,7 @@ fn main() {
     { let __rhs = (*{
         let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
         let _dst_len = (*dst.borrow().as_ref().unwrap()).len() - _dst_start;
-        let _src = { let __copy_src_holder = src1.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _src = { let __copy_src_holder = src1.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min(_dst_len, _src.len());
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
@@ -792,7 +792,7 @@ fn main() {
     { let __rhs = (*{
         let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
         let _dst_len = (*dst.borrow().as_ref().unwrap()).len() - _dst_start;
-        let _src = { let __copy_src_holder = src2.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _src = { let __copy_src_holder = src2.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
         let _n = std::cmp::min(_dst_len, _src.len());
         for _i in 0.._n {
             (*dst.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();

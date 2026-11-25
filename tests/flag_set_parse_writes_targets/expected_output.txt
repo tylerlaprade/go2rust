@@ -1,0 +1,6 @@
+<nil> 5 gopher true 250ms 3 [rest args] 2
+d 250ms 1s
+limit 3 10
+n 5 1
+name gopher x
+v true false

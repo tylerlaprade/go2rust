@@ -8,9 +8,15 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::io_fs::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::time::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
     let mut mode = Arc::new(Mutex::new(Some(io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(((io_fs::MODE_DIR as u32 | io_fs::MODE_SETUID as u32) as u32 | 0o640 as u32) as u32)))))));

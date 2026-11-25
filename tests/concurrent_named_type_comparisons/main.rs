@@ -1301,13 +1301,13 @@ impl Symbol {
     pub fn has_field_flag(&self) -> bool {
         return {
             let __go_cond_0 = {
-                let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & FIELD as i8)))));
+                let __tmp_x = Kind(Arc::new(Mutex::new(Some(({ let __named_value = (*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } & FIELD as i8)))));
                 let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8))));
                 __tmp_x != __tmp_y
             };
             if __go_cond_0 {
                 let __go_cond_1 = {
-                    let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) | METHOD as i8)))));
+                    let __tmp_x = Kind(Arc::new(Mutex::new(Some(({ let __named_value = (*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()); __named_value } | METHOD as i8)))));
                     let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8))));
                     __tmp_x != __tmp_y
                 };

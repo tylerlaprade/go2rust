@@ -1358,7 +1358,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     let mut hits = Arc::new(Mutex::new(Some(0i64)));
     for m in &vec![other.clone(), another.clone(), ptr.clone()] {
         wg.add(1);
-        let mut hits_thread = hits.clone(); let mu_thread = mu.clone(); let wg_thread = wg.clone(); let __go_arg_0 = (*m).clone(); std::thread::spawn(move || {
+        let mut hits_thread = hits.clone(); let mu_thread = mu.clone(); let wg_thread = wg.clone(); let __go_arg_0 = m.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let mut __closure = move |lock: GoMutex| {

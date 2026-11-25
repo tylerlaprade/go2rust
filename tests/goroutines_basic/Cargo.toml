@@ -1,3 +1,17 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bisect",
+    "vendor/internal_bytealg",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
+    "vendor/internal_stringslite",
+    "vendor/math_bits",
+    "vendor/time",
+]
+
 [package]
 name = "goroutines_basic"
 version = "0.1.0"
@@ -9,3 +23,13 @@ path = "main.rs"
 
 [profile.dev]
 overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bisect = { path = "vendor/internal_bisect" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+math_bits = { path = "vendor/math_bits" }
+time = { path = "vendor/time" }

@@ -19,8 +19,12 @@ func setCurrentNilPointerReceiverMethodHelpers(helpers map[string]string) func()
 }
 
 func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, methods map[string][]*ast.FuncDecl) map[string]string {
-	if file == nil || typeInfo == nil || typeInfo.info == nil || len(methods) == 0 {
+	if file == nil || typeInfo == nil || typeInfo.info == nil {
 		return nil
+	}
+	helpers := otherFileNilAwareMethodHelpers(typeInfo)
+	if len(methods) == 0 {
+		return helpers
 	}
 
 	declaredMethods := make(map[string]*types.Func)
@@ -34,10 +38,12 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 		}
 	}
 	if len(declaredMethods) == 0 {
-		return nil
+		return helpers
 	}
 
-	helpers := make(map[string]string)
+	if helpers == nil {
+		helpers = make(map[string]string)
+	}
 	// A method that tests its receiver for nil is written for a nil
 	// receiver: recursion over a list or a tree ends on one. Every call on
 	// a pointer goes through the helper, which takes the pointer.
@@ -48,6 +54,9 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 			if key != "" && methodComparesReceiverWithNil(method, typeInfo) {
 				helpers[key] = nilPointerReceiverMethodHelperName(fn)
 				nilAwareMethodHelpers[key] = true
+				if fn.Pkg() != nil {
+					nilAwareMethodHelperHomes[key] = nilAwareMethodHelperHome{pkgPath: fn.Pkg().Path(), helperName: helpers[key]}
+				}
 			}
 		}
 	}
@@ -74,6 +83,73 @@ func collectNilPointerReceiverMethodHelpers(file *ast.File, typeInfo *TypeInfo, 
 
 	if len(helpers) == 0 {
 		return nil
+	}
+	return helpers
+}
+
+// otherFileNilAwareMethodHelpers names, for the file being written, the
+// helpers of the methods that test their receiver for nil and are declared
+// in another file of the package, as time's (*Location).get is for a call in
+// time.go: the helper is in that file's module.
+func otherFileNilAwareMethodHelpers(typeInfo *TypeInfo) map[string]string {
+	ctx := GetTranspileContext()
+	if ctx == nil {
+		return nil
+	}
+	helpers := otherPackageNilAwareMethodHelpers(ctx, typeInfo)
+	if ctx.Package == nil || ctx.CurrentModuleName == "" {
+		return helpers
+	}
+	for decl, moduleName := range ctx.Package.MethodDeclModuleNames {
+		if moduleName == "" || moduleName == ctx.CurrentModuleName || !methodComparesReceiverWithNil(decl, typeInfo) {
+			continue
+		}
+		fn := methodFuncForDecl(decl, typeInfo)
+		key := methodOverrideKey(fn)
+		if key == "" {
+			continue
+		}
+		if helpers == nil {
+			helpers = make(map[string]string)
+		}
+		helpers[key] = "crate::" + moduleName + "::" + nilPointerReceiverMethodHelperName(fn)
+		nilAwareMethodHelpers[key] = true
+	}
+	return helpers
+}
+
+// nilAwareMethodHelperHome is where the helper of a method that tests its
+// receiver for nil is: the package that declares the method, and the
+// helper's name there.
+type nilAwareMethodHelperHome struct {
+	pkgPath    string
+	helperName string
+}
+
+// nilAwareMethodHelperHomes records each such method of a package already
+// translated, which the packages that import it are translated after.
+var nilAwareMethodHelperHomes = map[string]nilAwareMethodHelperHome{}
+
+// otherPackageNilAwareMethodHelpers names the helpers of the nil-testing
+// methods of other packages by their crates, for a call such as
+// empty.Len() on a nil *list.List in the main package.
+func otherPackageNilAwareMethodHelpers(ctx *TranspileContext, typeInfo *TypeInfo) map[string]string {
+	if ctx.PackageMapping == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	var helpers map[string]string
+	for key, home := range nilAwareMethodHelperHomes {
+		if home.pkgPath == typeInfo.pkg.Path() {
+			continue
+		}
+		crate := ctx.PackageMapping[home.pkgPath]
+		if crate == "" {
+			continue
+		}
+		if helpers == nil {
+			helpers = make(map[string]string)
+		}
+		helpers[key] = crate + "::" + home.helperName
 	}
 	return helpers
 }
@@ -149,6 +225,11 @@ func isPointerReceiverExprMethodCall(typeInfo *TypeInfo, sel *ast.SelectorExpr, 
 	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		return false
 	}
+	// A method promoted from an embedded field has that field as its
+	// receiver, not the pointer the call is made on.
+	if selection, ok := typeInfo.info.Selections[sel]; ok && len(selection.Index()) != 1 {
+		return false
+	}
 	receiverType := typeInfo.GetType(sel.X)
 	if receiverType == nil {
 		return false
@@ -214,6 +295,14 @@ func nilPointerReceiverMethodHelperName(method *types.Func) string {
 			receiverType = types.Unalias(pointer.Elem())
 		}
 		receiverName = goTypesTypeToRust(receiverType)
+		// The name is the same from every module of the package.
+		head := receiverName
+		if generic := strings.Index(head, "<"); generic >= 0 {
+			head = head[:generic]
+		}
+		if path := strings.LastIndex(head, "::"); path >= 0 {
+			receiverName = receiverName[path+2:]
+		}
 	}
 	return "__go_nil_recv_" + rustIdentFragment(receiverName) + "_" + rustIdentFragment(rustMethodNameForTypesFunc(method))
 }

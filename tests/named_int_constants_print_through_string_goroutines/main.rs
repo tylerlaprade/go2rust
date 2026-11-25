@@ -2481,7 +2481,7 @@ impl Ord for Level {
 
 impl Weekday {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(["Sun".to_string(), "Mon".to_string(), "Tue".to_string()]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(["Sun".to_string(), "Mon".to_string(), "Tue".to_string()]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[{ let __named_value = (*self.0.lock().unwrap().as_ref().unwrap()); __named_value } as usize].clone() })))
     }
 }
 
@@ -2503,6 +2503,6 @@ fn main() {
     let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64))))) as Box<dyn Any + Send + Sync>)));
     println!("{} {} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))).string().lock().unwrap().as_ref().unwrap())));
     let mut d = Arc::new(Mutex::new(Some(Weekday(Arc::new(Mutex::new(Some(MONDAY as i64)))))));
-    println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((((*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))]))))));
+    println!("{} {} {} {}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(({ let __named_value = (*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } + 1)))))), format!("{}", Weekday(Arc::new(Mutex::new(Some((({ let __named_value = (*{ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } * 2) % 3)))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64)))), Weekday(Arc::new(Mutex::new(Some(TUESDAY as i64))))]))))));
     println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", Weekday(Arc::new(Mutex::new(Some(SUNDAY as i64))))))))).lock().unwrap().as_ref().unwrap())));
 }

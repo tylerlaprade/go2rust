@@ -134,6 +134,13 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		return true
 	}
 	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition() {
+		if NeedsConcurrentWrapper() {
+			// As below: d - d%m reads the receiver's cell twice.
+			out.WriteString("{ let __named_value = ")
+			TranspileExpression(out, expr)
+			out.WriteString("; __named_value }")
+			return true
+		}
 		TranspileExpression(out, expr)
 		return true
 	}
@@ -145,6 +152,16 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 		value.WriteString(".as_ref().unwrap())")
 	} else {
 		TranspileExpression(&value, expr)
+	}
+	if NeedsConcurrentWrapper() {
+		// A let drops the guard at once: d - d%m locks d's cell twice in
+		// one expression, which a Mutex would wait on forever.
+		out.WriteString("{ let __named_value = (*")
+		out.WriteString(value.String())
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()); __named_value }")
+		return true
 	}
 	out.WriteString("(*")
 	out.WriteString(value.String())
@@ -179,8 +196,11 @@ func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.U
 				return true
 			}
 		}
-		out.WriteString("-")
+		// -Duration(d) of a uint64 d negates the int64 the conversion
+		// gives, not d: "-(d) as i64" would negate the u64.
+		out.WriteString("-(")
 		writeNamedIntegerPrimitiveExpression(out, expr.X)
+		out.WriteString(")")
 		return true
 	default:
 		return false
@@ -1173,9 +1193,28 @@ func isExpressionResultBare(expr ast.Expr) bool {
 		// bare Rust value at the call site; their consumers must not wrap
 		// the result through .borrow().as_ref().unwrap().
 		return callReturnsBareScalar(e)
+	case *ast.UnaryExpr:
+		// A channel holds its slices and maps bare, so <-ch is one.
+		return e.Op == token.ARROW && channelElemIsBareCollection(e)
 	default:
 		return false
 	}
+}
+
+// channelElemIsBareCollection reports whether expr has an unnamed slice or
+// map type, which a channel holds as the bare collection.
+func channelElemIsBareCollection(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch t := types.Unalias(typeInfo.GetType(expr)).(type) {
+	case *types.Slice:
+		return !isEmptyInterfaceType(t.Elem())
+	case *types.Map:
+		return true
+	}
+	return false
 }
 
 func indexExpressionResultKeepsHandle(expr *ast.IndexExpr, typeInfo *TypeInfo) bool {
@@ -7095,18 +7134,49 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 		trackWrapperImports()
 		out.WriteString("{ let __peer = ")
 		writePointerHandleExpression(out, otherExpr)
+		if !currentReceiverRustAliasIsPointerHandle {
+			// The receiver is the struct inside the cell of the handle the
+			// method was called on, which that call holds: when the peer is
+			// that handle, the receiver lies in its cell, and locking it
+			// again would wait forever. That needs no lock to tell.
+			out.WriteString("; let __peer_cell = ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&__peer) as usize; let __self_addr = ")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(" as *const _ as usize; let __eq = (__self_addr >= __peer_cell && __self_addr < __peer_cell + std::mem::size_of_val(&*__peer)) || {")
+		}
 		out.WriteString("; let __peer_guard = __peer")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); ")
+		identityField, hasIdentity := pointerIdentityField(typeInfo.GetType(receiverExpr))
+		if otherField, ok := pointerIdentityField(typeInfo.GetType(otherExpr)); !ok || otherField != identityField {
+			hasIdentity = false
+		}
 		if currentReceiverRustAliasIsPointerHandle {
 			out.WriteString("let __self_guard = ")
 			out.WriteString(currentReceiverRustName())
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __self_ptr = __self_guard.as_ref().map(|__v| __v as *const _ as usize); let __eq = __peer_ptr == __self_ptr; ")
+		} else if hasIdentity {
+			// A handle made from the receiver holds a copy that shares
+			// the receiver's field cells: it points at the same struct.
+			out.WriteString("let __peer_id = __peer_guard.as_ref().map(|__v| ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&__v.")
+			out.WriteString(identityField)
+			out.WriteString(") as *const () as usize); let __self_ptr = ")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(" as *const _ as usize; let __self_id = ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::as_ptr(&")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".")
+			out.WriteString(identityField)
+			out.WriteString(") as *const () as usize; __peer_ptr == Some(__self_ptr) || __peer_id == Some(__self_id) }; ")
 		} else {
 			out.WriteString("let __self_ptr = ")
 			out.WriteString(currentReceiverRustName())
-			out.WriteString(" as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); ")
+			out.WriteString(" as *const _ as usize; __peer_ptr == Some(__self_ptr) }; ")
 		}
 		if expr.Op == token.NEQ {
 			out.WriteString("!")
@@ -7259,7 +7329,7 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	leftText := left.String()
 	rightText := right.String()
 	if pointerEqualityShouldUseMultiline(leftText, rightText) {
-		writeMultilinePointerEquality(out, leftText, rightText, expr.Op)
+		writeMultilinePointerEquality(out, leftText, rightText, expr.Op, typeInfo.GetType(expr.X), typeInfo.GetType(expr.Y))
 		return true
 	}
 	out.WriteString("{ let __left = ")
@@ -7272,12 +7342,89 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString(").is_none(); let __eq = __both_nil || ")
 	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left, &__right); ")
+	out.WriteString("::ptr_eq(&__left, &__right)")
+	writeSameStructObjectTerm(out, typeInfo.GetType(expr.X), typeInfo.GetType(expr.Y), "__left", "__right")
+	out.WriteString("; ")
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+// pointerIdentityField names the field whose cell identifies the struct
+// that a pointer of type typ points at: the first field of a basic,
+// pointer, slice or map type, which is always held in a cell. A pointer
+// method's receiver is the struct, not its handle, so storing or returning
+// it makes a new handle around a copy that shares every field's cell: the
+// same Go pointer, but not the same handle. A Go copy of the struct has new
+// cells, and two allocations never share one.
+func pointerIdentityField(typ types.Type) (string, bool) {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	if args := named.TypeArgs(); args != nil && args.Len() > 0 {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || (named.Obj().Pkg() != typeInfo.pkg && isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())) {
+		return "", false
+	}
+	st, ok := named.Underlying().(*types.Struct)
+	if !ok {
+		return "", false
+	}
+	for i := 0; i < st.NumFields(); i++ {
+		field := st.Field(i)
+		if field.Name() == "_" || field.Anonymous() {
+			continue
+		}
+		switch t := types.Unalias(field.Type()).(type) {
+		case *types.Basic:
+			if t.Kind() == types.UnsafePointer {
+				continue
+			}
+			return ToSnakeCase(field.Name()), true
+		case *types.Pointer, *types.Slice, *types.Map:
+			return ToSnakeCase(field.Name()), true
+		}
+	}
+	return "", false
+}
+
+// writeSameStructObjectTerm writes, after the ptr_eq of two pointer
+// handles left and right, " || " and whether they point at the same struct
+// by the cell of its identity field. Each handle is locked on its own, after
+// ptr_eq has found them to be different handles.
+func writeSameStructObjectTerm(out *strings.Builder, leftType, rightType types.Type, left, right string) {
+	field, ok := pointerIdentityField(leftType)
+	if !ok {
+		return
+	}
+	if rightField, ok := pointerIdentityField(rightType); !ok || rightField != field {
+		return
+	}
+	identity := func(handle string) string {
+		var b strings.Builder
+		b.WriteString(handle)
+		WriteBorrowMethod(&b, false)
+		b.WriteString(".as_ref().map(|__v| ")
+		b.WriteString(GetOuterWrapperType())
+		b.WriteString("::as_ptr(&__v.")
+		b.WriteString(field)
+		b.WriteString(") as *const () as usize)")
+		return b.String()
+	}
+	out.WriteString(" || { let __left_id = ")
+	out.WriteString(identity(left))
+	out.WriteString("; let __right_id = ")
+	out.WriteString(identity(right))
+	out.WriteString("; __left_id.is_some() && __left_id == __right_id }")
 }
 
 // isSharedStdStreamSelector reports whether sel is os.Stdout or os.Stderr.
@@ -7306,7 +7453,7 @@ func pointerEqualityShouldUseMultiline(leftText, rightText string) bool {
 	return strings.Contains(leftText, "\n") || strings.Contains(rightText, "\n") || inlineLen > maxInlineWrappedSlotAssignmentLen
 }
 
-func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText string, op token.Token) {
+func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText string, op token.Token, leftType, rightType types.Type) {
 	indent := currentLineIndent(out)
 	out.WriteString("{\n")
 	out.WriteString(indent)
@@ -7326,7 +7473,9 @@ func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText str
 	out.WriteString(indent)
 	out.WriteString("    let __eq = __both_nil || ")
 	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left, &__right);\n")
+	out.WriteString("::ptr_eq(&__left, &__right)")
+	writeSameStructObjectTerm(out, leftType, rightType, "__left", "__right")
+	out.WriteString(";\n")
 	out.WriteString(indent)
 	out.WriteString("    ")
 	if op == token.NEQ {
@@ -8987,6 +9136,13 @@ func writeRuntimeAnyTypeRegistration(out *strings.Builder, typ types.Type) bool 
 	}
 	NeedGoAnyRuntimeOps()
 	RegisterAnyCloneType(typ)
+	if helpers := activeHelperTracker(); helpers != nil {
+		// The registration formats the value with the arm's helpers, which
+		// this crate writes even when it has no format_any of its own.
+		helpers.needsAnyPointerFormatter = helpers.needsAnyPointerFormatter || formatArm.needsFormatPointer
+		helpers.needsFormatMap = helpers.needsFormatMap || formatArm.needsFormatMap
+		helpers.needsFormatSlice = helpers.needsFormatSlice || formatArm.needsFormatSlice
+	}
 	out.WriteString("go_register_any_runtime_type::<")
 	out.WriteString(rustType)
 	out.WriteString(">(")
@@ -12214,6 +12370,14 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
+	if lenCapCallNeedsExpectedIntCast(value, valueType) {
+		// map[string]int{k: len(k)}: len is a usize, the value an int.
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, value)
+		out.WriteString(" as " + rustIntType())
+		WriteWrapperSuffix(out)
+		return
+	}
 	if lit, ok := value.(*ast.CompositeLit); ok && lit.Type == nil {
 		if named, sliceType, ok := namedSliceTypeFromType(valueType); ok {
 			// The map stores the defined slice in its own cell. The slice
@@ -13078,7 +13242,10 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			capturedClone = true
 		}
 	}
-	if varType == "ref_value" || strings.HasPrefix(varType, "&") {
+	// A wrapped value is a handle, owned when the loop clones its elements
+	// because the body assigns the variable, and borrowed otherwise.
+	// name.clone() gives the handle either way.
+	if (varType == "ref_value" || strings.HasPrefix(varType, "&")) && !isWrappedRangeVarType(varType) {
 		if isCopyTypeForRangeRef(ident) {
 			out.WriteString("*")
 			out.WriteString(name)
@@ -13113,14 +13280,8 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 			out.WriteString(copyCall)
 			return true
 		}
-		if strings.HasPrefix(varType, "&") {
-			out.WriteString("(*")
-			out.WriteString(name)
-			out.WriteString(").clone()")
-		} else {
-			out.WriteString(name)
-			out.WriteString(".clone()")
-		}
+		out.WriteString(name)
+		out.WriteString(".clone()")
 		return true
 	}
 	if bareRangeVarNeedsClone(varType) {
@@ -19198,6 +19359,9 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 		writePointerTypeConversionFromUnsafePointer(out, target, source)
 		return
 	}
+	if writeSamePointeePointerConversion(out, target, source) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
@@ -19209,17 +19373,6 @@ func writeNamedScalarPointerTypeConversion(out *strings.Builder, target ast.Expr
 	if !ok || targetType == nil {
 		return false
 	}
-	targetNamed, ok := types.Unalias(targetType).(*types.Named)
-	if !ok || targetNamed.Obj() == nil {
-		return false
-	}
-	if _, ok := LookupTypeDefinition(targetNamed.Obj().Name()); !ok {
-		return false
-	}
-	targetBasic, ok := types.Unalias(targetNamed.Underlying()).(*types.Basic)
-	if !ok || targetBasic.Kind() == types.Invalid {
-		return false
-	}
 	sourceType := typeInfo.GetType(source)
 	if sourceType == nil {
 		return false
@@ -19228,18 +19381,92 @@ func writeNamedScalarPointerTypeConversion(out *strings.Builder, target ast.Expr
 	if !ok {
 		return false
 	}
-	sourceBasic, ok := types.Unalias(sourcePtr.Elem()).(*types.Basic)
+	targetNamed, targetIsNewtype := namedBasicCellNewtype(targetType)
+	sourceNamed, sourceIsNewtype := namedBasicCellNewtype(sourcePtr.Elem())
+	if !targetIsNewtype && !sourceIsNewtype {
+		return false
+	}
+	targetBasic, ok := types.Unalias(targetType).Underlying().(*types.Basic)
+	if !ok || targetBasic.Kind() == types.Invalid {
+		return false
+	}
+	sourceBasic, ok := types.Unalias(sourcePtr.Elem()).Underlying().(*types.Basic)
 	if !ok || !types.Identical(targetBasic, sourceBasic) {
 		return false
 	}
+	if sourceNamed != nil && targetNamed != nil && types.Identical(sourceNamed, targetNamed) {
+		return false
+	}
 
-	WriteWrapperPrefix(out)
-	out.WriteString(goTypesNamedTypeToRust(targetNamed))
-	out.WriteString("(")
+	if !sourceIsNewtype {
+		// (*intValue)(p) for a p of type *int: the newtype holds p's cell.
+		WriteWrapperPrefix(out)
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		writePointerHandleExpression(out, source)
+		out.WriteString(")")
+		WriteWrapperSuffix(out)
+		return true
+	}
+	// (*durationValue)(p) for a p of type *time.Duration, and back: both
+	// newtypes hold a cell of the same number, so the result holds p's.
+	// (*int64)(d) is that cell itself.
+	writeResult := func(cell string) {
+		if !targetIsNewtype {
+			out.WriteString(cell)
+			return
+		}
+		WriteWrapperPrefix(out)
+		out.WriteString(goTypesNamedTypeToRust(targetNamed))
+		out.WriteString("(")
+		out.WriteString(cell)
+		out.WriteString(")")
+		WriteWrapperSuffix(out)
+	}
+	if ident, ok := unwrapParens(source).(*ast.Ident); ok && isCurrentReceiverIdent(ident) && !currentReceiverRustAliasIsPointerHandle {
+		// A pointer method's receiver is the newtype itself.
+		writeResult(currentReceiverRustName() + ".0.clone()")
+		return true
+	}
+	out.WriteString("{ let __newtype_source = ")
 	writePointerHandleExpression(out, source)
-	out.WriteString(")")
-	WriteWrapperSuffix(out)
+	out.WriteString("; let __newtype_guard = __newtype_source")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __newtype_guard.as_ref() { Some(__newtype_value) => ")
+	writeResult("__newtype_value.0.clone()")
+	out.WriteString(", None => ")
+	if targetIsNewtype {
+		writeTypedWrappedNone(out, goTypesNamedTypeToRust(targetNamed))
+	} else {
+		writeTypedWrappedNone(out, goTypesTypeToRust(targetBasic))
+	}
+	out.WriteString(" } }")
 	return true
+}
+
+// namedBasicCellNewtype reports whether typ is a named number, string or bool
+// whose Rust type is a newtype holding a cell of that basic value: one
+// declared in this package or translated from source, as time.Duration is.
+func namedBasicCellNewtype(typ types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.TypeArgs().Len() > 0 {
+		return nil, false
+	}
+	basic, ok := named.Underlying().(*types.Basic)
+	if !ok || basic.Kind() == types.Invalid || basic.Kind() == types.UnsafePointer {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && named.Obj().Pkg() == typeInfo.pkg {
+		if _, ok := LookupTypeDefinition(named.Obj().Name()); !ok {
+			return nil, false
+		}
+		return named, true
+	}
+	if isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+		return nil, false
+	}
+	return named, true
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
@@ -19247,6 +19474,12 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 		return
 	}
 	if writeEmbeddedOwnerPointerConversion(out, target, source) {
+		return
+	}
+	if writeLayoutCompatibleStructPointerConversion(out, target, source) {
+		return
+	}
+	if writeChannelWordPointerConversion(out, target, source) {
 		return
 	}
 	targetType := pointerConversionTargetTypeToRust(target)

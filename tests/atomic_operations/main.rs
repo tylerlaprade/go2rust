@@ -1076,6 +1076,6 @@ fn main() {
 
     let mut state: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
     let mut next = Arc::new(Mutex::new(Some(namedState(Arc::new(Mutex::new(Some(7 as u32)))))));
-    { let __target = state.clone(); let __stored = (*{ let __v = (*next.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32 as u32; let mut __guard = __target.lock().unwrap(); *__guard.as_mut().unwrap() = __stored; };
+    { let __target = state.clone(); let __stored = { let __named_value = (*{ let __v = (*next.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __named_value } as u32 as u32; let mut __guard = __target.lock().unwrap(); *__guard.as_mut().unwrap() = __stored; };
     println!("{} {}", format!("{}", "Atomic state:".to_string()), format!("{}", (*Arc::new(Mutex::new(Some({ let __target = state.clone(); let __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() }))).lock().unwrap().as_ref().unwrap())));
 }

@@ -997,7 +997,7 @@ impl scope {
             let __left = { let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
             let __right = (*global.lock().unwrap().as_ref().unwrap()).clone();
             let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
-            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
             __eq
         } {
         return Arc::new(Mutex::new(None));

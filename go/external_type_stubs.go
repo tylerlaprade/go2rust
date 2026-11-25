@@ -898,6 +898,10 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 	case "sync/atomic":
 		return name == "Pointer"
 	case "time":
+		// time translated from source has its own Time and Duration.
+		if isSourceMappedPackagePath(pkgPath) {
+			return false
+		}
 		return name == "Time" || name == "Duration" || name == "Timer" || name == "Ticker"
 	case "unsafe":
 		return name == "Pointer"
@@ -1224,6 +1228,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoTypeParamFieldClone = dst.needsGoTypeParamFieldClone || src.needsGoTypeParamFieldClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
 	dst.needsGoAnyRuntimeOps = dst.needsGoAnyRuntimeOps || src.needsGoAnyRuntimeOps
+	dst.needsAnyPointerFormatter = dst.needsAnyPointerFormatter || src.needsAnyPointerFormatter
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {
@@ -1253,6 +1258,8 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 		}
 	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
+	dst.needsGoTimeRuntime = dst.needsGoTimeRuntime || src.needsGoTimeRuntime
+	dst.needsGoChannelIdentity = dst.needsGoChannelIdentity || src.needsGoChannelIdentity
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsGoSelectSend = dst.needsGoSelectSend || src.needsGoSelectSend
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup
