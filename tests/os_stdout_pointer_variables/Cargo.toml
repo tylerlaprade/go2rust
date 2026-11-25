@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/io",
+]
+
+[package]
+name = "os_stdout_pointer_variables"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "os_stdout_pointer_variables"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+io = { path = "vendor/io" }

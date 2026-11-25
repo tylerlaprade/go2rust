@@ -7238,10 +7238,10 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
 	}
-	if sel, ok := expr.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+	if sel, ok := expr.X.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) && !isSharedStdStreamSelector(sel) {
 		return false
 	}
-	if sel, ok := expr.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) {
+	if sel, ok := expr.Y.(*ast.SelectorExpr); ok && IsExternalStdlibPackageVariableSelector(sel) && !isSharedStdStreamSelector(sel) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -7278,6 +7278,21 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+// isSharedStdStreamSelector reports whether sel is os.Stdout or os.Stderr.
+// The stub returns the same *File handle on every read of either, so two
+// reads are the same pointer and compare with ptr_eq, as in Go.
+func isSharedStdStreamSelector(sel *ast.SelectorExpr) bool {
+	if sel == nil || sel.Sel == nil || (sel.Sel.Name != "Stdout" && sel.Sel.Name != "Stderr") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[sel.Sel].(*types.Var)
+	return ok && obj.Pkg() != nil && obj.Pkg().Path() == "os" && isStubBackedStdlibPackagePath("os")
 }
 
 func pointerEqualityShouldUseMultiline(leftText, rightText string) bool {

@@ -845,6 +845,12 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
+    /// File.Name: the name the File was opened with (part of the
+    /// os-file-create shim).
+    pub fn name(&self) -> Rc<RefCell<Option<String>>> {
+        Rc::new(RefCell::new(Some::<String>(self.__go_name.clone())))
+    }
+
     pub fn close(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         let mut __disk = self.__go_disk.lock().unwrap();
         if self.__go_handle_closed.swap(true, std::sync::atomic::Ordering::SeqCst) {

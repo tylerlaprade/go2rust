@@ -33,7 +33,8 @@ func main() {
 		"if self.__go_std_stream != 0 {",
 		"let mut __out = std::io::stdout().lock();",
 		"let mut __out = std::io::stderr().lock();",
-		"static __GO_FILE: std::sync::OnceLock<os_File> = std::sync::OnceLock::new();",
+		// One shared *File handle (DEV-181).
+		"static __GO_FILE: ",
 		`os_File { __go_std_stream: 1, __go_name: "/dev/stdout".to_string(), ..Default::default() }`,
 		`os_File { __go_std_stream: 2, __go_name: "/dev/stderr".to_string(), ..Default::default() }`,
 	} {

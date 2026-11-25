@@ -1,0 +1,11 @@
+to stdout
+true true false true
+logger 1
+writer
+true true false
+true true
+0 true /dev/stdout
+1 false /dev/stderr
+worker 0
+worker 1
+true true
