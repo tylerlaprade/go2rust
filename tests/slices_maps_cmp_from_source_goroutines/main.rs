@@ -2757,7 +2757,7 @@ pub fn __slices__repeat__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>
     }
     const maxInt: u64 = !(0 as u64) >> 1;
 
-    let (mut hi, mut lo) = math_bits::mul(Arc::new(Mutex::new(Some(({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as u64))), Arc::new(Mutex::new(Some(({ let __v = (*count.lock().unwrap().as_ref().unwrap()); __v }) as u64))));
+    let (mut hi, mut lo) = math_bits::mul(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as u64; __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*count.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value }))));
     if { let __tmp_x = hi; let __tmp_y = 0 as u64; __tmp_x > __tmp_y } || { let __tmp_x = lo; let __tmp_y = maxInt as u64; __tmp_x > __tmp_y } {
         std::panic::panic_any(Box::new("the result of (len(x) * count) overflows".to_string()) as Box<dyn Any + Send + Sync>);
     }
@@ -2968,7 +2968,7 @@ pub fn __slices__equal_func__slice_int__slice_string__int__string(s1: Arc<Mutex<
 pub fn __slices__sort_stable_func__slice__item___item(x: Arc<Mutex<Option<Vec<Item>>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Item>>>, Arc<Mutex<Option<Item>>>) -> i64 + Send + Sync>>>>) {
     __slices_stable_cmp_func___item(
         x.clone(),
-        Arc::new(Mutex::new(Some(({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))),
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))),
         cmp.clone()
     );
 }
@@ -3254,7 +3254,7 @@ pub fn __slices__sort_func__slice_ptr__task__ptr__task(x: Arc<Mutex<Option<Vec<A
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64))))))),
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
         cmp.clone()
     );
 }
@@ -3265,7 +3265,7 @@ pub fn __slices__sort_func__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>, cmp:
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64))))))),
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
         cmp.clone()
     );
 }
@@ -3316,7 +3316,7 @@ pub fn __slices__sort__slice__celsius___celsius(x: Arc<Mutex<Option<Vec<Celsius>
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3326,7 +3326,7 @@ pub fn __slices__sort___i_ds__int(x: Arc<Mutex<Option<IDs>>>) {
         { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice },
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3336,7 +3336,7 @@ pub fn __slices__sort__slice_float64__float64(x: Arc<Mutex<Option<Vec<f64>>>>) {
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3346,7 +3346,7 @@ pub fn __slices__sort__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>) {
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3356,7 +3356,7 @@ pub fn __slices__sort__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>) 
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -7715,7 +7715,7 @@ pub fn __slices_sift_down_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: 
 }
 
 pub fn __slices_next_power_of_two(length: Arc<Mutex<Option<i64>>>) -> u64 {
-    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
+    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value }))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
 }
 
 pub fn __slices_median_adjacent_cmp_func__ptr__task(data: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Task>>>>>>>, a: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Task>>>, Arc<Mutex<Option<Task>>>) -> i64 + Send + Sync>>>>) -> i64 {

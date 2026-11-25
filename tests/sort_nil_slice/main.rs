@@ -834,7 +834,7 @@ pub fn __slices__sort__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>) {
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -844,7 +844,7 @@ pub fn __slices__sort_func__slice_string__string(x: Arc<Mutex<Option<Vec<String>
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64))))))),
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
         cmp.clone()
     );
 }
@@ -2101,7 +2101,7 @@ pub fn __slices_sift_down_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: A
 }
 
 pub fn __slices_next_power_of_two(length: Arc<Mutex<Option<i64>>>) -> u64 {
-    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
+    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value }))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
 }
 
 pub fn __slices_median_adjacent_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>) -> i64 {

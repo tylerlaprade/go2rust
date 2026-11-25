@@ -941,7 +941,7 @@ fn main() {
 
 pub fn __slices__sort_func__slice__spec___spec(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut n = Rc::new(RefCell::new(Some(({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
-    __slices_pdqsort_cmp_func___spec(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(math_bits::len(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) as u64))))))), cmp.clone());
+    __slices_pdqsort_cmp_func___spec(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), cmp.clone());
 }
 
 pub fn __slices_pdqsort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut limit: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
@@ -1333,11 +1333,11 @@ pub fn __slices_sift_down_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell
 }
 
 pub fn __slices_next_power_of_two(length: Rc<RefCell<Option<i64>>>) -> u64 {
-    { let __shift_x = 1u64; let __shift_c = (math_bits::len(Rc::new(RefCell::new(Some((*length.borrow().as_ref().unwrap()) as u64))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }
+    { let __shift_x = 1u64; let __shift_c = (math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*length.borrow().as_ref().unwrap()) as u64; __arg_value }))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }
 }
 
 pub fn __slices_median_adjacent_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
-    __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) - 1))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + 1))), swaps.clone(), cmp.clone())
+    __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), cmp.clone())
 }
 
 pub fn __slices_median_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut c: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
