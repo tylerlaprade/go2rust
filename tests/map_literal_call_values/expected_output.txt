@@ -1,0 +1,2 @@
+map[p:{1} p2:{2}] map[n:4] map[q:[3 4] r:[3 4]] map[s:[5]] 2 [1 2] [1 2]
+[y z] [[y]] [  y] changed

@@ -759,21 +759,28 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 
 		if typeInfo.IsMap(arg) {
+			writeHandle := func() {
+				if ident, ok := arg.(*ast.Ident); ok {
+					writeCollectionFormatHandleIdent(out, ident)
+				} else if writeAnyHandleAssertionHandle(out, arg) {
+					// A map asserted out of an interface: the handle it holds.
+				} else if isStructFieldSelection(arg) {
+					// The field's cell, which format_map takes; reading the
+					// field gives the map inside it.
+					TranspileExpressionContext(out, arg, LValue)
+				} else {
+					TranspileExpression(out, arg)
+				}
+			}
+			if formatter, ok := mapArrayValueFormatter(argType); ok {
+				writeMapOfArraysDisplay(out, formatter, writeHandle)
+				return
+			}
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
 			out.WriteString("format_map(&")
-			if ident, ok := arg.(*ast.Ident); ok {
-				writeCollectionFormatHandleIdent(out, ident)
-			} else if writeAnyHandleAssertionHandle(out, arg) {
-				// A map asserted out of an interface: the handle it holds.
-			} else if isStructFieldSelection(arg) {
-				// The field's cell, which format_map takes; reading the
-				// field gives the map inside it.
-				TranspileExpressionContext(out, arg, LValue)
-			} else {
-				TranspileExpression(out, arg)
-			}
+			writeHandle()
 			out.WriteString(")")
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
@@ -827,8 +834,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				return
 			}
 			if ident, ok := arg.(*ast.Ident); ok {
-				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+				if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 					out.WriteString("format_slice_values(")
+					// A row copied out of an array of arrays is the array
+					// itself, not a reference to it.
+					if strings.HasPrefix(varType, "[") {
+						out.WriteString("&")
+					}
 					out.WriteString(RustIdentForUse(ident))
 					out.WriteString(")")
 					return
@@ -1724,18 +1736,21 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 	} else if hexSpec, isHexArg := hexFormats[argIndex]; isHexArg {
 		transpilePrintHexArg(out, arg, hexSpec)
 	} else if isCharArg {
+		// Only a range over a string binds a Rust char. Any other rune,
+		// such as one from a []rune, is a number: %c prints the character
+		// with that code point, and U+FFFD for one that is not valid.
 		isAlreadyChar := false
 		if ident, ok := arg.(*ast.Ident); ok {
-			if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+			if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "char" {
 				isAlreadyChar = true
 			}
 		}
 		if isAlreadyChar {
 			transpilePrintArg(out, arg)
 		} else {
-			out.WriteString("(")
+			out.WriteString("char::from_u32((")
 			transpilePrintArg(out, arg)
-			out.WriteString(") as u8 as char")
+			out.WriteString(") as i64 as u32).unwrap_or('\\u{FFFD}')")
 		}
 	} else if NeedsConcurrentWrapper() && transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
 		// All the arguments of print! live until the macro is done, and so
@@ -2210,6 +2225,54 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 // newtype, which has no Display of its own.
 // writeNamedArrayPrintArg prints a value of "type d [3]rune", a newtype over
 // the array's cell, through the Display its declaration gives it.
+// mapArrayValueFormatter returns the helper that prints a value of a
+// map[K][N]T or map[K][N][M]T of numbers, strings or bools: a Rust array,
+// which format_map cannot print as it has no Display.
+func mapArrayValueFormatter(mapType types.Type) (string, bool) {
+	if mapType == nil {
+		return "", false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok {
+		return "", false
+	}
+	isPrintedBasic := func(typ types.Type) bool {
+		basic, ok := types.Unalias(typ).(*types.Basic)
+		return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+	}
+	array, ok := types.Unalias(m.Elem()).(*types.Array)
+	if !ok {
+		return "", false
+	}
+	if isPrintedBasic(array.Elem()) {
+		return "format_slice_values", true
+	}
+	if row, ok := types.Unalias(array.Elem()).(*types.Array); ok && isPrintedBasic(row.Elem()) {
+		return "format_nested_slice_values", true
+	}
+	return "", false
+}
+
+// writeMapOfArraysDisplay prints a map whose values are arrays as fmt does,
+// map[k:[1 2] ...] in key order, through formatter for each value.
+// writeHandle writes the map's handle.
+func writeMapOfArraysDisplay(out *strings.Builder, formatter string, writeHandle func()) {
+	NeedFormatSlice()
+	if formatter == "format_nested_slice_values" {
+		NeedFormatNestedSlice()
+	}
+	TrackImport("Display")
+	out.WriteString("{ let __map_holder = ")
+	writeHandle()
+	out.WriteString(".clone(); let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), ")
+	out.WriteString(formatter)
+	out.WriteString("(&__v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()[..]))).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+}
+
 func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	named, ok := types.Unalias(argType).(*types.Named)
 	if !ok || typeHasGoStringMethod(argType) {
@@ -2223,8 +2286,13 @@ func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.T
 	if typeInfo == nil || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
 		return false
 	}
-	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
-	if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
+	// The newtype's Display prints the cells: "[3]int", or the rows of
+	// "[2][2]int".
+	if row, isRow := types.Unalias(array.Elem()).(*types.Array); isRow {
+		if _, deeper := types.Unalias(row.Elem()).(*types.Array); deeper || !arrayCellIsPrintedBasic(row.Elem()) {
+			return false
+		}
+	} else if !arrayCellIsPrintedBasic(array.Elem()) {
 		return false
 	}
 	TranspileExpression(out, arg)

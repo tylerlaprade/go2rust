@@ -1090,7 +1090,7 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));;
-            mu_thread.lock();;
+            let __mutex_guard_source_1056 = mu_thread.clone(); let __mutex_guard_1056 = __mutex_guard_source_1056.guard();;
             {
                 let __go_lhs_map_0 = counts_thread.clone();
                 let __go_lhs_key_0 = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -1099,7 +1099,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
                 (*__go_lhs_map_0.lock().unwrap().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
                 *total_thread.lock().unwrap() = Some(__tmp_1);
             };;
-            mu_thread.unlock();;
+            std::mem::drop(__mutex_guard_1056);;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }

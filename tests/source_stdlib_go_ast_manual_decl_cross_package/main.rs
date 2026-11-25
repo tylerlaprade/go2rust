@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 
 fn main() {
     ::bytes::__go_init_all();
+    ::cmp::__go_init_all();
     ::example_com_source_stdlib_go_ast_manual_decl_cross_package_walker::__go_init_all();
     ::go_ast::__go_init_all();
     ::go_token::__go_init_all();

@@ -4660,7 +4660,7 @@ func reverse(s string) string {
 	if !strings.Contains(rust, ".chars().map(|c| c as i32).collect::<Vec<_>>()") {
 		t.Fatalf("[]rune(s) should lower through chars:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()") {
+	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()") {
 		t.Fatalf("string(runes) should use the tracked rune slice element type:\n%s", rust)
 	}
 }
@@ -4817,7 +4817,7 @@ func main() {
 	if strings.Contains(rust, ".clone().lock().unwrap().as_ref().unwrap()).iter()") {
 		t.Fatalf("string conversion from a rune slice selector should not relock a cloned Vec:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()") {
+	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap_or('\\u{FFFD}')).collect::<String>()") {
 		t.Fatalf("string conversion from a rune slice selector should iterate rune elements:\n%s", rust)
 	}
 }
