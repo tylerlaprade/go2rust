@@ -8967,6 +8967,18 @@ func mapOperandHandleCanBeHeld(mapExpr ast.Expr) bool {
 	return true
 }
 
+// exprHasFuncLit reports whether expr contains a function literal.
+func exprHasFuncLit(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if _, ok := n.(*ast.FuncLit); ok {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
 func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token, rhs ast.Expr) {
 	typeInfo := GetTypeInfo()
 	defaultValue := "Default::default()"
@@ -11090,6 +11102,21 @@ func mergeMutexGuardsAfterIf(before, thenGuards, elseGuards map[string]string) m
 		merged[key] = guardName
 	}
 	return merged
+}
+
+// stringRangeSourceIsBareVariable reports whether the source of a string
+// range is a variable that holds the String itself, not a cell: a range
+// variable over a []string ("for _, line := range lines { for _, ch :=
+// range line }") or a bare local.
+func stringRangeSourceIsBareVariable(source ast.Expr) bool {
+	ident, ok := unwrapParens(source).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) {
+		return !isWrappedRangeVarType(varType)
+	}
+	return isVarBare(ident.Name)
 }
 
 func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
@@ -13217,7 +13244,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				if typeInfo := GetTypeInfo(); typeInfo != nil {
 					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
-				out.WriteString("{ let __map_key = ")
+				// A closure on the right ("m.handlers[k] = func() { m.n++ }")
+				// moves the captured clone of m into itself, so the map's
+				// handle is taken first, as Go evaluates the map operand
+				// before the value.
+				holdsMapHandle := exprHasFuncLit(s.Rhs[0]) && mapOperandHandleCanBeHeld(indexExpr.X)
+				out.WriteString("{ ")
+				if holdsMapHandle {
+					out.WriteString("let __map_holder = ")
+					writeMapHandleCloneForOp(out, indexExpr.X)
+					out.WriteString("; ")
+				}
+				out.WriteString("let __map_key = ")
 				if mapAssignmentKeyRequiresTypeDrivenConversion(keyType) || !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
@@ -13227,7 +13265,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				out.WriteString("; (*")
 				// For map access, we need the raw identifier, not the unwrapped value
-				writeMapHandleForOp(out, indexExpr.X)
+				if holdsMapHandle {
+					out.WriteString("__map_holder")
+				} else {
+					writeMapHandleForOp(out, indexExpr.X)
+				}
 				WriteBorrowMethod(out, true)
 				writeMapMutationUnwrap(out, indexExpr.X)
 				out.WriteString(").insert(__map_key, __map_value); }")
@@ -15789,6 +15831,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		// Classify a string range source before the loop's own variables are
+		// registered: in "for s := range s" the source is the outer s.
+		stringSourceIsBareVariable := isString && stringRangeSourceIsBareVariable(s.X)
+
 		var popRangeVarScope func()
 		if vt := GetVarTable(); vt != nil {
 			vt.PushScope()
@@ -16022,12 +16068,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// A named string ranges over a copy of the String it holds.
 			var namedStringSource strings.Builder
 			hasNamedStringSource := writeNamedStringNewtypeInnerValue(&namedStringSource, s.X)
-			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource
+			isBareStringVariable := stringSourceIsBareVariable && !hasNamedStringSource
+			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X) || hasNamedStringSource || isBareStringVariable
 			writeBareStringRangeSource := func() {
 				if hasNamedStringSource {
 					out.WriteString("(")
 					out.WriteString(namedStringSource.String())
 					out.WriteString(")")
+					return
+				}
+				if isBareStringVariable {
+					// The loop ranges over a copy, so the body may assign
+					// the variable.
+					out.WriteString("(")
+					out.WriteString(rustIdentForUseWithCapture(unwrapParens(s.X).(*ast.Ident)))
+					out.WriteString(").clone()")
 					return
 				}
 				TranspileExpression(out, s.X)

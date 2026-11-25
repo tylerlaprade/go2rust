@@ -710,6 +710,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait List: std::fmt::Display + Any {
     fn __go_clone_box_list(&self) -> Box<dyn List>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_list(&self, other: &dyn List) -> bool;
     fn valid(&self, index: Rc<RefCell<Option<i64>>>) -> bool;
     fn label(&self, index: Rc<RefCell<Option<i64>>>) -> i64;
@@ -801,6 +802,10 @@ impl List for listPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.borrow();
+        match __guard.as_ref() { Some(__v) => if plus { format!("&{:#}", __v) } else { format!("&{}", __v) }, None => "<nil>".to_string() }
     }
     fn __go_eq_list(&self, other: &dyn List) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<listPtr>() {

@@ -893,6 +893,7 @@ impl errors_joinError {
 pub trait failer: std::fmt::Display + Any {
     fn __go_clone_box_failer(&self) -> Box<dyn failer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_failer(&self, other: &(dyn failer + Send + Sync)) -> bool;
     fn error(&self) -> Arc<Mutex<Option<String>>>;
 }
@@ -990,6 +991,10 @@ impl failer for customErrorPtr {
     }
     fn __go_as_any(&self) -> &dyn Any {
         self
+    }
+    fn __go_print(&self, plus: bool) -> String {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => format!("{}", __v), None => "<nil>".to_string() }
     }
     fn __go_eq_failer(&self, other: &(dyn failer + Send + Sync)) -> bool {
         if let Some(__other) = other.__go_as_any().downcast_ref::<customErrorPtr>() {

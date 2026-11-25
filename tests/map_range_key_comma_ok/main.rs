@@ -737,7 +737,7 @@ fn main() {
         {
         let (mut p, mut ok) = { let __map_holder = pkgs.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&id)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if ok {
-            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*p.borrow().as_ref().unwrap()).errors.clone(); let __append_values: Vec<_> = { let __slice_holder = errs.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *(*p.borrow().as_ref().unwrap()).errors.borrow_mut() = __slice_header; };;
+            { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*p.borrow().as_ref().unwrap()).errors.clone(); let __append_values: Vec<_> = { let __slice_holder = errs.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.borrow()).is_none(); Rc::new(RefCell::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *(*p.borrow().as_ref().unwrap()).errors.borrow_mut() = __slice_header; };;
         }
     }
     }

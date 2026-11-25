@@ -718,6 +718,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub trait Reader: std::fmt::Display + Any {
     fn __go_clone_box_reader(&self) -> Box<dyn Reader + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_reader(&self, other: &(dyn Reader + Send + Sync)) -> bool;
     fn read(&self) -> i64;
 }

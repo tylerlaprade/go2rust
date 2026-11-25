@@ -144,7 +144,7 @@ impl std::fmt::Display for invocation {
 impl invocation {
     pub fn run(&self) -> Arc<Mutex<Option<Vec<String>>>> {
         let mut goArgs = Arc::new(Mutex::new(Some(vec![{ let __selector_holder = self.verb.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }])));
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = goArgs.clone(); let __append_values: Vec<_> = { let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *goArgs.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = goArgs.clone(); let __append_values: Vec<_> = { let __slice_holder = self.build_flags.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned().collect(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); let __append_was_nil = (*__append_target.lock().unwrap()).is_none(); Arc::new(Mutex::new(if __append_was_nil && __appended.len() == 0 { None } else { Some(__appended) })) })); *goArgs.lock().unwrap() = __slice_header; };
         return goArgs.clone();
     }
 }

@@ -291,6 +291,7 @@ impl PartialEq for User {
 pub trait Number: std::fmt::Display + Any {
     fn __go_clone_box_number(&self) -> Box<dyn Number + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_number(&self, other: &(dyn Number + Send + Sync)) -> bool;
 }
 

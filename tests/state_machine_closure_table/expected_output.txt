@@ -1,0 +1,9 @@
+error: no transition "pause" from paused
+error: no transition "start" from done
+done [idle running paused running] paused;done after running;
+idle     1
+running  2
+paused   1
+running true
+no transition "start" from done
+1 running paused|  3.1|ab    |ff

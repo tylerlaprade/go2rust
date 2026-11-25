@@ -18,6 +18,7 @@ pub const VAL_STRING: i64 = 1;
 pub trait Code: std::fmt::Display + Any {
     fn __go_clone_box_code(&self) -> Box<dyn Code>;
     fn __go_as_any(&self) -> &dyn Any;
+    fn __go_print(&self, plus: bool) -> String { if plus { format!("{:#}", self) } else { format!("{}", self) } }
     fn __go_eq_code(&self, other: &dyn Code) -> bool;
     fn value(&self) -> i64;
 }
