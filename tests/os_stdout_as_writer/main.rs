@@ -149,7 +149,7 @@ fn main() {
         { let __s = format!("{}\n", format!("{}", "buffered line".to_string())); (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         { let __s = format!("buffered {}\n", 2); (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         println!("{} {}", format!("{}", "buffered bytes:".to_string()), format!("{}", { let __recv = w.clone(); let __recv_ptr: *const bufio::r#mod::Writer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const bufio::r#mod::Writer }; let __result = unsafe { &*__recv_ptr }.buffered(); __result }));
-        report(Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some("direct".to_string()))), Arc::new(Mutex::new(Some(1))));
+        report(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some("direct".to_string()))), Arc::new(Mutex::new(Some(1))));
         let mut out = os::Stdout().clone();
         { let __s = format!("{}\n", format!("{}", "through a variable".to_string())); (*out.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         io::write_string(Arc::new(Mutex::new(Some(Box::new((*os::Stdout().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some("io.WriteString\n".to_string()))));
@@ -159,7 +159,7 @@ fn main() {
         let mut e = bufio::new_writer(Arc::new(Mutex::new(Some(Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))));
         { let __s = format!("{}\n", format!("{}", "to stderr".to_string())); (*e.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
         { let __recv = e.clone(); let __recv_ptr: *mut bufio::r#mod::Writer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Writer }; let __result = unsafe { &mut *__recv_ptr }.flush(); __result };
-        report(Arc::new(Mutex::new(Some(Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some("stderr".to_string()))), Arc::new(Mutex::new(Some(3))));
+        report(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*os::Stderr().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some("stderr".to_string()))), Arc::new(Mutex::new(Some(3))));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

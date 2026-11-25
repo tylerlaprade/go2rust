@@ -814,7 +814,7 @@ pub fn dump(n: Rc<RefCell<Option<Box<dyn Node>>>>) {
 }
 
 pub fn r#use(w: Rc<RefCell<Option<Wrap>>>) {
-    dump(Rc::new(RefCell::new(Some(Box::new(LitPtr((*w.borrow().as_ref().unwrap()).inner.clone())) as Box<dyn Node>))));
+    dump(Rc::new(RefCell::new(Some({ let __arg_value = Box::new(LitPtr((*w.borrow().as_ref().unwrap()).inner.clone())) as Box<dyn Node>; __arg_value }))));
 }
 
 fn main() {

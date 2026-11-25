@@ -1428,7 +1428,7 @@ fn main() {
         if (*n.borrow().as_ref().unwrap()) <= 1 {
         return 1;
     }
-        return (*n.borrow().as_ref().unwrap()) * { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = fact_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1)))) };
+        return (*n.borrow().as_ref().unwrap()) * { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = fact_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value })))) };
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>; *__func_lit_target.borrow_mut() = Some(new_val); };
     println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = fact.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(10)))) }));
     let mut s = Rc::new(RefCell::new(Some("h\u{e9}llo, \u{4e16}\u{754c}".to_string())));

@@ -683,7 +683,7 @@ pub fn fact(n: Rc<RefCell<Option<i64>>>) -> i64 {
     if (*n.borrow().as_ref().unwrap()) == 0 {
         return 1;
     }
-    (*n.borrow().as_ref().unwrap()) * fact(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1))))
+    (*n.borrow().as_ref().unwrap()) * fact(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value }))))
 }
 
 fn main() {

@@ -279,7 +279,7 @@ impl std::fmt::Display for Label {
 
 impl Label {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))))
+        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>; __arg_value }))))
     }
 }
 
@@ -320,15 +320,15 @@ fn main() {
         Arc::new(Mutex::new(Some("&{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some(format!("{}", { let __text = match r#loop.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })))),
+        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __text = match r#loop.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }); __arg_value }))),
         Arc::new(Mutex::new(Some("&{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(
-        render(Arc::new(Mutex::new(Some(Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as Box<dyn Any + Send + Sync>)))),
+        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as Box<dyn Any + Send + Sync>; __arg_value })))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some(format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v })))),
+        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }); __arg_value }))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     let mut tail = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("tail".to_string()))), ..Default::default() })));

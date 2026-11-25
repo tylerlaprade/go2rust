@@ -1135,20 +1135,20 @@ fn main() {
     let mut root: Rc<RefCell<Option<Node>>> = Rc::new(RefCell::new(None));
     let mut __cell_root_1 = Rc::new(RefCell::new(Some(AnonymousStruct1 { v: root.clone() })));
     for v in vec![5i64, 3i64, 8i64, 1i64, 4i64].iter().copied() {
-        let __cell_root_1_closure_clone = __cell_root_1.clone(); insert(Rc::new(RefCell::new(Some(__ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<Node>>> {
+        let __cell_root_1_closure_clone = __cell_root_1.clone(); insert(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<Node>>> {
         return (*__cell_root_1_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move |__slot_v11: Rc<RefCell<Option<Node>>>| {
         { let new_val = __slot_v11.clone(); (*__cell_root_1_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some(v.clone()))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some(v.clone()))));
     }
     let mut vals: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
     inorder({ let __field = (*__cell_root_1.borrow().as_ref().unwrap()).v.clone(); __field }, vals.clone());
     println!("{}", format!("{}", format_slice(&vals)));
-    let __cell_root_1_closure_clone = __cell_root_1.clone(); let mut low = min_link(Rc::new(RefCell::new(Some(__ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<Node>>> {
+    let __cell_root_1_closure_clone = __cell_root_1.clone(); let mut low = min_link(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<Node>>> {
         return (*__cell_root_1_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Box::new(move |__slot_v12: Rc<RefCell<Option<Node>>>| {
         { let new_val = __slot_v12.clone(); (*__cell_root_1_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> }))), ..Default::default() }))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> }))), ..Default::default() }; __arg_value }))));
     println!("{} {}", format!("{}", "min".to_string()), format!("{}", (*(*({ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }).borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
     { let __f_holder = (*low.borrow().as_ref().unwrap()).set.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Node>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*({ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Node>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }).borrow().as_ref().unwrap()).right.clone(); __field }) };
     { let __slice_header = None; *vals.borrow_mut() = __slice_header; };
@@ -1186,16 +1186,16 @@ fn main() {
 
     let mut head: Rc<RefCell<Option<LNode>>> = Rc::new(RefCell::new(None));
     let mut __cell_head_2 = Rc::new(RefCell::new(Some(AnonymousStruct2 { v: head.clone() })));
-    let __cell_head_2_closure_clone = __cell_head_2.clone(); push(Rc::new(RefCell::new(Some(__ptrSlot_LNode { get: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<LNode>>> {
+    let __cell_head_2_closure_clone = __cell_head_2.clone(); push(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_LNode { get: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<LNode>>> {
         return (*__cell_head_2_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<LNode>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move |__slot_v17: Rc<RefCell<Option<LNode>>>| {
         { let new_val = __slot_v17.clone(); (*__cell_head_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some(1))));
-    let __cell_head_2_closure_clone = __cell_head_2.clone(); push(Rc::new(RefCell::new(Some(__ptrSlot_LNode { get: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<LNode>>> {
+    }) as Box<dyn FnMut(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some(1))));
+    let __cell_head_2_closure_clone = __cell_head_2.clone(); push(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_LNode { get: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<LNode>>> {
         return (*__cell_head_2_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<LNode>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_head_2_closure_clone_closure_clone = __cell_head_2_closure_clone.clone(); Box::new(move |__slot_v18: Rc<RefCell<Option<LNode>>>| {
         { let new_val = __slot_v18.clone(); (*__cell_head_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some(2))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some(2))));
     println!("{}", format!("{}", { let __text = match Rc::new(RefCell::new(Some(List { head: { let __field = (*__cell_head_2.borrow().as_ref().unwrap()).v.clone(); __field }, ..Default::default() }))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
     let mut arr = Rc::new(RefCell::new(Some([Rc::new(RefCell::new(None)), Rc::new(RefCell::new(None))])));
@@ -1264,21 +1264,21 @@ fn main() {
 
     let mut counts: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));
     let mut __cell_counts_4 = Rc::new(RefCell::new(Some(AnonymousStruct3 { v: counts.clone() })));
-    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some(__ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
+    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
         return (*__cell_counts_4_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move |__slot_v34: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>| {
         { let new_val = __slot_v34.clone(); (*__cell_counts_4_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some("a".to_string()))));
-    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some(__ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
+    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some("a".to_string()))));
+    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
         return (*__cell_counts_4_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move |__slot_v35: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>| {
         { let new_val = __slot_v35.clone(); (*__cell_counts_4_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some("a".to_string()))));
-    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some(__ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
+    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some("a".to_string()))));
+    let __cell_counts_4_closure_clone = __cell_counts_4.clone(); add_count(Rc::new(RefCell::new(Some({ let __arg_value = __ptrSlot_map_string_int { get: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move || -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> {
         return (*__cell_counts_4_closure_clone_closure_clone.borrow().as_ref().unwrap()).v.clone();
     }) as Box<dyn FnMut() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_counts_4_closure_clone_closure_clone = __cell_counts_4_closure_clone.clone(); Box::new(move |__slot_v36: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>| {
         { let new_val = __slot_v36.clone(); (*__cell_counts_4_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }))), Rc::new(RefCell::new(Some("b".to_string()))));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> }))), ..Default::default() }; __arg_value }))), Rc::new(RefCell::new(Some("b".to_string()))));
     println!("{} {} {}", format!("{}", { let __map_holder = (*__cell_counts_4.borrow().as_ref().unwrap()).v.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = (*__cell_counts_4.borrow().as_ref().unwrap()).v.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", ({ let __len_target = { let __field = (*__cell_counts_4.borrow().as_ref().unwrap()).v.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
 }
 

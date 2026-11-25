@@ -1093,7 +1093,7 @@ pub fn note(s: Arc<Mutex<Option<String>>>) {
 }
 
 pub fn compute(s: Arc<Mutex<Option<String>>>) -> i64 {
-    note(Arc::new(Mutex::new(Some(format!("{}{}", "compute ".to_string(), { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v })))));
+    note(Arc::new(Mutex::new(Some({ let __arg_value = format!("{}{}", "compute ".to_string(), { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }); __arg_value }))));
     ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64
 }
 

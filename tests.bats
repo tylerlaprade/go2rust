@@ -732,6 +732,14 @@ run_xfail_test() {
     run_test "tests/bytes_buffer_zero_value"
 }
 
+@test "call_arguments_read_what_the_callee_writes" {
+    run_test "tests/call_arguments_read_what_the_callee_writes"
+}
+
+@test "call_arguments_read_what_the_callee_writes_goroutines" {
+    run_test "tests/call_arguments_read_what_the_callee_writes_goroutines"
+}
+
 @test "cap_struct_slice_field" {
     run_test "tests/cap_struct_slice_field"
 }
