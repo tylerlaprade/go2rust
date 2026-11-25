@@ -7669,9 +7669,9 @@ func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) b
 	if !writeSliceElemPtrNewExpression(out, rightIndex) {
 		return false
 	}
-	out.WriteString("; let __eq = ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left.slice, &__right.slice) && __left.index == __right.index; ")
+	// identity is the element's address in the backing array, which two
+	// headers over one array share; the header cells differ.
+	out.WriteString("; let __eq = __left.identity() == __right.identity(); ")
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}

@@ -3871,6 +3871,14 @@ run_xfail_test() {
     run_test "tests/slice_element_pointer_field_receiver"
 }
 
+@test "slice_element_pointer_identity" {
+    run_test "tests/slice_element_pointer_identity"
+}
+
+@test "slice_element_pointer_identity_goroutines" {
+    run_test "tests/slice_element_pointer_identity_goroutines"
+}
+
 @test "slice_expr_call_argument" {
     run_test "tests/slice_expr_call_argument"
 }
