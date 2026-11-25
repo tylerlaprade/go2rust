@@ -86,18 +86,21 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
-		name                      string
-		goName                    string
-		isEmbedded                bool
-		isSlice                   bool
-		isMap                     bool
-		isInterface               bool
-		isError                   bool
-		isFunction                bool
-		funcSlice                 bool
-		anySlice                  bool
-		hasTrait                  bool
-		mapOpaque                 bool
+		name        string
+		goName      string
+		isEmbedded  bool
+		isSlice     bool
+		isMap       bool
+		isInterface bool
+		isError     bool
+		isFunction  bool
+		funcSlice   bool
+		anySlice    bool
+		hasTrait    bool
+		mapOpaque   bool
+		// mapArrayFormatter prints the array values of a map[K][N]T
+		// field, which have no Display; empty for any other field.
+		mapArrayFormatter         string
 		nestedSlice               bool
 		nestedSliceWrapped        bool
 		nestedPointerSlice        bool
@@ -131,6 +134,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isChannel := field.Type.(*ast.ChanType)
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
+		mapArrayFormatter := ""
+		if typeInfo := GetTypeInfo(); isMap && typeInfo != nil {
+			mapArrayFormatter, _ = mapArrayValueFormatter(typeInfo.GetType(field.Type))
+		}
 		nestedSlice := arrayFieldContainsSlice(field.Type)
 		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
 		nestedPointerSlice := arrayFieldNestedPointerInnerIsValue(field.Type)
@@ -163,6 +170,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					anySlice:                  anySlice,
 					hasTrait:                  hasTrait,
 					mapOpaque:                 mapOpaque,
+					mapArrayFormatter:         mapArrayFormatter,
 					nestedSlice:               nestedSlice,
 					nestedSliceWrapped:        nestedSliceWrapped,
 					nestedPointerSlice:        nestedPointerSlice,
@@ -197,6 +205,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				anySlice:                  anySlice,
 				hasTrait:                  hasTrait,
 				mapOpaque:                 mapOpaque,
+				mapArrayFormatter:         mapArrayFormatter,
 				nestedSlice:               nestedSlice,
 				nestedSliceWrapped:        nestedSliceWrapped,
 				nestedPointerSlice:        nestedPointerSlice,
@@ -238,6 +247,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
 			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", std::iter::repeat(\"<func>\").take(__v.len()).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
+		} else if f.isMap && f.mapArrayFormatter != "" {
+			writeMapOfArraysDisplay(out, f.mapArrayFormatter, func() {
+				out.WriteString("self.")
+				out.WriteString(ToSnakeCase(f.name))
+			})
 		} else if f.isMap && f.mapOpaque {
 			out.WriteString("\"<map>\"")
 		} else if f.isMap {

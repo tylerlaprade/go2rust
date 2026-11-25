@@ -1,0 +1,11 @@
+[package]
+name = "map_array_values_print"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "map_array_values_print"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

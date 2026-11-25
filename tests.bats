@@ -2067,6 +2067,14 @@ run_xfail_test() {
     run_test "tests/make_struct_slice_elements_goroutines"
 }
 
+@test "map_array_values_print" {
+    run_test "tests/map_array_values_print"
+}
+
+@test "map_array_values_print_goroutines" {
+    run_test "tests/map_array_values_print_goroutines"
+}
+
 @test "map_comma_ok_assignment_targets" {
     run_test "tests/map_comma_ok_assignment_targets"
 }

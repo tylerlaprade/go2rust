@@ -5688,6 +5688,14 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		TranspileExpression(out, expr)
 		return
 	}
+	// "m[k] = [2]int{a, b}": the array literal is already in a cell of its
+	// own.
+	if valueType != nil && isTypedAssignmentSelfWrappingExpression(expr) {
+		if _, isArray := types.Unalias(valueType).Underlying().(*types.Array); isArray {
+			TranspileExpression(out, expr)
+			return
+		}
+	}
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
