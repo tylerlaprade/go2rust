@@ -7502,6 +7502,13 @@ func writeSliceElemPtrDerefAssignmentValue(out *strings.Builder, target *ast.Sta
 	}
 	ident, ok := rhs.(*ast.Ident)
 	if !ok || ident.Name != "nil" {
+		// *line = append(*line, c), where line := &lines[i] of a slice
+		// of slices: the element holds its slice bare, and the value is a
+		// slice's handle.
+		if _, isSlice := types.Unalias(targetType).Underlying().(*types.Slice); isSlice && !isExpressionResultBare(rhs) && !isNamedSliceExpression(rhs) {
+			writeUnwrappedSliceClone(out, rhs)
+			return true
+		}
 		return false
 	}
 	if _, ok := types.Unalias(targetType).Underlying().(*types.Pointer); !ok {

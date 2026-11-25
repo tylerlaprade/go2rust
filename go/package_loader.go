@@ -56,6 +56,7 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // timers of time_runtime.go, so a Duration is an int64 that prints as
 // 1h30m0s and Time formats and adds as in Go; internal/godebug and the
 // packages it imports read the GODEBUG settings time consults.
+// text/tabwriter is Go's elastic tabstops; its stub's methods panicked.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -77,6 +78,7 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"internal/godebug":      true,
 	"internal/bisect":       true,
 	"internal/godebugs":     true,
+	"text/tabwriter":        true,
 }
 
 // NewPackageLoader creates a new package loader

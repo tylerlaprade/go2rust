@@ -1,0 +1,9 @@
+NAME        AGE CITY
+Ann         30  Paris
+Bartholomew 5   Rome
+.....a|...bbb|c
+..aaaa|.....b|ccccc
+xxx       1   false
+xxxxxx    4   true
+xxxxxxxxx 9   false
+3
