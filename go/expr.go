@@ -17644,6 +17644,11 @@ func writeMethodValueReceiverSnapshot(out *strings.Builder, expr ast.Expr) {
 		TranspileExpression(out, expr)
 		return
 	}
+	// Rect{2, 5}.Area binds a new value, which has no cell to read.
+	if lit, ok := unwrapParens(expr).(*ast.CompositeLit); ok {
+		TranspileExpression(out, lit)
+		return
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)

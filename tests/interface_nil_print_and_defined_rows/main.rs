@@ -1040,6 +1040,12 @@ impl Display for Rows {
 #[derive(Debug, Clone, Default)]
 pub struct Points(pub Rc<RefCell<Option<Vec<Point>>>>);
 
+impl Display for Points {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
 
 #[derive(Clone, Default)]
 pub struct Holder {

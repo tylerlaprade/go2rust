@@ -991,6 +991,10 @@ run_xfail_test() {
     run_test "tests/constants_basic"
 }
 
+@test "container_heap_from_source" {
+    run_test "tests/container_heap_from_source"
+}
+
 @test "container_list_and_ring" {
     run_test "tests/container_list_and_ring"
 }
@@ -1849,6 +1853,10 @@ run_xfail_test() {
 
 @test "interface_embedding_two_interfaces_goroutines" {
     run_test "tests/interface_embedding_two_interfaces_goroutines"
+}
+
+@test "interface_embeds_fmt_stringer" {
+    run_test "tests/interface_embeds_fmt_stringer"
 }
 
 @test "interface_field_selector_assign" {
@@ -3263,6 +3271,10 @@ run_xfail_test() {
     run_test "tests/printf_s_byte_slice"
 }
 
+@test "printf_verbs_and_literal_method_values" {
+    run_test "tests/printf_verbs_and_literal_method_values"
+}
+
 @test "printf_verbs_without_a_rust_equivalent" {
     run_test "tests/printf_verbs_without_a_rust_equivalent"
 }
@@ -3921,6 +3933,10 @@ run_xfail_test() {
 
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
+}
+
+@test "sort_reverse_and_search_sorted" {
+    run_test "tests/sort_reverse_and_search_sorted"
 }
 
 @test "sort_slice" {

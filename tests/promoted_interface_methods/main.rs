@@ -458,7 +458,7 @@ impl mapStore {
         for (k, _) in { let __range_holder = self.m.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ks.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *ks.lock().unwrap() = __slice_header; };
     }
-        { let __sort_target = ks.clone(); let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+        sort::strings(ks.clone());
         return ks.clone();
     }
 }
@@ -732,6 +732,7 @@ fn main() {
     ::internal_stringslite::__go_init_all();
     ::io::__go_init_all();
     ::math_bits::__go_init_all();
+    ::sort::__go_init_all();
     ::strings::__go_init_all();
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();

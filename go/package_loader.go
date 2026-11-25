@@ -57,6 +57,10 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // 1h30m0s and Time formats and adds as in Go; internal/godebug and the
 // packages it imports read the GODEBUG settings time consults.
 // text/tabwriter is Go's elastic tabstops; its stub's methods panicked.
+// sort is Go's pdqsort, Search and Reverse over a sort.Interface; its stub's
+// SearchInts and the like panicked, and Reverse and IsSorted had no body.
+// container/heap is Go's heap over the program's own sort.Interface; its
+// stub's Push, Pop and Fix panicked.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -79,6 +83,8 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"internal/bisect":       true,
 	"internal/godebugs":     true,
 	"text/tabwriter":        true,
+	"container/heap":        true,
+	"sort":                  true,
 }
 
 // NewPackageLoader creates a new package loader

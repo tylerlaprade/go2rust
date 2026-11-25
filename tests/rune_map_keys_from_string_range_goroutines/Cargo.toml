@@ -1,3 +1,12 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/math_bits",
+    "vendor/sort",
+]
+
 [package]
 name = "rune_map_keys_from_string_range_goroutines"
 version = "0.1.0"
@@ -9,3 +18,8 @@ path = "main.rs"
 
 [profile.dev]
 overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+math_bits = { path = "vendor/math_bits" }
+sort = { path = "vendor/sort" }
