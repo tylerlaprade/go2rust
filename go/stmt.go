@@ -15883,6 +15883,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
 			return
 		}
+		if restore := rewriteChannelRangeAssignment(s); restore != nil {
+			defer restore()
+		}
 		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
@@ -17158,6 +17161,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if cc.Comm == nil {
 				// Default case — handled at the end
 				continue
+			}
+			if restore := rewriteSelectReceiveAssignment(cc); restore != nil {
+				defer restore()
 			}
 
 			// Determine the type of communication

@@ -187,6 +187,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 7: Goroutines and Concurrency (Core Complete)
 
+- ✅ Assigning receives - `case x = <-ch`, `case x, ok = <-ch` and `for x = range ch` store into an existing variable, field, element or map entry, for scalar, string, struct, error and interface channels (receive_assignments added, 2026-11-26)
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
