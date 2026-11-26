@@ -29,9 +29,11 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 			return anyFormatArm{expr: `format!("{}", v)`, text: true}, true
 		}
 	case *types.Pointer:
-		if anyFormatTypeIsLocalNamedCollection(t.Elem()) && typeHasGoStringMethod(t) {
-			// A pointer to a named slice, array or map with a String
-			// method prints through the method, as the pointee does.
+		if anyFormatTypeIsLocalNamedCollection(t.Elem()) && typeHasGoStringMethod(t.Elem()) {
+			// A pointer to a named slice, array or map with a
+			// value-receiver String method prints through the method, as
+			// the pointee does; fmt prints a nil one as <nil>, since the
+			// method cannot be called on it.
 			var expr strings.Builder
 			expr.WriteString("match (*v")
 			WriteBorrowMethod(&expr, false)
