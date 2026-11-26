@@ -1,0 +1,4 @@
+qualified inferred
+local 3
+a-12 b+c
+formatted|1:2

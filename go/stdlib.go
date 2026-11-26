@@ -1132,6 +1132,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
 			// User function call (not stdlib)
 			needsUnwrap = true
+		} else if instantiatesGenericFunc(GetTypeInfo(), callExpr.Fun) {
+			// f[int](x), pkg.F[int](x) or pkg.G[K, V](x): a generic
+			// function returns its result in a cell.
+			needsUnwrap = true
 		} else if callCallsFuncValueExpression(callExpr) {
 			// f()(), m[k]() or fs[i](): a func value returns its
 			// result in a cell, as a function does.
@@ -8633,7 +8637,7 @@ func isUntypedBasic(typ types.Type) bool {
 // pointer dereference.
 func callCallsFuncValueExpression(call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.IsTypeConversion(call) {
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.IsTypeConversion(call) {
 		return false
 	}
 	fun := unwrapParens(call.Fun)
@@ -8642,13 +8646,38 @@ func callCallsFuncValueExpression(call *ast.CallExpr) bool {
 	default:
 		return false
 	}
-	if index, ok := fun.(*ast.IndexExpr); ok {
-		// An instantiated generic function, f[int](x), is a function.
-		if ident, ok := unwrapParens(index.X).(*ast.Ident); ok {
-			if _, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
-				return false
-			}
-		}
+	if instantiatesGenericFunc(typeInfo, fun) {
+		// f[int](x) and pkg.F[int](x) call a function, not a func value.
+		return false
 	}
 	return isFunctionSignatureType(typeInfo.GetType(fun))
+}
+
+// instantiatesGenericFunc reports whether expr is f[T], pkg.F[T] or
+// pkg.G[K, V] for a generic function, rather than an element of a map or
+// slice.
+func instantiatesGenericFunc(typeInfo *TypeInfo, expr ast.Expr) bool {
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var generic ast.Expr
+	switch e := unwrapParens(expr).(type) {
+	case *ast.IndexExpr:
+		generic = e.X
+	case *ast.IndexListExpr:
+		generic = e.X
+	default:
+		return false
+	}
+	var name *ast.Ident
+	switch x := unwrapParens(generic).(type) {
+	case *ast.Ident:
+		name = x
+	case *ast.SelectorExpr:
+		name = x.Sel
+	default:
+		return false
+	}
+	_, isFunc := typeInfo.info.Uses[name].(*types.Func)
+	return isFunc
 }
