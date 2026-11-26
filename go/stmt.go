@@ -15849,6 +15849,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Add the post statement (increment) if present
 		if s.Post != nil {
+			if gotoBody {
+				// The goto lowering leaves its last statement open; a
+				// break or continue there would take the post statement's
+				// block as its operand.
+				if body := strings.TrimRight(out.String(), " \t\n"); !strings.HasSuffix(body, ";") && !strings.HasSuffix(body, "}") && !strings.HasSuffix(body, "{") {
+					out.Reset()
+					out.WriteString(body)
+					out.WriteString(";\n")
+				}
+			}
 			out.WriteString("        ")
 			TranspileStatementSimple(out, s.Post, fnType, fileSet)
 			out.WriteString("\n")

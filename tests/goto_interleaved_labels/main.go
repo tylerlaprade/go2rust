@@ -60,8 +60,10 @@ func main() {
 		n += i
 	}
 	fmt.Println(n)
-	m := 0
-	for i := 0; ; i++ {
+	// The break after the label leaves the loop without its post
+	// statement, so i stays 3.
+	m, i := 0, 0
+	for ; ; i++ {
 		if i > 2 {
 			goto out
 		}
@@ -70,7 +72,7 @@ func main() {
 	out:
 		break
 	}
-	fmt.Println(m)
+	fmt.Println(m, i)
 	// A closure with its own loop inside a goto-lowered loop body: its
 	// continue is its own loop's.
 	total := 0

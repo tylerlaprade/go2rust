@@ -3546,6 +3546,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	fmtOperandTempCount = 0
 	gotoLoopLabelCount = 0
 	gotoSyntheticNames = collectGotoSyntheticNameConflicts(file)
+	gotoReenterFlagNames, gotoReenterFlagTaken = nil, nil
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}

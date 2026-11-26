@@ -1,0 +1,11 @@
+[package]
+name = "goto_label_scopes"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goto_label_scopes"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

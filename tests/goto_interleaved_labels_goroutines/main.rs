@@ -974,7 +974,7 @@ pub fn walk(start: Arc<Mutex<Option<Vec<i64>>>>, next: Arc<Mutex<Option<BTreeMap
         'check_and_loop: loop {
             'skip: {
                 if !__goto_reenter_check_and_loop {
-                break 'skip;
+                    break 'skip;
                 }
                 if !visit(seen.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         continue '__go_loop_1
@@ -1049,8 +1049,10 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-    let mut m = Arc::new(Mutex::new(Some(0i64)));
-    let mut i = Arc::new(Mutex::new(Some(0i64)));
+
+        // The break after the label leaves the loop without its post
+        // statement, so i stays 3.
+    let (mut m, mut i) = (Arc::new(Mutex::new(Some(0i64))), Arc::new(Mutex::new(Some(0i64))));
     '__go_loop_3: loop {
         'out: {
             if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x > __tmp_y } {
@@ -1059,10 +1061,10 @@ fn main() {
             { let __rhs = (*i.lock().unwrap().as_ref().unwrap()); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
             { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue '__go_loop_3
         }
-        break '__go_loop_3
+        break '__go_loop_3;
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    println!("{}", format!("{}", { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
         // A closure with its own loop inside a goto-lowered loop body: its
         // continue is its own loop's.

@@ -7,11 +7,9 @@ import (
 	"testing"
 )
 
-// Two backward labels whose early loops would start at the same forward
-// goto overlap each other, so both keep the plain lowering. The check must
-// not drop one candidate and then accept the other against the shrunken
-// set, which would make the plan depend on map iteration order.
-func TestOverlappingEarlyLoopsAreRejectedTogether(t *testing.T) {
+// Two backward labels that one forward goto jumps over both start their
+// loops at that goto, nested, the same way on every run.
+func TestEarlyLoopsCrossedByOneGotoShareTheirStart(t *testing.T) {
 	src := `package main
 
 func f(x bool) {
@@ -41,12 +39,15 @@ F:
 	body := file.Decls[0].(*ast.FuncDecl).Body.List
 	for i := 0; i < 64; i++ {
 		plan := buildGotoPlan(body)
-		if len(plan.earlyLoopStart) != 0 {
-			t.Fatalf("run %d: early loops %v, want none", i, plan.earlyLoopStart)
+		if len(plan.earlyLoopStart) != 2 || plan.earlyLoopStart["l1"] != 1 || plan.earlyLoopStart["l2"] != 1 {
+			t.Fatalf("run %d: early loops %v, want l1 and l2 at 1", i, plan.earlyLoopStart)
+		}
+		if !gotoScopesNest(plan, len(body)) {
+			t.Fatalf("run %d: scopes do not nest", i)
 		}
 		for _, label := range []string{"l1", "l2"} {
-			if plan.modes[label] == gotoReenterMode {
-				t.Fatalf("run %d: label %s uses the reentry lowering", i, label)
+			if plan.modes[label] != gotoReenterMode {
+				t.Fatalf("run %d: label %s does not use the reentry lowering", i, label)
 			}
 		}
 	}
