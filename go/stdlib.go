@@ -975,7 +975,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		}
 		if typeInfo.IsMap(arg) {
 			writeHandle := func() {
-				if ident, ok := arg.(*ast.Ident); ok {
+				if _, _, named := namedMapTypeForExpr(arg); named && !isReceiveExpr(arg) && !isExpressionResultBare(arg) && writeNamedMapInnerHandleClone(out, arg) {
+					// A value of a defined map type is its newtype: the map's
+					// handle is inside it.
+				} else if ident, ok := arg.(*ast.Ident); ok {
 					writeCollectionFormatHandleIdent(out, ident)
 				} else if writeAnyHandleAssertionHandle(out, arg) {
 					// A map asserted out of an interface: the handle it holds.

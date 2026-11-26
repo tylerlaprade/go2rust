@@ -15741,6 +15741,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(";")
 							continue
 						}
+						if localNamedCollectionTypeNeedsNewtype(typeSpec) {
+							// The rest of the translation treats a defined
+							// array, slice or map type as its newtype, as at
+							// package level, so it is declared the same way.
+							TranspileTypeDecl(out, typeSpec, genDecl)
+							continue
+						}
 						// For now, just generate type aliases inside functions
 						// These should be hoisted to module level in a real implementation
 						RegisterTypeAlias(typeSpec.Name.Name)
@@ -19111,4 +19118,28 @@ func rustBlockEnd(code string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// localNamedCollectionTypeNeedsNewtype reports whether a function-local
+// type declaration defines an array, slice or map type outside a generic
+// function, whose type parameters an item in its body could not use.
+func localNamedCollectionTypeNeedsNewtype(typeSpec *ast.TypeSpec) bool {
+	if typeSpec.Assign.IsValid() || typeSpec.TypeParams != nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return false
+	}
+	underlying := types.Unalias(obj.Type()).Underlying()
+	switch underlying.(type) {
+	case *types.Array, *types.Slice, *types.Map:
+	default:
+		return false
+	}
+	return !typeMentionsTypeParam(underlying)
 }
