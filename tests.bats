@@ -1216,6 +1216,14 @@ run_xfail_test() {
     run_test "tests/defer_closure_captures_receiver"
 }
 
+@test "defer_closure_prints_collections" {
+    run_test "tests/defer_closure_prints_collections"
+}
+
+@test "defer_closure_prints_collections_goroutines" {
+    run_test "tests/defer_closure_prints_collections_goroutines"
+}
+
 @test "defer_closure_return_scope" {
     run_test "tests/defer_closure_return_scope"
 }
