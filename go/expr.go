@@ -8623,6 +8623,38 @@ func isFunctionSignatureExpression(expr ast.Expr) bool {
 	return typeInfo != nil && isFunctionSignatureType(typeInfo.GetType(expr))
 }
 
+// writeDefinedArrayCompositeLiteral writes an elided literal of a defined
+// array type, "type Row [3]int", as the newtype over the array's cell that
+// the type's values are. A defined type over another defined array type is
+// left to the other writers.
+func writeDefinedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	lit, ok := expr.(*ast.CompositeLit)
+	if !ok || lit.Type != nil || expected == nil {
+		return false
+	}
+	named, ok := types.Unalias(expected).(*types.Named)
+	if !ok {
+		return false
+	}
+	if _, isArray := named.Underlying().(*types.Array); !isArray {
+		return false
+	}
+	if _, nested := zeroValueForNamedOverNamedArray(named); nested {
+		return false
+	}
+	var array strings.Builder
+	if !writeBareFixedArrayCompositeLiteral(&array, expr, expected) {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString(array.String())
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
 func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
 	lit, ok := expr.(*ast.CompositeLit)
 	if !ok || expected == nil {
@@ -8931,6 +8963,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		if elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType)) && writeOwnedRangeValue(out, ident) {
 			return true
 		}
+	}
+	if writeDefinedArrayCompositeLiteral(out, expr, elemType) {
+		return true
 	}
 	if writeBareFixedArrayCompositeLiteral(out, expr, elemType) {
 		return true
@@ -16087,6 +16122,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						// An elided array, as a map value ("map[string][2]int{"a":
 						// {1, 2}}"): the bare array, which the container wraps.
 						if _, isNamed := types.Unalias(typ).(*types.Named); !isNamed && writeBareFixedArrayCompositeLiteral(out, e, typ) {
+							return
+						}
+						// An elided literal of a defined array type, as an
+						// element of []Row: the newtype over the array's cell.
+						if writeDefinedArrayCompositeLiteral(out, e, typ) {
 							return
 						}
 					case *types.Struct:
