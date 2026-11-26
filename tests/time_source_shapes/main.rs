@@ -1298,7 +1298,7 @@ pub fn label(n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<String>>> {
 pub fn byte_string(mut p: Rc<RefCell<Option<Vec<u8>>>>) -> Rc<RefCell<Option<String>>> {
     let mut p = Rc::new(RefCell::new((*p.borrow()).clone()));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
-    while ((*i.borrow().as_ref().unwrap()) as i64) < ((*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) {
+    while ((*i.borrow().as_ref().unwrap()) as i64) < (({ let __len = (*p.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) {
         if (*p.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone() == 0 as u8 {
         { let __slice_header = GoSliceHeader::go_slice_header(&(Rc::new(RefCell::new(Some({ let __seq_holder = p.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (0) as usize; let __high = ((*i.borrow().as_ref().unwrap())) as usize; let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))); *p.borrow_mut() = __slice_header; };
         break

@@ -713,7 +713,7 @@ impl std::fmt::Display for Var {
 
 
 pub fn changed__ptr__var(r#in: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Var>>>>>>>, subst: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>>>>>) -> bool {
-    if ((*r#in.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+    if (({ let __len = (*r#in.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         return false;
     }
     let mut u = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>> = { let mut __f_guard = subst.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*r#in.borrow().as_ref().unwrap())[(0) as usize].clone()) };

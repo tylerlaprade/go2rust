@@ -143,7 +143,7 @@ impl std::fmt::Display for Config {
 
 
 pub fn build_env(cfg: Arc<Mutex<Option<Config>>>) -> Arc<Mutex<Option<Vec<String>>>> {
-    { let __append_target = { let __result = slices::clip::<Vec<String>, String>({ let __slice_holder = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); { let __slice_guard = __slice_holder.lock().unwrap(); Arc::new(Mutex::new(__slice_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| Arc::new(Mutex::new(Some(__elem)))).collect::<Vec<_>>()))) } }); let __result_guard = __result.lock().unwrap(); Arc::new(Mutex::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem.lock().unwrap().as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }.clone(); let __append_value = format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }
+    { let __append_target = __slices__clip__slice_string__string({ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).env.clone(); __field }).clone(); let __append_value = format!("{}{}", "PWD=".to_string(), (*{ let __field = (*cfg.lock().unwrap().as_ref().unwrap()).dir.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }
 }
 
 fn main() {
@@ -167,6 +167,16 @@ fn main() {
     let mut env = build_env(cfg.clone());
     let mut env = { let __slice_header = GoSliceHeader::go_slice_header(&env); Arc::new(Mutex::new(__slice_header)) };
     println!("{} {} {}", format!("{}", ({ let __len = (*env.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = env.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+}
+
+pub fn __slices__clip__slice_string__string(s: Arc<Mutex<Option<Vec<String>>>>) -> Arc<Mutex<Option<Vec<String>>>> {
+    Arc::new(Mutex::new(Some({
+        let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
+        let __low = 0;
+        let __high = (({ let __len = (*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize;
+        let __max = (({ let __len = (*s.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })) as usize;
+        __seq.reslice3_zeroed(__low, __high, __max)
+    })))
 }
 
 impl GoValueClone for Config {

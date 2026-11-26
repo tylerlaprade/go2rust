@@ -859,5 +859,5 @@ fn main() {
     let mut values = { let __slice_header = GoSliceHeader::go_slice_header(&values); Rc::new(RefCell::new(__slice_header)) };
 
     println!("{}", format!("{}", (*(*item.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
-    println!("{} {} {}", format!("{}", (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*values.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {} {}", format!("{}", ({ let __len = (*values.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*values.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*values.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

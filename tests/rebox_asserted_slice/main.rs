@@ -812,7 +812,7 @@ fn main() {
     let mut b = Rc::new(RefCell::new(Some(Box::new(({ let val = a.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any>)));
     let mut c = ({ let val = b.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     let mut c = { let __slice_header = GoSliceHeader::go_slice_header(&c); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {} {}", format!("{}", (*c.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*c.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*c.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {} {}", format!("{}", ({ let __len = (*c.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*c.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*c.borrow().as_ref().unwrap())[(1) as usize].clone()));
 
     let mut holder: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(({ let val = a.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any>)));
     let (mut d, mut ok) = ({
@@ -846,7 +846,7 @@ fn main() {
             (Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i64>>>>>)), false)
         }
     });
-    println!("{} {} {}", format!("{}", ok), format!("{}", { let __map_holder = back.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", (*back.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {} {}", format!("{}", ok), format!("{}", { let __map_holder = back.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", ({ let __len = (*back.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(({ let val = a.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any>, Box::new(({ let val = m.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone()) as Box<dyn Any>])));
     { let __range_holder = items.clone(); let __range_guard = __range_holder.borrow(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for item in __range_values.map(|__range_index| { let __range_guard = __range_holder.borrow(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }) {
@@ -857,10 +857,10 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>()).unwrap().clone();
         let mut v = { let __slice_header = GoSliceHeader::go_slice_header(&v); Rc::new(RefCell::new(__slice_header)) };
-        println!("{} {}", format!("{}", "slice".to_string()), format!("{}", (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));;
+        println!("{} {}", format!("{}", "slice".to_string()), format!("{}", ({ let __len = (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>()).unwrap().clone();
-        println!("{} {}", format!("{}", "map".to_string()), format!("{}", (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));;
+        println!("{} {}", format!("{}", "map".to_string()), format!("{}", ({ let __len = (*v.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));;
     }
     }
     } }

@@ -886,7 +886,7 @@ fn main() {
 
     let mut more: Rc<RefCell<Option<Vec<Cell>>>> = Rc::new(RefCell::new(Some({ let mut v: Vec<Cell> = (0..(4) as usize).map(|_| Default::default()).collect(); v.truncate((2) as usize); v })));
     { let new_val = 5; *(*more.borrow().as_ref().unwrap())[(1) as usize].clone().val.borrow_mut() = Some(new_val); };
-    println!("{} {} {}", format!("{}", format_slice(&more)), format!("{}", (*more.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*more.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
+    println!("{} {} {}", format!("{}", format_slice(&more)), format!("{}", ({ let __len = (*more.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*more.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)));
 
     let mut b = new_board(Rc::new(RefCell::new(Some(4))));
     for i in 0..(({ let __range_holder = (*b.borrow().as_ref().unwrap()).cells.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {

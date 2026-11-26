@@ -4,7 +4,6 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
-use std::any::Any;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
@@ -680,28 +679,6 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-fn __go_type_name(val: &dyn Any) -> &'static str {
-    if val.is::<i64>() { return "int" }
-    if val.is::<i32>() { return "int32" }
-    if val.is::<char>() { return "int32" }
-    if val.is::<i8>() { return "int8" }
-    if val.is::<i16>() { return "int16" }
-    if val.is::<u64>() { return "uint" }
-    if val.is::<u32>() { return "uint32" }
-    if val.is::<u8>() { return "uint8" }
-    if val.is::<u16>() { return "uint16" }
-    if val.is::<f64>() { return "float64" }
-    if val.is::<f32>() { return "float32" }
-    if val.is::<bool>() { return "bool" }
-    if val.is::<String>() { return "string" }
-    if val.is::<Vec<i64>>() { return "[]int" }
-    if val.is::<Vec<i32>>() { return "[]int32" }
-    if val.is::<Vec<f64>>() { return "[]float64" }
-    if val.is::<Vec<String>>() { return "[]string" }
-    if val.is::<Vec<bool>>() { return "[]bool" }
-    std::any::type_name_of_val(val)
-}
-
 pub fn label() -> Arc<Mutex<Option<String>>> {
     Arc::new(Mutex::new(Some("x".to_string())))
 }
@@ -717,5 +694,5 @@ fn main() {
     }
     });
 
-    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", { let __type_name = __go_type_name(&(*label().lock().unwrap().as_ref().unwrap())); __type_name })))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("type {}", { let _ = label(); "string" })))).lock().unwrap().as_ref().unwrap())));
 }

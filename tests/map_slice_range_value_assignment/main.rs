@@ -692,6 +692,6 @@ fn main() {
     }
     }
 
-    println!("{}", format!("{}", (*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{}", format!("{}", ({ let __len = (*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     println!("{}", format!("{}", (*src.borrow().as_ref().unwrap())[(0) as usize].clone()));
 }

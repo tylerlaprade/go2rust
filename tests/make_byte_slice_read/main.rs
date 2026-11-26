@@ -2141,7 +2141,7 @@ fn main() {
 
     let mut small = Rc::new(RefCell::new(Some({ let mut v: Vec<f32> = (0..(4) as usize).map(|_| 0.0f32).collect(); v.truncate((2) as usize); v })));
     let mut big = Rc::new(RefCell::new(Some(vec![0u64; (3) as usize])));
-    println!("{} {} {} {}", format!("{}", (*small.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)), format!("{}", (*small.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&small)), format!("{}", format_slice(&big)));
+    println!("{} {} {} {}", format!("{}", ({ let __len = (*small.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*small.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", format_slice(&small)), format!("{}", format_slice(&big)));
 
     // Execute deferred functions
     while let Some(f) = __defer_stack.pop() {

@@ -700,7 +700,7 @@ impl std::fmt::Display for Loader {
 
 impl Loader {
     pub fn load(&self, patterns: Rc<RefCell<Option<Vec<String>>>>) -> i64 {
-        (*patterns.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64
+        ({ let __len = (*patterns.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64
     }
 }
 

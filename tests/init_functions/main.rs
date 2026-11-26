@@ -831,10 +831,10 @@ fn __go_init_6() {
     setup_logging();
 
         // Validate configuration
-    if ((*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64) == (0 as i64) {
+    if (({ let __len = (*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (0 as i64) {
         println!("{}", format!("{}", "Warning: No configuration data found".to_string()));
     } else {
-        print!("Configuration loaded with {} entries\n", (*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+        print!("Configuration loaded with {} entries\n", ({ let __len = (*configData.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }));
     }
 }
 

@@ -556,6 +556,18 @@ type monoCopier struct {
 	file  *ast.File
 }
 
+func (c *monoCopier) copyNode(n ast.Node) ast.Node {
+	return astCopier{rewrite: c.rewriteExpr}.copyNode(n)
+}
+
+// astCopier deep-copies syntax. rewrite, when set, may replace an
+// expression before it is copied, and ident an identifier; the
+// replacement is used as it is.
+type astCopier struct {
+	rewrite func(ast.Expr) (ast.Expr, bool)
+	ident   func(*ast.Ident) (*ast.Ident, bool)
+}
+
 var (
 	astExprType  = reflect.TypeOf((*ast.Expr)(nil)).Elem()
 	astIdentType = reflect.TypeOf((*ast.Ident)(nil))
@@ -564,22 +576,22 @@ var (
 	astCommentT  = reflect.TypeOf((*ast.CommentGroup)(nil))
 )
 
-func (c *monoCopier) copyNode(n ast.Node) ast.Node {
+func (c astCopier) copyNode(n ast.Node) ast.Node {
 	if n == nil {
 		return nil
 	}
 	return c.copyValue(reflect.ValueOf(n)).Interface().(ast.Node)
 }
 
-func (c *monoCopier) copyValue(v reflect.Value) reflect.Value {
+func (c astCopier) copyValue(v reflect.Value) reflect.Value {
 	switch v.Kind() {
 	case reflect.Interface:
 		if v.IsNil() {
 			return v
 		}
-		if v.Type() == astExprType {
+		if v.Type() == astExprType && c.rewrite != nil {
 			if e, ok := v.Interface().(ast.Expr); ok {
-				if replaced, ok := c.rewriteExpr(e); ok {
+				if replaced, ok := c.rewrite(e); ok {
 					out := reflect.New(astExprType).Elem()
 					out.Set(reflect.ValueOf(replaced))
 					return out
@@ -599,6 +611,12 @@ func (c *monoCopier) copyValue(v reflect.Value) reflect.Value {
 			return reflect.Zero(v.Type())
 		case astCommentT:
 			return v
+		case astIdentType:
+			if c.ident != nil {
+				if replaced, ok := c.ident(v.Interface().(*ast.Ident)); ok {
+					return reflect.ValueOf(replaced)
+				}
+			}
 		}
 		if v.Elem().Kind() != reflect.Struct {
 			return v
@@ -624,7 +642,7 @@ func (c *monoCopier) copyValue(v reflect.Value) reflect.Value {
 	}
 }
 
-func (c *monoCopier) copyStruct(dst, src reflect.Value) {
+func (c astCopier) copyStruct(dst, src reflect.Value) {
 	for i := 0; i < src.NumField(); i++ {
 		if !dst.Field(i).CanSet() {
 			continue
