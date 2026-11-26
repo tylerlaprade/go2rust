@@ -1977,6 +1977,7 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 				writeFsFileModeIsDirMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "perm" {
 				writeFsFileModePermMethod(&out, method)
+			} else if name == "sync_Pool" && writeSyncPoolMethod(&out, methodName, method) {
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -3444,6 +3445,48 @@ impl %s {
 		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
 	}
 	out.WriteString("}\n")
+}
+
+// PERMANENT: sync is native tier (docs/stdlib_boundary.md), so hand-written
+// Rust is its implementation and not bridge debt.
+//
+// writeSyncPoolMethod writes sync.Pool's Get and Put and reports whether
+// methodName is one of them. A Pool may drop any value put in it at any
+// time, so a Pool that keeps nothing is a correct one: Get returns what New
+// makes, or nil without New, and Put drops its value. regexp's pools have
+// no New and make a new machine when Get gives nil.
+func writeSyncPoolMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) bool {
+	switch methodName {
+	case "get":
+		if len(method.ReturnTypes) != 1 {
+			return false
+		}
+		result := method.ReturnTypes[0]
+		nilValue, readNew := "", ""
+		switch {
+		case strings.HasPrefix(result, "Arc<Mutex<"):
+			nilValue, readNew = "Arc::new(Mutex::new(None))", "self.new.lock().unwrap().clone()"
+		case strings.HasPrefix(result, "Rc<RefCell<"):
+			nilValue, readNew = "Rc::new(RefCell::new(None))", "self.new.borrow().clone()"
+		default:
+			return false
+		}
+		fmt.Fprintf(out, `    pub fn get(&self) -> %s {
+        match %s {
+            Some(__new) => __new(),
+            None => %s,
+        }
+    }
+`, result, readNew, nilValue)
+		return true
+	case "put":
+		if method.ParamCount != 1 || len(method.ReturnTypes) != 0 {
+			return false
+		}
+		out.WriteString("    pub fn put<T0>(&self, _arg0: T0) {}\n")
+		return true
+	}
+	return false
 }
 
 // PERMANENT: not scaffold — io/fs.FileMode is OS-tied; Rust std::fs::Metadata is the long-term implementation.
