@@ -8,7 +8,11 @@ import (
 	"sync"
 )
 
-var bufs = sync.Pool{New: func() any { return new(bytes.Buffer) }}
+var bufs = sync.Pool{New: func() any {
+	b := new(bytes.Buffer)
+	b.WriteString("made by New")
+	return b
+}}
 
 var bare sync.Pool
 
@@ -21,6 +25,8 @@ func render(n int) string {
 }
 
 func main() {
+	// The pool is empty, so the first Get is what New makes.
+	fmt.Println(bufs.Get().(*bytes.Buffer).String())
 	var wg sync.WaitGroup
 	out := make([]string, 4)
 	for i := range out {

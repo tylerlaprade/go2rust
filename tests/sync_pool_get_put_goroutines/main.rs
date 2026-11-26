@@ -305,7 +305,9 @@ fn __go_init_globals() {
     *bare.lock().unwrap() = Some(Default::default());
     *bufs.lock().unwrap() = Some(sync_Pool {
         new: Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(bytes::buffer::Buffer::default()))).clone()) as Box<dyn Any + Send + Sync>)))
+        let mut b = Arc::new(Mutex::new(Some(bytes::buffer::Buffer::default())));
+        { let __recv = b.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("made by New".to_string())))); __result };
+        return Arc::new(Mutex::new(Some(Box::new(b.clone()) as Box<dyn Any + Send + Sync>)));
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>))),
         ..Default::default()
     });
@@ -368,6 +370,15 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     __go_init_all();
+    println!("{}", format!("{}", (*bytes::__go_nil_recv_buffer_string(({
+        let val = (*bufs.lock().unwrap().as_mut().unwrap()).get().clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Arc<Mutex<Option<bytes::buffer::Buffer>>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "*bytes.Buffer")).clone()
+        } else {
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "*bytes.Buffer")
+        }
+    })).lock().unwrap().as_ref().unwrap())));
     let mut wg = WaitGroup::new();
     let mut out = Arc::new(Mutex::new(Some(vec!["".to_string(); (4) as usize])));
     for i in 0..(({ let __range_holder = out.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {

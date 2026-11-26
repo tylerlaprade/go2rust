@@ -1977,7 +1977,7 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 				writeFsFileModeIsDirMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "perm" {
 				writeFsFileModePermMethod(&out, method)
-			} else if name == "sync_Pool" && writeSyncPoolMethod(&out, methodName, method) {
+			} else if name == "sync_Pool" && writeSyncPoolMethod(&out, methodName, method, fieldsByType[name]) {
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -3454,25 +3454,36 @@ impl %s {
 // methodName is one of them. A Pool may drop any value put in it at any
 // time, so a Pool that keeps nothing is a correct one: Get returns what New
 // makes, or nil without New, and Put drops its value. regexp's pools have
-// no New and make a new machine when Get gives nil.
-func writeSyncPoolMethod(out *strings.Builder, methodName string, method externalTypeStubMethod) bool {
+// no New and make a new machine when Get gives nil. A program that never
+// names New gets a Pool stub without the field, whose Get is always nil.
+//
+// Get takes New out of its cell before calling it, so New may use the
+// field. (The receiver's own cell is the caller's to hold; New that calls
+// Get or Put on the same pool still waits on it.)
+func writeSyncPoolMethod(out *strings.Builder, methodName string, method externalTypeStubMethod, fields map[string]string) bool {
 	switch methodName {
 	case "get":
 		if len(method.ReturnTypes) != 1 {
 			return false
 		}
 		result := method.ReturnTypes[0]
-		nilValue, readNew := "", ""
-		switch {
-		case strings.HasPrefix(result, "Arc<Mutex<"):
-			nilValue, readNew = "Arc::new(Mutex::new(None))", "self.new.lock().unwrap().clone()"
-		case strings.HasPrefix(result, "Rc<RefCell<"):
-			nilValue, readNew = "Rc::new(RefCell::new(None))", "self.new.borrow().clone()"
-		default:
+		outer, inner, ok := externalStubWrapperNames(result)
+		if !ok {
 			return false
 		}
+		nilValue := outer + "::new(" + inner + "::new(None))"
+		newField, hasNew := fields["new"]
+		if !hasNew {
+			fmt.Fprintf(out, "    pub fn get(&self) -> %s {\n        %s\n    }\n", result, nilValue)
+			return true
+		}
+		readNew := "self.new.lock().unwrap().clone()"
+		if fieldOuter, _, ok := externalStubWrapperNames(newField); ok && fieldOuter == "Rc" {
+			readNew = "self.new.borrow().clone()"
+		}
 		fmt.Fprintf(out, `    pub fn get(&self) -> %s {
-        match %s {
+        let __new = %s;
+        match __new {
             Some(__new) => __new(),
             None => %s,
         }
@@ -3487,6 +3498,25 @@ func writeSyncPoolMethod(out *strings.Builder, methodName string, method externa
 		return true
 	}
 	return false
+}
+
+// externalStubWrapperNames returns the outer and inner wrapper of a stub
+// cell type: Arc and Mutex for Arc<Mutex<Option<T>>>, Rc and RefCell for
+// Rc<RefCell<Option<T>>>, or the name a program's own Mutex leaves the
+// standard one (StdMutex).
+func externalStubWrapperNames(typ string) (outer string, inner string, ok bool) {
+	for _, candidate := range []string{"Arc", "Rc"} {
+		rest, found := strings.CutPrefix(typ, candidate+"<")
+		if !found {
+			continue
+		}
+		end := strings.Index(rest, "<")
+		if end <= 0 {
+			return "", "", false
+		}
+		return candidate, rest[:end], true
+	}
+	return "", "", false
 }
 
 // PERMANENT: not scaffold — io/fs.FileMode is OS-tied; Rust std::fs::Metadata is the long-term implementation.

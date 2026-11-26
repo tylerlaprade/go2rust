@@ -4692,6 +4692,10 @@ run_xfail_test() {
     run_test "tests/sync_pool_get_put_goroutines"
 }
 
+@test "sync_pool_zero_value" {
+    run_test "tests/sync_pool_zero_value"
+}
+
 @test "text_tabwriter_from_source" {
     run_test "tests/text_tabwriter_from_source"
 }
