@@ -856,4 +856,30 @@ fn main() {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", format!("{}", { let __v = (*m.borrow().as_ref().unwrap()).clone(); __v }));
+
+        // A closure with its own loop inside a goto-lowered loop body: its
+        // continue is its own loop's.
+    let mut total = Rc::new(RefCell::new(Some(0i64)));
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
+    '__go_loop_4: while (*i.borrow().as_ref().unwrap()) < 3 {
+        'next: {
+            if (*i.borrow().as_ref().unwrap()) == 0 {
+        break 'next;
+    }
+            let mut total_closure_clone = total.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut total_closure_clone = total_closure_clone.clone();
+        let mut j = Rc::new(RefCell::new(Some(0i64)));
+    while (*j.borrow().as_ref().unwrap()) < 3 {
+        if (*j.borrow().as_ref().unwrap()) == 1 {
+        { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
+    }
+        { let __rhs = (*j.borrow().as_ref().unwrap()); let mut guard = total_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
+        }
+        { let __rhs = 100; let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    println!("{}", format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 }

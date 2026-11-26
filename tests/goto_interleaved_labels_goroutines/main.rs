@@ -1063,4 +1063,30 @@ fn main() {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", format!("{}", { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
+        // A closure with its own loop inside a goto-lowered loop body: its
+        // continue is its own loop's.
+    let mut total = Arc::new(Mutex::new(Some(0i64)));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    '__go_loop_4: while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        'next: {
+            if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+        break 'next;
+    }
+            let mut total_closure_clone = total.clone(); { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut total_closure_clone = total_closure_clone.clone();
+        let mut j = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
+    }
+        { let __rhs = (*j.lock().unwrap().as_ref().unwrap()); let mut guard = total_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
+        }
+        { let __rhs = 100; let mut guard = total.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    println!("{}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 }

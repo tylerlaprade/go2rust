@@ -71,4 +71,23 @@ func main() {
 		break
 	}
 	fmt.Println(m)
+	// A closure with its own loop inside a goto-lowered loop body: its
+	// continue is its own loop's.
+	total := 0
+	for i := 0; i < 3; i++ {
+		if i == 0 {
+			goto next
+		}
+		func() {
+			for j := 0; j < 3; j++ {
+				if j == 1 {
+					continue
+				}
+				total += j
+			}
+		}()
+	next:
+		total += 100
+	}
+	fmt.Println(total)
 }

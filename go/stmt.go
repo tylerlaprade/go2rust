@@ -15797,8 +15797,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		gotoBody := stmtListHasPlannedGoto(s.Body.List)
 		bodyLoopLabel := currentLoopLabel
 		if gotoBody && bodyLoopLabel == "" {
-			gotoLoopLabelCount++
-			bodyLoopLabel = fmt.Sprintf("__go_loop_%d", gotoLoopLabelCount)
+			for {
+				gotoLoopLabelCount++
+				bodyLoopLabel = fmt.Sprintf("__go_loop_%d", gotoLoopLabelCount)
+				if !gotoSyntheticNames[bodyLoopLabel] {
+					break
+				}
+			}
 			out.WriteString("'" + bodyLoopLabel + ": ")
 		}
 		if s.Cond != nil {
@@ -15820,9 +15825,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var forBodyLastPos token.Pos = s.Body.Lbrace
 		var captureShadowRestores []func()
 		if gotoBody {
-			restoreContinueTarget := pushContinueTarget(bodyLoopLabel)
-			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
-			restoreContinueTarget()
+			func() {
+				defer pushContinueTarget(bodyLoopLabel)()
+				prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
+			}()
 		} else {
 			for i, stmt := range s.Body.List {
 				// Add blank line if there was one in the source

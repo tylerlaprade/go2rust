@@ -104,8 +104,34 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 		}
 		if start < backIndex {
 			plan.earlyLoopStart[back] = start
-			plan.modes[back] = gotoReenterMode
 		}
+	}
+	// The first entry's statements close their guard at the label, so
+	// the interval from the early start to the label must hold no other
+	// block that opens or closes in it: no other early loop, no forward
+	// label and no forward goto start. A plan that would need one keeps
+	// the plain lowering.
+	for back, start := range plan.earlyLoopStart {
+		backIndex := plan.labelIndex[back]
+		clean := true
+		for other, otherStart := range plan.earlyLoopStart {
+			if other != back && otherStart < backIndex && plan.labelIndex[other] > start {
+				clean = false
+			}
+		}
+		for fwd := range plan.forward {
+			first, ok := plan.firstForwardGoto[fwd]
+			fwdIndex := plan.labelIndex[fwd]
+			if (fwdIndex > start && fwdIndex < backIndex) || (ok && first > start && first < backIndex) {
+				clean = false
+			}
+		}
+		if !clean {
+			delete(plan.earlyLoopStart, back)
+		}
+	}
+	for back := range plan.earlyLoopStart {
+		plan.modes[back] = gotoReenterMode
 	}
 	return plan
 }
@@ -117,7 +143,31 @@ const gotoReenterMode = "reenter"
 // gotoReenterFlag names the flag that says a label's early loop was
 // entered again by a goto to the label.
 func gotoReenterFlag(label string) string {
-	return "__goto_reenter_" + label
+	name := "__goto_reenter_" + label
+	for gotoSyntheticNames[name] {
+		name += "_"
+	}
+	return name
+}
+
+// gotoSyntheticNames holds the Rust names of the file's identifiers and
+// labels, which a synthetic goto flag or loop label must not take.
+var gotoSyntheticNames map[string]bool
+
+func collectGotoSyntheticNameConflicts(file *ast.File) map[string]bool {
+	names := map[string]bool{}
+	if file == nil {
+		return names
+	}
+	ast.Inspect(file, func(node ast.Node) bool {
+		if ident, ok := node.(*ast.Ident); ok {
+			names[ident.Name] = true
+			names[ToSnakeCase(ident.Name)] = true
+			names[RustLocalIdent(ident.Name)] = true
+		}
+		return true
+	})
+	return names
 }
 
 func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) ast.Stmt {
