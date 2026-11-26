@@ -236,7 +236,7 @@ These are real transpiler gaps (wrapped-type arithmetic, generics handling, type
 - If fixture tests feel slow, verify the startup line or process state before changing commands. Fixture runs should say `Running tests in parallel with N jobs`.
 - If `./test.sh` reports `Passing: 0/0`, inspect the filter, dependencies such as GNU parallel, and raw script output.
 - When the machine feels slow or disk usage looks wrong, measure cache/log/workspace sizes before guessing. In this repo, start with `./cleanup.sh --pressure --keep-repo-artifacts`; with no arguments, `./cleanup.sh` prints the same diagnostic report and does not remove anything.
-- A build cache is safe to clear without asking anyone, whoever filled it: `go clean -cache` for `~/.cache/go-build`, and old Cargo targets. Caches rebuild themselves. On Nov 25 a 27 GB Go cache filled the cloud disk, and the chat waited three hours for Tyler's yes: "I don't see why you or I should even be involved... I can clear its cache all at once."
+- A build cache is safe to clear without asking anyone, whoever filled it: `go clean -cache` for `~/.cache/go-build`, and old Cargo targets. Caches rebuild themselves. On Nov 25 a 27 GB Go cache filled the cloud disk, and the chat stopped to wait for Tyler's yes: "I don't see why you or I should even be involved... I can clear its cache all at once."
 
 ### Collaborating With the Continuous Loop
 
