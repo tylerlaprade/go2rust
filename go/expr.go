@@ -12754,6 +12754,10 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStringValueForExpectedBasicType(out, key, keyType) {
 		return true
 	}
+	// An array literal key, m[[2]int{1, 2}], is the array, not a handle.
+	if writeBareFixedArrayCompositeLiteral(out, key, keyType) {
+		return true
+	}
 	if writeLenCapCallArgumentForExpectedType(out, key, keyType) {
 		return true
 	}

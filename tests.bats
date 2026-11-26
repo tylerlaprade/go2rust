@@ -616,6 +616,14 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_map_keys" {
+    run_test "tests/array_map_keys"
+}
+
+@test "array_map_keys_goroutines" {
+    run_test "tests/array_map_keys_goroutines"
+}
+
 @test "array_slice_shares_elements" {
     run_test "tests/array_slice_shares_elements"
 }

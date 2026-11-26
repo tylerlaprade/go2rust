@@ -919,6 +919,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				writeMapOfMapsDisplay(out, writeHandle)
 				return
 			}
+			if mapKeysAreBasicArrays(argType) {
+				writeMapWithArrayKeysDisplay(out, writeHandle)
+				return
+			}
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
@@ -2499,6 +2503,41 @@ func mapArrayValueFormatter(mapType types.Type) (string, bool) {
 		return "format_nested_slice_values", true
 	}
 	return "", false
+}
+
+// mapKeysAreBasicArrays reports whether mapType is a map whose keys are
+// arrays of numbers, strings or bools, which have no Display for
+// format_map to print.
+func mapKeysAreBasicArrays(mapType types.Type) bool {
+	if mapType == nil {
+		return false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	array, ok := types.Unalias(m.Key()).(*types.Array)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(array.Elem()).(*types.Basic)
+	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+}
+
+// writeMapWithArrayKeysDisplay prints a map whose keys are arrays: each key
+// prints as its elements, in key order, which is the order fmt sorts array
+// keys in.
+func writeMapWithArrayKeysDisplay(out *strings.Builder, writeHandle func()) {
+	NeedFormatMap()
+	NeedFormatSlice()
+	TrackImport("Display")
+	out.WriteString("{ let __map_holder = ")
+	writeHandle()
+	out.WriteString(".clone(); let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__key, __value)| { let __value_guard = __value")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; format!(\"{}:{}\", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| \"<nil>\".to_string())) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreBasicMaps reports whether mapType is a map whose values are
