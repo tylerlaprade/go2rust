@@ -835,6 +835,12 @@ pub fn fill(s: Rc<RefCell<Option<Vec<i64>>>>, n: Rc<RefCell<Option<i64>>>) {
     }
 }
 
+pub fn fill_each(s: Rc<RefCell<Option<Vec<i64>>>>, ns: Rc<RefCell<Option<Vec<i64>>>>) {
+    for i in 0..(({ let __range_holder = s.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        { let __idx = (i) as usize; let __rhs = (*ns.borrow().as_ref().unwrap())[((i as i64) % (({ let __len = (*ns.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)) as usize].clone(); (*s.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }
+}
+
 pub fn set(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>, v: Rc<RefCell<Option<i64>>>) {
     { let __map_key = "a".to_string(); let __map_value = Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()).clone()))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
@@ -844,6 +850,8 @@ fn main() {
     fill(s.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*s.borrow().as_ref().unwrap())[(2) as usize].clone() + 1; __arg_value }))));
     println!("{}", format!("{}", format_slice(&s)));
     fill(Rc::new(RefCell::new(Some({ let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))), Rc::new(RefCell::new(Some({ let __arg_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() * 2; __arg_value }))));
+    println!("{}", format!("{}", format_slice(&s)));
+    fill_each(s.clone(), Rc::new(RefCell::new(Some(vec![{ let __arg_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() + 1; __arg_value }, { let __arg_value = (*s.borrow().as_ref().unwrap())[(1) as usize].clone() * 2; __arg_value }]))));
     println!("{}", format!("{}", format_slice(&s)));
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
     set(m.clone(), Rc::new(RefCell::new(Some({ let __arg_value = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } + 1; __arg_value }))));

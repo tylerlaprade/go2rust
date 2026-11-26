@@ -1580,7 +1580,7 @@ fn main() {
     (*c.borrow_mut().as_mut().unwrap()).deferred();
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
-    apply(Rc::new(RefCell::new(Some({ let __recv = c.clone(); Box::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Box<dyn FnMut() -> ()> }))));
+    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Box::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Box<dyn FnMut() -> ()> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     add_to(c.clone());

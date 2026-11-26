@@ -1004,6 +1004,12 @@ pub fn fill(s: Arc<Mutex<Option<Vec<i64>>>>, n: Arc<Mutex<Option<i64>>>) {
     }
 }
 
+pub fn fill_each(s: Arc<Mutex<Option<Vec<i64>>>>, ns: Arc<Mutex<Option<Vec<i64>>>>) {
+    for i in 0..(({ let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        { let __idx = (i) as usize; let __rhs = { let __seq = { let __seq_holder = ns.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (i as i64); let __tmp_y = (({ let __len = (*ns.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); __tmp_x % __tmp_y }) as usize].clone() }; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    }
+}
+
 pub fn set(m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>, v: Arc<Mutex<Option<i64>>>) {
     { let __map_key = "a".to_string(); let __map_value = Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()).clone()))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
@@ -1037,6 +1043,16 @@ fn main() {
             __tmp_x * __tmp_y
         })))
     );
+    println!("{}", format!("{}", format_slice(&s)));
+    fill_each(s.clone(), Arc::new(Mutex::new(Some(vec![{
+        let __tmp_x = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+        let __tmp_y = 1;
+        __tmp_x + __tmp_y
+    }, {
+        let __tmp_x = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+        let __tmp_y = 2;
+        __tmp_x * __tmp_y
+    }]))));
     println!("{}", format!("{}", format_slice(&s)));
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
     set(
