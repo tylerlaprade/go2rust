@@ -110,7 +110,10 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 	// the interval from the early start to the label must hold no other
 	// block that opens or closes in it: no other early loop, no forward
 	// label and no forward goto start. A plan that would need one keeps
-	// the plain lowering.
+	// the plain lowering. Every candidate is checked against the full
+	// candidate set before any is dropped, so the result does not depend
+	// on map iteration order.
+	var rejected []string
 	for back, start := range plan.earlyLoopStart {
 		backIndex := plan.labelIndex[back]
 		clean := true
@@ -127,8 +130,11 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 			}
 		}
 		if !clean {
-			delete(plan.earlyLoopStart, back)
+			rejected = append(rejected, back)
 		}
+	}
+	for _, back := range rejected {
+		delete(plan.earlyLoopStart, back)
 	}
 	for back := range plan.earlyLoopStart {
 		plan.modes[back] = gotoReenterMode
