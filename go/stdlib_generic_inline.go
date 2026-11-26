@@ -566,7 +566,7 @@ func (i stdlibInlineImporter) Import(path string) (*types.Package, error) {
 
 // stdlibPackagesWithGenericCopies returns the source of each file, by path,
 // of the standard-library packages under main that are translated from
-// source and call slices or maps, rewritten with copies of what they call
+// source and call slices, maps or cmp, rewritten with copies of what they call
 // (DEV-223). sort.Ints calls slices.Sort, which as a Rust generic over the
 // stub did not compile. Only the copies are written once per
 // instantiation: a package keeps its own generics, for its importers to
@@ -586,7 +586,8 @@ func stdlibPackagesWithGenericCopies(main *packages.Package) map[string][]byte {
 		}
 		_, slices := pkg.Imports["slices"]
 		_, maps := pkg.Imports["maps"]
-		if slices || maps {
+		_, cmp := pkg.Imports["cmp"]
+		if slices || maps || cmp {
 			paths = append(paths, path)
 		}
 	}
@@ -623,6 +624,22 @@ func stdlibPackagesWithGenericCopies(main *packages.Package) map[string][]byte {
 				break
 			}
 			var buf bytes.Buffer
+			// The file keeps its build constraint, the one comment
+			// that decides which files are in the package.
+			for _, group := range pkg.Syntax[i].Comments {
+				if group.End() >= pkg.Syntax[i].Package {
+					break
+				}
+				for _, comment := range group.List {
+					if strings.HasPrefix(comment.Text, "//go:build") || strings.HasPrefix(comment.Text, "// +build") {
+						buf.WriteString(comment.Text)
+						buf.WriteString("\n")
+					}
+				}
+			}
+			if buf.Len() > 0 {
+				buf.WriteString("\n")
+			}
 			file.Comments = nil
 			cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
 			if err := cfg.Fprint(&buf, pkg.Fset, file); err != nil {
