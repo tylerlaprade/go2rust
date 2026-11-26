@@ -421,11 +421,11 @@ func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Exp
 
 // pointeeValueCopyCall is what to append to the pointee of the dereference
 // deref to read it: Go's copy of its type, or Clone for a dereference that
-// a selector or an index reads through (storageDerefs). Without a type for
+// a selector or an index reads through (isStorageDeref). Without a type for
 // deref, known is false and the caller writes goValueCopyNeedsTypeInfo
 // instead of guessing.
 func pointeeValueCopyCall(deref ast.Expr) (call string, known bool) {
-	if storageDerefs[unwrapParens(deref)] {
+	if isStorageDeref(deref) {
 		return ".clone()", true
 	}
 	return goValueCopyCallForExpr(deref)

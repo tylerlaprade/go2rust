@@ -1342,7 +1342,7 @@ func writePointerDerefSequenceIndexValue(out *strings.Builder, expr ast.Expr, in
 	out.WriteString("{ let __seq = ")
 	// Only one element is read, and it must be the element itself: a
 	// pointer method called on (*a)[i] runs on (*a)[i], and a read of it
-	// as a value applies its own copy (storageDerefs).
+	// as a value applies its own copy (isStorageDeref).
 	TranspileExpression(out, expr)
 	out.WriteString("; __seq[")
 	writeExpressionAsUsize(out, index)
@@ -8032,8 +8032,8 @@ func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target a
 	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
-	// (*s).f and (*s).M() read the receiver itself (storageDerefs).
-	copies := expressionNeedsGoValueClone(expr) && !storageDerefs[unwrapParens(expr)]
+	// (*s).f and (*s).M() read the receiver itself (isStorageDeref).
+	copies := expressionNeedsGoValueClone(expr) && !isStorageDeref(expr)
 	if currentReceiverRustAlias != "" {
 		out.WriteString(currentReceiverRustAlias)
 		if copies {
@@ -8164,7 +8164,7 @@ func writePackageGlobalPointerPointee(out *strings.Builder, ident *ast.Ident) {
 }
 
 func writePackageGlobalPointerDerefRead(out *strings.Builder, ident *ast.Ident, expr ast.Expr) {
-	if expressionNeedsGoValueClone(expr) && !storageDerefs[unwrapParens(expr)] {
+	if expressionNeedsGoValueClone(expr) && !isStorageDeref(expr) {
 		writePackageGlobalPointerPointee(out, ident)
 		out.WriteString(".__go_value_clone()")
 		return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/types"
 )
 
 // A dereference read as a value is a Go copy of the pointee (DEV-236).
@@ -13,32 +14,47 @@ import (
 // before; a read of the field or the element as a value applies its own
 // copy. The explicit dereference stays, with its nil check.
 
-// storageDerefs holds the dereferences of the file being written that a
-// selector or an index reads through.
-var storageDerefs = map[ast.Expr]bool{}
+// storageDerefsByInfo holds, for each types.Info, the dereferences that a
+// selector or an index reads through, in every file of the package: a
+// method of another file can be written with this file (an imported
+// interface's methods are), so the set cannot be one file's.
+var storageDerefsByInfo = map[*types.Info]map[ast.Expr]bool{}
 
-// markStorageDerefs records the dereferences of file that a selector or an
-// index reads through.
-func markStorageDerefs(file *ast.File) {
-	storageDerefs = map[ast.Expr]bool{}
-	if file == nil {
-		return
+// isStorageDeref reports whether deref is a dereference that a selector or
+// an index reads through.
+func isStorageDeref(deref ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
 	}
-	ast.Inspect(file, func(node ast.Node) bool {
-		var operand ast.Expr
-		switch n := node.(type) {
-		case *ast.SelectorExpr:
-			operand = n.X
-		case *ast.IndexExpr:
-			operand = n.X
-		case *ast.IndexListExpr:
-			operand = n.X
-		default:
-			return true
-		}
+	derefs, ok := storageDerefsByInfo[typeInfo.info]
+	if !ok {
+		derefs = collectStorageDerefs(typeInfo.info)
+		storageDerefsByInfo[typeInfo.info] = derefs
+	}
+	return derefs[unwrapParens(deref)]
+}
+
+// collectStorageDerefs finds the dereferences of the package that info
+// describes that a selector or an index reads through: the operands of its
+// selections, and of the index expressions it has types for.
+func collectStorageDerefs(info *types.Info) map[ast.Expr]bool {
+	derefs := map[ast.Expr]bool{}
+	mark := func(operand ast.Expr) {
 		if star, ok := unwrapParens(operand).(*ast.StarExpr); ok {
-			storageDerefs[star] = true
+			derefs[star] = true
 		}
-		return true
-	})
+	}
+	for sel := range info.Selections {
+		mark(sel.X)
+	}
+	for expr := range info.Types {
+		switch e := expr.(type) {
+		case *ast.IndexExpr:
+			mark(e.X)
+		case *ast.IndexListExpr:
+			mark(e.X)
+		}
+	}
+	return derefs
 }
