@@ -6763,9 +6763,13 @@ func use(buf []byte) {
 	if !strings.Contains(rust, "mutate(__arg0.clone())") {
 		t.Fatalf("noescape slice element pointer argument should pass the temporary pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
-		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+	if !strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone();") {
 		t.Fatalf("noescape slice element pointer argument should write the temporary handle back:\n%s", rust)
+	}
+	// The write-back runs from a guard, so a panic in the call keeps it.
+	if !strings.Contains(rust, "let __write_back = GoWriteBack(|| {") || !strings.Contains(rust, "drop(__write_back);") {
+		t.Fatalf("noescape slice element pointer argument should write back from a guard:\n%s", rust)
 	}
 }
 
@@ -6796,8 +6800,8 @@ func use(values *[8]byte) {
 	if !strings.Contains(rust, "mutate(__arg0.clone())") {
 		t.Fatalf("noescape array element pointer call result should pass the temporary pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
-		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+	if !strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone();") {
 		t.Fatalf("noescape array element pointer call result should write the temporary handle back:\n%s", rust)
 	}
 }
@@ -6830,8 +6834,8 @@ func use(s *stats) {
 	if !strings.Contains(rust, "add(__arg0.clone(),") {
 		t.Fatalf("noescape struct array field element argument should pass the temporary pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
-		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+	if !strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone();") {
 		t.Fatalf("noescape struct array field element argument should write the temporary handle back:\n%s", rust)
 	}
 }
@@ -6862,8 +6866,8 @@ func use(cache *[4]uint64, ch uint64, h uint64) {
 	if !strings.Contains(rust, "store(\n") {
 		t.Fatalf("noescape call should use multiline arguments in concurrent mode:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
-		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+	if !strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone();") {
 		t.Fatalf("noescape array element argument should still write the temporary handle back:\n%s", rust)
 	}
 }
