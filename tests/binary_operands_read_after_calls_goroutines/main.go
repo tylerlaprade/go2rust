@@ -9,6 +9,10 @@ var counter int
 
 func bumpCounter() int { counter += 5; return 1 }
 
+var label = "a"
+
+func relabel() string { label = "b"; return "c" }
+
 func bump(s []int) int { s[0]++; return 1 }
 
 func fill(s []int, v int) { s[1] = v }
@@ -57,6 +61,7 @@ func main() {
 	fmt.Println("captured by a closure:", c+next(), c)
 
 	fmt.Println("package variable:", counter+bumpCounter(), counter)
+	fmt.Println("parenthesized:", label+(relabel()), label)
 
 	str := "a"
 	t := str + tag(&str)

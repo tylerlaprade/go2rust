@@ -262,7 +262,9 @@ func writeBinaryWithRightOperandFirst(out *strings.Builder, e *ast.BinaryExpr, c
 	out.WriteString("{ let ")
 	out.WriteString(name)
 	out.WriteString(" = ")
-	if typeInfo.ReturnsWrappedValue(e.Y) {
+	// ReturnsWrappedValue does not look through parentheses; the Rust of
+	// (f()) is the Rust of f().
+	if typeInfo.ReturnsWrappedValue(unwrapParens(e.Y)) {
 		TranspileExpression(out, e.Y)
 	} else {
 		WriteWrapperPrefix(out)

@@ -827,9 +827,13 @@ impl<T> GoGlobal<T> {
 
 pub(crate) static counter: GoGlobal<i64> = GoGlobal::new();
 
+pub(crate) static label: GoGlobal<String> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *counter.borrow_mut() = Some(0);
+    *label.borrow_mut() = Some(String::new());
+    *label.borrow_mut() = Some("a".to_string());
 }
 
 
@@ -847,6 +851,11 @@ impl r#box {
 pub fn bump_counter() -> i64 {
     { let __rhs = 5; let mut guard = counter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     1
+}
+
+pub fn relabel() -> Rc<RefCell<Option<String>>> {
+    { let new_val = "b".to_string(); *label.borrow_mut() = Some(new_val); };
+    Rc::new(RefCell::new(Some("c".to_string())))
 }
 
 pub fn bump(s: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
@@ -909,24 +918,25 @@ fn main() {
     println!("{} {} {}", format!("{}", "captured by a closure:".to_string()), format!("{}", { let __go_rhs_8 = Rc::new(RefCell::new(Some({ let __f: Rc<dyn Fn() -> i64> = next.borrow().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = (*c.borrow().as_ref().unwrap()) + (*__go_rhs_8.borrow().as_ref().unwrap()); __go_binary_value }), format!("{}", { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }));
 
     println!("{} {} {}", format!("{}", "package variable:".to_string()), format!("{}", { let __go_rhs_9 = Rc::new(RefCell::new(Some(bump_counter()))); let __go_binary_value = (*counter.borrow().as_ref().unwrap()) + (*__go_rhs_9.borrow().as_ref().unwrap()); __go_binary_value }), format!("{}", { let __v = (*counter.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {} {}", format!("{}", "parenthesized:".to_string()), format!("{}", { let __go_rhs_10 = (relabel()); let __go_binary_value = format!("{}{}", (*label.borrow().as_ref().unwrap()), (*__go_rhs_10.borrow().as_ref().unwrap())); __go_binary_value }), format!("{}", { let __v = (*label.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut str = Rc::new(RefCell::new(Some("a".to_string())));
-    let mut t = Rc::new(RefCell::new(Some({ let __go_rhs_10 = tag(str.clone()); let __go_binary_value = format!("{}{}", (*str.borrow().as_ref().unwrap()), (*__go_rhs_10.borrow().as_ref().unwrap())); __go_binary_value })));
+    let mut t = Rc::new(RefCell::new(Some({ let __go_rhs_11 = tag(str.clone()); let __go_binary_value = format!("{}{}", (*str.borrow().as_ref().unwrap()), (*__go_rhs_11.borrow().as_ref().unwrap())); __go_binary_value })));
     println!("{} {} {}", format!("{}", "string:".to_string()), format!("{}", { let __v = (*t.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));
 
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
-    println!("{} {} {}", format!("{}", "map element:".to_string()), format!("{}", { let __go_rhs_11 = Rc::new(RefCell::new(Some(add_one(m.clone())))); let __go_binary_value = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } + (*__go_rhs_11.borrow().as_ref().unwrap()); __go_binary_value }), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{} {} {}", format!("{}", "map element:".to_string()), format!("{}", { let __go_rhs_12 = Rc::new(RefCell::new(Some(add_one(m.clone())))); let __go_binary_value = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } + (*__go_rhs_12.borrow().as_ref().unwrap()); __go_binary_value }), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut f = Rc::new(RefCell::new(Some(1.5)));
     let mut pf = f.clone();
-    let pf_closure_clone = pf.clone(); let mut g = Rc::new(RefCell::new(Some({ let __go_rhs_12 = Rc::new(RefCell::new(Some({ let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> f64 {
+    let pf_closure_clone = pf.clone(); let mut g = Rc::new(RefCell::new(Some({ let __go_rhs_13 = Rc::new(RefCell::new(Some({ let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> f64 {
         { let new_val = 2.0; *pf_closure_clone.borrow_mut() = Some(new_val); };
         3.0
-    }) as Rc<dyn Fn() -> f64>))); let __f: Rc<dyn Fn() -> f64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = (*f.borrow().as_ref().unwrap()) * (*__go_rhs_12.borrow().as_ref().unwrap()); __go_binary_value })));
+    }) as Rc<dyn Fn() -> f64>))); let __f: Rc<dyn Fn() -> f64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = (*f.borrow().as_ref().unwrap()) * (*__go_rhs_13.borrow().as_ref().unwrap()); __go_binary_value })));
     println!("{} {} {}", format!("{}", "float:".to_string()), { let __text = go_float_string(({ let __v = (*g.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, { let __text = go_float_string(({ let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text });
 
     let mut words = Rc::new(RefCell::new(Some(vec!["ab".to_string(), "cde".to_string()])));
-    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_13 = Rc::new(RefCell::new(Some((*twice(Rc::new(RefCell::new(Some({ let __arg_value = (*words.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value })))).borrow().as_ref().unwrap()).len() as i64))); let __go_binary_value = ((*words.borrow().as_ref().unwrap())[(0) as usize].clone().len() as i64) + ((*__go_rhs_13.borrow().as_ref().unwrap()) as i64); __go_binary_value }));
+    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_14 = Rc::new(RefCell::new(Some((*twice(Rc::new(RefCell::new(Some({ let __arg_value = (*words.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value })))).borrow().as_ref().unwrap()).len() as i64))); let __go_binary_value = ((*words.borrow().as_ref().unwrap())[(0) as usize].clone().len() as i64) + ((*__go_rhs_14.borrow().as_ref().unwrap()) as i64); __go_binary_value }));
 
     let mut total = Rc::new(RefCell::new(Some(0i64)));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -936,7 +946,7 @@ fn main() {
     }
     println!("{} {}", format!("{}", "plain local:".to_string()), format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 
-    if { let __go_rhs_14 = Rc::new(RefCell::new(Some(bump(s.clone())))); let __go_binary_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() > (*__go_rhs_14.borrow().as_ref().unwrap()); __go_binary_value } {
+    if { let __go_rhs_15 = Rc::new(RefCell::new(Some(bump(s.clone())))); let __go_binary_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() > (*__go_rhs_15.borrow().as_ref().unwrap()); __go_binary_value } {
         println!("{} {}", format!("{}", "condition: before".to_string()), format!("{}", format_slice(&s)));
     } else {
         println!("{} {}", format!("{}", "condition: after".to_string()), format!("{}", format_slice(&s)));
