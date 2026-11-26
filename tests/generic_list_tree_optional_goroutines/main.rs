@@ -1496,7 +1496,7 @@ fn main() {
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = sum_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))),
     ); __result };
-    println!("{} {}", format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __recv = nums.clone(); let __recv_ptr: *const List__int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const List__int }; let __result = unsafe { &*__recv_ptr }.slice(); __result })));
+    { let __go_print_arg_1 = { let __recv = nums.clone(); let __recv_ptr: *const List__int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const List__int }; let __result = unsafe { &*__recv_ptr }.slice(); __result }; let __go_print_value = println!("{} {}", format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&__go_print_arg_1))); __go_print_value };
     let mut root: Arc<Mutex<Option<Tree__int>>> = Arc::new(Mutex::new(None));
     for v in vec![5i64, 3i64, 8i64, 1i64, 4i64].iter().copied() {
         { let new_val = __go_nil_recv_tree__int_insert(root.clone(), Arc::new(Mutex::new(Some(v.clone())))).clone(); root = new_val; };

@@ -905,7 +905,7 @@ fn main() {
 
     let mut d = GoMutex::new();
     bump(d.clone(), n.clone());
-    println!("{} {} {}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", locked(d.clone())), format!("{}", locked(c.clone())));
+    { let __go_print_arg_1 = Rc::new(RefCell::new(Some(locked(d.clone())))); let __go_print_arg_2 = Rc::new(RefCell::new(Some(locked(c.clone())))); let __go_print_value = println!("{} {} {}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_2.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
     let __mutex_guard_source_804 = (*global.borrow().as_ref().unwrap()).clone(); let __mutex_guard_804 = __mutex_guard_source_804.guard();
     { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

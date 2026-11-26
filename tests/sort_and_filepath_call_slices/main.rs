@@ -118,14 +118,14 @@ fn main() {
     let mut x = Arc::new(Mutex::new(Some(vec![3i64, 1i64, 2i64])));
     println!("{}", format!("{}", sort::ints_are_sorted(x.clone())));
     sort::ints(x.clone());
-    println!("{} {}", format!("{}", format_slice(&x)), format!("{}", sort::ints_are_sorted(x.clone())));
+    { let __go_print_arg_1 = Arc::new(Mutex::new(Some(sort::ints_are_sorted(x.clone())))); let __go_print_value = println!("{} {}", format!("{}", format_slice(&x)), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut s = Arc::new(Mutex::new(Some(vec!["b".to_string(), "c".to_string(), "a".to_string()])));
     sort::strings(s.clone());
-    println!("{} {} {}", format!("{}", format_slice(&s)), format!("{}", sort::strings_are_sorted(s.clone())), format!("{}", sort::search_strings(s.clone(), Arc::new(Mutex::new(Some("b".to_string()))))));
+    { let __go_print_arg_2 = Arc::new(Mutex::new(Some(sort::strings_are_sorted(s.clone())))); let __go_print_arg_3 = Arc::new(Mutex::new(Some(sort::search_strings(s.clone(), Arc::new(Mutex::new(Some("b".to_string()))))))); let __go_print_value = println!("{} {} {}", format!("{}", format_slice(&s)), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut f = Arc::new(Mutex::new(Some(vec![2.5, (-1.0), 0.0])));
     println!("{}", format!("{}", sort::float64s_are_sorted(f.clone())));
     sort::float64s(f.clone());
-    println!("{} {}", format!("{}", format_slice(&f)), format!("{}", sort::float64s_are_sorted(f.clone())));
+    { let __go_print_arg_4 = Arc::new(Mutex::new(Some(sort::float64s_are_sorted(f.clone())))); let __go_print_value = println!("{} {}", format!("{}", format_slice(&f)), format!("{}", { let __v = (*__go_print_arg_4.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     println!("{} {} {} {} {}", format!("{}", (*path_filepath::join(Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string(), "../c".to_string()])))).lock().unwrap().as_ref().unwrap())), format!("{}", (*path_filepath::clean(Arc::new(Mutex::new(Some("/x//y/./z/..".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*path_filepath::base(Arc::new(Mutex::new(Some("/x/y.go".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*path_filepath::ext(Arc::new(Mutex::new(Some("f.txt".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*path_filepath::dir(Arc::new(Mutex::new(Some("a/b/c".to_string())))).lock().unwrap().as_ref().unwrap())));
     let (mut rel, mut err) = path_filepath::rel(Arc::new(Mutex::new(Some("/a/b".to_string()))), Arc::new(Mutex::new(Some("/a/c/d".to_string()))));
     println!("{} {}", format!("{}", { let __v = (*rel.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

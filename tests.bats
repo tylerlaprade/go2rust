@@ -3332,6 +3332,14 @@ run_xfail_test() {
     run_test "tests/print_nil_interface_value_goroutines"
 }
 
+@test "print_operands_read_after_calls" {
+    run_test "tests/print_operands_read_after_calls"
+}
+
+@test "print_operands_read_after_calls_goroutines" {
+    run_test "tests/print_operands_read_after_calls_goroutines"
+}
+
 @test "print_self_referencing_value_goroutines" {
     run_test "tests/print_self_referencing_value_goroutines"
 }

@@ -526,7 +526,7 @@ pub fn more() {
     __go_nil_recv_counter_hit(c.clone());
     __go_nil_recv_counter_hit(c.clone());
     let mut missing: Arc<Mutex<Option<Counter>>> = Arc::new(Mutex::new(None));
-    println!("{} {} {}", format!("{}", __go_nil_recv_counter_hit(c.clone())), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).hits.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_nil_recv_counter_hit(missing.clone())));
+    { let __go_print_arg_1 = Arc::new(Mutex::new(Some(__go_nil_recv_counter_hit(c.clone())))); let __go_print_arg_2 = Arc::new(Mutex::new(Some(__go_nil_recv_counter_hit(missing.clone())))); let __go_print_value = println!("{} {} {}", format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).hits.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut cs = Arc::new(Mutex::new(Some(vec![c.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Counter { ..Default::default() })))])));
     { let __range_holder = cs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter() {
         print!("{}{}", format!("{}", __go_nil_recv_counter_hit(x.clone())), format!("{}", " ".to_string()));
@@ -577,7 +577,7 @@ fn main() {
         let mut out_closure_clone = out_closure_clone.clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_closure_clone.clone(); let __append_value = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_closure_clone.lock().unwrap() = __slice_header; };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>))));
-    println!("{} {} {} {}", format!("{}", format_slice(&out)), format!("{}", __go_nil_recv_tree_height(root.clone())), format!("{}", __go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(4))))), format!("{}", __go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(7))))));
+    { let __go_print_arg_3 = Arc::new(Mutex::new(Some(__go_nil_recv_tree_height(root.clone())))); let __go_print_arg_4 = Arc::new(Mutex::new(Some(__go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(4))))))); let __go_print_arg_5 = Arc::new(Mutex::new(Some(__go_nil_recv_tree_contains(root.clone(), Arc::new(Mutex::new(Some(7))))))); let __go_print_value = println!("{} {} {} {}", format!("{}", format_slice(&out)), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_4.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_5.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     more();
 }
 

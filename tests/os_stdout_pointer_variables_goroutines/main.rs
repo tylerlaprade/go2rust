@@ -249,25 +249,25 @@ fn main() {
     })));
     { let __s = format!("logger {}\n", 1); (*(*l.lock().unwrap().as_ref().unwrap()).out.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
     { let __s = format!("{}\n", format!("{}", "writer".to_string())); (*(*l.lock().unwrap().as_ref().unwrap()).w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
-    println!("{} {} {}", format!("{}", {
-        let __left = (*l.lock().unwrap().as_ref().unwrap()).out.clone();
-        let __right = os::Stdout().clone();
-        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
-        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
-        __eq
-    }), format!("{}", {
+    { let __go_print_arg_1 = Arc::new(Mutex::new(Some({
         let __left = pick(Arc::new(Mutex::new(Some(false))));
         let __right = os::Stderr().clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
-    }), format!("{}", {
+    }))); let __go_print_arg_2 = Arc::new(Mutex::new(Some({
         let __left = pick(Arc::new(Mutex::new(Some(false))));
         let __right = out.clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
         __eq
-    }));
+    }))); let __go_print_value = println!("{} {} {}", format!("{}", {
+        let __left = (*l.lock().unwrap().as_ref().unwrap()).out.clone();
+        let __right = os::Stdout().clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    }), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut errOut: Arc<Mutex<Option<os_File>>> = Arc::new(Mutex::new(None));
     { let new_val = os::Stderr().clone(); errOut = new_val; };
     println!("{} {}", format!("{}", {
@@ -287,13 +287,13 @@ fn main() {
     }
     let mut files = Arc::new(Mutex::new(Some(vec![{ let __field = os::Stdout().clone(); __field }, { let __field = os::Stderr().clone(); __field }])));
     { let __range_holder = files.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, f) in __range_values.iter().enumerate() {
-        println!("{} {} {}", format!("{}", i), format!("{}", {
+        { let __go_print_arg_3 = { let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.name(); __result }; let __go_print_value = println!("{} {} {}", format!("{}", i), format!("{}", {
             let __left = f.clone();
             let __right = os::Stdout().clone();
             let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
             let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
             __eq
-        }), format!("{}", (*{ let __recv = f.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
+        }), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     } }
     let mut wg = WaitGroup::new();
     let mut same = Arc::new(Mutex::new(Some(vec![false; (2) as usize])));

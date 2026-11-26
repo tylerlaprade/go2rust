@@ -1034,7 +1034,7 @@ fn main() {
     let mut prev = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
     let mut next = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = next.clone(); let __append_value = 3; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *next.lock().unwrap() = __slice_header; };
-    println!("{} {} {}", format!("{}", format_slice(&prev)), format!("{}", format_slice(&next)), format!("{}", sum(next.clone())));
+    { let __go_print_arg_1 = Arc::new(Mutex::new(Some(sum(next.clone())))); let __go_print_value = println!("{} {} {}", format!("{}", format_slice(&prev)), format!("{}", format_slice(&next)), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
     let mut a = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
     let mut b: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(prev.lock().unwrap().clone()));
