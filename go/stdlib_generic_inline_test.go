@@ -2,7 +2,10 @@ package main
 
 import (
 	"bytes"
+	"go/ast"
+	"go/parser"
 	"go/printer"
+	"go/token"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -161,5 +164,48 @@ func main() {
 `)
 	if !strings.Contains(src, "slices.Index(") || strings.Contains(src, "__slices_") {
 		t.Errorf("GO2RUST_GENERIC_RUST=1 should leave the calls as they are:\n%s", src)
+	}
+}
+
+func TestMonomorphizeGenericsMatchingKeepsOtherGenericsGeneric(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "p.go", `package p
+
+func Keep[T any](x T) T { return x }
+
+type Box[T any] struct{ Value T }
+
+func (b Box[T]) Get() T { return b.Value }
+
+func __slices_Copy[T any](x T) T { return x }
+
+func Use() int { return __slices_Copy(3) + Keep(1) }
+`, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	isCopy := func(name string) bool { return strings.HasPrefix(name, "__slices_") }
+	files, ok := monomorphizeGenericsMatching("example.com/p", []*ast.File{file}, fset, nil, isCopy)
+	if !ok {
+		t.Fatal("the package with generics of its own does not monomorphize")
+	}
+	var buf bytes.Buffer
+	if err := printer.Fprint(&buf, fset, files[0]); err != nil {
+		t.Fatalf("print: %v", err)
+	}
+	src := buf.String()
+	for _, want := range []string{
+		"func Keep[T any](x T) T",
+		"type Box[T any] struct{ Value T }",
+		"func (b Box[T]) Get() T",
+		"func __slices_Copy__int(x int) int",
+		"__slices_Copy__int(3) + Keep(1)",
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("missing %q in:\n%s", want, src)
+		}
+	}
+	if strings.Contains(src, "func __slices_Copy[T any]") {
+		t.Errorf("the copy is still generic:\n%s", src)
 	}
 }

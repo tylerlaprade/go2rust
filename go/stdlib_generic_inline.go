@@ -576,9 +576,10 @@ func stdlibPackagesWithGenericCopies(main *packages.Package) map[string][]byte {
 		return nil
 	}
 	loaded := loadedPackagesByPath(main)
+	selected := sourceStdlibSelection(main)
 	paths := make([]string, 0, len(loaded))
 	for path, pkg := range loaded {
-		if pkg == main || !isStdlibPackage(path) || !shouldTranspileStdlibPackage(path) {
+		if pkg == main || !selected[path] {
 			continue
 		}
 		if _, copied := stdlibGenericInlinePrefixes[path]; copied {
@@ -653,6 +654,53 @@ func stdlibPackagesWithGenericCopies(main *packages.Package) map[string][]byte {
 		}
 	}
 	return out
+}
+
+// sourceStdlibSelection lists the standard-library packages under main that
+// collectAllPackagesFrom translates from source: those the default list or
+// GO2RUST_SOURCE_STDLIB_PACKAGES selects, and the imports, at any depth, of
+// one whose pattern ends in +deps.
+func sourceStdlibSelection(main *packages.Package) map[string]bool {
+	patterns := os.Getenv(sourceStdlibPackagesEnv)
+	selected := map[string]bool{}
+	expanded := map[string]bool{}
+	stored := map[string]bool{}
+	var visit func(pkg *packages.Package, path string, force bool)
+	visit = func(pkg *packages.Package, path string, force bool) {
+		if pkg == nil {
+			return
+		}
+		isStdlib := isStdlibPackage(path)
+		isSource := isStdlib && isSourceTranspilableStdlibPackage(path) && (force || selected[path] || shouldTranspileStdlibPackage(path))
+		expand := isSource && (force || expanded[path] || sourceStdlibPackagePatternExpandsDeps(path, patterns))
+		forceImport := func(importPath string) bool {
+			return expand && isStdlibPackage(importPath) && isSourceTranspilableStdlibPackage(importPath)
+		}
+		if stored[path] {
+			if expand && !expanded[path] {
+				expanded[path] = true
+				for importPath, imp := range pkg.Imports {
+					visit(imp, importPath, forceImport(importPath))
+				}
+			}
+			return
+		}
+		if pkg != main && isStdlib && !isSource {
+			return
+		}
+		stored[path] = true
+		if isSource {
+			selected[path] = true
+		}
+		if expand {
+			expanded[path] = true
+		}
+		for importPath, imp := range pkg.Imports {
+			visit(imp, importPath, forceImport(importPath))
+		}
+	}
+	visit(main, main.PkgPath, false)
+	return selected
 }
 
 // fileCallsCopies reports whether file declares or calls a copy.

@@ -213,6 +213,31 @@ func (m *monomorphizer) receiverGenericType(decl *ast.FuncDecl) *types.TypeName 
 	return typeName
 }
 
+// keepsGeneric reports whether decl is a generic function, or a method of a
+// generic type, that monomorphizeGenericsMatching leaves generic: it is
+// copied as it is, since its type parameters have no arguments to put in.
+func (m *monomorphizer) keepsGeneric(decl ast.Decl) bool {
+	fn, ok := decl.(*ast.FuncDecl)
+	if !ok || m.only == nil {
+		return false
+	}
+	if fn.Type.TypeParams != nil && len(fn.Type.TypeParams.List) > 0 {
+		return true
+	}
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	recv := fn.Recv.List[0].Type
+	if star, ok := recv.(*ast.StarExpr); ok {
+		recv = star.X
+	}
+	switch recv.(type) {
+	case *ast.IndexExpr, *ast.IndexListExpr:
+		return true
+	}
+	return false
+}
+
 // writesOut reports whether the generic type ts is written once per
 // instantiation, rather than kept generic (monomorphizeGenericsMatching).
 func (m *monomorphizer) writesOut(ts *ast.TypeSpec) bool {
@@ -764,12 +789,22 @@ func (m *monomorphizer) rewrite() ([]*ast.File, bool) {
 				pf.decls = append(pf.decls, decl) // placeholder, replaced below
 				continue
 			}
+			if m.keepsGeneric(decl) {
+				pf.decls = append(pf.decls, astCopier{}.copyNode(decl).(ast.Decl))
+				continue
+			}
 			if gen, ok := decl.(*ast.GenDecl); ok && gen.Tok == token.TYPE {
 				var specs []ast.Spec
 				hasGeneric := false
 				for _, spec := range gen.Specs {
-					if ts, ok := spec.(*ast.TypeSpec); ok && ts.TypeParams != nil && len(ts.TypeParams.List) > 0 && m.writesOut(ts) {
-						hasGeneric = true
+					if ts, ok := spec.(*ast.TypeSpec); ok && ts.TypeParams != nil && len(ts.TypeParams.List) > 0 {
+						if m.writesOut(ts) {
+							hasGeneric = true
+							continue
+						}
+						// A generic type that stays generic is copied as
+						// it is, type parameters and all.
+						specs = append(specs, astCopier{}.copyNode(spec).(ast.Spec))
 						continue
 					}
 					specs = append(specs, c.copyNode(spec).(ast.Spec))
