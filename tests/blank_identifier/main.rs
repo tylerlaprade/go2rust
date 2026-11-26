@@ -9,6 +9,13 @@ use std::any::Any;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn multiple_returns() -> (i64, Arc<Mutex<Option<String>>>, bool) {
     (42, Arc::new(Mutex::new(Some("hello".to_string()))), true)
 }

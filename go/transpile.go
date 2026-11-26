@@ -4213,6 +4213,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if goSliceModeEnabled() {
 		output.WriteString(goSliceVecMacro)
 	}
+	if usesStdoutPrintMacro(helpersStr) || usesStdoutPrintMacro(body.String()) {
+		output.WriteString(goPrintFlushMacro)
+	}
 	output.WriteString(helpersStr)
 	if helpersStr != "" {
 		output.WriteString("\n")
