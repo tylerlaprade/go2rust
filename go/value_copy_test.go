@@ -220,8 +220,8 @@ func TestStoringAndReadingAStructCopiesIt(t *testing.T) {
 		`m["a"] = p`:             "let __map_value = { let __owned = p.borrow().as_ref().unwrap().__go_value_clone();",
 		`got := m["a"]`:          ".map(|__v| __v.borrow().as_ref().unwrap().__go_value_clone())",
 		"var shape Shape = r":    "(*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>",
-		"c := *q":                "let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));",
-		"d = *q":                 "{ let new_val = { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.borrow_mut() = Some(new_val); }",
+		"c := *q":                "let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).__go_value_clone(); __v })));",
+		"d = *q":                 "{ let new_val = { let __v = (*q.borrow().as_ref().unwrap()).__go_value_clone(); __v }; *d.borrow_mut() = Some(new_val); }",
 		"e = s[0]":               "{ let new_val = (*s.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone(); *e.borrow_mut() = Some(new_val); }",
 		"append(dst, s...)":      ".iter().map(|__go_elem| __go_elem.__go_value_clone()).collect();",
 		"copy(copied, s)":        "(*copied.borrow_mut().as_mut().unwrap())[_i] = _src[_i].__go_value_clone();",
@@ -743,5 +743,44 @@ func main() {
 	}
 	if strings.Contains(rust, "show(val.clone())") {
 		t.Fatalf("the range value must not be passed as a cloned reference:\n%s", rust)
+	}
+}
+
+// A dereference read as a value is a Go copy wherever it is used: as an
+// argument, a result and an element. A selector on the dereference selects
+// on the pointer, so a pointer method called on (*a) runs on *a (DEV-236).
+func TestDereferenceValueIsACopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type P struct{ N int }
+
+func bump(p P) P { p.N++; return p }
+
+func get(p *P) P { return *p }
+
+func (p *P) Inc() { p.N++ }
+
+func main() {
+	a := &P{N: 1}
+	r := bump(*a)
+	list := []P{*a}
+	(*a).Inc()
+	_, _ = r, list
+	_ = get(a)
+}
+`)
+	for _, want := range []string{
+		"bump(Rc::new(RefCell::new(Some({ let __v = (*a.borrow().as_ref().unwrap()).__go_value_clone(); __v }))))",
+		"{ let __v = (*p.borrow().as_ref().unwrap()).__go_value_clone(); __v }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if !strings.Contains(rust, "(*a.borrow_mut().as_mut().unwrap()).inc();") {
+		t.Errorf("(*a).Inc() must not run on a copy")
+	}
+	if t.Failed() {
+		t.Logf("generated Rust:\n%s", rust)
 	}
 }

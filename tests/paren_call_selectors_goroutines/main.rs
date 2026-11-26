@@ -933,6 +933,6 @@ fn main() {
         __result
     }), format!("{}", (*(*p().lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).clone()));
     let mut q = Arc::new(Mutex::new(Some(rec { n: Arc::new(Mutex::new(Some(1))), ..Default::default() })));
-    println!("{} {}", format!("{}", (*((*q.lock().unwrap().as_mut().unwrap())).n.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(q).lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*{ let __field = (*q.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(q).lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
     { let new_val = 9; *(*p().lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
 }

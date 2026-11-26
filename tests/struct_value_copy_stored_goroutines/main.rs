@@ -1125,12 +1125,12 @@ fn main() {
     println!("{} {} {}", format!("{}", "in an interface".to_string()), format!("{}", (*shape.lock().unwrap().as_ref().unwrap()).area()), format!("{}", (*r.lock().unwrap().as_ref().unwrap()).area()));
 
     let mut q = p.clone();
-    let mut c = Arc::new(Mutex::new(Some({ let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut c = Arc::new(Mutex::new(Some({ let __v = (*q.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })));
     { let new_val = 100; *(*c.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "read through a pointer".to_string()), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 
     let mut d: Arc<Mutex<Option<Point>>> = Arc::new(Mutex::new(Some(Default::default())));
-    { let new_val = { let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.lock().unwrap() = Some(new_val); };
+    { let new_val = { let __v = (*q.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }; *d.lock().unwrap() = Some(new_val); };
     { let new_val = 200; *(*d.lock().unwrap().as_ref().unwrap()).y.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "assigned through a pointer".to_string()), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*d.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
 

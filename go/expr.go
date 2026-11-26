@@ -15030,10 +15030,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeGoPtrFieldDerefRead(out, e.X) {
 					break
 				}
-				out.WriteString("{ let __v = (*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).clone(); __v }")
+				writePointeeValueCopy(out, e, e.X)
 				break
 			}
 			out.WriteString("(*")
@@ -15140,10 +15137,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeUnsafeScalarReinterpretValue(out, e) {
 				break
 			}
-			out.WriteString("{ let __v = (*")
-			TranspileExpressionContext(out, e.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone(); __v }")
+			writePointeeValueCopy(out, e, e.X)
 			break
 		}
 		out.WriteString("(*")

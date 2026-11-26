@@ -400,3 +400,20 @@ func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
 	}
 	return goValueCopyCallForExpr(ident)
 }
+
+// writePointeeValueCopy writes the value of deref, the dereference of the
+// pointer pointer, as Go's copy of the pointee. The pointee's Clone is a
+// second handle on the same struct, so "bump(*p)" changed *p through its
+// parameter; a dereference read as a value is a Go copy wherever it is used.
+func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Expr) {
+	copyCall := ".clone()"
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		copyCall = goValueCopyCallForType(typeInfo.GetType(deref))
+	}
+	out.WriteString("{ let __v = (*")
+	TranspileExpressionContext(out, pointer, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	out.WriteString(copyCall)
+	out.WriteString("; __v }")
+}

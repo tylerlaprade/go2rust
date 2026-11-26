@@ -188,7 +188,7 @@ fn main() {
     { let new_val = 60; *(*(*d.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "returned receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*(*(*c.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
 
-    let mut v = Rc::new(RefCell::new(Some({ let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut v = Rc::new(RefCell::new(Some({ let __v = (*c.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     { let new_val = 7; *(*v.borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
     { let new_val = 8; *(*(*v.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     { let new_val = 9; *(*(*v.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow_mut() = Some(new_val); };
@@ -198,7 +198,7 @@ fn main() {
         // generic struct must copy a concrete struct value rather than sharing its
         // generated field cells.
     let mut originalValuePtr = Rc::new(RefCell::new(Some(C::<P> { v: Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(11))), ..Default::default() }))), ..Default::default() })));
-    let mut originalValue = Rc::new(RefCell::new(Some({ let __v = (*originalValuePtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalValue = Rc::new(RefCell::new(Some({ let __v = (*originalValuePtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedValue = { let __owned = originalValue.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let new_val = 12; *(*(*copiedValue.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "type parameter struct copy".to_string()), format!("{}", (*(*(*originalValue.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())), format!("{}", (*(*(*copiedValue.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
@@ -206,7 +206,7 @@ fn main() {
         // A slice is itself a handle in Go: the generic field cell is independent,
         // while the slice's backing storage remains shared by the copied header.
     let mut originalSlicePtr = Rc::new(RefCell::new(Some(C::<Vec<i64>> { v: Rc::new(RefCell::new(Some(vec![13i64]))), ..Default::default() })));
-    let mut originalSlice = Rc::new(RefCell::new(Some({ let __v = (*originalSlicePtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalSlice = Rc::new(RefCell::new(Some({ let __v = (*originalSlicePtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedSlice = { let __owned = originalSlice.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __idx = (0) as usize; let __rhs = 14; (*(*copiedSlice.borrow().as_ref().unwrap()).v.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "type parameter slice elements".to_string()), format!("{}", (*(*originalSlice.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*copiedSlice.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()));
@@ -215,7 +215,7 @@ fn main() {
 
         // Arrays remain Go values when they instantiate the type parameter.
     let mut originalArrayPtr = Rc::new(RefCell::new(Some(C::<[i64; 2]> { v: Rc::new(RefCell::new(Some([16i64, 17i64]))), ..Default::default() })));
-    let mut originalArray = Rc::new(RefCell::new(Some({ let __v = (*originalArrayPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalArray = Rc::new(RefCell::new(Some({ let __v = (*originalArrayPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedArray = { let __owned = originalArray.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __idx = (0) as usize; let __rhs = 18; (*(*copiedArray.borrow().as_ref().unwrap()).v.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "type parameter array copy".to_string()), format!("{}", (*(*originalArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*copiedArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()));
@@ -223,14 +223,14 @@ fn main() {
         // Named scalar instantiations implement the generated copy traits, and a
         // generic function returning C[T] propagates the stronger bound.
     let mut originalNumberPtr = Rc::new(RefCell::new(Some(C::<Number> { v: Rc::new(RefCell::new(Some(Number(Rc::new(RefCell::new(Some(19 as i64))))))), ..Default::default() })));
-    let mut originalNumber = Rc::new(RefCell::new(Some({ let __v = (*originalNumberPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalNumber = Rc::new(RefCell::new(Some({ let __v = (*originalNumberPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedNumber = copy_c::<Number>(originalNumber.clone());
     { let new_val = Number(Rc::new(RefCell::new(Some(20 as i64)))); *(*copiedNumber.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "type parameter named scalar".to_string()), format!("{}", (*(*originalNumber.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*copiedNumber.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).clone()));
 
         // A nested generic struct propagates the field-copy bound through C[T].
     let mut originalOuterPtr = Rc::new(RefCell::new(Some(Outer::<P> { r#box: Rc::new(RefCell::new(Some(C::<P> { v: Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(21))), ..Default::default() }))), ..Default::default() }))), ..Default::default() })));
-    let mut originalOuter = Rc::new(RefCell::new(Some({ let __v = (*originalOuterPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalOuter = Rc::new(RefCell::new(Some({ let __v = (*originalOuterPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedOuter = { let __owned = originalOuter.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let new_val = 22; *(*(*(*copiedOuter.borrow().as_ref().unwrap()).r#box.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "nested generic struct copy".to_string()), format!("{}", (*(*(*(*originalOuter.borrow().as_ref().unwrap()).r#box.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())), format!("{}", (*(*(*(*copiedOuter.borrow().as_ref().unwrap()).r#box.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
@@ -239,18 +239,18 @@ fn main() {
         // backing storage, as Go does.
     let mut shared = Rc::new(RefCell::new(Some(vec![23i64])));
     let mut originalSliceArrayPtr = Rc::new(RefCell::new(Some(C::<[Vec<i64>; 1]> { v: Rc::new(RefCell::new(Some([{ let __slice_holder = shared.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))), ..Default::default() })));
-    let mut originalSliceArray = Rc::new(RefCell::new(Some({ let __v = (*originalSliceArrayPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalSliceArray = Rc::new(RefCell::new(Some({ let __v = (*originalSliceArrayPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedSliceArray = { let __owned = originalSliceArray.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let __outer_idx = (0) as usize; let __idx = (0) as usize; let __rhs = 24; (*(*copiedSliceArray.borrow().as_ref().unwrap()).v.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     println!("{} {} {}", format!("{}", "type parameter array slice backing".to_string()), format!("{}", (*(*originalSliceArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()), format!("{}", (*(*copiedSliceArray.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())[(0) as usize].clone()[(0) as usize].clone()));
 
     let mut valueReceiverPtr = Rc::new(RefCell::new(Some(C::<i64> { n: Rc::new(RefCell::new(Some(25))), ..Default::default() })));
-    let mut valueReceiver = Rc::new(RefCell::new(Some({ let __v = (*valueReceiverPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut valueReceiver = Rc::new(RefCell::new(Some({ let __v = (*valueReceiverPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     (*valueReceiver.borrow().as_ref().unwrap()).bump_value();
     println!("{} {}", format!("{}", "generic value receiver".to_string()), format!("{}", (*(*valueReceiver.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     let mut combinedBoundPtr = Rc::new(RefCell::new(Some(C::<P> { v: Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(26))), ..Default::default() }))), ..Default::default() })));
-    let mut combinedBound = Rc::new(RefCell::new(Some({ let __v = (*combinedBoundPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut combinedBound = Rc::new(RefCell::new(Some({ let __v = (*combinedBoundPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     (*combinedBound.borrow().as_ref().unwrap()).store_value(Rc::new(RefCell::new(Some(P { x: Rc::new(RefCell::new(Some(27))), ..Default::default() }))));
     println!("{} {}", format!("{}", "combined generic copy bounds".to_string()), format!("{}", (*(*(*combinedBound.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
 
@@ -260,7 +260,7 @@ fn main() {
         { let mut guard = next_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*next_closure_clone.borrow().as_ref().unwrap());
     }) as Rc<dyn Fn() -> i64>))), ..Default::default() })));
-    let mut originalFunc = Rc::new(RefCell::new(Some({ let __v = (*originalFuncPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalFunc = Rc::new(RefCell::new(Some({ let __v = (*originalFuncPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedFunc = { let __owned = originalFunc.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     println!("{} {} {}", format!("{}", "function type argument".to_string()), format!("{}", { let __f_holder = (*originalFunc.borrow().as_ref().unwrap()).v.clone(); let __f: Rc<dyn Fn() -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }), format!("{}", { let __f_holder = (*copiedFunc.borrow().as_ref().unwrap()).v.clone(); let __f: Rc<dyn Fn() -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }));
     { let new_val = Rc::new(move || -> i64 {
@@ -274,7 +274,7 @@ fn main() {
         { let __rhs = (*value.borrow().as_ref().unwrap()); let mut guard = total_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         return (*total_closure_clone.borrow().as_ref().unwrap());
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>))), ..Default::default() })));
-    let mut originalUnary = Rc::new(RefCell::new(Some({ let __v = (*originalUnaryPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut originalUnary = Rc::new(RefCell::new(Some({ let __v = (*originalUnaryPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut copiedUnary = { let __owned = originalUnary.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     println!("{} {} {}", format!("{}", "function type argument parameter".to_string()), format!("{}", { let __f_holder = (*originalUnary.borrow().as_ref().unwrap()).v.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(1)))) }), format!("{}", { let __f_holder = (*copiedUnary.borrow().as_ref().unwrap()).v.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(2)))) }));
     { let new_val = Rc::new(move |value: Rc<RefCell<Option<i64>>>| -> i64 {
@@ -290,7 +290,7 @@ fn main() {
         { let mut guard = stableNext_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*stableNext_closure_clone.borrow().as_ref().unwrap());
     }) as Rc<dyn Fn() -> i64>))), ..Default::default() })));
-    let mut stableFunc = Rc::new(RefCell::new(Some({ let __v = (*stableFuncPtr.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut stableFunc = Rc::new(RefCell::new(Some({ let __v = (*stableFuncPtr.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 100000 {
         let mut discarded = { let __owned = stableFunc.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
