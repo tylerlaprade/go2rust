@@ -1648,6 +1648,14 @@ run_xfail_test() {
     run_test "tests/func_value_call_results_print_goroutines"
 }
 
+@test "func_value_channels" {
+    run_test "tests/func_value_channels"
+}
+
+@test "func_value_channels_goroutines" {
+    run_test "tests/func_value_channels_goroutines"
+}
+
 @test "func_values_are_copied" {
     run_test "tests/func_values_are_copied"
 }

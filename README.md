@@ -135,6 +135,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`chan` - Channel types** | ✅ |
 | └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
 | └ Package-level channel globals initialized with `make` | ✅ |
+| └ Channels of funcs: send function literals, named functions, method values and nil; receive, range and select callable func values | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ Const string equality expressions | ✅ |
