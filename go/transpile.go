@@ -3534,6 +3534,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Each file numbers its print operand temporaries from 1, so a file's
 	// Rust does not depend on the files written before it.
 	fmtOperandTempCount = 0
+	gotoLoopLabelCount = 0
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}

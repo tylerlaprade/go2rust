@@ -34,6 +34,7 @@ type gotoPlan struct {
 	backward         map[string]bool
 	forward          map[string]bool
 	modes            map[string]string
+	earlyLoopStart   map[string]int
 }
 
 func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
@@ -84,7 +85,39 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 	for label := range plan.backward {
 		plan.lastBackwardGoto[label] = len(stmts) - 1
 	}
+	// A forward goto before a backward label, to a label after it
+	// (goto Skip; CheckAndLoop: ...; Skip: ... goto CheckAndLoop), would
+	// open its block outside the label's loop and close it inside. The
+	// loop is entered early instead, at the forward goto, and the
+	// statements up to its label run only on the first entry: a goto back
+	// to the label skips them (gotoReenterMode).
+	plan.earlyLoopStart = make(map[string]int)
+	for back := range plan.backward {
+		backIndex := plan.labelIndex[back]
+		start := backIndex
+		for fwd := range plan.forward {
+			first, ok := plan.firstForwardGoto[fwd]
+			if !ok || first >= start || plan.labelIndex[fwd] <= backIndex {
+				continue
+			}
+			start = first
+		}
+		if start < backIndex {
+			plan.earlyLoopStart[back] = start
+			plan.modes[back] = gotoReenterMode
+		}
+	}
 	return plan
+}
+
+// gotoReenterMode is the mode of a backward label whose loop is entered
+// early: a goto to it sets the label's reentry flag and continues the loop.
+const gotoReenterMode = "reenter"
+
+// gotoReenterFlag names the flag that says a label's early loop was
+// entered again by a goto to the label.
+func gotoReenterFlag(label string) string {
+	return "__goto_reenter_" + label
 }
 
 func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) ast.Stmt {
@@ -142,10 +175,24 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 		}
 	}
 
+	earlyStarts := make(map[int][]string)
+	for label, start := range plan.earlyLoopStart {
+		earlyStarts[start] = append(earlyStarts[start], label)
+	}
+	for start := range earlyStarts {
+		sort.Strings(earlyStarts[start])
+	}
 	for i := 0; i < len(stmts); {
 		stmt := stmts[i]
 		if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
 			out.WriteString("\n")
+		}
+		for _, label := range earlyStarts[i] {
+			out.WriteString(currentIndent())
+			out.WriteString("let mut ")
+			out.WriteString(gotoReenterFlag(label))
+			out.WriteString(" = false;\n")
+			openBackwardLabel(label)
 		}
 		for _, label := range forwardStarts[i] {
 			out.WriteString(currentIndent())
@@ -154,8 +201,24 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 			out.WriteString(": {\n")
 			forwardStack = append(forwardStack, label)
 		}
+		for _, label := range earlyStarts[i] {
+			out.WriteString(currentIndent())
+			out.WriteString("if !")
+			out.WriteString(gotoReenterFlag(label))
+			out.WriteString(" {\n")
+		}
 		if labeled, ok := stmt.(*ast.LabeledStmt); ok {
 			label := ToSnakeCase(labeled.Label.Name)
+			if _, early := plan.earlyLoopStart[label]; early {
+				// The statements of the first entry end here.
+				out.WriteString(currentIndent())
+				out.WriteString("}\n")
+				emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, currentIndent())
+				closeBackwardLabelsEndingAt(i)
+				prevStmt = stmt
+				i++
+				continue
+			}
 			if plan.backward[label] {
 				openBackwardLabel(label)
 				emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, currentIndent())
