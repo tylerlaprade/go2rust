@@ -240,4 +240,7 @@ fn main() {
     let mut is = Arc::new(Mutex::new(Some(sort::r#mod::IntSlice(Arc::new(Mutex::new(Some(vec![3i64, 1i64, 2i64])))))));
     sort::stable(sort::reverse(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = is.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn sort::r#mod::Interface + Send + Sync>)))).clone());
     println!("{} {}", format!("{}", format_slice(&{ let __named_slice = (*is.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice })), format!("{}", sort::is_sorted(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = is.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn sort::r#mod::Interface + Send + Sync>))))));
+    let mut ws = Arc::new(Mutex::new(Some(vec!["bb".to_string(), "a".to_string(), "cc".to_string(), "d".to_string(), "ee".to_string(), "f".to_string()])));
+    sort::stable(Arc::new(Mutex::new(Some(Box::new(byLen(ws.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>))));
+    println!("{}", format!("{}", format_slice(&ws)));
 }

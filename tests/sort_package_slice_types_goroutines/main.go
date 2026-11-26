@@ -30,6 +30,10 @@ func main() {
 	is := sort.IntSlice{3, 1, 2}
 	sort.Stable(sort.Reverse(is))
 	fmt.Println(is, sort.IsSorted(is))
+	// Strings of the same length keep their order.
+	ws := []string{"bb", "a", "cc", "d", "ee", "f"}
+	sort.Stable(byLen(ws))
+	fmt.Println(ws)
 	done := make(chan []int)
 	go func() {
 		v := []int{4, 9, 1}

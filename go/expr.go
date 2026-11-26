@@ -16098,9 +16098,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// slice, as for the program's own named slices.
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(e); typ != nil {
-					if _, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+					// An alias of the type, which Rust cannot call as a
+					// constructor, is written as the type it names.
+					if named, isNamed := types.Unalias(typ).(*types.Named); isNamed {
 						if sliceType, ok := typ.Underlying().(*types.Slice); ok {
-							writeNamedSliceCompositeLiteral(out, e, sliceType, goTypeToRustBase(sel))
+							writeNamedSliceCompositeLiteral(out, e, sliceType, goTypesNamedTypeToRust(named))
 							return
 						}
 					}
