@@ -13,6 +13,19 @@ var label = "a"
 
 func relabel() string { label = "b"; return "c" }
 
+type record struct {
+	n int
+	s string
+}
+
+func newRecord() record {
+	counter += 100
+	label = "d"
+	return record{n: 3, s: "e"}
+}
+
+func (r record) twice() int { return r.n * 2 }
+
 func bump(s []int) int { s[0]++; return 1 }
 
 func fill(s []int, v int) { s[1] = v }
@@ -57,6 +70,9 @@ func main() {
 
 	fmt.Println("package variable:", counter+bumpCounter(), counter)
 	fmt.Println("parenthesized:", label+(relabel()), label)
+	fmt.Println("field of a call:", counter+newRecord().n)
+	fmt.Println("string field of a call:", label+newRecord().s)
+	fmt.Println("method of a call's result:", counter+newRecord().twice())
 
 	str := "a"
 	t := str + tag(&str)

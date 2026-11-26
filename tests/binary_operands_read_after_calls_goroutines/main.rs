@@ -944,6 +944,44 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 }
 
 #[derive(Debug, Clone)]
+pub struct record {
+    pub n: Arc<Mutex<Option<i64>>>,
+    pub s: Arc<Mutex<Option<String>>>,
+}
+
+impl record {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+            s: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for record {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(String::new())));
+        Self {
+            n: __go_default_0_0,
+            s: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for record {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        let __go_fmt_1 = format!("{}", (*self.s.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
+#[derive(Debug, Clone)]
 pub struct r#box {
     pub n: Arc<Mutex<Option<i64>>>,
 }
@@ -987,6 +1025,12 @@ fn __go_init_globals() {
 }
 
 
+impl record {
+    pub fn twice(&self) -> i64 {
+        return { let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2; __tmp_x * __tmp_y };
+    }
+}
+
 impl r#box {
     pub fn inc(&mut self) -> i64 {
         { let __target = self.n.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1006,6 +1050,12 @@ pub fn bump_counter() -> i64 {
 pub fn relabel() -> Arc<Mutex<Option<String>>> {
     { let new_val = "b".to_string(); *label.lock().unwrap() = Some(new_val); };
     Arc::new(Mutex::new(Some("c".to_string())))
+}
+
+pub fn new_record() -> Arc<Mutex<Option<record>>> {
+    { let __rhs = 100; let mut guard = counter.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let new_val = "d".to_string(); *label.lock().unwrap() = Some(new_val); };
+    Arc::new(Mutex::new(Some(record { n: Arc::new(Mutex::new(Some(3))), s: Arc::new(Mutex::new(Some("e".to_string()))), ..Default::default() })))
 }
 
 pub fn bump(s: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
@@ -1114,26 +1164,33 @@ fn main() {
 
     println!("{} {} {}", format!("{}", "package variable:".to_string()), format!("{}", { let __go_rhs_9 = Arc::new(Mutex::new(Some(bump_counter()))); let __go_binary_value = { let __tmp_x = (*counter.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*__go_rhs_9.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value }), format!("{}", { let __v = (*counter.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     println!("{} {} {}", format!("{}", "parenthesized:".to_string()), format!("{}", { let __go_rhs_10 = (relabel()); let __go_binary_value = format!("{}{}", (*label.lock().unwrap().as_ref().unwrap()), { let __v = (*__go_rhs_10.lock().unwrap().as_ref().unwrap()).clone(); __v }); __go_binary_value }), format!("{}", { let __v = (*label.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "field of a call:".to_string()), format!("{}", { let __go_rhs_11 = Arc::new(Mutex::new(Some((*(*new_record().lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())))); let __go_binary_value = { let __tmp_x = (*counter.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*__go_rhs_11.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value }));
+    println!("{} {}", format!("{}", "string field of a call:".to_string()), format!("{}", { let __go_rhs_12 = Arc::new(Mutex::new(Some((*(*new_record().lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).clone()))); let __go_binary_value = format!("{}{}", (*label.lock().unwrap().as_ref().unwrap()), { let __v = (*__go_rhs_12.lock().unwrap().as_ref().unwrap()).clone(); __v }); __go_binary_value }));
+    println!("{} {}", format!("{}", "method of a call's result:".to_string()), format!("{}", { let __go_rhs_13 = Arc::new(Mutex::new(Some({
+        let __recv = new_record();
+        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).twice();
+        __result
+    }))); let __go_binary_value = { let __tmp_x = (*counter.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*__go_rhs_13.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value }));
 
     let mut str = Arc::new(Mutex::new(Some("a".to_string())));
-    let mut t = Arc::new(Mutex::new(Some({ let __go_rhs_11 = tag(str.clone()); let __go_binary_value = format!("{}{}", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*__go_rhs_11.lock().unwrap().as_ref().unwrap()).clone(); __v }); __go_binary_value })));
+    let mut t = Arc::new(Mutex::new(Some({ let __go_rhs_14 = tag(str.clone()); let __go_binary_value = format!("{}{}", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*__go_rhs_14.lock().unwrap().as_ref().unwrap()).clone(); __v }); __go_binary_value })));
     println!("{} {} {}", format!("{}", "string:".to_string()), format!("{}", { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*str.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
-    println!("{} {} {}", format!("{}", "map element:".to_string()), format!("{}", { let __go_rhs_12 = Arc::new(Mutex::new(Some(add_one(m.clone())))); let __go_binary_value = { let __tmp_x = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; let __tmp_y = { let __v = (*__go_rhs_12.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value }), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{} {} {}", format!("{}", "map element:".to_string()), format!("{}", { let __go_rhs_15 = Arc::new(Mutex::new(Some(add_one(m.clone())))); let __go_binary_value = { let __tmp_x = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; let __tmp_y = { let __v = (*__go_rhs_15.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value }), format!("{}", { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
     let mut f = Arc::new(Mutex::new(Some(1.5)));
     let mut pf = f.clone();
-    let pf_closure_clone = pf.clone(); let mut g = Arc::new(Mutex::new(Some({ let __go_rhs_13 = Arc::new(Mutex::new(Some({ let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || -> f64 {
+    let pf_closure_clone = pf.clone(); let mut g = Arc::new(Mutex::new(Some({ let __go_rhs_16 = Arc::new(Mutex::new(Some({ let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || -> f64 {
         { let new_val = 2.0; *pf_closure_clone.lock().unwrap() = Some(new_val); };
         3.0
-    }) as Arc<dyn Fn() -> f64 + Send + Sync>))); let __f: Arc<dyn Fn() -> f64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = { let __tmp_x = { let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*__go_rhs_13.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; __go_binary_value })));
+    }) as Arc<dyn Fn() -> f64 + Send + Sync>))); let __f: Arc<dyn Fn() -> f64 + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = { let __tmp_x = { let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*__go_rhs_16.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; __go_binary_value })));
     println!("{} {} {}", format!("{}", "float:".to_string()), { let __text = go_float_string(({ let __v = (*g.lock().unwrap().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, { let __text = go_float_string(({ let __v = (*f.lock().unwrap().as_ref().unwrap()).clone(); __v }) as f64, false); __text });
 
     let mut words = Arc::new(Mutex::new(Some(vec!["ab".to_string(), "cde".to_string()])));
-    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_14 = Arc::new(Mutex::new(Some(({ let __len = (*twice(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = words.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })))).lock().unwrap().as_ref().unwrap()).len(); __len }) as i64))); let __go_binary_value = {
+    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_17 = Arc::new(Mutex::new(Some(({ let __len = (*twice(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = words.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() })))).lock().unwrap().as_ref().unwrap()).len(); __len }) as i64))); let __go_binary_value = {
         let __tmp_x = ({ let __seq = { let __seq_holder = words.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.len() as i64);
-        let __tmp_y = ({ let __v = (*__go_rhs_14.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64);
+        let __tmp_y = ({ let __v = (*__go_rhs_17.lock().unwrap().as_ref().unwrap()).clone(); __v } as i64);
         __tmp_x + __tmp_y
     }; __go_binary_value }));
 
@@ -1145,9 +1202,9 @@ fn main() {
     }
     println!("{} {}", format!("{}", "plain local:".to_string()), format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    if { let __go_rhs_15 = Arc::new(Mutex::new(Some(bump(s.clone())))); let __go_binary_value = {
+    if { let __go_rhs_18 = Arc::new(Mutex::new(Some(bump(s.clone())))); let __go_binary_value = {
         let __tmp_x = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
-        let __tmp_y = { let __v = (*__go_rhs_15.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = { let __v = (*__go_rhs_18.lock().unwrap().as_ref().unwrap()).clone(); __v };
         __tmp_x > __tmp_y
     }; __go_binary_value } {
         println!("{} {}", format!("{}", "condition: before".to_string()), format!("{}", format_slice(&s)));

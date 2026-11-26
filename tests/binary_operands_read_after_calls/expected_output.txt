@@ -8,6 +8,9 @@ address taken: 11 10
 captured by a closure: 2 1
 package variable: 6 5
 parenthesized: bc b
+field of a call: 108
+string field of a call: de
+method of a call's result: 311
 string: a!t a!
 map element: 2 2
 float: 6 2

@@ -262,9 +262,10 @@ func writeBinaryWithRightOperandFirst(out *strings.Builder, e *ast.BinaryExpr, c
 	out.WriteString("{ let ")
 	out.WriteString(name)
 	out.WriteString(" = ")
-	// ReturnsWrappedValue does not look through parentheses; the Rust of
-	// (f()) is the Rust of f().
-	if typeInfo.ReturnsWrappedValue(unwrapParens(e.Y)) {
+	// NeedsUnwrapping is what the binary lowering asks of an operand: whether
+	// its Rust is a cell. (f()) is f()'s cell, and f().n of an int field
+	// is the int.
+	if typeInfo.NeedsUnwrapping(e.Y) {
 		TranspileExpression(out, e.Y)
 	} else {
 		WriteWrapperPrefix(out)
