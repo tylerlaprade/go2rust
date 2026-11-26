@@ -663,6 +663,31 @@ func rangeVarHoldsWrappedCell(ident *ast.Ident) bool {
 	return ok && !identShadowsRangeVar(ident) && isWrappedRangeVarType(varType)
 }
 
+// writeComplexPrintArg writes a complex operand as fmt prints it with %v:
+// (1-2i), each part a float as %g writes it and the imaginary part with
+// its sign. num::Complex's Display writes 1-2i.
+func writeComplexPrintArg(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(arg) == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(arg)).Underlying().(*types.Basic)
+	if !ok || basic.Info()&types.IsComplex == 0 {
+		return false
+	}
+	single := "false"
+	if basic.Kind() == types.Complex64 {
+		single = "true"
+	}
+	NeedGoFloatString()
+	out.WriteString("{ let __complex = ")
+	writeUnwrappedForFormat(out, arg)
+	out.WriteString("; let __im = go_float_string(__complex.im as f64, " + single + "); ")
+	out.WriteString("format!(\"({}{}{}i)\", go_float_string(__complex.re as f64, " + single + "), ")
+	out.WriteString("if __im.starts_with('-') || __im.starts_with('+') { \"\" } else { \"+\" }, __im) }")
+	return true
+}
+
 // printArgIsBasicFloat reports whether a print operand is a float32 or a
 // float64 that is not of a named type, and whether it is a float32. fmt
 // prints such a value as %v; Rust's Display has no exponent form.
@@ -746,6 +771,9 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 
 // Helper function to unwrap arguments for print statements
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
+	if writeComplexPrintArg(out, arg) {
+		return
+	}
 	if isEmptyInterfaceValueExpr(arg) {
 		writeFormatAnyPrintArg(out, arg)
 		return
@@ -7358,6 +7386,15 @@ func transpileImag(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func writeComplexComponentValue(out *strings.Builder, expr ast.Expr, component string) {
+	// A constant such as 2i is written as the num::Complex itself
+	// (writeComplexConstant).
+	var constant strings.Builder
+	if writeComplexConstant(&constant, expr) {
+		out.WriteString(constant.String())
+		out.WriteString(".")
+		out.WriteString(component)
+		return
+	}
 	if isExpressionResultBare(expr) {
 		TranspileExpression(out, expr)
 		out.WriteString(".")

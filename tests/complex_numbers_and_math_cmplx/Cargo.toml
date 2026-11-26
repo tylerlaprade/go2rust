@@ -1,0 +1,28 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/math",
+    "vendor/math_bits",
+    "vendor/math_cmplx",
+]
+
+[package]
+name = "complex_numbers_and_math_cmplx"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "complex_numbers_and_math_cmplx"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+num = "0.4"
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+math = { path = "vendor/math" }
+math_bits = { path = "vendor/math_bits" }
+math_cmplx = { path = "vendor/math_cmplx" }

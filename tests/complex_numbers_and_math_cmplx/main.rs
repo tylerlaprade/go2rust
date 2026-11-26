@@ -1,0 +1,163 @@
+#[allow(unused_macros)]
+macro_rules! vec {
+    () => (GoSlice::new());
+    ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
+    ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
+}
+use go2rust_stdlib_stubs::*;
+use num::Complex;
+use std::fmt::{Display};
+use std::sync::{Arc, Mutex};
+
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.lock().unwrap();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    if __name == "num_complex::Complex<f64>" || __name == "num_complex::Complex<f32>" {
+        let __single = __name.ends_with("f32>");
+        let (__re, __im) = if __single {
+            let __parts = unsafe { &*(__value as *const T as *const [f32; 2]) };
+            (__parts[0] as f64, __parts[1] as f64)
+        } else {
+            let __parts = unsafe { &*(__value as *const T as *const [f64; 2]) };
+            (__parts[0], __parts[1])
+        };
+        let __im_text = go_float_string(__im, __single);
+        let __plus = if __im_text.starts_with('-') || __im_text.starts_with('+') { "" } else { "+" };
+        return format!("({}{}{}i)", go_float_string(__re, __single), __plus, __im_text);
+    }
+    __value.to_string()
+}
+
+pub fn mandel(c: Arc<Mutex<Option<num::Complex<f64>>>>) -> i64 {
+    let mut z = Arc::new(Mutex::new(Some(num::Complex::new(0 as f64, 0 as f64))));
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 50; __tmp_x < __tmp_y } {
+        { let new_val = { let __tmp_x = { let __bin_z = ({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_z * __bin_z }; let __tmp_y = ({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x + __tmp_y }; *z.lock().unwrap() = Some(new_val); };
+        if { let __tmp_x = math_cmplx::abs(Arc::new(Mutex::new(Some({ let __arg_holder = z.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 2.0; __tmp_x > __tmp_y } {
+        return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    }
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    -(1)
+}
+
+fn main() {
+    ::math::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::math_cmplx::__go_init_all();
+
+    let mut z = Arc::new(Mutex::new(Some(num::Complex::new(1 as f64, -(2) as f64))));
+    let mut w: Arc<Mutex<Option<num::Complex<f32>>>> = Arc::new(Mutex::new(Some(num::Complex::new(0.5 as f32, 3 as f32))));
+    println!("{} {} {} {} {} {} {} {}", format!("{}", { let __complex = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __im = go_float_string(__complex.im as f64, true); format!("({}{}{}i)", go_float_string(__complex.re as f64, true), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = { let __bin_z = ({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_z * __bin_z }; let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (*Arc::new(Mutex::new(Some(num::Complex::new(0 as f64, 0 as f64)))).lock().unwrap().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }) + num::Complex::<f64>::new(1.0 as f64, 0.0 as f64)); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (num::Complex::<f64>::new(2.0 as f64, 0.0 as f64) * ({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v })); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", (({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }) == num::Complex::<f64>::new(1.0 as f64, (-2.0) as f64))), format!("{}", (({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }) != num::Complex::<f64>::new(0.0 as f64, 0.0 as f64))));
+    print!("{} {}\n", format!("{}", { let __complex = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __im = go_float_string(__complex.im as f64, true); format!("({}{}{}i)", go_float_string(__complex.re as f64, true), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }));
+    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __complex = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let __complex = (({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }) + num::Complex::<f64>::new(1.0 as f64, 0.0 as f64)); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) })))).lock().unwrap().as_ref().unwrap())), { let __text = go_float_string(({ let __part = (*w.lock().unwrap().as_ref().unwrap()).re; __part }) as f64, true); __text }, { let __text = go_float_string(({ let __part = (*z.lock().unwrap().as_ref().unwrap()).im; __part }) as f64, false); __text });
+    println!("{} {} {} {}", format!("{}", mandel(Arc::new(Mutex::new(Some(num::Complex::<f64>::new(0.0, 0.0)))))), format!("{}", mandel(Arc::new(Mutex::new(Some(num::Complex::<f64>::new(1.0 as f64, 1.0 as f64)))))), format!("{}", mandel(Arc::new(Mutex::new(Some(num::Complex::<f64>::new((-1.0) as f64, 0.0 as f64)))))), { let __text = go_float_string((math_cmplx::abs(Arc::new(Mutex::new(Some(num::Complex::<f64>::new(3.0 as f64, 4.0 as f64)))))) as f64, false); __text });
+    let mut zs: Arc<Mutex<Option<Vec<num::Complex<f64>>>>> = Arc::new(Mutex::new(None));
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = zs.clone(); let __append_values = vec![num::Complex::<f64>::new(0.0 as f64, 1.0 as f64), ({ let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v })]; let mut __appended: Vec<num::Complex<f64>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.extend(__append_values); Arc::new(Mutex::new(Some(__appended))) })); *zs.lock().unwrap() = __slice_header; };
+    println!("{} {}", format!("{}", format_slice(&zs)), format!("{}", ({ let __len = (*zs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+    let mut v = Arc::new(Mutex::new(Some(num::Complex::<f64>::new(3.0 as f64, 4.0 as f64))));
+    print!("{} {}\n", format!("{:.4}", math_cmplx::abs(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))), format!("{:.4}", math_cmplx::phase(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    let (mut r, mut th) = math_cmplx::polar(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    print!("{} {}\n", format!("{:.4}", r), format!("{:.4}", th));
+    println!("{} {} {} {}", format!("{}", { let __complex = (*math_cmplx::sqrt(Arc::new(Mutex::new(Some(num::Complex::<f64>::new((-1.0) as f64, 0.0 as f64))))).lock().unwrap().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (*math_cmplx::conj(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", math_cmplx::is_na_n(math_cmplx::na_n())), format!("{}", math_cmplx::is_inf(math_cmplx::inf())));
+    let mut e = math_cmplx::exp(Arc::new(Mutex::new(Some(num::Complex::new(0 as f64, math::PI as f64)))));
+    print!("{} {}\n", format!("{:.3}", { let __part = (*e.lock().unwrap().as_ref().unwrap()).re; __part }), format!("{:.3}", { let __part = (*e.lock().unwrap().as_ref().unwrap()).im; __part }));
+    let mut p = math_cmplx::pow(Arc::new(Mutex::new(Some(num::Complex::<f64>::new(0.0 as f64, 2.0 as f64)))), Arc::new(Mutex::new(Some(num::Complex::<f64>::new(2.0 as f64, 0.0 as f64)))));
+    print!("{} {}\n", format!("{:.3}", { let __part = (*p.lock().unwrap().as_ref().unwrap()).re; __part }), format!("{:.3}", { let __part = (*p.lock().unwrap().as_ref().unwrap()).im; __part }));
+    println!("{} {} {} {}", format!("{}", { let __complex = (*math_cmplx::rect(Arc::new(Mutex::new(Some(2.0))), Arc::new(Mutex::new(Some(0.0)))).lock().unwrap().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }) / num::Complex::<f64>::new(2.0 as f64, 0.0 as f64)); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = (({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }) - num::Complex::<f64>::new(0.0 as f64, 1.0 as f64)); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }), format!("{}", { let __complex = -(({ let __v = (*v.lock().unwrap().as_ref().unwrap()); __v })); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) }));
+    let mut k = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        let mut rt = math_cmplx::rect(Arc::new(Mutex::new(Some(1.0))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 6.283185307179586; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*k.lock().unwrap().as_ref().unwrap()); __v }) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = 3.0; __tmp_x / __tmp_y }))));
+        print!("({},{}) ", format!("{:.3}", { let __part = (*rt.lock().unwrap().as_ref().unwrap()).re; __part }), format!("{:.3}", { let __part = (*rt.lock().unwrap().as_ref().unwrap()).im; __part }));
+        { let mut guard = k.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    println!();
+}

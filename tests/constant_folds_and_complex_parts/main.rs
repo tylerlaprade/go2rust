@@ -100,6 +100,19 @@ fn go_display_value<T: Display>(__value: &T) -> String {
         // T is f32.
         return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
+    if __name == "num_complex::Complex<f64>" || __name == "num_complex::Complex<f32>" {
+        let __single = __name.ends_with("f32>");
+        let (__re, __im) = if __single {
+            let __parts = unsafe { &*(__value as *const T as *const [f32; 2]) };
+            (__parts[0] as f64, __parts[1] as f64)
+        } else {
+            let __parts = unsafe { &*(__value as *const T as *const [f64; 2]) };
+            (__parts[0], __parts[1])
+        };
+        let __im_text = go_float_string(__im, __single);
+        let __plus = if __im_text.starts_with('-') || __im_text.starts_with('+') { "" } else { "+" };
+        return format!("({}{}{}i)", go_float_string(__re, __single), __plus, __im_text);
+    }
     __value.to_string()
 }
 
