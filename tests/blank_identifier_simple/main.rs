@@ -10,6 +10,13 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub(crate) const __SLICES_UNKNOWN_HINT: i64 = 0;
 pub(crate) const __SLICES_INCREASING_HINT: i64 = 1;
 pub(crate) const __SLICES_DECREASING_HINT: i64 = 2;

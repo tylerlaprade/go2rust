@@ -8,6 +8,13 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn basic_select() {
     let mut ch1 = GoChannel::<String>::new();
     let mut ch2 = GoChannel::<String>::new();
