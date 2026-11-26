@@ -830,6 +830,19 @@ fn go_display_value<T: Display>(__value: &T) -> String {
         // T is f32.
         return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
+    if __name == "num_complex::Complex<f64>" || __name == "num_complex::Complex<f32>" {
+        let __single = __name.ends_with("f32>");
+        let (__re, __im) = if __single {
+            let __parts = unsafe { &*(__value as *const T as *const [f32; 2]) };
+            (__parts[0] as f64, __parts[1] as f64)
+        } else {
+            let __parts = unsafe { &*(__value as *const T as *const [f64; 2]) };
+            (__parts[0], __parts[1])
+        };
+        let __im_text = go_float_string(__im, __single);
+        let __plus = if __im_text.starts_with('-') || __im_text.starts_with('+') { "" } else { "+" };
+        return format!("({}{}{}i)", go_float_string(__re, __single), __plus, __im_text);
+    }
     __value.to_string()
 }
 
@@ -989,21 +1002,21 @@ fn main() {
         // Complex number conversions
     println!("{}", format!("{}", "\n=== Complex number conversions ===".to_string()));
 
-    let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(3 + 4i)));
+    let mut c64: Rc<RefCell<Option<num::Complex<f32>>>> = Rc::new(RefCell::new(Some(num::Complex::<f32>::new(3.0 as f32, 4.0 as f32))));
     let mut c128: Rc<RefCell<Option<num::Complex<f64>>>> = Rc::new(RefCell::new(Some({ let __z = (*c64.borrow().as_ref().unwrap()); num::Complex::<f64>::new(__z.re as f64, __z.im as f64) })));
 
-    print!("complex64: {}\n", { let __v = (*c64.borrow().as_ref().unwrap()).clone(); __v });
-    print!("complex128: {}\n", { let __v = (*c128.borrow().as_ref().unwrap()).clone(); __v });
+    print!("complex64: {}\n", { let __complex = (*c64.borrow().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, true); format!("({}{}{}i)", go_float_string(__complex.re as f64, true), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) });
+    print!("complex128: {}\n", { let __complex = (*c128.borrow().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) });
 
         // Extract real and imaginary parts
-    let mut real = { let __part = (*c128.borrow().as_ref().unwrap()).re; __part };
-    let mut imag = { let __part = (*c128.borrow().as_ref().unwrap()).im; __part };
+    let mut real = Rc::new(RefCell::new(Some({ let __part = (*c128.borrow().as_ref().unwrap()).re; __part })));
+    let mut imag = Rc::new(RefCell::new(Some({ let __part = (*c128.borrow().as_ref().unwrap()).im; __part })));
     print!("real part: {:.2}\n", { let __v = (*real.borrow().as_ref().unwrap()).clone(); __v });
     print!("imaginary part: {:.2}\n", { let __v = (*imag.borrow().as_ref().unwrap()).clone(); __v });
 
         // Create complex from parts
     let mut newComplex = Rc::new(RefCell::new(Some(num::Complex::new((*real.borrow().as_ref().unwrap()) as f64, (*imag.borrow().as_ref().unwrap()) as f64))));
-    print!("reconstructed: {}\n", { let __v = (*newComplex.borrow().as_ref().unwrap()).clone(); __v });
+    print!("reconstructed: {}\n", { let __complex = (*newComplex.borrow().as_ref().unwrap()); let __im = go_float_string(__complex.im as f64, false); format!("({}{}{}i)", go_float_string(__complex.re as f64, false), if __im.starts_with('-') || __im.starts_with('+') { "" } else { "+" }, __im) });
 
         // Overflow demonstration (be careful!)
     println!("{}", format!("{}", "\n=== Overflow examples ===".to_string()));

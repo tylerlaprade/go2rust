@@ -14204,6 +14204,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	if ctx != AddressOf && writeFloatContextIntConstant(out, expr) {
 		return
 	}
+	if ctx != AddressOf && writeComplexConstant(out, expr) {
+		return
+	}
 	if lit, ok := expr.(*ast.CompositeLit); ok {
 		markCompositeLiteralIntConstants(lit)
 	}
@@ -15239,6 +15242,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeStatementBuiltLogicalExpressionValue(out, e) {
+			return
+		}
+		if writeComplexConstantOperandBinary(out, e) {
 			return
 		}
 
@@ -18976,6 +18982,115 @@ func writeComplexToComplexConversion(out *strings.Builder, arg ast.Expr, targetC
 	out.WriteString(targetComponentRust)
 	out.WriteString(") }")
 	WriteWrapperSuffix(out)
+	return true
+}
+
+// writeComplexConstant writes a constant of a complex type, such as 1i,
+// 3+4i or a constant 1 that go/types converts for a complex operand, as a
+// num::Complex: Rust has no imaginary literals.
+func writeComplexConstant(out *strings.Builder, expr ast.Expr) bool {
+	// complex(1, 2) is a call, whose result is written in a cell; a
+	// constant's name is the Rust constant.
+	switch expr.(type) {
+	case *ast.BasicLit, *ast.BinaryExpr, *ast.UnaryExpr, *ast.ParenExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(expr) == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(expr)).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	component := ""
+	switch basic.Kind() {
+	case types.Complex64:
+		component = "f32"
+	case types.Complex128, types.UntypedComplex:
+		component = "f64"
+	default:
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok {
+		return false
+	}
+	var re, im strings.Builder
+	if !writeRustFloatLiteral(&re, constant.Real(value)) || !writeRustFloatLiteral(&im, constant.Imag(value)) {
+		return false
+	}
+	TrackImport("num::Complex")
+	out.WriteString("num::Complex::<" + component + ">::new(" + re.String() + " as " + component + ", " + im.String() + " as " + component + ")")
+	return true
+}
+
+// writeComplexConstantOperandBinary writes arithmetic or a comparison of
+// complex numbers with a constant operand. go/types gives the constant the
+// complex type, but it is written as the number it is: z + 1 is
+// z + num::Complex::new(1.0, 0.0), as num::Complex adds only a Complex.
+func writeComplexConstantOperandBinary(out *strings.Builder, e *ast.BinaryExpr) bool {
+	switch e.Op {
+	case token.ADD, token.SUB, token.MUL, token.QUO, token.EQL, token.NEQ:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, xConst := constExpressionValue(e.X)
+	_, yConst := constExpressionValue(e.Y)
+	if xConst == yConst {
+		return false
+	}
+	component := ""
+	for _, operand := range []ast.Expr{e.X, e.Y} {
+		if typeInfo.GetType(operand) == nil {
+			continue
+		}
+		basic, ok := types.Unalias(typeInfo.GetType(operand)).Underlying().(*types.Basic)
+		if !ok {
+			continue
+		}
+		switch basic.Kind() {
+		case types.Complex64:
+			component = "f32"
+		case types.Complex128:
+			component = "f64"
+		}
+	}
+	if component == "" {
+		return false
+	}
+	TrackImport("num::Complex")
+	writeOperand := func(w *strings.Builder, operand ast.Expr) bool {
+		value, ok := constExpressionValue(operand)
+		if !ok {
+			w.WriteString("(")
+			writeComplexConversionSourceValue(w, operand)
+			w.WriteString(")")
+			return true
+		}
+		var re, im strings.Builder
+		if !writeRustFloatLiteral(&re, constant.Real(value)) || !writeRustFloatLiteral(&im, constant.Imag(value)) {
+			return false
+		}
+		w.WriteString("num::Complex::<" + component + ">::new(" + re.String() + " as " + component + ", " + im.String() + " as " + component + ")")
+		return true
+	}
+	var written strings.Builder
+	written.WriteString("(")
+	if !writeOperand(&written, e.X) {
+		return false
+	}
+	written.WriteString(" " + e.Op.String() + " ")
+	if !writeOperand(&written, e.Y) {
+		return false
+	}
+	written.WriteString(")")
+	out.WriteString(written.String())
 	return true
 }
 

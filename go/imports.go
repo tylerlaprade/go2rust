@@ -178,6 +178,7 @@ type HelperTracker struct {
 	needsGoAtomicPointer       bool
 	needsGoTypeName            bool
 	needsGoFloatString         bool
+	needsGoComplexDisplay      bool // the program has complex numbers
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
 	needsGoFmtScan             bool
@@ -489,7 +490,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
-		generateGoFloatStringHelper(&result)
+		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay)
 	}
 
 	if ht.needsGoErrorChain {
@@ -6202,7 +6203,7 @@ fn go_reflect_tag_get(raw: &str, key: &str) -> String {
 // as fmt's %v does: strconv's shortest %g, with an exponent when the
 // exponent is below -4 or at least 6, and +Inf, -Inf and NaN. single prints
 // the shortest digits of the float32 the value was widened from.
-func generateGoFloatStringHelper(out *strings.Builder) {
+func generateGoFloatStringHelper(out *strings.Builder, complexDisplay bool) {
 	visibility := ""
 	if generatingPublicHelpers {
 		visibility = "pub "
@@ -6260,7 +6261,26 @@ func generateGoFloatStringHelper(out *strings.Builder) {
         // T is f32.
         return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
     }
-    __value.to_string()
+`)
+	if complexDisplay {
+		// num::Complex is #[repr(C)] with re and im, so it has the layout
+		// of a two-element array. fmt prints (1-2i).
+		out.WriteString(`    if __name == "num_complex::Complex<f64>" || __name == "num_complex::Complex<f32>" {
+        let __single = __name.ends_with("f32>");
+        let (__re, __im) = if __single {
+            let __parts = unsafe { &*(__value as *const T as *const [f32; 2]) };
+            (__parts[0] as f64, __parts[1] as f64)
+        } else {
+            let __parts = unsafe { &*(__value as *const T as *const [f64; 2]) };
+            (__parts[0], __parts[1])
+        };
+        let __im_text = go_float_string(__im, __single);
+        let __plus = if __im_text.starts_with('-') || __im_text.starts_with('+') { "" } else { "+" };
+        return format!("({}{}{}i)", go_float_string(__re, __single), __plus, __im_text);
+    }
+`)
+	}
+	out.WriteString(`    __value.to_string()
 }
 `)
 }

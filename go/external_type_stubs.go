@@ -1322,6 +1322,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoAtomicPointer = dst.needsGoAtomicPointer || src.needsGoAtomicPointer
 	dst.needsGoTypeName = dst.needsGoTypeName || src.needsGoTypeName
 	dst.needsGoFloatString = dst.needsGoFloatString || src.needsGoFloatString
+	dst.needsGoComplexDisplay = dst.needsGoComplexDisplay || src.needsGoComplexDisplay
 	dst.needsGoErrorChain = dst.needsGoErrorChain || src.needsGoErrorChain
 	dst.needsGoSprintf = dst.needsGoSprintf || src.needsGoSprintf
 	dst.needsGoFmtScan = dst.needsGoFmtScan || src.needsGoFmtScan
@@ -4674,6 +4675,12 @@ func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, func
 		writeRuntimeGOMAXPROCSStub(out, fn)
 		return
 	}
+	if pkgName == "runtime" {
+		if body, ok := runtimeStubBodies[funcName]; ok && len(fn.ReturnTypes) <= 1 {
+			writeRuntimeStubFunction(out, fn, funcName, body)
+			return
+		}
+	}
 	if funcName == "g_o_r_o_o_t" && len(fn.ReturnTypes) == 1 {
 		writeRuntimeGOROOTStub(out, fn)
 		return
@@ -4768,6 +4775,62 @@ func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunc
 	out.WriteString(" {\n        ")
 	writeExternalStubReturnValue(out, fn.ReturnTypes[0], rustIntType(), "std::thread::available_parallelism().map(|n| n.get() as i64).unwrap_or(1).max(1)")
 	out.WriteString("\n    }\n")
+}
+
+// runtimeStubBodies are the bodies of runtime functions an ordinary program
+// calls. runtime is in the native tier (stdlib_boundary.go), so these are
+// its permanent implementation; without them the calls panicked. A
+// goroutine is a thread, so Gosched yields the thread; memory is freed when
+// its last handle goes, so GC has nothing to do; KeepAlive only takes its
+// argument.
+var runtimeStubBodies = map[string]string{
+	"gosched":    "std::thread::yield_now();",
+	"g_c":        "",
+	"keep_alive": "",
+	"num_c_p_u":  "std::thread::available_parallelism().map(|n| n.get() as i64).unwrap_or(1).max(1)",
+}
+
+// PERMANENT: not scaffold — runtime is in the native tier; see runtimeStubBodies.
+func writeRuntimeStubFunction(out *strings.Builder, fn externalPackageStubFunction, funcName string, body string) {
+	out.WriteString("    pub fn ")
+	out.WriteString(funcName)
+	if fn.ParamCount > 0 {
+		out.WriteString("<")
+		for i := 0; i < fn.ParamCount; i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
+		out.WriteString(">")
+	}
+	out.WriteString("(")
+	for i := 0; i < fn.ParamCount; i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("_arg")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": T")
+		out.WriteString(strconv.Itoa(i))
+	}
+	out.WriteString(")")
+	if len(fn.ReturnTypes) == 1 {
+		out.WriteString(" -> ")
+		writeExternalStubReturnType(out, fn.ReturnTypes)
+		out.WriteString(" {\n        ")
+		writeExternalStubReturnValue(out, fn.ReturnTypes[0], rustIntType(), body)
+		out.WriteString("\n    }\n")
+		return
+	}
+	out.WriteString(" {\n")
+	if body != "" {
+		out.WriteString("        ")
+		out.WriteString(body)
+		out.WriteString("\n")
+	}
+	out.WriteString("    }\n")
 }
 
 // PERMANENT: not scaffold — runtime.GOROOT is runtime-tied; use the host Go toolchain root.
