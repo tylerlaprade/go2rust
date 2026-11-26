@@ -352,8 +352,15 @@ func printOperandMayHoldString(arg ast.Expr) bool {
 	if typeInfo == nil || !isEmptyInterfaceValueExpr(arg) {
 		return false
 	}
-	switch unwrapParens(arg).(type) {
-	case *ast.Ident, *ast.SelectorExpr:
+	if isExpressionResultBare(arg) {
+		// A range variable or other bare value is no interface handle.
+		return false
+	}
+	switch e := unwrapParens(arg).(type) {
+	case *ast.Ident:
+		_, isRangeVar := rangeLoopVars[e.Name]
+		return !isRangeVar
+	case *ast.SelectorExpr:
 		return !containsCallExpr(arg)
 	}
 	return false
