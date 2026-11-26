@@ -330,9 +330,14 @@ func collectGotoSyntheticNameConflicts(file *ast.File) map[string]bool {
 	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		if ident, ok := node.(*ast.Ident); ok {
-			names[ident.Name] = true
-			names[ToSnakeCase(ident.Name)] = true
-			names[RustLocalIdent(ident.Name)] = true
+			for _, name := range []string{ident.Name, ToSnakeCase(ident.Name), RustLocalIdent(ident.Name)} {
+				names[name] = true
+				// The names a goroutine, a defer or a closure binds its
+				// captures under.
+				for _, suffix := range []string{"_thread", "_defer_captured", "_closure_clone"} {
+					names[name+suffix] = true
+				}
+			}
 		}
 		return true
 	})
@@ -483,6 +488,15 @@ func stmtListPreventsSyntheticBackwardBreak(stmts []ast.Stmt, label string) bool
 
 func emitGotoStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
 	out.WriteString(indent)
+	start := out.Len()
 	TranspileStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
+	// The lowering closes its own scopes after the statement, so a
+	// statement left open, such as break 'label, would take what follows
+	// as its operand.
+	written := strings.TrimRight(out.String()[start:], " \t\n")
+	lastLine := written[strings.LastIndex(written, "\n")+1:]
+	if written != "" && !strings.HasSuffix(written, ";") && !strings.HasSuffix(written, "}") && !strings.HasSuffix(written, "{") && !strings.Contains(lastLine, "//") {
+		out.WriteString(";")
+	}
 	out.WriteString("\n")
 }

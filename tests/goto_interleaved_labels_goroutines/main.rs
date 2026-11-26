@@ -1059,7 +1059,7 @@ fn main() {
         break 'out;
     }
             { let __rhs = (*i.lock().unwrap().as_ref().unwrap()); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-            { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue '__go_loop_3
+            { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue '__go_loop_3;
         }
         break '__go_loop_3;
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -1012,6 +1012,32 @@ pub fn case_g(x: Arc<Mutex<Option<bool>>>, y: Arc<Mutex<Option<bool>>>) {
     };
 }
 
+/// The loop's last statement is a break, after which the lowering closes
+/// the label's loop.
+pub fn case_h(run: Arc<Mutex<Option<bool>>>, skip: Arc<Mutex<Option<bool>>>, retry: Arc<Mutex<Option<bool>>>) -> i64 {
+    let mut n = Arc::new(Mutex::new(Some(0i64)));
+    '__go_loop_1: while { let __v = (*run.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        let mut __goto_reenter_back = false;
+        'back: loop {
+            'skip: {
+                if !__goto_reenter_back {
+                    if { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        break 'skip;
+    }
+                }
+                { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            }
+            if { let __v = (*retry.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        { __goto_reenter_back = true; continue 'back; }
+    }
+            break '__go_loop_1;
+            break 'back;
+        };
+    }
+    return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    unreachable!()
+}
+
 /// A loop label that no goto uses keeps its loop's continue.
 pub fn case_f(n: Arc<Mutex<Option<i64>>>) {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
@@ -1057,6 +1083,7 @@ fn main() {
         case_d(Arc::new(Mutex::new(Some(x.clone()))));
         case_e(Arc::new(Mutex::new(Some(x.clone()))));
     }
+    println!("{} {} {} {} {}", format!("{}", "H".to_string()), format!("{}", case_h(Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(false))))), format!("{}", case_h(Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true))))), format!("{}", case_h(Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true))))), format!("{}", case_h(Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(true))))));
     case_f(Arc::new(Mutex::new(Some(1))));
     case_f(Arc::new(Mutex::new(Some(-1))));
 }

@@ -852,7 +852,7 @@ fn main() {
         break 'out;
     }
             { let __rhs = (*i.borrow().as_ref().unwrap()); let mut guard = m.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-            { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue '__go_loop_3
+            { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue '__go_loop_3;
         }
         break '__go_loop_3;
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }

@@ -126,6 +126,25 @@ End:
 	fmt.Println("G", x, y, n)
 }
 
+// The loop's last statement is a break, after which the lowering closes
+// the label's loop.
+func caseH(run, skip, retry bool) int {
+	n := 0
+	for run {
+		if skip {
+			goto Skip
+		}
+	Back:
+		n++
+	Skip:
+		if retry && n < 3 {
+			goto Back
+		}
+		break
+	}
+	return n
+}
+
 // A loop label that no goto uses keeps its loop's continue.
 func caseF(n int) {
 	i := 0
@@ -159,6 +178,7 @@ func main() {
 		caseD(x)
 		caseE(x)
 	}
+	fmt.Println("H", caseH(true, false, false), caseH(true, true, true), caseH(false, true, true), caseH(true, false, true))
 	caseF(1)
 	caseF(-1)
 }

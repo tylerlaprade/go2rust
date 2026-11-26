@@ -843,6 +843,32 @@ pub fn case_g(x: Rc<RefCell<Option<bool>>>, y: Rc<RefCell<Option<bool>>>) {
     };
 }
 
+/// The loop's last statement is a break, after which the lowering closes
+/// the label's loop.
+pub fn case_h(run: Rc<RefCell<Option<bool>>>, skip: Rc<RefCell<Option<bool>>>, retry: Rc<RefCell<Option<bool>>>) -> i64 {
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
+    '__go_loop_1: while (*run.borrow().as_ref().unwrap()) {
+        let mut __goto_reenter_back = false;
+        'back: loop {
+            'skip: {
+                if !__goto_reenter_back {
+                    if (*skip.borrow().as_ref().unwrap()) {
+        break 'skip;
+    }
+                }
+                { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            }
+            if (*retry.borrow().as_ref().unwrap()) && (*n.borrow().as_ref().unwrap()) < 3 {
+        { __goto_reenter_back = true; continue 'back; }
+    }
+            break '__go_loop_1;
+            break 'back;
+        };
+    }
+    return (*n.borrow().as_ref().unwrap());
+    unreachable!()
+}
+
 /// A loop label that no goto uses keeps its loop's continue.
 pub fn case_f(n: Rc<RefCell<Option<i64>>>) {
     let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -877,6 +903,7 @@ fn main() {
         case_d(Rc::new(RefCell::new(Some(x.clone()))));
         case_e(Rc::new(RefCell::new(Some(x.clone()))));
     }
+    println!("{} {} {} {} {}", format!("{}", "H".to_string()), format!("{}", case_h(Rc::new(RefCell::new(Some(true))), Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(false))))), format!("{}", case_h(Rc::new(RefCell::new(Some(true))), Rc::new(RefCell::new(Some(true))), Rc::new(RefCell::new(Some(true))))), format!("{}", case_h(Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(true))), Rc::new(RefCell::new(Some(true))))), format!("{}", case_h(Rc::new(RefCell::new(Some(true))), Rc::new(RefCell::new(Some(false))), Rc::new(RefCell::new(Some(true))))));
     case_f(Rc::new(RefCell::new(Some(1))));
     case_f(Rc::new(RefCell::new(Some(-1))));
 }
