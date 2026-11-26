@@ -3411,7 +3411,7 @@ pub fn __go2rust_gosyntax0_6(v: Arc<Mutex<Option<Circle>>>) -> Arc<Mutex<Option<
     if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("(*main.Circle)(nil)".to_string())));
     }
-    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_7(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
+    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_7(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
 }
 
 pub fn __go2rust_gosyntax0_7(v: Arc<Mutex<Option<Circle>>>) -> Arc<Mutex<Option<String>>> {
@@ -3428,7 +3428,7 @@ pub fn __go2rust_gosyntax0_9(v: Arc<Mutex<Option<Square>>>) -> Arc<Mutex<Option<
     if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("(*main.Square)(nil)".to_string())));
     }
-    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
+    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
 }
 
 pub fn __go2rust_gosyntax0_10(v: Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<String>>> {
@@ -4012,7 +4012,7 @@ pub fn __go2rust_gosyntax0_43(v: Arc<Mutex<Option<Point>>>) -> Arc<Mutex<Option<
     if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("(*main.Point)(nil)".to_string())));
     }
-    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_2(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
+    return Arc::new(Mutex::new(Some(format!("{}{}", "&".to_string(), (*__go2rust_gosyntax0_2(Arc::new(Mutex::new(Some({ let __v = (*v.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })))).lock().unwrap().as_ref().unwrap())))));
 }
 
 pub fn __go2rust_gosyntax0_44(v: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Point>>>>>>>) -> Arc<Mutex<Option<String>>> {

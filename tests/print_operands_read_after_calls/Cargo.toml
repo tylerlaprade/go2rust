@@ -1,0 +1,11 @@
+[package]
+name = "print_operands_read_after_calls"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_operands_read_after_calls"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

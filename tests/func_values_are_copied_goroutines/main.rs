@@ -1417,12 +1417,12 @@ fn main() {
     println!("{} {}", format!("{}", "nil:".to_string()), format!("{}", { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result }));
     { let __func_value = GoFuncValue::go_func_value(&(cb)); *z.lock().unwrap() = __func_value; };
     *cb.lock().unwrap() = None;
-    println!("{} {} {} {}", format!("{}", "nil after:".to_string()), format!("{}", { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*cb.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{
-        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = z.lock().unwrap().as_ref().unwrap().clone();
-        (__f)(
+    { let __go_print_arg_1 = {
+    let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = z.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
 
-        )
-    }.lock().unwrap().as_ref().unwrap())));
+    )
+}; let __go_print_value = println!("{} {} {} {}", format!("{}", "nil after:".to_string()), format!("{}", { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*cb.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
         // A named func type with a method.
     let mut o: Op = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {

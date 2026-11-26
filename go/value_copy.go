@@ -400,3 +400,60 @@ func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
 	}
 	return goValueCopyCallForExpr(ident)
 }
+
+// writePointeeValueCopy writes the value of deref, the dereference of the
+// pointer pointer, as Go's copy of the pointee. The pointee's Clone is a
+// second handle on the same struct, so "bump(*p)" changed *p through its
+// parameter; a dereference read as a value is a Go copy wherever it is used.
+func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Expr) {
+	copyCall, known := pointeeValueCopyCall(deref)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
+	out.WriteString("{ let __v = (*")
+	TranspileExpressionContext(out, pointer, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	out.WriteString(copyCall)
+	out.WriteString("; __v }")
+}
+
+// pointeeValueCopyCall is what to append to the pointee of the dereference
+// deref to read it: Go's copy of its type, or Clone for a dereference that
+// a selector or an index reads through (isStorageDeref). Without a type for
+// deref, known is false and the caller writes goValueCopyNeedsTypeInfo
+// instead of guessing.
+func pointeeValueCopyCall(deref ast.Expr) (call string, known bool) {
+	if isStorageDeref(deref) {
+		return ".clone()", true
+	}
+	return goValueCopyCallForExpr(deref)
+}
+
+// writeDerefReadAsGoCopy writes the dereference read that write produces
+// and reports whether it wrote one. Those reads, of a pointer held in a
+// GoPtr, a slot or a slice element's cell, end in the pointee's Clone; the
+// copy of deref's type takes its place, as in writePointeeValueCopy.
+func writeDerefReadAsGoCopy(out *strings.Builder, deref ast.Expr, write func(*strings.Builder) bool) bool {
+	var read strings.Builder
+	if !write(&read) {
+		return false
+	}
+	text := read.String()
+	copyCall, known := pointeeValueCopyCall(deref)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return true
+	}
+	if copyCall != ".clone()" {
+		for _, tail := range []string{" }", "; __v }"} {
+			if strings.HasSuffix(text, ".clone()"+tail) {
+				text = strings.TrimSuffix(text, ".clone()"+tail) + copyCall + tail
+				break
+			}
+		}
+	}
+	out.WriteString(text)
+	return true
+}

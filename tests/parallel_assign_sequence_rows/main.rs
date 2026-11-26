@@ -906,5 +906,5 @@ fn main() {
         (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
         (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
-    println!("{} {}", format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*(*ptrs.borrow().as_ref().unwrap())[(1) as usize].clone().borrow().as_ref().unwrap()).__go_value_clone(); __v }));
 }

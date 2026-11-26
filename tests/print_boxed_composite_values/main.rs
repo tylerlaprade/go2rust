@@ -661,11 +661,11 @@ fn main() {
     { let new_val = render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("head".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(tail.clone()) as Box<dyn Any + Send + Sync>))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *text.lock().unwrap() = __moved_val; };
     println!("{} {} {}", format!("{}", "chain:".to_string()), format!("{}", strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("&{head 0x".to_string()))))), format!("{}", strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("tail".to_string()))))));
     println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(
-        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as Box<dyn Any + Send + Sync>; __arg_value })))),
+        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }) as Box<dyn Any + Send + Sync>; __arg_value })))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }); __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); __arg_value }))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(

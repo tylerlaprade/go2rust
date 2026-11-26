@@ -398,9 +398,9 @@ fn main() {
 
     let mut words = Arc::new(Mutex::new(Some(vec!["banana".to_string(), "kiwi".to_string(), "apple".to_string(), "fig".to_string()])));
     sort::sort(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>))));
-    println!("{} {}", format!("{}", format_slice(&words)), format!("{}", sort::is_sorted(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>))))));
+    { let __go_print_arg_1 = sort::is_sorted(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>)))); let __go_print_value = println!("{} {}", format!("{}", format_slice(&words)), format!("{}", __go_print_arg_1)); __go_print_value };
     sort::stable(sort::reverse(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>)))).clone());
-    println!("{} {} {}", format!("{}", format_slice(&words)), format!("{}", sort::is_sorted(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>))))), format!("{}", sort::is_sorted(sort::reverse(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>)))).clone())));
+    { let __go_print_arg_2 = sort::is_sorted(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>)))); let __go_print_arg_3 = sort::is_sorted(sort::reverse(Arc::new(Mutex::new(Some(Box::new(byLen(words.clone())) as Box<dyn sort::r#mod::Interface + Send + Sync>)))).clone()); let __go_print_value = println!("{} {} {}", format!("{}", format_slice(&words)), format!("{}", __go_print_arg_2), format!("{}", __go_print_arg_3)); __go_print_value };
     let mut points = Arc::new(Mutex::new(Some(vec![
         point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(1))), ..Default::default() },
         point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() },

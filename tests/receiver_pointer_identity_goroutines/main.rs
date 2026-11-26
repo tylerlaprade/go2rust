@@ -1001,19 +1001,19 @@ fn main() {
     let mut root = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("root".to_string()))), ..Default::default() })));
     let mut c = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("c".to_string()))), ..Default::default() })));
     { let __recv = root.clone(); let __recv_ptr: *mut Node = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Node }; let __result = unsafe { &mut *__recv_ptr }.add(c.clone()); __result };
-    println!("{} {} {} {}", format!("{}", {
-        let __left = (*c.lock().unwrap().as_ref().unwrap()).parent.clone();
-        let __right = root.clone();
-        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
-        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
-        __eq
-    }), format!("{}", (*(*(*c.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*root.lock().unwrap().as_ref().unwrap()).kids.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })), format!("{}", {
-        let __left = { let __recv = root.clone(); let __recv_ptr: *const Node = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Node }; let __result = unsafe { &*__recv_ptr }.self_(); __result };
-        let __right = root.clone();
-        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
-        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
-        __eq
-    }));
+    { let __go_print_arg_1 = Arc::new(Mutex::new(Some(({ let __len = ({ let __len_target = { let __field = (*root.lock().unwrap().as_ref().unwrap()).kids.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64))); let __go_print_arg_2 = Arc::new(Mutex::new(Some({
+    let __left = { let __recv = root.clone(); let __recv_ptr: *const Node = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Node }; let __result = unsafe { &*__recv_ptr }.self_(); __result };
+    let __right = root.clone();
+    let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+    let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
+    __eq
+}))); let __go_print_value = println!("{} {} {} {}", format!("{}", {
+    let __left = (*c.lock().unwrap().as_ref().unwrap()).parent.clone();
+    let __right = root.clone();
+    let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+    let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
+    __eq
+}), format!("{}", (*(*(*c.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     { let new_val = "renamed".to_string(); *(*(*c.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*{ let __field = (*root.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
     let mut done = GoChannel::<bool>::new();

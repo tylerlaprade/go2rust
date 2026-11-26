@@ -1649,7 +1649,7 @@ fn main() {
 
     let mut byName = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Item>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(Item { name: Rc::new(RefCell::new(Some("a".to_string()))), count: Rc::new(RefCell::new(Some(1))), ..Default::default() }))).clone())]))));
     { let new_val = 5; *(*{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).count.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "map of pointers".to_string()), format!("{}", { let __v = (*{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {}", format!("{}", "map of pointers".to_string()), format!("{}", { let __v = (*{ let __map_holder = byName.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.borrow().as_ref().unwrap()).__go_value_clone(); __v }));
 
     let mut s: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(SquarePtr(Rc::new(RefCell::new(Some(Square { side: Rc::new(RefCell::new(Some(1))), ..Default::default() }))).clone())) as Box<dyn Shape>)));
     (*s.borrow_mut().as_mut().unwrap()).grow();

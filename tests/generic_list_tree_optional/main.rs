@@ -1459,7 +1459,8 @@ fn main() {
         let mut sum_closure_clone = sum_closure_clone.clone();
         { let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = sum_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()>))));
-    println!("{} {}", format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&(*nums.borrow().as_ref().unwrap()).slice())));
+    { let __go_print_arg_1 = (*nums.borrow().as_ref().unwrap()).slice();
+let mut __go_print_arg_1 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_1); Rc::new(RefCell::new(__slice_header)) }; let __go_print_value = println!("{} {}", format!("{}", { let __v = (*sum.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&__go_print_arg_1))); __go_print_value };
     let mut root: Rc<RefCell<Option<Tree__int>>> = Rc::new(RefCell::new(None));
     for v in vec![5i64, 3i64, 8i64, 1i64, 4i64].iter().copied() {
         { let new_val = __go_nil_recv_tree__int_insert(root.clone(), Rc::new(RefCell::new(Some(v.clone())))).clone(); root = new_val; };

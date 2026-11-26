@@ -935,12 +935,12 @@ fn main() {
     println!("{} {} {}", format!("{}", "in an interface".to_string()), format!("{}", (*shape.borrow().as_ref().unwrap()).area()), format!("{}", (*r.borrow().as_ref().unwrap()).area()));
 
     let mut q = p.clone();
-    let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut c = Rc::new(RefCell::new(Some({ let __v = (*q.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     { let new_val = 100; *(*c.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "read through a pointer".to_string()), format!("{}", (*p.borrow().as_ref().unwrap())), format!("{}", (*c.borrow().as_ref().unwrap())));
 
     let mut d: Rc<RefCell<Option<Point>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = { let __v = (*q.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone(); *d.borrow_mut() = Some(new_val); };
+    { let new_val = { let __v = (*q.borrow().as_ref().unwrap()).__go_value_clone(); __v }; *d.borrow_mut() = Some(new_val); };
     { let new_val = 200; *(*d.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "assigned through a pointer".to_string()), format!("{}", (*p.borrow().as_ref().unwrap())), format!("{}", (*d.borrow().as_ref().unwrap())));
 

@@ -1284,6 +1284,14 @@ run_xfail_test() {
     run_test "tests/defined_byte_slice_conversions_goroutines"
 }
 
+@test "deref_value_copies" {
+    run_test "tests/deref_value_copies"
+}
+
+@test "deref_value_copies_goroutines" {
+    run_test "tests/deref_value_copies_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }
@@ -3370,6 +3378,14 @@ run_xfail_test() {
 
 @test "print_nil_interface_value_goroutines" {
     run_test "tests/print_nil_interface_value_goroutines"
+}
+
+@test "print_operands_read_after_calls" {
+    run_test "tests/print_operands_read_after_calls"
+}
+
+@test "print_operands_read_after_calls_goroutines" {
+    run_test "tests/print_operands_read_after_calls_goroutines"
 }
 
 @test "print_self_referencing_value_goroutines" {

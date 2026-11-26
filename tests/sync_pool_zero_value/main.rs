@@ -790,7 +790,7 @@ fn main() {
     __go_init_all();
     let mut m = get();
     { let new_val = 3; *(*m.borrow().as_ref().unwrap()).steps.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", (*(*m.borrow().as_ref().unwrap()).steps.borrow().as_ref().unwrap())), format!("{}", { let __nil_result = (*(*machines.borrow_mut().as_mut().unwrap()).get().borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }));
+    { let __go_print_arg_1 = Rc::new(RefCell::new(Some({ let __nil_result = (*(*machines.borrow_mut().as_mut().unwrap()).get().borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }))); let __go_print_value = println!("{} {}", format!("{}", (*(*m.borrow().as_ref().unwrap()).steps.borrow().as_ref().unwrap())), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
     (*machines.borrow_mut().as_mut().unwrap()).put(m.clone());
 }
 

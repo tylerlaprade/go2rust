@@ -1382,7 +1382,7 @@ pub fn first(items: Rc<RefCell<Option<Vec<Item>>>>) {
     println!("{} {} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(1) as usize].clone().title.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*items.borrow().as_ref().unwrap())[(1) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", (*{ let __ptr_value = (*h.borrow().as_ref().unwrap()).p.borrow(); __ptr_value.as_ref().unwrap().price.clone() }.borrow().as_ref().unwrap())));
     { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), (0) as usize)); (*h.borrow_mut().as_mut().unwrap()).p = new_val; };
     { let new_val = 99; *{ let __ptr_value = (*h.borrow().as_ref().unwrap()).p.with_mut(|__ptr_value| __ptr_value.price.clone()); __ptr_value }.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __ptr_value = (*h.borrow().as_ref().unwrap()).p.borrow(); __ptr_value.as_ref().unwrap().clone() }));
+    println!("{} {}", format!("{}", (*(*items.borrow().as_ref().unwrap())[(0) as usize].clone().price.borrow().as_ref().unwrap())), format!("{}", { let __ptr_value = (*h.borrow().as_ref().unwrap()).p.borrow(); __ptr_value.as_ref().unwrap().__go_value_clone() }));
 }
 
 pub fn second(items: Rc<RefCell<Option<Vec<Item>>>>) {

@@ -551,7 +551,7 @@ fn main() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *keys.lock().unwrap() = __slice_header; };
     }
     sort::strings(keys.clone());
-    println!("{} {} {} {}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&keys)), format!("{}", lookup(Arc::new(Mutex::new(Some("a".to_string()))))), format!("{}", lookup(Arc::new(Mutex::new(Some("z".to_string()))))));
+    { let __go_print_arg_1 = lookup(Arc::new(Mutex::new(Some("a".to_string())))); let __go_print_arg_2 = lookup(Arc::new(Mutex::new(Some("z".to_string())))); let __go_print_value = println!("{} {} {} {}", format!("{}", { let __v = (*total.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&keys)), format!("{}", __go_print_arg_1), format!("{}", __go_print_arg_2)); __go_print_value };
     let mut round = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*round.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } {
         { let __sync_value = (*wg.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.add(2);
