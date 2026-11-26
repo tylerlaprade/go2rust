@@ -52,6 +52,19 @@ func channelElementIsHandleOption(ch ast.Expr) bool {
 	if channelElementIsGoError(ch) {
 		return true
 	}
+	if _, ok := channelFuncElementType(ch); ok {
+		return true
+	}
+	_, ok := channelInterfaceElementType(ch)
+	return ok
+}
+
+// channelElementFillsNewHandle reports whether each value received from ch
+// goes into a handle of its own: a channel of an interface or of funcs.
+func channelElementFillsNewHandle(ch ast.Expr) bool {
+	if _, ok := channelFuncElementType(ch); ok {
+		return true
+	}
 	_, ok := channelInterfaceElementType(ch)
 	return ok
 }
@@ -65,6 +78,9 @@ func channelReceiveFillsHandleOf(ch ast.Expr, target types.Type) bool {
 	if channelElementIsGoError(ch) {
 		return isGoErrorType(target)
 	}
+	if elem, ok := channelFuncElementType(ch); ok {
+		return types.Identical(elem, target)
+	}
 	elem, ok := channelInterfaceElementType(ch)
 	return ok && types.Identical(elem, target)
 }
@@ -74,6 +90,9 @@ func channelReceiveFillsHandleOf(ch ast.Expr, target types.Type) bool {
 func channelHandleOptionPayloadType(ch ast.Expr) string {
 	if channelElementIsGoError(ch) {
 		return rustErrorPayloadType()
+	}
+	if elem, ok := channelFuncElementType(ch); ok {
+		return goTypesTypeToRust(elem)
 	}
 	elem, _ := channelInterfaceElementType(ch)
 	return goTypesTypeToRust(elem)
@@ -93,6 +112,9 @@ func interfaceChannelElemTypeToRust(elem types.Type) (string, bool) {
 func channelElemTypeExprToRust(elem ast.Expr) string {
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if rustType, ok := interfaceChannelElemTypeToRust(typeInfo.GetType(elem)); ok {
+			return rustType
+		}
+		if rustType, ok := funcChannelElemTypeToRust(typeInfo.GetType(elem)); ok {
 			return rustType
 		}
 	}
@@ -162,7 +184,7 @@ func writeInterfaceChannelReceiveHandle(out *strings.Builder, expr ast.Expr) boo
 	if !ok || unary.Op.String() != "<-" {
 		return false
 	}
-	if _, ok := channelInterfaceElementType(unary.X); !ok {
+	if !channelElementFillsNewHandle(unary.X) {
 		return false
 	}
 	writeErrorHandleFromChannelReceive(out, unary.X)

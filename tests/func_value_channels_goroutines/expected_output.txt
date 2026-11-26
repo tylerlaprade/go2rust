@@ -1,0 +1,14 @@
+started
+literal
+named variable
+true true changed
+true false
+31
+from a goroutine
+2 1 100 1
+7
+selected
+true false
+5
+0x
+1x

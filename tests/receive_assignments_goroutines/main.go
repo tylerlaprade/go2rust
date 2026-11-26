@@ -121,6 +121,20 @@ func main() {
 	}
 	fmt.Println(i, __go_recv_value_1)
 
+	fc := make(chan func() string, 2)
+	fc <- func() string { return "first" }
+	fc <- func() string { return "second" }
+	h.fn = func() string { return "outer" }
+	select {
+	case h.fn = <-fc:
+	}
+	fmt.Println(h.fn())
+	close(fc)
+	f := h.fn
+	for f = range fc {
+	}
+	fmt.Println(f())
+
 	pc := make(chan holder, 1)
 	pc <- holder{n: 42}
 	var hv holder

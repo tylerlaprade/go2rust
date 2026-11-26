@@ -10286,7 +10286,7 @@ func prepareSelectOperands(out *strings.Builder, clauses []*ast.CommClause) []se
 			name = freshParallelAssignmentTempName(fmt.Sprintf("__go_select_value_%d", i))
 			operands[i].value = name
 			fmt.Fprintf(out, "let mut %s = Some(", name)
-			if !writeInterfaceChannelSendValue(out, channel, value) {
+			if !writeInterfaceChannelSendValue(out, channel, value) && !writeFuncChannelSendValue(out, channel, value) {
 				transpileChannelValue(out, value)
 			}
 			out.WriteString(");\n    ")
@@ -12795,6 +12795,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// cannot be nil: an empty one is sent.
 			out.WriteString("Default::default()")
 		} else if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
+		} else if writeFuncChannelSendValue(out, s.Chan, s.Value) {
 		} else if writeChannelHandleCopy(out, s.Value, nil) {
 		} else if typeInfo != nil && typeInfo.IsChannel(s.Chan) {
 			// The value being sent needs to be unwrapped from its wrapper
@@ -15990,7 +15991,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if isChannel {
 			// A value received from a channel of an interface gets a handle
 			// of its own, like any other interface variable.
-			_, isInterfaceChannel := channelInterfaceElementType(s.X)
+			isInterfaceChannel := channelElementFillsNewHandle(s.X)
 			// Register value variable as range loop var
 			if s.Key != nil {
 				if ident, ok := s.Key.(*ast.Ident); ok && ident.Name != "_" {

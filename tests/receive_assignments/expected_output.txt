@@ -11,4 +11,6 @@ boom bang
 9
 1 [true false]
 2 kept
+first
+second
 42
