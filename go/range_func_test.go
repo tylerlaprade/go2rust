@@ -142,11 +142,11 @@ func main() { f() }
 `)
 	runner := strings.Index(rust, "__defer_stack.push(")
 	call := strings.Index(rust, "count(Rc::new")
-	push := strings.Index(rust, "__rf_prev_")
+	push := strings.Index(rust, "__rf_call_")
 	if runner < 0 || call < 0 || push < 0 || runner > call || push < call {
 		t.Fatalf("the function should defer running the loop's defers before the loop, and the body should push onto them:\n%s", rust)
 	}
-	if strings.Count(rust, "__defer_stack.push(") != 1 {
+	if strings.Contains(rust[call:], "__defer_stack.push(") {
 		t.Fatalf("the yield function should not defer on a stack of its own:\n%s", rust)
 	}
 }

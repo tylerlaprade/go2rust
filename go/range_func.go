@@ -284,6 +284,25 @@ func (r *rangeFuncRewrite) assign(lhs ast.Expr, rhs ast.Expr, pos token.Pos) ast
 	return &ast.AssignStmt{Lhs: []ast.Expr{lhs}, TokPos: pos, Tok: token.ASSIGN, Rhs: []ast.Expr{rhs}}
 }
 
+// rangeOverFuncBodyDefers reports whether s is a range over a function
+// whose body has a defer outside a function literal.
+func rangeOverFuncBodyDefers(s *ast.RangeStmt) bool {
+	if _, ok := rangeFuncYieldSignature(s.X); !ok {
+		return false
+	}
+	found := false
+	ast.Inspect(s.Body, func(n ast.Node) bool {
+		switch n.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.DeferStmt:
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
 // emptySignature is the type func().
 var emptySignature = types.NewSignatureType(nil, nil, nil, nil, nil, false)
 
@@ -297,38 +316,56 @@ func (r *rangeFuncRewrite) funcLit(body ...ast.Stmt) *ast.FuncLit {
 	return lit
 }
 
-// callStmt gives the statement fun(), of a fun of type func().
-func (r *rangeFuncRewrite) callStmt(fun ast.Expr) ast.Stmt {
-	call := &ast.CallExpr{Fun: fun, Lparen: r.pos, Rparen: r.pos}
-	r.typeInfo.info.Types[call] = types.TypeAndValue{Type: types.NewTuple()}
-	return &ast.ExprStmt{X: call}
-}
-
 // rewriteDefer writes a defer in the body as the push of the deferred call
 // onto the defers of the function the outermost loop is in:
 //
-//	__rf_arg_0 := x; __rf_prev := __rf_defers[0]; __rf_defers[0] = func() { f(__rf_arg_0); __rf_prev() }
+//	__rf_fn := fn; __rf_arg_0 := x
+//	__rf_call := func() { __rf_fn(__rf_arg_0) }
+//	__rf_defers[0] = append(__rf_defers[0], __rf_call)
 //
-// The arguments are evaluated where the defer is, as Go does; a constant
-// argument is left as it is. The deferred calls run last first, from the
-// defer of the function that deferredRunner adds before the loop.
+// A function value that is not a declared function, a builtin or a method
+// is evaluated where the defer is, and so are the arguments, as Go does; a
+// constant argument is left as it is, and each result of a call that is
+// the only argument gets a name of its own. The pushed calls are run by the
+// defer that deferredRunner adds before the loop.
 func (r *rangeFuncRewrite) rewriteDefer(s *ast.DeferStmt) (ast.Stmt, bool) {
 	owner := r
 	for owner.deferOwner != nil {
 		owner = owner.deferOwner
 	}
 	callType, ok := r.typeInfo.info.Types[s.Call]
-	if !ok || s.Call.Ellipsis != token.NoPos {
+	if !ok {
 		return nil, false
 	}
 	if owner.deferred == nil {
-		owner.deferred, owner.deferredDecl = owner.newVar("__rf_defers_"+owner.suffix, types.NewArray(emptySignature, 1))
+		owner.deferred, owner.deferredDecl = owner.newVar("__rf_defers_"+owner.suffix, types.NewArray(types.NewSlice(emptySignature), 1))
+		if scope := scopeAtPos(r.typeInfo.pkg, owner.pos); scope != nil {
+			scope.Insert(owner.deferred)
+		}
 	}
 	owner.deferCount++
 	at := owner.suffix + "_" + itoaRangeFunc(owner.deferCount)
 	var list []ast.Stmt
-	call := &ast.CallExpr{Fun: s.Call.Fun, Lparen: s.Call.Lparen, Rparen: s.Call.Rparen}
+	define := func(rhs ast.Expr, vars ...*types.Var) {
+		lhs := make([]ast.Expr, len(vars))
+		for i, v := range vars {
+			ident := &ast.Ident{NamePos: r.pos, Name: v.Name()}
+			r.typeInfo.info.Defs[ident] = v
+			lhs[i] = ident
+		}
+		list = append(list, &ast.AssignStmt{Lhs: lhs, TokPos: r.pos, Tok: token.DEFINE, Rhs: []ast.Expr{rhs}})
+	}
+	call := &ast.CallExpr{Fun: s.Call.Fun, Lparen: s.Call.Lparen, Ellipsis: s.Call.Ellipsis, Rparen: s.Call.Rparen}
 	r.typeInfo.info.Types[call] = callType
+	if !r.deferredFuncIsStatic(s.Call.Fun) {
+		funType, ok := r.typeInfo.info.Types[s.Call.Fun]
+		if !ok || funType.Type == nil {
+			return nil, false
+		}
+		fn := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_fn_"+at, funType.Type)
+		define(s.Call.Fun, fn)
+		call.Fun = r.use(fn)
+	}
 	for i, arg := range s.Call.Args {
 		tv, ok := r.typeInfo.info.Types[arg]
 		if !ok || tv.Type == nil {
@@ -338,18 +375,35 @@ func (r *rangeFuncRewrite) rewriteDefer(s *ast.DeferStmt) (ast.Stmt, bool) {
 			call.Args = append(call.Args, arg)
 			continue
 		}
+		if tuple, ok := tv.Type.(*types.Tuple); ok {
+			// f(g()) of a g with several results.
+			vars := make([]*types.Var, tuple.Len())
+			for j := range vars {
+				vars[j] = types.NewVar(r.pos, r.typeInfo.pkg, "__rf_arg_"+at+"_"+itoaRangeFunc(i)+"_"+itoaRangeFunc(j), tuple.At(j).Type())
+				call.Args = append(call.Args, r.use(vars[j]))
+			}
+			define(arg, vars...)
+			continue
+		}
 		v := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_arg_"+at+"_"+itoaRangeFunc(i), tv.Type)
-		name := &ast.Ident{NamePos: r.pos, Name: v.Name()}
-		r.typeInfo.info.Defs[name] = v
-		list = append(list, &ast.AssignStmt{Lhs: []ast.Expr{name}, TokPos: r.pos, Tok: token.DEFINE, Rhs: []ast.Expr{arg}})
+		define(arg, v)
 		call.Args = append(call.Args, r.use(v))
 	}
-	prev := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_prev_"+at, emptySignature)
-	prevName := &ast.Ident{NamePos: r.pos, Name: prev.Name()}
-	r.typeInfo.info.Defs[prevName] = prev
-	list = append(list,
-		&ast.AssignStmt{Lhs: []ast.Expr{prevName}, TokPos: r.pos, Tok: token.DEFINE, Rhs: []ast.Expr{owner.resultSlot(owner.deferred)}},
-		owner.assign(owner.resultSlot(owner.deferred), r.funcLit(&ast.ExprStmt{X: call}, r.callStmt(r.use(prev))), r.pos))
+	pushed := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_call_"+at, emptySignature)
+	define(r.funcLit(&ast.ExprStmt{X: call}), pushed)
+	// append is checked as written, which records it as the builtin.
+	slot := owner.resultSlot(owner.deferred)
+	appendCall := &ast.CallExpr{Fun: &ast.Ident{NamePos: r.pos, Name: "append"}, Lparen: r.pos, Args: []ast.Expr{&ast.IndexExpr{X: &ast.Ident{NamePos: r.pos, Name: owner.deferred.Name()}, Lbrack: r.pos, Index: r.intLit(0), Rbrack: r.pos}, &ast.Ident{NamePos: r.pos, Name: pushed.Name()}}, Rparen: r.pos}
+	scope := scopeAtPos(r.typeInfo.pkg, owner.pos)
+	if scope == nil {
+		return nil, false
+	}
+	scope.Insert(pushed)
+	err := types.CheckExpr(token.NewFileSet(), r.typeInfo.pkg, owner.pos, appendCall, r.typeInfo.info)
+	if err != nil {
+		return nil, false
+	}
+	list = append(list, owner.assign(slot, appendCall, r.pos))
 	// The statements take the defer's place in its list, not a block of
 	// their own: a closure's captures are taken before the statement that
 	// holds it, after the names it captures are declared.
@@ -358,15 +412,56 @@ func (r *rangeFuncRewrite) rewriteDefer(s *ast.DeferStmt) (ast.Stmt, bool) {
 	return block, true
 }
 
+// deferredFuncIsStatic reports whether the function a deferred call calls
+// is the same whenever it is read: a declared function, a builtin, a
+// function literal, or a method, whose receiver is still read when the
+// defer runs.
+func (r *rangeFuncRewrite) deferredFuncIsStatic(fun ast.Expr) bool {
+	switch f := ast.Unparen(fun).(type) {
+	case *ast.FuncLit:
+		return true
+	case *ast.Ident:
+		switch r.typeInfo.info.Uses[f].(type) {
+		case *types.Func, *types.Builtin:
+			return true
+		}
+	case *ast.SelectorExpr:
+		if sel := r.typeInfo.info.Selections[f]; sel != nil {
+			return sel.Kind() == types.MethodVal
+		}
+		_, isFunc := r.typeInfo.info.Uses[f.Sel].(*types.Func)
+		return isFunc
+	}
+	return false
+}
+
 // deferredRunner gives the statements before the loop that declare its
-// defers and defer running them: var __rf_defers [1]func();
-// __rf_defers[0] = func() {}; defer func() { __rf_defers[0]() }().
+// defers and defer running them:
+//
+//	var __rf_defers [1][]func()
+//	defer func() { for _, f := range __rf_defers[0] { defer f() } }()
+//
+// Each pushed call is a defer of the runner, so they run last first, and a
+// panic in one does not keep the others from running.
 func (r *rangeFuncRewrite) deferredRunner() []ast.Stmt {
-	runner := &ast.CallExpr{Fun: r.funcLit(r.callStmt(r.resultSlot(r.deferred))), Lparen: r.pos, Rparen: r.pos}
+	f := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_f_"+r.suffix, emptySignature)
+	fIdent := &ast.Ident{NamePos: r.pos, Name: f.Name()}
+	r.typeInfo.info.Defs[fIdent] = f
+	deferCall := &ast.CallExpr{Fun: r.use(f), Lparen: r.pos, Rparen: r.pos}
+	r.typeInfo.info.Types[deferCall] = types.TypeAndValue{Type: types.NewTuple()}
+	loop := &ast.RangeStmt{
+		For:    r.pos,
+		Key:    &ast.Ident{NamePos: r.pos, Name: "_"},
+		Value:  fIdent,
+		TokPos: r.pos,
+		Tok:    token.DEFINE,
+		X:      r.resultSlot(r.deferred),
+		Body:   &ast.BlockStmt{Lbrace: r.pos, List: []ast.Stmt{&ast.DeferStmt{Defer: r.pos, Call: deferCall}}, Rbrace: r.pos},
+	}
+	runner := &ast.CallExpr{Fun: r.funcLit(loop), Lparen: r.pos, Rparen: r.pos}
 	r.typeInfo.info.Types[runner] = types.TypeAndValue{Type: types.NewTuple()}
 	return []ast.Stmt{
 		r.deferredDecl,
-		r.assign(r.resultSlot(r.deferred), r.funcLit(), r.pos),
 		&ast.DeferStmt{Defer: r.pos, Call: runner},
 	}
 }
@@ -503,6 +598,7 @@ func (r *rangeFuncRewrite) rewriteList(list []ast.Stmt, inLoop bool, inSwitch bo
 	for _, stmt := range list {
 		rewritten := r.rewriteStmt(stmt, inLoop, inSwitch)
 		if block, ok := rewritten.(*ast.BlockStmt); ok && rangeFuncSplices[block] {
+			delete(rangeFuncSplices, block)
 			out = append(out, block.List...)
 			continue
 		}

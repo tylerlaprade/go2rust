@@ -4,7 +4,9 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
+use std::fmt::{Display};
 use std::rc::{Rc};
 
 /// A Go slice: an offset, a length and a capacity over a backing array that
@@ -678,6 +680,204 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        go_float_string(*v, false)
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        go_float_string(*v as f64, true)
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            Err(__payload) => std::panic::resume_unwind(__payload),
+        }
+    }
+}
+
+fn go_float_string(__value: f64, __single: bool) -> String {
+    // The names are prefixed: this helper is at the crate root, where a Go
+    // package variable of the same name would be a static it cannot shadow.
+    if __value.is_nan() {
+        return "NaN".to_string();
+    }
+    if __value.is_infinite() {
+        return if __value < 0.0 { "-Inf".to_string() } else { "+Inf".to_string() };
+    }
+    let __sign = if __value.is_sign_negative() { "-" } else { "" };
+    let __shortest = if __single { format!("{:e}", __value.abs() as f32) } else { format!("{:e}", __value.abs()) };
+    let (__mantissa, __exponent_text) = __shortest.split_once('e').unwrap();
+    let __digits: String = __mantissa.chars().filter(|__c| __c.is_ascii_digit()).collect();
+    let __exponent: i32 = __exponent_text.parse().unwrap();
+    if __exponent < -4 || __exponent >= 6 {
+        let mut __text = String::from(__sign);
+        __text.push_str(&__digits[..1]);
+        if __digits.len() > 1 {
+            __text.push('.');
+            __text.push_str(&__digits[1..]);
+        }
+        __text.push('e');
+        __text.push(if __exponent < 0 { '-' } else { '+' });
+        __text.push_str(&format!("{:02}", __exponent.abs()));
+        return __text;
+    }
+    if __exponent < 0 {
+        return format!("{}0.{}{}", __sign, "0".repeat((-__exponent - 1) as usize), __digits);
+    }
+    let __whole = (__exponent + 1) as usize;
+    if __digits.len() <= __whole {
+        return format!("{}{}{}", __sign, __digits, "0".repeat(__whole - __digits.len()));
+    }
+    format!("{}{}.{}", __sign, &__digits[..__whole], &__digits[__whole..])
+}
+
+// A value inside a slice or a map prints as fmt prints it: a float through
+// go_float_string, anything else through its Display. The element type may
+// borrow, so it is recognized by name rather than by TypeId.
+fn go_display_value<T: Display>(__value: &T) -> String {
+    let __name = std::any::type_name::<T>();
+    if __name == "f64" {
+        // T is f64.
+        return go_float_string(unsafe { *(__value as *const T as *const f64) }, false);
+    }
+    if __name == "f32" {
+        // T is f32.
+        return go_float_string(unsafe { *(__value as *const T as *const f32) } as f64, true);
+    }
+    __value.to_string()
+}
 
 pub fn seq3(r#yield: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>>>>) {
     let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -696,38 +896,64 @@ pub fn pairs(r#yield: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>
 pub fn f() {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
         println!("{}", format!("{}", "first defer".to_string()));
     }));
-    let mut __rf_done_1: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
-    let mut __rf_defers_1: Rc<RefCell<Option<[Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
-    { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_1.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    let __rf_defers_1_defer_captured = __rf_defers_1.clone(); __defer_stack.push(Box::new(move || {
+        let mut __rf_done_1: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
+        let mut __rf_defers_1: Rc<RefCell<Option<[Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Vec::nil()))));
+        let __rf_defers_1_defer_captured = __rf_defers_1.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __f_holder = (*__rf_defers_1_defer_captured.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for __rf_f_1 in (*__rf_defers_1_defer_captured.borrow().as_ref().unwrap())[(0) as usize].clone().iter().cloned() {
+        let __rf_f_1_defer_captured = __rf_f_1.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_f_1_defer_captured.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+    }
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-    let __rf_defers_1_closure_clone = __rf_defers_1.clone(); seq3(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_1_0: Rc<RefCell<Option<i64>>>| -> bool {
+        let __rf_defers_1_closure_clone = __rf_defers_1.clone(); seq3(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_1_0: Rc<RefCell<Option<i64>>>| -> bool {
         let mut i = { let __owned = __rf_param_1_0.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
         let mut __rf_arg_1_1_1 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-        let mut __rf_prev_1_1 = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[(0) as usize].clone().clone();
-        let __rf_arg_1_1_1_closure_clone = __rf_arg_1_1_1.clone(); let __rf_prev_1_1_closure_clone = __rf_prev_1_1.clone(); { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __rf_arg_1_1_1_closure_clone = __rf_arg_1_1_1.clone(); let mut __rf_call_1_1 = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {}", format!("{}", "deferred".to_string()), format!("{}", { let __v = (*__rf_arg_1_1_1_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_prev_1_1_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_1_1.clone(); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         if (*i.borrow().as_ref().unwrap()) == 1 {
-        let mut __rf_prev_1_2 = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[(0) as usize].clone().clone();
-        let __rf_prev_1_2_closure_clone = __rf_prev_1_2.clone(); let i_closure_clone = i.clone(); { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
+        let i_closure_clone = i.clone(); let mut __rf_call_1_2 = Rc::new(RefCell::new(Some(Box::new(move || {
         let i_closure_clone_closure_clone = i_closure_clone.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {}", format!("{}", "closure at".to_string()), format!("{}", { let __v = (*i_closure_clone_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_prev_1_2_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_1_2.clone(); let mut __appended = (*__rf_defers_1_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
-    if (*__rf_done_1.borrow().as_ref().unwrap()) {
+        if (*__rf_done_1.borrow().as_ref().unwrap()) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -736,14 +962,32 @@ pub fn f() {
         return;
     }
     }
-    __defer_stack.push(Box::new(move || {
+        __defer_stack.push(Box::new(move || {
         println!("{}", format!("{}", "last defer".to_string()));
     }));
-    println!("{}", format!("{}", "after loop".to_string()));
+        println!("{}", format!("{}", "after loop".to_string()));
 
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            ()
+        }
     }
 }
 
@@ -752,26 +996,53 @@ pub fn g() -> i64 {
 
     let mut n: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
-    let mut __rf_done_2: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
-    let mut __rf_result_2_0: Rc<RefCell<Option<[i64; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| 0))));
-    let mut __rf_defers_2: Rc<RefCell<Option<[Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
-    { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_2.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    let __rf_defers_2_defer_captured = __rf_defers_2.clone(); __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut __rf_done_2: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
+        let mut __rf_result_2_0: Rc<RefCell<Option<[i64; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| 0))));
+        let mut __rf_defers_2: Rc<RefCell<Option<[Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Vec::nil()))));
+        let __rf_defers_2_defer_captured = __rf_defers_2.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let __f_holder = (*__rf_defers_2_defer_captured.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for __rf_f_2 in (*__rf_defers_2_defer_captured.borrow().as_ref().unwrap())[(0) as usize].clone().iter().cloned() {
+        let __rf_f_2_defer_captured = __rf_f_2.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_f_2_defer_captured.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+    }
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-    let __rf_defers_2_closure_clone = __rf_defers_2.clone(); let mut __rf_done_2_closure_clone = __rf_done_2.clone(); let __rf_result_2_0_closure_clone = __rf_result_2_0.clone(); let n_closure_clone = n.clone(); pairs(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_2_0: Rc<RefCell<Option<String>>>, __rf_param_2_1: Rc<RefCell<Option<i64>>>| -> bool {
+        let __rf_defers_2_closure_clone = __rf_defers_2.clone(); let mut __rf_done_2_closure_clone = __rf_done_2.clone(); let __rf_result_2_0_closure_clone = __rf_result_2_0.clone(); let n_closure_clone = n.clone(); pairs(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_2_0: Rc<RefCell<Option<String>>>, __rf_param_2_1: Rc<RefCell<Option<i64>>>| -> bool {
         let (mut k, mut v) = ({ let __owned = __rf_param_2_0.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }, { let __owned = __rf_param_2_1.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) });
         let mut __rf_arg_2_1_0 = { let __owned = k.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-        let mut __rf_prev_2_1 = (*__rf_defers_2_closure_clone.borrow().as_ref().unwrap())[(0) as usize].clone().clone();
-        let __rf_arg_2_1_0_closure_clone = __rf_arg_2_1_0.clone(); let __rf_prev_2_1_closure_clone = __rf_prev_2_1.clone(); let n_closure_clone_closure_clone = n_closure_clone.clone(); { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __rf_arg_2_1_0_closure_clone = __rf_arg_2_1_0.clone(); let n_closure_clone_closure_clone = n_closure_clone.clone(); let mut __rf_call_2_1 = Rc::new(RefCell::new(Some(Box::new(move || {
         let n_closure_clone_closure_clone_closure_clone = n_closure_clone_closure_clone.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
         println!("{} {} {}", format!("{}", "pair".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n_closure_clone_closure_clone_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_holder = __rf_arg_2_1_0_closure_clone.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))) };
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_prev_2_1_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_2_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_2_1.clone(); let mut __appended = (*__rf_defers_2_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_done_3: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
         let mut __rf_result_3_0: Rc<RefCell<Option<[i64; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| 0))));
         let __rf_defers_2_closure_clone_closure_clone = __rf_defers_2_closure_clone.clone(); let k_closure_clone = k.clone(); seq3(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_3_0: Rc<RefCell<Option<i64>>>| -> bool {
@@ -779,11 +1050,10 @@ pub fn g() -> i64 {
         if (*i.borrow().as_ref().unwrap()) == 2 {
         let mut __rf_arg_2_2_1 = { let __owned = k_closure_clone.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
         let mut __rf_arg_2_2_2 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-        let mut __rf_prev_2_2 = (*__rf_defers_2_closure_clone_closure_clone.borrow().as_ref().unwrap())[(0) as usize].clone().clone();
-        let __rf_arg_2_2_1_closure_clone = __rf_arg_2_2_1.clone(); let __rf_arg_2_2_2_closure_clone = __rf_arg_2_2_2.clone(); let __rf_prev_2_2_closure_clone = __rf_prev_2_2.clone(); { let __idx = (0) as usize; let __rhs = Rc::new(RefCell::new(Some(Box::new(move || {
+        let __rf_arg_2_2_1_closure_clone = __rf_arg_2_2_1.clone(); let __rf_arg_2_2_2_closure_clone = __rf_arg_2_2_2.clone(); let mut __rf_call_2_2 = Rc::new(RefCell::new(Some(Box::new(move || {
         println!("{} {} {}", format!("{}", "inner".to_string()), format!("{}", { let __v = (*__rf_arg_2_2_1_closure_clone.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__rf_arg_2_2_2_closure_clone.borrow().as_ref().unwrap()).clone(); __v }));
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_prev_2_2_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    }) as Box<dyn FnMut() -> ()>))); (*__rf_defers_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_2_2.clone(); let mut __appended = (*__rf_defers_2_closure_clone_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
@@ -803,7 +1073,7 @@ pub fn g() -> i64 {
     }
         true
     }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> bool>))));
-    if (*__rf_done_2.borrow().as_ref().unwrap()) {
+        if (*__rf_done_2.borrow().as_ref().unwrap()) {
         {
         { let new_val = (*__rf_result_2_0.borrow().as_ref().unwrap())[(0) as usize].clone(); *n.borrow_mut() = Some(new_val); };;
         // Execute deferred functions
@@ -813,7 +1083,7 @@ pub fn g() -> i64 {
         return (*n.borrow().as_ref().unwrap());
     }
     }
-    {
+        {
         { let new_val = -1; *n.borrow_mut() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -821,9 +1091,174 @@ pub fn g() -> i64 {
         }
         return (*n.borrow().as_ref().unwrap());
     }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            (*n.borrow().as_ref().unwrap())
+        }
+    }
+}
+
+pub fn pair() -> (Rc<RefCell<Option<String>>>, i64) {
+    (Rc::new(RefCell::new(Some("p".to_string()))), 7)
+}
+
+pub fn record(s: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i64>>>) {
+    println!("{} {} {}", format!("{}", "record".to_string()), format!("{}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
+}
+
+pub fn show(prefix: Rc<RefCell<Option<String>>>, xs: Rc<RefCell<Option<Vec<i64>>>>) {
+    println!("{} {}", format!("{}", { let __v = (*prefix.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&xs)));
+}
+
+pub fn picker(name: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>>>> {
+    println!("{} {}", format!("{}", "pick".to_string()), format!("{}", { let __v = (*name.borrow().as_ref().unwrap()).clone(); __v }));
+    let name_closure_clone = name.clone(); return Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>| {
+        println!("{} {} {}", format!("{}", "picked".to_string()), format!("{}", { let __v = (*name_closure_clone.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>)));
+}
+
+/// h defers calls whose function and arguments are evaluated at the defer:
+/// a call with two results as the arguments, a slice passed on with ...,
+/// and a function that a call returns. A deferred panic does not keep the
+/// calls deferred before it from running.
+pub fn h() {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        println!("{} {}", format!("{}", "recovered".to_string()), format!("{}", match (go_recover()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        let mut act = Rc::new(RefCell::new(Some(Box::new(move |i: Rc<RefCell<Option<i64>>>| {
+        println!("{} {}", format!("{}", "act".to_string()), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>)));
+        let mut xs = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
+        let mut __rf_done_4: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
+        let mut __rf_defers_4: Rc<RefCell<Option<[Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Vec::nil()))));
+        let __rf_defers_4_defer_captured = __rf_defers_4.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for __rf_f_4 in (*__rf_defers_4_defer_captured.borrow().as_ref().unwrap())[(0) as usize].clone().iter().cloned() {
+        let __rf_f_4_defer_captured = __rf_f_4.clone(); __defer_stack.push(Box::new(move || {
+        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __rf_f_4_defer_captured.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+    }
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
+    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }));
+        let __rf_defers_4_closure_clone = __rf_defers_4.clone(); let act_closure_clone = act.clone(); let xs_closure_clone = xs.clone(); seq3(Rc::new(RefCell::new(Some(Box::new(move |__rf_param_4_0: Rc<RefCell<Option<i64>>>| -> bool {
+        let mut i = { let __owned = __rf_param_4_0.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+        let (mut __rf_arg_4_1_0_0, mut __rf_arg_4_1_0_1) = pair();
+        let __rf_arg_4_1_0_0_closure_clone = __rf_arg_4_1_0_0.clone(); let __rf_arg_4_1_0_1_closure_clone = __rf_arg_4_1_0_1.clone(); let mut __rf_call_4_1 = Rc::new(RefCell::new(Some(Box::new(move || {
+        record(Rc::new(RefCell::new(Some({ let __arg_holder = __rf_arg_4_1_0_0_closure_clone.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(__rf_arg_4_1_0_1_closure_clone))));
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_1.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        let mut __rf_arg_4_2_1 = Rc::new(RefCell::new(xs_closure_clone.borrow().clone()));
+        let __rf_arg_4_2_1_closure_clone = __rf_arg_4_2_1.clone(); let mut __rf_call_4_2 = Rc::new(RefCell::new(Some(Box::new(move || {
+        show(Rc::new(RefCell::new(Some("xs".to_string()))), __rf_arg_4_2_1.clone());
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_2.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        let mut __rf_fn_4_3 = act_closure_clone.clone();
+        let mut __rf_arg_4_3_0 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+        let __rf_arg_4_3_0_closure_clone = __rf_arg_4_3_0.clone(); let __rf_fn_4_3_closure_clone = __rf_fn_4_3.clone(); let mut __rf_call_4_3 = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = __rf_fn_4_3_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(__rf_arg_4_3_0_closure_clone.clone()) };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_3.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        let mut __rf_fn_4_4 = picker(Rc::new(RefCell::new(Some("at".to_string()))));
+        let mut __rf_arg_4_4_0 = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
+        let __rf_arg_4_4_0_closure_clone = __rf_arg_4_4_0.clone(); let __rf_fn_4_4_closure_clone = __rf_fn_4_4.clone(); let mut __rf_call_4_4 = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = __rf_fn_4_4_closure_clone.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(__rf_arg_4_4_0_closure_clone.clone()) };
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_4.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        if (*i.borrow().as_ref().unwrap()) == 0 {
+        let mut __rf_call_4_5 = Rc::new(RefCell::new(Some(Box::new(move || {
+        println!("{}", format!("{}", "cleanup".to_string()));
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_5.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }
+        if (*i.borrow().as_ref().unwrap()) == 2 {
+        let mut __rf_call_4_6 = Rc::new(RefCell::new(Some(Box::new(move || -> () {
+        panic!("boom");
+    }) as Box<dyn FnMut() -> ()>)));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = __rf_call_4_6.clone(); let mut __appended = (*__rf_defers_4_closure_clone.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    }
+        true
+    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> bool>))));
+        if (*__rf_done_4.borrow().as_ref().unwrap()) {
+        {
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+        return;
+    }
+    }
+        { let __idx = (0) as usize; let __rhs = 9; (*xs.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+        println!("{}", format!("{}", "h after loop".to_string()));
+
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            ()
+        }
+    }
 }
 
 fn main() {
+    h();
     f();
     println!("{} {}", format!("{}", "g:".to_string()), format!("{}", g()));
 }

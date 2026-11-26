@@ -1,3 +1,21 @@
+pick at
+pick at
+pick at
+h after loop
+picked at 2
+act 2
+xs [9 2]
+record p 7
+picked at 1
+act 1
+xs [9 2]
+record p 7
+cleanup
+picked at 0
+act 0
+xs [9 2]
+record p 7
+recovered boom
 after loop
 last defer
 deferred 2

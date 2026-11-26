@@ -44,7 +44,43 @@ func g() (n int) {
 	return -1
 }
 
+func pair() (string, int) { return "p", 7 }
+
+func record(s string, n int) { fmt.Println("record", s, n) }
+
+func show(prefix string, xs ...int) { fmt.Println(prefix, xs) }
+
+func picker(name string) func(int) {
+	fmt.Println("pick", name)
+	return func(i int) { fmt.Println("picked", name, i) }
+}
+
+// h defers calls whose function and arguments are evaluated at the defer:
+// a call with two results as the arguments, a slice passed on with ...,
+// and a function that a call returns. A deferred panic does not keep the
+// calls deferred before it from running.
+func h() {
+	defer func() { fmt.Println("recovered", recover()) }()
+	act := func(i int) { fmt.Println("act", i) }
+	xs := []int{1, 2}
+	for i := range seq3 {
+		defer record(pair())
+		defer show("xs", xs...)
+		defer act(i)
+		defer picker("at")(i)
+		if i == 0 {
+			defer fmt.Println("cleanup")
+		}
+		if i == 2 {
+			defer panic("boom")
+		}
+	}
+	xs[0] = 9
+	fmt.Println("h after loop")
+}
+
 func main() {
+	h()
 	f()
 	fmt.Println("g:", g())
 }
