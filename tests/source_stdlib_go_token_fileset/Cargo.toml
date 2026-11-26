@@ -2,7 +2,6 @@
 [workspace]
 members = [
     ".",
-    "vendor/cmp",
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_token",
     "vendor/internal_abi",
@@ -12,7 +11,6 @@ members = [
     "vendor/internal_sync",
     "vendor/math",
     "vendor/math_bits",
-    "vendor/slices",
     "vendor/strconv",
     "vendor/sync",
     "vendor/sync_atomic",
@@ -33,7 +31,6 @@ path = "main.rs"
 overflow-checks = false
 
 [dependencies]
-cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_token = { path = "vendor/go_token" }
 internal_abi = { path = "vendor/internal_abi" }
@@ -43,7 +40,6 @@ internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_sync = { path = "vendor/internal_sync" }
 math = { path = "vendor/math" }
 math_bits = { path = "vendor/math_bits" }
-slices = { path = "vendor/slices" }
 strconv = { path = "vendor/strconv" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }

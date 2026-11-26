@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"os"
@@ -560,4 +562,142 @@ func (i stdlibInlineImporter) Import(path string) (*types.Package, error) {
 		return dep.Types, nil
 	}
 	return i.base.Import(path)
+}
+
+// stdlibPackagesWithGenericCopies returns the source of each file, by path,
+// of the standard-library packages under main that are translated from
+// source and call slices or maps, rewritten with copies of what they call
+// (DEV-223). sort.Ints calls slices.Sort, which as a Rust generic over the
+// stub did not compile. Only the copies are written once per
+// instantiation: a package keeps its own generics, for its importers to
+// instantiate. A package the rewrite does not apply to is left out.
+func stdlibPackagesWithGenericCopies(main *packages.Package) map[string][]byte {
+	if os.Getenv("GO2RUST_GENERIC_RUST") == "1" {
+		return nil
+	}
+	loaded := loadedPackagesByPath(main)
+	paths := make([]string, 0, len(loaded))
+	for path, pkg := range loaded {
+		if pkg == main || !isStdlibPackage(path) || !shouldTranspileStdlibPackage(path) {
+			continue
+		}
+		if _, copied := stdlibGenericInlinePrefixes[path]; copied {
+			continue
+		}
+		_, slices := pkg.Imports["slices"]
+		_, maps := pkg.Imports["maps"]
+		if slices || maps {
+			paths = append(paths, path)
+		}
+	}
+	sort.Strings(paths)
+	isCopy := func(name string) bool {
+		for _, prefix := range stdlibGenericInlinePrefixes {
+			if strings.HasPrefix(name, prefix) {
+				return true
+			}
+		}
+		return false
+	}
+	out := map[string][]byte{}
+	for _, path := range paths {
+		pkg := loaded[path]
+		imp := loadedPackagesImporter{loaded: loaded}
+		inlined, deps, ok := inlineStdlibGenerics(pkg, pkg.Fset, imp)
+		if !ok {
+			continue
+		}
+		checkImp := stdlibInlineImporter{base: imp, deps: deps}
+		files, ok := monomorphizeGenericsMatching(pkg.PkgPath, inlined, pkg.Fset, checkImp, isCopy)
+		if !ok {
+			stdlibInlineDebugf("%s: the copies do not monomorphize", path)
+			continue
+		}
+		sources := map[string][]byte{}
+		for i, file := range files {
+			if i >= len(pkg.Syntax) || i >= len(pkg.CompiledGoFiles) || !fileCallsCopies(file) {
+				continue
+			}
+			if fileHasCompileDirectives(pkg.Syntax[i]) {
+				sources = nil
+				break
+			}
+			var buf bytes.Buffer
+			file.Comments = nil
+			cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
+			if err := cfg.Fprint(&buf, pkg.Fset, file); err != nil {
+				sources = nil
+				break
+			}
+			sources[pkg.CompiledGoFiles[i]] = buf.Bytes()
+		}
+		for name, content := range sources {
+			out[name] = content
+		}
+	}
+	return out
+}
+
+// fileCallsCopies reports whether file declares or calls a copy.
+func fileCallsCopies(file *ast.File) bool {
+	found := false
+	ast.Inspect(file, func(n ast.Node) bool {
+		if ident, ok := n.(*ast.Ident); ok && !found {
+			for _, prefix := range stdlibGenericInlinePrefixes {
+				if strings.HasPrefix(ident.Name, prefix) {
+					found = true
+				}
+			}
+		}
+		return !found
+	})
+	return found
+}
+
+// fileHasCompileDirectives reports whether file has a directive that
+// printing it again without comments would lose: //go:linkname,
+// //go:embed, //line or cgo. //go:build and //go:generate do not matter
+// once the file is in the build.
+func fileHasCompileDirectives(file *ast.File) bool {
+	for _, group := range file.Comments {
+		for _, comment := range group.List {
+			if strings.HasPrefix(comment.Text, "//go:") && !strings.HasPrefix(comment.Text, "//go:build") && !strings.HasPrefix(comment.Text, "//go:generate") {
+				return true
+			}
+			if strings.HasPrefix(comment.Text, "//line ") {
+				return true
+			}
+		}
+	}
+	for _, spec := range file.Imports {
+		if spec.Path != nil && spec.Path.Value == `"C"` {
+			return true
+		}
+	}
+	return false
+}
+
+// loadedPackagesImporter resolves imports to the packages of one load.
+type loadedPackagesImporter struct {
+	loaded map[string]*packages.Package
+}
+
+func (i loadedPackagesImporter) Import(path string) (*types.Package, error) {
+	if pkg, ok := i.loaded[path]; ok && pkg.Types != nil {
+		return pkg.Types, nil
+	}
+	return nil, fmt.Errorf("package %q is not loaded", path)
+}
+
+// packagesHaveErrors reports whether a package of the load under main whose
+// files were rewritten has errors.
+func packagesHaveErrors(main *packages.Package, rewritten map[string][]byte) bool {
+	for _, pkg := range loadedPackagesByPath(main) {
+		for _, name := range pkg.CompiledGoFiles {
+			if _, ok := rewritten[name]; ok && len(pkg.Errors) > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
