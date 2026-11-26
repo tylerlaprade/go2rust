@@ -1,0 +1,11 @@
+[package]
+name = "range_over_func_defers_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_over_func_defers_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

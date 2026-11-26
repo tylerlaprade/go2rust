@@ -2137,6 +2137,11 @@ func checkStmtHasDefer(stmt ast.Stmt) bool {
 	case *ast.ForStmt:
 		return s.Body != nil && checkHasDefer(s.Body.List)
 	case *ast.RangeStmt:
+		// A range over a function defers the running of its body's defers,
+		// an unlock among them, on the function's own stack (range_func.go).
+		if s.Body != nil && rangeOverFuncBodyDefers(s) {
+			return true
+		}
 		return s.Body != nil && checkHasDefer(s.Body.List)
 	case *ast.SwitchStmt:
 		return checkHasDeferClauses(s.Body)
