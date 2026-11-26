@@ -1232,7 +1232,7 @@ pub fn must_string(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<St
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
-            { let new_val = Rc::new(RefCell::new(Some(format!("{}{}", format!("{}", "panic: ".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }))))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *out_defer_captured.borrow_mut() = __moved_val; };;
+            { let new_val = Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", "panic: ".to_string())); let __print_is_string_0 = true; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = r.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))); let __moved_val = { let mut __guard = new_val.borrow_mut(); __guard.take() }; *out_defer_captured.borrow_mut() = __moved_val; };;
         }
     }
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };

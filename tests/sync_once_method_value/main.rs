@@ -15,6 +15,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Ar
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -27,7 +36,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), __nil_text)
                 }
             })
             .collect();
