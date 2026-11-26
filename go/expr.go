@@ -1342,11 +1342,8 @@ func writePointerDerefSequenceIndexValue(out *strings.Builder, expr ast.Expr, in
 	out.WriteString("{ let __seq = ")
 	// Only one element is read, and it must be the element itself: a
 	// pointer method called on (*a)[i] runs on (*a)[i], and a read of it
-	// as a value applies its own copy.
-	prevShared := pointeeReadSharesStorage
-	pointeeReadSharesStorage = unwrapParens(expr)
+	// as a value applies its own copy (storageDerefs).
 	TranspileExpression(out, expr)
-	pointeeReadSharesStorage = prevShared
 	out.WriteString("; __seq[")
 	writeExpressionAsUsize(out, index)
 	out.WriteString("].clone() }")
@@ -8035,16 +8032,18 @@ func writeCurrentReceiverDerefRead(out *strings.Builder, expr ast.Expr, target a
 	if !ok || !isCurrentReceiverIdent(ident) {
 		return false
 	}
+	// (*s).f and (*s).M() read the receiver itself (storageDerefs).
+	copies := expressionNeedsGoValueClone(expr) && !storageDerefs[unwrapParens(expr)]
 	if currentReceiverRustAlias != "" {
 		out.WriteString(currentReceiverRustAlias)
-		if expressionNeedsGoValueClone(expr) {
+		if copies {
 			out.WriteString(".__go_value_clone()")
 		} else {
 			out.WriteString(".clone()")
 		}
 		return true
 	}
-	if expressionNeedsGoValueClone(expr) {
+	if copies {
 		out.WriteString("(*self).__go_value_clone()")
 	} else {
 		out.WriteString("(*self).clone()")
@@ -8165,7 +8164,7 @@ func writePackageGlobalPointerPointee(out *strings.Builder, ident *ast.Ident) {
 }
 
 func writePackageGlobalPointerDerefRead(out *strings.Builder, ident *ast.Ident, expr ast.Expr) {
-	if expressionNeedsGoValueClone(expr) {
+	if expressionNeedsGoValueClone(expr) && !storageDerefs[unwrapParens(expr)] {
 		writePackageGlobalPointerPointee(out, ident)
 		out.WriteString(".__go_value_clone()")
 		return
@@ -14997,7 +14996,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		case token.MUL: // * - dereference
 			if ident, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 				if ctx == RValue {
-					writeSliceElemPtrDerefRead(out, ident)
+					writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeSliceElemPtrDerefRead(b, ident); return true })
 				} else {
 					writeSliceElemPtrDerefLValue(out, ident)
 				}
@@ -15005,7 +15004,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if ident, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
 				if ctx == RValue {
-					writeArrayElemPtrDerefRead(out, ident)
+					writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeArrayElemPtrDerefRead(b, ident); return true })
 				} else {
 					writeArrayElemPtrDerefLValue(out, ident)
 				}
@@ -15013,7 +15012,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if ident, ok := e.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
 				if ctx == RValue {
-					writeGoPtrDerefRead(out, ident)
+					writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeGoPtrDerefRead(b, ident); return true })
 				} else {
 					out.WriteString(`unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`)
 				}
@@ -15030,10 +15029,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writePackageGlobalPointerDerefRead(out, ident, e)
 					break
 				}
-				if writeGoPtrCallDerefRead(out, e.X) {
+				if writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { return writeGoPtrCallDerefRead(b, e.X) }) {
 					break
 				}
-				if writeGoPtrFieldDerefRead(out, e.X) {
+				if writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { return writeGoPtrFieldDerefRead(b, e.X) }) {
 					break
 				}
 				writePointeeValueCopy(out, e, e.X)
@@ -15091,7 +15090,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	case *ast.StarExpr:
 		if ident, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 			if ctx == RValue {
-				writeSliceElemPtrDerefRead(out, ident)
+				writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeSliceElemPtrDerefRead(b, ident); return true })
 			} else {
 				writeSliceElemPtrDerefLValue(out, ident)
 			}
@@ -15099,7 +15098,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		if ident, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
 			if ctx == RValue {
-				writeArrayElemPtrDerefRead(out, ident)
+				writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeArrayElemPtrDerefRead(b, ident); return true })
 			} else {
 				writeArrayElemPtrDerefLValue(out, ident)
 			}
@@ -15107,13 +15106,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		if ident, ok := e.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
 			if ctx == RValue {
-				writeGoPtrDerefRead(out, ident)
+				writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { writeGoPtrDerefRead(b, ident); return true })
 			} else {
 				out.WriteString(`unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`)
 			}
 			break
 		}
-		if writeGoPtrSlotDerefRead(out, e) {
+		if ctx == RValue && writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { return writeGoPtrSlotDerefRead(b, e) }) {
+			break
+		}
+		if ctx != RValue && writeGoPtrSlotDerefRead(out, e) {
 			break
 		}
 		// Dereference pointer - unwrap the wrapper to get T
@@ -15128,10 +15130,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writePackageGlobalPointerDerefRead(out, ident, e)
 				break
 			}
-			if writeGoPtrCallDerefRead(out, e.X) {
+			if writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { return writeGoPtrCallDerefRead(b, e.X) }) {
 				break
 			}
-			if writeGoPtrFieldDerefRead(out, e.X) {
+			if writeDerefReadAsGoCopy(out, e, func(b *strings.Builder) bool { return writeGoPtrFieldDerefRead(b, e.X) }) {
 				break
 			}
 			if writeUnsafePointerFunctionDerefValue(out, e) {

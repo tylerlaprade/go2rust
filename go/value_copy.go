@@ -401,18 +401,15 @@ func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
 	return goValueCopyCallForExpr(ident)
 }
 
-// pointeeReadSharesStorage is the dereference being written as the operand
-// of an index, which reads the pointee's storage rather than a copy of it.
-var pointeeReadSharesStorage ast.Expr
-
 // writePointeeValueCopy writes the value of deref, the dereference of the
 // pointer pointer, as Go's copy of the pointee. The pointee's Clone is a
 // second handle on the same struct, so "bump(*p)" changed *p through its
 // parameter; a dereference read as a value is a Go copy wherever it is used.
 func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Expr) {
-	copyCall := ".clone()"
-	if typeInfo := GetTypeInfo(); typeInfo != nil && deref != pointeeReadSharesStorage {
-		copyCall = goValueCopyCallForType(typeInfo.GetType(deref))
+	copyCall, known := pointeeValueCopyCall(deref)
+	if !known {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
 	}
 	out.WriteString("{ let __v = (*")
 	TranspileExpressionContext(out, pointer, LValue)
@@ -420,4 +417,47 @@ func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Exp
 	out.WriteString(".as_ref().unwrap())")
 	out.WriteString(copyCall)
 	out.WriteString("; __v }")
+}
+
+// pointeeValueCopyCall is what to append to the pointee of the dereference
+// deref to read it: Go's copy of its type, or Clone for a dereference that
+// a selector or an index reads through (storageDerefs). Without type
+// information for the program it is Clone, as every read was before; with
+// it but without a type for deref, known is false and the caller writes
+// goValueCopyNeedsTypeInfo instead of guessing.
+func pointeeValueCopyCall(deref ast.Expr) (call string, known bool) {
+	if storageDerefs[unwrapParens(deref)] {
+		return ".clone()", true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return ".clone()", true
+	}
+	typ := typeInfo.GetType(deref)
+	if typ == nil {
+		return "", false
+	}
+	return goValueCopyCallForType(typ), true
+}
+
+// writeDerefReadAsGoCopy writes the dereference read that write produces
+// and reports whether it wrote one. Those reads, of a pointer held in a
+// GoPtr, a slot or a slice element's cell, end in the pointee's Clone; the
+// copy of deref's type takes its place, as in writePointeeValueCopy.
+func writeDerefReadAsGoCopy(out *strings.Builder, deref ast.Expr, write func(*strings.Builder) bool) bool {
+	var read strings.Builder
+	if !write(&read) {
+		return false
+	}
+	text := read.String()
+	if copyCall, known := pointeeValueCopyCall(deref); known && copyCall != ".clone()" {
+		for _, tail := range []string{" }", "; __v }"} {
+			if strings.HasSuffix(text, ".clone()"+tail) {
+				text = strings.TrimSuffix(text, ".clone()"+tail) + copyCall + tail
+				break
+			}
+		}
+	}
+	out.WriteString(text)
+	return true
 }

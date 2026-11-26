@@ -83,4 +83,19 @@ func main() {
 	var one [1]P
 	one[0].N = 1
 	fmt.Println(bumpFirst(&one), one[0].N)
+
+	// A pointer to a slice element: the value read through it is a copy,
+	// and a pointer method called through it changes the element.
+	elems := []P{{N: 1}}
+	pe := &elems[0]
+	fmt.Println(bump(*pe).N, elems[0].N)
+	(*pe).Inc()
+	fmt.Println(elems[0].N)
+
+	// A method of an interface called through a pointer to it.
+	var g Getter = P{N: 8}
+	pg := &g
+	fmt.Println((*pg).Get())
 }
+
+type Getter interface{ Get() int }

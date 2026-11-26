@@ -3525,7 +3525,7 @@ func TranspileSource(source string) (string, error) {
 
 func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo, packageMapping map[string]string) (string, *ImportTracker, map[string]bool) {
 	stripCallSelectorParens(file)
-	stripPointerDerefSelectorOperands(file, typeInfo)
+	markStorageDerefs(file)
 	// Each file numbers its operand temporaries from 1, so a file's Rust
 	// does not depend on the files written before it.
 	binaryRightOperandTempCount = 0

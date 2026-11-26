@@ -743,6 +743,6 @@ fn main() {
     println!("{} {} {} {}", format!("{}", { let __v = (*w.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*v.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __recv = f(); let __result = (*__recv.borrow().as_ref().unwrap()).twice(); __result }), format!("{}", (*(*f().borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).clone()));
     println!("{} {} {}", format!("{}", (*(*p().borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", { let __recv = p(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).bump(); __result }), format!("{}", (*(*p().borrow().as_ref().unwrap()).s.borrow().as_ref().unwrap()).clone()));
     let mut q = Rc::new(RefCell::new(Some(rec { n: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
-    println!("{} {}", format!("{}", (*(*q.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*(*(q).borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*((*q.borrow_mut().as_mut().unwrap())).n.borrow().as_ref().unwrap())), format!("{}", (*(*(q).borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
     { let new_val = 9; *(*p().borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
 }
