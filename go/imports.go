@@ -4194,6 +4194,23 @@ impl<T: Clone> GoSliceElemPtr<T> {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let mut value = {
+            let guard = self.slice.lock().unwrap();
+            guard.as_ref().and_then(|values| values.get(self.index).cloned()).expect("nil pointer dereference")
+        };
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&mut value)));
+        {
+            let mut guard = self.slice.lock().unwrap();
+            let values = guard.as_mut().expect("nil pointer dereference");
+            values[self.index] = value;
+        }
+        match result {
+            Ok(result) => result,
+            Err(payload) => std::panic::resume_unwind(payload),
+        }
+    }
 }
 
 impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
@@ -4464,7 +4481,10 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
         }
     }
 
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R
+    where
+        T: Clone,
+    {
         match self {
             GoPtr::Nil => panic!("nil pointer dereference"),
             GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
@@ -4472,11 +4492,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
                 let mut guard = slot.lock().unwrap();
                 f(guard.as_mut().unwrap())
             }
-            GoPtr::SliceElem(slot) => {
-                let mut guard = slot.slice.lock().unwrap();
-                let values = guard.as_mut().expect("nil pointer dereference");
-                f(values.get_mut(slot.index).expect("nil pointer dereference"))
-            }
+            GoPtr::SliceElem(slot) => slot.with_mut(f),
             GoPtr::ArrayElem(slot) => {
                 let mut result = None;
                 let mut callback = Some(f);
@@ -4734,6 +4750,23 @@ impl<T: Clone> GoSliceElemPtr<T> {
             slice: self.slice.clone(),
             index: self.index,
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        let mut value = {
+            let guard = self.slice.borrow();
+            guard.as_ref().and_then(|values| values.get(self.index).cloned()).expect("nil pointer dereference")
+        };
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&mut value)));
+        {
+            let mut guard = self.slice.borrow_mut();
+            let values = guard.as_mut().expect("nil pointer dereference");
+            values[self.index] = value;
+        }
+        match result {
+            Ok(result) => result,
+            Err(payload) => std::panic::resume_unwind(payload),
         }
     }
 }
@@ -5006,7 +5039,10 @@ impl<T: 'static> GoPtr<T> {
         }
     }
 
-    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R
+    where
+        T: Clone,
+    {
         match self {
             GoPtr::Nil => panic!("nil pointer dereference"),
             GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
@@ -5014,11 +5050,7 @@ impl<T: 'static> GoPtr<T> {
                 let mut guard = slot.borrow_mut();
                 f(guard.as_mut().unwrap())
             }
-            GoPtr::SliceElem(slot) => {
-                let mut guard = slot.slice.borrow_mut();
-                let values = guard.as_mut().expect("nil pointer dereference");
-                f(values.get_mut(slot.index).expect("nil pointer dereference"))
-            }
+            GoPtr::SliceElem(slot) => slot.with_mut(f),
             GoPtr::ArrayElem(slot) => {
                 let mut result = None;
                 let mut callback = Some(f);
