@@ -737,7 +737,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add(goSliceImportNames...)
 	}
 	if ht.needsFormatMap {
-		add("format_map")
+		add("format_map", "format_map_nil")
 	}
 	if ht.needsFormatSlice {
 		add("format_slice", "format_slice_values", "format_slice_wrapped")

@@ -1,0 +1,11 @@
+[package]
+name = "print_interface_strings_and_nil_slices"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_interface_strings_and_nil_slices"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

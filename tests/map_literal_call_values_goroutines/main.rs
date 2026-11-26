@@ -687,6 +687,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Ar
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -699,7 +708,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), __nil_text)
                 }
             })
             .collect();
@@ -1176,7 +1185,7 @@ fn main() {
     { let __map_key = "b".to_string(); let __map_value = mk_a(); (*c.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "q".to_string(); let __map_value = mk_r(); (*d.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "p2".to_string(); let __map_value = Arc::new(Mutex::new(Some(P { x: Arc::new(Mutex::new(Some(2))), ..Default::default() }))); (*a.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{} {} {} {} {} {} {}", format!("{}", format_map(&a)), format!("{}", format_map(&b)), format!("{}", format_map(&d)), format!("{}", format_map(&e)), format!("{}", ({ let __len = (*c.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", format_slice_values(&{ let __map = { let __map_holder = c.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| std::array::from_fn::<_, 2, _>(|_| 0)) })), format!("{}", format_slice_values(&{ let __map = { let __map_holder = c.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| std::array::from_fn::<_, 2, _>(|_| 0)) })));
+    println!("{} {} {} {} {} {} {}", format!("{}", format_map(&a)), format!("{}", format_map(&b)), format!("{}", format_map(&d)), format!("{}", format_map_nil(&e, "[]")), format!("{}", ({ let __len = (*c.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", format_slice_values(&{ let __map = { let __map_holder = c.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| std::array::from_fn::<_, 2, _>(|_| 0)) })), format!("{}", format_slice_values(&{ let __map = { let __map_holder = c.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| std::array::from_fn::<_, 2, _>(|_| 0)) })));
 
     let mut s = Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()])));
     let mut g = Arc::new(Mutex::new(Some(vec![vec!["c".to_string()]])));

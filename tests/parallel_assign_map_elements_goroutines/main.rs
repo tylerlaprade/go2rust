@@ -17,6 +17,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Ar
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -29,7 +38,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), __nil_text)
                 }
             })
             .collect();
@@ -526,9 +535,9 @@ fn main() {
         (*__go_lhs_map_0.lock().unwrap().as_mut().unwrap()).insert(__go_lhs_key_0, __tmp_0);
         (*__go_lhs_map_1.lock().unwrap().as_mut().unwrap()).insert(__go_lhs_key_1, __tmp_1);
     };
-    println!("{}", format!("{}", format_map(&mm)));
+    println!("{}", format!("{}", format_map_nil(&mm, "[]")));
     { let __idx = (0) as usize; let __rhs = 7; (*{ let __map = { let __map_holder = mm.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{}", format!("{}", format_map(&mm)));
+    println!("{}", format!("{}", format_map_nil(&mm, "[]")));
     let mut ms = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<String>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some("x".to_string())))), ("b".to_string(), Arc::new(Mutex::new(Some("y".to_string()))))]))));
     {
         let __go_lhs_map_0 = ms.clone();
