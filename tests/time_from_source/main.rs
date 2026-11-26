@@ -709,8 +709,8 @@ fn main() {
     }
     println!("{} {}", format!("{}", "ticks".to_string()), format!("{}", { let __v = (*ticks.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut done = GoChannel::<String>::new();
-    let done_closure_clone = done.clone(); time::after_func(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some(time::MILLISECOND as i64))))))), Arc::new(Mutex::new(Some(Box::new(move || {
+    let done_closure_clone = done.clone(); time::after_func(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some(time::MILLISECOND as i64))))))), Arc::new(Mutex::new(Some(Arc::new(move || {
         done_closure_clone.send("fired".to_string());
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 }

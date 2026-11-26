@@ -19,7 +19,7 @@ func main() {
 	}
 }
 `)
-	if !strings.Contains(rust, "let __f_ptr: *mut Box<dyn FnMut(") {
+	if !strings.Contains(rust, "let __f: Rc<dyn Fn(") {
 		t.Errorf("the call should go through the function's Box:\n%s", rust)
 	}
 	if strings.Contains(rust, "*mut Op") {

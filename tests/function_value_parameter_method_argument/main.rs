@@ -680,6 +680,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 #[derive(Debug, Clone, Default)]
 pub struct recorder {
 }
@@ -699,20 +724,21 @@ impl std::fmt::Display for recorder {
 
 
 impl recorder {
-    pub fn r#use(&self, record: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>) {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = record.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("method".to_string())))) };
+    pub fn r#use(&self, record: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>) {
+        { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = record.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("method".to_string())))) };
     }
 }
 
-pub fn relay(record: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>) {
+pub fn relay(record: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>) {
     let mut r: Rc<RefCell<Option<recorder>>> = Rc::new(RefCell::new(Some(Default::default())));
-    (*r.borrow().as_ref().unwrap()).r#use(record.clone());
+    (*r.borrow().as_ref().unwrap()).r#use(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(record)))));
 }
 
 fn main() {
     let mut out = Rc::new(RefCell::new(Some("".to_string())));
-    let mut out_closure_clone = out.clone(); relay(Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
+    let mut out_closure_clone = out.clone(); relay(Rc::new(RefCell::new(Some(Rc::new(move |s: Rc<RefCell<Option<String>>>| {
+        let mut out_closure_clone = out_closure_clone.clone();
         { let new_val = s.borrow().as_ref().unwrap().clone(); *out_closure_clone.borrow_mut() = Some(new_val); };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>))));
     println!("{}", format!("{}", { let __v = (*out.borrow().as_ref().unwrap()).clone(); __v }));
 }

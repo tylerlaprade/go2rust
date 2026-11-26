@@ -44,8 +44,8 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let _ = go_types::api::Config {
-        error: Arc::new(Mutex::new(Some(Box::new(move |err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>| {
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> () + Send + Sync>))),
+        error: Arc::new(Mutex::new(Some(Arc::new(move |err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>| {
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) -> () + Send + Sync>))),
         ..Default::default()
     };
     println!("{}", format!("{}", "ok".to_string()));

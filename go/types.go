@@ -1022,13 +1022,7 @@ func generateClosureType(funcType *ast.FuncType) string {
 
 	// Build the closure type
 	paramsStr := strings.Join(paramTypes, ", ")
-	if NeedsConcurrentWrapper() {
-		// For concurrent code, closures need Send + Sync.
-		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
-	} else {
-		// For single-threaded code, no Send + Sync requirement.
-		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
-	}
+	return funcValueRustType(paramsStr, returnType)
 }
 
 func fixedArrayLengthFromTypeInfo(arrayType *ast.ArrayType) (int64, bool) {
@@ -2350,10 +2344,7 @@ func signatureToBoxDynFnWithIndexedParamShape(sig *types.Signature, paramType fu
 	}
 
 	paramsStr := strings.Join(paramTypes, ", ")
-	if NeedsConcurrentWrapper() {
-		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
-	}
-	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+	return funcValueRustType(paramsStr, returnType)
 }
 
 func signatureToGoPtrAwareBoxDynFn(sig *types.Signature, infos map[int]goPtrResultInfo, paramType func(types.Type) string) string {

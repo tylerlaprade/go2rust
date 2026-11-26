@@ -1228,20 +1228,17 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     } }
     println!("{} {}", format!("{}", ({ let __len = (*results.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }));
 
-    let mu_closure_clone = mu.clone(); let mut total_closure_clone = total.clone(); let mut r#do = Arc::new(Mutex::new(Some(Box::new(move || {
+    let mu_closure_clone = mu.clone(); let mut total_closure_clone = total.clone(); let mut r#do = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut total_closure_clone = total_closure_clone.clone();
         let __mutex_guard_source_1064 = mu_closure_clone.clone(); let __mutex_guard_1064 = __mutex_guard_source_1064.guard();
         // mu.Unlock() handled by RAII guard
         { let mut guard = total_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         {
-            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-                let mut __f_guard = r#do.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = r#do.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };

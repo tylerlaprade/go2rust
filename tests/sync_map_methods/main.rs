@@ -1027,11 +1027,10 @@ impl sync_Map {
     }
 
     /// Calls f on a snapshot of the entries, so f may change the map.
-    pub fn range(&self, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn Any>>>>) -> bool>>>>) {
+    pub fn range(&self, f: Rc<RefCell<Option<std::rc::Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn Any>>>>) -> bool>>>>) {
         let entries: Vec<(Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn Any>>>>)> = self.__go_entries.borrow_mut().values().map(|entry| (entry.key.handle(), entry.value.handle())).collect();
         for (key, value) in entries {
-            let mut guard = f.borrow_mut();
-            let call = guard.as_mut().expect("call of nil function");
+            let call = f.borrow().as_ref().expect("call of nil function").clone();
             if !call(key, value) {
                 break;
             }
@@ -1097,10 +1096,11 @@ fn main() {
     { let (__tmp_0, __tmp_1) = { let __sync_value = (*m.borrow().as_ref().unwrap()).clone(); __sync_value }.load("a".to_string()); ok = __tmp_1; };
     println!("{}", format!("{}", ok));
     let mut count = Rc::new(RefCell::new(Some(0i64)));
-    let mut count_closure_clone = count.clone(); { let __sync_value = (*m.borrow().as_ref().unwrap()).clone(); __sync_value }.range(Rc::new(RefCell::new(Some(Box::new(move |k: Rc<RefCell<Option<Box<dyn Any>>>>, v: Rc<RefCell<Option<Box<dyn Any>>>>| -> bool {
+    let mut count_closure_clone = count.clone(); { let __sync_value = (*m.borrow().as_ref().unwrap()).clone(); __sync_value }.range(Rc::new(RefCell::new(Some(Rc::new(move |k: Rc<RefCell<Option<Box<dyn Any>>>>, v: Rc<RefCell<Option<Box<dyn Any>>>>| -> bool {
+        let mut count_closure_clone = count_closure_clone.clone();
         { let mut guard = count_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         true
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn Any>>>>) -> bool>))));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Any>>>>, Rc<RefCell<Option<Box<dyn Any>>>>) -> bool>))));
     println!("{}", format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
     let (mut old, __tmp_1) = { let __sync_value = (*m.borrow().as_ref().unwrap()).clone(); __sync_value }.load_and_delete("c".to_string()); loaded = __tmp_1;;
     println!("{} {}", format!("{}", match old.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", loaded));

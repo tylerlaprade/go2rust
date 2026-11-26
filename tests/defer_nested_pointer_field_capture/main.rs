@@ -740,9 +740,10 @@ impl writer {
 
         { let __target = (*self.p.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut w_defer_captured = w_defer_captured.clone();
         { let __target = (*w_defer_captured.p.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
         // Execute deferred functions

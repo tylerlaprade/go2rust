@@ -1214,14 +1214,14 @@ pub fn assert_without_check(value: Rc<RefCell<Option<Box<dyn Any>>>>) {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 // This will panic if assertion fails
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             print!("Panic recovered: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
         }
     }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
         let mut str = Rc::new(RefCell::new(Some(({

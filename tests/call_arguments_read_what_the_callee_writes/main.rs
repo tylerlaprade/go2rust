@@ -857,11 +857,12 @@ fn main() {
     set(m.clone(), Rc::new(RefCell::new(Some({ let __arg_value = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) } + 1; __arg_value }))));
     println!("{}", format!("{}", format_map(&m)));
     let mut x = Rc::new(RefCell::new(Some(1i64)));
-    let mut x_closure_clone = x.clone(); let mut inc = Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<i64>>>| {
+    let mut x_closure_clone = x.clone(); let mut inc = Rc::new(RefCell::new(Some(Rc::new(move |v: Rc<RefCell<Option<i64>>>| {
+        let mut x_closure_clone = x_closure_clone.clone();
         { let __rhs = (*v.borrow().as_ref().unwrap()); let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()>)));
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = inc.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) + 1; __arg_value })))) };
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> = { let mut __f_guard = inc.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) * 2; __arg_value })))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()>)));
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) + 1; __arg_value })))) };
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()> = inc.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap()) * 2; __arg_value })))) };
     println!("{}", format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }));
     let mut g = Rc::new(RefCell::new(Some(Grid { cells: Rc::new(RefCell::new(Some(vec![5i64, 6i64]))), ..Default::default() })));
     { let __method_args = (Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some((*(*g.borrow().as_ref().unwrap()).cells.borrow().as_ref().unwrap())[(1) as usize].clone() + 1))),); (*g.borrow_mut().as_mut().unwrap()).put(__method_args.0, __method_args.1) };

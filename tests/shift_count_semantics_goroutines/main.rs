@@ -1441,9 +1441,9 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         wg.wait();
 
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", { let __text = match (go_recover()).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         let mut neg = Arc::new(Mutex::new(Some((-1i64))));
         println!("{}", format!("{}", { let __shift_x = 1i64; let __shift_c = (({ let __v = (*neg.lock().unwrap().as_ref().unwrap()); __v })) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }));

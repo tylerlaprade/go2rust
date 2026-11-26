@@ -10,6 +10,32 @@ use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 pub(crate) const __SLICES_UNKNOWN_HINT: i64 = 0;
 pub(crate) const __SLICES_INCREASING_HINT: i64 = 1;
 pub(crate) const __SLICES_DECREASING_HINT: i64 = 2;
@@ -931,74 +957,74 @@ fn main() {
     ::math_bits::__go_init_all();
 
     let mut specs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("banana".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("apple".to_string()))), ..Default::default() }) as Box<dyn Spec>))), Rc::new(RefCell::new(Some(Box::new(Impl { name: Rc::new(RefCell::new(Some("cherry".to_string()))), ..Default::default() }) as Box<dyn Spec>)))])));
-    __slices__sort_func__slice__spec___spec(specs.clone(), Rc::new(RefCell::new(Some(Box::new(move |a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Option<Box<dyn Spec>>>>| -> i64 {
+    __slices__sort_func__slice__spec___spec(specs.clone(), Rc::new(RefCell::new(Some(Rc::new(move |a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Option<Box<dyn Spec>>>>| -> i64 {
         cmp_strings(get_name(a.clone()), get_name(b.clone()))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>))));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>))));
     { let __range_holder = specs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         println!("{}", format!("{}", (*(*s.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
     } }
 }
 
-pub fn __slices__sort_func__slice__spec___spec(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices__sort_func__slice__spec___spec(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut n = Rc::new(RefCell::new(Some(({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
-    __slices_pdqsort_cmp_func___spec(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), cmp.clone());
+    __slices_pdqsort_cmp_func___spec(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
 }
 
-pub fn __slices_pdqsort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut limit: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_pdqsort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut limit: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     const maxInsertion: i64 = 12;
 
     let mut wasBalanced = Rc::new(RefCell::new(Some(true)));let mut wasPartitioned = Rc::new(RefCell::new(Some(true)));
     loop {
         let mut length = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
         if (*length.borrow().as_ref().unwrap()) <= 12 {
-        __slices_insertion_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_insertion_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         return;
     }
         if (*limit.borrow().as_ref().unwrap()) == 0 {
-        __slices_heap_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_heap_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         return;
     }
         if !(*wasBalanced.borrow().as_ref().unwrap()) {
-        __slices_break_patterns_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_break_patterns_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let mut guard = limit.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         if (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_DECREASING_HINT as i64)))) {
-        __slices_reverse_range_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_reverse_range_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let new_val = ((*b.borrow().as_ref().unwrap()) - 1) - (pivot - (*a.borrow().as_ref().unwrap())); pivot = new_val; };
         { let new_val = __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))); *hint.borrow_mut() = Some(new_val); };
     }
         if (*wasBalanced.borrow().as_ref().unwrap()) && (*wasPartitioned.borrow().as_ref().unwrap()) && (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))) {
-        if __slices_partial_insertion_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone()) {
+        if __slices_partial_insertion_sort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))) {
         return;
     }
     }
-        if (*a.borrow().as_ref().unwrap()) > 0 && !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap()) - 1) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[(pivot) as usize].clone().clone()) } < 0) {
-        let mut mid = __slices_partition_equal_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), cmp.clone());
+        if (*a.borrow().as_ref().unwrap()) > 0 && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap()) - 1) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[(pivot) as usize].clone().clone()) } < 0) {
+        let mut mid = __slices_partition_equal_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let new_val = mid; *a.borrow_mut() = Some(new_val); };
         continue
     }
-        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), cmp.clone());
+        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let new_val = alreadyPartitioned; *wasPartitioned.borrow_mut() = Some(new_val); };
         let (mut leftLen, mut rightLen) = (Rc::new(RefCell::new(Some(mid - (*a.borrow().as_ref().unwrap())))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - mid))));
         let mut balanceThreshold = Rc::new(RefCell::new(Some((*length.borrow().as_ref().unwrap()) / 8)));
         if (*leftLen.borrow().as_ref().unwrap()) < (*rightLen.borrow().as_ref().unwrap()) {
         { let new_val = (*leftLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_pdqsort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let new_val = mid + 1; *a.borrow_mut() = Some(new_val); };
     } else {
         { let new_val = (*rightLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_pdqsort_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let new_val = mid; *b.borrow_mut() = Some(new_val); };
     }
     }
 }
 
-pub fn __slices_insertion_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_insertion_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut i = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + 1)));
     while (*i.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
         let mut j = { let __owned = i.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
-    while (*j.borrow().as_ref().unwrap()) > (*a.borrow().as_ref().unwrap()) && ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
+    while (*j.borrow().as_ref().unwrap()) > (*a.borrow().as_ref().unwrap()) && ({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
         {
             let __go_lhs_sequence_0 = data.clone();
             let __go_lhs_index_0 = ((*j.borrow().as_ref().unwrap())) as usize;
@@ -1015,13 +1041,13 @@ pub fn __slices_insertion_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<Re
     }
 }
 
-pub fn __slices_heap_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_heap_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut first = { let __owned = a.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     let mut lo = Rc::new(RefCell::new(Some(0i64)));
     let mut hi = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
     let mut i = Rc::new(RefCell::new(Some(((*hi.borrow().as_ref().unwrap()) - 1) / 2)));
     while (*i.borrow().as_ref().unwrap()) >= 0 {
-        __slices_sift_down_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_sift_down_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     let mut i = Rc::new(RefCell::new(Some((*hi.borrow().as_ref().unwrap()) - 1)));
@@ -1036,12 +1062,12 @@ pub fn __slices_heap_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell
             (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
             (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
         };
-        __slices_sift_down_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
+        __slices_sift_down_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
 }
 
-pub fn __slices_break_patterns_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_break_patterns_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut length = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
     if (*length.borrow().as_ref().unwrap()) >= 8 {
         let mut random = Rc::new(RefCell::new(Some(__slices_xorshift(Rc::new(RefCell::new(Some((*length.borrow().as_ref().unwrap()) as u64)))))));
@@ -1067,7 +1093,7 @@ pub fn __slices_break_patterns_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<Re
     }
 }
 
-pub fn __slices_choose_pivot_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, Rc<RefCell<Option<__slices_sortedHint>>>) {
+pub fn __slices_choose_pivot_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, Rc<RefCell<Option<__slices_sortedHint>>>) {
     let mut pivot: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut hint: Rc<RefCell<Option<__slices_sortedHint>>> = Rc::new(RefCell::new(Some(Default::default())));
 
@@ -1078,11 +1104,11 @@ const maxSwaps: i64 = 4 * 3;
     let mut swaps: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));let mut i = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 1)));let mut j = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 2)));let mut k = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 3)));
     if (*l.borrow().as_ref().unwrap()) >= 8 {
         if (*l.borrow().as_ref().unwrap()) >= 50 {
-        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *i.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *j.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *k.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *i.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *k.borrow_mut() = Some(new_val); };
     }
-        { let new_val = __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
     }
     { let _switch_val = (*swaps.borrow().as_ref().unwrap());
     if _switch_val == (0) {
@@ -1095,7 +1121,7 @@ const maxSwaps: i64 = 4 * 3;
     }
 }
 
-pub fn __slices_reverse_range_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_reverse_range_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut i = { let __owned = a.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     let mut j = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - 1)));
     while (*i.borrow().as_ref().unwrap()) < (*j.borrow().as_ref().unwrap()) {
@@ -1114,14 +1140,14 @@ pub fn __slices_reverse_range_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<Ref
     }
 }
 
-pub fn __slices_partial_insertion_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> bool {
+pub fn __slices_partial_insertion_sort_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> bool {
     const maxSteps: i64 = 5;
 const shortestShifting: i64 = 50;
 
     let mut i = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + 1)));
     let mut j = Rc::new(RefCell::new(Some(0i64)));
     while (*j.borrow().as_ref().unwrap()) < 5 {
-        while (*i.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) && !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
+        while (*i.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if (*i.borrow().as_ref().unwrap()) == (*b.borrow().as_ref().unwrap()) {
@@ -1143,7 +1169,7 @@ const shortestShifting: i64 = 50;
         if (*i.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()) >= 2 {
         let mut j = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) - 1)));
     while (*j.borrow().as_ref().unwrap()) >= 1 {
-        if !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
+        if !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
         break
     }
         {
@@ -1162,7 +1188,7 @@ const shortestShifting: i64 = 50;
         if (*b.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()) >= 2 {
         let mut j = Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()) + 1)));
     while (*j.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
-        if !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
+        if !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap()) - 1) as usize].clone().clone()) } < 0) {
         break
     }
         {
@@ -1183,7 +1209,7 @@ const shortestShifting: i64 = 50;
     false
 }
 
-pub fn __slices_partition_equal_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, pivot: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
+pub fn __slices_partition_equal_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, pivot: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
     let mut newpivot: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     {
@@ -1198,10 +1224,10 @@ pub fn __slices_partition_equal_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<R
     };
     let (mut i, mut j) = (Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + 1))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - 1))));
     loop {
-        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         if (*i.borrow().as_ref().unwrap()) > (*j.borrow().as_ref().unwrap()) {
@@ -1223,7 +1249,7 @@ pub fn __slices_partition_equal_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<R
     return (*i.borrow().as_ref().unwrap());
 }
 
-pub fn __slices_partition_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, pivot: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, bool) {
+pub fn __slices_partition_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, pivot: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, bool) {
     let mut newpivot: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut alreadyPartitioned: Rc<RefCell<Option<bool>>> = Rc::new(RefCell::new(Some(false)));
 
@@ -1238,10 +1264,10 @@ pub fn __slices_partition_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell
         (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
     };
     let (mut i, mut j) = (Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + 1))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - 1))));
-    while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+    while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+    while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     if (*i.borrow().as_ref().unwrap()) > (*j.borrow().as_ref().unwrap()) {
@@ -1270,10 +1296,10 @@ pub fn __slices_partition_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell
     { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     loop {
-        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && ({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*i.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+        while (*i.borrow().as_ref().unwrap()) <= (*j.borrow().as_ref().unwrap()) && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*j.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         if (*i.borrow().as_ref().unwrap()) > (*j.borrow().as_ref().unwrap()) {
@@ -1305,17 +1331,17 @@ pub fn __slices_partition_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell
     return ((*j.borrow().as_ref().unwrap()), false);
 }
 
-pub fn __slices_sift_down_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, lo: Rc<RefCell<Option<i64>>>, hi: Rc<RefCell<Option<i64>>>, first: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
+pub fn __slices_sift_down_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, lo: Rc<RefCell<Option<i64>>>, hi: Rc<RefCell<Option<i64>>>, first: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) {
     let mut root = { let __owned = lo.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     loop {
         let mut child = Rc::new(RefCell::new(Some(2 * (*root.borrow().as_ref().unwrap()) + 1)));
         if (*child.borrow().as_ref().unwrap()) >= (*hi.borrow().as_ref().unwrap()) {
         break
     }
-        if (*child.borrow().as_ref().unwrap()) + 1 < (*hi.borrow().as_ref().unwrap()) && ({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap()) + 1) as usize].clone().clone()) } < 0) {
+        if (*child.borrow().as_ref().unwrap()) + 1 < (*hi.borrow().as_ref().unwrap()) && ({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap()) + 1) as usize].clone().clone()) } < 0) {
         { let mut guard = child.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        if !({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*root.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
+        if !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*root.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*first.borrow().as_ref().unwrap()) + (*child.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0) {
         return;
     }
         {
@@ -1336,19 +1362,19 @@ pub fn __slices_next_power_of_two(length: Rc<RefCell<Option<i64>>>) -> u64 {
     { let __shift_x = 1u64; let __shift_c = (math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*length.borrow().as_ref().unwrap()) as u64; __arg_value }))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } }
 }
 
-pub fn __slices_median_adjacent_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
-    __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), cmp.clone())
+pub fn __slices_median_adjacent_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
+    __slices_median_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))))
 }
 
-pub fn __slices_median_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut c: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), cmp.clone()); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+pub fn __slices_median_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut c: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> i64 {
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func___spec(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
     return (*b.borrow().as_ref().unwrap());
 }
 
-pub fn __slices_order2_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, i64) {
-    if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = { let mut __f_guard = cmp.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*data.borrow().as_ref().unwrap())[((*b.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0 {
+pub fn __slices_order2_cmp_func___spec(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn Spec>>>>>>>>, a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64>>>>) -> (i64, i64) {
+    if { let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*b.borrow().as_ref().unwrap())) as usize].clone().clone(), (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap())) as usize].clone().clone()) } < 0 {
         { let mut guard = swaps.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return ((*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()));
     }

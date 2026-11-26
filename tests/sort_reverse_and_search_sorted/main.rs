@@ -383,13 +383,13 @@ impl sort::r#mod::Interface for byXPtr {
 
 pub fn first_at_least(values: Arc<Mutex<Option<Vec<i64>>>>, limit: Arc<Mutex<Option<i64>>>) -> i64 {
     let mut values = Arc::new(Mutex::new((*values.lock().unwrap()).clone()));
-    let limit_closure_clone = limit.clone(); let values_closure_clone = values.clone(); return sort::search(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*values_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))), Arc::new(Mutex::new(Some({ let values_closure_clone_closure_clone = values_closure_clone.clone(); Box::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
+    let limit_closure_clone = limit.clone(); let values_closure_clone = values.clone(); return sort::search(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*values_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))), Arc::new(Mutex::new(Some({ let values_closure_clone_closure_clone = values_closure_clone.clone(); Arc::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
         return {
             let __tmp_x = { let __seq = { let __seq_holder = values_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
             let __tmp_y = { let __v = (*limit_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x >= __tmp_y
         };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> }))));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> }))));
 }
 
 fn main() {
@@ -417,9 +417,9 @@ fn main() {
     println!("{} {}", format!("{}", sort::search_float64s(floats.clone(), Arc::new(Mutex::new(Some(1.5))))), format!("{}", sort::search_float64s(floats.clone(), Arc::new(Mutex::new(Some(3.0))))));
     let mut names = Arc::new(Mutex::new(Some(vec!["ada".to_string(), "bob".to_string(), "eve".to_string()])));
     println!("{} {}", format!("{}", sort::search_strings(names.clone(), Arc::new(Mutex::new(Some("bob".to_string()))))), format!("{}", sort::search_strings(names.clone(), Arc::new(Mutex::new(Some("carl".to_string()))))));
-    println!("{} {}", format!("{}", sort::search(Arc::new(Mutex::new(Some(100))), Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
+    println!("{} {}", format!("{}", sort::search(Arc::new(Mutex::new(Some(100))), Arc::new(Mutex::new(Some(Arc::new(move |i: Arc<Mutex<Option<i64>>>| -> bool {
         return { let __tmp_x = { let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }; let __tmp_y = 50; __tmp_x >= __tmp_y };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))))), format!("{}", first_at_least(ints.clone(), Arc::new(Mutex::new(Some(6))))));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))))), format!("{}", first_at_least(ints.clone(), Arc::new(Mutex::new(Some(6))))));
 }
 
 impl GoValueClone for point {

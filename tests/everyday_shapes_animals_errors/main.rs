@@ -1520,8 +1520,8 @@ fn main() {
     println!("{} {} {}", format!("{}", (*strings::join(parts.clone(), Arc::new(Mutex::new(Some("|".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", (*strings::repeat(Arc::new(Mutex::new(Some("ab".to_string()))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap())), format!("{}", (*strings::to_upper(Arc::new(Mutex::new(Some("h\u{e9}llo".to_string())))).lock().unwrap().as_ref().unwrap())));
     let (mut n, mut err) = strconv::atoi(Arc::new(Mutex::new(Some("12x".to_string()))));
     println!("{} {}", format!("{}", n), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
-    let mut f = Arc::new(Mutex::new(Some({ let mut __recv = ({ let __v = (*d.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); Box::new(move || -> Arc<Mutex<Option<String>>> { __recv.speak() }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> })));
-    let mut g = Arc::new(Mutex::new(Some(Box::new(move |
+    let mut f = Arc::new(Mutex::new(Some({ let mut __recv = ({ let __v = (*d.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }); Arc::new(move || -> Arc<Mutex<Option<String>>> { let mut __recv = __recv.clone(); __recv.speak() }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> })));
+    let mut g = Arc::new(Mutex::new(Some(Arc::new(move |
         __arg0: Arc<Mutex<Option<Animal>>>
     | -> Arc<Mutex<Option<String>>> {
         {
@@ -1533,23 +1533,15 @@ fn main() {
             let __result = unsafe { &*__recv_ptr }.speak();
             __result
         }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Animal>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Animal>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
     println!("{} {}", format!("{}", (*{
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = f.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Animal>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = g.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Animal>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Animal>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = g.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             { let __field = (*d.lock().unwrap().as_ref().unwrap()).animal.clone(); __field }
         )
     }.lock().unwrap().as_ref().unwrap())));

@@ -70,7 +70,7 @@ func TestAnyPayloadTypeUsesOnlyStandardNames(t *testing.T) {
 		{"Rc<RefCell<Option<Box<dyn StdError>>>>", true},
 		{"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>", true},
 		{"Arc<std::sync::Mutex<Option<Vec<String>>>>", true},
-		{"Rc<RefCell<Option<Box<dyn FnMut(i32) -> i32 + 'static>>>>", true},
+		{"Rc<RefCell<Option<Rc<dyn Fn(i32) -> i32 + 'static>>>>", true},
 		// A type a package declares is a different type in every other crate,
 		// or no type at all.
 		{"Point", false},

@@ -914,7 +914,7 @@ impl holder {
 
 fn main() {
     let mut T = holder { value: Rc::new(RefCell::new(Some(Box::new(node { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }) as Box<dyn Any>))), ..Default::default() }.current();
-    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
+    let T_closure_clone = T.clone(); let mut visit = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
         {
     let _ts_subject = T_closure_clone.clone();
     let _ts_guard = _ts_subject.borrow();
@@ -937,6 +937,6 @@ fn main() {
     }
     }
     unreachable!()
-    }) as Box<dyn FnMut() -> i64>)));
-    println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = visit.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }));
+    }) as Rc<dyn Fn() -> i64>)));
+    println!("{}", format!("{}", { let __f: Rc<dyn Fn() -> i64> = visit.borrow().as_ref().unwrap().clone(); (__f)() }));
 }

@@ -682,12 +682,12 @@ impl std::io::Write for GoSlice<u8> {
 
 #[derive(Clone, Default)]
 pub struct Runner {
-    pub callback: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>>>>,
+    pub callback: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>,
 }
 
 impl Runner {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.callback.clone();
+        let __go_clone_0_0 = { let __guard = self.callback.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             callback: __go_clone_0_0,
         }
@@ -704,7 +704,7 @@ impl std::fmt::Display for Runner {
 
 impl Runner {
     pub fn run(&self) {
-        { let __f_holder = self.callback.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("ok".to_string())))) };
+        { let __f_holder = self.callback.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("ok".to_string())))) };
     }
 }
 
@@ -713,6 +713,6 @@ pub fn print_value(value: Rc<RefCell<Option<String>>>) {
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(Runner { callback: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>| { print_value(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>))), ..Default::default() })));
+    let mut r = Rc::new(RefCell::new(Some(Runner { callback: Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<String>>>| { print_value(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>))), ..Default::default() })));
     (*r.borrow().as_ref().unwrap()).run();
 }

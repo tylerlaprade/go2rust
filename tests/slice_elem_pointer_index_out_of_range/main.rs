@@ -1543,9 +1543,10 @@ pub fn point_at(items: Rc<RefCell<Option<Vec<Item>>>>, i: Rc<RefCell<Option<i64>
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
         if let Some(__shared) = go_any_store(&err_defer_captured, go_recover().clone()) { err_defer_captured = __shared; };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         p = GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), ((*i.borrow().as_ref().unwrap())) as usize));
         {

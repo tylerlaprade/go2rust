@@ -139,8 +139,8 @@ fn main() {
         { let new_val = (*r.borrow_mut().as_mut().unwrap()).next().clone(); r = new_val; };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    container_ring::__go_nil_recv_ring_r_do(r.clone(), Rc::new(RefCell::new(Some(Box::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {
+    container_ring::__go_nil_recv_ring_r_do(r.clone(), Rc::new(RefCell::new(Some(Rc::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {
         print!("{}{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Any>>>>) -> ()>))));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Any>>>>) -> ()>))));
     println!("{}", format!("{}", container_ring::__go_nil_recv_ring_len(r.clone())));
 }

@@ -42,12 +42,14 @@ Use this when a function or method call emits nested handles, moves out of share
 - Methods on named function types need an extension trait and trait impl for the alias. Rust aliases cannot have inherent impls.
 - Function type signatures must use return-type lowering for results. Pointer returns are pointer handles, not wrappers around pointer handles.
 - Function-typed named results are nil handles by default. For explicit returns with defers, assign the boxed function into the named result slot rather than wrapping the whole function handle again.
-- Go function values lower to `Box<dyn FnMut...>`, not `Box<dyn Fn...>`.
-- Function-typed parameters and locals are already handles. Passing one to another `func` parameter clones the handle; do not unwrap to the boxed closure, which is not cloneable.
+- Go function values lower to a shared closure: `Rc<dyn Fn...>`, or `Arc<dyn Fn... + Send + Sync>` with goroutines (`funcValueRustType` in `go/func_value.go`). A copy of a func value is a clone of the same closure.
+- A function-typed variable, parameter or field is a cell holding a func value, like a variable of any other type. Storing or passing it puts a copy of the func value in a new cell (`writeFuncValueFreshCell`), so a later assignment to the variable does not reach the copy. Assigning the variable writes into its cell, which closures that captured it hold (`writeFuncValueAssignment`); assigning a field gives the field a new cell, since copies of the struct share nothing.
+- `GoFuncValue::go_func_value` reads the func value out of whatever a func-typed expression lowers to: a cell, an `Option`, or the closure itself.
 - Pointer-receiver method values must evaluate the receiver once, clone the pointer handle into the boxed closure, and call the method inside the closure.
 - Package function selectors assigned into function-typed fields need a boxed closure handle. Function-typed selector values copied from another field should clone the function handle.
 - Named function declarations stored in function-typed map values must be boxed through the normal function-value handle path; raw Rust fn items have distinct types.
-- Function-value calls must open the wrapped function slot mutably, derive a typed raw pointer from go/types, drop the wrapper guard, then invoke `FnMut`.
+- A function-value call takes a clone of the closure out of the cell, with the cell's guard dropped, and calls that (`writeFuncValueCallTarget`). The function may assign the variable it was called through.
+- `defer f(x)` and `go f(x)` copy the func value f holds when the statement runs.
 - When deriving a raw call pointer type, check known stdlib named helper types before falling back to the signature. `context.CancelFunc` is `GoCancelFunc`.
 - Function type assertions that immediately call the asserted function need mutable interface borrow and `downcast_mut`.
 - Function-field selector fallback must be receiver-scoped and type-proven. Do not use global unique-field fallback when the receiver type is known.

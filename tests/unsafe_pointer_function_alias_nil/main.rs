@@ -1248,7 +1248,7 @@ impl<T: Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
     }
 }
 
-pub type Exporter = Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>;
+pub type Exporter = Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>;
 
 
 pub(crate) static exporter: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<usize>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
@@ -1260,11 +1260,11 @@ fn __go_init_globals() {
 
 
 pub fn r#use() -> Arc<Mutex<Option<String>>> {
-    let mut exporterPtr: GoPtr<Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>> = GoPtr::local(Arc::new(Mutex::new({ let __ptr = { let __target = exporter.clone(); let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Exporter>(unimplemented!("unsafe.Pointer conversion to Exporter")) } })));
+    let mut exporterPtr: GoPtr<Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>> = GoPtr::local(Arc::new(Mutex::new({ let __ptr = { let __target = exporter.clone(); let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Exporter>(unimplemented!("unsafe.Pointer conversion to Exporter")) } })));
     if exporterPtr.is_nil() {
         return Arc::new(Mutex::new(Some("nil".to_string())));
     }
-    { let __f_holder = exporterPtr.borrow().expect("invalid memory address or nil pointer dereference"); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+    { let __f_holder = exporterPtr.borrow().expect("invalid memory address or nil pointer dereference"); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }
 }
 
 fn main() {

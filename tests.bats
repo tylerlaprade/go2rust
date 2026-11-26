@@ -1632,6 +1632,14 @@ run_xfail_test() {
     run_test "tests/func_type_alias_implements_interface"
 }
 
+@test "func_values_are_copied" {
+    run_test "tests/func_values_are_copied"
+}
+
+@test "func_values_are_copied_goroutines" {
+    run_test "tests/func_values_are_copied_goroutines"
+}
+
 @test "function_field_calls" {
     run_test "tests/function_field_calls"
 }

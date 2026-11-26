@@ -1816,14 +1816,15 @@ pub fn must_positive(n: Arc<Mutex<Option<i64>>>) -> (i64, Arc<Mutex<Option<Arc<d
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("recovered: {}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err_defer_captured.lock().unwrap() = new_val; };;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
         std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("negative: {}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);

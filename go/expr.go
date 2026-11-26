@@ -2509,7 +2509,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString(currentReceiverType)
 			out.WriteString(" as usize; __once.r#do(")
 			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(move || { let __recv_ref: ")
+			out.WriteString(funcValueConstructor() + "move || { let __recv_ref: ")
 			out.WriteString(refKind)
 			out.WriteString(currentReceiverType)
 			out.WriteString(" = unsafe { ")
@@ -2522,7 +2522,8 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 			currentReceiverRustAlias = "__recv_ref"
 			TranspileExpression(out, methodCall)
 			currentReceiverRustAlias = prevAlias
-			out.WriteString("; }) as Box<dyn FnMut() -> () + Send + Sync>")
+			out.WriteString("; }) as ")
+			out.WriteString(funcValueRustType("", "()"))
 			WriteWrapperSuffix(out)
 			out.WriteString(") }")
 			return true
@@ -2632,7 +2633,7 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 	out.WriteString(currentReceiverType)
 	out.WriteString(" as usize; __once.r#do(")
 	WriteWrapperPrefix(out)
-	out.WriteString("Box::new(move || {\n")
+	out.WriteString(funcValueConstructor() + "move || {\n")
 	out.WriteString("        let __recv_ref: &mut ")
 	out.WriteString(currentReceiverType)
 	out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
@@ -2674,7 +2675,8 @@ func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, recei
 			}
 		}
 	}
-	out.WriteString("    }) as Box<dyn FnMut() -> () + Send + Sync>")
+	out.WriteString("    }) as ")
+	out.WriteString(funcValueRustType("", "()"))
 	WriteWrapperSuffix(out)
 	out.WriteString(") }")
 	return true
@@ -2711,10 +2713,14 @@ func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) 
 	out.WriteString("; __once.r#do(")
 	if receiver.wrapFuncArg {
 		WriteWrapperPrefix(out)
-	}
-	out.WriteString(arg.String())
-	if receiver.wrapFuncArg {
+		out.WriteString(arg.String())
 		WriteWrapperSuffix(out)
+	} else {
+		// The runtime's Once runs a Rust closure; the func value is a
+		// shared closure that it calls.
+		out.WriteString("{ let __once_func = ")
+		out.WriteString(arg.String())
+		out.WriteString("; move || __once_func() }")
 	}
 	out.WriteString(") }")
 	return true
@@ -8550,6 +8556,11 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 			writeWrappedFunctionValueBox(out, ident, sig)
 			return true
 		}
+		// A copy of the func value in a cell of its own: storing or
+		// passing f does not tie the copy to later assignments to f.
+		if writeFuncValueFreshCellFromStorage(out, ident, nil) {
+			return true
+		}
 		TranspileExpressionContext(out, ident, LValue)
 		out.WriteString(".clone()")
 		return true
@@ -8581,6 +8592,9 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 			WriteWrapperSuffix(out)
 			return true
 		}
+	}
+	if writeFuncValueFreshCellFromStorage(out, expr, nil) {
+		return true
 	}
 	switch expr.(type) {
 	case *ast.SelectorExpr, *ast.IndexExpr:
@@ -9993,10 +10007,6 @@ func writeInternalABIMapTypeValue(out *strings.Builder, mapType *types.Map) {
 	if mapType != nil && mapType.Key() != nil {
 		keyRustType = goTypesTypeToRust(mapType.Key())
 	}
-	traitSuffix := ""
-	if NeedsConcurrentWrapper() {
-		traitSuffix = " + Send + Sync"
-	}
 	NeedGoComparable()
 
 	indent := currentLineIndent(out)
@@ -10036,17 +10046,12 @@ func writeInternalABIMapTypeValue(out *strings.Builder, mapType *types.Map) {
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(__elem_type);\n")
 	out.WriteString(innerIndent)
-	out.WriteString("let __hasher: Box<dyn FnMut(")
-	out.WriteString(outer)
-	out.WriteString("<")
-	out.WriteString(inner)
-	out.WriteString("<Option<usize>>>, ")
-	out.WriteString(outer)
-	out.WriteString("<")
-	out.WriteString(inner)
-	out.WriteString("<Option<usize>>>) -> usize")
-	out.WriteString(traitSuffix)
-	out.WriteString("> = Box::new(|__key, __seed| {\n")
+	hasherPointer := outer + "<" + inner + "<Option<usize>>>"
+	out.WriteString("let __hasher: ")
+	out.WriteString(funcValueRustType(hasherPointer+", "+hasherPointer, "usize"))
+	out.WriteString(" = ")
+	out.WriteString(funcValueConstructor())
+	out.WriteString("|__key, __seed| {\n")
 	out.WriteString(innerIndent)
 	out.WriteString("    let __key_value = __key")
 	WriteBorrowMethod(out, false)
@@ -10121,6 +10126,11 @@ func writeAnyHandleBoxInnerValue(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString(".clone()")
 		}
 		WriteWrapperSuffix(out)
+		return true
+	}
+	// An interface value holds a copy of a func value: assigning the
+	// variable afterwards does not change it.
+	if isFunctionSignatureType(typ) && writeFuncValueFreshCellFromStorage(out, expr, typ) {
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
@@ -10693,6 +10703,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 
 func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type, fieldOwnerPkgPath string) {
 	if isUnnamedSliceType(fieldType) && writeGoSliceFreshCellFromVariable(out, value) {
+		return
+	}
+	if isFunctionSignatureType(fieldType) && writeFuncValueFreshCellFromStorage(out, value, fieldType) {
 		return
 	}
 	var expectedFieldType types.Type
@@ -12495,6 +12508,9 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, value) {
 		return
 	}
+	if isFunctionSignatureType(valueType) && writeFuncValueFreshCellFromStorage(out, value, valueType) {
+		return
+	}
 	if lenCapCallNeedsExpectedIntCast(value, valueType) {
 		// map[string]int{k: len(k)}: len is a usize, the value an int.
 		WriteWrapperPrefix(out)
@@ -13305,8 +13321,7 @@ func rustMapValueTypeKeepsHandle(rustType string) bool {
 			return true
 		}
 	}
-	return strings.HasPrefix(rustType, "Rc<RefCell<Option<Box<dyn Fn") ||
-		strings.HasPrefix(rustType, "Arc<Mutex<Option<Box<dyn Fn") ||
+	return wrappedFuncValueRustType(rustType) ||
 		strings.HasPrefix(rustType, "Rc<RefCell<Option<Vec<") ||
 		strings.HasPrefix(rustType, "Arc<Mutex<Option<Vec<") ||
 		strings.HasPrefix(rustType, "Rc<RefCell<Option<BTreeMap<") ||
@@ -17282,7 +17297,7 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	}
 	out.WriteString("__recv = ")
 	writePointerHandleExpression(out, sel.X)
-	out.WriteString("; Box::new(move |")
+	out.WriteString("; " + funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		if i > 0 {
@@ -17309,7 +17324,9 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	}
 
 	if rawReceiver {
-		out.WriteString(" { __recv.")
+		// The closure is Fn: it calls the method on a copy of the
+		// receiver, which shares the receiver's field cells.
+		out.WriteString(" { let mut __recv = __recv.clone(); __recv.")
 	} else if goPtrReceiverNeedsMut {
 		out.WriteString(" { __recv.with_mut(|__recv_value| __recv_value.")
 		receiverCallSuffix = ")"
@@ -17342,7 +17359,7 @@ func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, 
 		writeMultilineMethodExpressionValueBox(out, sel, sig, boxType)
 		return
 	}
-	out.WriteString("Box::new(move |")
+	out.WriteString(funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		if i > 0 {
@@ -17429,7 +17446,7 @@ func methodExpressionValueBoxShouldUseMultiline(sig *types.Signature) bool {
 func writeMultilineMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature, boxType string) {
 	indent := currentLineIndent(out)
 	params := sig.Params()
-	out.WriteString("Box::new(move |")
+	out.WriteString(funcValueConstructor() + "move |")
 	if params.Len() > 0 {
 		out.WriteString("\n")
 		for i := 0; i < params.Len(); i++ {
@@ -17568,7 +17585,17 @@ func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorEx
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
 	boxType := signatureToGoParamBoxDynFn(sig)
-	out.WriteString("Box::new(move |")
+	globalFuncVar := isPackageGlobalIdent(ident)
+	if globalFuncVar {
+		// A func-typed package variable is copied where it is read: the
+		// closure calls the func value the variable held then.
+		NeedGoFuncValue()
+		out.WriteString("{ let __global_func = GoFuncValue::go_func_value(&(*")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		WriteBorrowMethod(out, false)
+		out.WriteString(")); ")
+	}
+	out.WriteString(funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		if i > 0 {
@@ -17595,15 +17622,8 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	}
 
 	out.WriteString(" { ")
-	if isPackageGlobalIdent(ident) {
-		out.WriteString("{ let __f_ptr: *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" = { let mut __f_guard = ")
-		out.WriteString(rustPackageGlobalName(ident.Name))
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
+	if globalFuncVar {
+		out.WriteString("(__global_func.as_ref().expect(\"runtime error: invalid memory address or nil pointer dereference\"))(")
 	} else {
 		out.WriteString(rustFunctionNameForUse(ident.Name))
 		out.WriteString("(")
@@ -17618,11 +17638,11 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		out.WriteString(fmt.Sprintf("__arg%d", i))
 	}
 	out.WriteString(")")
-	if isPackageGlobalIdent(ident) {
-		out.WriteString(" }")
-	}
 	out.WriteString(" }) as ")
 	out.WriteString(boxType)
+	if globalFuncVar {
+		out.WriteString(" }")
+	}
 }
 
 func writeFunctionValueBoxArgument(out *strings.Builder, ident *ast.Ident, paramIndex int) bool {
@@ -17660,7 +17680,7 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 		return
 	}
 	boxType := signatureToGoParamBoxDynFn(sig)
-	out.WriteString("Box::new(move |")
+	out.WriteString(funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		if i > 0 {
@@ -17703,7 +17723,7 @@ func writeMethodValueExpressionBox(out *strings.Builder, sel *ast.SelectorExpr, 
 	boxType := signatureToGoParamBoxDynFn(sig)
 	out.WriteString("{ let mut __recv = ")
 	writeMethodValueReceiverSnapshot(out, sel.X)
-	out.WriteString("; Box::new(move |")
+	out.WriteString("; " + funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		if i > 0 {
@@ -17729,7 +17749,9 @@ func writeMethodValueExpressionBox(out *strings.Builder, sel *ast.SelectorExpr, 
 		}
 	}
 
-	out.WriteString(" { __recv.")
+	// The closure is Fn: it calls the method on a copy of the receiver
+	// value, as Go's method value does.
+	out.WriteString(" { let mut __recv = __recv.clone(); __recv.")
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 	for i := 0; i < params.Len(); i++ {
@@ -18019,7 +18041,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	defer func() { currentCaptureRenames = oldCaptureRenames }()
 
 	// Generate the closure wrapped in Box
-	out.WriteString("Box::new(move |")
+	out.WriteString(funcValueConstructor() + "move |")
 
 	// Parameters
 	if funcLit.Type.Params != nil {
@@ -18140,6 +18162,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 
 	// Body
 	out.WriteString("{\n")
+	writeFuncLitMutableCaptureShadows(out, funcLit, captured, captureRenames, assignedInlineCaptures)
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
 	}
@@ -18344,10 +18367,7 @@ func funcLitResultTypes(funcLit *ast.FuncLit) []types.Type {
 
 func generateFuncLitClosureType(funcLit *ast.FuncLit) string {
 	if funcLit == nil || funcLit.Type == nil {
-		if NeedsConcurrentWrapper() {
-			return "Box<dyn FnMut() -> () + Send + Sync>"
-		}
-		return "Box<dyn FnMut() -> ()>"
+		return funcValueRustType("", "()")
 	}
 	funcType := funcLit.Type
 	var paramTypes []string
@@ -18386,10 +18406,7 @@ func generateFuncLitClosureType(funcLit *ast.FuncLit) string {
 	}
 
 	paramsStr := strings.Join(paramTypes, ", ")
-	if NeedsConcurrentWrapper() {
-		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
-	}
-	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+	return funcValueRustType(paramsStr, returnType)
 }
 
 func generateFuncLitClosureTypeWithResultOverrides(funcLit *ast.FuncLit, overrides map[int]funcLitReturnOverride) string {
@@ -18441,10 +18458,7 @@ func generateFuncLitClosureTypeWithResultOverrides(funcLit *ast.FuncLit, overrid
 	}
 
 	paramsStr := strings.Join(paramTypes, ", ")
-	if NeedsConcurrentWrapper() {
-		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
-	}
-	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+	return funcValueRustType(paramsStr, returnType)
 }
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
@@ -18519,7 +18533,7 @@ func functionBoxTypeFromTrackedMapValueRustType(rustType string) (string, bool) 
 			return name, true
 		}
 	}
-	if start := strings.Index(rustType, "Box<dyn Fn"); start >= 0 {
+	if start := funcValueRustTypeIndex(rustType); start >= 0 {
 		return balancedRustTypeAt(rustType, start)
 	}
 	return "", false
@@ -18569,13 +18583,8 @@ func writeFunctionPointerDerefCallTarget(out *strings.Builder, star *ast.StarExp
 	} else {
 		out.WriteString(".clone()")
 	}
-	out.WriteString("; let __f_ptr: *mut ")
-	out.WriteString(boxType)
-	out.WriteString(" = { let mut __f_guard = __f_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-	out.WriteString(boxType)
-	out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
+	out.WriteString("; ")
+	writeFuncValueCallTarget(out, "__f_holder", boxType)
 	return true
 }
 
@@ -24973,35 +24982,13 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				indent := currentLineIndent(out)
 				out.WriteString("{\n")
 				out.WriteString(indent)
-				out.WriteString("    let __f_ptr: *mut ")
-				out.WriteString(boxType)
-				out.WriteString(" = {\n")
-				out.WriteString(indent)
-				out.WriteString("        let mut __f_guard = ")
-				out.WriteString(varName)
-				WriteBorrowMethod(out, true)
-				out.WriteString(";\n")
-				out.WriteString(indent)
-				out.WriteString("        __f_guard.as_mut().unwrap() as *mut ")
-				out.WriteString(boxType)
-				out.WriteString("\n")
-				out.WriteString(indent)
-				out.WriteString("    };\n")
-				out.WriteString(indent)
-				out.WriteString("    let __f = unsafe { &mut *__f_ptr };\n")
-				out.WriteString(indent)
-				out.WriteString("    (*__f)")
+				out.WriteString("    ")
+				writeFuncValueCallTargetLines(out, varName, boxType, indent+"    ")
 				closureCallSuffix = "\n" + indent + "}"
 				forceMultilineFunctionArgs = true
 			} else {
-				out.WriteString("{ let __f_ptr: *mut ")
-				out.WriteString(boxType)
-				out.WriteString(" = { let mut __f_guard = ")
-				out.WriteString(varName)
-				WriteBorrowMethod(out, true)
-				out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-				out.WriteString(boxType)
-				out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
+				out.WriteString("{ ")
+				writeFuncValueCallTarget(out, varName, boxType)
 				closureCallSuffix = " }"
 			}
 		}
@@ -25016,13 +25003,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("{ let __f_holder = ")
 		TranspileExpression(out, call.Fun)
 		boxType := functionBoxTypeForCallTarget(call.Fun)
-		out.WriteString("; let __f_ptr: *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" = { let mut __f_guard = __f_holder")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
+		out.WriteString("; ")
+		writeFuncValueCallTarget(out, "__f_holder", boxType)
 		closureCallSuffix = " }"
 	}
 
@@ -26097,34 +26079,16 @@ func writeFunctionValueSelectorCall(out *strings.Builder, sel *ast.SelectorExpr,
 	if multiline {
 		out.WriteString(";\n")
 		out.WriteString(indent)
-		out.WriteString("    let __f_ptr: *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" = {\n")
-		out.WriteString(indent)
-		out.WriteString("        let mut __f_guard = __f_holder")
-		WriteBorrowMethod(out, true)
-		out.WriteString(";\n")
-		out.WriteString(indent)
-		out.WriteString("        __f_guard.as_mut().unwrap() as *mut ")
-		out.WriteString(boxType)
-		out.WriteString("\n")
-		out.WriteString(indent)
-		out.WriteString("    };\n")
-		out.WriteString(indent)
-		out.WriteString("    let __f = unsafe { &mut *__f_ptr };\n")
-		out.WriteString(indent)
-		out.WriteString("    (*__f)(")
+		out.WriteString("    ")
+		writeFuncValueCallTargetLines(out, "__f_holder", boxType, indent+"    ")
+		out.WriteString("(")
 		if len(call.Args) > 0 {
 			out.WriteString("\n")
 		}
 	} else {
-		out.WriteString("; let __f_ptr: *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" = { let mut __f_guard = __f_holder")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-		out.WriteString(boxType)
-		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
+		out.WriteString("; ")
+		writeFuncValueCallTarget(out, "__f_holder", boxType)
+		out.WriteString("(")
 	}
 	writeArgPrefix := func(i int) {
 		if multiline {

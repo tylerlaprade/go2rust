@@ -718,13 +718,13 @@ impl lexer {
         return (*self.pos.borrow().as_ref().unwrap());
     }
 
-    pub fn scan_with(&self, f: Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>) -> i64 {
-        { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-        { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+    pub fn scan_with(&self, f: Rc<RefCell<Option<Rc<dyn Fn() -> i64>>>>) -> i64 {
+        { let __f: Rc<dyn Fn() -> i64> = f.borrow().as_ref().unwrap().clone(); (__f)() };
+        { let __f: Rc<dyn Fn() -> i64> = f.borrow().as_ref().unwrap().clone(); (__f)() }
     }
 
     pub fn scan(&self) -> i64 {
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move || -> i64 { __recv.next() }) as Box<dyn FnMut() -> i64> }))); self.scan_with(__method_arg0) }
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move || -> i64 { let mut __recv = __recv.clone(); __recv.next() }) as Rc<dyn Fn() -> i64> }))); self.scan_with(__method_arg0) }
     }
 }
 

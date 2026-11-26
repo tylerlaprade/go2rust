@@ -968,11 +968,12 @@ fn main() {
     println!("{} {}", format!("{}", "row of a grid:".to_string()), format!("{}", format_nested_slice(&grid)));
 
     let mut log: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
-    let mut log_closure_clone = log.clone(); let mut add = Rc::new(RefCell::new(Some(Box::new(move |s: Rc<RefCell<Option<String>>>| {
+    let mut log_closure_clone = log.clone(); let mut add = Rc::new(RefCell::new(Some(Rc::new(move |s: Rc<RefCell<Option<String>>>| {
+        let mut log_closure_clone = log_closure_clone.clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = log_closure_clone.clone(); let __append_value = (*s.borrow().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *log_closure_clone.borrow_mut() = __slice_header; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()>)));
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("a".to_string())))) };
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("b".to_string())))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>)));
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = add.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("a".to_string())))) };
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()> = add.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("b".to_string())))) };
     println!("{} {}", format!("{}", "closure append:".to_string()), format!("{}", format_slice(&log)));
 
     let mut bg = Rc::new(RefCell::new(Some(bag { items: { let __slice_header = GoSliceHeader::go_slice_header(&base); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() })));

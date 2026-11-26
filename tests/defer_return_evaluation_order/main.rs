@@ -969,9 +969,10 @@ pub fn captured_local() -> i64 {
 
     let mut x = Rc::new(RefCell::new(Some(1i64)));
     let mut x_defer_captured = x.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut x_defer_captured = x_defer_captured.clone();
         { let new_val = 2; *x_defer_captured.borrow_mut() = Some(new_val); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     {
         let __return_value = (*x.borrow().as_ref().unwrap());
@@ -988,9 +989,10 @@ pub fn pair_result() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
 
     let mut n = Rc::new(RefCell::new(Some(10i64)));
     let mut n_defer_captured = n.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut n_defer_captured = n_defer_captured.clone();
         { let new_val = 20; *n_defer_captured.borrow_mut() = Some(new_val); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     {
         let __return_value = ((*n.borrow().as_ref().unwrap()), Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("boom".to_string()))))));
@@ -1008,9 +1010,10 @@ pub fn named_result() -> i64 {
     let mut n: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     let mut n_defer_captured = n.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut n_defer_captured = n_defer_captured.clone();
         { let __rhs = 2; let mut guard = n_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     {
         { let new_val = compute(Rc::new(RefCell::new(Some("named".to_string())))); *n.borrow_mut() = Some(new_val); };;

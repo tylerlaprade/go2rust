@@ -391,12 +391,12 @@ func deleteLike(m *Map) {
 	if start < 0 {
 		t.Fatalf("closure should clone the assigned interface capture:\n%s", rust)
 	}
-	bodyStart := strings.Index(rust[start:], "Box::new(move")
+	bodyStart := strings.Index(rust[start:], "Rc::new(move")
 	if bodyStart < 0 {
 		t.Fatalf("closure body not found after capture clone:\n%s", rust)
 	}
 	body := rust[start+bodyStart:]
-	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	bodyEnd := strings.Index(body, "}) as Rc<dyn")
 	if bodyEnd < 0 {
 		t.Fatalf("closure body end not found after capture clone:\n%s", rust)
 	}
@@ -452,17 +452,17 @@ func (check *Checker) run(pos Pos) {
 	if !strings.Contains(rust, "let pos_closure_clone_closure_clone = pos_closure_clone.clone();") {
 		t.Fatalf("statement function literal should clone parameter capture for the moved closure:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box::new(move || {\n        check_closure_clone.verify") ||
-		strings.Contains(rust, "Box::new(move || {\n        let __method_arg0 = pos_closure_clone.clone()") {
+	if strings.Contains(rust, "Rc::new(move || {\n        check_closure_clone.verify") ||
+		strings.Contains(rust, "Rc::new(move || {\n        let __method_arg0 = pos_closure_clone.clone()") {
 		t.Fatalf("moved closure should use inner clones, not the outer call-chain clones:\n%s", rust)
 	}
 
-	bodyStart := strings.Index(rust, "Box::new(move ||")
+	bodyStart := strings.Index(rust, "Rc::new(move ||")
 	if bodyStart < 0 {
 		t.Fatalf("closure body not found:\n%s", rust)
 	}
 	body := rust[bodyStart:]
-	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	bodyEnd := strings.Index(body, "}) as Rc<dyn")
 	if bodyEnd < 0 {
 		t.Fatalf("closure body end not found:\n%s", rust)
 	}
@@ -513,12 +513,12 @@ func (c *checker) use(pos int) {
 		t.Fatalf("function literal in receiver call should clone captures also used by outer method args:\n%s", rust)
 	}
 
-	bodyStart := strings.Index(rust, "Box::new(move ||")
+	bodyStart := strings.Index(rust, "Rc::new(move ||")
 	if bodyStart < 0 {
 		t.Fatalf("closure body not found:\n%s", rust)
 	}
 	body := rust[bodyStart:]
-	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	bodyEnd := strings.Index(body, "}) as Rc<dyn")
 	if bodyEnd < 0 {
 		t.Fatalf("closure body end not found:\n%s", rust)
 	}
@@ -595,12 +595,12 @@ func infer(u *unifier, tparams []*TypeParam) int {
 }
 `)
 
-	bodyStart := strings.Index(rust, "Box::new(move ||")
+	bodyStart := strings.Index(rust, "Rc::new(move ||")
 	if bodyStart < 0 {
 		t.Fatalf("closure body not found:\n%s", rust)
 	}
 	body := rust[bodyStart:]
-	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	bodyEnd := strings.Index(body, "}) as Rc<dyn")
 	if bodyEnd < 0 {
 		t.Fatalf("closure body end not found:\n%s", rust)
 	}
@@ -815,12 +815,12 @@ func (s *Set) lookup(key int) int {
 	if !strings.Contains(rust, "let mut s_closure_clone_closure_clone = s_closure_clone.clone();") {
 		t.Fatalf("closure should take an inner clone for a capture also used by a sibling call argument:\n%s", rust)
 	}
-	bodyStart := strings.Index(rust, "Box::new(move |")
+	bodyStart := strings.Index(rust, "Rc::new(move |")
 	if bodyStart < 0 {
 		t.Fatalf("closure body not found:\n%s", rust)
 	}
 	body := rust[bodyStart:]
-	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	bodyEnd := strings.Index(body, "}) as Rc<dyn")
 	if bodyEnd < 0 {
 		t.Fatalf("closure body end not found:\n%s", rust)
 	}

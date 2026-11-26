@@ -867,6 +867,31 @@ impl<T: Clone> GoSliceAppendCopying<T> for GoSlice<T> {
     }
 }
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -2838,7 +2863,7 @@ pub struct Record {
     pub any: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
     pub err: Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>,
     pub shape: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>>,
-    pub on_done: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>,
+    pub on_done: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>,
     pub events: GoChannel<i64>,
     pub hidden: Arc<Mutex<Option<i64>>>,
 }
@@ -2859,7 +2884,7 @@ impl Record {
         let __go_clone_11_0 = self.any.clone();
         let __go_clone_12_0 = self.err.clone();
         let __go_clone_13_0 = self.shape.clone();
-        let __go_clone_14_0 = self.on_done.clone();
+        let __go_clone_14_0 = { let __guard = self.on_done.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_15_0 = self.events.clone();
         let __go_clone_16_0 = { let __guard = self.hidden.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
@@ -3234,14 +3259,14 @@ fn main() {
     print!("{}\n", (*__go2rust_gosyntax0_50(keyed.clone()).lock().unwrap().as_ref().unwrap()));
 
     type local = AnonymousStruct1;
-    let mut __go2rust_gosyntaxL0_53 = Arc::new(Mutex::new(Some(Box::new(move |v: local| -> Arc<Mutex<Option<String>>> {
+    let mut __go2rust_gosyntaxL0_53 = Arc::new(Mutex::new(Some(Arc::new(move |v: local| -> Arc<Mutex<Option<String>>> {
         let mut s = Arc::new(Mutex::new(Some("main.local{".to_string())));
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", "A:".to_string(), (*__go2rust_gosyntax0_3(Arc::new(Mutex::new(Some({ let __selector_holder = v.a.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); };
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", B:".to_string(), (*__go2rust_gosyntax0_26({ let __field = v.b.clone(); __field }).lock().unwrap().as_ref().unwrap()))); };
         return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "}".to_string()))));
-    }) as Box<dyn FnMut(local) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    }) as Arc<dyn Fn(local) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
     let _ = &__go2rust_gosyntaxL0_53;
-    let __go2rust_gosyntaxL0_53_closure_clone = __go2rust_gosyntaxL0_53.clone(); let mut __go2rust_gosyntaxL0_54 = Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Vec<local>>>>| -> Arc<Mutex<Option<String>>> {
+    let __go2rust_gosyntaxL0_53_closure_clone = __go2rust_gosyntaxL0_53.clone(); let mut __go2rust_gosyntaxL0_54 = Arc::new(Mutex::new(Some(Arc::new(move |v: Arc<Mutex<Option<Vec<local>>>>| -> Arc<Mutex<Option<String>>> {
         if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("[]main.local(nil)".to_string())));
     }
@@ -3252,36 +3277,24 @@ fn main() {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&", ".to_string()); };
     }
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = {
-            let __f_ptr: *mut Box<dyn FnMut(local) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-                let mut __f_guard = __go2rust_gosyntaxL0_53_closure_clone.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(local) -> Arc<Mutex<Option<String>>> + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn(local) -> Arc<Mutex<Option<String>>> + Send + Sync> = __go2rust_gosyntaxL0_53_closure_clone.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
                 { let __seq = { let __seq_holder = v.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
             )
         }; let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "}".to_string()))));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<local>>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Vec<local>>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
     let _ = &__go2rust_gosyntaxL0_54;
     print!("{}|{}\n", format!("{}", (*{
-    let __f_ptr: *mut Box<dyn FnMut(local) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-        let mut __f_guard = __go2rust_gosyntaxL0_53.lock().unwrap();
-        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(local) -> Arc<Mutex<Option<String>>> + Send + Sync>
-    };
-    let __f = unsafe { &mut *__f_ptr };
-    (*__f)(
+    let __f: Arc<dyn Fn(local) -> Arc<Mutex<Option<String>>> + Send + Sync> = __go2rust_gosyntaxL0_53.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
         local { a: Arc::new(Mutex::new(Some(1))), b: Arc::new(Mutex::new(None)), ..Default::default() }
     )
 }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{
-    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<local>>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-        let mut __f_guard = __go2rust_gosyntaxL0_54.lock().unwrap();
-        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<local>>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>
-    };
-    let __f = unsafe { &mut *__f_ptr };
-    (*__f)(
+    let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec<local>>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = __go2rust_gosyntaxL0_54.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
         Arc::new(Mutex::new(Some(vec![local { a: Arc::new(Mutex::new(Some(2))), b: Arc::new(Mutex::new(Some(vec!["x".to_string()]))), ..Default::default() }])))
     )
 }.lock().unwrap().as_ref().unwrap())));
@@ -3629,7 +3642,7 @@ pub fn __go2rust_gosyntax0_23(v: Arc<Mutex<Option<Record>>>) -> Arc<Mutex<Option
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Any:".to_string(), (*__go2rust_gosyntax0_36(go_any_handle_copy(&(*v.lock().unwrap().as_ref().unwrap()).any)).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Err:".to_string(), (*__go2rust_gosyntax0_39({ let __err_source = { let __field = (*v.lock().unwrap().as_ref().unwrap()).err.clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Shape:".to_string(), (*__go2rust_gosyntax0_40({ let __field = (*v.lock().unwrap().as_ref().unwrap()).shape.clone(); __field }).lock().unwrap().as_ref().unwrap()))); };
-    { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", OnDone:".to_string(), (*__go2rust_gosyntax0_41((*v.lock().unwrap().as_ref().unwrap()).on_done.clone()).lock().unwrap().as_ref().unwrap()))); };
+    { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", OnDone:".to_string(), (*__go2rust_gosyntax0_41(Arc::new(Mutex::new(GoFuncValue::go_func_value(&((*v.lock().unwrap().as_ref().unwrap()).on_done))))).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Events:".to_string(), (*__go2rust_gosyntax0_42({ let __field = (*v.lock().unwrap().as_ref().unwrap()).events.clone(); __field }).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", hidden:".to_string(), (*__go2rust_gosyntax0_3(Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).hidden.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); };
     return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "}".to_string()))));
@@ -3981,7 +3994,7 @@ pub fn __go2rust_gosyntax0_40(v: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>
     Arc::new(Mutex::new(Some(format!("{}", match v.lock().unwrap().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }))))
 }
 
-pub fn __go2rust_gosyntax0_41(v: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
+pub fn __go2rust_gosyntax0_41(v: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
     if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("(func())(nil)".to_string())));
     }

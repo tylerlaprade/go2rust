@@ -1512,8 +1512,8 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	if strings.Contains(rust, "Some(t)") || strings.Contains(rust, "Some(t.clone())") {
 		t.Fatalf("range value passed to func(T) should not be wrapped again:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*__f)(t.clone())") &&
-		!strings.Contains(rust, "(*__f)((*t).clone())") {
+	if !strings.Contains(rust, "(__f)(t.clone())") &&
+		!strings.Contains(rust, "(__f)((*t).clone())") {
 		t.Fatalf("range value passed to func(T) should pass the element handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "Box::new((*u.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") {
@@ -1624,13 +1624,13 @@ func call() (int, error) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Rc<dyn Fn() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
+	if !strings.Contains(rust, "Rc<dyn Fn() -> (Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
+	if strings.Contains(rust, "Rc<dyn Fn() -> (i64, Rc<RefCell<Option<Rc<dyn StdError>>>>)") {
 		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
 	}
 	if strings.Contains(rust, "let (mut v, mut err) = retry::<i64>") {

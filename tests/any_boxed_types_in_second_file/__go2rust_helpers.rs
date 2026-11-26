@@ -676,6 +676,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any>); }
@@ -694,7 +719,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
 }
 
@@ -722,6 +747,6 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return "map[string]int" }
-    if val.is::<Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return "func() error" }
+    if val.is::<Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>() { return "func() error" }
     std::any::type_name_of_val(val)
 }

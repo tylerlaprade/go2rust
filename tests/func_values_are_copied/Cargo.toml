@@ -1,0 +1,11 @@
+[package]
+name = "func_values_are_copied"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "func_values_are_copied"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

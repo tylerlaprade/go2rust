@@ -705,9 +705,10 @@ impl counter {
     let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
         let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut result_defer_captured = result_defer_captured.clone();
         { let __rhs = 3; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         {
         { let new_val = 4; *result.borrow_mut() = Some(new_val); };;
@@ -726,9 +727,10 @@ pub fn compute() -> i64 {
     let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
     let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut result_defer_captured = result_defer_captured.clone();
         { let __rhs = 10; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     { let new_val = 5; *result.borrow_mut() = Some(new_val); };
     {
@@ -746,7 +748,8 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
     let mut msg: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
     let mut msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut msg_defer_captured = msg_defer_captured.clone();
         { let new_val = {
             let mut __s = String::new();
             __s.push_str(&format!("{}", "[".to_string()));
@@ -754,7 +757,7 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
             __s.push_str(&format!("{}", "]".to_string()));
             __s
         }; *msg_defer_captured.borrow_mut() = Some(new_val); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     { let new_val = "ok".to_string(); *msg.borrow_mut() = Some(new_val); };
     {

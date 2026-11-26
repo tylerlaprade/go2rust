@@ -1179,16 +1179,12 @@ fn main() {
     println!("{}", format!("{}", sum(fan_in(Arc::new(Mutex::new(Some(vec![gen(Arc::new(Mutex::new(Some(5)))), gen(Arc::new(Mutex::new(Some(5))))])))))));
     println!("{}", format!("{}", sum(square(gen(Arc::new(Mutex::new(Some(4))))))));
     println!("{}", format!("{}", sum(fan_in(Arc::new(Mutex::new(Some(vec![square(gen(Arc::new(Mutex::new(Some(3))))), gen(Arc::new(Mutex::new(Some(3)))), square(square(gen(Arc::new(Mutex::new(Some(3))))))])))))));
-    let mut mk = Arc::new(Mutex::new(Some(Box::new(move || -> GoChannel<i64> {
+    let mut mk = Arc::new(Mutex::new(Some(Arc::new(move || -> GoChannel<i64> {
         gen(Arc::new(Mutex::new(Some(2))))
-    }) as Box<dyn FnMut() -> GoChannel<i64> + Send + Sync>)));
+    }) as Arc<dyn Fn() -> GoChannel<i64> + Send + Sync>)));
     println!("{}", format!("{}", sum({
-        let __f_ptr: *mut Box<dyn FnMut() -> GoChannel<i64> + Send + Sync> = {
-            let mut __f_guard = mk.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> GoChannel<i64> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> GoChannel<i64> + Send + Sync> = mk.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     })));

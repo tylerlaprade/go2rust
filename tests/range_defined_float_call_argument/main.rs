@@ -886,21 +886,21 @@ impl std::ops::Neg for Celsius {
 }
 
 
-pub fn sum_by(xs: Rc<RefCell<Option<Vec<Celsius>>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>>>>>) -> Rc<RefCell<Option<Celsius>>> {
+pub fn sum_by(xs: Rc<RefCell<Option<Vec<Celsius>>>>, f: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>>>>>) -> Rc<RefCell<Option<Celsius>>> {
     let mut total: Rc<RefCell<Option<Celsius>>> = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(0.0)))))));
     { let __range_holder = xs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for x in __range_values.iter().cloned() {
-        { let __rhs = (*{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(x.clone())))) }.borrow().as_ref().unwrap()).clone(); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
+        { let __rhs = (*{ let __f: Rc<dyn Fn(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>> = f.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(x.clone())))) }.borrow().as_ref().unwrap()).clone(); let mut guard = total.borrow_mut(); *guard = Some(guard.as_ref().unwrap().clone() + __rhs); };
     } }
     return { let __owned = total.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
 }
 
 fn main() {
     let mut temps = Rc::new(RefCell::new(Some(vec![Celsius(Rc::new(RefCell::new(Some(20.5)))), Celsius(Rc::new(RefCell::new(Some(22.0)))), Celsius(Rc::new(RefCell::new(Some(19.5))))])));
-    println!("{}", format!("{}", (*sum_by(temps.clone(), Rc::new(RefCell::new(Some(Box::new(move |c: Rc<RefCell<Option<Celsius>>>| -> Rc<RefCell<Option<Celsius>>> {
+    println!("{}", format!("{}", (*sum_by(temps.clone(), Rc::new(RefCell::new(Some(Rc::new(move |c: Rc<RefCell<Option<Celsius>>>| -> Rc<RefCell<Option<Celsius>>> {
         {
             let __tmp_x = (*c.borrow().as_ref().unwrap()).clone();
             let __tmp_y = Celsius(Rc::new(RefCell::new(Some(2.0))));
             Rc::new(RefCell::new(Some(__tmp_x * __tmp_y)))
         }
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>>)))).borrow().as_ref().unwrap())));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Celsius>>>) -> Rc<RefCell<Option<Celsius>>>>)))).borrow().as_ref().unwrap())));
 }

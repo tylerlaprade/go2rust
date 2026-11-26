@@ -680,15 +680,15 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-pub fn run(r#fn: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = r#fn.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+pub fn run(r#fn: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>) {
+    { let __f: Rc<dyn Fn() -> ()> = r#fn.borrow().as_ref().unwrap().clone(); (__f)() };
 }
 
 fn main() {
     let mut v: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>)));
 
-    let v_closure_clone = v.clone(); let mut f = Rc::new(RefCell::new(Some(Box::new(move || {
-        let v_closure_clone_closure_clone = v_closure_clone.clone(); run(Rc::new(RefCell::new(Some(Box::new(move || {
+    let v_closure_clone = v.clone(); let mut f = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let v_closure_clone_closure_clone = v_closure_clone.clone(); run(Rc::new(RefCell::new(Some(Rc::new(move || {
         let (_, mut ok) = ({
         let val = v_closure_clone_closure_clone.clone();
         let guard = val.borrow();
@@ -703,7 +703,7 @@ fn main() {
         }
     });
         println!("{}", format!("{}", ok));
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
         let (_, mut ok) = ({
         let val = v_closure_clone.clone();
         let guard = val.borrow();
@@ -718,7 +718,7 @@ fn main() {
         }
     });
         println!("{}", format!("{}", ok));
-    }) as Box<dyn FnMut() -> ()>)));
+    }) as Rc<dyn Fn() -> ()>)));
 
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    { let __f: Rc<dyn Fn() -> ()> = f.borrow().as_ref().unwrap().clone(); (__f)() };
 }

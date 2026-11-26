@@ -1162,14 +1162,14 @@ pub fn safe() {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         boom();
 
@@ -1203,12 +1203,12 @@ pub fn safe_line() {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         let mut r = go_recover();
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
         println!("{} {}", format!("{}", "recovered too:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         std::panic::panic_any(Box::new("same function".to_string()) as Box<dyn Any + Send + Sync>);
     }));
@@ -1240,14 +1240,15 @@ pub fn divide(a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>) -> (i64, A
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("caught: {}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err_defer_captured.lock().unwrap() = new_val; };;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         {
         { let new_val = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x / __tmp_y }; *result.lock().unwrap() = Some(new_val); };;
@@ -1287,14 +1288,14 @@ pub fn element(xs: Arc<Mutex<Option<Vec<i64>>>>, i: Arc<Mutex<Option<i64>>>) -> 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "element:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         {
         { let new_val = { let __seq = { let __seq_holder = xs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; *v.lock().unwrap() = Some(new_val); };;
@@ -1333,14 +1334,15 @@ pub fn with_error() -> i64 {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut n_defer_captured = n.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut n_defer_captured = n_defer_captured.clone();
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             { let new_val = -1; *n_defer_captured.lock().unwrap() = Some(new_val); };;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         std::panic::panic_any({ let __err_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("an error value".to_string()))))).clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } });
     }));
@@ -1371,19 +1373,19 @@ pub fn replaced() {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{} {}", format!("{}", "last:".to_string()), format!("{}", { let __text = match (go_recover()).lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", format!("{}", "still runs".to_string()));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || -> () {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || -> () {
         std::panic::panic_any(Box::new("second".to_string()) as Box<dyn Any + Send + Sync>);
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         std::panic::panic_any(Box::new("first".to_string()) as Box<dyn Any + Send + Sync>);
     }));
@@ -1413,21 +1415,21 @@ pub fn nested() {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "outer:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || -> () {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || -> () {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
@@ -1435,7 +1437,7 @@ pub fn nested() {
             std::panic::panic_any(Box::new("again".to_string()) as Box<dyn Any + Send + Sync>);;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         std::panic::panic_any(Box::new("original".to_string()) as Box<dyn Any + Send + Sync>);
         while let Some(f) = __defer_stack.pop() {
@@ -1459,7 +1461,7 @@ pub fn nested() {
                 ()
             }
         }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1491,14 +1493,14 @@ pub fn no_panic() -> i64 {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{}", format!("{}", "never printed".to_string()));;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         {
         let __return_value = 7;

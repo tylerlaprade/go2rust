@@ -885,7 +885,7 @@ fn main() {
     let (mut q, mut e2) = find();
     let _ = &q;
     let _ = &e2;
-    let mut f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>> = Rc::new(RefCell::new(None));
+    let mut f: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>> = Rc::new(RefCell::new(None));
     let _ = &f;
 
     let _ = &lastErr;
@@ -908,12 +908,13 @@ fn main() {
     println!("{} {} {}", format!("{}", { let __text = match lastErr.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.borrow().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
 
     let mut count = Rc::new(RefCell::new(Some(0i64)));
-    let mut count_closure_clone = count.clone(); let mut bump = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
+    let mut count_closure_clone = count.clone(); let mut bump = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
+        let mut count_closure_clone = count_closure_clone.clone();
         { let mut guard = count_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*count_closure_clone.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut() -> i64>)));
-    let _ = { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = bump.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
-    let _ = (*Rc::new(RefCell::new(Some(vec![{ let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = bump.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }]))).borrow().as_ref().unwrap())[(0) as usize].clone();
+    }) as Rc<dyn Fn() -> i64>)));
+    let _ = { let __f: Rc<dyn Fn() -> i64> = bump.borrow().as_ref().unwrap().clone(); (__f)() };
+    let _ = (*Rc::new(RefCell::new(Some(vec![{ let __f: Rc<dyn Fn() -> i64> = bump.borrow().as_ref().unwrap().clone(); (__f)() }]))).borrow().as_ref().unwrap())[(0) as usize].clone();
     println!("{}", format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));
 }
 

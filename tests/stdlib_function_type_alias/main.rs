@@ -7,27 +7,49 @@ macro_rules! vec {
 use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
+
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 pub fn make_qualifier() -> go_types::typestring::Qualifier {
-    return Arc::new(Mutex::new(Some(Box::new(move |pkg: Arc<Mutex<Option<go_types::package::Package>>>| -> Arc<Mutex<Option<String>>> {
+    return Arc::new(Mutex::new(Some(Arc::new(move |pkg: Arc<Mutex<Option<go_types::package::Package>>>| -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("".to_string())))
-    }) as Box<dyn FnMut(Arc<Mutex<Option<go_types::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<go_types::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
 }
 
 pub fn use_qualifier(qualifier: go_types::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<go_types::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = qualifier.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<go_types::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<go_types::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = qualifier.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             Arc::new(Mutex::new(None))
         )
     }
 }
 
 pub fn forward_qualifier(qualifier: go_types::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
-    use_qualifier(qualifier.clone())
+    use_qualifier(Arc::new(Mutex::new(GoFuncValue::go_func_value(&(qualifier)))))
 }
 
 fn main() {

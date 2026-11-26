@@ -469,7 +469,7 @@ func StoreAndCopy[T any](c C[T], value T) C[T] {
 	}
 }
 
-func TestGenericStructFunctionTypeArgumentUsesCloneableFieldProxy(t *testing.T) {
+func TestGenericStructFunctionTypeArgumentCopiesTheClosure(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 type C[T any] struct { V T }
@@ -482,14 +482,16 @@ func main() {
 `)
 
 	for _, want := range []string{
-		"impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R>",
-		"go_fn_field_target::<std::cell::RefCell<Option<Self>>>",
-		"go_register_fn_field_target(copy_key, proxy_data, &copy, &target);",
+		"GoTypeParamFieldClone for std::rc::Rc<dyn Fn($($arg),*) -> R>",
+		"std::rc::Rc::new(std::cell::RefCell::new(field.borrow().clone()))",
 		"<T as GoTypeParamFieldClone>::go_type_param_field_clone(&self.v)",
 	} {
 		if !strings.Contains(rust, want) {
-			t.Fatalf("function-valued type arguments should copy through an independent forwarding field, missing %q:\n%s", want, rust)
+			t.Fatalf("function-valued type arguments should copy into a field cell of their own, missing %q:\n%s", want, rust)
 		}
+	}
+	if strings.Contains(rust, "go_register_fn_field_target") {
+		t.Fatalf("a func value is a shared closure; its copy needs no forwarding registry:\n%s", rust)
 	}
 }
 
@@ -689,11 +691,14 @@ func main() {
 	_, _, _, _, _, _, _ = g, h, ok, k, e, f, ok2
 }
 `)
-	handle := "Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>"
+	handle := "Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>"
 	for _, want := range []string{
 		"let mut g = ({ let val = x.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<" + handle + ">()",
 		"if let Some(typed_val) = any_val.downcast_ref::<" + handle + ">() {\n                (typed_val.clone(), true)",
-		"{ let new_val = ({ let val = x.clone();",
+		"{ let __func_value = GoFuncValue::go_func_value(&(({",
+		// g is a variable of its own: a copy of the func value, which
+		// later assignments to g do not write into the interface value.
+		"let mut g = Rc::new(RefCell::new(GoFuncValue::go_func_value(&g)));",
 		"any_val.downcast_ref::<" + handle + ">().expect(\"type assertion failed\").clone()",
 		"match __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].downcast_ref::<" + handle + ">() {",
 	} {
@@ -701,7 +706,7 @@ func main() {
 			t.Fatalf("expected %q:\n%s", want, rust)
 		}
 	}
-	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> ()>>()") {
+	if strings.Contains(rust, "downcast_ref::<Rc<dyn Fn() -> ()>>()") {
 		t.Fatalf("no assertion should downcast to the closure box:\n%s", rust)
 	}
 }

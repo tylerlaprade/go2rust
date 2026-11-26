@@ -753,8 +753,8 @@ var lstat = os.Lstat
 	if strings.Contains(rust, "Some(os::lstat);") {
 		t.Fatalf("package global function selector should box the function object:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(Box::new(os::lstat));") {
-		t.Fatalf("package global function selector should initialize with Box::new:\n%s", rust)
+	if !strings.Contains(rust, "Some(Rc::new(os::lstat));") {
+		t.Fatalf("package global function selector should initialize with Rc::new:\n%s", rust)
 	}
 }
 

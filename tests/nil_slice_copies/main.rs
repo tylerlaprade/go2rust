@@ -812,9 +812,9 @@ fn main() {
     let mut items = (*q.borrow().as_ref().unwrap()).items.clone();
     let mut items = { let __slice_header = GoSliceHeader::go_slice_header(&items); Rc::new(RefCell::new(__slice_header)) };
     println!("{}", format!("{}", { let __nil_result = (*items.borrow()).is_none(); __nil_result }));
-    let s_closure_clone = s.clone(); let mut f = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<Vec<i64>>>> {
+    let s_closure_clone = s.clone(); let mut f = Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<Vec<i64>>>> {
         let mut c = Rc::new(RefCell::new(s_closure_clone.borrow().clone()));
         return c.clone();
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<Vec<i64>>>>>)));
-    println!("{}", format!("{}", { let __nil_result = (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Vec<i64>>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Vec<i64>>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow()).is_none(); __nil_result }));
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<Vec<i64>>>>>)));
+    println!("{}", format!("{}", { let __nil_result = (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Vec<i64>>>>> = f.borrow().as_ref().unwrap().clone(); (__f)() }.borrow()).is_none(); __nil_result }));
 }

@@ -147,8 +147,8 @@ pub fn make_type() -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + S
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         {
         { let new_val = Arc::new(Mutex::new(Some(Box::new(go_types::pointer::PointerPtr(go_types::new_pointer(Arc::new(Mutex::new(Some(Box::new(go_types::named::NamedPtr(named_type().clone())) as Box<dyn go_types::r#type::Type + Send + Sync>)))).clone())) as Box<dyn go_types::r#type::Type + Send + Sync>))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *res.lock().unwrap() = __moved_val; };

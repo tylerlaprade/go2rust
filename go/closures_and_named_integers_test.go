@@ -21,7 +21,7 @@ func main() {
 `)
 	// The statement clones c once; each move closure needs a clone of its
 	// own, or the second one uses a value the first one moved.
-	clone := "{ let mut c_closure_clone_closure_clone = c_closure_clone.clone(); Box::new(move"
+	clone := "{ let mut c_closure_clone_closure_clone = c_closure_clone.clone(); Rc::new(move"
 	if got := strings.Count(rust, clone); got != 2 {
 		t.Errorf("want each of the two closures to clone c, found %d:\n%s", got, rust)
 	}

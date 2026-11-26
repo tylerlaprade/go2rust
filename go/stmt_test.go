@@ -151,12 +151,12 @@ func classifyViaCallback(d decl) bool {
 		t.Fatalf("type switch on local interface parameter should not treat boxed trait objects as bare Any:\n%s", rust)
 	}
 	callbackRust := rust[callbackIndex:]
-	closureIndex := strings.Index(callbackRust, "Box::new(move |d:")
+	closureIndex := strings.Index(callbackRust, "::new(move |d:")
 	if closureIndex < 0 {
 		t.Fatalf("generated Rust did not contain callback closure:\n%s", rust)
 	}
 	closureRust := callbackRust[closureIndex:]
-	if closureEnd := strings.Index(closureRust, "}) as Box<dyn FnMut"); closureEnd >= 0 {
+	if closureEnd := strings.Index(closureRust, "}) as Rc<dyn Fn"); closureEnd >= 0 {
 		closureRust = closureRust[:closureEnd]
 	}
 	if !strings.Contains(closureRust, "let __any = __v.__go_as_any();") {
@@ -2661,10 +2661,10 @@ func bind(x interface{}) int {
 }
 `)
 
-	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>>()") {
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<Rc<dyn Fn() -> i64>>>>>()") {
 		t.Fatalf("bound function assertion should downcast to and clone the callable handle:\n%s", rust)
 	}
-	if strings.Contains(rust, "downcast_ref::<Box<dyn FnMut() -> i64>>") {
+	if strings.Contains(rust, "downcast_ref::<Rc<dyn Fn() -> i64>>") {
 		t.Fatalf("bound function assertion must not try to clone the boxed callable itself:\n%s", rust)
 	}
 }
@@ -3504,8 +3504,8 @@ func (p *Printer) Qualify(pkg *types.Package) string {
 	if !strings.Contains(rust, "pub qual: go_types::Qualifier,") {
 		t.Fatalf("source-mapped function type alias field should use the imported alias handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "qual: qual.clone()") {
-		t.Fatalf("source-mapped function type alias field initializer should clone the imported alias handle:\n%s", rust)
+	if !strings.Contains(rust, "qual: Rc::new(RefCell::new(GoFuncValue::go_func_value(&(qual))))") {
+		t.Fatalf("source-mapped function type alias field initializer should copy the func value into a cell of the imported alias type:\n%s", rust)
 	}
 }
 
@@ -3937,8 +3937,8 @@ func convertOp(ok bool) func(value) value {
 	if strings.Contains(rust, "cvtInt.clone()") {
 		t.Fatalf("returning a function identifier should not emit an untranslated Go identifier clone:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(move |__arg0:") ||
-		!strings.Contains(rust, "{ cvt_int(__arg0) }) as Box<dyn FnMut") {
+	if !strings.Contains(rust, "::new(move |__arg0:") ||
+		!strings.Contains(rust, "{ cvt_int(__arg0) }) as Rc<dyn Fn") {
 		t.Fatalf("returning a function identifier should box a typed function value using the Rust function name:\n%s", rust)
 	}
 }
@@ -4012,7 +4012,7 @@ func use(field reflect.Value) {
 	if strings.Contains(rust, ".set_bool.clone()") {
 		t.Fatalf("method value assigned into function map should lower as a typed closure, not a field clone:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(move |") || !strings.Contains(rust, ".set_bool(") {
+	if !strings.Contains(rust, "::new(move |") || !strings.Contains(rust, ".set_bool(") {
 		t.Fatalf("method value assigned into function map should emit a callable closure:\n%s", rust)
 	}
 }
@@ -5470,7 +5470,7 @@ func use(t *timer, gp *g) {
 `)
 
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "let __recv =") && strings.Contains(line, "Box::new(move |") {
+		if strings.Contains(line, "let __recv =") && strings.Contains(line, "::new(move |") {
 			t.Fatalf("pointer receiver method call with function-value argument should not stay on one line:\n%s", rust)
 		}
 	}
@@ -5556,7 +5556,7 @@ func use() uintptr {
 `)
 
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "start(") && strings.Contains(line, "Box::new(move |") {
+		if strings.Contains(line, "start(") && strings.Contains(line, "::new(move |") {
 			t.Fatalf("single function-value call argument should not stay on the opening call line:\n%s", rust)
 		}
 	}
@@ -5626,7 +5626,7 @@ func use() uintptr {
 `)
 
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "let __go_binary_") && strings.Contains(line, "Box::new(move |") {
+		if strings.Contains(line, "let __go_binary_") && strings.Contains(line, "::new(move |") {
 			t.Fatalf("method-expression function value boxed into any should not stay on one line:\n%s", rust)
 		}
 	}
@@ -6105,7 +6105,7 @@ func walk(yield func(int) bool) {
 	if strings.Contains(rust, "yield(__multi_arg_0)") {
 		t.Fatalf("function value call should not be lowered as a direct function call:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*mut Box<dyn FnMut") {
+	if !strings.Contains(rust, ": Rc<dyn Fn") {
 		t.Fatalf("function value call should invoke the closure handle:\n%s", rust)
 	}
 }
@@ -8397,14 +8397,14 @@ func run(fn func() error) {
 	if !strings.Contains(rust, "|r#fn:") {
 		t.Fatalf("goroutine function literal parameter should preserve the Go name with Rust escaping:\n%s", rust)
 	}
-	if strings.Contains(rust, "|r#fn: Box<dyn FnMut") {
+	if strings.Contains(rust, "|r#fn: Arc<dyn Fn") {
 		t.Fatalf("goroutine function literal parameter should use the wrapped function parameter shape:\n%s", rust)
 	}
-	if !strings.Contains(rust, "|r#fn: Arc<Mutex<Option<Box<dyn FnMut") {
+	if !strings.Contains(rust, "|r#fn: Arc<Mutex<Option<Arc<dyn Fn") {
 		t.Fatalf("goroutine function literal parameter should accept the wrapped function handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __go_arg_0 = r#fn.clone();") || !strings.Contains(rust, "__closure(__go_arg_0)") {
-		t.Fatalf("goroutine function literal call should capture and pass the escaped function handle:\n%s", rust)
+	if !strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#fn))));") || !strings.Contains(rust, "__closure(__go_arg_0)") {
+		t.Fatalf("goroutine function literal call should pass a copy of the escaped function value:\n%s", rust)
 	}
 }
 
@@ -9496,7 +9496,7 @@ func assign(typ *table, comparable bool) {
 	if targetClone == -1 {
 		t.Fatalf("function literal assignment should clone selector target before the move closure:\n%s", rust)
 	}
-	newValue := strings.Index(rust, "let new_val = Box::new(move |")
+	newValue := strings.Index(rust, "let new_val = Rc::new(move |")
 	if newValue == -1 {
 		t.Fatalf("function literal assignment should lower through a boxed move closure:\n%s", rust)
 	}

@@ -1313,11 +1313,12 @@ pub fn work(fail: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Arc<dyn StdError
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
         if { let __nil_result = (*err_defer_captured.lock().unwrap()).is_some(); __nil_result } {
         { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("wrapped: {}", { let __text = match err_defer_captured.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *err_defer_captured.lock().unwrap() = new_val; };
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         if { let __v = (*fail.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         {
@@ -1449,27 +1450,19 @@ fn main() {
     println!("{} {}", format!("{}", { let __text = match boxed.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // So does what a closure returns.
-    let err_closure_clone = err.clone(); let mut check = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    let err_closure_clone = err.clone(); let mut check = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         return { let __err_source = err_closure_clone.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) };
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
     let mut fromClosure = {
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
-            let mut __f_guard = check.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = check.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
     *fromClosure.lock().unwrap() = None;
     println!("{} {} {}", format!("{}", { let __nil_result = (*fromClosure.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __left = {
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
-            let mut __f_guard = check.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = check.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }.clone(); let __right = err.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));

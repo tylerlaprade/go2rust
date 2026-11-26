@@ -11,6 +11,31 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
 }
@@ -136,14 +161,11 @@ fn main() {
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let (mut ctx, mut cancel) = GoContext::with_timeout(Arc::new(Mutex::new(Some(GoContext::background()))).clone(), std::time::Duration::from_secs(1));
-        let cancel_defer_captured = cancel.clone(); __defer_stack.push(Box::new(move || {
+        let mut cancel = Arc::new(Mutex::new(GoFuncValue::go_func_value(&cancel)));
+        let cancel_defer_captured = Arc::new(Mutex::new((*cancel.lock().unwrap()).clone())); __defer_stack.push(Box::new(move || {
         {
-            let __f_ptr: *mut GoCancelFunc = {
-                let mut __f_guard = cancel_defer_captured.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut GoCancelFunc
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: GoCancelFunc = cancel_defer_captured.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };
@@ -165,13 +187,10 @@ fn main() {
     }
     }
         let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
+        let mut cancel2 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&cancel2)));
         {
-            let __f_ptr: *mut GoCancelCauseFunc = {
-                let mut __f_guard = cancel2.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut GoCancelCauseFunc
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: GoCancelCauseFunc = cancel2.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
                 Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("boom".to_string())))))
             )
         };

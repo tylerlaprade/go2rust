@@ -1078,16 +1078,12 @@ pub fn show_pair(args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
 /// arguments, and the arguments are used again after it is made.
 pub fn later(format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
     let mut args = Arc::new(Mutex::new((*args.lock().unwrap()).clone()));
-    let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
+    let args_closure_clone = args.clone(); let format_closure_clone = format.clone(); let mut build = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format_closure_clone.lock().unwrap().as_ref().unwrap()).clone(), &args_closure_clone, false)))))
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
     println!("{}", format!("{}", (*{
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-            let mut __f_guard = build.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = build.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }.lock().unwrap().as_ref().unwrap())));

@@ -718,14 +718,15 @@ impl counter {
     }
 
     pub fn start(&mut self) {
-        let mut c_closure_clone = (*self).clone(); run(Rc::new(RefCell::new(Some(Box::new(move || {
+        let mut c_closure_clone = (*self).clone(); run(Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut c_closure_clone = c_closure_clone.clone();
         c_closure_clone.inc();
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     }
 }
 
-pub fn run(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+pub fn run(f: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>) {
+    { let __f: Rc<dyn Fn() -> ()> = f.borrow().as_ref().unwrap().clone(); (__f)() };
 }
 
 fn main() {
