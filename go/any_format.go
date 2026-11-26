@@ -23,6 +23,11 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		if anyFormatTypeIsLocalNamedBasic(t) {
 			return anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(t) || isConcreteGoErrorValue(t), namedBasic: true}, true
 		}
+		if anyFormatTypeIsLocalNamedCollection(t) && typeHasGoStringMethod(t) {
+			// A named slice, array or map with a String method: its
+			// Display calls String (DEV-234).
+			return anyFormatArm{expr: `format!("{}", v)`, text: true}, true
+		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
 			var expr strings.Builder
@@ -98,6 +103,25 @@ func anyFormatTypeIsLocalStruct(typ types.Type) bool {
 // declares with a basic underlying type, "type Level int". Its newtype
 // implements Display: through String when the type has one, otherwise as
 // the value it holds, which is how Go prints both (DEV-47).
+// anyFormatTypeIsLocalNamedCollection reports whether typ is a named slice,
+// array or map type of the package being written.
+func anyFormatTypeIsLocalNamedCollection(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	if args := named.TypeArgs(); args != nil && args.Len() > 0 {
+		return false
+	}
+	switch named.Underlying().(type) {
+	case *types.Slice, *types.Array, *types.Map:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg
+}
+
 func anyFormatTypeIsLocalNamedBasic(typ types.Type) bool {
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {

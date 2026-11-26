@@ -884,6 +884,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		}
 
+		if (typeInfo.IsMap(arg) || typeInfo.IsSlice(arg) || typeInfo.IsArray(arg)) && writeNamedCollectionStringerPrintArg(out, arg, argType) {
+			return
+		}
 		if typeInfo.IsMap(arg) {
 			writeHandle := func() {
 				if ident, ok := arg.(*ast.Ident); ok {
@@ -2499,6 +2502,23 @@ func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.T
 		return false
 	}
 	TranspileExpression(out, arg)
+	return true
+}
+
+// writeNamedCollectionStringerPrintArg prints a value of a named slice,
+// array or map type that has a String method through it: the newtype's
+// Display calls String (DEV-234).
+func writeNamedCollectionStringerPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if argType == nil || !typeHasGoStringMethod(argType) {
+		return false
+	}
+	if _, isNamed := types.Unalias(argType).(*types.Named); !isNamed {
+		return false
+	}
+	TrackImport("Display")
+	out.WriteString("format!(\"{}\", ")
+	writeUnwrappedForFormat(out, arg)
+	out.WriteString(")")
 	return true
 }
 

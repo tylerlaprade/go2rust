@@ -1,0 +1,11 @@
+[package]
+name = "named_collection_stringers"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_collection_stringers"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
