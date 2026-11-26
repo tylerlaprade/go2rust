@@ -3527,6 +3527,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Each file numbers its receive temporaries from 1, so a file's Rust
 	// does not depend on the files written before it.
 	receiveAssignmentTempCount = 0
+	// Each file numbers its operand temporaries from 1, so a file's Rust
+	// does not depend on the files written before it.
+	binaryRightOperandTempCount = 0
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}

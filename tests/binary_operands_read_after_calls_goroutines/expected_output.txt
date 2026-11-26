@@ -1,0 +1,25 @@
+started
+slice element: 3 [2 2]
+in an argument: [3 4]
+several operands: 37 [4 4]
+comparison: false [5 4]
+field and pointer method: 12 6
+in a method: 14 7
+address taken: 11 10
+captured by a closure: 2 1
+package variable: 6 5
+parenthesized: bc b
+field of a call: 108
+string field of a call: de
+method of a call's result: 311
+string: a!t a!
+map element: 2 2
+float: 6 2
+len of a call: 311
+&& on the left: false
+len and cap on the left: 1 4
+min on the left: 2
+negation on the left: -7
+copy on the right: 6 [5]
+plain local: 6
+condition: before [6 4]

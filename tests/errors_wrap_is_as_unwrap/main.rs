@@ -2189,13 +2189,13 @@ impl StdError for Code {}
 
 impl QueryError {
     pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        return Rc::new(RefCell::new(Some({
+        return Rc::new(RefCell::new(Some({ let __go_rhs_1 = Rc::new(RefCell::new(Some(format!("{}", self.err.borrow().as_ref().unwrap())))); let __go_binary_value = {
             let mut __s = String::new();
             __s.push_str(&format!("{}", (*self.query.clone().borrow().as_ref().unwrap())));
             __s.push_str(&format!("{}", ": ".to_string()));
-            __s.push_str(&format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", self.err.borrow().as_ref().unwrap())))).borrow().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*__go_rhs_1.borrow().as_ref().unwrap())));
             __s
-        })));
+        }; __go_binary_value })));
     }
 
     pub fn unwrap(&self) -> Rc<RefCell<Option<Rc<dyn StdError>>>> {

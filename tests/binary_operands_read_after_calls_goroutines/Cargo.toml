@@ -1,0 +1,11 @@
+[package]
+name = "binary_operands_read_after_calls_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "binary_operands_read_after_calls_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
