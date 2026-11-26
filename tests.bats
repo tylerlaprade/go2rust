@@ -828,6 +828,14 @@ run_xfail_test() {
     run_test "tests/channels_basic"
 }
 
+@test "channels_of_named_types" {
+    run_test "tests/channels_of_named_types"
+}
+
+@test "channels_of_named_types_goroutines" {
+    run_test "tests/channels_of_named_types_goroutines"
+}
+
 @test "channels_simple" {
     run_test "tests/channels_simple"
 }
@@ -4038,6 +4046,14 @@ run_xfail_test() {
 
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
+}
+
+@test "sort_package_slice_types" {
+    run_test "tests/sort_package_slice_types"
+}
+
+@test "sort_package_slice_types_goroutines" {
+    run_test "tests/sort_package_slice_types_goroutines"
 }
 
 @test "sort_reverse_and_search_sorted" {

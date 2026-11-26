@@ -1132,6 +1132,34 @@ func writeNamedIntegerConstNewtypeValue(out *strings.Builder, expr ast.Expr) boo
 	return writeExpressionForExpectedTypesType(out, expr, named)
 }
 
+// isReceiveExpr reports whether expr is a receive, <-ch.
+func isReceiveExpr(expr ast.Expr) bool {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	return ok && unary.Op == token.ARROW
+}
+
+// writeNamedScalarConstChannelValue writes a constant of a named scalar
+// type, such as the 5 of ch <- 5 on a chan Level, as a value of that type.
+func writeNamedScalarConstChannelValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isConstantExpression(expr) {
+		return false
+	}
+	// A conversion, Level(5), is written as a Level already.
+	if _, isCall := unwrapParens(expr).(*ast.CallExpr); isCall {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || !isNamedScalarNewtype(typ) {
+		return false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return false
+	}
+	return writeExpressionForExpectedTypesType(out, expr, named)
+}
+
 func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 	// A constant goes into the interface as a value of its type.
 	if writeNamedIntegerConstNewtypeValue(out, expr) || writeIntegerConstForAnyBox(out, expr) {
@@ -11571,6 +11599,11 @@ func channelOfBareCollections(ch ast.Expr) bool {
 }
 
 func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
+	// A constant sent on a chan Level is a Level, the newtype over a cell,
+	// not the bare number (DEV-220).
+	if writeNamedScalarConstChannelValue(out, expr) {
+		return
+	}
 	// For string literals, just output the value directly
 	if lit, ok := expr.(*ast.BasicLit); ok {
 		if lit.Kind == token.STRING {
