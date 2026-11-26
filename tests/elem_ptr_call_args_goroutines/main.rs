@@ -1766,6 +1766,17 @@ pub fn double(p: Arc<Mutex<Option<i64>>>) -> i64 {
     { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }
 }
 
+pub fn add_to(p: Arc<Mutex<Option<i64>>>, x: Arc<Mutex<Option<i64>>>) {
+    { let __rhs = (*x.lock().unwrap().as_ref().unwrap()); let mut guard = p.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+}
+
+/// change sets the element the first argument points to; the callee reads
+/// it only after all the arguments are evaluated.
+pub fn change(s: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
+    { let __idx = (0) as usize; let __rhs = 5; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    1
+}
+
 /// A write through the pointer before a panic stays in the element.
 pub fn set_then_panic(p: Arc<Mutex<Option<i64>>>) {
     { let new_val = 5; *p.lock().unwrap() = Some(new_val); };
@@ -1874,8 +1885,8 @@ fn main() {
     };
     {
         let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize));
-        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __elem_ptr_1 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize));
+        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Arc::new(Mutex::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) };
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone(); }
@@ -1943,8 +1954,8 @@ fn main() {
     let mut one = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
     {
         let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize));
-        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize));
+        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Arc::new(Mutex::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) };
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone(); }
@@ -1959,8 +1970,8 @@ fn main() {
     };
     {
         let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize));
-        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize));
+        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Arc::new(Mutex::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) };
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone(); }
@@ -1988,6 +1999,22 @@ fn main() {
         __result
     };
     println!("{} {} {}", format!("{}", format_slice(&ps)), format!("{}", format_slice(&one)), format!("{}", format_slice(&calls.clone())));
+    let mut late = Arc::new(Mutex::new(Some(vec![1i64])));
+    {
+        let __elem_ptr_0 = Some(GoSliceElemPtr::new(late.clone(), (0) as usize));
+        let __arg1 = Arc::new(Mutex::new(Some(change(late.clone()))));
+        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+        let __write_back = GoWriteBack(|| {
+            if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.lock().unwrap()).clone(); }
+        });
+        let __result = add_to(
+            __arg0.clone(),
+            __arg1
+        );
+        drop(__write_back);
+        __result
+    };
+    println!("{}", format!("{}", format_slice(&late)));
     let mut written = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
     recovered(written.clone());
     println!("{}", format!("{}", format_slice(&written)));

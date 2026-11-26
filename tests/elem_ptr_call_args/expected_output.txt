@@ -1,5 +1,6 @@
 12 [6 12]
 [ab! cd] [3 7] [{1} {3}] [6 12]
 [{9} {3}] [7 15] [first at]
+[6]
 recovered after the write
 [5 2]

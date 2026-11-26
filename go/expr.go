@@ -4478,24 +4478,24 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString(" ")
 		}
 	}
-	// Go evaluates the arguments from left to right. When an argument
-	// before the last element pointer runs a call, every argument up to it
-	// is bound in order, not only the element pointers.
-	lastAdapted := elemArgs[len(elemArgs)-1].index
+	// Go evaluates the arguments from left to right, and the callee reads
+	// the element only when it runs. When an argument runs a call, every
+	// argument is bound in order first, and the cells take the elements'
+	// values after all of them, so a call that changes the element is seen.
 	bindInOrder := false
-	for i := 0; i <= lastAdapted; i++ {
-		if binaryOperandHasCall(call.Args[i], true) {
+	for i, arg := range call.Args {
+		if !adapted[i] && binaryOperandHasCall(arg, true) {
 			bindInOrder = true
 		}
 	}
 	bound := make(map[int]bool)
-	var earlierSliceElems []string
 	for i, arg := range call.Args {
+		index := strconv.Itoa(i)
 		if !adapted[i] {
-			if bindInOrder && i < lastAdapted {
+			if bindInOrder {
 				writeStmtIndent()
 				out.WriteString("let __arg")
-				out.WriteString(strconv.Itoa(i))
+				out.WriteString(index)
 				out.WriteString(" = ")
 				writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
 				out.WriteString(";")
@@ -4505,14 +4505,18 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			continue
 		}
 		writeStmtIndent()
-		index := strconv.Itoa(i)
 		out.WriteString("let __elem_ptr_")
 		out.WriteString(index)
 		out.WriteString(" = ")
 		writeElemPtrNoEscapeOptionValue(out, arg)
 		out.WriteString(";")
 		finishStmt()
+	}
+	var earlierSliceElems []string
+	for _, elemArg := range elemArgs {
+		arg := elemArg.arg
 		writeStmtIndent()
+		index := strconv.Itoa(elemArg.index)
 		out.WriteString("let __arg")
 		out.WriteString(index)
 		out.WriteString(" = ")

@@ -42,6 +42,15 @@ func double(p *int) int {
 	return *p
 }
 
+func addTo(p *int, x int) { *p += x }
+
+// change sets the element the first argument points to; the callee reads
+// it only after all the arguments are evaluated.
+func change(s []int) int {
+	s[0] = 5
+	return 1
+}
+
 // A write through the pointer before a panic stays in the element.
 func setThenPanic(p *int) {
 	*p = 5
@@ -77,6 +86,9 @@ func main() {
 	both(&one[1], &one[0])
 	add(first(), &one[at(1)])
 	fmt.Println(ps, one, calls)
+	late := []int{1}
+	addTo(&late[0], change(late))
+	fmt.Println(late)
 	written := []int{1, 2}
 	recovered(written)
 	fmt.Println(written)
