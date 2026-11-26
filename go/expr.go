@@ -2961,6 +2961,14 @@ func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.E
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
+	// <-ch of a chan IDs receives the IDs value itself, with no cell
+	// around it (DEV-220).
+	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpression(out, inner)
+		out.WriteString("; __named_slice.0.clone() }")
+		return true
+	}
 	if isExpressionResultBare(inner) {
 		out.WriteString("{ let __named_slice = ")
 		TranspileExpression(out, expr)
