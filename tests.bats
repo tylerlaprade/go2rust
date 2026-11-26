@@ -3200,6 +3200,14 @@ run_xfail_test() {
     run_test "tests/parameter_reassignment"
 }
 
+@test "paren_call_selectors" {
+    run_test "tests/paren_call_selectors"
+}
+
+@test "paren_call_selectors_goroutines" {
+    run_test "tests/paren_call_selectors_goroutines"
+}
+
 @test "parser_mode_const_expression" {
     run_test "tests/parser_mode_const_expression"
 }
