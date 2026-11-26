@@ -128,4 +128,9 @@ func inOrder() {
 	fmt.Fprintln(writer(), len(order), step())
 	fmt.Printf(format(), len(order), step())
 	fmt.Println(order)
+	// A pointer operand is staged as the handle it is.
+	fmt.Println(len(order), &box{step()})
+	fmt.Println(len(order), newBox())
 }
+
+func newBox() *box { return &box{n: step()} }

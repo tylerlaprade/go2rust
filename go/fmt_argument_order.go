@@ -126,8 +126,10 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 		out.WriteString("let ")
 		out.WriteString(name)
 		out.WriteString(" = ")
-		// NeedsUnwrapping reports whether the operand's Rust is a cell.
-		if typeInfo.NeedsUnwrapping(arg) {
+		// NeedsUnwrapping reports whether the operand's Rust is a cell. A
+		// pointer's Rust is its handle, which a pointer variable holds as
+		// it is: &box{...} must not be wrapped again.
+		if _, isPointer := types.Unalias(argType).Underlying().(*types.Pointer); isPointer || typeInfo.NeedsUnwrapping(arg) {
 			TranspileExpression(out, arg)
 		} else {
 			WriteWrapperPrefix(out)

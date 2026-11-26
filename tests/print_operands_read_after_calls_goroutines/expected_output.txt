@@ -16,6 +16,8 @@ b c b!
 2 3
 4 5
 [writer writer step format step]
+5 &{6}
+6 &{7}
 [3 4 0 0] [3 4]
 2 1 2 2
 3 3 {3}

@@ -2450,6 +2450,14 @@ pub fn in_order() {
     { let __go_print_arg_28 = writer(); let __go_print_arg_29 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_30 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = { let __s = format!("{} {}\n", format!("{}", { let __v = (*__go_print_arg_29.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_30.lock().unwrap().as_ref().unwrap()).clone(); __v })); (*__go_print_arg_28.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) }; __go_print_value };
     { let __go_print_arg_31 = format(); let __go_print_arg_32 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_33 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = print!("{}", go_sprintf(&(*__go_print_arg_31.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_32.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_33.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); __go_print_value };
     println!("{}", format!("{}", format_slice(&order.clone())));
+
+        // A pointer operand is staged as the handle it is.
+    println!("{} {}", format!("{}", ({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __text = match Arc::new(Mutex::new(Some(r#box { n: Arc::new(Mutex::new(Some(step()))), ..Default::default() }))).lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
+    println!("{} {}", format!("{}", ({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __text = match new_box().lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }));
+}
+
+pub fn new_box() -> Arc<Mutex<Option<r#box>>> {
+    Arc::new(Mutex::new(Some(r#box { n: Arc::new(Mutex::new(Some(step()))), ..Default::default() })))
 }
 
 pub(crate) fn __go_init_all() {
