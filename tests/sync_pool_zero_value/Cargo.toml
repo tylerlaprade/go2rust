@@ -1,0 +1,11 @@
+[package]
+name = "sync_pool_zero_value"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "sync_pool_zero_value"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
