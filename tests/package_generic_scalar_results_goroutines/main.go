@@ -20,7 +20,7 @@ func main() {
 	x := dep.Pick(7)
 	y := dep.Pick[int](8) + 1
 	var z int = dep.Pick(10)
-	fmt.Println(x, y, z, x+z, dep.Pick(9))
+	fmt.Println(x, y, z, x+z, dep.Pick(9), dep.Pick[int](6))
 	f := dep.Pick(1.5) * 2
 	ok := dep.Pick(true) && !dep.Pick(false)
 	fmt.Println(f, ok, double(dep.Pick(4)), dep.Size("s")+1)

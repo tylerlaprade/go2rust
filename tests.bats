@@ -1632,6 +1632,14 @@ run_xfail_test() {
     run_test "tests/func_type_alias_implements_interface"
 }
 
+@test "func_value_call_results_print" {
+    run_test "tests/func_value_call_results_print"
+}
+
+@test "func_value_call_results_print_goroutines" {
+    run_test "tests/func_value_call_results_print_goroutines"
+}
+
 @test "func_values_are_copied" {
     run_test "tests/func_values_are_copied"
 }
@@ -1718,6 +1726,14 @@ run_xfail_test() {
 
 @test "generic_cache_and_grouping_goroutines" {
     run_test "tests/generic_cache_and_grouping_goroutines"
+}
+
+@test "generic_call_results_print" {
+    run_test "tests/generic_call_results_print"
+}
+
+@test "generic_call_results_print_goroutines" {
+    run_test "tests/generic_call_results_print_goroutines"
 }
 
 @test "generic_comparable_pointer_identity" {
