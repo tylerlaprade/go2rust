@@ -3296,6 +3296,14 @@ run_xfail_test() {
     run_test "tests/printf_basic_slice_verbs_goroutines"
 }
 
+@test "printf_go_syntax_verb" {
+    run_test "tests/printf_go_syntax_verb"
+}
+
+@test "printf_go_syntax_verb_goroutines" {
+    run_test "tests/printf_go_syntax_verb_goroutines"
+}
+
 @test "printf_local_interface_values" {
     run_test "tests/printf_local_interface_values"
 }
