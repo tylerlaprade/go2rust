@@ -190,6 +190,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 7: Goroutines and Concurrency (Core Complete)
 
+- ✅ Assigning receives - `case x = <-ch`, `case x, ok = <-ch` and `for x = range ch` store into an existing variable, field, element or map entry, for scalar, string, struct, error and interface channels (receive_assignments added, 2026-11-26)
 - ✅ atomic.AddInt64 with any delta - a conversion such as `int64(len(words))`, a call, a field or a constant, through the same writer as the other atomic Add functions, which wraps around as Go does (atomic_add_int64_deltas added, 2026-11-26)
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)

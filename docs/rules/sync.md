@@ -33,6 +33,7 @@ Use this when generated Rust holds locks too long, clones the wrong synchronizat
 - In `for init; cond; post` loops, unlabeled `continue` runs the loop post before checking the next condition, even when nested inside switch/type-switch blocks.
 - Hide outer loop posts inside nested loops that have no post statement.
 - Select communication cases should emit synthetic `break` only when the case body can fall through.
+- A select case or channel range that assigns (`case x, ok = <-ch`, `for x = range ch`) is written as the declaring form with fresh `__go_recv_value_N` / `__go_recv_ok_N` variables, followed by ordinary assignments to the targets (receive_assignment.go). Binding the target itself with `let` would shadow it.
 
 ## Concurrent Ordering And Helpers
 

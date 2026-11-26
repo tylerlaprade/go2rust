@@ -15884,6 +15884,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if writeRangeOverFuncStatement(out, s, "", fnType, fileSet, comments, lastPos, indent) {
 			return
 		}
+		if restore, needsTypeInfo := rewriteChannelRangeAssignment(s); needsTypeInfo {
+			out.WriteString(`unimplemented!("type info required for a range that assigns to an existing variable")`)
+			return
+		} else if restore != nil {
+			defer restore()
+		}
 		registerLoopVariables(s)
 		// Track range loop variables so we don't try to unwrap them
 		var keyName, valueName string
@@ -17159,6 +17165,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if cc.Comm == nil {
 				// Default case — handled at the end
 				continue
+			}
+			if restore, needsTypeInfo := rewriteSelectReceiveAssignment(cc); needsTypeInfo {
+				out.WriteString(`        unimplemented!("type info required for a select case that assigns a receive");` + "\n")
+				continue
+			} else if restore != nil {
+				defer restore()
 			}
 
 			// Determine the type of communication

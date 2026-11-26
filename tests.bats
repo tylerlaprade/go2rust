@@ -3712,6 +3712,14 @@ run_xfail_test() {
     run_test "tests/rebox_asserted_slice"
 }
 
+@test "receive_assignments" {
+    run_test "tests/receive_assignments"
+}
+
+@test "receive_assignments_goroutines" {
+    run_test "tests/receive_assignments_goroutines"
+}
+
 @test "receiver_basic_field_argument_value" {
     run_test "tests/receiver_basic_field_argument_value"
 }

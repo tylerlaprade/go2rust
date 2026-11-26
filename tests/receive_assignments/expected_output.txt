@@ -1,0 +1,16 @@
+1
+in case: 2 true
+2 true
+3 [0 7] map[k:8]
+0 false
+b
+range field: 4
+range field: 5
+5
+boom bang
+9
+1 [true false]
+2 kept
+first
+second
+42

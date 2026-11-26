@@ -353,6 +353,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Range stdlib-interface slice values used in calls, assignments, type switches, and assertions | ✅ |
 | └ Stdlib-interface slice values compared with nil | ✅ |
 | └ Channel range | ✅ |
+| └ Assigning receives: `case x, ok = <-ch` and `for x = range ch` into variables, fields, elements and map entries | ✅ |
 | **`return` - Return statements** | |
 | └ Single return values | ✅ |
 | └ Multiple return values | ✅ |
