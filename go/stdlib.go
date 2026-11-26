@@ -1132,7 +1132,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
 			// User function call (not stdlib)
 			needsUnwrap = true
-		} else if instantiatesGenericFunc(GetTypeInfo(), callExpr.Fun) {
+		} else if instantiatesGenericFunc(GetTypeInfo(), callExpr.Fun) && callHasOneResult(callExpr) {
 			// f[int](x), pkg.F[int](x) or pkg.G[K, V](x): a generic
 			// function returns its result in a cell.
 			needsUnwrap = true
@@ -8650,7 +8650,19 @@ func callCallsFuncValueExpression(call *ast.CallExpr) bool {
 		// f[int](x) and pkg.F[int](x) call a function, not a func value.
 		return false
 	}
-	return isFunctionSignatureType(typeInfo.GetType(fun))
+	// Only a single result comes back in one cell.
+	sig, ok := signatureFromType(typeInfo.GetType(fun))
+	return ok && sig.Results().Len() == 1
+}
+
+// callHasOneResult reports whether call's callee has exactly one result.
+func callHasOneResult(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(call.Fun))
+	return ok && sig.Results().Len() == 1
 }
 
 // instantiatesGenericFunc reports whether expr is f[T], pkg.F[T] or
