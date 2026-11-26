@@ -282,10 +282,10 @@ func assignPackageGlobalNameOverrides(files []*ast.File, functionOverrides map[s
 					seenGlobals[name.Name] = true
 					base := EscapeRustIdent(name.Name)
 					rustName := base
-					if usedRustNames[rustName] {
+					if usedRustNames[rustName] || helperBindingNames[rustName] {
 						for suffix := 1; ; suffix++ {
 							candidate := fmt.Sprintf("%s_%d", base, suffix)
-							if !usedRustNames[candidate] {
+							if !usedRustNames[candidate] && !helperBindingNames[candidate] {
 								rustName = candidate
 								break
 							}

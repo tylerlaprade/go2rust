@@ -1378,15 +1378,15 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static registry: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
+pub(crate) static registry_1: GoGlobal<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobal::new();
 
 pub(crate) static order: GoGlobal<Vec<String>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *registry.borrow_mut() = Some(BTreeMap::new());
+    *registry_1.borrow_mut() = Some(BTreeMap::new());
     *order.borrow_mut() = Some(Vec::nil());
-    *registry.borrow_mut() = Some((*build_registry().borrow().as_ref().unwrap()).clone());
+    *registry_1.borrow_mut() = Some((*build_registry().borrow().as_ref().unwrap()).clone());
 }
 
 
@@ -1416,7 +1416,7 @@ pub fn build_registry() -> Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<
 
 fn __go_init_0() {
     { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "init1".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *order.borrow_mut() = new_val; };
-    { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some(2))); (*registry.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some(2))); (*registry_1.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 fn __go_init_1() {
@@ -1445,7 +1445,7 @@ fn main() {
     __go_init_all();
     println!("{} {} {} {} {} {} {}", format!("{}", Perm(Rc::new(RefCell::new(Some(READ as u8))))), format!("{}", Perm(Rc::new(RefCell::new(Some(WRITE as u8))))), format!("{}", Perm(Rc::new(RefCell::new(Some(EXEC as u8))))), format!("{}", Perm(Rc::new(RefCell::new(Some(ALL as u8))))), format!("{}", Perm(Rc::new(RefCell::new(Some(5 as u8))))), format!("{}", Perm(Rc::new(RefCell::new(Some(ALL as u8)))).has(Rc::new(RefCell::new(Some(Perm(Rc::new(RefCell::new(Some(WRITE as u8))))))))), format!("{}", Perm::has(&(Perm(Rc::new(RefCell::new(Some(4 as u8))))), Rc::new(RefCell::new(Some(Perm(Rc::new(RefCell::new(Some(READ as u8))))))))));
     println!("{} {} {} {}", format!("{}", Size(Rc::new(RefCell::new(Some(K_B))))), format!("{}", Size(Rc::new(RefCell::new(Some(1024.0))))), format!("{}", Size(Rc::new(RefCell::new(Some(1024.0))))), format!("{}", (*Rc::new(RefCell::new(Some(1.073741824e+09 as i64))).borrow().as_ref().unwrap())));
-    println!("{} {} {}", format!("{}", format_slice(&order.clone())), format!("{}", ({ let __len = (*registry.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map_holder = registry.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{} {} {}", format!("{}", format_slice(&order.clone())), format!("{}", ({ let __len = (*registry_1.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map_holder = registry_1.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut xs = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
     println!("{} {} {} {}", format!("{}", sum(Rc::new(RefCell::new(Some(vec![]))))), format!("{}", sum(Rc::new(RefCell::new(Some(vec![1]))))), format!("{}", sum(xs.clone())), format!("{}", sum({ let __append_target = xs.clone(); let __append_value = 4; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })));
     let mut inc = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
