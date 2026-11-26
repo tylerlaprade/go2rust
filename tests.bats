@@ -3892,6 +3892,14 @@ run_xfail_test() {
     run_test "tests/regex_basic"
 }
 
+@test "regexp_from_source" {
+    run_test "tests/regexp_from_source"
+}
+
+@test "regexp_from_source_goroutines" {
+    run_test "tests/regexp_from_source_goroutines"
+}
+
 @test "regexp_methods" {
     run_test "tests/regexp_methods"
 }

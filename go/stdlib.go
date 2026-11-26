@@ -195,7 +195,6 @@ func init() {
 		"math/rand.Intn":                             transpileRandIntn,
 		"math/rand.Float64":                          transpileRandFloat64,
 		"net/url.Parse":                              transpileUrlParse,
-		"regexp.MustCompile":                         transpileRegexpMustCompile,
 	}
 
 	builtinMappings = map[string]StdlibHandler{
@@ -5654,21 +5653,6 @@ func transpileUrlParse(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString(", ")
 	writeTypedErrorNone(out)
 	out.WriteString(") }")
-}
-
-func transpileRegexpMustCompile(out *strings.Builder, call *ast.CallExpr) {
-	NeedRegexp()
-	WriteWrapperPrefix(out)
-	out.WriteString("GoRegexp { pattern: ")
-	WriteWrapperPrefix(out)
-	if len(call.Args) > 0 {
-		writeOwnedStringStdlibArg(out, call.Args[0])
-	} else {
-		out.WriteString("String::new()")
-	}
-	WriteWrapperSuffix(out)
-	out.WriteString(" }")
-	WriteWrapperSuffix(out)
 }
 
 func appendExpandsStringIntoByteSlice(call *ast.CallExpr) bool {

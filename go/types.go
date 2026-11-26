@@ -1251,10 +1251,6 @@ func goTypeToRustBase(expr ast.Expr) string {
 				NeedGoContext()
 				return "GoCancelCauseFunc"
 			}
-			if goPackageImports[ident.Name] == "regexp" && t.Sel.Name == "Regexp" {
-				NeedRegexp()
-				return "GoRegexp"
-			}
 			if isStdlibPackage(goPackageImports[ident.Name]) {
 				if named, ok := namedTypeForTypeExpr(t); ok {
 					if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(named); ok {
@@ -2098,11 +2094,6 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 		case "CancelCauseFunc":
 			NeedGoContext()
 			return "GoCancelCauseFunc", true
-		}
-	case "regexp":
-		if obj.Name() == "Regexp" {
-			NeedRegexp()
-			return "GoRegexp", true
 		}
 	}
 	return "", false

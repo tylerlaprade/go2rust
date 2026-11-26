@@ -8085,6 +8085,16 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	if helperQualifier == "" {
 		NeedSliceElemPtr()
 	}
+	// &p.Inst[p.Start]: the slice's handle comes out of p's cell, and so
+	// does the index. Read in one call's arguments, the first read's guard
+	// is still alive at the second, which with a Mutex waits on itself.
+	// Such an index is read in a statement of its own first.
+	separateIndex := !sliceElemPtrIndexIsPlain(indexExpr.Index)
+	if separateIndex {
+		out.WriteString("{ let __elem_index = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; ")
+	}
 	if helperQualifier != "" {
 		out.WriteString(helperQualifier)
 		out.WriteString("::")
@@ -8107,9 +8117,25 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 		out.WriteString(".clone()")
 	}
 	out.WriteString(", ")
+	if separateIndex {
+		out.WriteString("__elem_index) }")
+		return true
+	}
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
 	return true
+}
+
+// sliceElemPtrIndexIsPlain reports whether an element pointer's index reads
+// no cell another operand of the call may hold: a constant or a local.
+func sliceElemPtrIndexIsPlain(index ast.Expr) bool {
+	switch e := unwrapParens(index).(type) {
+	case *ast.BasicLit:
+		return true
+	case *ast.Ident:
+		return !isPackageGlobalIdent(e)
+	}
+	return isConstantExpression(index)
 }
 
 // indexesSliceOrArray reports whether e indexes a slice or an array, whose

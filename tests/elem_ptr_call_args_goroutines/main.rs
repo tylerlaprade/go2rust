@@ -1986,7 +1986,7 @@ fn main() {
     };
     {
         let __arg0 = Arc::new(Mutex::new(Some(first())));
-        let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (at(Arc::new(Mutex::new(Some(1))))) as usize));
+        let __elem_ptr_1 = Some({ let __elem_index = (at(Arc::new(Mutex::new(Some(1))))) as usize; GoSliceElemPtr::new(one.clone(), __elem_index) });
         let __arg1 = Arc::new(Mutex::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.lock().unwrap()).clone(); }

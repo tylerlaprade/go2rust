@@ -1640,7 +1640,7 @@ fn main() {
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize)); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); } }); let __result = both(__arg0.clone(), __arg1.clone()); drop(__write_back); __result };
     {
         let __arg0 = Rc::new(RefCell::new(Some(first())));
-        let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (at(Rc::new(RefCell::new(Some(1))))) as usize));
+        let __elem_ptr_1 = Some({ let __elem_index = (at(Rc::new(RefCell::new(Some(1))))) as usize; GoSliceElemPtr::new(one.clone(), __elem_index) });
         let __arg1 = Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); }
