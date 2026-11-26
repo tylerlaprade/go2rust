@@ -42,6 +42,17 @@ func double(p *int) int {
 	return *p
 }
 
+// A write through the pointer before a panic stays in the element.
+func setThenPanic(p *int) {
+	*p = 5
+	panic("after the write")
+}
+
+func recovered(s []int) {
+	defer func() { fmt.Println("recovered", recover()) }()
+	setThenPanic(&s[0])
+}
+
 func main() {
 	// A goroutine makes every variable a locked one.
 	started := make(chan string, 1)
@@ -66,4 +77,7 @@ func main() {
 	both(&one[1], &one[0])
 	add(first(), &one[at(1)])
 	fmt.Println(ps, one, calls)
+	written := []int{1, 2}
+	recovered(written)
+	fmt.Println(written)
 }

@@ -4548,6 +4548,40 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			earlierSliceElems = append(earlierSliceElems, index)
 		}
 	}
+	// The cells' values go back into the elements when the call returns
+	// and also when it panics, as a write through the pointer would stay
+	// in Go: a guard does the writes when it is dropped.
+	NeedGoWriteBack()
+	writeStmtIndent()
+	out.WriteString("let __write_back = GoWriteBack(|| {")
+	if multiline {
+		out.WriteString("\n")
+	} else {
+		out.WriteString(" ")
+	}
+	writeBackIndent := innerIndent + "    "
+	for _, elemArg := range elemArgs {
+		index := strconv.Itoa(elemArg.index)
+		if multiline {
+			out.WriteString(writeBackIndent)
+		}
+		out.WriteString("if let Some(__ptr) = __elem_ptr_")
+		out.WriteString(index)
+		out.WriteString(".as_ref() { *__ptr.borrow_mut() = (*__arg")
+		out.WriteString(index)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone(); }")
+		if multiline {
+			out.WriteString("\n")
+		} else {
+			out.WriteString(" ")
+		}
+	}
+	if multiline {
+		out.WriteString(innerIndent)
+	}
+	out.WriteString("});")
+	finishStmt()
 	writeStmtIndent()
 	out.WriteString("let __result = ")
 	writeNoEscapeElemPtrCallTarget(out, call)
@@ -4584,43 +4618,9 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	out.WriteString(");")
 	finishStmt()
-	for _, elemArg := range elemArgs {
-		index := strconv.Itoa(elemArg.index)
-		writeStmtIndent()
-		out.WriteString("if let Some(__ptr) = __elem_ptr_")
-		out.WriteString(index)
-		out.WriteString(".as_ref() {")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("    ")
-		} else {
-			out.WriteString(" ")
-		}
-		out.WriteString("let mut __elem_guard_")
-		out.WriteString(index)
-		out.WriteString(" = __ptr.borrow_mut();")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("    ")
-		} else {
-			out.WriteString(" ")
-		}
-		out.WriteString("*__elem_guard_")
-		out.WriteString(index)
-		out.WriteString(" = (*__arg")
-		out.WriteString(index)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").clone();")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("};\n")
-		} else {
-			out.WriteString(" }; ")
-		}
-	}
+	writeStmtIndent()
+	out.WriteString("drop(__write_back);")
+	finishStmt()
 	if multiline {
 		out.WriteString(innerIndent)
 		out.WriteString("__result\n")

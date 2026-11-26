@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -718,6 +719,119 @@ where
         format!("[{}]", formatted.join(" "))
     } else {
         "[]".to_string()
+    }
+}
+
+fn format_any(value: &dyn Any) -> String {
+    if let Some(v) = value.downcast_ref::<i32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<f64>() {
+        go_float_string(*v, false)
+    } else if let Some(v) = value.downcast_ref::<f32>() {
+        go_float_string(*v as f64, true)
+    } else if let Some(v) = value.downcast_ref::<String>() {
+        v.clone()
+    } else if let Some(v) = value.downcast_ref::<&str>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<bool>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<i16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<isize>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u8>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u16>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u32>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<u64>() {
+        v.to_string()
+    } else if let Some(v) = value.downcast_ref::<usize>() {
+        v.to_string()
+    } else {
+        panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
+    }
+}
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+
+fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            Err(__payload) => std::panic::resume_unwind(__payload),
+        }
+    }
+}
+
+struct GoWriteBack<F: FnMut()>(F);
+
+impl<F: FnMut()> Drop for GoWriteBack<F> {
+    fn drop(&mut self) {
+        (self.0)()
     }
 }
 
@@ -1452,40 +1566,85 @@ pub fn double(p: Rc<RefCell<Option<i64>>>) -> i64 {
     { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }
 }
 
+/// A write through the pointer before a panic stays in the element.
+pub fn set_then_panic(p: Rc<RefCell<Option<i64>>>) {
+    { let new_val = 5; *p.borrow_mut() = Some(new_val); };
+    panic!("after the write");
+}
+
+pub fn recovered(s: Rc<RefCell<Option<Vec<i64>>>>) {
+    let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        println!("{} {}", format!("{}", "recovered".to_string()), format!("{}", match (go_recover()).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
+    }));
+        { let __elem_ptr_0 = Some(GoSliceElemPtr::new(s.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = set_then_panic(__arg0.clone()); drop(__write_back); __result };
+
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            ()
+        }
+    }
+}
+
 fn main() {
     __go_init_all();
     let mut words = Rc::new(RefCell::new(Some(vec!["ab".to_string(), "cd".to_string()])));
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(words.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = tag(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(words.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = tag(__arg0.clone()); drop(__write_back); __result };
     let mut nums = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = bump(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = set(__arg0.clone(), Rc::new(RefCell::new(Some(7)))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = swap(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = bump(__arg0.clone()); drop(__write_back); __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = set(__arg0.clone(), Rc::new(RefCell::new(Some(7)))); drop(__write_back); __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); } }); let __result = swap(__arg0.clone(), __arg1.clone()); drop(__write_back); __result };
     let mut ps = Rc::new(RefCell::new(Some(vec![P { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }, P { n: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = inc(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = inc(__arg0.clone()); drop(__write_back); __result };
     let mut arr = Rc::new(RefCell::new(Some([5i64, 6i64])));
-    { let __elem_ptr_0 = Some(GoArrayElemPtr::new(arr.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = bump(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoArrayElemPtr::new(arr.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = bump(__arg0.clone()); drop(__write_back); __result };
     let mut i = Rc::new(RefCell::new(Some(1i64)));
-    println!("{} {}", format!("{}", { let __elem_ptr_0 = Some(GoArrayElemPtr::new(arr.clone(), ((*i.borrow().as_ref().unwrap())) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = double(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result }), format!("{}", format_slice(&arr)));
+    println!("{} {}", format!("{}", { let __elem_ptr_0 = Some(GoArrayElemPtr::new(arr.clone(), ((*i.borrow().as_ref().unwrap())) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = double(__arg0.clone()); drop(__write_back); __result }), format!("{}", format_slice(&arr)));
     println!("{} {} {} {}", format!("{}", format_slice(&words)), format!("{}", format_slice(&nums)), format!("{}", format_slice(&ps)), format!("{}", format_slice(&arr)));
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = reset(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = reset(__arg0.clone()); drop(__write_back); __result };
     let mut one = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = both(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = both(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); } }); let __result = both(__arg0.clone(), __arg1.clone()); drop(__write_back); __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); } }); let __result = both(__arg0.clone(), __arg1.clone()); drop(__write_back); __result };
     {
         let __arg0 = Rc::new(RefCell::new(Some(first())));
         let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (at(Rc::new(RefCell::new(Some(1))))) as usize));
         let __arg1 = Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+        let __write_back = GoWriteBack(|| {
+            if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); }
+        });
         let __result = add(
             __arg0,
             __arg1.clone()
         );
-        if let Some(__ptr) = __elem_ptr_1.as_ref() {
-            let mut __elem_guard_1 = __ptr.borrow_mut();
-            *__elem_guard_1 = (*__arg1.borrow()).clone();
-        };
+        drop(__write_back);
         __result
     };
     println!("{} {} {}", format!("{}", format_slice(&ps)), format!("{}", format_slice(&one)), format!("{}", format_slice(&calls.clone())));
+    let mut written = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
+    recovered(written.clone());
+    println!("{}", format!("{}", format_slice(&written)));
 }
 
 pub(crate) fn __go_init_all() {
