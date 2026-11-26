@@ -3504,6 +3504,14 @@ run_xfail_test() {
     run_test "tests/range_over_func"
 }
 
+@test "range_over_func_defers" {
+    run_test "tests/range_over_func_defers"
+}
+
+@test "range_over_func_defers_goroutines" {
+    run_test "tests/range_over_func_defers_goroutines"
+}
+
 @test "range_over_func_goroutines" {
     run_test "tests/range_over_func_goroutines"
 }

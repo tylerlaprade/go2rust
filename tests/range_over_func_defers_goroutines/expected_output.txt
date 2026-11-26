@@ -1,0 +1,15 @@
+after loop
+last defer
+deferred 2
+closure at 1
+deferred 1
+deferred 0
+first defer
+inner b 2
+pair b 20
+inner a 2
+pair a 20
+g: 20
+from goroutine 2
+from goroutine 1
+from goroutine 0

@@ -78,6 +78,14 @@ type rangeFuncRewrite struct {
 	next     *types.Var
 	branches []*ast.BranchStmt
 	suffix   string
+	// deferOwner is the rewrite of the range over a function this one is
+	// in the body of, nil for the outermost. A defer in the body belongs to
+	// the function the outermost loop is in: it goes on deferred, a [1]func()
+	// slot that a defer of that function runs (rewriteDefer).
+	deferOwner   *rangeFuncRewrite
+	deferred     *types.Var
+	deferredDecl ast.Stmt
+	deferCount   int
 }
 
 // typeExpr gives the syntax of type t, each part recorded with its type, as
@@ -276,6 +284,93 @@ func (r *rangeFuncRewrite) assign(lhs ast.Expr, rhs ast.Expr, pos token.Pos) ast
 	return &ast.AssignStmt{Lhs: []ast.Expr{lhs}, TokPos: pos, Tok: token.ASSIGN, Rhs: []ast.Expr{rhs}}
 }
 
+// emptySignature is the type func().
+var emptySignature = types.NewSignatureType(nil, nil, nil, nil, nil, false)
+
+// funcLit gives func() { body }, recorded with its type.
+func (r *rangeFuncRewrite) funcLit(body ...ast.Stmt) *ast.FuncLit {
+	lit := &ast.FuncLit{
+		Type: &ast.FuncType{Func: r.pos, Params: &ast.FieldList{Opening: r.pos, Closing: r.pos}},
+		Body: &ast.BlockStmt{Lbrace: r.pos, List: body, Rbrace: r.pos},
+	}
+	r.typeInfo.info.Types[lit] = types.TypeAndValue{Type: emptySignature}
+	return lit
+}
+
+// callStmt gives the statement fun(), of a fun of type func().
+func (r *rangeFuncRewrite) callStmt(fun ast.Expr) ast.Stmt {
+	call := &ast.CallExpr{Fun: fun, Lparen: r.pos, Rparen: r.pos}
+	r.typeInfo.info.Types[call] = types.TypeAndValue{Type: types.NewTuple()}
+	return &ast.ExprStmt{X: call}
+}
+
+// rewriteDefer writes a defer in the body as the push of the deferred call
+// onto the defers of the function the outermost loop is in:
+//
+//	__rf_arg_0 := x; __rf_prev := __rf_defers[0]; __rf_defers[0] = func() { f(__rf_arg_0); __rf_prev() }
+//
+// The arguments are evaluated where the defer is, as Go does; a constant
+// argument is left as it is. The deferred calls run last first, from the
+// defer of the function that deferredRunner adds before the loop.
+func (r *rangeFuncRewrite) rewriteDefer(s *ast.DeferStmt) (ast.Stmt, bool) {
+	owner := r
+	for owner.deferOwner != nil {
+		owner = owner.deferOwner
+	}
+	callType, ok := r.typeInfo.info.Types[s.Call]
+	if !ok || s.Call.Ellipsis != token.NoPos {
+		return nil, false
+	}
+	if owner.deferred == nil {
+		owner.deferred, owner.deferredDecl = owner.newVar("__rf_defers_"+owner.suffix, types.NewArray(emptySignature, 1))
+	}
+	owner.deferCount++
+	at := owner.suffix + "_" + itoaRangeFunc(owner.deferCount)
+	var list []ast.Stmt
+	call := &ast.CallExpr{Fun: s.Call.Fun, Lparen: s.Call.Lparen, Rparen: s.Call.Rparen}
+	r.typeInfo.info.Types[call] = callType
+	for i, arg := range s.Call.Args {
+		tv, ok := r.typeInfo.info.Types[arg]
+		if !ok || tv.Type == nil {
+			return nil, false
+		}
+		if tv.Value != nil || tv.IsNil() {
+			call.Args = append(call.Args, arg)
+			continue
+		}
+		v := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_arg_"+at+"_"+itoaRangeFunc(i), tv.Type)
+		name := &ast.Ident{NamePos: r.pos, Name: v.Name()}
+		r.typeInfo.info.Defs[name] = v
+		list = append(list, &ast.AssignStmt{Lhs: []ast.Expr{name}, TokPos: r.pos, Tok: token.DEFINE, Rhs: []ast.Expr{arg}})
+		call.Args = append(call.Args, r.use(v))
+	}
+	prev := types.NewVar(r.pos, r.typeInfo.pkg, "__rf_prev_"+at, emptySignature)
+	prevName := &ast.Ident{NamePos: r.pos, Name: prev.Name()}
+	r.typeInfo.info.Defs[prevName] = prev
+	list = append(list,
+		&ast.AssignStmt{Lhs: []ast.Expr{prevName}, TokPos: r.pos, Tok: token.DEFINE, Rhs: []ast.Expr{owner.resultSlot(owner.deferred)}},
+		owner.assign(owner.resultSlot(owner.deferred), r.funcLit(&ast.ExprStmt{X: call}, r.callStmt(r.use(prev))), r.pos))
+	// The statements take the defer's place in its list, not a block of
+	// their own: a closure's captures are taken before the statement that
+	// holds it, after the names it captures are declared.
+	block := &ast.BlockStmt{Lbrace: s.Pos(), List: list, Rbrace: s.End()}
+	rangeFuncSplices[block] = true
+	return block, true
+}
+
+// deferredRunner gives the statements before the loop that declare its
+// defers and defer running them: var __rf_defers [1]func();
+// __rf_defers[0] = func() {}; defer func() { __rf_defers[0]() }().
+func (r *rangeFuncRewrite) deferredRunner() []ast.Stmt {
+	runner := &ast.CallExpr{Fun: r.funcLit(r.callStmt(r.resultSlot(r.deferred))), Lparen: r.pos, Rparen: r.pos}
+	r.typeInfo.info.Types[runner] = types.TypeAndValue{Type: types.NewTuple()}
+	return []ast.Stmt{
+		r.deferredDecl,
+		r.assign(r.resultSlot(r.deferred), r.funcLit(), r.pos),
+		&ast.DeferStmt{Defer: r.pos, Call: runner},
+	}
+}
+
 // rangeFuncSplices holds the blocks that stand for the statements a nested
 // range over a function is, which the list holding one takes in its place.
 var rangeFuncSplices = map[*ast.BlockStmt]bool{}
@@ -285,6 +380,11 @@ var rangeFuncSplices = map[*ast.BlockStmt]bool{}
 // the body, which an unlabeled break or continue belongs to.
 func (r *rangeFuncRewrite) rewriteStmt(stmt ast.Stmt, inLoop bool, inSwitch bool) ast.Stmt {
 	switch s := stmt.(type) {
+	case *ast.DeferStmt:
+		if rewritten, ok := r.rewriteDefer(s); ok {
+			return rewritten
+		}
+		return s
 	case *ast.BranchStmt:
 		if s.Tok != token.BREAK && s.Tok != token.CONTINUE {
 			return s
@@ -389,7 +489,7 @@ func (r *rangeFuncRewrite) rewriteStmt(stmt ast.Stmt, inLoop bool, inSwitch bool
 // as the statements it is, then rewrites those: what returns from it or
 // branches out of it once its own function is back is this body's to write.
 func (r *rangeFuncRewrite) rewriteNestedRangeOverFunc(s *ast.RangeStmt, label string, inLoop bool, inSwitch bool) (ast.Stmt, bool) {
-	stmts, ok := expandRangeOverFunc(s, label, r.fnType)
+	stmts, ok := expandRangeOverFuncIn(s, label, r.fnType, r)
 	if !ok {
 		return nil, false
 	}
@@ -452,6 +552,12 @@ func statementLabels(body ast.Node) map[string]bool {
 // back. fnType is the function the loop is in. It reports false when s does
 // not range over a function.
 func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) ([]ast.Stmt, bool) {
+	return expandRangeOverFuncIn(s, label, fnType, nil)
+}
+
+// expandRangeOverFuncIn is expandRangeOverFunc for a range in the body of
+// the one owner rewrites, nil for one that is not.
+func expandRangeOverFuncIn(s *ast.RangeStmt, label string, fnType *ast.FuncType, owner *rangeFuncRewrite) ([]ast.Stmt, bool) {
 	yield, ok := rangeFuncYieldSignature(s.X)
 	if !ok {
 		return nil, false
@@ -460,7 +566,7 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 	if typeInfo == nil || typeInfo.info == nil {
 		return nil, false
 	}
-	r := &rangeFuncRewrite{typeInfo: typeInfo, fnType: fnType, pos: s.For, label: label, innerLabels: statementLabels(s.Body)}
+	r := &rangeFuncRewrite{typeInfo: typeInfo, fnType: fnType, pos: s.For, label: label, innerLabels: statementLabels(s.Body), deferOwner: owner}
 	var prelude []ast.Stmt
 	var decl ast.Stmt
 	rangeFuncCount++
@@ -560,6 +666,9 @@ func expandRangeOverFunc(s *ast.RangeStmt, label string, fnType *ast.FuncType) (
 	}
 	body := r.rewriteStmt(s.Body, false, false).(*ast.BlockStmt)
 	body.List = append(append(bindings, body.List...), &ast.ReturnStmt{Return: s.Body.Rbrace, Results: []ast.Expr{r.boolLit(true)}})
+	if r.deferred != nil {
+		prelude = append(prelude, r.deferredRunner()...)
+	}
 	yieldType := &ast.FuncType{Func: s.For, Params: params, Results: &ast.FieldList{List: []*ast.Field{{Type: r.typeExpr(yield.Results().At(0).Type())}}}}
 	funcLit := &ast.FuncLit{Type: yieldType, Body: body}
 	typeInfo.info.Types[funcLit] = types.TypeAndValue{Type: yield}
