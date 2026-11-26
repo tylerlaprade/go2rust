@@ -773,6 +773,67 @@ fn go_display_value<T: Display>(__value: &T) -> String {
     __value.to_string()
 }
 
+/// A defined array type keeps its newtype behind a pointer.
+#[derive(Debug, Clone)]
+pub struct A(pub Rc<RefCell<Option<[i64; 2]>>>);
+
+impl Default for A {
+    fn default() -> Self {
+        A(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))))
+    }
+}
+
+impl A {
+    pub fn __go_value_clone(&self) -> Self {
+        A(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for A {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.borrow().clone();
+        let __right = other.0.borrow().clone();
+        __left == __right
+    }
+}
+
+impl Display for A {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Big(pub Rc<RefCell<Option<[i64; 40]>>>);
+
+impl Default for Big {
+    fn default() -> Self {
+        Big(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))))
+    }
+}
+
+impl Big {
+    pub fn __go_value_clone(&self) -> Self {
+        Big(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for Big {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.borrow().clone();
+        let __right = other.0.borrow().clone();
+        __left == __right
+    }
+}
+
+impl Display for Big {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 pub struct Grid {
     pub cells: Rc<RefCell<Option<[i64; 4]>>>,
@@ -794,6 +855,10 @@ impl std::fmt::Display for Grid {
     }
 }
 
+
+pub fn set(p: Rc<RefCell<Option<A>>>) {
+    { let __idx = (1) as usize; let __rhs = 9; (*{ let __named_array = (*p.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+}
 
 pub fn fill(p: Rc<RefCell<Option<[i64; 4]>>>, v: Rc<RefCell<Option<i64>>>) {
     for i in 0..(4) {
@@ -834,4 +899,14 @@ fn main() {
     let mut e = Rc::new(RefCell::new(Some({ let __v = (*a.borrow().as_ref().unwrap()).clone(); __v })));
     { let __idx = (1) as usize; let __rhs = -1; (*e.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", (*a.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*e.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    let mut da = Rc::new(RefCell::new(Some(A(Rc::new(RefCell::new(Some([1i64, 2i64])))))));
+    set(da.clone());
+    println!("{} {} {}", format!("{}", { let __seq_holder = { let __named_array = (*da.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*da.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __v = (*da.borrow().as_ref().unwrap()).__go_value_clone(); __v }));
+    let mut na = Rc::new(RefCell::new(Some(A::default())));
+    { let __idx = (0) as usize; let __rhs = 3; (*{ let __named_array = (*na.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    let mut big = Rc::new(RefCell::new(Some(Big::default())));
+    { let __idx = (39) as usize; let __rhs = 1; (*{ let __named_array = (*big.borrow().as_ref().unwrap()).0.clone(); __named_array }.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    let mut wide = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 40, _>(|_| 0))));
+    { let __idx = (0) as usize; let __rhs = 2; (*wide.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {} {}", format!("{}", { let __v = (*na.borrow().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __seq_holder = { let __named_array = (*big.borrow().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (39) as usize; let __seq_guard = __seq_holder.borrow(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", (*wide.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", 40));
 }

@@ -942,6 +942,67 @@ fn go_display_value<T: Display>(__value: &T) -> String {
     __value.to_string()
 }
 
+/// A defined array type keeps its newtype behind a pointer.
+#[derive(Debug, Clone)]
+pub struct A(pub Arc<Mutex<Option<[i64; 2]>>>);
+
+impl Default for A {
+    fn default() -> Self {
+        A(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))
+    }
+}
+
+impl A {
+    pub fn __go_value_clone(&self) -> Self {
+        A(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for A {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.lock().unwrap().clone();
+        let __right = other.0.lock().unwrap().clone();
+        __left == __right
+    }
+}
+
+impl Display for A {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Big(pub Arc<Mutex<Option<[i64; 40]>>>);
+
+impl Default for Big {
+    fn default() -> Self {
+        Big(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))
+    }
+}
+
+impl Big {
+    pub fn __go_value_clone(&self) -> Self {
+        Big(Arc::new(Mutex::new(self.0.lock().unwrap().as_ref().map(|__go_array| __go_array.clone()))))
+    }
+}
+
+impl PartialEq for Big {
+    fn eq(&self, other: &Self) -> bool {
+        let __left = self.0.lock().unwrap().clone();
+        let __right = other.0.lock().unwrap().clone();
+        __left == __right
+    }
+}
+
+impl Display for Big {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice(&self.0))
+    }
+}
+
+
 #[derive(Debug, Clone, Default)]
 pub struct Grid {
     pub cells: Arc<Mutex<Option<[i64; 4]>>>,
@@ -963,6 +1024,10 @@ impl std::fmt::Display for Grid {
     }
 }
 
+
+pub fn set(p: Arc<Mutex<Option<A>>>) {
+    { let __idx = (1) as usize; let __rhs = 9; (*{ let __named_array = (*p.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+}
 
 pub fn fill(p: Arc<Mutex<Option<[i64; 4]>>>, v: Arc<Mutex<Option<i64>>>) {
     for i in 0..(4) {
@@ -1017,4 +1082,14 @@ fn main() {
     let mut e = Arc::new(Mutex::new(Some({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v })));
     { let __idx = (1) as usize; let __rhs = -1; (*e.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{} {}", format!("{}", { let __seq = { let __seq_holder = a.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = e.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }));
+    let mut da = Arc::new(Mutex::new(Some(A(Arc::new(Mutex::new(Some([1i64, 2i64])))))));
+    set(da.clone());
+    println!("{} {} {}", format!("{}", { let __seq_holder = { let __named_array = (*da.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (0) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __seq_holder = { let __named_array = (*da.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (1) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __v = (*da.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
+    let mut na = Arc::new(Mutex::new(Some(A::default())));
+    { let __idx = (0) as usize; let __rhs = 3; (*{ let __named_array = (*na.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut big = Arc::new(Mutex::new(Some(Big::default())));
+    { let __idx = (39) as usize; let __rhs = 1; (*{ let __named_array = (*big.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut wide = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 40, _>(|_| 0))));
+    { let __idx = (0) as usize; let __rhs = 2; (*wide.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {} {}", format!("{}", { let __v = (*na.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __seq_holder = { let __named_array = (*big.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_index = (39) as usize; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[__seq_index].clone() }), format!("{}", { let __seq = { let __seq_holder = wide.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", 40));
 }

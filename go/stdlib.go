@@ -7431,14 +7431,28 @@ func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		WriteWrapperPrefix(out)
-		if array, ok := call.Args[0].(*ast.ArrayType); ok && array.Len != nil {
+		if typ, ok := newCallUnnamedArrayType(call); ok {
 			// [T; N] has no path for ::default(), and no Default past 32.
-			out.WriteString(zeroValueForGoType(array))
+			out.WriteString(zeroValueForTypesType(typ))
 		} else {
 			out.WriteString(rustDefaultConstructorExpression(goTypeToRustBase(call.Args[0])))
 		}
 		out.WriteString(")))")
 	}
+}
+
+// newCallUnnamedArrayType returns the array type new([N]T) allocates, by
+// the type information.
+func newCallUnnamedArrayType(call *ast.CallExpr) (types.Type, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || len(call.Args) == 0 {
+		return nil, false
+	}
+	typ := typeInfo.GetType(call.Args[0])
+	if _, ok := types.Unalias(typ).(*types.Array); !ok {
+		return nil, false
+	}
+	return typ, true
 }
 
 func newCallAllocatesFunctionSlot(call *ast.CallExpr) bool {

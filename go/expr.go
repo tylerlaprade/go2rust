@@ -13647,6 +13647,18 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 	return typeNeedsGoValueClone(typeInfo.GetType(expr))
 }
 
+// unnamedArrayLiteral reports whether lit is a literal of an unnamed array
+// type, [N]T{...}, which translates to its handle. A defined array type's
+// literal is its newtype, which a pointer wraps.
+func unnamedArrayLiteral(lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(lit)).(*types.Array)
+	return ok
+}
+
 func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || lit == nil {
@@ -14982,7 +14994,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsArray(compositeLit) {
+				if unnamedArrayLiteral(compositeLit) {
 					// A pointer to an array is the array's handle, as p := &arr
 					// shares arr's: the new array's handle is the pointer.
 					TranspileExpression(out, compositeLit)

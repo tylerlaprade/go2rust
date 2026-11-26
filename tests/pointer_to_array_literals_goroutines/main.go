@@ -6,6 +6,13 @@ package main
 
 import "fmt"
 
+// A defined array type keeps its newtype behind a pointer.
+type A [2]int
+
+type Big [40]int
+
+func set(p *A) { p[1] = 9 }
+
 type Grid struct {
 	cells *[4]int
 }
@@ -52,4 +59,14 @@ func main() {
 	e := *a
 	e[1] = -1
 	fmt.Println(a[1], e[1])
+	da := &A{1, 2}
+	set(da)
+	fmt.Println(da[0], da[1], *da)
+	na := new(A)
+	na[0] = 3
+	big := new(Big)
+	big[39] = 1
+	wide := new([40]int)
+	wide[0] = 2
+	fmt.Println(*na, big[39], wide[0], len(wide))
 }
