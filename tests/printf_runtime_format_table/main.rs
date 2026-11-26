@@ -760,6 +760,46 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1547,6 +1587,7 @@ pub fn show(format: Rc<RefCell<Option<String>>>, text: Rc<RefCell<Option<String>
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut intFormats = Rc::new(RefCell::new(Some(vec!["%d".to_string(), "%5d".to_string(), "%-5d|".to_string(), "%05d".to_string(), "%+d".to_string(), "% d".to_string(), "%x".to_string(), "%X".to_string(), "%#x".to_string(), "%o".to_string(), "%#o".to_string(), "%O".to_string(), "%b".to_string(), "%c".to_string(), "%q".to_string(), "%U".to_string(), "%#U".to_string(), "%v".to_string(), "%3v".to_string(), "%.3d".to_string(), "%8.3d".to_string(), "%08.3d".to_string(), "%-8.3d|".to_string(), "%+05d".to_string(), "%.0d".to_string(), "%s".to_string(), "%t".to_string(), "%f".to_string(), "%e".to_string(), "%T".to_string()])));
     let mut ints = Rc::new(RefCell::new(Some(vec![0i64, 7i64, (-42i64), 65i64, 255i64, 123456789i64])));
     { let __range_holder = intFormats.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for format in __range_values.iter() {

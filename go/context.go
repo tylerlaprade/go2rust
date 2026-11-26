@@ -917,6 +917,15 @@ func NeedPanicRecover() {
 	}
 }
 
+// NeedPanicExit marks that main installs the panic hook that ends the
+// program with Go's message and exit status.
+func NeedPanicExit() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsPanicExit = true
+		TrackImport("Any")
+	}
+}
+
 // NeedGoPointerError marks that an error assertion must keep a concrete
 // pointer handle live instead of snapshotting its current pointee.
 func NeedGoPointerError() {

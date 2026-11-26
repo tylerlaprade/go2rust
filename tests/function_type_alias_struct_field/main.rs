@@ -681,6 +681,46 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 pub type ReportFunc = Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>;
 
 
@@ -727,6 +767,7 @@ pub fn report(label: Rc<RefCell<Option<String>>>, values: Rc<RefCell<Option<Vec<
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut p = Rc::new(RefCell::new(Some(importer { reportf: Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { report(__arg0, __arg1) }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))), name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
     { let __f_holder = (*p.borrow().as_ref().unwrap()).reportf.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))) };
 }

@@ -452,6 +452,7 @@ impl std::fmt::Display for Ident {
 
 
 fn main() {
+    go_install_panic_exit();
     let mut i = Rc::new(RefCell::new(Some(Ident { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() })));
     println!("{}", format!("{}", (*(*i.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 }

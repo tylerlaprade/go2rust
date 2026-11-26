@@ -8,9 +8,7 @@ include!("__go2rust_helpers.rs");
 mod collide;
 use collide::*;
 
-use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
 
 #[derive(Debug, Clone)]
 pub struct acc {
@@ -74,10 +72,12 @@ pub fn compute() -> i64 {
 pub fn plain() -> i64 {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
         note();
     }));
-    {
+        {
         let __return_value = compute();
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -85,16 +85,36 @@ pub fn plain() -> i64 {
         }
         return __return_value;
     }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            0 as i64
+        }
+    }
 }
 
 pub fn via_multi(a: Rc<RefCell<Option<acc>>>) -> i64 {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        __defer_stack.push(Box::new(move || {
         note();
     }));
-    let (mut __go_mv_2_0, mut __go_mv_2_1) = pair();
-    {
+        let (mut __go_mv_2_0, mut __go_mv_2_1) = pair();
+        {
         let __return_value = (*a.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some(__go_mv_2_0))), Rc::new(RefCell::new(Some(__go_mv_2_1))));
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -102,9 +122,28 @@ pub fn via_multi(a: Rc<RefCell<Option<acc>>>) -> i64 {
         }
         return __return_value;
     }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            0 as i64
+        }
+    }
 }
 
 fn main() {
+    go_install_panic_exit();
     collide();
     let mut a = Rc::new(RefCell::new(Some(acc { n: Rc::new(RefCell::new(Some(0))) })));
     println!("{}", format!("{}", plain()));

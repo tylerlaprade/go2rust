@@ -10,7 +10,9 @@ mod bbb;
 use aaa::*;
 use bbb::*;
 
+
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
 
     println!("{} {} {}", format!("{}", { let __v = (*A.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*B.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*C.borrow().as_ref().unwrap()).clone(); __v }));

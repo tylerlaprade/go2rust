@@ -681,6 +681,46 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -994,6 +1034,7 @@ pub fn show(b: Rc<RefCell<Option<Box<dyn Both>>>>) -> Rc<RefCell<Option<String>>
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut b: Rc<RefCell<Option<Box<dyn Both>>>> = Rc::new(RefCell::new(Some(Box::new(T { n: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn Both>)));
     print!("{} {} {}\n", { let __type_name = match b.borrow().as_ref() { Some(__iface) => { let __any = A::__go_as_any(&**__iface); if __any.is::<T>() { "main.T" } else if __any.is::<TPtr>() { "*main.T" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, (*b.borrow().as_ref().unwrap()).p_a(), (*b.borrow().as_ref().unwrap()).p_b());
     println!("{}", format!("{}", (*show(Rc::new(RefCell::new(Some(Box::new(T { n: Rc::new(RefCell::new(Some(4))), ..Default::default() }) as Box<dyn Both>)))).borrow().as_ref().unwrap())));

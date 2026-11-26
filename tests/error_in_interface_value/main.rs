@@ -753,6 +753,46 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     go_any_try_clone(value).unwrap_or_else(|| panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>"))
 }
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -1058,6 +1098,7 @@ pub fn is_error(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> bool {
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut plain = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string())))));
     let mut wrapped = Rc::new(RefCell::new(Some(go_error_wrap(format!("wrapped: {}", match { let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value } { Some(__wrapped) => format!("{}", __wrapped), None => "%!w(<nil>)".to_string() }), vec![{ let __err_handle = { let __err_source = plain.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) }; let __err_value = (*__err_handle.borrow()).clone(); __err_value }]))));
     show(Rc::new(RefCell::new(Some(vec![Box::new("first".to_string()) as Box<dyn Any>, { let __err_holder = plain.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, { let __err_holder = wrapped.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new(3i64) as Box<dyn Any>]))));

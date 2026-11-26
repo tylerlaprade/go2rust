@@ -12,6 +12,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
 
         // Access map - transpiler needs to know Users is a map, not a slice

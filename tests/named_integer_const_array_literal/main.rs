@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -680,6 +681,46 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 pub const V0: u32 = 0;
 pub const V1: u32 = 1;
 pub const V2: u32 = 2;
@@ -1110,6 +1151,7 @@ fn __go_init_globals() {
 
 
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
     println!("{} {} {} {}", format!("{}", (*introduced.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", (*introduced.borrow().as_ref().unwrap())[(3) as usize].clone()));
 }

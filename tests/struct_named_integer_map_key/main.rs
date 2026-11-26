@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 fn main() {
+    go_install_panic_exit();
     let mut done = GoChannel::<bool>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {

@@ -18,5 +18,6 @@ pub fn set_flag() -> u32 {
 }
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", set_flag()));
 }

@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -705,6 +706,46 @@ macro_rules! impl_go_func_value {
 }
 impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub mode: Rc<RefCell<Option<String>>>,
@@ -812,6 +853,7 @@ pub fn make_request(prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Rc
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut build = make_request(Rc::new(RefCell::new(Some("driver:".to_string()))));
     let mut build = Rc::new(RefCell::new(GoFuncValue::go_func_value(&build)));
     let mut req = { let __f: Rc<dyn Fn(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> = build.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(Config { mode: Rc::new(RefCell::new(Some("load".to_string()))), env: Rc::new(RefCell::new(Some("GOOS=darwin".to_string()))), build_flags: Rc::new(RefCell::new(Some("-mod=vendor".to_string()))), tests: Rc::new(RefCell::new(Some(true))), ..Default::default() })))) };

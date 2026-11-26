@@ -9,7 +9,6 @@ use go2rust_stdlib_stubs::*;
 mod helper;
 use helper::*;
 
-use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::{Formatter};
 
@@ -276,6 +275,7 @@ impl io::r#mod::Reader for errReaderPtr {
 }
 
 fn main() {
+    go_install_panic_exit();
     ::io::__go_init_all();
 
     let mut f: Arc<Mutex<Option<f64>>> = Arc::new(Mutex::new(Some(0.0)));

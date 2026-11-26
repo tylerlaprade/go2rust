@@ -14,6 +14,7 @@ use types::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    go_install_panic_exit();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
 

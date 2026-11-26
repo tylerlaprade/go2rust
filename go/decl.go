@@ -4482,6 +4482,14 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		}
 	}
 
+	// main installs the panic hook before anything else runs, package
+	// initialization included: every crate's catch wraps the hook it
+	// finds, and the program must end with Go's panic message and status.
+	if fn.Recv == nil && fn.Name.Name == "main" && typeInfoPackageIsMain() {
+		NeedPanicExit()
+		out.WriteString("    " + panicExitInstallCall + "\n")
+	}
+
 	// Call package initialization at the start of main() if present
 	if fn.Name.Name == "main" && hasInitFunction {
 		out.WriteString("    __go_init_all();\n")
@@ -8976,15 +8984,29 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 }
 
 // shouldWrapDeferPanicRecover reports whether a function with a defer runs
-// its body under catch_unwind, so that a deferred function can recover a
-// panic. With goroutines every such function does. Without them only a
-// program that calls recover() pays for it.
+// its body under catch_unwind. Every such function does: a deferred call
+// runs when the body panics, whether or not anything recovers, so a
+// deferred Flush or Close is not lost when the program then ends with the
+// panic (DEV-162).
 func shouldWrapDeferPanicRecover(hasDefer bool) bool {
-	if !hasDefer || !(NeedsConcurrentWrapper() || packageCallsRecover()) {
+	if !hasDefer {
 		return false
 	}
 	NeedPanicRecover()
 	return true
+}
+
+// panicExitInstallCall is main's first statement.
+const panicExitInstallCall = "go_install_panic_exit();"
+
+// typeInfoPackageIsMain reports whether the package being translated is a
+// command, whose main is the program's entry point.
+func typeInfoPackageIsMain() bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return true
+	}
+	return typeInfo.pkg.Name() == "main"
 }
 
 var packageCallsRecoverCache = map[*types.Info]bool{}

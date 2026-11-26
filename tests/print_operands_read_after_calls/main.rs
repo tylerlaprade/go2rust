@@ -804,6 +804,85 @@ fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>
     format_any_slice_values(slice)
 }
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+        let __text = go_panic_payload_text(&**__inner);
+        if __text == GO_UNPRINTABLE_PANIC_VALUE {
+            return format_any(&**__inner);
+        }
+        return __text;
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
+        return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
+    }
+    macro_rules! go_panic_display_text {
+        ($($t:ty),*) => {
+            $(if let Some(__value) = __payload.downcast_ref::<$t>() {
+                return __value.to_string();
+            })*
+        };
+    }
+    go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
+    if let Some(__value) = __payload.downcast_ref::<f64>() {
+        // Go prints a float in a panic as +1.500000e+000.
+        if __value.is_nan() {
+            return String::from("NaN");
+        }
+        if __value.is_infinite() {
+            return String::from(if *__value > 0.0 { "+Inf" } else { "-Inf" });
+        }
+        let __text = format!("{:+.6e}", __value);
+        if let Some((__mantissa, __exponent)) = __text.split_once('e') {
+            let __exponent: i32 = __exponent.parse().unwrap_or(0);
+            return format!("{}e{}{:03}", __mantissa, if __exponent < 0 { '-' } else { '+' }, __exponent.abs());
+        }
+        return __text;
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -2261,6 +2340,7 @@ pub fn del(s: Arc<Mutex<Option<Vec<i64>>>>, i: Arc<Mutex<Option<i64>>>, j: Arc<M
 }
 
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
     shapes();
     in_order();
@@ -2269,7 +2349,7 @@ fn main() {
 let mut __go_print_arg_1 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_1); Arc::new(Mutex::new(__slice_header)) }; let __go_print_value = println!("{} {}", format!("{}", format_slice(&ins)), format!("{}", format_slice(&__go_print_arg_1))); __go_print_value };
     let mut b = Arc::new(Mutex::new(Some(r#box { n: Arc::new(Mutex::new(Some(0))) })));
     { let __go_print_arg_2 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_arg_3 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_value = println!("{} {} {} {}", format!("{}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_2), format!("{}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_3)); __go_print_value };
-    { let __go_print_arg_4 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_value = print!("{} {} {}\n", format!("{}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_4), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let __go_print_arg_4 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_value = print!("{} {} {}\n", format!("{}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_4), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })); __go_print_value };
     let mut s = { let __go_print_arg_5 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_value = Arc::new(Mutex::new(Some(format!("{}-{}", format!("{}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_5))))); __go_print_value };
     println!("{}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     let mut err = { let __go_print_arg_6 = { let __recv = b.clone(); let __recv_ptr: *mut r#box = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut r#box }; let __result = unsafe { &mut *__recv_ptr }.inc(); __result }; let __go_print_value = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("at {}: {}", (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap()), __go_print_arg_6)))))); __go_print_value };

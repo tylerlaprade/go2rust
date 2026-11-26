@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -680,6 +681,148 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Rc<RefCell<Option<Box<dyn Any>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Rc::new(RefCell::new(slot.borrow_mut().take().map(|__payload| __payload as Box<dyn Any>))))
+}
+
+fn go_store_panic_payload(mut __payload: Box<dyn Any + Send>) {
+    // A payload raised again by go_resume_unrecovered_panic arrives boxed
+    // once more.
+    loop {
+        match __payload.downcast::<Box<dyn Any + Send>>() {
+            Ok(__inner) => __payload = *__inner,
+            Err(__outer) => {
+                __payload = __outer;
+                break;
+            }
+        }
+    }
+    let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
+        Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
+        Err(__payload) => match __payload.downcast::<String>() {
+            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Err(__payload) => __payload,
+        },
+    };
+    __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
+}
+
+thread_local! {
+    static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
+}
+
+fn go_silence_panic_hook() -> usize {
+    static __GO_PANIC_HOOK: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_HOOK.call_once(|| {
+        let __previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |__info| {
+            if __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.get()) == 0 {
+                __previous(__info);
+            }
+        }));
+    });
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| {
+        let __previous = __depth.get();
+        __depth.set(__previous + 1);
+        __previous
+    })
+}
+
+fn go_restore_panic_hook(__previous: usize) {
+    __GO_PANIC_HOOK_SILENCE.with(|__depth| __depth.set(__previous));
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        match __payload.downcast::<String>() {
+            Ok(__text) => std::panic::panic_any(*__text),
+            // panic_any, not resume_unwind: the panic hook must see a panic
+            // that nothing recovers, to end the program as Go does.
+            Err(__payload) => std::panic::panic_any(__payload),
+        }
+    }
+}
+
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+        let __text = go_panic_payload_text(&**__inner);
+        return __text;
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
+        return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
+    }
+    macro_rules! go_panic_display_text {
+        ($($t:ty),*) => {
+            $(if let Some(__value) = __payload.downcast_ref::<$t>() {
+                return __value.to_string();
+            })*
+        };
+    }
+    go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
+    if let Some(__value) = __payload.downcast_ref::<f64>() {
+        // Go prints a float in a panic as +1.500000e+000.
+        if __value.is_nan() {
+            return String::from("NaN");
+        }
+        if __value.is_infinite() {
+            return String::from(if *__value > 0.0 { "+Inf" } else { "-Inf" });
+        }
+        let __text = format!("{:+.6e}", __value);
+        if let Some((__mantissa, __exponent)) = __text.split_once('e') {
+            let __exponent: i32 = __exponent.parse().unwrap_or(0);
+            return format!("{}e{}{:03}", __mantissa, if __exponent < 0 { '-' } else { '+' }, __exponent.abs());
+        }
+        return __text;
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct counter {
 }
@@ -704,13 +847,15 @@ impl counter {
 
     let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
-        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let mut result_defer_captured = result_defer_captured.clone();
         { let __rhs = 3; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
-        {
+            {
         { let new_val = 4; *result.borrow_mut() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -718,6 +863,24 @@ impl counter {
         }
         return (*result.borrow().as_ref().unwrap());
     }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                (*result.borrow().as_ref().unwrap())
+            }
+        }
     }
 }
 
@@ -726,19 +889,39 @@ pub fn compute() -> i64 {
 
     let mut result: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
 
-    let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let mut result_defer_captured = result_defer_captured.clone();
         { let __rhs = 10; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
-    { let new_val = 5; *result.borrow_mut() = Some(new_val); };
-    {
+        { let new_val = 5; *result.borrow_mut() = Some(new_val); };
+        {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (*result.borrow().as_ref().unwrap());
+    }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            (*result.borrow().as_ref().unwrap())
+        }
     }
 }
 
@@ -747,7 +930,9 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 
     let mut msg: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
-    let mut msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = go_silence_panic_hook();
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let mut msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let mut msg_defer_captured = msg_defer_captured.clone();
         { let new_val = {
@@ -759,17 +944,36 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
         }; *msg_defer_captured.borrow_mut() = Some(new_val); };
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
-    { let new_val = "ok".to_string(); *msg.borrow_mut() = Some(new_val); };
-    {
+        { let new_val = "ok".to_string(); *msg.borrow_mut() = Some(new_val); };
+        {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return msg.clone();
     }
+    }));
+    match __go_panic_result {
+        Ok(__go_value) => {
+            go_restore_panic_hook(__go_previous_panic_hook);
+            __go_value
+        }
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                    go_store_panic_payload(__go_defer_panic);
+                }
+            }
+            go_restore_panic_hook(__go_previous_panic_hook);
+            go_resume_unrecovered_panic();
+            msg.clone()
+        }
+    }
 }
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", compute()));
     println!("{}", format!("{}", (*decorate().borrow().as_ref().unwrap())));
     let mut c: Rc<RefCell<Option<counter>>> = Rc::new(RefCell::new(Some(Default::default())));

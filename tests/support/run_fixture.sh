@@ -47,12 +47,38 @@ if [[ -f "$test_dir/go.mod" ]]; then
 fi
 
 # Run Go version
-note_fixture_phase "go run"
 stdin_file=$(fixture_stdin "$test_dir")
-if ! go_output=$(cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" go run . 2>&1 < "$stdin_file"); then
-    echo "Go compilation/execution failed:"
-    echo "$go_output"
-    exit 1
+# A fixture whose program ends with a status other than 0, such as a panic
+# that nothing recovers (status 2), names it as exit_status. go run reports
+# every failure as status 1, so the program is built and run directly. Both
+# programs must end with that status, and their output is compared up to
+# Go's goroutine trace, which the translation cannot reproduce.
+expected_exit_status=$(fixture_config_value "$test_dir" "exit_status")
+export GO2RUST_TEST_EXIT_STATUS="${expected_exit_status:-0}"
+if [[ -n "$expected_exit_status" ]]; then
+    note_fixture_phase "go build"
+    go_binary="$test_tmp_root/go-fixture"
+    if ! go_build_output=$(cd "$test_dir" && go build -o "$go_binary" . 2>&1); then
+        echo "Go compilation failed:"
+        echo "$go_build_output"
+        exit 1
+    fi
+    note_fixture_phase "go run"
+    go_exit_status=0
+    go_output=$(cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" "$go_binary" 2>&1 < "$stdin_file") || go_exit_status=$?
+    if [[ "$go_exit_status" -ne "$expected_exit_status" ]]; then
+        echo "Go program exited with status $go_exit_status, not $expected_exit_status:"
+        echo "$go_output"
+        exit 1
+    fi
+    go_output=$(strip_go_panic_trace "$go_output")
+else
+    note_fixture_phase "go run"
+    if ! go_output=$(cd "$test_dir" && PATH="${GO2RUST_TEST_RUNTIME_PATH:-$PATH}" go run . 2>&1 < "$stdin_file"); then
+        echo "Go compilation/execution failed:"
+        echo "$go_output"
+        exit 1
+    fi
 fi
 
 # Check if expected output exists and compare

@@ -14,6 +14,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    go_install_panic_exit();
     let mut shapes = Rc::new(RefCell::new(Some(vec![new_circle(Rc::new(RefCell::new(Some(2)))).clone(), new_circle(Rc::new(RefCell::new(Some(3)))).clone()])));
     println!("{}", format!("{}", total_area(shapes.clone())));
 }

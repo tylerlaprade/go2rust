@@ -8,6 +8,8 @@ include!("__go2rust_helpers.rs");
 mod other;
 use other::*;
 
+
 fn main() {
+    go_install_panic_exit();
     report();
 }

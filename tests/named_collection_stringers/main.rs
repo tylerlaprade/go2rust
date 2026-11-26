@@ -727,6 +727,46 @@ fn format_any(value: &dyn Any) -> String {
     }
 }
 
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1659,6 +1699,7 @@ pub fn make_tags() -> Rc<RefCell<Option<Tags>>> {
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut g = Rc::new(RefCell::new(Some(Grid(Rc::new(RefCell::new(Some(vec![{ let __slice_holder = Rc::new(RefCell::new(Some(("ab".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>()))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }, { let __slice_holder = Rc::new(RefCell::new(Some(("cd".to_string()).chars().map(|c| c as i32).collect::<Vec<_>>()))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }])))))));
     { let __seq = { let __named_slice = (*g.borrow().as_ref().unwrap()).0.clone(); __named_slice }; let __outer_idx = (1) as usize; let __idx = (0) as usize; let __rhs = ('X' as i32); (*__seq.borrow_mut().as_mut().unwrap())[__outer_idx][__idx] = __rhs; };
     let mut t = Rc::new(RefCell::new(Some(Tags(Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()])))))));

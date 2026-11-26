@@ -107,3 +107,13 @@ brew install bats-core  # macOS
 ./test.sh
 bats tests.bats --filter "hello_world"
 ```
+
+### A program that does not exit 0
+
+A program that ends with a panic nothing recovers exits with status 2, and `go run` reports that as a failure. Name the status in the fixture's `.go2rust.toml`:
+
+```toml
+exit_status = "2"
+```
+
+The harness then builds the Go program and runs it directly, and requires both programs to end with that status. The output is compared up to Go's goroutine trace: the first `goroutine N [...]` line and everything after it, and a `[signal ...]` line, are left out, because the translation cannot reproduce the trace. `expected_output.txt` holds the output without them.

@@ -4,6 +4,7 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+use std::any::Any;
 use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
@@ -741,6 +742,46 @@ where
 {
     let formatted: Vec<String> = slice.iter().map(|inner| format_slice_values(inner.as_ref())).collect();
     format!("[{}]", formatted.join(" "))
+}
+
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
 }
 
 fn go_float_string(__value: f64, __single: bool) -> String {
@@ -2563,6 +2604,7 @@ pub fn parse_point(s: Rc<RefCell<Option<String>>>) -> (Rc<RefCell<Option<point>>
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut w: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));let mut h: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));
     let mut unit: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
     let (mut n, mut err) = { let mut __scan_src = go_scan_string_source("3 4 cm".to_string()); let __scan_format: String = String::new(); let mut __scan_targets: std::vec::Vec<GoScanTarget> = std::vec![GoScanTarget::Int(64, { let __scan_h = w.clone(); Box::new(move |__scan_v: i64| { *__scan_h.borrow_mut() = Some(__scan_v as i64); }) }), GoScanTarget::Int(64, { let __scan_h = h.clone(); Box::new(move |__scan_v: i64| { *__scan_h.borrow_mut() = Some(__scan_v as i64); }) }), GoScanTarget::Str({ let __scan_h = unit.clone(); Box::new(move |__scan_v: String| { *__scan_h.borrow_mut() = Some(__scan_v); }) })]; let (__scan_n, __scan_err) = go_fmt_scan(&mut __scan_src, 's', &__scan_format, &mut __scan_targets); drop(__scan_targets); (__scan_n, match __scan_err { None => Rc::new(RefCell::new(None)), Some(GoScanError::Eof) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("EOF".to_string()))))), Some(GoScanError::UnexpectedEof) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("unexpected EOF".to_string()))))), Some(GoScanError::Msg(__scan_msg)) => Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(__scan_msg))))) }) };

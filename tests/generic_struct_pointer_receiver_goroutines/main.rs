@@ -167,6 +167,7 @@ pub fn store_and_copy<T: Any + GoValueClone + GoTypeParamFieldClone + Send + Syn
 /// A pointer method of a struct with type parameters can hand on its
 /// receiver: a closure over it and a returned receiver are the same struct.
 fn main() {
+    go_install_panic_exit();
         // A goroutine makes every variable a locked one.
     let mut done = GoChannel::<String>::new_buffered(1 as usize);
     let done_thread = done.clone(); std::thread::spawn(move || {

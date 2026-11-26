@@ -12,6 +12,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
 
         // Call function variable - transpiler needs to know ProcessData is a function

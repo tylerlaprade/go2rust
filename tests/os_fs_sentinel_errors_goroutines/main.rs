@@ -833,22 +833,6 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 
-fn go_runtime_error_text(__text: String) -> String {
-    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
-        return "runtime error: integer divide by zero".to_string();
-    }
-    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
-        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
-            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
-        }
-    }
-    // A nil pointer's cell is empty, so reading through it unwraps None.
-    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
-        return "runtime error: invalid memory address or nil pointer dereference".to_string();
-    }
-    __text
-}
-
 thread_local! {
     static __GO_PANIC_HOOK_SILENCE: std::cell::Cell<usize> = std::cell::Cell::new(0);
 }
@@ -878,6 +862,85 @@ fn go_resume_unrecovered_panic() {
     if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         std::panic::panic_any(payload);
     }
+}
+
+fn go_install_panic_exit() {
+    std::panic::set_hook(Box::new(|__info| {
+        let __text = go_panic_payload_text(__info.payload());
+        {
+            use std::io::Write;
+            std::io::stdout().flush().ok();
+        }
+        eprintln!("panic: {}", __text);
+        std::process::exit(2);
+    }));
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text(__text.clone());
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+        let __text = go_panic_payload_text(&**__inner);
+        if __text == GO_UNPRINTABLE_PANIC_VALUE {
+            return format_any(&**__inner);
+        }
+        return __text;
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
+        return go_panic_payload_text(&**__inner);
+    }
+    if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
+        return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
+    }
+    macro_rules! go_panic_display_text {
+        ($($t:ty),*) => {
+            $(if let Some(__value) = __payload.downcast_ref::<$t>() {
+                return __value.to_string();
+            })*
+        };
+    }
+    go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
+    if let Some(__value) = __payload.downcast_ref::<f64>() {
+        // Go prints a float in a panic as +1.500000e+000.
+        if __value.is_nan() {
+            return String::from("NaN");
+        }
+        if __value.is_infinite() {
+            return String::from(if *__value > 0.0 { "+Inf" } else { "-Inf" });
+        }
+        let __text = format!("{:+.6e}", __value);
+        if let Some((__mantissa, __exponent)) = __text.split_once('e') {
+            let __exponent: i32 = __exponent.parse().unwrap_or(0);
+            return format!("{}e{}{:03}", __mantissa, if __exponent < 0 { '-' } else { '+' }, __exponent.abs());
+        }
+        return __text;
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
 }
 
 #[derive(Clone, Copy)]
@@ -2498,6 +2561,7 @@ pub fn find(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Arc<dyn StdErr
 }
 
 fn main() {
+    go_install_panic_exit();
     let mut err = find(Arc::new(Mutex::new(Some("".to_string()))));
     println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     println!("{} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = os::ErrNotExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = fs::ErrNotExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(go_errors_is({ let __err_handle = { let __err_source = err.clone(); let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value }, { let __err_handle = { let __err_source = { let __field = os::ErrExist().clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }; let __err_value = (*__err_handle.lock().unwrap()).clone(); __err_value })))).lock().unwrap().as_ref().unwrap())));
