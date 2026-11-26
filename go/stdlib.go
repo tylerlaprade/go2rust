@@ -2456,6 +2456,12 @@ func formatSliceArgumentIsBareValue(arg ast.Expr) bool {
 	if isExpressionResultBare(arg) {
 		return true
 	}
+	if star, ok := unwrapParens(arg).(*ast.StarExpr); ok {
+		// *p for p := &arr reads a copy of the array out of its handle.
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointerToArray(star.X) {
+			return true
+		}
+	}
 	if _, ok := arg.(*ast.SelectorExpr); ok {
 		return !selectorRValueReturnsWrappedHandle(arg)
 	}
@@ -7386,7 +7392,12 @@ func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		WriteWrapperPrefix(out)
-		out.WriteString(rustDefaultConstructorExpression(goTypeToRustBase(call.Args[0])))
+		if array, ok := call.Args[0].(*ast.ArrayType); ok && array.Len != nil {
+			// [T; N] has no path for ::default(), and no Default past 32.
+			out.WriteString(zeroValueForGoType(array))
+		} else {
+			out.WriteString(rustDefaultConstructorExpression(goTypeToRustBase(call.Args[0])))
+		}
 		out.WriteString(")))")
 	}
 }

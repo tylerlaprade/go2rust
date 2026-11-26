@@ -14978,7 +14978,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
+				if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsArray(compositeLit) {
+					// A pointer to an array is the array's handle, as p := &arr
+					// shares arr's: the new array's handle is the pointer.
+					TranspileExpression(out, compositeLit)
+				} else if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
 					// For struct literals, wrap the whole thing
 					WriteWrapperPrefix(out)
 					TranspileExpressionContext(out, compositeLit, AddressOf)

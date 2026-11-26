@@ -3300,6 +3300,14 @@ run_xfail_test() {
     run_test "tests/pointer_string_calls_helper"
 }
 
+@test "pointer_to_array_literals" {
+    run_test "tests/pointer_to_array_literals"
+}
+
+@test "pointer_to_array_literals_goroutines" {
+    run_test "tests/pointer_to_array_literals_goroutines"
+}
+
 @test "pointer_to_pointer_receiver_field" {
     run_test "tests/pointer_to_pointer_receiver_field"
 }
