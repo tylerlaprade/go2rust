@@ -175,6 +175,11 @@ func rustPreludeBindsOnlyReceiver(prefix string) bool {
 		if at < 0 {
 			return true
 		}
+		// The let of a binding, not the end of a name such as Outlet.
+		if at > 0 && isRustIdentByte(rest[at-1]) {
+			rest = rest[at+len("let "):]
+			continue
+		}
 		name := strings.TrimPrefix(rest[at+len("let "):], "mut ")
 		if !strings.HasPrefix(name, "__recv") && !strings.HasPrefix(name, "__result") {
 			return false

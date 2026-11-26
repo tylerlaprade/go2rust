@@ -24839,7 +24839,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], expectedArgType)
+			writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+				writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], expectedArgType)
+			})
 		}
 
 		// Now handle variadic args
@@ -24876,7 +24878,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+					writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				})
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
@@ -25647,7 +25651,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], params.At(i).Type())
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+			writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], params.At(i).Type())
+		})
 	}
 
 	if variadicStart > 0 {
@@ -25681,7 +25687,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+			writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		})
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -26035,7 +26043,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 // still be borrowing s while f writes to it (DEV-218); the block ends the
 // guard with the value.
 func writeCallArgumentValueScoped(out *strings.Builder, value string) {
-	if rustTextIsOneBlock(value) || !rustTextTakesGuard(value) {
+	// A block's guards end inside it, but those of its tail expression
+	// live to the end of the statement the block is in.
+	if !rustTextTakesGuard(value) || (rustTextIsOneBlock(value) && !rustTextTakesGuard(rustBlockTail(value))) {
 		out.WriteString(value)
 		return
 	}
@@ -26068,6 +26078,68 @@ func scopeCallArgumentGuards(arg string) string {
 	writeCallArgumentValueScoped(&out, value)
 	out.WriteString(")))")
 	return out.String()
+}
+
+// scopeCallArgumentValue is scopeCallArgumentGuards for an argument that
+// may be a bare value, such as an element packed into a variadic slice.
+func scopeCallArgumentValue(arg string) string {
+	if scoped := scopeCallArgumentGuards(arg); scoped != arg {
+		return scoped
+	}
+	var out strings.Builder
+	writeCallArgumentValueScoped(&out, arg)
+	return out.String()
+}
+
+// writeScopedCallArgument writes an argument of a call with write and has
+// the guards it takes end before the call, unless it is a function literal,
+// which runs nothing until it is called. scope is scopeCallArgumentGuards
+// or scopeCallArgumentValue.
+func writeScopedCallArgument(out *strings.Builder, arg ast.Expr, scope func(string) string, write func(*strings.Builder)) {
+	if _, ok := unwrapParens(arg).(*ast.FuncLit); ok {
+		write(out)
+		return
+	}
+	seed := currentLineText(out)
+	var b strings.Builder
+	b.WriteString(seed)
+	write(&b)
+	out.WriteString(scope(b.String()[len(seed):]))
+}
+
+// rustBlockTail returns the tail expression of a block, { ...; tail }: the
+// text after its last statement.
+func rustBlockTail(text string) string {
+	last := 0
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{', '(', '[':
+			depth++
+		case '}', ')', ']':
+			depth--
+		case ';':
+			if depth == 1 {
+				last = i
+			}
+		}
+	}
+	if len(text) < 2 {
+		return text
+	}
+	return text[last+1 : len(text)-1]
 }
 
 // rustTextIsOneBlock reports whether generated Rust is a single block,

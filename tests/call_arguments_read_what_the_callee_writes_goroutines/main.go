@@ -15,6 +15,12 @@ func fill(s []int, n int) {
 	}
 }
 
+func fillEach(s []int, ns ...int) {
+	for i := range s {
+		s[i] = ns[i%len(ns)]
+	}
+}
+
 func set(m map[string]int, v int) {
 	m["a"] = v
 }
@@ -28,6 +34,8 @@ func main() {
 	fill(s, s[2]+1)
 	fmt.Println(s)
 	fill(s[1:], s[0]*2)
+	fmt.Println(s)
+	fillEach(s, s[0]+1, s[1]*2)
 	fmt.Println(s)
 	m := map[string]int{"a": 1}
 	set(m, m["a"]+1)
