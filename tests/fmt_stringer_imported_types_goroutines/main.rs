@@ -11,6 +11,13 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }

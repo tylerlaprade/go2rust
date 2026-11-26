@@ -8,6 +8,13 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn local__string(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
     return { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
 }

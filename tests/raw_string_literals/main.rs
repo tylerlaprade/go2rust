@@ -4,6 +4,13 @@ macro_rules! vec {
     ($__elem:expr; $__n:expr) => (GoSlice::from(std::vec::from_elem($__elem, $__n)));
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.

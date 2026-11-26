@@ -9,6 +9,13 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.

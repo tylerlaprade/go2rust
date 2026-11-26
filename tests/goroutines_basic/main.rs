@@ -8,6 +8,13 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn say_hello(name: Arc<Mutex<Option<String>>>) {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
