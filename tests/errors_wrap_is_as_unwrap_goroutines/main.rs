@@ -2339,13 +2339,13 @@ impl StdError for Code {}
 
 impl QueryError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some({
+        return Arc::new(Mutex::new(Some({ let __go_rhs_1 = Arc::new(Mutex::new(Some(format!("{}", self.err.lock().unwrap().as_ref().unwrap())))); let __go_binary_value = {
             let mut __s = String::new();
             __s.push_str(&format!("{}", (*self.query.clone().lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", ": ".to_string()));
-            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", self.err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", { let __v = (*__go_rhs_1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             __s
-        })));
+        }; __go_binary_value })));
     }
 
     pub fn unwrap(&self) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {

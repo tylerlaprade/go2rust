@@ -1912,6 +1912,9 @@ func goTypesChannelElemTypeToRust(t types.Type) string {
 	if rustType, ok := interfaceChannelElemTypeToRust(t); ok {
 		return rustType
 	}
+	if rustType, ok := funcChannelElemTypeToRust(t); ok {
+		return rustType
+	}
 	return goTypesTypeToRust(t)
 }
 

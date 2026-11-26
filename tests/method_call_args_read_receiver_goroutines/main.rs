@@ -1882,7 +1882,7 @@ impl Counter {
 
 impl Logger {
     pub fn log(&mut self, format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.lines.clone(); let __append_value = format!("{}{}", (*self.prefix.clone().lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, false))))).lock().unwrap().as_ref().unwrap())); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.lines.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.lines.clone(); let __append_value = { let __go_rhs_1 = Arc::new(Mutex::new(Some(format!("{}", go_sprintf_spread(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &args, false))))); let __go_binary_value = format!("{}{}", (*self.prefix.clone().lock().unwrap().as_ref().unwrap()), { let __v = (*__go_rhs_1.lock().unwrap().as_ref().unwrap()).clone(); __v }); __go_binary_value }; let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.lines.lock().unwrap() = __slice_header; };
     }
 }
 

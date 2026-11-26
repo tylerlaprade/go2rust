@@ -62,6 +62,7 @@ Use this when generated Rust fails with missing `.borrow()` / `.lock()` methods,
 - An element of a `[]any` is a bare `Box<dyn Any>`, which has no `Clone`. Reading one (`v := xs[0]`, `fmt.Println(xs[0])`) copies it with `go_any_clone` into a handle of its own (`writeAnySequenceElementClone`), which every use of an `any` value accepts.
 - The predeclared `error` is special. Slices and maps of `error` store normal wrapped error handles; `chan error` carries the nullable payload option.
 - A channel of a named interface carries the handle's `Option<Box<dyn Trait>>` the same way (channel_interface_values.go): nil can be sent, a receive from a closed channel gives nil, a send copies the value out of a handle, and every receive puts the value in a handle of its own.
+- A channel of funcs carries the func variable's `Option<Rc<dyn Fn..>>` (`Option<Arc<dyn Fn.. + Send + Sync>>` with goroutines, as `funcValueRustType` spells it) the same way (channel_func_values.go): a send takes a copy of the func value out of a fresh cell, and every receive, select case and range value gets a cell of its own.
 - Sending on `chan error` moves the payload with `take()`. Receiving into an `error` variable stores that payload directly; select receives wrap the payload for the case body.
 - Returning or assigning selector fields of type `error` clones the error handle, not the boxed payload.
 - Concrete values that implement `error` must be boxed when assigned, returned, or passed as `error`; prove this with `types.Implements`.

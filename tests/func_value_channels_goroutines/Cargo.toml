@@ -1,0 +1,11 @@
+[package]
+name = "func_value_channels_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "func_value_channels_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

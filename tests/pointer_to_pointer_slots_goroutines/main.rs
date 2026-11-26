@@ -1224,7 +1224,7 @@ pub fn insert(mut pp: Arc<Mutex<Option<__ptrSlot_Node>>>, v: Arc<Mutex<Option<i6
     while { let __nil_result = (*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap()).is_some(); __nil_result } {
         if {
             let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v };
-            let __tmp_y = (*(*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*(*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap());
             __tmp_x < __tmp_y
         } {
         { let new_val = { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |__slot_o1: Arc<Mutex<Option<Node>>>| -> Arc<Mutex<Option<__ptrSlot_Node>>> {
@@ -1265,7 +1265,7 @@ pub fn inorder(n: Arc<Mutex<Option<Node>>>, out: Arc<Mutex<Option<Vec<i64>>>>) {
 }
 
 pub fn min_link(mut pp: Arc<Mutex<Option<__ptrSlot_Node>>>) -> Arc<Mutex<Option<__ptrSlot_Node>>> {
-    while { let __nil_target = (*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).left.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+    while { let __nil_target = (*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).left.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |__slot_o5: Arc<Mutex<Option<Node>>>| -> Arc<Mutex<Option<__ptrSlot_Node>>> {
         let __slot_o5_closure_clone = __slot_o5.clone(); return Arc::new(Mutex::new(Some(__ptrSlot_Node {
             get: Arc::new(Mutex::new(Some({ let __slot_o5_closure_clone_closure_clone = __slot_o5_closure_clone.clone(); Arc::new(move || -> Arc<Mutex<Option<Node>>> {
@@ -1295,11 +1295,11 @@ pub fn remove(l: Arc<Mutex<Option<List>>>, v: Arc<Mutex<Option<i64>>>) -> bool {
     }) as Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> Arc<Mutex<Option<__ptrSlot_LNode>>> + Send + Sync>))); let __f: Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> Arc<Mutex<Option<__ptrSlot_LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(l.clone()) };
     while { let __nil_result = (*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap()).is_some(); __nil_result } {
         if {
-            let __tmp_x = (*(*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+            let __tmp_x = (*(*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
             let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x == __tmp_y
         } {
-        { let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).set.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<LNode>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)({ let __field = (*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).next.clone(); __field }) };
+        { let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).set.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<LNode>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)({ let __field = (*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).next.clone(); __field }) };
         return true;
     }
         { let new_val = { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |__slot_o9: Arc<Mutex<Option<LNode>>>| -> Arc<Mutex<Option<__ptrSlot_LNode>>> {
@@ -1373,8 +1373,8 @@ fn main() {
     }) as Arc<dyn Fn(Arc<Mutex<Option<Node>>>) -> () + Send + Sync> }))),
         ..Default::default()
     }; __arg_value }))));
-    println!("{} {}", format!("{}", "min".to_string()), format!("{}", (*(*({ let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
-    { let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).set.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<Node>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)({ let __field = (*({ let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).right.clone(); __field }) };
+    println!("{} {}", format!("{}", "min".to_string()), format!("{}", (*(*{ let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
+    { let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).set.clone(); let __f: Arc<dyn Fn(Arc<Mutex<Option<Node>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)({ let __field = (*{ let __f_holder = (*low.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Node>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).right.clone(); __field }) };
     { let __slice_header = None; *vals.lock().unwrap() = __slice_header; };
     inorder({ let __field = (*__cell_root_1.lock().unwrap().as_ref().unwrap()).v.clone(); __field }, vals.clone());
     println!("{} {}", format!("{}", "without min".to_string()), format!("{}", format_slice(&vals)));
@@ -1560,7 +1560,7 @@ fn main() {
         })));
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<__ptrSlot_LNode>>> + Send + Sync>))); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<__ptrSlot_LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     push(Arc::new(Mutex::new(Some({ let __arg_holder = pp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), Arc::new(Mutex::new(Some(9))));
-    println!("{} {}", format!("{}", (*(*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", { let __nil_target = (*({ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }).lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", (*(*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", { let __nil_target = (*{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<LNode>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
 
     let mut counts: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));
     let mut __cell_counts_4 = Arc::new(Mutex::new(Some(AnonymousStruct3 { v: counts.clone() })));

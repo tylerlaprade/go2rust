@@ -628,6 +628,14 @@ run_xfail_test() {
     run_test "tests/asserted_collections_shared_goroutines"
 }
 
+@test "atomic_add_int64_deltas" {
+    run_test "tests/atomic_add_int64_deltas"
+}
+
+@test "atomic_add_int64_deltas_goroutines" {
+    run_test "tests/atomic_add_int64_deltas_goroutines"
+}
+
 @test "atomic_integer_operations" {
     run_test "tests/atomic_integer_operations"
 }
@@ -650,6 +658,14 @@ run_xfail_test() {
 
 @test "base64_encoding" {
     run_test "tests/base64_encoding"
+}
+
+@test "binary_operands_read_after_calls" {
+    run_test "tests/binary_operands_read_after_calls"
+}
+
+@test "binary_operands_read_after_calls_goroutines" {
+    run_test "tests/binary_operands_read_after_calls_goroutines"
 }
 
 @test "blank_assignment_of_nil_values" {
@@ -1638,6 +1654,14 @@ run_xfail_test() {
 
 @test "func_value_call_results_print_goroutines" {
     run_test "tests/func_value_call_results_print_goroutines"
+}
+
+@test "func_value_channels" {
+    run_test "tests/func_value_channels"
+}
+
+@test "func_value_channels_goroutines" {
+    run_test "tests/func_value_channels_goroutines"
 }
 
 @test "func_values_are_copied" {
@@ -3182,6 +3206,14 @@ run_xfail_test() {
 
 @test "parameter_reassignment" {
     run_test "tests/parameter_reassignment"
+}
+
+@test "paren_call_selectors" {
+    run_test "tests/paren_call_selectors"
+}
+
+@test "paren_call_selectors_goroutines" {
+    run_test "tests/paren_call_selectors_goroutines"
 }
 
 @test "parser_mode_const_expression" {

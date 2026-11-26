@@ -135,6 +135,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`chan` - Channel types** | ✅ |
 | └ Channel struct fields with nil checks, send/receive, `len`, and `cap` | ✅ |
 | └ Package-level channel globals initialized with `make` | ✅ |
+| └ Channels of funcs: send function literals, named functions, method values and nil; receive, range and select callable func values | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
 | └ Const string equality expressions | ✅ |
@@ -195,6 +196,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Function-valued struct field calls | ✅ |
 | └ Method selectors returning function values stay method calls | ✅ |
 | └ Named slice, array and map types with a String method print through it | ✅ |
+| └ Fields and methods of a parenthesized call, `(f()).s` and `(f()).m()` | ✅ |
 | └ Pointer-receiver method values returned or assigned as `func` values | ✅ |
 | └ Named function type conversions | ✅ |
 | └ Cross-package named function type conversions | ✅ |

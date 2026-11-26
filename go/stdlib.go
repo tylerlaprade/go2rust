@@ -170,7 +170,6 @@ func init() {
 		"os.Remove":                transpileOsRemove,
 		"reflect.TypeOf":           transpileReflectTypeOf,
 		"reflect.ValueOf":          transpileReflectValueOf,
-		"sync/atomic.AddInt64":     transpileAtomicAddInt64,
 		"sync/atomic.LoadInt64":    transpileAtomicLoadInt64,
 		"sync/atomic.LoadUint32":   transpileAtomicLoadUint32,
 		"sync/atomic.StoreUint32":  transpileAtomicStoreUint32,
@@ -3155,27 +3154,6 @@ func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
 		}
 	}
 	TranspileExpression(out, expr)
-}
-
-func transpileAtomicAddInt64(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) < 2 {
-		out.WriteString("/* ERROR: atomic.AddInt64 requires pointer and delta */ unimplemented!()")
-		return
-	}
-
-	WriteWrapperPrefix(out)
-	out.WriteString("{ let __target = ")
-	writeAtomicTarget(out, call.Args[0])
-	out.WriteString("; let __delta = ")
-	TranspileExpression(out, call.Args[1])
-	out.WriteString(" as i64; ")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("let mut __guard = __target.lock().unwrap();")
-	} else {
-		out.WriteString("let mut __guard = __target.borrow_mut();")
-	}
-	out.WriteString(" let __value = __guard.as_mut().unwrap(); *__value += __delta; *__value }")
-	WriteWrapperSuffix(out)
 }
 
 func transpileAtomicLoadInt64(out *strings.Builder, call *ast.CallExpr) {
@@ -8729,16 +8707,21 @@ func isUntypedBasic(typ types.Type) bool {
 
 // callCallsFuncValueExpression reports whether call calls the func value of
 // an expression other than a name or a selector: the result of a call, an
-// element of a map or slice, a function literal, a type assertion or a
-// pointer dereference.
+// element of a map or slice, a function literal, a type assertion, a
+// pointer dereference or a receive.
 func callCallsFuncValueExpression(call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.IsTypeConversion(call) {
 		return false
 	}
 	fun := unwrapParens(call.Fun)
-	switch fun.(type) {
+	switch f := fun.(type) {
 	case *ast.CallExpr, *ast.IndexExpr, *ast.FuncLit, *ast.TypeAssertExpr, *ast.StarExpr:
+	case *ast.UnaryExpr:
+		// (<-ch)(): a func value received from a channel.
+		if f.Op != token.ARROW {
+			return false
+		}
 	default:
 		return false
 	}
