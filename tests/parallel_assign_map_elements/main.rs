@@ -275,7 +275,7 @@ fn main() {
         a = __tmp_0;
         b = __tmp_1;
     };
-    println!("{} {} {} {}", format!("{}", { let __nil_result = (*a.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&keys(b.clone()))), format!("{}", format_slice(&keys(c.clone()))), format!("{}", ({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+    { let __go_print_arg_1 = keys(b.clone()); let __go_print_arg_2 = keys(c.clone()); let __go_print_arg_3 = Arc::new(Mutex::new(Some(({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_value = println!("{} {} {} {}", format!("{}", { let __nil_result = (*a.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&__go_print_arg_1)), format!("{}", format_slice(&__go_print_arg_2)), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
 }
 
 impl GoValueClone for Inventory {

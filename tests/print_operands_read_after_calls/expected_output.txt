@@ -5,6 +5,14 @@ map[a:3] 3 0
 b c b!
 9 0
 9 0
+1 0 true 7 0
+5 1 0
+2 2
+9 0
+1 5
+1 2
+3 4
+[writer step format step]
 [3 4 0 0] [3 4]
 2 1 2 2
 3 3 {3}

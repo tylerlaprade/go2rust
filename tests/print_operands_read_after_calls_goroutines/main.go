@@ -29,6 +29,7 @@ func main() {
 	go func() { started <- "started" }()
 	fmt.Println(<-started)
 	shapes()
+	inOrder()
 	ins := []int{1, 2, 3, 4}
 	fmt.Println(ins, del(ins, 0, 2))
 	b := &box{}
@@ -75,4 +76,50 @@ func shapes() {
 	fmt.Printf("%d %d\n", x, f())
 	y := fmt.Sprint(x, f())
 	fmt.Println(y)
+}
+
+var level = 1
+
+var order []string
+
+func lower() int { level = 0; return 7 }
+
+func change(p *box) int { return p.inc() }
+
+func setFirst(s []int) int { s[0] = 9; return 0 }
+
+// sum only reads the elements of s, so it cannot change them.
+func sum(s []int) int {
+	t := 0
+	for _, v := range s {
+		t += v
+	}
+	return t + len(s)
+}
+
+func writer() *os.File { order = append(order, "writer"); return os.Stdout }
+
+func format() string { order = append(order, "format"); return "%d %d\n" }
+
+func step() int { order = append(order, "step"); return len(order) }
+
+// gc evaluates a builtin call and x && y in order with the calls, and the
+// writer and the format before the operands.
+func inOrder() {
+	s := "a"
+	mutate := func() int { s = "long"; return 0 }
+	fmt.Println(len(s), mutate(), level > 0 && true, lower(), level)
+	n := 5
+	pn := &n
+	fmt.Println(min(n, 9), n, func() int { *pn = 1; return 0 }())
+	b := &box{n: 1}
+	fmt.Println(b.n, change(b))
+	first := []int{1}
+	alias := first
+	fmt.Println(first[0], setFirst(alias))
+	t := []int{1, 2}
+	fmt.Println(t[0], sum(t))
+	fmt.Fprintln(writer(), len(order), step())
+	fmt.Printf(format(), len(order), step())
+	fmt.Println(order)
 }

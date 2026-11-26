@@ -54,10 +54,28 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 	var staged []int
 	var plain []ast.Expr
 	var withCalls []ast.Expr
+	for i, arg := range call.Args[:first] {
+		// A call in the format or the writer runs before the operands'
+		// calls, so it is staged first; one whose value cannot be staged
+		// would run after the staged ones.
+		if binaryOperandHasCall(arg, true) {
+			if !fmtOperandCanBeStaged(arg) {
+				return false
+			}
+			staged = append(staged, i)
+		}
+	}
+	// The print writes the format or the writer after its operands, so a
+	// call there must be staged when an operand runs a call too.
+	leadingCall := len(staged) > 0
+	operandCall := false
 	readBeforeCall := false
 	for i := first; i < len(call.Args); i++ {
 		arg := call.Args[i]
-		if !binaryOperandHasCall(arg, false) {
+		// gc evaluates a builtin call such as len(s), and x && b, in
+		// order with the calls, so such an operand is staged in its place
+		// too; a plain operand is read after them all.
+		if !binaryOperandHasCall(arg, true) {
 			if !isConstantExpression(arg) {
 				plain = append(plain, arg)
 			}
@@ -68,13 +86,16 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 			// staged ones.
 			return false
 		}
-		if len(plain) > 0 {
-			readBeforeCall = true
+		if binaryOperandHasCall(arg, false) {
+			operandCall = true
+			if len(plain) > 0 {
+				readBeforeCall = true
+			}
 		}
 		staged = append(staged, i)
 		withCalls = append(withCalls, arg)
 	}
-	if !readBeforeCall || !fmtPlainOperandsMayChange(plain, withCalls) {
+	if !(leadingCall && operandCall) && (!readBeforeCall || !fmtPlainOperandsMayChange(plain, withCalls)) {
 		return false
 	}
 
@@ -150,9 +171,7 @@ func fmtPlainOperandsMayChange(plain []ast.Expr, withCalls []ast.Expr) bool {
 				return true
 			}
 			for i, arg := range call.Args {
-				if v := fmtPassedVar(typeInfo, arg); v != nil && !sourceFunctionParamReadOnly(call, i) {
-					// A function of the program that only reads the
-					// slice it is given cannot change it.
+				if v := fmtPassedVar(typeInfo, arg); v != nil && !fmtCallOnlyReadsElements(call, i) {
 					passed[v] = true
 				}
 			}
@@ -180,8 +199,10 @@ func fmtPlainOperandsMayChange(plain []ast.Expr, withCalls []ast.Expr) bool {
 					changes = true
 				}
 			case *ast.IndexExpr, *ast.StarExpr, *ast.SelectorExpr:
-				if binaryOperandReadsStorageNode(typeInfo, n.(ast.Expr)) && fmtAccessRoot(typeInfo, n.(ast.Expr)) == nil {
-					// A read this cannot place.
+				if binaryOperandReadsStorageNode(typeInfo, n.(ast.Expr)) && (fmtAccessRoot(typeInfo, n.(ast.Expr)) == nil || fmtAccessReadsSharedStorage(typeInfo, n.(ast.Expr))) {
+					// A read this cannot place, or one of storage that
+					// another slice, map or pointer can share: the
+					// variable it goes through is not the only way to it.
 					changes = true
 				}
 			}
@@ -221,6 +242,118 @@ func fmtAccessRoot(typeInfo *TypeInfo, expr ast.Expr) *types.Var {
 			return nil
 		}
 	}
+}
+
+// fmtAccessReadsSharedStorage reports whether the access path expr reads
+// through a slice, map or pointer: an element of a slice or map, or the
+// target of a pointer. Such storage can have other names, alias := s among
+// them, so a call can change it without being given the variable the path
+// starts at.
+func fmtAccessReadsSharedStorage(typeInfo *TypeInfo, expr ast.Expr) bool {
+	for {
+		switch e := unwrapParens(expr).(type) {
+		case *ast.SelectorExpr:
+			selection, ok := typeInfo.info.Selections[e]
+			if !ok {
+				return false
+			}
+			if selection.Indirect() || fmtTypeShares(typeInfo.GetType(e.X)) {
+				return true
+			}
+			expr = e.X
+		case *ast.IndexExpr:
+			if fmtTypeShares(typeInfo.GetType(e.X)) {
+				return true
+			}
+			expr = e.X
+		case *ast.StarExpr:
+			return true
+		default:
+			return false
+		}
+	}
+}
+
+// fmtCallOnlyReadsElements reports whether the function of the program
+// that call calls only reads the elements of its parameter index: the
+// parameter is a slice or array of numbers, strings or bools, and the body
+// uses it only to read an element, in len or cap, and as what a range loop
+// ranges over. Such a function cannot change what the argument shares.
+func fmtCallOnlyReadsElements(call *ast.CallExpr, index int) bool {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil || sourceFunctionDeclsByFunc == nil {
+		return false
+	}
+	declInfo, ok := sourceFunctionDeclsByFunc[fn]
+	if !ok || declInfo.decl == nil || declInfo.decl.Body == nil || declInfo.info == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Params() == nil || index >= sig.Params().Len() || (sig.Variadic() && index == sig.Params().Len()-1) {
+		return false
+	}
+	param := sig.Params().At(index)
+	var elem types.Type
+	switch t := types.Unalias(param.Type()).Underlying().(type) {
+	case *types.Slice:
+		elem = t.Elem()
+	case *types.Array:
+		elem = t.Elem()
+	default:
+		return false
+	}
+	if basic, ok := types.Unalias(elem).(*types.Basic); !ok || basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) == 0 {
+		return false
+	}
+	info := declInfo.info
+	written := map[ast.Expr]bool{}
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range n.Lhs {
+				written[unwrapParens(lhs)] = true
+			}
+		case *ast.IncDecStmt:
+			written[unwrapParens(n.X)] = true
+		case *ast.UnaryExpr:
+			if n.Op == token.AND {
+				written[unwrapParens(n.X)] = true
+			}
+		}
+		return true
+	})
+	isParam := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && info.Uses[ident] == param
+	}
+	read := map[ast.Node]bool{}
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.IndexExpr:
+			if isParam(n.X) && !written[n] {
+				read[unwrapParens(n.X)] = true
+			}
+		case *ast.CallExpr:
+			if ident, ok := unwrapParens(n.Fun).(*ast.Ident); ok && len(n.Args) == 1 && isParam(n.Args[0]) {
+				if builtin, ok := info.Uses[ident].(*types.Builtin); ok && (builtin.Name() == "len" || builtin.Name() == "cap") {
+					read[unwrapParens(n.Args[0])] = true
+				}
+			}
+		case *ast.RangeStmt:
+			if isParam(n.X) {
+				read[unwrapParens(n.X)] = true
+			}
+		}
+		return true
+	})
+	onlyRead := true
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		if ident, ok := node.(*ast.Ident); ok && info.Uses[ident] == param && !read[ident] {
+			onlyRead = false
+		}
+		return onlyRead
+	})
+	return onlyRead
 }
 
 // fmtPassedVar returns the variable whose storage a call argument shares:

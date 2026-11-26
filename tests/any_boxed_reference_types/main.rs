@@ -1532,7 +1532,7 @@ let mut got = { let __slice_header = GoSliceHeader::go_slice_header(&got); Rc::n
 
     let mut plain = ({ let val = declared.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     let mut plain = { let __slice_header = GoSliceHeader::go_slice_header(&plain); Rc::new(RefCell::new(__slice_header)) };
-    println!("{} {} {} {}", format!("{}", "single slice:".to_string()), format!("{}", ({ let __len = (*plain.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*plain.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", sum(Rc::new(RefCell::new(Some({ let __arg_value = ({
+    { let __go_print_arg_1 = Rc::new(RefCell::new(Some(({ let __len = (*plain.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_2 = Rc::new(RefCell::new(Some(sum(Rc::new(RefCell::new(Some({ let __arg_value = ({
         let val = declared.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
@@ -1540,7 +1540,7 @@ let mut got = { let __slice_header = GoSliceHeader::go_slice_header(&got); Rc::n
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }
-    }); __arg_value }))))));
+    }); __arg_value }))))))); let __go_print_value = println!("{} {} {} {}", format!("{}", "single slice:".to_string()), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*plain.borrow().as_ref().unwrap())[(2) as usize].clone()), format!("{}", { let __v = (*__go_print_arg_2.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut lookup = ({ let val = boxedMap.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
     println!("{} {} {}", format!("{}", "single map:".to_string()), format!("{}", ({ let __len = (*lookup.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map_holder = lookup.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut first = Rc::new(RefCell::new(Some(({
