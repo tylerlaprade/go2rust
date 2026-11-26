@@ -836,6 +836,14 @@ run_xfail_test() {
     run_test "tests/channels_basic"
 }
 
+@test "channels_of_named_types" {
+    run_test "tests/channels_of_named_types"
+}
+
+@test "channels_of_named_types_goroutines" {
+    run_test "tests/channels_of_named_types_goroutines"
+}
+
 @test "channels_simple" {
     run_test "tests/channels_simple"
 }
@@ -904,8 +912,16 @@ run_xfail_test() {
     run_test "tests/comment_preservation"
 }
 
+@test "complex_constants_and_parts" {
+    run_test "tests/complex_constants_and_parts"
+}
+
 @test "complex_expressions" {
     run_test "tests/complex_expressions"
+}
+
+@test "complex_numbers_and_math_cmplx" {
+    run_test "tests/complex_numbers_and_math_cmplx"
 }
 
 @test "compound_assign_len_int" {
@@ -3296,6 +3312,14 @@ run_xfail_test() {
     run_test "tests/printf_basic_slice_verbs_goroutines"
 }
 
+@test "printf_go_syntax_verb" {
+    run_test "tests/printf_go_syntax_verb"
+}
+
+@test "printf_go_syntax_verb_goroutines" {
+    run_test "tests/printf_go_syntax_verb_goroutines"
+}
+
 @test "printf_local_interface_values" {
     run_test "tests/printf_local_interface_values"
 }
@@ -3776,6 +3800,10 @@ run_xfail_test() {
     run_test "tests/runtime_gomaxprocs"
 }
 
+@test "runtime_scheduler_calls" {
+    run_test "tests/runtime_scheduler_calls"
+}
+
 @test "rust_keyword_identifiers" {
     run_test "tests/rust_keyword_identifiers"
 }
@@ -4026,6 +4054,14 @@ run_xfail_test() {
 
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
+}
+
+@test "sort_package_slice_types" {
+    run_test "tests/sort_package_slice_types"
+}
+
+@test "sort_package_slice_types_goroutines" {
+    run_test "tests/sort_package_slice_types_goroutines"
 }
 
 @test "sort_reverse_and_search_sorted" {

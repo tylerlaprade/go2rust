@@ -745,6 +745,12 @@ func TrackImport(importName string) {
 	if currentContext != nil && currentContext.Imports != nil {
 		currentContext.Imports.Add(importName)
 	}
+	// A slice or map of complex numbers prints them as fmt does.
+	if importName == "num::Complex" {
+		if helpers := activeHelperTracker(); helpers != nil {
+			helpers.needsGoComplexDisplay = true
+		}
+	}
 }
 
 func activeHelperTracker() *HelperTracker {

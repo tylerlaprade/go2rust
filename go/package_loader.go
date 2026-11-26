@@ -60,7 +60,8 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // sort is Go's pdqsort, Search and Reverse over a sort.Interface; its stub's
 // SearchInts and the like panicked, and Reverse and IsSorted had no body.
 // container/heap is Go's heap over the program's own sort.Interface; its
-// stub's Push, Pop and Fix panicked.
+// stub's Push, Pop and Fix panicked. math/cmplx is Go's complex functions
+// over math; its stub's Abs and Sqrt panicked.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -85,6 +86,7 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"text/tabwriter":        true,
 	"container/heap":        true,
 	"sort":                  true,
+	"math/cmplx":            true,
 }
 
 // NewPackageLoader creates a new package loader
@@ -168,9 +170,30 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	pl.monomorphizeMainPackage()
+	pl.rewriteMainGoSyntaxVerbs()
 	pl.rewriteMainPointerSlots()
 	pl.boxCapturedReboundVariables()
 	return nil
+}
+
+// rewriteMainGoSyntaxVerbs writes each %#v of the main package with a
+// helper written in Go; see gosyntax_verb.go.
+func (pl *PackageLoader) rewriteMainGoSyntaxVerbs() {
+	pkg := pl.mainPkg
+	if pkg == nil || pkg.Types == nil || pkg.TypesInfo == nil || len(pkg.Syntax) == 0 {
+		return
+	}
+	fileSet := pkg.Fset
+	if fileSet == nil {
+		fileSet = pl.fileSet
+	}
+	files, ti, ok := rewriteGoSyntaxVerbs(pkg.PkgPath, pkg.Syntax, fileSet, pkg.TypesInfo, pkg.Types, pl.projectImporter())
+	if !ok {
+		return
+	}
+	pkg.Syntax = files
+	pkg.Types = ti.pkg
+	pkg.TypesInfo = ti.info
 }
 
 // rewriteMainPointerSlots makes each **T of the main package a slot that

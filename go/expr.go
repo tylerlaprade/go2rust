@@ -2961,6 +2961,14 @@ func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.E
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
+	// <-ch of a chan IDs receives the IDs value itself, with no cell
+	// around it (DEV-220).
+	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpression(out, inner)
+		out.WriteString("; __named_slice.0.clone() }")
+		return true
+	}
 	if isExpressionResultBare(inner) {
 		out.WriteString("{ let __named_slice = ")
 		TranspileExpression(out, expr)
@@ -5221,10 +5229,83 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		TranspileExpression(out, arg)
 		return
 	}
+	if !argIsPointer {
+		if value, ok := bareTypeConversionValue(arg); ok {
+			out.WriteString(value)
+			return
+		}
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+// writeNamedSliceCompositeLiteral writes a slice literal of a named slice
+// type: the elements in a cell, inside newtype when it is not empty.
+func writeNamedSliceCompositeLiteral(out *strings.Builder, e *ast.CompositeLit, sliceType *types.Slice, newtype string) {
+	if newtype != "" {
+		out.WriteString(newtype)
+		out.WriteString("(")
+	}
+	WriteWrapperPrefix(out)
+	values := orderedArrayLiteralValues(e.Elts)
+	multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
+	sliceLiteralIndent := ""
+	if multilineSliceLiteral {
+		sliceLiteralIndent = currentLineIndent(out)
+		out.WriteString("vec![\n")
+	} else {
+		out.WriteString("vec![")
+	}
+	for i, elt := range values {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		if multilineSliceLiteral {
+			out.WriteString(",\n")
+		}
+	}
+	if multilineSliceLiteral {
+		out.WriteString(sliceLiteralIndent)
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	if newtype != "" {
+		out.WriteString(")")
+	}
+}
+
+// bareTypeConversionValue returns the Rust of a conversion that is written
+// as the converted value itself, with no cell around it. A conversion to a
+// named slice of another package, sort.IntSlice(nums), is the IntSlice
+// newtype, though typeConversionEmitsWrappedValue, which knows the
+// package's own types, says it is wrapped.
+func bareTypeConversionValue(expr ast.Expr) (string, bool) {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return "", false
+	}
+	var value strings.Builder
+	TranspileExpression(&value, call)
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	if strings.HasPrefix(value.String(), prefix.String()) {
+		return "", false
+	}
+	return value.String(), true
 }
 
 // writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
@@ -14196,6 +14277,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 	if ctx != AddressOf && writeFloatContextIntConstant(out, expr) {
 		return
 	}
+	if ctx != AddressOf && writeComplexConstant(out, expr) {
+		return
+	}
 	if lit, ok := expr.(*ast.CompositeLit); ok {
 		markCompositeLiteralIntConstants(lit)
 	}
@@ -15233,6 +15317,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeStatementBuiltLogicalExpressionValue(out, e) {
 			return
 		}
+		if writeComplexConstantOperandBinary(out, e) {
+			return
+		}
 
 		// Special handling for string concatenation
 		if e.Op == token.ADD {
@@ -16021,6 +16108,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("String::new()")
 				return
 			}
+			// sort.Float64Slice{2.5, 1.5}: the package's newtype over the
+			// slice, as for the program's own named slices.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					// An alias of the type, which Rust cannot call as a
+					// constructor, is written as the type it names.
+					if named, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+						if sliceType, ok := typ.Underlying().(*types.Slice); ok {
+							writeNamedSliceCompositeLiteral(out, e, sliceType, goTypesNamedTypeToRust(named))
+							return
+						}
+					}
+				}
+			}
 			if ident, ok := sel.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) && len(e.Elts) == 0 {
 				rustName := goTypeToRustBase(sel)
 				out.WriteString(rustName)
@@ -16317,45 +16418,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
-						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
-						if wrapInTypeDefinition {
-							out.WriteString(RustTypeNameForUse(ident.Name))
-							out.WriteString("(")
+						newtype := ""
+						if !IsTypeAlias(ident.Name) {
+							newtype = RustTypeNameForUse(ident.Name)
 						}
-						WriteWrapperPrefix(out)
-						values := orderedArrayLiteralValues(e.Elts)
-						multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
-						sliceLiteralIndent := ""
-						if multilineSliceLiteral {
-							sliceLiteralIndent = currentLineIndent(out)
-							out.WriteString("vec![\n")
-						} else {
-							out.WriteString("vec![")
-						}
-						for i, elt := range values {
-							if multilineSliceLiteral {
-								out.WriteString(sliceLiteralIndent)
-								out.WriteString("    ")
-							} else if i > 0 {
-								out.WriteString(", ")
-							}
-							if elt == nil {
-								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
-							} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
-								TranspileExpression(out, elt)
-							}
-							if multilineSliceLiteral {
-								out.WriteString(",\n")
-							}
-						}
-						if multilineSliceLiteral {
-							out.WriteString(sliceLiteralIndent)
-						}
-						out.WriteString("]")
-						WriteWrapperSuffix(out)
-						if wrapInTypeDefinition {
-							out.WriteString(")")
-						}
+						writeNamedSliceCompositeLiteral(out, e, sliceType, newtype)
 						return
 					}
 				}
@@ -16625,7 +16692,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								writeLocalStructFieldPrefix()
 								out.WriteString(ToSnakeCase(typeName))
 								out.WriteString(": ")
-								if _, isStruct := structDefs[typeName]; isStruct {
+								// An embedded *T left out is a nil pointer.
+								if _, isPointer := field.Type.(*ast.StarExpr); isPointer {
+									WriteWrappedNone(out)
+								} else if _, isStruct := structDefs[typeName]; isStruct {
 									WriteWrapperPrefix(out)
 									out.WriteString(RustTypeNameForUse(typeName))
 									out.WriteString("::default()")
@@ -18539,6 +18609,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeNamedSliceNilConversion(out, call) {
 		return
 	}
+	if writeNamedMapNilConversion(out, call) {
+		return
+	}
 	if writeNamedSliceTypeConversion(out, call) {
 		return
 	}
@@ -18546,6 +18619,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if writeTypedNilConversion(out, call) {
+		return
+	}
+	if writeInterfaceNilConversion(out, call) {
 		return
 	}
 	if writeTranspiledInterfaceTypeConversion(out, call) {
@@ -18971,6 +19047,115 @@ func writeComplexToComplexConversion(out *strings.Builder, arg ast.Expr, targetC
 	return true
 }
 
+// writeComplexConstant writes a constant of a complex type, such as 1i,
+// 3+4i or a constant 1 that go/types converts for a complex operand, as a
+// num::Complex: Rust has no imaginary literals.
+func writeComplexConstant(out *strings.Builder, expr ast.Expr) bool {
+	// complex(1, 2) is a call, whose result is written in a cell; a
+	// constant's name is the Rust constant.
+	switch expr.(type) {
+	case *ast.BasicLit, *ast.BinaryExpr, *ast.UnaryExpr, *ast.ParenExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(expr) == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(expr)).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	component := ""
+	switch basic.Kind() {
+	case types.Complex64:
+		component = "f32"
+	case types.Complex128, types.UntypedComplex:
+		component = "f64"
+	default:
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok {
+		return false
+	}
+	var re, im strings.Builder
+	if !writeRustFloatLiteral(&re, constant.Real(value)) || !writeRustFloatLiteral(&im, constant.Imag(value)) {
+		return false
+	}
+	TrackImport("num::Complex")
+	out.WriteString("num::Complex::<" + component + ">::new(" + re.String() + " as " + component + ", " + im.String() + " as " + component + ")")
+	return true
+}
+
+// writeComplexConstantOperandBinary writes arithmetic or a comparison of
+// complex numbers with a constant operand. go/types gives the constant the
+// complex type, but it is written as the number it is: z + 1 is
+// z + num::Complex::new(1.0, 0.0), as num::Complex adds only a Complex.
+func writeComplexConstantOperandBinary(out *strings.Builder, e *ast.BinaryExpr) bool {
+	switch e.Op {
+	case token.ADD, token.SUB, token.MUL, token.QUO, token.EQL, token.NEQ:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, xConst := constExpressionValue(e.X)
+	_, yConst := constExpressionValue(e.Y)
+	if xConst == yConst {
+		return false
+	}
+	component := ""
+	for _, operand := range []ast.Expr{e.X, e.Y} {
+		if typeInfo.GetType(operand) == nil {
+			continue
+		}
+		basic, ok := types.Unalias(typeInfo.GetType(operand)).Underlying().(*types.Basic)
+		if !ok {
+			continue
+		}
+		switch basic.Kind() {
+		case types.Complex64:
+			component = "f32"
+		case types.Complex128:
+			component = "f64"
+		}
+	}
+	if component == "" {
+		return false
+	}
+	TrackImport("num::Complex")
+	writeOperand := func(w *strings.Builder, operand ast.Expr) bool {
+		value, ok := constExpressionValue(operand)
+		if !ok {
+			w.WriteString("(")
+			writeComplexConversionSourceValue(w, operand)
+			w.WriteString(")")
+			return true
+		}
+		var re, im strings.Builder
+		if !writeRustFloatLiteral(&re, constant.Real(value)) || !writeRustFloatLiteral(&im, constant.Imag(value)) {
+			return false
+		}
+		w.WriteString("num::Complex::<" + component + ">::new(" + re.String() + " as " + component + ", " + im.String() + " as " + component + ")")
+		return true
+	}
+	var written strings.Builder
+	written.WriteString("(")
+	if !writeOperand(&written, e.X) {
+		return false
+	}
+	written.WriteString(" " + e.Op.String() + " ")
+	if !writeOperand(&written, e.Y) {
+		return false
+	}
+	written.WriteString(")")
+	out.WriteString(written.String())
+	return true
+}
+
 func writeComplexConversionSourceValue(out *strings.Builder, arg ast.Expr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
@@ -19064,6 +19249,24 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	return true
 }
 
+// writeInterfaceNilConversion writes error(nil) and any(nil): the cell of
+// an interface value that holds nothing.
+func writeInterfaceNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionTargetType(call)
+	if !ok {
+		return false
+	}
+	if isEmptyInterfaceType(targetType) {
+		writeEmptyInterfaceCallArgumentValue(out, call.Args[0])
+		return true
+	}
+	if types.Identical(targetType, types.Universe.Lookup("error").Type()) {
+		writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+		return true
+	}
+	return false
+}
+
 func writeNamedPointerNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) != 1 {
 		return false
@@ -19121,6 +19324,24 @@ func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	writeTypedWrappedNone(out, goTypesTypeToRust(sliceType))
+	out.WriteString(")")
+	return true
+}
+
+// writeNamedMapNilConversion writes M(nil) of a named map type M: the
+// newtype around a nil map handle.
+func writeNamedMapNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionType(call)
+	if !ok {
+		return false
+	}
+	named, mapType, ok := namedMapTypeFromType(targetType)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedWrappedNone(out, goTypesTypeToRust(mapType))
 	out.WriteString(")")
 	return true
 }

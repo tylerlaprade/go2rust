@@ -273,6 +273,20 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 		// Regular type checking for projects without external dependencies
 		typeInfo, err := NewTypeInfo(astFiles, fileSet)
+		// Each %#v is written by a helper in Go.
+		if err == nil && typeInfo != nil {
+			if rewritten, rewrittenInfo, ok := rewriteGoSyntaxVerbs("", astFiles, fileSet, typeInfo.info, typeInfo.pkg, nil); ok {
+				for i, file := range astFiles {
+					for path, byPath := range astFilesByPath {
+						if byPath == file {
+							astFilesByPath[path] = rewritten[i]
+						}
+					}
+				}
+				astFiles = rewritten
+				typeInfo = rewrittenInfo
+			}
+		}
 		// Each **T becomes a slot that rebinds the pointer it points at.
 		if err == nil && typeInfo != nil {
 			if slotted, ok := rewritePointerSlots("", astFiles, fileSet, typeInfo.info, nil); ok {
