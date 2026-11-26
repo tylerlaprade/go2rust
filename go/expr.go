@@ -16692,7 +16692,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								writeLocalStructFieldPrefix()
 								out.WriteString(ToSnakeCase(typeName))
 								out.WriteString(": ")
-								if _, isStruct := structDefs[typeName]; isStruct {
+								// An embedded *T left out is a nil pointer.
+								if _, isPointer := field.Type.(*ast.StarExpr); isPointer {
+									WriteWrappedNone(out)
+								} else if _, isStruct := structDefs[typeName]; isStruct {
 									WriteWrapperPrefix(out)
 									out.WriteString(RustTypeNameForUse(typeName))
 									out.WriteString("::default()")
@@ -18606,6 +18609,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeNamedSliceNilConversion(out, call) {
 		return
 	}
+	if writeNamedMapNilConversion(out, call) {
+		return
+	}
 	if writeNamedSliceTypeConversion(out, call) {
 		return
 	}
@@ -18613,6 +18619,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if writeTypedNilConversion(out, call) {
+		return
+	}
+	if writeInterfaceNilConversion(out, call) {
 		return
 	}
 	if writeTranspiledInterfaceTypeConversion(out, call) {
@@ -19240,6 +19249,24 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	return true
 }
 
+// writeInterfaceNilConversion writes error(nil) and any(nil): the cell of
+// an interface value that holds nothing.
+func writeInterfaceNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionTargetType(call)
+	if !ok {
+		return false
+	}
+	if isEmptyInterfaceType(targetType) {
+		writeEmptyInterfaceCallArgumentValue(out, call.Args[0])
+		return true
+	}
+	if types.Identical(targetType, types.Universe.Lookup("error").Type()) {
+		writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+		return true
+	}
+	return false
+}
+
 func writeNamedPointerNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) != 1 {
 		return false
@@ -19297,6 +19324,24 @@ func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	writeTypedWrappedNone(out, goTypesTypeToRust(sliceType))
+	out.WriteString(")")
+	return true
+}
+
+// writeNamedMapNilConversion writes M(nil) of a named map type M: the
+// newtype around a nil map handle.
+func writeNamedMapNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionType(call)
+	if !ok {
+		return false
+	}
+	named, mapType, ok := namedMapTypeFromType(targetType)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedWrappedNone(out, goTypesTypeToRust(mapType))
 	out.WriteString(")")
 	return true
 }

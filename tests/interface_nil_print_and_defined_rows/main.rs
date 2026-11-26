@@ -1212,7 +1212,7 @@ impl SecondMethods for Second {
 fn main() {
     for s in &vec![Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(3.0))), h: Rc::new(RefCell::new(Some(4.0))), ..Default::default() }) as Box<dyn Shape>)))] {
         println!("{}", format!("{}", match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
-        print!("{}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<Spare__int>() { "main.Spare__int" } else if __any.is::<Spare__intPtr>() { "*main.Spare__int" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name });
+        print!("{}\n", { let __type_name = match s.borrow().as_ref() { Some(__iface) => { let __any = __iface.__go_as_any(); if __any.is::<Rect>() { "main.Rect" } else if __any.is::<RectPtr>() { "*main.Rect" } else if __any.is::<Spare__int>() { "main.Spare[int]" } else if __any.is::<Spare__intPtr>() { "*main.Spare[int]" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name });
     }
     let mut none: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(None));
     println!("{}", format!("{}", match none.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
