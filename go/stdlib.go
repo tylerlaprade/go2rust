@@ -2716,6 +2716,9 @@ func writeNoTypeInfoPrintArg(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	name := RustIdentForUse(ident)
+	if renamed, ok := captureRenameForIdent(ident); ok {
+		name = RustLocalIdent(renamed)
+	}
 	if kind, ok := localCollectionKind(ident); ok {
 		switch kind {
 		case "slice":
@@ -2859,6 +2862,12 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 }
 
 func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {
+	// A closure that a defer or go statement runs reads the variable
+	// through the clone it captured.
+	if renamed, ok := captureRenameForIdent(ident); ok {
+		out.WriteString(RustLocalIdent(renamed))
+		return
+	}
 	out.WriteString(RustIdentForUse(ident))
 	if isPackageGlobalIdent(ident) {
 		// Single-threaded package globals use GoGlobal rather than the ordinary
