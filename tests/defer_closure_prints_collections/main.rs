@@ -689,9 +689,9 @@ where
     format_map_nil(map, "<nil>")
 }
 
-// format_map_nil prints a value the map holds no value for as nil_text:
+// format_map_nil prints a value the map holds no value for as __nil_text:
 // [] for a nil slice, as Go prints one.
-fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, nil_text: &str) -> String
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
 where
     V: Display,
 {
@@ -707,7 +707,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:{}", go_display_value(k), nil_text)
+                    format!("{}:{}", go_display_value(k), __nil_text)
                 }
             })
             .collect();
