@@ -41,6 +41,7 @@ Method receivers (value and pointer), multiple returns (including named returns,
 - ✅ Func values are copied - a func value is a shared `Fn` closure, so `saved := act; act = other` leaves `saved` calling the first function, a closure that calls a func variable sees later assignments to it, `defer f(x)` and `go f(x)` call the func value f held then, and struct copies, slices, maps, interfaces and arguments hold copies of their own (func_values_are_copied added, DEV-225)
 - ✅ Function-valued struct field calls - named functions and package function selectors initialize function fields, function fields copy as handles, nested function field assignments use mutable owner paths, function fields format safely, and selector calls unwrap the stored function value (function_field_calls promoted, 2026-05-07; package_function_selector_value_assignment added, 2026-05-11)
 - ✅ Printing call results of func values and generic functions - `fmt.Println(f()())`, `m[k]()`, `fs[i]()` and calls of `f[T]`, `pkg.F[T]` and `pkg.G[K, V]` unwrap the result cell before formatting (func_value_call_results_print and generic_call_results_print added, 2026-11-26)
+- ✅ Channels of funcs - `ch <- func() string {...}`, named functions, method values and nil go on a `chan func()`, and receives, comma-ok receives, select cases, ranges and `(<-ch)()` give a callable func value; a closed channel gives nil (func_value_channels added, 2026-11-26)
 - ✅ Method selectors returning function values - go/types selection kind keeps methods such as `atomic.Pointer[T].Load` out of the function-valued field call path (2026-05-08)
 - ✅ Receiver-scoped method name disambiguation - case-distinct methods such as `RunPiped` and `runPiped` that collapse to the same Rust `snake_case` name keep the exported method on the base name and suffix the private helper, with selector calls resolved through go/types method identity (method_case_collision added, 2026-05-10)
 - ✅ Print operands read after the calls beside them - `fmt.Println(ins, slices.Delete(ins, 0, 2))`, `fmt.Println(b.n, b.inc())` and `fmt.Printf("%d %d", x, f())` print the plain operands as the calls left them, as gc does (print_operands_read_after_calls added, 2026-11-26)
@@ -189,6 +190,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 7: Goroutines and Concurrency (Core Complete)
 
+- ✅ atomic.AddInt64 with any delta - a conversion such as `int64(len(words))`, a call, a field or a constant, through the same writer as the other atomic Add functions, which wraps around as Go does (atomic_add_int64_deltas added, 2026-11-26)
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
