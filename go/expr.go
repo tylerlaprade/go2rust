@@ -13050,6 +13050,10 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStringValueForExpectedBasicType(out, key, keyType) {
 		return true
 	}
+	// An array literal key, m[[2]int{1, 2}], is the array, not a handle.
+	if writeBareFixedArrayCompositeLiteral(out, key, keyType) {
+		return true
+	}
 	if writeLenCapCallArgumentForExpectedType(out, key, keyType) {
 		return true
 	}
@@ -13937,6 +13941,18 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 		return false
 	}
 	return typeNeedsGoValueClone(typeInfo.GetType(expr))
+}
+
+// unnamedArrayLiteral reports whether lit is a literal of an unnamed array
+// type, [N]T{...}, which translates to its handle. A defined array type's
+// literal is its newtype, which a pointer wraps.
+func unnamedArrayLiteral(lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(lit)).(*types.Array)
+	return ok
 }
 
 func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
@@ -15274,7 +15290,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
+				if unnamedArrayLiteral(compositeLit) {
+					// A pointer to an array is the array's handle, as p := &arr
+					// shares arr's: the new array's handle is the pointer.
+					TranspileExpression(out, compositeLit)
+				} else if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
 					// For struct literals, wrap the whole thing
 					WriteWrapperPrefix(out)
 					TranspileExpressionContext(out, compositeLit, AddressOf)
