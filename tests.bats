@@ -488,6 +488,14 @@ run_xfail_test() {
     run_test "tests/any_interface_static_assertion"
 }
 
+@test "any_literal_constants" {
+    run_test "tests/any_literal_constants"
+}
+
+@test "any_literal_constants_goroutines" {
+    run_test "tests/any_literal_constants_goroutines"
+}
+
 @test "any_named_return_zero" {
     run_test "tests/any_named_return_zero"
 }

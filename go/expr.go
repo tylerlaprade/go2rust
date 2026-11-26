@@ -16305,6 +16305,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 					// If the element is already a wrapped variable, unwrap it first.
 					if elementKeepsAnyHandle {
+					} else if ident, ok := unwrapParens(elt).(*ast.Ident); ok && isEmptyInterfaceType(elemType) && isConstIdent(ident) {
+						// A constant goes in as a value of its type.
+						writeAnyBoxInnerValue(out, elt)
 					} else if ident, ok := elt.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" && ident.Name != "true" && ident.Name != "false" {
 						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
