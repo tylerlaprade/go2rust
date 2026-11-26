@@ -2980,6 +2980,14 @@ run_xfail_test() {
     run_test "tests/package_function_type_conversion"
 }
 
+@test "package_generic_scalar_results" {
+    run_test "tests/package_generic_scalar_results"
+}
+
+@test "package_generic_scalar_results_goroutines" {
+    run_test "tests/package_generic_scalar_results_goroutines"
+}
+
 @test "package_global_anonymous_struct_array" {
     run_test "tests/package_global_anonymous_struct_array"
 }

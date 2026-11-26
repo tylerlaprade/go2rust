@@ -337,11 +337,69 @@ func callReturnsBareScalar(call *ast.CallExpr) bool {
 	if !usesGeneratedReturnSignature && !stdlibHandlerResultUsesBareScalar(call, 0) {
 		return false
 	}
-	sig, ok := callSignatureFromTypeInfo(call)
+	sig, ok := callResultShapeSignature(call)
 	if !ok {
 		return false
 	}
 	return signatureReturnsBareScalar(sig)
+}
+
+// callResultShapeSignature returns the signature whose results say how the
+// Rust of call's callee returns them. That is the instantiated signature,
+// except for a generic function or method whose Rust stays generic: it
+// returns a type parameter's value in a cell whatever the type argument
+// is, so its declared signature decides (DEV-228). The main package's
+// generic functions are written once per instantiation and are not generic
+// by the time they are called.
+func callResultShapeSignature(call *ast.CallExpr) (*types.Signature, bool) {
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok {
+		return nil, false
+	}
+	if declared := genericCalleeDeclaredSignature(call); declared != nil {
+		return declared, true
+	}
+	return sig, true
+}
+
+// genericCalleeDeclaredSignature returns the declared signature of call's
+// callee when it is a generic function, or a method of a generic type,
+// whose Rust is generated generic: one of the program's packages or a
+// stdlib package translated from source.
+func genericCalleeDeclaredSignature(call *ast.CallExpr) *types.Signature {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || call == nil {
+		return nil
+	}
+	fun := unwrapParens(call.Fun)
+	switch f := fun.(type) {
+	case *ast.IndexExpr:
+		fun = unwrapParens(f.X)
+	case *ast.IndexListExpr:
+		fun = unwrapParens(f.X)
+	}
+	var fn *types.Func
+	switch f := fun.(type) {
+	case *ast.Ident:
+		fn, _ = typeInfo.info.Uses[f].(*types.Func)
+	case *ast.SelectorExpr:
+		if selection := typeInfo.info.Selections[f]; selection != nil {
+			fn, _ = selection.Obj().(*types.Func)
+		} else {
+			fn, _ = typeInfo.info.Uses[f.Sel].(*types.Func)
+		}
+	}
+	if fn == nil || fn.Pkg() == nil {
+		return nil
+	}
+	if path := fn.Pkg().Path(); isStdlibPackage(path) && !isSourceMappedPackagePath(path) {
+		return nil
+	}
+	declared, ok := fn.Origin().Type().(*types.Signature)
+	if !ok || declared.TypeParams().Len() == 0 && declared.RecvTypeParams().Len() == 0 {
+		return nil
+	}
+	return declared
 }
 
 // callUsesGeneratedReturnSignature returns true for calls whose callee
@@ -428,6 +486,20 @@ func callFunctionObjectFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (*ty
 }
 
 func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
+	if !callInstantiatedResultIsBareScalar(call, index) {
+		return false
+	}
+	if declared := genericCalleeDeclaredSignature(call); declared != nil {
+		// A type parameter's value comes back in a cell (DEV-228).
+		return signatureResultIsBareScalar(declared, index)
+	}
+	return true
+}
+
+// callInstantiatedResultIsBareScalar reports whether the instantiated
+// signature of call's callee gives result index a bare scalar type, as the
+// Rust of a function that is not generic returns it.
+func callInstantiatedResultIsBareScalar(call *ast.CallExpr, index int) bool {
 	if call == nil {
 		return false
 	}
@@ -446,7 +518,7 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 }
 
 func callResultNeedsBareScalarUnwrapFromGeneratedWrapper(call *ast.CallExpr, index int) bool {
-	if !callResultIsBareScalar(call, index) {
+	if !callInstantiatedResultIsBareScalar(call, index) {
 		return false
 	}
 	sourceSig, ok := sourceFunctionSignatureForCall(call)
