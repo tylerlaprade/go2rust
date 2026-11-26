@@ -11,6 +11,13 @@ use data::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 fn main() {
     __go_init_all();
 

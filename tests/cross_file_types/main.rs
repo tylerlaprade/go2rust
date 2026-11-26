@@ -11,6 +11,13 @@ use types::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 fn main() {
         // Create a Person - transpiler needs to know Person struct fields
     let mut p = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));

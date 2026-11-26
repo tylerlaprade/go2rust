@@ -8,6 +8,13 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn worker(done: GoChannel<bool>) {
     print!("{}", format!("{}", "working...".to_string()));
     time::sleep(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((500 as i64 * time::MILLISECOND) as i64))))))));

@@ -1,0 +1,2 @@
+Name: Hello, ann! Age? got 42 [stderr]
+partial then stderr done

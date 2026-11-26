@@ -4452,6 +4452,10 @@ run_xfail_test() {
     run_test "tests/stdlib_unknown_call_with_goroutine"
 }
 
+@test "stdout_partial_lines_order" {
+    run_test "tests/stdout_partial_lines_order"
+}
+
 @test "strconv_errors_from_source" {
     run_test "tests/strconv_errors_from_source"
 }
