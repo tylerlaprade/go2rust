@@ -44,6 +44,12 @@ func double(p *int) int {
 
 func addTo(p *int, x int) { *p += x }
 
+var order []string
+
+func getSlice(s []int) []int { order = append(order, "slice"); return s }
+
+func getIndex() int { order = append(order, "index"); return 0 }
+
 // change sets the element the first argument points to; the callee reads
 // it only after all the arguments are evaluated.
 func change(s []int) int {
@@ -86,6 +92,11 @@ func main() {
 	both(&one[1], &one[0])
 	add(first(), &one[at(1)])
 	fmt.Println(ps, one, calls)
+	// The slice expression's call runs before the index's.
+	xs := []int{1, 2}
+	ep := &getSlice(xs)[getIndex()]
+	*ep = 9
+	fmt.Println(xs, order)
 	late := []int{1}
 	addTo(&late[0], change(late))
 	fmt.Println(late)

@@ -1503,9 +1503,12 @@ impl<T> GoGlobal<T> {
 
 pub(crate) static calls: GoGlobal<Vec<String>> = GoGlobal::new();
 
+pub(crate) static order: GoGlobal<Vec<String>> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *calls.borrow_mut() = Some(Vec::nil());
+    *order.borrow_mut() = Some(Vec::nil());
 }
 
 
@@ -1568,6 +1571,16 @@ pub fn double(p: Rc<RefCell<Option<i64>>>) -> i64 {
 
 pub fn add_to(p: Rc<RefCell<Option<i64>>>, x: Rc<RefCell<Option<i64>>>) {
     { let __rhs = (*x.borrow().as_ref().unwrap()); let mut guard = p.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+}
+
+pub fn get_slice(s: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
+    { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "slice".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *order.borrow_mut() = new_val; };
+    s.clone()
+}
+
+pub fn get_index() -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "index".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *order.borrow_mut() = new_val; };
+    0
 }
 
 /// change sets the element the first argument points to; the callee reads
@@ -1640,7 +1653,7 @@ fn main() {
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize)); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); } }); let __result = both(__arg0.clone(), __arg1.clone()); drop(__write_back); __result };
     {
         let __arg0 = Rc::new(RefCell::new(Some(first())));
-        let __elem_ptr_1 = Some({ let __elem_index = (at(Rc::new(RefCell::new(Some(1))))) as usize; GoSliceElemPtr::new(one.clone(), __elem_index) });
+        let __elem_ptr_1 = Some({ let __elem_slice = one.clone(); let __elem_index = (at(Rc::new(RefCell::new(Some(1))))) as usize; GoSliceElemPtr::new(__elem_slice, __elem_index) });
         let __arg1 = Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.borrow()).clone(); }
@@ -1653,6 +1666,12 @@ fn main() {
         __result
     };
     println!("{} {} {}", format!("{}", format_slice(&ps)), format!("{}", format_slice(&one)), format!("{}", format_slice(&calls.clone())));
+
+        // The slice expression's call runs before the index's.
+    let mut xs = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
+    let mut ep: Option<GoSliceElemPtr<i64>> = Some({ let __elem_slice = get_slice(xs.clone()).clone(); let __elem_index = (get_index()) as usize; GoSliceElemPtr::new(__elem_slice, __elem_index) });
+    { let new_val = 9; *ep.as_ref().unwrap().borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", format_slice(&xs)), format!("{}", format_slice(&order.clone())));
     let mut late = Rc::new(RefCell::new(Some(vec![1i64])));
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(late.clone(), (0) as usize)); let __arg1 = Rc::new(RefCell::new(Some(change(late.clone())))); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __write_back = GoWriteBack(|| { if let Some(__ptr) = __elem_ptr_0.as_ref() { *__ptr.borrow_mut() = (*__arg0.borrow()).clone(); } }); let __result = add_to(__arg0.clone(), __arg1); drop(__write_back); __result };
     println!("{}", format!("{}", format_slice(&late)));

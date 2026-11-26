@@ -1703,9 +1703,12 @@ impl std::fmt::Display for P {
 
 pub(crate) static calls: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
+pub(crate) static order: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
 
 fn __go_init_globals() {
     *calls.lock().unwrap() = Some(Vec::nil());
+    *order.lock().unwrap() = Some(Vec::nil());
 }
 
 
@@ -1768,6 +1771,16 @@ pub fn double(p: Arc<Mutex<Option<i64>>>) -> i64 {
 
 pub fn add_to(p: Arc<Mutex<Option<i64>>>, x: Arc<Mutex<Option<i64>>>) {
     { let __rhs = (*x.lock().unwrap().as_ref().unwrap()); let mut guard = p.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+}
+
+pub fn get_slice(s: Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
+    { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "slice".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *order.lock().unwrap() = new_val; };
+    return s.clone();
+}
+
+pub fn get_index() -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "index".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *order.lock().unwrap() = new_val; };
+    0
 }
 
 /// change sets the element the first argument points to; the callee reads
@@ -1986,7 +1999,7 @@ fn main() {
     };
     {
         let __arg0 = Arc::new(Mutex::new(Some(first())));
-        let __elem_ptr_1 = Some({ let __elem_index = (at(Arc::new(Mutex::new(Some(1))))) as usize; GoSliceElemPtr::new(one.clone(), __elem_index) });
+        let __elem_ptr_1 = Some({ let __elem_slice = one.clone(); let __elem_index = (at(Arc::new(Mutex::new(Some(1))))) as usize; GoSliceElemPtr::new(__elem_slice, __elem_index) });
         let __arg1 = Arc::new(Mutex::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
         let __write_back = GoWriteBack(|| {
             if let Some(__ptr) = __elem_ptr_1.as_ref() { *__ptr.borrow_mut() = (*__arg1.lock().unwrap()).clone(); }
@@ -1999,6 +2012,12 @@ fn main() {
         __result
     };
     println!("{} {} {}", format!("{}", format_slice(&ps)), format!("{}", format_slice(&one)), format!("{}", format_slice(&calls.clone())));
+
+        // The slice expression's call runs before the index's.
+    let mut xs = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
+    let mut ep: Option<GoSliceElemPtr<i64>> = Some({ let __elem_slice = get_slice(xs.clone()).clone(); let __elem_index = (get_index()) as usize; GoSliceElemPtr::new(__elem_slice, __elem_index) });
+    { let new_val = 9; *ep.as_ref().unwrap().borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", format_slice(&xs)), format!("{}", format_slice(&order.clone())));
     let mut late = Arc::new(Mutex::new(Some(vec![1i64])));
     {
         let __elem_ptr_0 = Some(GoSliceElemPtr::new(late.clone(), (0) as usize));
