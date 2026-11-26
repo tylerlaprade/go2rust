@@ -46,7 +46,7 @@ func writeFuncChannelSendValue(out *strings.Builder, ch ast.Expr, value ast.Expr
 	if !ok {
 		return false
 	}
-	if ident, ok := unwrapParens(value).(*ast.Ident); ok && ident.Name == "nil" {
+	if ident, ok := unwrapParens(value).(*ast.Ident); ok && isPredeclaredNilIdent(ident) {
 		out.WriteString("None::<")
 		out.WriteString(goTypesTypeToRust(elem))
 		out.WriteString(">")
@@ -72,4 +72,22 @@ func writeFuncValueFreshCellForExpected(out *strings.Builder, value ast.Expr, ex
 		return
 	}
 	writeFuncValueFreshCell(out, value)
+}
+
+// isPredeclaredNilIdent reports whether ident is the predeclared nil, not a
+// variable that shadows it.
+func isPredeclaredNilIdent(ident *ast.Ident) bool {
+	if ident == nil || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return true
+	}
+	obj, ok := typeInfo.info.Uses[ident]
+	if !ok {
+		return true
+	}
+	_, isNil := obj.(*types.Nil)
+	return isNil
 }
