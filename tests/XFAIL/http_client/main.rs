@@ -139,7 +139,7 @@ fn main() {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut payload = Arc::new(Mutex::new(Some("{\"slideshow\":{\"author\":\"Yours Truly\",\"slides\":[1,2,3]}}".to_string())));
         let mut raw = Arc::new(Mutex::new(Some(format!("{}{}", "HTTP/1.1 200 OK\r\nContent-Length: 57\r\n\r\n".to_string(), { let __v = (*payload.lock().unwrap().as_ref().unwrap()).clone(); __v }))));
-        let (mut resp, mut err) = http::read_response(bufio::new_reader(Arc::new(Mutex::new(Some(Box::new(strings::reader::ReaderPtr(strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = raw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone())) as Box<dyn io::r#mod::Reader + Send + Sync>)))), ());
+        let (mut resp, mut err) = http::read_response(bufio::new_reader(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(strings::reader::ReaderPtr(strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = raw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone())) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value })))), ());
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
         {
@@ -153,7 +153,7 @@ fn main() {
         let resp_defer_captured = resp.clone(); __defer_stack.push(Box::new(move || {
         (*(*resp_defer_captured.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).close();
     }));
-        let (mut body, _) = io::read_all(Arc::new(Mutex::new(Some(Box::new((*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+        let (mut body, _) = io::read_all(Arc::new(Mutex::new(Some({ let __arg_value = Box::new((*(*resp.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
         let mut body = { let __slice_header = GoSliceHeader::go_slice_header(&body); Arc::new(Mutex::new(__slice_header)) };
         let mut text = Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*body.lock().unwrap().as_ref().unwrap()).clone())).unwrap())));
         if { let __tmp_x = (({ let __len = (*text.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64); let __tmp_y = 100; __tmp_x > __tmp_y } {

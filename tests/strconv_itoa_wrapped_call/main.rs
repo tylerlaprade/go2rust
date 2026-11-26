@@ -56,7 +56,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut v = Arc::new(Mutex::new(Some(item { index: Arc::new(Mutex::new(Some(3))), ..Default::default() })));
-    println!("{}", format!("{}", (*strconv::itoa(Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()).index())))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*strconv::itoa(Arc::new(Mutex::new(Some({ let __arg_value = (*v.lock().unwrap().as_ref().unwrap()).index(); __arg_value })))).lock().unwrap().as_ref().unwrap())));
 }
 
 impl GoValueClone for item {

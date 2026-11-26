@@ -198,7 +198,7 @@ fn main() {
         let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = file_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        let mut scanner = bufio::new_scanner(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+        let mut scanner = bufio::new_scanner(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
         let mut lineNum = Arc::new(Mutex::new(Some(1i64)));
         while { let __recv = scanner.clone(); let __recv_ptr: *mut bufio::scan::Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::scan::Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result } {
         let mut line = { let __recv = scanner.clone(); let __recv_ptr: *const bufio::scan::Scanner = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const bufio::scan::Scanner }; let __result = unsafe { &*__recv_ptr }.text(); __result };
@@ -308,7 +308,7 @@ fn main() {
         let destFile_defer_captured = destFile.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = destFile_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        let (mut bytesWritten, __tmp_1) = io::copy(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = destFile.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Writer + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = sourceFile.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+        let (mut bytesWritten, __tmp_1) = io::copy(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = destFile.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = sourceFile.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         print!("Error copying file: {}\n", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text });
         {
@@ -335,7 +335,7 @@ fn main() {
         let file_defer_captured = file.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = file_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        { let new_val = bufio::new_scanner(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>)))).clone(); scanner = new_val; };
+        { let new_val = bufio::new_scanner(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value })))).clone(); scanner = new_val; };
         let mut wordCount = Arc::new(Mutex::new(Some(0i64)));
         let mut lineCount = Arc::new(Mutex::new(Some(0i64)));
         let mut charCount = Arc::new(Mutex::new(Some(0i64)));

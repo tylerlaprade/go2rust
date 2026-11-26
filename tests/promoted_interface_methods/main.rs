@@ -757,7 +757,7 @@ fn main() {
     dump(Arc::new(Mutex::new(Some(Box::new(loggedPtr(lg.clone())) as Box<dyn Store + Send + Sync>))));
     let mut u = Arc::new(Mutex::new(Some(upper { logged: lg.clone(), ..Default::default() })));
     (*u.lock().unwrap().as_mut().unwrap()).put(Arc::new(Mutex::new(Some("c".to_string()))), Arc::new(Mutex::new(Some("z".to_string()))));
-    dump(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Store + Send + Sync>))));
+    dump(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Store + Send + Sync>; __arg_value }))));
     println!("{} {}", format!("{}", format_slice_values(&(*(*(*u.lock().unwrap().as_ref().unwrap()).logged.lock().unwrap().as_ref().unwrap()).log.lock().unwrap().as_ref().unwrap()).clone())), format!("{}", ({ let __len = (*(*u.lock().unwrap().as_ref().unwrap()).keys().lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut s: Arc<Mutex<Option<Box<dyn Store + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Store + Send + Sync>)));
     { let (__tmp_0, __tmp_1) = (*s.lock().unwrap().as_ref().unwrap()).get(Arc::new(Mutex::new(Some("nope".to_string())))); ok = __tmp_1; };

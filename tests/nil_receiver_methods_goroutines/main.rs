@@ -504,7 +504,7 @@ pub fn more() {
     } }
     println!("{} {}", format!("{}", (*__go_nil_recv_elem_string({ let __field = (*l.lock().unwrap().as_ref().unwrap()).head.clone(); __field }).lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*l.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap())));
     let mut none: Arc<Mutex<Option<Elem>>> = Arc::new(Mutex::new(None));
-    println!("{} {}", format!("{}", (*__go_nil_recv_elem_string(none.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(ElemPtr((*l.lock().unwrap().as_ref().unwrap()).head.clone())) as Box<dyn Stringer + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*__go_nil_recv_elem_string(none.clone()).lock().unwrap().as_ref().unwrap())), format!("{}", (*describe(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(ElemPtr((*l.lock().unwrap().as_ref().unwrap()).head.clone())) as Box<dyn Stringer + Send + Sync>; __arg_value })))).lock().unwrap().as_ref().unwrap())));
     let mut c = Arc::new(Mutex::new(Some(Counter { hits: Arc::new(Mutex::new(Some(0))) })));
     __go_nil_recv_counter_hit(c.clone());
     __go_nil_recv_counter_hit(c.clone());

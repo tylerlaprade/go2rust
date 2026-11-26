@@ -1,0 +1,30 @@
+3|"bo"|21.5|main.IDs{1, 2}
+main.Tags{"a":1, "b":2}|main.IDs(nil)|main.Tags(nil)
+42|-7|0xff|0x10
+1|2.5|1e+21|0.1|"tab\there \"q\""
+true|120|[]int32{104, 105}
+main.Record{Base:main.Base{ID:7}, Point:(*main.Point)(nil), Name:"first", Tags:[]string{"a", "b"}, Scores:map[string]int{"a":1, "m":13, "z":26}, Flags:map[bool]string{false:"no", true:"yes"}, Grid:[2][2]int{[2]int{1, 2}, [2]int{3, 4}}, Next:(*main.Record)(nil), Data:[]uint8{0x68, 0x69}, Count:0xa, Ratio:0.25, Any:main.Point{X:1, Y:2}, Err:error(nil), Shape:main.Shape(nil), OnDone:(func())(nil), Events:(chan int)(nil), hidden:9}
+&main.Point{X:3, Y:4}
+(*main.Point)(nil) []*main.Point{(*main.Point)(nil)}
+v1.2|[]main.Version{v2.0}|Handle#5
+main.Square{Side:2}
+&main.Circle{R:1}
+<nil> <nil>
+int: 3
+string: "s"
+struct: main.Square{Side:3}
+pointer: &main.Square{Side:4}
+slice: []int{1, 2}
+map: map[string]bool{"x":true}
+nil: <nil>
+[]interface {}{1, "a", interface {}(nil), 2.5, main.Point{X:5, Y:6}}
+map[main.Point]string{main.Point{X:1, Y:2}:"c", main.Point{X:1, Y:9}:"a", main.Point{X:2, Y:1}:"b"}
+main.local{A:1, B:[]string(nil)}|[]main.local{main.local{A:2, B:[]string{"x"}}}
+main.Pair[string,int]{Key:"k", Val:1} main.Pair[string,int]
+struct {}{}|struct { A int; B int }{A:1, B:2}|[0]int{}
+bad point main.Point{X:0, Y:-1}
+5 []string{} end
+map[int]bool{1:false, 3:true}
+boom <nil>
+0 true true
+map[main.Square]int{main.Square{Side:1.5}:2, main.Square{Side:2}:1} 2

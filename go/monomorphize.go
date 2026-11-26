@@ -118,7 +118,30 @@ func monomorphizeGenericsMatching(path string, files []*ast.File, fset *token.Fi
 		}
 		return nil, false
 	}
+	for _, inst := range m.instances {
+		if obj, ok := inst.obj.(*types.TypeName); ok {
+			monoTypeGoNames[inst.name] = goReflectInstanceName(obj, inst.typeArgs)
+		}
+	}
 	return out, true
+}
+
+// monoTypeGoNames maps the name of each instantiation of a generic type to
+// the name reflect gives it, Pair[string,int], which %T and %#v write.
+var monoTypeGoNames = map[string]string{}
+
+func goReflectInstanceName(obj *types.TypeName, typeArgs []types.Type) string {
+	var b strings.Builder
+	b.WriteString(obj.Name())
+	b.WriteString("[")
+	for i, arg := range typeArgs {
+		if i > 0 {
+			b.WriteString(",")
+		}
+		goWriteReflectType(&b, arg, 1)
+	}
+	b.WriteString("]")
+	return b.String()
 }
 
 func filesDeclareGenerics(files []*ast.File) bool {

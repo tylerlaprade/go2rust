@@ -744,6 +744,14 @@ run_xfail_test() {
     run_test "tests/call_argument_len_of_written_slice"
 }
 
+@test "call_arguments_read_what_the_callee_writes" {
+    run_test "tests/call_arguments_read_what_the_callee_writes"
+}
+
+@test "call_arguments_read_what_the_callee_writes_goroutines" {
+    run_test "tests/call_arguments_read_what_the_callee_writes_goroutines"
+}
+
 @test "cap_struct_slice_field" {
     run_test "tests/cap_struct_slice_field"
 }
@@ -826,6 +834,14 @@ run_xfail_test() {
 
 @test "channels_basic" {
     run_test "tests/channels_basic"
+}
+
+@test "channels_of_named_types" {
+    run_test "tests/channels_of_named_types"
+}
+
+@test "channels_of_named_types_goroutines" {
+    run_test "tests/channels_of_named_types_goroutines"
 }
 
 @test "channels_simple" {
@@ -3296,6 +3312,14 @@ run_xfail_test() {
     run_test "tests/printf_basic_slice_verbs_goroutines"
 }
 
+@test "printf_go_syntax_verb" {
+    run_test "tests/printf_go_syntax_verb"
+}
+
+@test "printf_go_syntax_verb_goroutines" {
+    run_test "tests/printf_go_syntax_verb_goroutines"
+}
+
 @test "printf_local_interface_values" {
     run_test "tests/printf_local_interface_values"
 }
@@ -4034,6 +4058,14 @@ run_xfail_test() {
 
 @test "sort_nil_slice" {
     run_test "tests/sort_nil_slice"
+}
+
+@test "sort_package_slice_types" {
+    run_test "tests/sort_package_slice_types"
+}
+
+@test "sort_package_slice_types_goroutines" {
+    run_test "tests/sort_package_slice_types_goroutines"
 }
 
 @test "sort_reverse_and_search_sorted" {

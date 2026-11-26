@@ -27,5 +27,5 @@ fn main() {
         println!("{}", format!("{}", "error".to_string()));
         return;
     }
-    println!("{}", format!("{}", strings::has_prefix(Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*out.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))), Arc::new(Mutex::new(Some("[go1.".to_string()))))));
+    println!("{}", format!("{}", strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_value = String::from_utf8(std::vec::Vec::from((*out.lock().unwrap().as_ref().unwrap()).clone())).unwrap(); __arg_value }))), Arc::new(Mutex::new(Some("[go1.".to_string()))))));
 }

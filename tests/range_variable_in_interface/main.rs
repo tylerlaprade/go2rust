@@ -1564,7 +1564,7 @@ fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
     for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>, Box::new(k.clone()) as Box<dyn Any>], false));
-        show(Rc::new(RefCell::new(Some(vec![Box::new(k.clone()) as Box<dyn Any>, Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>]))));
+        show(Rc::new(RefCell::new(Some(vec![Box::new(k.clone()) as Box<dyn Any>, { let __arg_value = Box::new((*v.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>; __arg_value }]))));
     }
 
     for n in vec![3i64, 4i64].iter().copied() {

@@ -382,7 +382,7 @@ fn main() {
     let mut words = map__int__string(
         Arc::new(Mutex::new(Some(vec![1i64, 22i64, 333i64]))),
         Arc::new(Mutex::new(Some(Box::new(move |n: Arc<Mutex<Option<i64>>>| -> Arc<Mutex<Option<String>>> {
-        strings::repeat(Arc::new(Mutex::new(Some("x".to_string()))), Arc::new(Mutex::new(Some(({ let __len = (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).len(); __len }) as i64))))
+        strings::repeat(Arc::new(Mutex::new(Some("x".to_string()))), Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*Arc::new(Mutex::new(Some(format!("{}", format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).lock().unwrap().as_ref().unwrap()).len(); __len }) as i64; __arg_value }))))
     }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))
     );
     let mut words = { let __slice_header = GoSliceHeader::go_slice_header(&words); Arc::new(Mutex::new(__slice_header)) };

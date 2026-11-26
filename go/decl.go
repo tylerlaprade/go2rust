@@ -1269,6 +1269,16 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	out.WriteString("            let __right = { other.")
 	out.WriteString(field.name)
 	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	if basic, ok := types.Unalias(typ).Underlying().(*types.Basic); ok && basic.Info()&types.IsFloat != 0 {
+		// A float has no total order; Go keys a map by == alone, so
+		// values that do not compare, NaN, order as equal.
+		out.WriteString("            match __left.partial_cmp(&__right) {\n")
+		out.WriteString("                Some(std::cmp::Ordering::Equal) | None => {}\n")
+		out.WriteString("                Some(__ord) => return __ord,\n")
+		out.WriteString("            }\n")
+		out.WriteString("        }\n")
+		return
+	}
 	out.WriteString("            match __left.cmp(&__right) {\n")
 	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
 	out.WriteString("                __ord => return __ord,\n")

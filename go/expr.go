@@ -2961,6 +2961,14 @@ func writeNamedSliceInnerHandleCloneWithNilSlot(out *strings.Builder, expr ast.E
 		out.WriteString("; __named_slice.0.clone() }")
 		return true
 	}
+	// <-ch of a chan IDs receives the IDs value itself, with no cell
+	// around it (DEV-220).
+	if unary, ok := inner.(*ast.UnaryExpr); ok && unary.Op == token.ARROW {
+		out.WriteString("{ let __named_slice = ")
+		TranspileExpression(out, inner)
+		out.WriteString("; __named_slice.0.clone() }")
+		return true
+	}
 	if isExpressionResultBare(inner) {
 		out.WriteString("{ let __named_slice = ")
 		TranspileExpression(out, expr)
@@ -5221,10 +5229,83 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		TranspileExpression(out, arg)
 		return
 	}
+	if !argIsPointer {
+		if value, ok := bareTypeConversionValue(arg); ok {
+			out.WriteString(value)
+			return
+		}
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+// writeNamedSliceCompositeLiteral writes a slice literal of a named slice
+// type: the elements in a cell, inside newtype when it is not empty.
+func writeNamedSliceCompositeLiteral(out *strings.Builder, e *ast.CompositeLit, sliceType *types.Slice, newtype string) {
+	if newtype != "" {
+		out.WriteString(newtype)
+		out.WriteString("(")
+	}
+	WriteWrapperPrefix(out)
+	values := orderedArrayLiteralValues(e.Elts)
+	multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
+	sliceLiteralIndent := ""
+	if multilineSliceLiteral {
+		sliceLiteralIndent = currentLineIndent(out)
+		out.WriteString("vec![\n")
+	} else {
+		out.WriteString("vec![")
+	}
+	for i, elt := range values {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		if multilineSliceLiteral {
+			out.WriteString(",\n")
+		}
+	}
+	if multilineSliceLiteral {
+		out.WriteString(sliceLiteralIndent)
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	if newtype != "" {
+		out.WriteString(")")
+	}
+}
+
+// bareTypeConversionValue returns the Rust of a conversion that is written
+// as the converted value itself, with no cell around it. A conversion to a
+// named slice of another package, sort.IntSlice(nums), is the IntSlice
+// newtype, though typeConversionEmitsWrappedValue, which knows the
+// package's own types, says it is wrapped.
+func bareTypeConversionValue(expr ast.Expr) (string, bool) {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return "", false
+	}
+	var value strings.Builder
+	TranspileExpression(&value, call)
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	if strings.HasPrefix(value.String(), prefix.String()) {
+		return "", false
+	}
+	return value.String(), true
 }
 
 // writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
@@ -16027,6 +16108,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("String::new()")
 				return
 			}
+			// sort.Float64Slice{2.5, 1.5}: the package's newtype over the
+			// slice, as for the program's own named slices.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					// An alias of the type, which Rust cannot call as a
+					// constructor, is written as the type it names.
+					if named, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+						if sliceType, ok := typ.Underlying().(*types.Slice); ok {
+							writeNamedSliceCompositeLiteral(out, e, sliceType, goTypesNamedTypeToRust(named))
+							return
+						}
+					}
+				}
+			}
 			if ident, ok := sel.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) && len(e.Elts) == 0 {
 				rustName := goTypeToRustBase(sel)
 				out.WriteString(rustName)
@@ -16323,45 +16418,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
-						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
-						if wrapInTypeDefinition {
-							out.WriteString(RustTypeNameForUse(ident.Name))
-							out.WriteString("(")
+						newtype := ""
+						if !IsTypeAlias(ident.Name) {
+							newtype = RustTypeNameForUse(ident.Name)
 						}
-						WriteWrapperPrefix(out)
-						values := orderedArrayLiteralValues(e.Elts)
-						multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
-						sliceLiteralIndent := ""
-						if multilineSliceLiteral {
-							sliceLiteralIndent = currentLineIndent(out)
-							out.WriteString("vec![\n")
-						} else {
-							out.WriteString("vec![")
-						}
-						for i, elt := range values {
-							if multilineSliceLiteral {
-								out.WriteString(sliceLiteralIndent)
-								out.WriteString("    ")
-							} else if i > 0 {
-								out.WriteString(", ")
-							}
-							if elt == nil {
-								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
-							} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
-								TranspileExpression(out, elt)
-							}
-							if multilineSliceLiteral {
-								out.WriteString(",\n")
-							}
-						}
-						if multilineSliceLiteral {
-							out.WriteString(sliceLiteralIndent)
-						}
-						out.WriteString("]")
-						WriteWrapperSuffix(out)
-						if wrapInTypeDefinition {
-							out.WriteString(")")
-						}
+						writeNamedSliceCompositeLiteral(out, e, sliceType, newtype)
 						return
 					}
 				}
@@ -16631,7 +16692,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 								writeLocalStructFieldPrefix()
 								out.WriteString(ToSnakeCase(typeName))
 								out.WriteString(": ")
-								if _, isStruct := structDefs[typeName]; isStruct {
+								// An embedded *T left out is a nil pointer.
+								if _, isPointer := field.Type.(*ast.StarExpr); isPointer {
+									WriteWrappedNone(out)
+								} else if _, isStruct := structDefs[typeName]; isStruct {
 									WriteWrapperPrefix(out)
 									out.WriteString(RustTypeNameForUse(typeName))
 									out.WriteString("::default()")
@@ -18545,6 +18609,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeNamedSliceNilConversion(out, call) {
 		return
 	}
+	if writeNamedMapNilConversion(out, call) {
+		return
+	}
 	if writeNamedSliceTypeConversion(out, call) {
 		return
 	}
@@ -18552,6 +18619,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if writeTypedNilConversion(out, call) {
+		return
+	}
+	if writeInterfaceNilConversion(out, call) {
 		return
 	}
 	if writeTranspiledInterfaceTypeConversion(out, call) {
@@ -19179,6 +19249,24 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	return true
 }
 
+// writeInterfaceNilConversion writes error(nil) and any(nil): the cell of
+// an interface value that holds nothing.
+func writeInterfaceNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionTargetType(call)
+	if !ok {
+		return false
+	}
+	if isEmptyInterfaceType(targetType) {
+		writeEmptyInterfaceCallArgumentValue(out, call.Args[0])
+		return true
+	}
+	if types.Identical(targetType, types.Universe.Lookup("error").Type()) {
+		writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+		return true
+	}
+	return false
+}
+
 func writeNamedPointerNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) != 1 {
 		return false
@@ -19236,6 +19324,24 @@ func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	writeTypedWrappedNone(out, goTypesTypeToRust(sliceType))
+	out.WriteString(")")
+	return true
+}
+
+// writeNamedMapNilConversion writes M(nil) of a named map type M: the
+// newtype around a nil map handle.
+func writeNamedMapNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionType(call)
+	if !ok {
+		return false
+	}
+	named, mapType, ok := namedMapTypeFromType(targetType)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedWrappedNone(out, goTypesTypeToRust(mapType))
 	out.WriteString(")")
 	return true
 }
@@ -24245,10 +24351,34 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			if !isExternalStdlibStubCall {
 				goPtrHelperQualifier = packageSelectorCrateName(sel)
 			}
+			// As in the loop below for the package's own functions, each
+			// argument is read before the call (scopeCallArgumentGuards).
+			pkgCallOut := out
+			var pkgArgOut *strings.Builder
+			pkgArgSeed := 0
+			pkgArgIsFuncLit := false
+			flushPkgArg := func() {
+				if pkgArgOut != nil {
+					text := pkgArgOut.String()[pkgArgSeed:]
+					if !pkgArgIsFuncLit {
+						text = scopeCallArgumentGuards(text)
+					}
+					pkgCallOut.WriteString(text)
+					pkgArgOut = nil
+				}
+			}
 			for i, arg := range call.Args {
+				flushPkgArg()
+				out = pkgCallOut
 				if i > 0 {
 					out.WriteString(", ")
 				}
+				seed := currentLineText(pkgCallOut)
+				pkgArgOut = &strings.Builder{}
+				pkgArgOut.WriteString(seed)
+				pkgArgSeed = len(seed)
+				_, pkgArgIsFuncLit = arg.(*ast.FuncLit)
+				out = pkgArgOut
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
 					writeExternalStubMethodCallArgument(out, sel, arg, expectedArgType)
@@ -24348,6 +24478,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 				out.WriteString(")))")
 			}
+			flushPkgArg()
+			out = pkgCallOut
 			out.WriteString(")")
 			return
 		}
@@ -24928,7 +25060,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], expectedArgType)
+			writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+				writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], expectedArgType)
+			})
 		}
 
 		// Now handle variadic args
@@ -24965,7 +25099,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+					writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				})
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
@@ -24991,7 +25127,28 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		functionArgIndent = currentLineIndent(out)
 		out.WriteString("\n")
 	}
+	// Each argument is written into a builder of its own, seeded with the
+	// current line for the writers that look at it, so that a cell the
+	// argument borrows to read its value is free before the call
+	// (scopeCallArgumentGuards).
+	callOut := out
+	var argOut *strings.Builder
+	argSeed := 0
+	argIsFuncLit := false
+	flushArg := func() {
+		if argOut != nil {
+			text := argOut.String()[argSeed:]
+			// A function literal runs nothing until it is called.
+			if !argIsFuncLit {
+				text = scopeCallArgumentGuards(text)
+			}
+			callOut.WriteString(text)
+			argOut = nil
+		}
+	}
 	for i, arg := range call.Args {
+		flushArg()
+		out = callOut
 		if multilineFunctionArgs {
 			if i > 0 {
 				out.WriteString(",\n")
@@ -25001,6 +25158,12 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		} else if i > 0 {
 			out.WriteString(", ")
 		}
+		seed := currentLineText(callOut)
+		argOut = &strings.Builder{}
+		argOut.WriteString(seed)
+		argSeed = len(seed)
+		_, argIsFuncLit = arg.(*ast.FuncLit)
+		out = argOut
 
 		// Check if this parameter expects an interface type
 		needsInterfaceBoxing := false
@@ -25480,6 +25643,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpression(out, arg)
 		}
 	}
+	flushArg()
+	out = callOut
 	if multilineFunctionArgs {
 		out.WriteString("\n")
 		out.WriteString(functionArgIndent)
@@ -25707,7 +25872,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], params.At(i).Type())
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+			writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], params.At(i).Type())
+		})
 	}
 
 	if variadicStart > 0 {
@@ -25741,7 +25908,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+			writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		})
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -26069,22 +26238,198 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		}
 	}
 	WriteWrapperPrefix(out)
-	if writeConstExpressionForExpectedGoType(out, arg, expected) {
+	var value strings.Builder
+	if writeConstExpressionForExpectedGoType(&value, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
-	} else if expected == nil && writeConstExpressionForTypeInfoType(out, arg) {
+	} else if expected == nil && writeConstExpressionForTypeInfoType(&value, arg) {
 		// Constant emitted in its contextual go/types representation.
-	} else if writeRangeStringCallArgumentValue(out, arg, expected) {
+	} else if writeRangeStringCallArgumentValue(&value, arg, expected) {
 		// Range string reference cloned for an owned string parameter.
-	} else if writeRangeCharForExpectedType(out, arg, expected) {
+	} else if writeRangeCharForExpectedType(&value, arg, expected) {
 		// String range runes are represented as Rust char but Go rune parameters use i32.
-	} else if writeLenCapCallArgumentForExpectedType(out, arg, expected) {
+	} else if writeLenCapCallArgumentForExpectedType(&value, arg, expected) {
 		// len/cap emits usize, but Go int parameters use i32.
-	} else if writeRangeIndexForExpectedType(out, arg, expected) {
+	} else if writeRangeIndexForExpectedType(&value, arg, expected) {
 		// Range indexes emit usize, but Go int parameters use i32.
-	} else if !writeCallArgumentValue(out, arg) {
-		TranspileExpression(out, arg)
+	} else if !writeCallArgumentValue(&value, arg) {
+		TranspileExpression(&value, arg)
 	}
+	writeCallArgumentValueScoped(out, value.String())
 	WriteWrapperSuffix(out)
+}
+
+// writeCallArgumentValueScoped writes an argument's value so that a cell it
+// borrows or locks to read is free again before the call. A guard made
+// inside an argument lives as long as the statement, so f(s, s[0]) would
+// still be borrowing s while f writes to it (DEV-218); the block ends the
+// guard with the value.
+func writeCallArgumentValueScoped(out *strings.Builder, value string) {
+	// A block's guards end inside it, but those of its tail expression
+	// live to the end of the statement the block is in.
+	if !rustTextTakesGuard(value) || (rustTextIsOneBlock(value) && !rustTextTakesGuard(rustBlockTail(value))) {
+		out.WriteString(value)
+		return
+	}
+	out.WriteString("{ let __arg_value = ")
+	out.WriteString(value)
+	out.WriteString("; __arg_value }")
+}
+
+// rustTextTakesGuard reports whether generated Rust borrows or locks a cell.
+func rustTextTakesGuard(value string) bool {
+	return strings.Contains(value, ".borrow()") || strings.Contains(value, ".borrow_mut()") || strings.Contains(value, ".lock()")
+}
+
+// scopeCallArgumentGuards rewrites an argument written as a new cell around
+// a value, Rc::new(RefCell::new(Some(v))), so that the value is read in a
+// block of its own (writeCallArgumentValueScoped). Any other argument is
+// returned as it is.
+func scopeCallArgumentGuards(arg string) string {
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	if !strings.HasPrefix(arg, prefix.String()) || !strings.HasSuffix(arg, ")))") {
+		return arg
+	}
+	value := arg[prefix.Len() : len(arg)-len(")))")]
+	if !rustParensBalanced(value) {
+		return arg
+	}
+	var out strings.Builder
+	out.WriteString(prefix.String())
+	writeCallArgumentValueScoped(&out, value)
+	out.WriteString(")))")
+	return out.String()
+}
+
+// scopeCallArgumentValue is scopeCallArgumentGuards for an argument that
+// may be a bare value, such as an element packed into a variadic slice.
+func scopeCallArgumentValue(arg string) string {
+	if scoped := scopeCallArgumentGuards(arg); scoped != arg {
+		return scoped
+	}
+	var out strings.Builder
+	writeCallArgumentValueScoped(&out, arg)
+	return out.String()
+}
+
+// writeScopedCallArgument writes an argument of a call with write and has
+// the guards it takes end before the call, unless it is a function literal,
+// which runs nothing until it is called. scope is scopeCallArgumentGuards
+// or scopeCallArgumentValue.
+func writeScopedCallArgument(out *strings.Builder, arg ast.Expr, scope func(string) string, write func(*strings.Builder)) {
+	if _, ok := unwrapParens(arg).(*ast.FuncLit); ok {
+		write(out)
+		return
+	}
+	seed := currentLineText(out)
+	var b strings.Builder
+	b.WriteString(seed)
+	write(&b)
+	out.WriteString(scope(b.String()[len(seed):]))
+}
+
+// rustBlockTail returns the tail expression of a block, { ...; tail }: the
+// text after its last statement.
+func rustBlockTail(text string) string {
+	last := 0
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{', '(', '[':
+			depth++
+		case '}', ')', ']':
+			depth--
+		case ';':
+			if depth == 1 {
+				last = i
+			}
+		}
+	}
+	if len(text) < 2 {
+		return text
+	}
+	return text[last+1 : len(text)-1]
+}
+
+// rustTextIsOneBlock reports whether generated Rust is a single block,
+// { ... }, whose guards end inside it. { m[k] } + s[0] starts with a block
+// but borrows s after it.
+func rustTextIsOneBlock(text string) bool {
+	if !strings.HasPrefix(text, "{") || !strings.HasSuffix(text, "}") {
+		return false
+	}
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 && i != len(text)-1 {
+				return false
+			}
+		}
+	}
+	return depth == 0
+}
+
+// rustParensBalanced reports whether the parentheses of generated Rust
+// pair up, ignoring those in string and character literals, so that a
+// trailing ")))" is known to close the cell around the whole text.
+func rustParensBalanced(text string) bool {
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+			if i >= len(text) {
+				return false
+			}
+		case '\'':
+			// A character literal: '(' or '\''; a lifetime has no closing quote.
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth < 0 {
+				return false
+			}
+		}
+	}
+	return depth == 0
 }
 
 func writeFunctionSignatureCallArgumentForCall(out *strings.Builder, call *ast.CallExpr, paramIndex int, arg ast.Expr, expected types.Type) {

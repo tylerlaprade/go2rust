@@ -42,6 +42,9 @@ func goTypeNameSpelling(typ types.Type, structs bool) (string, bool) {
 		if obj.Pkg() == nil {
 			return obj.Name(), true
 		}
+		if name, ok := monoTypeGoNames[obj.Name()]; ok && obj.Parent() == obj.Pkg().Scope() {
+			return obj.Pkg().Name() + "." + name, true
+		}
 		return obj.Pkg().Name() + "." + obj.Name(), true
 	case *types.Pointer:
 		elem, ok := goTypeNameSpelling(t.Elem(), structs)
