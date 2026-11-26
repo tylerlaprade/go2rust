@@ -681,7 +681,7 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-pub type ReportFunc = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>;
+pub type ReportFunc = Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>;
 
 
 #[derive(Clone)]
@@ -692,7 +692,7 @@ pub struct importer {
 
 impl importer {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.reportf.clone();
+        let __go_clone_0_0 = { let __guard = self.reportf.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         let __go_clone_1_0 = { let __guard = self.name.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             reportf: __go_clone_0_0,
@@ -727,6 +727,6 @@ pub fn report(label: Rc<RefCell<Option<String>>>, values: Rc<RefCell<Option<Vec<
 }
 
 fn main() {
-    let mut p = Rc::new(RefCell::new(Some(importer { reportf: Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { report(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))), name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
-    { let __f_holder = (*p.borrow().as_ref().unwrap()).reportf.clone(); let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))) };
+    let mut p = Rc::new(RefCell::new(Some(importer { reportf: Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { report(__arg0, __arg1) }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))), name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() })));
+    { let __f_holder = (*p.borrow().as_ref().unwrap()).reportf.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])))) };
 }

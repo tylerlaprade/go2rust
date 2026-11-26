@@ -152,8 +152,8 @@ fn main() {
         { let new_val = { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.next(); __result }.clone(); r = new_val; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-    container_ring::__go_nil_recv_ring_r_do(r.clone(), Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
+    container_ring::__go_nil_recv_ring_r_do(r.clone(), Arc::new(Mutex::new(Some(Arc::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {
         print!("{}{}", format!("{}", { let __text = match v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", " ".to_string()));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> () + Send + Sync>))));
     println!("{}", format!("{}", container_ring::__go_nil_recv_ring_len(r.clone())));
 }

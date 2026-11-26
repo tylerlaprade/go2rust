@@ -374,24 +374,20 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         print!("{}{}{}", format!("{}", "[".to_string()), format!("{}", line), format!("{}", "]".to_string()));
     }
     println!();
-    let mut counts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+    let mut counts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
     for w in &vec!["xy".to_string(), "zzz".to_string()] {
-        let w_closure_clone = w.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = counts.clone(); let __append_value = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
+        let w_closure_clone = w.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = counts.clone(); let __append_value = Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
         let mut n = Arc::new(Mutex::new(Some(0i64)));
         for _ in (w_closure_clone).clone().chars() {
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         return { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    }) as Box<dyn FnMut() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *counts.lock().unwrap() = __slice_header; };
+    }) as Arc<dyn Fn() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *counts.lock().unwrap() = __slice_header; };
     }
     { let __range_holder = counts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for f in __range_values.iter().cloned() {
         print!("{}{}", format!("{}", {
-            let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-                let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> i64 + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         }), format!("{}", " ".to_string()));

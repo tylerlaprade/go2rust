@@ -1526,6 +1526,20 @@ func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast
 		out.WriteString("::new((*__guard).clone())) }")
 		return
 	}
+	if structCloneFieldCopiesFuncValue(fieldType) {
+		// A func field holds a func value. The copy gets a cell of its
+		// own around the same closure, so assigning the field of one
+		// struct leaves the other's alone.
+		out.WriteString("{ let __guard = self.")
+		out.WriteString(fieldName)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*__guard).clone())) }")
+		return
+	}
 	if structCloneFieldKeepsHandle(fieldType) {
 		out.WriteString("self.")
 		out.WriteString(fieldName)
@@ -5403,7 +5417,9 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString(indent)
 	out.WriteString("if let Some(__go_meta) = __go_any_metadata { if __go_meta.comparable { *__typ.equal")
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Box::new(|_, _| false) as ")
+	out.WriteString(" = Some(")
+	out.WriteString(funcValueConstructor())
+	out.WriteString("|_, _| false) as ")
 	writeInternalABIEqualFunctionType(out)
 	out.WriteString("); } }\n")
 	writeInternalABIPointerMetadataBranch(out, fn, indent)
@@ -5542,7 +5558,9 @@ func writeInternalABIPointerMetadataBranch(out *strings.Builder, fn *ast.FuncDec
 	out.WriteString(indent)
 	out.WriteString("                *__elem_type.equal")
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(Box::new(|_, _| false) as ")
+	out.WriteString(" = Some(")
+	out.WriteString(funcValueConstructor())
+	out.WriteString("|_, _| false) as ")
 	writeInternalABIEqualFunctionType(out)
 	out.WriteString(");\n")
 	out.WriteString(indent)
@@ -5584,19 +5602,8 @@ func writeInternalABIPointerMetadataBranch(out *strings.Builder, fn *ast.FuncDec
 }
 
 func writeInternalABIEqualFunctionType(out *strings.Builder) {
-	out.WriteString("Box<dyn FnMut(")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("<")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("<Option<usize>>>, ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("<")
-	out.WriteString(GetInnerWrapperType())
-	out.WriteString("<Option<usize>>>) -> bool")
-	if NeedsConcurrentWrapper() {
-		out.WriteString(" + Send + Sync")
-	}
-	out.WriteString(">")
+	pointer := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<usize>>>"
+	out.WriteString(funcValueRustType(pointer+", "+pointer, "bool"))
 }
 
 func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string, stringInput bool) {

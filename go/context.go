@@ -1399,6 +1399,14 @@ func NeedGoSliceAppendCopying() {
 	}
 }
 
+// NeedGoFuncValue marks that the program copies func values with
+// GoFuncValue::go_func_value.
+func NeedGoFuncValue() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoFuncValue = true
+	}
+}
+
 // NeedGoNilAny marks that the program stores a nil interface value in a
 // slot that holds a bare Box<dyn Any>, such as a []any element or a
 // ...any argument: the box holds GoNilAny, which copies, prints and

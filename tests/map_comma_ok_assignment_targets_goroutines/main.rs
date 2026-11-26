@@ -1093,35 +1093,29 @@ fn main() {
     println!("{} {} {} {}", format!("{}", "plain slice field".to_string()), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice_values(&(*{ let __field = (*h.lock().unwrap().as_ref().unwrap()).plain.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
     let mut captured: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
-    let mut captured_closure_clone = captured.clone(); let lists_closure_clone = lists.clone(); let mut set = Arc::new(Mutex::new(Some(Box::new(move || -> bool {
+    let mut captured_closure_clone = captured.clone(); let lists_closure_clone = lists.clone(); let mut set = Arc::new(Mutex::new(Some(Arc::new(move || -> bool {
+        let mut captured_closure_clone = captured_closure_clone.clone();
         let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = lists_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Default::default(), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *captured_closure_clone.lock().unwrap() = __moved_tmp_0; *found.lock().unwrap() = Some(__tmp_1); };
         return { let __v = (*found.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    }) as Box<dyn FnMut() -> bool + Send + Sync>)));
+    }) as Arc<dyn Fn() -> bool + Send + Sync>)));
     println!("{} {} {} {}", format!("{}", "captured by a closure".to_string()), format!("{}", {
-        let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = {
-            let mut __f_guard = set.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> bool + Send + Sync> = set.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }), format!("{}", format_slice(&{ let __map = { let __map_holder = lists.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) })), format!("{}", format_slice(&captured)));
 
     let mut capturedNamed: Arc<Mutex<Option<Numbers>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut capturedNamed_closure_clone = capturedNamed.clone(); let m_closure_clone = m.clone(); let mut setNamed = Arc::new(Mutex::new(Some(Box::new(move || -> bool {
+    let mut capturedNamed_closure_clone = capturedNamed.clone(); let m_closure_clone = m.clone(); let mut setNamed = Arc::new(Mutex::new(Some(Arc::new(move || -> bool {
+        let mut capturedNamed_closure_clone = capturedNamed_closure_clone.clone();
         let mut found: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         { let (__tmp_0, __tmp_1) = { let __map = { let __map_holder = m_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&"a".to_string())) { /* MAP_COMMA_OK */ Some(v) => ({ let __held = v.lock().unwrap().clone(); Arc::new(Mutex::new(__held)) }, true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *capturedNamed_closure_clone.lock().unwrap() = __moved_tmp_0; *found.lock().unwrap() = Some(__tmp_1); };
         return { let __v = (*found.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    }) as Box<dyn FnMut() -> bool + Send + Sync>)));
+    }) as Arc<dyn Fn() -> bool + Send + Sync>)));
     println!("{} {} {} {}", format!("{}", "named slice captured by a closure".to_string()), format!("{}", {
-        let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = {
-            let mut __f_guard = setNamed.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> bool + Send + Sync> = setNamed.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }), format!("{}", { let __slice_holder = { let __named_slice = (*{ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Arc::new(Mutex::new(Some(Default::default())))) }.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }), format!("{}", { let __slice_holder = { let __named_slice = (*capturedNamed.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));

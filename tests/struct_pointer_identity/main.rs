@@ -723,6 +723,31 @@ where
     }
 }
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -1469,19 +1494,21 @@ impl Counter {
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
-    pub fn later(&mut self) -> Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>> {
-        let mut c_closure_clone = (*self).clone(); Rc::new(RefCell::new(Some(Box::new(move || {
+    pub fn later(&mut self) -> Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>> {
+        let mut c_closure_clone = (*self).clone(); Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut c_closure_clone = c_closure_clone.clone();
         { let __target = c_closure_clone.n.clone(); let __rhs = 10; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut() -> ()>)))
+    }) as Rc<dyn Fn() -> ()>)))
     }
 
     pub fn deferred(&mut self) {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
         let mut c_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut c_defer_captured = c_defer_captured.clone();
         { let __target = c_defer_captured.n.clone(); let __rhs = 100; let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         { let __target = self.n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
 
@@ -1556,8 +1583,8 @@ impl Shape for SquarePtr {
     }
 }
 
-pub fn apply(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+pub fn apply(f: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>) {
+    { let __f: Rc<dyn Fn() -> ()> = f.borrow().as_ref().unwrap().clone(); (__f)() };
 }
 
 pub fn add_to(c: Rc<RefCell<Option<Counter>>>) {
@@ -1574,13 +1601,14 @@ fn main() {
     println!("{} {}", format!("{}", "returned receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     let mut later = (*c.borrow_mut().as_mut().unwrap()).later();
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = later.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    let mut later = Rc::new(RefCell::new(GoFuncValue::go_func_value(&later)));
+    { let __f: Rc<dyn Fn() -> ()> = later.borrow().as_ref().unwrap().clone(); (__f)() };
     println!("{} {}", format!("{}", "closure over receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     (*c.borrow_mut().as_mut().unwrap()).deferred();
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
-    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Box::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Box<dyn FnMut() -> ()> }; __arg_value }))));
+    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Rc::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Rc<dyn Fn() -> ()> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     add_to(c.clone());

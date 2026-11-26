@@ -256,14 +256,14 @@ impl std::fmt::Display for Vec_ {
 
 #[derive(Clone, Default)]
 pub struct __ptrSlot_int {
-    pub get: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync>>>>,
-    pub set: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>,
+    pub get: Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<i64>>> + Send + Sync>>>>,
+    pub set: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>,
 }
 
 impl __ptrSlot_int {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.get.clone();
-        let __go_clone_1_0 = self.set.clone();
+        let __go_clone_0_0 = { let __guard = self.get.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let __go_clone_1_0 = { let __guard = self.set.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             get: __go_clone_0_0,
             set: __go_clone_1_0,
@@ -310,9 +310,10 @@ pub fn defer_order() -> Arc<Mutex<Option<Vec<i64>>>> {
         let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         let i_defer_captured = Arc::new(Mutex::new((*i.lock().unwrap()).clone())); let mut out_defer_captured = out.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut out_defer_captured = out_defer_captured.clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = out_defer_captured.clone(); let __append_value = ({ let __v = (*i_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *out_defer_captured.lock().unwrap() = __slice_header; };
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -359,39 +360,27 @@ fn main() {
     }
     });
     started.recv().unwrap_or_default();
-    let mut add = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<Vec_>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
-    let mut scale = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<f64>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).scale(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
+    let mut add = Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<Vec_>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(__arg1); __result } }) as Arc<dyn Fn(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
+    let mut scale = Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<Vec_>>>, __arg1: Arc<Mutex<Option<f64>>>| -> Arc<Mutex<Option<Vec_>>> { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).scale(__arg1); __result } }) as Arc<dyn Fn(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>)));
     let mut v = {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = {
-            let mut __f_guard = add.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<Vec_>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = add.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(1.0))), y: Arc::new(Mutex::new(Some(2.0))), ..Default::default() }))),
             Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(3.0))), y: Arc::new(Mutex::new(Some(4.0))), ..Default::default() })))
         )
     };
     println!("{} {}", format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", (*{
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = {
-            let mut __f_guard = scale.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec_>>>, Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Vec_>>> + Send + Sync> = scale.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             v.clone(),
             Arc::new(Mutex::new(Some(0.5)))
         )
     }.lock().unwrap().as_ref().unwrap())));
     let mut p = Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(3.0))), y: Arc::new(Mutex::new(Some(4.0))), ..Default::default() })));
-    let mut norm = Arc::new(Mutex::new(Some({ let __recv = p.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).normalize() }) as Box<dyn FnMut() -> () + Send + Sync> })));
+    let mut norm = Arc::new(Mutex::new(Some({ let __recv = p.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).normalize() }) as Arc<dyn Fn() -> () + Send + Sync> })));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = norm.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = norm.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
@@ -412,15 +401,15 @@ fn main() {
     let mut ptr = x.clone();
     let mut __cell_ptr_1 = Arc::new(Mutex::new(Some(AnonymousStruct2 { v: ptr.clone() })));
     let __cell_ptr_1_closure_clone = __cell_ptr_1.clone(); let mut pp = Arc::new(Mutex::new(Some(__ptrSlot_int {
-        get: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Box::new(move || -> Arc<Mutex<Option<i64>>> {
+        get: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Arc::new(move || -> Arc<Mutex<Option<i64>>> {
         return (*__cell_ptr_1_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone();
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> }))),
-        set: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Box::new(move |__slot_v1: Arc<Mutex<Option<i64>>>| {
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<i64>>> + Send + Sync> }))),
+        set: Arc::new(Mutex::new(Some({ let __cell_ptr_1_closure_clone_closure_clone = __cell_ptr_1_closure_clone.clone(); Arc::new(move |__slot_v1: Arc<Mutex<Option<i64>>>| {
         { let new_val = __slot_v1.clone(); (*__cell_ptr_1_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> }))),
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> }))),
         ..Default::default()
     })));
-    { let new_val = 20; *{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<i64>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.lock().unwrap() = Some(new_val); };
+    { let new_val = 20; *{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<i64>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*(*__cell_ptr_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x == __tmp_y }));
 }
 

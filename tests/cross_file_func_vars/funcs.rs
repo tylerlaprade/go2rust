@@ -1,4 +1,4 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+use crate::{GoFuncValue, GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
 
 use std::cell::{RefCell};
 use std::rc::{Rc};
@@ -28,17 +28,17 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub static ProcessData: GoGlobal<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>> = GoGlobal::new();
+pub static ProcessData: GoGlobal<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>> = GoGlobal::new();
 
-pub static CombineStrings: GoGlobal<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static CombineStrings: GoGlobal<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
-pub static ApplyTwice: GoGlobal<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>, Rc<RefCell<Option<i64>>>) -> i64>> = GoGlobal::new();
+pub static ApplyTwice: GoGlobal<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>, Rc<RefCell<Option<i64>>>) -> i64>> = GoGlobal::new();
 
-pub static GetGreeting: GoGlobal<Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static GetGreeting: GoGlobal<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
-pub static DivMod: GoGlobal<Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> (i64, i64)>> = GoGlobal::new();
+pub static DivMod: GoGlobal<Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> (i64, i64)>> = GoGlobal::new();
 
-pub static DynamicFunc: GoGlobal<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub static DynamicFunc: GoGlobal<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
@@ -56,14 +56,14 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    *ProcessData.borrow_mut() = Some(Box::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
+    *ProcessData.borrow_mut() = Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 2
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>);
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>);
 }
 
 
 pub(crate) fn __go_init_order_1() {
-    *CombineStrings.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+    *CombineStrings.borrow_mut() = Some(Rc::new(move |a: Rc<RefCell<Option<String>>>, b: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", (*a.borrow().as_ref().unwrap())));
@@ -71,28 +71,28 @@ pub(crate) fn __go_init_order_1() {
             __s.push_str(&format!("{}", (*b.borrow().as_ref().unwrap())));
             __s
         })))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>);
+    }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>);
 }
 
 
 pub(crate) fn __go_init_order_2() {
-    *ApplyTwice.borrow_mut() = Some(Box::new(move |f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>, x: Rc<RefCell<Option<i64>>>| -> i64 {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone()) })))) }
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>>, Rc<RefCell<Option<i64>>>) -> i64>);
+    *ApplyTwice.borrow_mut() = Some(Rc::new(move |f: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>, x: Rc<RefCell<Option<i64>>>| -> i64 {
+        { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = f.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = f.borrow().as_ref().unwrap().clone(); (__f)(x.clone()) })))) }
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>, Rc<RefCell<Option<i64>>>) -> i64>);
 }
 
 
 pub(crate) fn __go_init_order_3() {
-    *GetGreeting.borrow_mut() = Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+    *GetGreeting.borrow_mut() = Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("Hello from function variable!".to_string())))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>);
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>);
 }
 
 
 pub(crate) fn __go_init_order_4() {
-    *DivMod.borrow_mut() = Some(Box::new(move |a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>| -> (i64, i64) {
+    *DivMod.borrow_mut() = Some(Rc::new(move |a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>| -> (i64, i64) {
         ((*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()), (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> (i64, i64)>);
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> (i64, i64)>);
 }
 
 
@@ -102,17 +102,17 @@ pub fn regular_double(x: Rc<RefCell<Option<i64>>>) -> i64 {
 }
 
 /// Function that returns a function
-pub fn make_multiplier(factor: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>>>> {
-    let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
+pub fn make_multiplier(factor: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> {
+    let factor_closure_clone = factor.clone(); return Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * (*factor_closure_clone.borrow().as_ref().unwrap())
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>)));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
 }
 
 fn __go_init_0() {
         // Assign function to variable in init
-    { let new_val = Box::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
+    { let new_val = Rc::new(move |s: Rc<RefCell<Option<String>>>| -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some(format!("Dynamic: {}", { let __v = (*s.borrow().as_ref().unwrap()).clone(); __v }))))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *DynamicFunc.borrow_mut() = Some(new_val); };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>>; *DynamicFunc.borrow_mut() = Some(new_val); };
 }
 
 pub(crate) fn __go_init_functions() {

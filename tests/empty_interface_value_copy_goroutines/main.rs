@@ -1149,16 +1149,13 @@ fn main() {
     });
     started.recv().unwrap_or_default();
     let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("first".to_string()) as Box<dyn Any + Send + Sync>)));
-    let mut a_closure_clone = a.clone(); let mut f = Arc::new(Mutex::new(Some(Box::new(move || {
+    let mut a_closure_clone = a.clone(); let mut f = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut a_closure_clone = a_closure_clone.clone();
         if let Some(__shared) = go_any_store(&a_closure_clone, get().clone()) { a_closure_clone = __shared; };
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = f.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
@@ -1168,16 +1165,13 @@ fn main() {
     let mut c = go_any_handle_copy(&b);
     { let new_val = Box::new(9i64) as Box<dyn Any + Send + Sync>; *b.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", { let __text = match b.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match c.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
-    let mut b_closure_clone = b.clone(); let mut g = Arc::new(Mutex::new(Some(Box::new(move || {
+    let mut b_closure_clone = b.clone(); let mut g = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut b_closure_clone = b_closure_clone.clone();
         { let new_val = Box::new("from closure".to_string()) as Box<dyn Any + Send + Sync>; *b_closure_clone.lock().unwrap() = Some(new_val); };
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = g.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = g.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
@@ -1198,16 +1192,13 @@ fn main() {
     println!("{} {}", format!("{}", { let __text = match (*holder.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match copied.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 
     let mut r: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let mut r_closure_clone = r.clone(); let mut h = Arc::new(Mutex::new(Some(Box::new(move || {
+    let mut r_closure_clone = r.clone(); let mut h = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut r_closure_clone = r_closure_clone.clone();
         { let new_val = Box::new(point { x: Arc::new(Mutex::new(Some(5))), y: Arc::new(Mutex::new(Some(6))), ..Default::default() }) as Box<dyn Any + Send + Sync>; *r_closure_clone.lock().unwrap() = Some(new_val); };
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = h.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = h.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };

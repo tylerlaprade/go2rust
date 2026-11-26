@@ -1084,7 +1084,7 @@ func use(items []item, x int) int {
 	if strings.Contains(mainRS, "Some(compare)") {
 		t.Fatalf("function identifier argument should be boxed as a function value, not stored as a raw function item:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Box::new(move |__arg0:") || !strings.Contains(mainRS, "compare(__arg0, __arg1)") {
+	if !strings.Contains(mainRS, "::new(move |__arg0:") || !strings.Contains(mainRS, "compare(__arg0, __arg1)") {
 		t.Fatalf("function identifier argument should lower through a boxed closure:\n%s", mainRS)
 	}
 }
@@ -2944,11 +2944,11 @@ func Deliver(exporter Exporter, ev Event) {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") &&
-		!strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::r#mod::Mapper)") {
+	if !strings.Contains(mainRS, "Rc<dyn Fn(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") &&
+		!strings.Contains(mainRS, "Rc<dyn Fn(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::r#mod::Mapper)") {
 		t.Fatalf("function type alias should keep imported interface params as trait refs, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "(*__f)(ev.clone(), ev.borrow().as_ref().unwrap())") {
+	if !strings.Contains(mainRS, "(__f)(ev.clone(), ev.borrow().as_ref().unwrap())") {
 		t.Fatalf("function type call should pass concrete values as imported interface refs, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "use std::any::Any;") {
@@ -2984,10 +2984,10 @@ func NewInspector() inspector {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "Some(Rc::new(RefCell::new(Some(Box::new(move") {
+	if strings.Contains(mainRS, "Some(Rc::new(RefCell::new(Some(Rc::new(move") {
 		t.Fatalf("named function literal initializer should store the closure box, not a nested function handle, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "let mut insp: inspector = Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<Box<dyn Node>>>>|") {
+	if !strings.Contains(mainRS, "let mut insp: inspector = Rc::new(RefCell::new(Some(Rc::new(move |n: Rc<RefCell<Option<Box<dyn Node>>>>|") {
 		t.Fatalf("named function literal initializer should wrap one closure box in the alias handle, got:\n%s", mainRS)
 	}
 }

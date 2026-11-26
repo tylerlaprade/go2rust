@@ -12,6 +12,31 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -331,15 +356,11 @@ pub fn test_valid_rune(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>) {
     } }
 }
 
-pub fn run(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>, name: Arc<Mutex<Option<String>>>, test: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>>>>) -> bool {
+pub fn run(t: Arc<Mutex<Option<oracle_testing::r#mod::T>>>, name: Arc<Mutex<Option<String>>>, test: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>>>>) -> bool {
     { let __recv = t.clone(); let __recv_ptr: *mut oracle_testing::r#mod::T = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut oracle_testing::r#mod::T }; let __result = unsafe { &mut *__recv_ptr }.reset(); __result };
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync> = {
-            let mut __f_guard = test.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync> = test.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             t.clone()
         )
     };
@@ -373,32 +394,32 @@ fn main() {
     for tt in &vec![
         AnonymousStruct1 {
             name: Arc::new(Mutex::new(Some("TestConstants".to_string()))),
-            test: Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_constants(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
+            test: Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_constants(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
             ..Default::default()
         },
         AnonymousStruct1 {
             name: Arc::new(Mutex::new(Some("TestAppendRune".to_string()))),
-            test: Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_append_rune(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
+            test: Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_append_rune(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
             ..Default::default()
         },
         AnonymousStruct1 {
             name: Arc::new(Mutex::new(Some("TestNegativeRune".to_string()))),
-            test: Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_negative_rune(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
+            test: Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_negative_rune(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
             ..Default::default()
         },
         AnonymousStruct1 {
             name: Arc::new(Mutex::new(Some("TestRuneLen".to_string()))),
-            test: Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_rune_len(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
+            test: Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_rune_len(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
             ..Default::default()
         },
         AnonymousStruct1 {
             name: Arc::new(Mutex::new(Some("TestValidRune".to_string()))),
-            test: Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_valid_rune(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
+            test: Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<oracle_testing::r#mod::T>>>| { test_valid_rune(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>))),
             ..Default::default()
         },
     ] {
         let tt = &tt.__go_value_clone();
-        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), tt.test.clone()) {
+        if run(t.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = tt.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(GoFuncValue::go_func_value(&(tt.test))))) {
         { let mut guard = passed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     } else {
         { let mut guard = failed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -417,12 +438,12 @@ fn main() {
 #[derive(Clone)]
 pub struct AnonymousStruct1 {
     pub name: Arc<Mutex<Option<String>>>,
-    pub test: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>>>>,
+    pub test: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<oracle_testing::r#mod::T>>>) -> () + Send + Sync>>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
         let __go_clone_0_0 = { let __guard = self.name.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
-        let __go_clone_1_0 = self.test.clone();
+        let __go_clone_1_0 = { let __guard = self.test.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         Self {
             name: __go_clone_0_0,
             test: __go_clone_1_0,

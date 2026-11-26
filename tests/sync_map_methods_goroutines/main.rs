@@ -531,7 +531,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     println!("{} {}", format!("{}", { let __sync_value = (*m.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.compare_and_delete((4 as i64), (15 as i64))), format!("{}", { let __sync_value = (*m.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.compare_and_delete((4 as i64), (16 as i64))));
     let mut keys: Arc<Mutex<Option<Vec<i64>>>> = Arc::new(Mutex::new(None));
     let m_closure_clone = m.clone(); { let __sync_value = (*m_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.range(
-        Arc::new(Mutex::new(Some({ let m_closure_clone_closure_clone = m_closure_clone.clone(); Box::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        Arc::new(Mutex::new(Some({ let m_closure_clone_closure_clone = m_closure_clone.clone(); Arc::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
         {
         let mut n = Arc::new(Mutex::new(Some(({
         let val = k.clone();
@@ -547,10 +547,11 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         }
     }
         true
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync> }))),
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync> }))),
     );
     let mut keys_closure_clone = keys.clone(); { let __sync_value = (*m.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.range(
-        Arc::new(Mutex::new(Some(Box::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        Arc::new(Mutex::new(Some(Arc::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        let mut keys_closure_clone = keys_closure_clone.clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys_closure_clone.clone(); let __append_value = ({
         let val = k.clone();
         let guard = val.lock().unwrap();
@@ -561,7 +562,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         }
     }); let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *keys_closure_clone.lock().unwrap() = __slice_header; };
         true
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))),
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))),
     );
     sort::ints(keys.clone());
     println!("{}", format!("{}", format_slice(&keys)));
@@ -595,10 +596,11 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     println!("{}", format!("{}", { let __text = match got.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
     let mut stop = Arc::new(Mutex::new(Some(0i64)));
     let mut stop_closure_clone = stop.clone(); { let __sync_value = (*pm.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.range(
-        Arc::new(Mutex::new(Some(Box::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        Arc::new(Mutex::new(Some(Arc::new(move |k: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+        let mut stop_closure_clone = stop_closure_clone.clone();
         { let mut guard = stop_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         false
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))),
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))),
     );
     println!("{}", format!("{}", { let __v = (*stop.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     { let __sync_value = (*pm.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.clear();

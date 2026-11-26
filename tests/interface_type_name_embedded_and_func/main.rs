@@ -818,7 +818,7 @@ impl Clone for Box<dyn Runner> {
     }
 }
 
-pub type F = Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>>>>;
+pub type F = Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>;
 
 #[derive(Clone)]
 pub struct FAsRunner(pub F);
@@ -985,7 +985,7 @@ pub trait FMethods {
 
 impl FMethods for F {
     fn run(&self) -> Rc<RefCell<Option<String>>> {
-        { let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+        { let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = self.borrow().as_ref().unwrap().clone(); (__f)() }
     }
 }
 
@@ -997,9 +997,9 @@ fn main() {
     let mut b: Rc<RefCell<Option<Box<dyn Both>>>> = Rc::new(RefCell::new(Some(Box::new(T { n: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn Both>)));
     print!("{} {} {}\n", { let __type_name = match b.borrow().as_ref() { Some(__iface) => { let __any = A::__go_as_any(&**__iface); if __any.is::<T>() { "main.T" } else if __any.is::<TPtr>() { "*main.T" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name }, (*b.borrow().as_ref().unwrap()).p_a(), (*b.borrow().as_ref().unwrap()).p_b());
     println!("{}", format!("{}", (*show(Rc::new(RefCell::new(Some(Box::new(T { n: Rc::new(RefCell::new(Some(4))), ..Default::default() }) as Box<dyn Both>)))).borrow().as_ref().unwrap())));
-    let mut r: Rc<RefCell<Option<Box<dyn Runner>>>> = Rc::new(RefCell::new(Some(Box::new(FAsRunner(Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+    let mut r: Rc<RefCell<Option<Box<dyn Runner>>>> = Rc::new(RefCell::new(Some(Box::new(FAsRunner(Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("ran".to_string())))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>)));
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>)));
     print!("{}\n", (*(*r.borrow().as_ref().unwrap()).run().borrow().as_ref().unwrap()));
     for x in &vec![Rc::new(RefCell::new(Some(Box::new(T { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Box<dyn Both>))), Rc::new(RefCell::new(None))] {
         print!("{}\n", { let __type_name = match x.borrow().as_ref() { Some(__iface) => { let __any = A::__go_as_any(&**__iface); if __any.is::<T>() { "main.T" } else if __any.is::<TPtr>() { "*main.T" } else { std::any::type_name_of_val(__any) } }, None => "<nil>" }; __type_name });

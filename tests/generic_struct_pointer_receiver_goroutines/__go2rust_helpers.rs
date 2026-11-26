@@ -715,6 +715,31 @@ where
     }
 }
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Send + Sync>> {
     if let Some(v) = value.downcast_ref::<i32>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<i64>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
@@ -766,41 +791,6 @@ pub trait GoTypeParamFieldClone: Sized {
     fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>>;
 }
 
-struct GoFnFieldTargetEntry {
-    proxy_data: usize,
-    field: std::sync::Weak<dyn Any + Send + Sync>,
-    target: std::sync::Weak<dyn Any + Send + Sync>,
-}
-
-static GO_FN_FIELD_TARGETS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoFnFieldTargetEntry>>> = std::sync::OnceLock::new();
-
-fn go_fn_field_target<T: Any + Send + Sync>(field_key: usize, proxy_data: usize) -> Option<std::sync::Arc<T>> {
-    let mut registry = GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap();
-    registry.retain(|_, entry| entry.field.strong_count() > 0 && entry.target.strong_count() > 0);
-    let matches = registry.get(&field_key).map(|entry| entry.proxy_data == proxy_data).unwrap_or(false);
-    if !matches {
-        registry.remove(&field_key);
-        return None;
-    }
-    let target = registry.get(&field_key)?.target.upgrade()?;
-    std::sync::Arc::downcast::<T>(target).ok()
-}
-
-fn go_register_fn_field_target<F: Any + Send + Sync, T: Any + Send + Sync>(
-    field_key: usize,
-    proxy_data: usize,
-    field: &std::sync::Arc<F>,
-    target: &std::sync::Arc<T>,
-) {
-    let erased_field: std::sync::Arc<dyn Any + Send + Sync> = field.clone();
-    let erased_target: std::sync::Arc<dyn Any + Send + Sync> = target.clone();
-    GO_FN_FIELD_TARGETS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new())).lock().unwrap().insert(field_key, GoFnFieldTargetEntry {
-        proxy_data,
-        field: std::sync::Arc::downgrade(&erased_field),
-        target: std::sync::Arc::downgrade(&erased_target),
-    });
-}
-
 macro_rules! impl_go_type_param_field_clone_value {
     ($($t:ty),* $(,)?) => {
         $(impl GoTypeParamFieldClone for $t {
@@ -846,71 +836,17 @@ impl<T> GoTypeParamFieldClone for std::sync::Arc<std::sync::Mutex<Option<T>>> {
     fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> { field.clone() }
 }
 
-impl<R: 'static> GoTypeParamFieldClone for Box<dyn FnMut() -> R + Send + Sync> {
-    const GO_COPY_KEEPS_HANDLE: bool = true;
-    fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-        let field_key = std::sync::Arc::as_ptr(field) as usize;
-        let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize);
-        let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
-        if target.is_none() {
-            let original = field.lock().unwrap().take();
-            let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-            let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-            let source_target = shared.clone();
-            *field.lock().unwrap() = Some(Box::new(move || {
-                let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
-                unsafe { (&mut *callable_ptr)() }
-            }));
-            let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(field_key, proxy_data, field, &shared);
-            target = Some(shared);
-        }
-        let target = target.unwrap();
-        let copy_target = target.clone();
-        let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move || {
-            let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut() -> R + Send + Sync> };
-            unsafe { (&mut *callable_ptr)() }
-        }) as Box<dyn FnMut() -> R + Send + Sync>)));
-        let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
-        let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut() -> R) as *const () as usize).unwrap();
-        go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-        copy
-    }
-}
+// A func value is a shared closure: a copy of the field is a new cell
+// around the same closure.
 macro_rules! impl_go_type_param_field_clone_fn {
-    ($(($($arg:ident),+)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),+> GoTypeParamFieldClone for Box<dyn FnMut($($arg),+) -> R + Send + Sync> {
-        const GO_COPY_KEEPS_HANDLE: bool = true;
+    ($(($($arg:ident),*)),* $(,)?) => { $(impl<R: 'static, $($arg: 'static),*> GoTypeParamFieldClone for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+        const GO_COPY_KEEPS_HANDLE: bool = false;
         fn go_type_param_field_clone(field: &std::sync::Arc<std::sync::Mutex<Option<Self>>>) -> std::sync::Arc<std::sync::Mutex<Option<Self>>> {
-            let field_key = std::sync::Arc::as_ptr(field) as usize;
-            let current_proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize);
-            let mut target = current_proxy_data.and_then(|proxy_data| go_fn_field_target::<std::sync::Mutex<Option<Self>>>(field_key, proxy_data));
-            if target.is_none() {
-                let original = field.lock().unwrap().take();
-                let Some(original) = original else { return std::sync::Arc::new(std::sync::Mutex::new(None)); };
-                let shared = std::sync::Arc::new(std::sync::Mutex::new(Some(original)));
-                let source_target = shared.clone();
-                *field.lock().unwrap() = Some(Box::new(move |$($arg),+| {
-                    let callable_ptr = { let mut callable = source_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
-                    unsafe { (&mut *callable_ptr)($($arg),+) }
-                }));
-                let proxy_data = field.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-                go_register_fn_field_target(field_key, proxy_data, field, &shared);
-                target = Some(shared);
-            }
-            let target = target.unwrap();
-            let copy_target = target.clone();
-            let copy = std::sync::Arc::new(std::sync::Mutex::new(Some(Box::new(move |$($arg),+| {
-                let callable_ptr = { let mut callable = copy_target.lock().unwrap(); callable.as_mut().unwrap() as *mut Box<dyn FnMut($($arg),+) -> R + Send + Sync> };
-                unsafe { (&mut *callable_ptr)($($arg),+) }
-            }) as Box<dyn FnMut($($arg),+) -> R + Send + Sync>)));
-            let copy_key = std::sync::Arc::as_ptr(&copy) as usize;
-            let proxy_data = copy.lock().unwrap().as_ref().map(|callable| (&**callable as *const dyn FnMut($($arg),+) -> R) as *const () as usize).unwrap();
-            go_register_fn_field_target(copy_key, proxy_data, &copy, &target);
-            copy
+            std::sync::Arc::new(std::sync::Mutex::new(field.lock().unwrap().clone()))
         }
     })* };
 }
-impl_go_type_param_field_clone_fn!((A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
+impl_go_type_param_field_clone_fn!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7));
 
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,

@@ -683,9 +683,9 @@ impl std::io::Write for GoSlice<u8> {
 pub fn collect(names: Rc<RefCell<Option<Vec<String>>>>) -> Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> {
     let mut n = Rc::new(RefCell::new(Some(({ let __len = (*names.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));let mut errs: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None::<Rc<dyn StdError>>)); ((*n.borrow().as_ref().unwrap())) as usize])));
     { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
-        let errs_closure_clone = errs.clone(); let i_closure_clone = i.clone(); let name_closure_clone = name.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let errs_closure_clone = errs.clone(); let i_closure_clone = i.clone(); let name_closure_clone = name.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let __idx = (i_closure_clone) as usize; let __rhs = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(name_closure_clone.clone()))))); (*errs_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     } }
     return errs.clone();
 }

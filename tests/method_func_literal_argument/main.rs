@@ -699,14 +699,10 @@ impl std::fmt::Display for runner {
 
 
 impl runner {
-    pub fn run(&self, f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
+    pub fn run(&self, f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
         {
-            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-                let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };
@@ -726,8 +722,8 @@ fn main() {
 
     let mut r = Arc::new(Mutex::new(Some(runner {  })));
     { let __recv = r.clone(); let __recv_ptr: *const runner = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const runner }; let __result = unsafe { &*__recv_ptr }.run(
-        Arc::new(Mutex::new(Some(Box::new(move || {
+        Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", format!("{}", "ran".to_string()));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))),
+    }) as Arc<dyn Fn() -> () + Send + Sync>))),
     ); __result };
 }

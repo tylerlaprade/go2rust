@@ -681,6 +681,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 pub mod log {
     use super::*;
     pub fn printf<T0, T1>(_arg0: T0, _arg1: T1) {
@@ -691,12 +716,12 @@ pub mod log {
 
 #[derive(Clone, Default)]
 pub struct Config {
-    pub logf: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>,
+    pub logf: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>>>>,
 }
 
 impl Config {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = self.logf.clone();
+        let __go_clone_0_0 = { let __guard = self.logf.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
         Self {
             logf: __go_clone_0_0,
         }
@@ -745,11 +770,11 @@ impl std::fmt::Display for loader {
 
 fn main() {
     let mut cfg: Rc<RefCell<Option<Config>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { log::printf(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))); (*cfg.borrow_mut().as_mut().unwrap()).logf = new_val; };
+    { let new_val = Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { log::printf(__arg0, __arg1) }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))); (*cfg.borrow_mut().as_mut().unwrap()).logf = new_val; };
     let mut copied: Rc<RefCell<Option<Config>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = (*cfg.borrow().as_ref().unwrap()).logf.clone(); (*copied.borrow_mut().as_mut().unwrap()).logf = new_val; };
+    { let new_val = Rc::new(RefCell::new(GoFuncValue::go_func_value(&((*cfg.borrow().as_ref().unwrap()).logf)))); (*copied.borrow_mut().as_mut().unwrap()).logf = new_val; };
     let mut ld: Rc<RefCell<Option<loader>>> = Rc::new(RefCell::new(Some(Default::default())));
-    { let new_val = (*cfg.borrow().as_ref().unwrap()).logf.clone(); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
-    { let new_val = Rc::new(RefCell::new(Some(Box::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { log::printf(__arg0, __arg1) }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
+    { let new_val = Rc::new(RefCell::new(GoFuncValue::go_func_value(&((*cfg.borrow().as_ref().unwrap()).logf)))); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
+    { let new_val = Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<String>>>, __arg1: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>| { log::printf(__arg0, __arg1) }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> ()>))); (*(*ld.borrow().as_ref().unwrap()).config.borrow_mut().as_mut().unwrap()).logf = new_val; };
     println!("{}", format!("{}", "assigned".to_string()));
 }

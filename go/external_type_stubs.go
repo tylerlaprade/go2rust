@@ -1336,6 +1336,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
 	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying
+	dst.needsGoFuncValue = dst.needsGoFuncValue || src.needsGoFuncValue
 	dst.needsSliceElemPtr = dst.needsSliceElemPtr || src.needsSliceElemPtr
 	dst.needsGoTime = dst.needsGoTime || src.needsGoTime
 	dst.needsGoTimer = dst.needsGoTimer || src.needsGoTimer

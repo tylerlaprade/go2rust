@@ -719,9 +719,9 @@ pub fn compute() -> bool {
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<termSet>>>>::new())));
     let mut tset = Rc::new(RefCell::new(Some(termSet { complete: Rc::new(RefCell::new(Some(false))) })));
     let tset_defer_captured = tset.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let new_val = true; *(*tset_defer_captured.borrow().as_ref().unwrap()).complete.borrow_mut() = Some(new_val); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     { let __map_key = "x".to_string(); let __map_value = tset.clone(); (*seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     {

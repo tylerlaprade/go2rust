@@ -776,7 +776,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<bool>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<char>() { return Some(Box::new(*v) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<String>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
-    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
 
@@ -1144,10 +1144,10 @@ pub fn launch(arg: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
     let arg_thread = go_any_handle_copy(&arg); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         ({
-        let __f_holder = { let val = arg_thread.clone(); let guard = val.lock().unwrap(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
+        let __f_holder = { let val = arg_thread.clone(); let guard = val.lock().unwrap(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
         (|| {
             let mut __f_guard = __f_holder.lock().unwrap();
-            let __f: &mut Box<dyn FnMut() -> () + Send + Sync> = __f_guard.as_mut().expect("call of nil function");
+            let __f: &mut Arc<dyn Fn() -> () + Send + Sync> = __f_guard.as_mut().expect("call of nil function");
             let __f_result = (*__f)();
             __f_result
         })()
@@ -1207,7 +1207,8 @@ fn main() {
     for name in &vec!["a".to_string(), "b".to_string()] {
         { let __sync_value = (*wg.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.add(1);
         let mut n = Arc::new(Mutex::new(Some((*name).clone())));
-        let mut got_closure_clone = got.clone(); let mu_closure_clone = mu.clone(); let n_closure_clone = n.clone(); launch(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move || {
+        let mut got_closure_clone = got.clone(); let mu_closure_clone = mu.clone(); let n_closure_clone = n.clone(); launch(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut got_closure_clone = got_closure_clone.clone();
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -1238,7 +1239,7 @@ fn main() {
                 ()
             }
         }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))));
         { let __sync_value = (*wg.lock().unwrap().as_ref().unwrap()).clone(); __sync_value }.wait();
     }
     println!("{}", format!("{}", format_slice(&got)));

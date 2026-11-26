@@ -681,6 +681,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 pub trait Speaker: std::fmt::Display + Any {
     fn __go_clone_box_speaker(&self) -> Box<dyn Speaker>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -695,7 +720,7 @@ impl Clone for Box<dyn Speaker> {
     }
 }
 
-pub type counter = Rc<RefCell<Option<Box<dyn FnMut() -> i64>>>>;
+pub type counter = Rc<RefCell<Option<Rc<dyn Fn() -> i64>>>>;
 
 #[derive(Clone)]
 pub struct counterAsSpeaker(pub counter);
@@ -728,7 +753,7 @@ pub trait counterMethods {
 
 impl counterMethods for counter {
     fn speak(&self) -> i64 {
-        { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }
+        { let __f: Rc<dyn Fn() -> i64> = self.borrow().as_ref().unwrap().clone(); (__f)() }
     }
 }
 
@@ -738,13 +763,15 @@ pub fn run_speaker(s: Rc<RefCell<Option<Box<dyn Speaker>>>>) -> i64 {
 
 pub fn make_counter() -> counter {
     let mut x = Rc::new(RefCell::new(Some(41i64)));
-    let mut x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
+    let mut x_closure_clone = x.clone(); return Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
+        let mut x_closure_clone = x_closure_clone.clone();
         { let mut guard = x_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return (*x_closure_clone.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut() -> i64>)));
+    }) as Rc<dyn Fn() -> i64>)));
 }
 
 fn main() {
     let mut c = make_counter();
+    let mut c = Rc::new(RefCell::new(GoFuncValue::go_func_value(&c)));
     println!("{}", format!("{}", run_speaker(Rc::new(RefCell::new(Some(Box::new(counterAsSpeaker(c.clone())) as Box<dyn Speaker>))))));
 }

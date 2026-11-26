@@ -680,17 +680,42 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
+pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>, Rc<RefCell<Option<Rc<dyn StdError>>>>) {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
-    let mut cleanup: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>> = Rc::new(RefCell::new(None));
+    let mut cleanup: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>> = Rc::new(RefCell::new(None));
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     if (*empty.borrow().as_ref().unwrap()) {
         {
-        { let new_val = Box::new(move || {
+        { let new_val = Rc::new(move || {
         println!("{}", format!("{}", "empty".to_string()));
-    }) as Box<dyn FnMut() -> ()>; *cleanup.borrow_mut() = Some(new_val); };
+    }) as Rc<dyn Fn() -> ()>; *cleanup.borrow_mut() = Some(new_val); };
         *err.borrow_mut() = None;;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -700,15 +725,16 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
     }
     }
     let mut cleanup_defer_captured = cleanup.clone(); let err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
-        { let new_val = Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut cleanup_defer_captured = cleanup_defer_captured.clone();
+        { let new_val = Rc::new(move || {
         println!("{}", format!("{}", "cleanup".to_string()));
-    }) as Box<dyn FnMut() -> ()>; *cleanup_defer_captured.borrow_mut() = Some(new_val); };
+    }) as Rc<dyn Fn() -> ()>; *cleanup_defer_captured.borrow_mut() = Some(new_val); };
         if { let __nil_result = (*err_defer_captured.borrow()).is_some(); __nil_result } {
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = cleanup_defer_captured.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        { let __f: Rc<dyn Fn() -> ()> = cleanup_defer_captured.borrow().as_ref().unwrap().clone(); (__f)() };
         *cleanup_defer_captured.borrow_mut() = None;
     }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     {
         *cleanup.borrow_mut() = None;
@@ -723,10 +749,12 @@ pub fn build_cleanup(empty: Rc<RefCell<Option<bool>>>) -> (Rc<RefCell<Option<Box
 
 fn main() {
     let (mut emptyCleanup, mut emptyErr) = build_cleanup(Rc::new(RefCell::new(Some(true))));
+    let mut emptyCleanup = Rc::new(RefCell::new(GoFuncValue::go_func_value(&emptyCleanup)));
     println!("{}", format!("{}", { let __nil_result = (*emptyErr.borrow()).is_none(); __nil_result }));
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = emptyCleanup.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    { let __f: Rc<dyn Fn() -> ()> = emptyCleanup.borrow().as_ref().unwrap().clone(); (__f)() };
 
     let (mut cleanup, mut err) = build_cleanup(Rc::new(RefCell::new(Some(false))));
+    let mut cleanup = Rc::new(RefCell::new(GoFuncValue::go_func_value(&cleanup)));
     println!("{}", format!("{}", { let __nil_result = (*err.borrow()).is_none(); __nil_result }));
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = cleanup.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    { let __f: Rc<dyn Fn() -> ()> = cleanup.borrow().as_ref().unwrap().clone(); (__f)() };
 }

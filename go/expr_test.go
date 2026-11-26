@@ -1059,10 +1059,10 @@ func makeMapper() mapper {
 }
 `)
 
-	if strings.Contains(rust, "{ mmap() }) as Box<dyn FnMut() -> i64>") {
+	if strings.Contains(rust, "{ mmap() }) as Rc<dyn Fn() -> i64>") {
 		t.Fatalf("function value should not call the colliding base Rust name:\n%s", rust)
 	}
-	if !strings.Contains(rust, "{ mmap_1() }) as Box<dyn FnMut() -> i64>") {
+	if !strings.Contains(rust, "{ mmap_1() }) as Rc<dyn Fn() -> i64>") {
 		t.Fatalf("function value should use the renamed Rust function target:\n%s", rust)
 	}
 }
@@ -1896,7 +1896,7 @@ func encode(b []byte, u uint) []byte {
 }
 `)
 
-	if strings.Contains(rust, "let __append_values = vec![{ let __f_ptr") {
+	if strings.Contains(rust, "let __append_values = vec![{ let __f:") {
 		t.Fatalf("append with function-call elements should not inline every element in one vec expression:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __append_values = vec![\n") {
@@ -3112,10 +3112,10 @@ func run() {
 		"strings": "strings",
 	})
 
-	if strings.Contains(rust, "FnMut(Rc<RefCell<Option<strings::Builder>>>, &dyn go_ast::Expr") {
+	if strings.Contains(rust, "Fn(Rc<RefCell<Option<strings::Builder>>>, &dyn go_ast::Expr") {
 		t.Fatalf("source-mapped function value box should not cast ast.Expr to a bare trait reference:\n%s", rust)
 	}
-	if !strings.Contains(rust, "FnMut(Rc<RefCell<Option<strings::Builder>>>, Rc<RefCell<Option<Box<dyn go_ast::Expr>>>>)") {
+	if !strings.Contains(rust, "Fn(Rc<RefCell<Option<strings::Builder>>>, Rc<RefCell<Option<Box<dyn go_ast::Expr>>>>)") {
 		t.Fatalf("source-mapped function value box should use the wrapped ast.Expr parameter shape:\n%s", rust)
 	}
 }
@@ -3638,13 +3638,13 @@ func TestFunctionBoxTypeUsesVarTableWithoutTypeInfo(t *testing.T) {
 	vt := NewVarTable()
 	vt.Register("processData", &VarInfo{
 		WrapLevel: WrapFull,
-		RustType:  "Box<dyn FnMut(Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>>>",
+		RustType:  "Rc<dyn Fn(Rc<RefCell<Option<Vec<i32>>>>) -> Rc<RefCell<Option<Box<dyn StdError>>>>>",
 		Source:    SourceLocal,
 	})
 	SetVarTable(vt)
 
 	got := functionBoxTypeForCallTarget(ast.NewIdent("processData"))
-	if !strings.HasPrefix(got, "Box<dyn FnMut(") {
+	if !strings.HasPrefix(got, "Rc<dyn Fn(") {
 		t.Fatalf("function box type = %q", got)
 	}
 }
@@ -3660,10 +3660,10 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "*mut _") {
+	if strings.Contains(rust, "let __f: _ ") {
 		t.Fatalf("context cancel call should use concrete tuple result function type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*mut GoCancelFunc") {
+	if !strings.Contains(rust, "let __f: GoCancelFunc = ") {
 		t.Fatalf("context cancel call should use GoCancelFunc:\n%s", rust)
 	}
 }
@@ -5925,7 +5925,7 @@ func TestInternalABITypeOfMapTypeCallUsesTypedMapIntrinsic(t *testing.T) {
 	for _, want := range []string{
 		"internal_abi::SwissMapType::default()",
 		"internal_abi::Kind(Arc::new(Mutex::new(Some(internal_abi::MAP as u8))))",
-		"let __hasher: Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> usize + Send + Sync>",
+		"let __hasher: Arc<dyn Fn(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> usize + Send + Sync>",
 		"as *const Mutex<Option<String>>",
 		"GoComparable::go_hash(__key_value, __seed_value)",
 	} {
@@ -6035,7 +6035,7 @@ func boxFunc() any {
 	if strings.Contains(rust, "let __v = None") || strings.Contains(rust, "Box::new(None)") {
 		t.Fatalf("typed nil function in any initializer should not emit untyped None:\n%s", rust)
 	}
-	if !strings.Contains(rust, "None::<Box<dyn FnMut() -> ()>") || !strings.Contains(rust, "as Box<dyn Any") {
+	if !strings.Contains(rust, "None::<Rc<dyn Fn() -> ()>") || !strings.Contains(rust, "as Box<dyn Any") {
 		t.Fatalf("typed nil function in any initializer should preserve the function type inside Any:\n%s", rust)
 	}
 }
@@ -6464,7 +6464,7 @@ func main() {
 	// (May 2026) inside the 470fcb0b..3e3d9fc3 fallback-incident range
 	// and is gone. The function-call lowering of calc.Multiply(...) is
 	// unrelated to this bucket and may still go through its own paths.
-	if strings.Contains(rust, "Box::new(move |__arg0: ") {
+	if strings.Contains(rust, "::new(move |__arg0: ") {
 		t.Fatalf("Mode 1 must not synthesize Box::new closure for function value from FunctionSignature registry:\n%s", rust)
 	}
 }
@@ -6520,11 +6520,11 @@ func (m *Mapper) Map(length uintptr, prot int, flags int, fd int, offset int64) 
 		if strings.Contains(line, "let __f_holder") && strings.Contains(line, "let __f_ptr") {
 			t.Fatalf("function field call should split function pointer setup across lines:\n%s", rust)
 		}
-		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+		if strings.Contains(line, "(__f)(") && strings.Contains(line, "Arc::new") {
 			t.Fatalf("function field call should split arguments across lines:\n%s", rust)
 		}
 	}
-	if !strings.Contains(rust, "(*__f)(\n") {
+	if !strings.Contains(rust, "(__f)(\n") {
 		t.Fatalf("function field call should use multiline call syntax:\n%s", rust)
 	}
 }
@@ -6558,11 +6558,11 @@ func prune(p *pageAlloc, need addrRange, level int, index int) addrRange {
 		if strings.Contains(line, "let __f_ptr") && strings.Contains(line, "let __f =") {
 			t.Fatalf("closure variable call should split function pointer setup across lines:\n%s", rust)
 		}
-		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+		if strings.Contains(line, "(__f)(") && strings.Contains(line, "Arc::new") {
 			t.Fatalf("closure variable call should split arguments across lines:\n%s", rust)
 		}
 	}
-	if !strings.Contains(rust, "(*__f)(\n") {
+	if !strings.Contains(rust, "(__f)(\n") {
 		t.Fatalf("closure variable call should use multiline call syntax:\n%s", rust)
 	}
 }
@@ -6579,14 +6579,14 @@ func loadInfo(name string, source string) ([]byte, error) {
 `)
 
 	for _, line := range strings.Split(rust, "\n") {
-		if strings.Contains(line, "return { let __f_ptr") {
+		if strings.Contains(line, "return { let __f:") {
 			t.Fatalf("closure variable call with plain args should split function pointer setup across lines:\n%s", rust)
 		}
-		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+		if strings.Contains(line, "(__f)(") && strings.Contains(line, "Arc::new") {
 			t.Fatalf("closure variable call with plain args should split arguments across lines:\n%s", rust)
 		}
 	}
-	if !strings.Contains(rust, "(*__f)(\n") {
+	if !strings.Contains(rust, "(__f)(\n") {
 		t.Fatalf("closure variable call with plain args should use multiline call syntax:\n%s", rust)
 	}
 }
@@ -6782,7 +6782,7 @@ func same(a, b []*Node) bool {
 	if strings.Contains(rust, "NODE") {
 		t.Fatalf("method expression should not be lowered through an uppercase type value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new(move |__arg0:") || !strings.Contains(rust, ".equal(__arg1)") {
+	if !strings.Contains(rust, "::new(move |__arg0:") || !strings.Contains(rust, ".equal(__arg1)") {
 		t.Fatalf("method expression should lower to a function-value closure:\n%s", rust)
 	}
 }
@@ -6954,7 +6954,7 @@ func main() {
 	if strings.Contains(rust, "*mut _") {
 		t.Fatalf("immediate function literal call should use a concrete closure type:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*mut Box<dyn FnMut") {
+	if !strings.Contains(rust, ": Rc<dyn Fn") {
 		t.Fatalf("immediate function literal call should emit a concrete function box type:\n%s", rust)
 	}
 }
@@ -7071,7 +7071,7 @@ func TestFunctionValueSelectorSyntaxUsesUniqueStructFieldFallback(t *testing.T) 
 	currentCaptureRenames = nil
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = map[string]string{
-		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+		"BinaryOp": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
 	}
 	structDefs = map[string]*StructDef{
 		"Calculator": {
@@ -7128,7 +7128,7 @@ func TestFunctionValueSelectorSyntaxDoesNotFallbackForClosureCloneMethod(t *test
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = make(map[string]string)
 	RegisterFunctionTypeAlias("ParseFunc")
-	RegisterFunctionTypeAliasBox("ParseFunc", "Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>>>")
+	RegisterFunctionTypeAliasBox("ParseFunc", "Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<i32>>>>")
 	structDefs = map[string]*StructDef{
 		"Config": {
 			ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
@@ -7282,7 +7282,7 @@ func TestFunctionValueSelectorSyntaxDoesNotUseUnrelatedFieldForKnownReceiver(t *
 	})
 	functionTypeAliases = map[string]bool{"Hook": true}
 	functionTypeAliasBoxTypes = map[string]string{
-		"Hook": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>)>",
+		"Hook": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>)>",
 	}
 	structDefs = map[string]*StructDef{
 		"PkgDecoder": {
@@ -7370,7 +7370,7 @@ func TestFunctionValueSelectorSyntaxAllowsPartialTypeInfoFallback(t *testing.T) 
 	}})
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = map[string]string{
-		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+		"BinaryOp": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
 	}
 	structDefs = map[string]*StructDef{
 		"Calculator": {
@@ -7417,7 +7417,7 @@ func TestFunctionValueSelectorSyntaxUsesUniqueFieldWhenTypedObjectIsMisclassifie
 	SetVarTable(NewVarTable())
 	functionTypeAliases = map[string]bool{"BinaryOp": true}
 	functionTypeAliasBoxTypes = map[string]string{
-		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+		"BinaryOp": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
 	}
 	structDefs = map[string]*StructDef{
 		"Calculator": {
@@ -7456,7 +7456,7 @@ func TestFunctionFieldCallUsesBoxWhenFuncAliasIsAlsoTypeDefinition(t *testing.T)
 	typeDefinitions = map[string]string{"BinaryOp": "func"}
 	functionTypeAliases = make(map[string]bool)
 	functionTypeAliasBoxTypes = map[string]string{
-		"BinaryOp": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+		"BinaryOp": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
 	}
 	structDefs = map[string]*StructDef{
 		"Calculator": {
@@ -7494,7 +7494,7 @@ func TestFunctionFieldCallUsesBoxWhenFuncAliasIsAlsoTypeDefinition(t *testing.T)
 	if !strings.Contains(got, "let __f_holder = (*calc.borrow().as_ref().unwrap()).add.clone()") {
 		t.Fatalf("function field call should invoke the field handle:\n%s", got)
 	}
-	if !strings.Contains(got, "*mut Box<dyn FnMut(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>") {
+	if !strings.Contains(got, "let __f: Rc<dyn Fn(Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>> = ") {
 		t.Fatalf("function field call should use the stored function box type:\n%s", got)
 	}
 }
@@ -7531,13 +7531,13 @@ func TestFunctionMapValueWithoutTypeInfoDoesNotSynthesizeBoxFromRegistry(t *test
 	// not synthesize a Box::new closure for the map value. The previous
 	// writeFunctionValueBoxFromSyntax helper routed through GetFunctionSignature
 	// to produce `Box::new(move |__arg0: ...| { inc(__arg0) })` and the
-	// matching `as Box<dyn FnMut(...) -> ...>` cast; that branch was added
+	// matching `as Rc<dyn Fn(...) -> ...>` cast; that branch was added
 	// in commit 50ecb15d inside the 470fcb0b..3e3d9fc3 fallback-incident
 	// range and is gone.
-	if strings.Contains(got, "Box::new(move |__arg0:") {
+	if strings.Contains(got, "::new(move |__arg0:") {
 		t.Fatalf("Mode 1 map value must not synthesize Box::new closure from FunctionSignature registry:\n%s", got)
 	}
-	if strings.Contains(got, "as Box<dyn FnMut(") {
+	if strings.Contains(got, "as Rc<dyn Fn(") {
 		t.Fatalf("Mode 1 map value must not synthesize FnMut box-type cast from AST alias:\n%s", got)
 	}
 }
@@ -7666,8 +7666,8 @@ func (p *Package) Parser() *Parser {
 		strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some(self.lookup_package.clone())))") {
 		t.Fatalf("method value field should not be lowered as a selector field clone:\n%s", rust)
 	}
-	if !strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |") &&
-		!strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |") {
+	if !strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move |") &&
+		!strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Arc::new(move |") {
 		t.Fatalf("method value field should lower to a boxed receiver closure:\n%s", rust)
 	}
 }
@@ -7751,7 +7751,7 @@ func (s *Setting) Value() {
 		t.Fatalf("source-mapped sync.Once.Do should not pass a raw closure to source sync::Once:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
-		!strings.Contains(rust, "Box::new(move ||") {
+		!strings.Contains(rust, "::new(move ||") {
 		t.Fatalf("source-mapped sync.Once.Do should wrap function literal arguments for source sync::Once:\n%s", rust)
 	}
 }
@@ -7781,7 +7781,7 @@ func (s *Setting) register() {
 	}
 	// The wrapped func runs register on the receiver itself, not on a
 	// self.clone() snapshot (DEV-166).
-	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(Box::new(move || { let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) }; __recv_ref.register(); })") {
+	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(Arc::new(move || { let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) }; __recv_ref.register(); })") {
 		t.Fatalf("source-mapped sync.Once.Do should wrap a func that calls the method on the receiver:\n%s", rust)
 	}
 	if strings.Contains(rust, "let mut __recv = self.clone()") {
@@ -7834,7 +7834,7 @@ func three() {
 	}
 	hasWrappedOnce := strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
 		strings.Contains(rust, "__once.r#do(Rc::new(RefCell::new(Some(")
-	if !hasWrappedOnce || !strings.Contains(rust, "Box::new(move ||") {
+	if !hasWrappedOnce || !strings.Contains(rust, "::new(move ||") {
 		t.Fatalf("promoted source sync.Once should wrap function literal arguments for source sync::Once:\n%s", rust)
 	}
 }
@@ -7856,7 +7856,7 @@ func initFakeLines() {
 	}
 	hasWrappedOnce := strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
 		strings.Contains(rust, "__once.r#do(Rc::new(RefCell::new(Some(")
-	if !hasWrappedOnce || !strings.Contains(rust, "Box::new(move ||") {
+	if !hasWrappedOnce || !strings.Contains(rust, "::new(move ||") {
 		t.Fatalf("source-mapped package-global sync.Once should wrap function literal arguments for source sync::Once:\n%s", rust)
 	}
 }
@@ -8361,8 +8361,8 @@ func same[T comparable](e *entry[T], key T, yield func(T) bool) bool {
 		strings.Contains(rust, "let __left = (*e.lock().unwrap().as_ref().unwrap()).key;") {
 		t.Fatalf("type-parameter selector equality should not move the field handle:\n%s", rust)
 	}
-	if strings.Contains(rust, "(*__f)((*e.borrow().as_ref().unwrap()).key)") ||
-		strings.Contains(rust, "(*__f)((*e.lock().unwrap().as_ref().unwrap()).key)") {
+	if strings.Contains(rust, "(__f)((*e.borrow().as_ref().unwrap()).key)") ||
+		strings.Contains(rust, "(__f)((*e.lock().unwrap().as_ref().unwrap()).key)") {
 		t.Fatalf("type-parameter selector function argument should not move the field handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".key.clone()") {
@@ -8383,7 +8383,7 @@ func same[S1 ~[]E1, S2 ~[]E2, E1, E2 any](left S1, right S2, eq func(E1, E2) boo
 }
 `)
 
-	if strings.Contains(rust, "(*__f)(Rc::new(RefCell::new(Some(v)))") {
+	if strings.Contains(rust, "(__f)(Rc::new(RefCell::new(Some(v)))") {
 		t.Fatalf("type-parameter range value should be passed as its existing handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "Some({ let __seq") {
@@ -8432,8 +8432,8 @@ func use(a *Var) *Var {
 		strings.Contains(rust, "Arc<Mutex<Option<Arc<Mutex<Option<Var>>>>>>") {
 		t.Fatalf("function literal returning a pointer for generic T should not nest the pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>>") &&
-		!strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> Arc<Mutex<Option<Var>>>>") {
+	if !strings.Contains(rust, "Rc<dyn Fn(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>>") &&
+		!strings.Contains(rust, "Rc<dyn Fn(Arc<Mutex<Option<Var>>>) -> Arc<Mutex<Option<Var>>>>") {
 		t.Fatalf("function literal returning a pointer for generic T should keep the pointer handle ABI:\n%s", rust)
 	}
 }
@@ -9130,7 +9130,7 @@ func TestNoTypeInfoPackageGlobalFunctionMapIndexKeepsHandle(t *testing.T) {
 	localMapValueRustTypes = make(map[string]string)
 	functionTypeAliases = map[string]bool{"handler": true}
 	functionTypeAliasBoxTypes = map[string]string{
-		"handler": "Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
+		"handler": "Rc<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>",
 	}
 
 	file, err := parser.ParseFile(token.NewFileSet(), "main.go", `package main
@@ -9156,7 +9156,7 @@ func f() { _ = handlers["inc"] }`, 0)
 	var out strings.Builder
 	TranspileExpression(&out, index)
 
-	if got, want := functionBoxTypeForCallTarget(index), "Box<dyn FnMut(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>"; got != want {
+	if got, want := functionBoxTypeForCallTarget(index), "Rc<dyn Fn(Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<i32>>>>"; got != want {
 		t.Fatalf("function map index box type = %q, want %q", got, want)
 	}
 

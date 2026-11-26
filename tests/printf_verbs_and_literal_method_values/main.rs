@@ -1453,7 +1453,9 @@ pub fn parse(lines: Arc<Mutex<Option<Vec<String>>>>) -> (i64, Arc<Mutex<Option<A
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut err_defer_captured = err.clone(); let mut total_defer_captured = total.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
+        let mut total_defer_captured = total_defer_captured.clone();
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
@@ -1461,7 +1463,7 @@ pub fn parse(lines: Arc<Mutex<Option<Vec<String>>>>) -> (i64, Arc<Mutex<Option<A
             { let new_val = -1; *total_defer_captured.lock().unwrap() = Some(new_val); };;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         { let __range_holder = lines.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, l) in __range_values.iter().enumerate() {
         if { let __tmp_x = (*l).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -1605,24 +1607,16 @@ fn main() {
             println!("{}", format!("{}", "default".to_string()));
         }
     }
-    let mut f = Arc::new(Mutex::new(Some({ let mut __recv = Rect { w: Arc::new(Mutex::new(Some(2.0))), h: Arc::new(Mutex::new(Some(5.0))), ..Default::default() }; Box::new(move || -> f64 { __recv.area() }) as Box<dyn FnMut() -> f64 + Send + Sync> })));
-    let mut g = Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Circle>>>| -> f64 { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).perimeter(); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<Circle>>>) -> f64 + Send + Sync>)));
+    let mut f = Arc::new(Mutex::new(Some({ let mut __recv = Rect { w: Arc::new(Mutex::new(Some(2.0))), h: Arc::new(Mutex::new(Some(5.0))), ..Default::default() }; Arc::new(move || -> f64 { let mut __recv = __recv.clone(); __recv.area() }) as Arc<dyn Fn() -> f64 + Send + Sync> })));
+    let mut g = Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<Circle>>>| -> f64 { { let __recv = __arg0.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).perimeter(); __result } }) as Arc<dyn Fn(Arc<Mutex<Option<Circle>>>) -> f64 + Send + Sync>)));
     print!("{} {}\n", format!("{:.1}", {
-    let __f_ptr: *mut Box<dyn FnMut() -> f64 + Send + Sync> = {
-        let mut __f_guard = f.lock().unwrap();
-        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> f64 + Send + Sync>
-    };
-    let __f = unsafe { &mut *__f_ptr };
-    (*__f)(
+    let __f: Arc<dyn Fn() -> f64 + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
 
     )
 }), format!("{:.3}", {
-    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Circle>>>) -> f64 + Send + Sync> = {
-        let mut __f_guard = g.lock().unwrap();
-        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Circle>>>) -> f64 + Send + Sync>
-    };
-    let __f = unsafe { &mut *__f_ptr };
-    (*__f)(
+    let __f: Arc<dyn Fn(Arc<Mutex<Option<Circle>>>) -> f64 + Send + Sync> = g.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
         Arc::new(Mutex::new(Some(Circle { r: Arc::new(Mutex::new(Some(2.0))), ..Default::default() })))
     )
 }));

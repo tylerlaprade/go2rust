@@ -1061,26 +1061,19 @@ fn main() {
     );
     println!("{}", format!("{}", format_map(&m)));
     let mut x = Arc::new(Mutex::new(Some(1i64)));
-    let mut x_closure_clone = x.clone(); let mut inc = Arc::new(Mutex::new(Some(Box::new(move |v: Arc<Mutex<Option<i64>>>| {
+    let mut x_closure_clone = x.clone(); let mut inc = Arc::new(Mutex::new(Some(Arc::new(move |v: Arc<Mutex<Option<i64>>>| {
+        let mut x_closure_clone = x_closure_clone.clone();
         { let __rhs = (*v.lock().unwrap().as_ref().unwrap()); let mut guard = x_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>)));
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
-            let mut __f_guard = inc.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = inc.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })))
         )
     };
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = {
-            let mut __f_guard = inc.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> = inc.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y })))
         )
     };

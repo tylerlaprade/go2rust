@@ -1047,7 +1047,7 @@ fn main() {
     let (mut q, mut e2) = find();
     let _ = &q;
     let _ = &e2;
-    let mut f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let _ = &f;
 
     let _ = &lastErr;
@@ -1073,27 +1073,20 @@ fn main() {
     println!("{} {} {}", format!("{}", { let __text = match lastErr.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __nil_target = (*r.lock().unwrap().as_ref().unwrap()).err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __nil_target = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }));
 
     let mut count = Arc::new(Mutex::new(Some(0i64)));
-    let mut count_closure_clone = count.clone(); let mut bump = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
+    let mut count_closure_clone = count.clone(); let mut bump = Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
+        let mut count_closure_clone = count_closure_clone.clone();
         { let mut guard = count_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return { let __v = (*count_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v };
-    }) as Box<dyn FnMut() -> i64 + Send + Sync>)));
+    }) as Arc<dyn Fn() -> i64 + Send + Sync>)));
     let _ = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = bump.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = bump.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
     let _ = { let __seq = { let __seq_holder = Arc::new(Mutex::new(Some(vec![{
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = bump.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = bump.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }]))).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };

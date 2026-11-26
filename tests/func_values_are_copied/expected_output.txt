@@ -1,0 +1,23 @@
+act 2
+replaced 3
+act 1
+assigned: 2 10
+field: 20 -2
+argument: -3 9
+struct copy: 40 16
+struct copy, literal: 16 1004
+slice: 25 105
+map: 101 7
+captured: h
+captured after: h changed h
+before log:x
+global: 42
+restored: 1
+fib: 55 89
+nil: true
+nil after: false true h
+named: 3 9
+param: orig orig
+result: 6 101
+closure assigns: a b
+self: first second

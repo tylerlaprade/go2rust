@@ -1126,14 +1126,14 @@ impl Parser {
     }
     }
 
-    pub fn parse_gen(&mut self, keyword: Rc<RefCell<Option<Token>>>, f: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()>>>>) {
+    pub fn parse_gen(&mut self, keyword: Rc<RefCell<Option<Token>>>, f: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Token>>>) -> ()>>>>) {
         self.expect(Rc::new(RefCell::new(Some({ let __arg_holder = keyword.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(keyword.clone()) };
+        { let __f: Rc<dyn Fn(Rc<RefCell<Option<Token>>>) -> ()> = f.borrow().as_ref().unwrap().clone(); (__f)(keyword.clone()) };
     }
 
     pub fn parse(&mut self) {
         { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *self.tok.borrow_mut() = Some(new_val); };
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Rc<RefCell<Option<Token>>>| { __recv.r#use(__arg0) }) as Box<dyn FnMut(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move |__arg0: Rc<RefCell<Option<Token>>>| { let mut __recv = __recv.clone(); __recv.r#use(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
     }
 }
 

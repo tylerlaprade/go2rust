@@ -1588,7 +1588,7 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 		return
 	}
 	if packageGlobalFunctionObjectInit(expr, targetType) {
-		out.WriteString("Box::new(")
+		out.WriteString(funcValueConstructor())
 		TranspileExpression(out, expr)
 		out.WriteString(")")
 		return

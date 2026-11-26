@@ -681,11 +681,12 @@ impl std::io::Write for GoSlice<u8> {
 
 fn main() {
     let mut result: Rc<RefCell<Option<Vec<i64>>>> = Rc::new(RefCell::new(None));
-    let mut result_closure_clone = result.clone(); let mut set = Rc::new(RefCell::new(Some(Box::new(move |values: Rc<RefCell<Option<Vec<i64>>>>| {
+    let mut result_closure_clone = result.clone(); let mut set = Rc::new(RefCell::new(Some(Rc::new(move |values: Rc<RefCell<Option<Vec<i64>>>>| {
+        let mut result_closure_clone = result_closure_clone.clone();
         { let __slice_header = GoSliceHeader::go_slice_header(&values); *result_closure_clone.borrow_mut() = __slice_header; };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> ()>)));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Vec<i64>>>>) -> ()>)));
 
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> ()> = { let mut __f_guard = set.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Vec<i64>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(vec![4i64, 5i64])))) };
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<Vec<i64>>>>) -> ()> = set.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(vec![4i64, 5i64])))) };
     println!("{}", format!("{}", (*result.borrow().as_ref().unwrap())[(0) as usize].clone()));
     println!("{}", format!("{}", ({ let __len = (*result.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 }

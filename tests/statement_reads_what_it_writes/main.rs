@@ -947,10 +947,10 @@ fn main() {
     (*b.borrow_mut().as_mut().unwrap()).dup();
     println!("{} {}", format!("{}", "append to a field".to_string()), format!("{}", format_slice_values(&(*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap()).clone())));
 
-    let n_closure_clone = n.clone(); let mut total = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
+    let n_closure_clone = n.clone(); let mut total = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
         return ({ let __len = (*n_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;
-    }) as Box<dyn FnMut() -> i64>)));
-    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = total.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
+    }) as Rc<dyn Fn() -> i64>)));
+    { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = { let __f: Rc<dyn Fn() -> i64> = total.borrow().as_ref().unwrap().clone(); (__f)() }; let mut __appended: Vec<i64> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *n.borrow_mut() = __slice_header; };
     println!("{} {}", format!("{}", "append what a function read from the slice".to_string()), format!("{}", (*n.borrow().as_ref().unwrap())[((({ let __len = (*n.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - (1 as i64)) as usize].clone()));
 
     let mut byKey = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64]))))]))));

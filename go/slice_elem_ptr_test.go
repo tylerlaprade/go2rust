@@ -1367,7 +1367,7 @@ func use(w writer) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<p>) -> ()") {
+	if !strings.Contains(rust, "Rc<dyn Fn(GoPtr<p>) -> ()") {
 		t.Fatalf("function literal parameter should use the GoPtr ABI:\n%s", rust)
 	}
 	if !strings.Contains(rust, "pub fn write(&self, pp: GoPtr<p>)") &&
@@ -6888,8 +6888,8 @@ func use(chunks [][]int) int {
 		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a cloned pointee:\n%s", rust)
 	}
 	if !strings.Contains(rust, "pub fn dump(values: GoPtr<Vec<i64>>) -> i64") ||
-		!strings.Contains(rust, "Box<dyn FnMut(GoPtr<Vec<i64>>) -> i64>") ||
-		!strings.Contains(rust, "(*__f)(values.clone())") ||
+		!strings.Contains(rust, "Rc<dyn Fn(GoPtr<Vec<i64>>) -> i64>") ||
+		!strings.Contains(rust, "(__f)(values.clone())") ||
 		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
 		t.Fatalf("read-only pointer parameter passed through a function literal should preserve GoPtr handles:\n%s", rust)
 	}
@@ -6927,7 +6927,7 @@ func via() {
 	if !strings.Contains(rust, "pub fn handle(p: GoPtr<node>)") {
 		t.Fatalf("direct call should promote handle's pointer parameter to GoPtr:\n%s", rust)
 	}
-	if strings.Contains(rust, "{ handle(__arg0) }) as Box<dyn FnMut") {
+	if strings.Contains(rust, "{ handle(__arg0) }) as Rc<dyn Fn") {
 		t.Fatalf("function value adapter should not forward the old pointer wrapper into a GoPtr parameter:\n%s", rust)
 	}
 	if !strings.Contains(rust, "handle(GoPtr::local(__arg0.clone()))") {
@@ -6975,18 +6975,18 @@ func runLiteral(addr uintptr) {
 }
 `)
 
-	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<node>) -> ()") {
+	if !strings.Contains(rust, "Rc<dyn Fn(GoPtr<node>) -> ()") {
 		t.Fatalf("function value parameter and field should use GoPtr ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<node>>>)") ||
-		strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<node>>>)") {
+	if strings.Contains(rust, "Rc<dyn Fn(Rc<RefCell<Option<node>>>)") ||
+		strings.Contains(rust, "Rc<dyn Fn(Arc<Mutex<Option<node>>>)") {
 		t.Fatalf("function value parameter and field should not use old pointer-wrapper ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*__f)(p.clone())") {
+	if !strings.Contains(rust, "(__f)(p.clone())") {
 		t.Fatalf("function value calls should pass existing GoPtr handles:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box::new(move |p: Rc<RefCell<Option<node>>>|") ||
-		strings.Contains(rust, "Box::new(move |p: Arc<Mutex<Option<node>>>|") {
+	if strings.Contains(rust, "Rc::new(move |p: Rc<RefCell<Option<node>>>|") ||
+		strings.Contains(rust, "Arc::new(move |p: Arc<Mutex<Option<node>>>|") {
 		t.Fatalf("GoPtr-aware function value literal should not use old pointer-wrapper param ABI:\n%s", rust)
 	}
 }
@@ -7020,14 +7020,14 @@ func fatal(gp *g, mp *m, flag bool) bool {
 	if !strings.Contains(rust, "pub fn fatal(mut gp: GoPtr<g>") {
 		t.Fatalf("test setup should promote fatal's pointer parameter to GoPtr:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<g>) -> bool>") {
+	if !strings.Contains(rust, "Rc<dyn Fn(GoPtr<g>) -> bool>") {
 		t.Fatalf("function value called with a promoted GoPtr parameter should use the GoPtr ABI:\n%s", rust)
 	}
-	if strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<g>>>) -> bool>") ||
-		strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<g>>>) -> bool>") {
+	if strings.Contains(rust, "Rc<dyn Fn(Rc<RefCell<Option<g>>>) -> bool>") ||
+		strings.Contains(rust, "Rc<dyn Fn(Arc<Mutex<Option<g>>>) -> bool>") {
 		t.Fatalf("function value called with a promoted GoPtr parameter should not keep the old pointer-wrapper ABI:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*__f)(gp.clone())") {
+	if !strings.Contains(rust, "(__f)(gp.clone())") {
 		t.Fatalf("function value call should pass the existing GoPtr handle:\n%s", rust)
 	}
 }

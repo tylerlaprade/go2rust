@@ -535,7 +535,8 @@ let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(mov
     let mut counter: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut mutex = GoMutex::new();
     let mut wg2 = WaitGroup::new();
-    let mut counter_closure_clone = counter.clone(); let mutex_closure_clone = mutex.clone(); let wg2_closure_clone = wg2.clone(); let mut increment = Arc::new(Mutex::new(Some(Box::new(move || {
+    let mut counter_closure_clone = counter.clone(); let mutex_closure_clone = mutex.clone(); let wg2_closure_clone = wg2.clone(); let mut increment = Arc::new(Mutex::new(Some(Arc::new(move || {
+        let mut counter_closure_clone = counter_closure_clone.clone();
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -570,19 +571,15 @@ let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(mov
                 ()
             }
         }
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     let mut i = Arc::new(Mutex::new(Some(1i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x <= __tmp_y } {
         wg2.add(1);
-        let increment_thread = increment.clone(); std::thread::spawn(move || {
+        let increment_thread = Arc::new(Mutex::new((*increment.lock().unwrap()).clone())); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         {
-            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-                let mut __f_guard = increment_thread.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = increment_thread.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };
@@ -603,7 +600,7 @@ let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(mov
     let mut ready = GoChannel::<bool>::new();
     let mut release = GoChannel::<bool>::new();
     let mut finished = GoChannel::<bool>::new_buffered((barrierWorkers) as usize);
-    let finished_closure_clone = finished.clone(); let ready_closure_clone = ready.clone(); let release_closure_clone = release.clone(); let wg3_closure_clone = wg3.clone(); let mut worker = Arc::new(Mutex::new(Some(Box::new(move || {
+    let finished_closure_clone = finished.clone(); let ready_closure_clone = ready.clone(); let release_closure_clone = release.clone(); let wg3_closure_clone = wg3.clone(); let mut worker = Arc::new(Mutex::new(Some(Arc::new(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -634,19 +631,15 @@ let final_defer_captured = final_thread.clone(); __defer_stack.push(Box::new(mov
                 ()
             }
         }
-    }) as Box<dyn FnMut() -> () + Send + Sync>)));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)));
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         wg3.add(1);
-        let worker_thread = worker.clone(); std::thread::spawn(move || {
+        let worker_thread = Arc::new(Mutex::new((*worker.lock().unwrap()).clone())); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         {
-            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-                let mut __f_guard = worker_thread.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = worker_thread.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };

@@ -1784,6 +1784,14 @@ func writeMultiRhsShortDeclInitializer(out *strings.Builder, lhs ast.Expr, rhs a
 		// the received handle and b a copy of x's, not a cell around one.
 		return
 	}
+	if newBinding && isFuncValueExpr(lhs) {
+		// f, g := a, m[k]: each variable gets a cell of its own holding a
+		// copy of the func value.
+		if !funcValueAssignmentKeepsLowering(rhs) || !writeFunctionValueHandleForExpected(out, rhs, funcValueExprType(lhs)) {
+			writeFuncValueFreshCell(out, rhs)
+		}
+		return
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && newBinding {
 		// m, n := make(map[int]*T), 0 where m holds slice element pointers:
 		// the initializer gives the map its GoPtr values, as a single
@@ -5790,6 +5798,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if isUnnamedSliceType(valueType) && writeGoSliceFreshCellFromVariable(out, expr) {
 		return
 	}
+	if isFunctionSignatureType(valueType) && writeFuncValueFreshCellFromStorage(out, expr, valueType) {
+		return
+	}
 	if isGoErrorType(valueType) && writeGoErrorHandleValue(out, expr) {
 		return
 	}
@@ -7501,7 +7512,7 @@ func isFunctionValueRustType(rustType string) bool {
 	case "GoCancelFunc", "GoCancelCauseFunc":
 		return true
 	}
-	return strings.HasPrefix(rustType, "Box<dyn Fn") || IsFunctionTypeAlias(rustType)
+	return isFuncValueRustType(rustType) || IsFunctionTypeAlias(rustType)
 }
 
 func fieldTypeExprCanBeFunctionValue(fieldExpr ast.Expr) bool {
@@ -12755,6 +12766,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	if assign, ok := stmt.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE && goSliceModeEnabled() {
 		defer writeGoSliceDefineShadows(out, assign, indent)
 	}
+	if assign, ok := stmt.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
+		defer writeFuncValueDefineShadows(out, assign.Lhs, assign.Rhs, indent)
+	}
+	if decl, ok := stmt.(*ast.DeclStmt); ok {
+		if genDecl, ok := decl.Decl.(*ast.GenDecl); ok && genDecl.Tok == token.VAR {
+			for _, spec := range genDecl.Specs {
+				if valueSpec, ok := spec.(*ast.ValueSpec); ok && len(valueSpec.Values) > 0 {
+					names := make([]ast.Expr, len(valueSpec.Names))
+					for i, name := range valueSpec.Names {
+						names[i] = name
+					}
+					defer writeFuncValueDefineShadows(out, names, valueSpec.Values, indent)
+				}
+			}
+		}
+	}
 
 	switch s := stmt.(type) {
 	case *ast.SendStmt:
@@ -14382,6 +14409,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									TranspileExpressionContext(out, s.Lhs[0], LValue)
 									WriteBorrowMethod(out, true)
 									out.WriteString(" = None")
+								} else if writeFuncValueAssignment(out, s) {
+									// A func variable keeps its cell and takes a copy of the func value.
 								} else if writePointerHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Pointer assignment replaces the handle to preserve aliasing.
 								} else if writeUnnamedSliceToNamedSliceAssignment(out, s.Lhs[0], s.Rhs[0]) {
@@ -17481,6 +17510,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if currentReceiver != "" && varName == currentReceiver {
 				out.WriteString(currentReceiverRustName())
 				out.WriteString(".clone(); ")
+			} else if !assignedCaptured[varName] && !isVarBare(varName) && deferredFuncValueName(s.Call, varName) {
+				// "go f(x)" calls the func value f holds when the go
+				// statement runs.
+				writeCapturedValueCopy(out, source)
+				out.WriteString("; ")
 			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || goStmtCapturedNameIsFunctionHandle(s.Call, varName) {
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(source)
@@ -18537,6 +18571,11 @@ func deferCapturedNameCopiesValue(call *ast.CallExpr, name string) bool {
 	// "defer handle(&err)" passes a pointer to the variable itself.
 	if addressTaken {
 		return false
+	}
+	// "defer act(1)" calls the func value act holds when the defer runs,
+	// and a func value passed as an argument is copied then too.
+	if deferredFuncValueName(call, name) {
+		return true
 	}
 	return capturedNameCopiesValue(name, append([]ast.Node{call.Fun}, args...), args, []ast.Node{call.Fun})
 }
