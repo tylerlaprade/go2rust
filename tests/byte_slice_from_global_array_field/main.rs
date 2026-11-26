@@ -731,23 +731,23 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static entries: GoGlobal<[entry; 1]> = GoGlobal::new();
+pub(crate) static entries_1: GoGlobal<[entry; 1]> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *entries.borrow_mut() = Some(std::array::from_fn::<_, 1, _>(|_| Default::default()));
+    *entries_1.borrow_mut() = Some(std::array::from_fn::<_, 1, _>(|_| Default::default()));
     {
         let mut __go_array = std::vec::Vec::<entry>::with_capacity(1);
         __go_array.push(entry { deps: Rc::new(RefCell::new(Some("abc".to_string()))), ..Default::default() });
         let __go_array: [entry; 1] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
-        *entries.borrow_mut() = Some(__go_array);
+        *entries_1.borrow_mut() = Some(__go_array);
     }
 }
 
 
 fn main() {
     __go_init_all();
-    let mut data = Rc::new(RefCell::new(Some(((*(*entries.borrow().as_ref().unwrap())[(0) as usize].clone().deps.borrow().as_ref().unwrap()).clone()).as_bytes().to_go_slice())));
+    let mut data = Rc::new(RefCell::new(Some(((*(*entries_1.borrow().as_ref().unwrap())[(0) as usize].clone().deps.borrow().as_ref().unwrap()).clone()).as_bytes().to_go_slice())));
     println!("{} {}", format!("{}", ({ let __len = (*data.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*data.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }
 

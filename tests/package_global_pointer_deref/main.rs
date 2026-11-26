@@ -700,14 +700,14 @@ impl<T> GoGlobal<T> {
 
 pub(crate) static enabled: GoGlobal<Rc<RefCell<Option<bool>>>> = GoGlobal::new();
 
-pub(crate) static label: GoGlobal<Rc<RefCell<Option<String>>>> = GoGlobal::new();
+pub(crate) static label_1: GoGlobal<Rc<RefCell<Option<String>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
     *enabled.borrow_mut() = Some(Rc::new(RefCell::new(None)));
-    *label.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    *label_1.borrow_mut() = Some(Rc::new(RefCell::new(None)));
     *enabled.borrow_mut() = Some(bool_ptr(Rc::new(RefCell::new(Some(true)))));
-    *label.borrow_mut() = Some(string_ptr(Rc::new(RefCell::new(Some("ready".to_string())))));
+    *label_1.borrow_mut() = Some(string_ptr(Rc::new(RefCell::new(Some("ready".to_string())))));
 }
 
 
@@ -730,9 +730,9 @@ pub fn suffix(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 fn main() {
     __go_init_all();
     println!("{}", format!("{}", (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
-    println!("{}", format!("{}", (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
+    println!("{}", format!("{}", (*(*label_1.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", invert(Rc::new(RefCell::new(Some({ let __arg_value = (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone(); __arg_value }))))));
-    println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some({ let __arg_value = (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone(); __arg_value })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some({ let __arg_value = (*(*label_1.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone(); __arg_value })))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {
