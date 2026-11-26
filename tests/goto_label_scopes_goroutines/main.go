@@ -107,6 +107,25 @@ s1:
 	fmt.Println("E", x, n, m, __goto_reenter_a)
 }
 
+// A loop label that no goto uses keeps its loop's continue.
+func caseF(n int) {
+	i := 0
+	if n < 0 {
+		goto done
+	}
+outer:
+	for j := 0; j < 3; j++ {
+		for k := 0; k < 3; k++ {
+			if k == j {
+				continue outer
+			}
+			i += k
+		}
+	}
+done:
+	fmt.Println("F", n, i)
+}
+
 func main() {
 	done := make(chan bool)
 	go func() { done <- true }()
@@ -120,4 +139,6 @@ func main() {
 		caseD(x)
 		caseE(x)
 	}
+	caseF(1)
+	caseF(-1)
 }

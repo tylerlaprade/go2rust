@@ -817,6 +817,29 @@ pub fn case_e(x: Rc<RefCell<Option<bool>>>) {
     };
 }
 
+/// A loop label that no goto uses keeps its loop's continue.
+pub fn case_f(n: Rc<RefCell<Option<i64>>>) {
+    let mut i = Rc::new(RefCell::new(Some(0i64)));
+    'done: {
+        if (*n.borrow().as_ref().unwrap()) < 0 {
+        break 'done;
+    }
+        let mut j = Rc::new(RefCell::new(Some(0i64)));
+    'outer: while (*j.borrow().as_ref().unwrap()) < 3 {
+        let mut k = Rc::new(RefCell::new(Some(0i64)));
+    while (*k.borrow().as_ref().unwrap()) < 3 {
+        if (*k.borrow().as_ref().unwrap()) == (*j.borrow().as_ref().unwrap()) {
+        { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer
+    }
+        { let __rhs = (*k.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = k.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        { let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    }
+    println!("{} {} {}", format!("{}", "F".to_string()), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i.borrow().as_ref().unwrap()).clone(); __v }));
+}
+
 fn main() {
     for x in vec![false, true].iter().copied() {
         for y in vec![false, true].iter().copied() {
@@ -827,4 +850,6 @@ fn main() {
         case_d(Rc::new(RefCell::new(Some(x.clone()))));
         case_e(Rc::new(RefCell::new(Some(x.clone()))));
     }
+    case_f(Rc::new(RefCell::new(Some(1))));
+    case_f(Rc::new(RefCell::new(Some(-1))));
 }

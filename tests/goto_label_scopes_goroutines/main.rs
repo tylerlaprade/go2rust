@@ -986,6 +986,29 @@ pub fn case_e(x: Arc<Mutex<Option<bool>>>) {
     };
 }
 
+/// A loop label that no goto uses keeps its loop's continue.
+pub fn case_f(n: Arc<Mutex<Option<i64>>>) {
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    'done: {
+        if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
+        break 'done;
+    }
+        let mut j = Arc::new(Mutex::new(Some(0i64)));
+    'outer: while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        let mut k = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        if { let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue 'outer
+    }
+        { let __rhs = (*k.lock().unwrap().as_ref().unwrap()); let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let mut guard = k.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    }
+    println!("{} {} {}", format!("{}", "F".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+}
+
 fn main() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); std::thread::spawn(move || {
@@ -1007,4 +1030,6 @@ fn main() {
         case_d(Arc::new(Mutex::new(Some(x.clone()))));
         case_e(Arc::new(Mutex::new(Some(x.clone()))));
     }
+    case_f(Arc::new(Mutex::new(Some(1))));
+    case_f(Arc::new(Mutex::new(Some(-1))));
 }
