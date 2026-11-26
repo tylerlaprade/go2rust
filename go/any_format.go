@@ -29,6 +29,15 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 			return anyFormatArm{expr: `format!("{}", v)`, text: true}, true
 		}
 	case *types.Pointer:
+		if anyFormatTypeIsLocalNamedCollection(t.Elem()) && typeHasGoStringMethod(t) {
+			// A pointer to a named slice, array or map with a String
+			// method prints through the method, as the pointee does.
+			var expr strings.Builder
+			expr.WriteString("match (*v")
+			WriteBorrowMethod(&expr, false)
+			expr.WriteString(`).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() }`)
+			return anyFormatArm{expr: expr.String(), text: true}, true
+		}
 		if anyFormatTypeIsLocalStruct(t.Elem()) {
 			var expr strings.Builder
 			if typeHasGoStringMethod(t) || isConcreteGoErrorValue(t) {

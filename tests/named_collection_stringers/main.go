@@ -51,4 +51,19 @@ func main() {
 	var x any = t
 	var y any = c
 	fmt.Println(x, y)
+
+	// %x and a width apply to the text String gives.
+	fmt.Printf("%x|%X|%10s|%-8v|\n", t, t, t, tr)
+	raw := Raw{1, 2}
+	fmt.Printf("%x %s %v\n", raw, raw, raw)
+	// A pointer to one prints through String too, in an interface{}.
+	pt := &t
+	var z any = pt
+	fmt.Println(z, pt)
+	*pt = append(*pt, "c")
+	fmt.Println(z)
 }
+
+type Raw []byte
+
+func (r Raw) String() string { return "raw" }
