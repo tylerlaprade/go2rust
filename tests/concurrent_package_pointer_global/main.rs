@@ -1007,13 +1007,13 @@ impl Clone for Box<dyn valueReader + Send + Sync> {
     }
 }
 
-pub(crate) static current: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<counter>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static current_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<counter>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static fallback: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<counter>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
-    *current.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *current_1.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *fallback.lock().unwrap() = Some(Arc::new(Mutex::new(Some(counter { value: Arc::new(Mutex::new(Some(5))), ..Default::default() }))));
 }
@@ -1084,19 +1084,19 @@ pub fn new_counter(value: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<counter>>
 }
 
 pub fn set_counter(c: Arc<Mutex<Option<counter>>>) {
-    { let new_val = c.clone(); *current.lock().unwrap() = Some(new_val); };
+    { let new_val = c.clone(); *current_1.lock().unwrap() = Some(new_val); };
 }
 
 pub fn get_counter() -> Arc<Mutex<Option<counter>>> {
-    (*current.lock().unwrap().as_ref().unwrap()).clone()
+    (*current_1.lock().unwrap().as_ref().unwrap()).clone()
 }
 
 pub fn current_value() -> i64 {
-    return (*(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap());
+    return (*(*(*current_1.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_ref().unwrap());
 }
 
 pub fn set_current_value(value: Arc<Mutex<Option<i64>>>) {
-    { let new_val = value.lock().unwrap().as_ref().unwrap().clone(); *(*(*current.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
+    { let new_val = value.lock().unwrap().as_ref().unwrap().clone(); *(*(*current_1.lock().unwrap().as_ref().unwrap()).lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
 }
 
 pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> {
@@ -1104,7 +1104,7 @@ pub fn get_fallback() -> Arc<Mutex<Option<Box<dyn valueReader + Send + Sync>>>> 
 }
 
 pub fn clear_counter() {
-    *current.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *current_1.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
 }
 
 pub fn mark_concurrent(done: GoChannel<bool>) {

@@ -926,6 +926,14 @@ func NeedPanicExit() {
 	}
 }
 
+// NeedGoWriteBack marks that a call writes cell values back into the
+// elements it was handed pointers to, from a guard.
+func NeedGoWriteBack() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoWriteBack = true
+	}
+}
+
 // NeedGoPointerError marks that an error assertion must keep a concrete
 // pointer handle live instead of snapshotting its current pointee.
 func NeedGoPointerError() {

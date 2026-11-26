@@ -911,15 +911,15 @@ impl std::fmt::Display for item {
 }
 
 
-pub(crate) static want: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<item>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static want_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<item>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static global: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<item>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
-    *want.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *want_1.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *global.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *want.lock().unwrap() = Some(Arc::new(Mutex::new(Some(item { name: Arc::new(Mutex::new(Some("w".to_string()))), ..Default::default() }))));
+    *want_1.lock().unwrap() = Some(Arc::new(Mutex::new(Some(item { name: Arc::new(Mutex::new(Some("w".to_string()))), ..Default::default() }))));
 }
 
 
@@ -1038,7 +1038,7 @@ pub fn wanted(r#yield: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<
         let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<item>>>) -> bool + Send + Sync> = r#yield.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
             Arc::new(Mutex::new(Some(1))),
-            { let __arg_holder = want.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }
+            { let __arg_holder = want_1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }
         )
     };
 }
@@ -1190,7 +1190,7 @@ fn main() {
     }
     println!("{} {} {}", format!("{}", { let __v = (*at.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", {
         let __left = (*__cell_last_1.lock().unwrap().as_ref().unwrap()).v.clone();
-        let __right = (*want.lock().unwrap().as_ref().unwrap()).clone();
+        let __right = (*want_1.lock().unwrap().as_ref().unwrap()).clone();
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq

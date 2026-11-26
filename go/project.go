@@ -317,6 +317,9 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// Set the global type info once for the entire project
 		SetTypeInfo(typeInfo)
 	}
+	if pg.typeInfo != nil {
+		SetProgramFunctionDecls(functionDeclsOfFiles(astFiles, pg.typeInfo.info))
+	}
 
 	// Detect concurrency in the project
 	concurrencyDetector := workspaceConcurrencyDetector

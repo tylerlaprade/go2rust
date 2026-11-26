@@ -756,15 +756,15 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static current: GoGlobal<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub(crate) static current_1: GoGlobal<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *current.borrow_mut() = Some(BTreeMap::new());
+    *current_1.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<String>>>>::new();
         __go_map.insert("a".to_string(), Rc::new(RefCell::new(Some("old".to_string()))));
-        *current.borrow_mut() = Some(__go_map);
+        *current_1.borrow_mut() = Some(__go_map);
     }
 }
 
@@ -772,10 +772,10 @@ fn __go_init_globals() {
 fn main() {
     go_install_panic_exit();
     __go_init_all();
-    let mut old = Rc::new(RefCell::new(Some((*current.borrow().as_ref().unwrap()).clone())));
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("new".to_string()))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *current.borrow_mut() = new_val; };
+    let mut old = Rc::new(RefCell::new(Some((*current_1.borrow().as_ref().unwrap()).clone())));
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("new".to_string()))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *current_1.borrow_mut() = new_val; };
     { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some("saved".to_string()))); (*old.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", { let __map_holder = current.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
+    println!("{}", format!("{}", { let __map_holder = current_1.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
     println!("{} {}", format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
 }
 

@@ -31,7 +31,7 @@ func use(xs []int) (int, any, Kind) {
 		"Some(vec![1i64, 2i64])",
 		"Box::new(7i64)",
 		"98i64",
-		"((*table.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as i32",
+		"((*table_1.borrow().as_ref().unwrap()).len() as i64) - (1 as i64)) as i32",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("Go's int should be a Rust i64, missing %q:\n%s", want, rust)

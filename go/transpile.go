@@ -82,7 +82,17 @@ var currentLoopDepth int
 func enterClosureBody() func() {
 	oldLoopDepth := currentLoopDepth
 	currentLoopDepth = 0
-	return func() { currentLoopDepth = oldLoopDepth }
+	// A loop of the enclosing function is not the literal's to break or
+	// continue.
+	oldContinueTargets := continueTargetStack
+	continueTargetStack = nil
+	oldBreakTargets := breakTargetStack
+	breakTargetStack = nil
+	return func() {
+		currentLoopDepth = oldLoopDepth
+		continueTargetStack = oldContinueTargets
+		breakTargetStack = oldBreakTargets
+	}
 }
 
 // currentCaptureRenames tracks variable renames for captured variables in closures
@@ -3534,6 +3544,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Each file numbers its print operand temporaries from 1, so a file's
 	// Rust does not depend on the files written before it.
 	fmtOperandTempCount = 0
+	gotoLoopLabelCount = 0
+	gotoSyntheticNames = collectGotoSyntheticNameConflicts(file)
+	gotoReenterFlagNames, gotoReenterFlagTaken = nil, nil
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
@@ -4212,6 +4225,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	if goSliceModeEnabled() {
 		output.WriteString(goSliceVecMacro)
+	}
+	if usesStdoutPrintMacro(helpersStr) || usesStdoutPrintMacro(body.String()) {
+		output.WriteString(goPrintFlushMacro)
 	}
 	output.WriteString(helpersStr)
 	if helpersStr != "" {

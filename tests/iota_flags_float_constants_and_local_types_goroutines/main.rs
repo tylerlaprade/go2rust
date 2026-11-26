@@ -10,6 +10,13 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 /// A Go slice: an offset, a length and a capacity over a backing array that
 /// every slice made from it shares. Every name below that a binding uses
 /// starts with __, so no package-level variable of the program shadows it.
@@ -1626,15 +1633,15 @@ impl std::ops::Neg for Size {
 }
 
 
-pub(crate) static registry: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static registry_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static order: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
-    *registry.lock().unwrap() = Some(BTreeMap::new());
+    *registry_1.lock().unwrap() = Some(BTreeMap::new());
     *order.lock().unwrap() = Some(Vec::nil());
-    *registry.lock().unwrap() = Some((*build_registry().lock().unwrap().as_ref().unwrap()).clone());
+    *registry_1.lock().unwrap() = Some((*build_registry().lock().unwrap().as_ref().unwrap()).clone());
 }
 
 
@@ -1668,7 +1675,7 @@ pub fn build_registry() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i6
 
 fn __go_init_0() {
     { let new_val = { let __collection_holder = { let __append_target = order.clone(); let __append_value = "init1".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *order.lock().unwrap() = new_val; };
-    { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*registry.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*registry_1.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 fn __go_init_1() {
@@ -1714,7 +1721,7 @@ fn main() {
     started.recv().unwrap_or_default();
     println!("{} {} {} {} {} {} {}", format!("{}", Perm(Arc::new(Mutex::new(Some(READ as u8))))), format!("{}", Perm(Arc::new(Mutex::new(Some(WRITE as u8))))), format!("{}", Perm(Arc::new(Mutex::new(Some(EXEC as u8))))), format!("{}", Perm(Arc::new(Mutex::new(Some(ALL as u8))))), format!("{}", Perm(Arc::new(Mutex::new(Some(5 as u8))))), format!("{}", Perm(Arc::new(Mutex::new(Some(ALL as u8)))).has(Arc::new(Mutex::new(Some(Perm(Arc::new(Mutex::new(Some(WRITE as u8))))))))), format!("{}", Perm::has(&(Perm(Arc::new(Mutex::new(Some(4 as u8))))), Arc::new(Mutex::new(Some(Perm(Arc::new(Mutex::new(Some(READ as u8))))))))));
     println!("{} {} {} {}", format!("{}", Size(Arc::new(Mutex::new(Some(K_B))))), format!("{}", Size(Arc::new(Mutex::new(Some(1024.0))))), format!("{}", Size(Arc::new(Mutex::new(Some(1024.0))))), format!("{}", (*Arc::new(Mutex::new(Some(1.073741824e+09 as i64))).lock().unwrap().as_ref().unwrap())));
-    println!("{} {} {}", format!("{}", format_slice(&order.clone())), format!("{}", ({ let __len = (*registry.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map = { let __map_holder = registry.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    println!("{} {} {}", format!("{}", format_slice(&order.clone())), format!("{}", ({ let __len = (*registry_1.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map = { let __map_holder = registry_1.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut xs = Arc::new(Mutex::new(Some(vec![1i64, 2i64, 3i64])));
     println!("{} {} {} {}", format!("{}", sum(Arc::new(Mutex::new(Some(vec![]))))), format!("{}", sum(Arc::new(Mutex::new(Some(vec![1]))))), format!("{}", sum(xs.clone())), format!("{}", sum({ let __append_target = xs.clone(); let __append_value = 4; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })));
     let mut inc = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<i64>>>| -> i64 {

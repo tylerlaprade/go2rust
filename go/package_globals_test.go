@@ -127,7 +127,7 @@ func main() {
 }
 `)
 
-	if strings.Contains(rust, "*table.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([") {
+	if strings.Contains(rust, "*table_1.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([") {
 		t.Fatalf("package global array literal should not emit one nested wrapper expression:\n%s", rust)
 	}
 	for _, want := range []string{
@@ -136,7 +136,7 @@ func main() {
 		"__go_array.push(0);",
 		"__go_array.push(3 as u32);",
 		"let __go_array: [u32; 4] = match __go_array.try_into()",
-		"*table.lock().unwrap() = Some(__go_array);",
+		"*table_1.lock().unwrap() = Some(__go_array);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("package global array literal should build a temporary array with statements, missing %q:\n%s", want, rust)
@@ -439,13 +439,13 @@ func main() {
 }
 `)
 
-	if !strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
+	if !strings.Contains(rust, "static typ_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
 		t.Fatalf("package-global pointer initialized from a GoPtr field should use GoPtr storage:\n%s", rust)
 	}
-	if strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Type>>>>>>>") {
+	if strings.Contains(rust, "static typ_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Type>>>>>>>") {
 		t.Fatalf("package-global pointer initialized from a GoPtr field should not keep wrapper storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*typ.lock().unwrap() = Some(GoPtr::nil());") {
+	if !strings.Contains(rust, "*typ_1.lock().unwrap() = Some(GoPtr::nil());") {
 		t.Fatalf("package-global GoPtr zero value should be GoPtr::nil():\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __ptr = eface_of(sink.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().typ.clone()") {
@@ -489,13 +489,13 @@ func main() {
 }
 `)
 
-	if !strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
+	if !strings.Contains(rust, "static typ_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
 		t.Fatalf("package-global pointer initialized from a GoPtr field should use GoPtr storage:\n%s", rust)
 	}
-	if strings.Contains(rust, "GoPtr::local((*typ") {
+	if strings.Contains(rust, "GoPtr::local((*typ_1") {
 		t.Fatalf("assignment from package-global GoPtr storage should not rewrap the stored handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = (*typ.lock().unwrap().as_ref().unwrap()).clone();") {
+	if !strings.Contains(rust, "let new_val = (*typ_1.lock().unwrap().as_ref().unwrap()).clone();") {
 		t.Fatalf("assignment from package-global GoPtr storage should clone the existing handle:\n%s", rust)
 	}
 }

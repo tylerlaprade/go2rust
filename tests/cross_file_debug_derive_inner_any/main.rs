@@ -13,6 +13,13 @@ use bbb_inner::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 fn main() {
     go_install_panic_exit();
     let mut r#in = Rc::new(RefCell::new(Some(Inner { tag: Rc::new(RefCell::new(Some("k".to_string()))), data: Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>))), ..Default::default() })));

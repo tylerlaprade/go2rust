@@ -1,0 +1,9 @@
+3 4 0
+1 s false [1 a 2.5 <nil>]
+map[j:[3] k:[1 2]] 2
+[[a] [b c]] [[1 2] [3 4]]
+{1 2} 1:2
+{3 4} {X:5 Y:6} "q" ff  3.14 *main.point
+boom wrap: boom true true
+[a b c] a-b-c 42 <nil> "hi"
+1 2 0003.500|7   |6869

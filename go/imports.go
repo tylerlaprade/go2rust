@@ -156,6 +156,7 @@ type HelperTracker struct {
 	needsPanicRecover                    bool
 	needsPanicExit                       bool
 	needsGoPointerError                  bool
+	needsGoWriteBack                     bool
 	needsGoValueClone                    bool
 	needsGoTypeParamFieldClone           bool
 	needsGoComparable                    bool
@@ -438,6 +439,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoPointerError(&result)
 	}
 
+	if ht.needsGoWriteBack {
+		generateGoWriteBack(&result)
+	}
+
 	if ht.needsGoValueClone {
 		generateGoValueClone(&result)
 	}
@@ -619,6 +624,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsPanicRecover ||
 		ht.needsPanicExit ||
 		ht.needsGoPointerError ||
+		ht.needsGoWriteBack ||
 		ht.needsGoValueClone ||
 		ht.needsGoTypeParamFieldClone ||
 		ht.needsGoComparable ||
@@ -783,6 +789,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoPointerError {
 		add("GoPointerError")
+	}
+	if ht.needsGoWriteBack {
+		add("GoWriteBack")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1417,6 +1426,28 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool, withH
 // generateGoPointerError emits an error adapter that keeps the original Go
 // pointer handle. Error interface bindings must observe later whole-value
 // replacement through that handle instead of snapshotting the pointee.
+// generateGoWriteBack writes GoWriteBack, a guard that runs its closure
+// when it is dropped: on the normal way out of a scope and while a panic
+// unwinds through it.
+func generateGoWriteBack(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString("struct GoWriteBack<F: FnMut()>(")
+	out.WriteString(visibility)
+	out.WriteString(`F);
+
+impl<F: FnMut()> Drop for GoWriteBack<F> {
+    fn drop(&mut self) {
+        (self.0)()
+    }
+}
+`)
+}
+
 func generateGoPointerError(out *strings.Builder) {
 	visibility := ""
 	if generatingPublicHelpers {

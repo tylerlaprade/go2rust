@@ -10,6 +10,13 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 
 // Go expands a pointer to a struct only when the pointer is the value being
 // printed. Inside a struct or a slice it prints the address. That is also
