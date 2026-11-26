@@ -1,0 +1,8 @@
+false
+[1 2 3] true
+[a b c] true 1
+false
+[-1 0 2.5] true
+a/c /x/y y.go .txt a/b
+../c/d <nil>
+true true [a b]

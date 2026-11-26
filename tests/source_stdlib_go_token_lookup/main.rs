@@ -8,7 +8,6 @@ use go2rust_stdlib_stubs::*;
 use std::sync::{Arc, Mutex};
 
 fn main() {
-    ::cmp::__go_init_all();
     ::go_token::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_stringslite::__go_init_all();

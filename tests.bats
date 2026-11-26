@@ -4040,6 +4040,10 @@ run_xfail_test() {
     run_test "tests/slices_sort_func"
 }
 
+@test "sort_and_filepath_call_slices" {
+    run_test "tests/sort_and_filepath_call_slices"
+}
+
 @test "sort_func_interface_param_call" {
     run_test "tests/sort_func_interface_param_call"
 }

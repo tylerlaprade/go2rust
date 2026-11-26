@@ -38,6 +38,7 @@ type monoInstance struct {
 }
 
 type monomorphizer struct {
+	only  func(name string) bool // the generic declarations to write out; nil for all
 	path  string
 	imp   types.Importer
 	fset  *token.FileSet
@@ -68,6 +69,15 @@ func monomorphizeGenerics(files []*ast.File, fset *token.FileSet) ([]*ast.File, 
 // monomorphizeGenericsWith is monomorphizeGenerics for a package with the
 // import path path, whose imports imp resolves.
 func monomorphizeGenericsWith(path string, files []*ast.File, fset *token.FileSet, imp types.Importer) ([]*ast.File, bool) {
+	return monomorphizeGenericsMatching(path, files, fset, imp, nil)
+}
+
+// monomorphizeGenericsMatching is monomorphizeGenericsWith for the generic
+// declarations whose names instantiate accepts, or for all of them when it
+// is nil. A package other programs import keeps its own generics, which
+// its importers instantiate; only the copies of slices and maps it calls
+// are written out (stdlib_generic_inline.go).
+func monomorphizeGenericsMatching(path string, files []*ast.File, fset *token.FileSet, imp types.Importer, instantiate func(name string) bool) ([]*ast.File, bool) {
 	// GO2RUST_GENERIC_RUST=1 keeps generic declarations as Rust generics,
 	// the code path a program takes when this rewrite does not apply.
 	if os.Getenv("GO2RUST_GENERIC_RUST") == "1" || !filesDeclareGenerics(files) {
@@ -78,6 +88,7 @@ func monomorphizeGenericsWith(path string, files []*ast.File, fset *token.FileSe
 		return nil, false
 	}
 	m := &monomorphizer{
+		only:           instantiate,
 		path:           path,
 		imp:            imp,
 		fset:           fset,
@@ -162,6 +173,9 @@ func (m *monomorphizer) collectGenericDecls() {
 					if d.Type.TypeParams == nil || len(d.Type.TypeParams.List) == 0 {
 						continue
 					}
+					if m.only != nil && !m.only(d.Name.Name) {
+						continue
+					}
 					if fn, ok := m.info.Defs[d.Name].(*types.Func); ok {
 						m.genericFuncs[fn] = d
 						m.declFile[d] = file
@@ -176,6 +190,9 @@ func (m *monomorphizer) collectGenericDecls() {
 				for _, spec := range d.Specs {
 					ts, ok := spec.(*ast.TypeSpec)
 					if !ok || ts.TypeParams == nil || len(ts.TypeParams.List) == 0 {
+						continue
+					}
+					if m.only != nil && !m.only(ts.Name.Name) {
 						continue
 					}
 					if typeName, ok := m.info.Defs[ts.Name].(*types.TypeName); ok {
@@ -217,6 +234,42 @@ func (m *monomorphizer) receiverGenericType(decl *ast.FuncDecl) *types.TypeName 
 	}
 	typeName, _ := m.info.Uses[ident].(*types.TypeName)
 	return typeName
+}
+
+// keepsGeneric reports whether decl is a generic function, or a method of a
+// generic type, that monomorphizeGenericsMatching leaves generic: it is
+// copied as it is, since its type parameters have no arguments to put in.
+func (m *monomorphizer) keepsGeneric(decl ast.Decl) bool {
+	fn, ok := decl.(*ast.FuncDecl)
+	if !ok || m.only == nil {
+		return false
+	}
+	if fn.Type.TypeParams != nil && len(fn.Type.TypeParams.List) > 0 {
+		return true
+	}
+	if fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	recv := fn.Recv.List[0].Type
+	if star, ok := recv.(*ast.StarExpr); ok {
+		recv = star.X
+	}
+	switch recv.(type) {
+	case *ast.IndexExpr, *ast.IndexListExpr:
+		return true
+	}
+	return false
+}
+
+// writesOut reports whether the generic type ts is written once per
+// instantiation, rather than kept generic (monomorphizeGenericsMatching).
+func (m *monomorphizer) writesOut(ts *ast.TypeSpec) bool {
+	typeName, ok := m.info.Defs[ts.Name].(*types.TypeName)
+	if !ok {
+		return false
+	}
+	_, ok = m.genericTypes[typeName]
+	return ok
 }
 
 func (m *monomorphizer) owns(obj types.Object) bool {
@@ -759,15 +812,34 @@ func (m *monomorphizer) rewrite() ([]*ast.File, bool) {
 				pf.decls = append(pf.decls, decl) // placeholder, replaced below
 				continue
 			}
+			if m.keepsGeneric(decl) {
+				pf.decls = append(pf.decls, astCopier{}.copyNode(decl).(ast.Decl))
+				continue
+			}
 			if gen, ok := decl.(*ast.GenDecl); ok && gen.Tok == token.TYPE {
 				var specs []ast.Spec
 				hasGeneric := false
+				keptGeneric := false
 				for _, spec := range gen.Specs {
 					if ts, ok := spec.(*ast.TypeSpec); ok && ts.TypeParams != nil && len(ts.TypeParams.List) > 0 {
-						hasGeneric = true
+						if m.writesOut(ts) {
+							hasGeneric = true
+							continue
+						}
+						// A generic type that stays generic is copied as
+						// it is, type parameters and all.
+						specs = append(specs, astCopier{}.copyNode(spec).(ast.Spec))
+						keptGeneric = true
 						continue
 					}
 					specs = append(specs, c.copyNode(spec).(ast.Spec))
+				}
+				if m.err != nil {
+					return nil, false
+				}
+				if keptGeneric && !hasGeneric {
+					pf.decls = append(pf.decls, &ast.GenDecl{Doc: gen.Doc, TokPos: gen.TokPos, Tok: gen.Tok, Lparen: gen.Lparen, Specs: specs, Rparen: gen.Rparen})
+					continue
 				}
 				if hasGeneric {
 					pf.decls = append(pf.decls, gen) // placeholder
