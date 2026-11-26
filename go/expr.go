@@ -4418,7 +4418,15 @@ func noEscapeElemPtrArgShouldUseMultiline(arg ast.Expr) bool {
 }
 
 func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
-	if call == nil || !sourceFunctionNoEscapeBodylessDecl(call) {
+	if call == nil {
+		return false
+	}
+	// A bodyless //go:noescape function keeps none of its pointers. A
+	// function of the program whose body only reads and writes through a
+	// pointer parameter keeps none either (DEV-229): the element is copied
+	// into a cell for the call and the cell's value written back after it.
+	bodylessNoEscape := sourceFunctionNoEscapeBodylessDecl(call)
+	if !bodylessNoEscape && !callTargetIsPlainSourceFunction(call) {
 		return false
 	}
 	sig, ok := sourceFunctionSignatureForCall(call)
@@ -4436,6 +4444,9 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			return false
 		}
 		if noEscapeElemPtrCallArgCompatible(arg, params.At(i).Type()) {
+			if !bodylessNoEscape && !sourceFunctionPointerParamStaysLocal(call, i) {
+				return false
+			}
 			elemArgs = append(elemArgs, noEscapeElemPtrCallArg{index: i, arg: arg})
 			adapted[i] = true
 		}
@@ -4565,6 +4576,126 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 		out.WriteString("__result }")
 	}
 	return true
+}
+
+// callTargetIsPlainSourceFunction reports whether call calls a function of
+// the program by its name, or a translated package's function by its
+// qualified name: a call whose arguments the element-pointer writer can
+// pass in place.
+func callTargetIsPlainSourceFunction(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var name *ast.Ident
+	switch fun := unwrapParens(call.Fun).(type) {
+	case *ast.Ident:
+		name = fun
+	case *ast.SelectorExpr:
+		pkg, ok := fun.X.(*ast.Ident)
+		if !ok {
+			return false
+		}
+		if _, isPkg := typeInfo.info.Uses[pkg].(*types.PkgName); !isPkg {
+			return false
+		}
+		name = fun.Sel
+	default:
+		return false
+	}
+	fn, ok := typeInfo.info.Uses[name].(*types.Func)
+	if !ok {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() != nil || sig.TypeParams().Len() > 0 {
+		return false
+	}
+	declInfo, ok := functionDeclInfo(fn)
+	return ok && declInfo.decl != nil && declInfo.decl.Body != nil && declInfo.info != nil
+}
+
+// sourceFunctionPointerParamStaysLocal reports whether the function that
+// call calls only reads and writes through its pointer parameter index:
+// every use of the parameter is *p, a field p.f, or a comparison with nil,
+// outside any function literal, and never under &. Such a function cannot
+// keep the pointer, so a pointer to a slice or array element can be passed
+// as a cell whose value is written back after the call.
+func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil {
+		return false
+	}
+	declInfo, ok := functionDeclInfo(fn)
+	if !ok || declInfo.decl == nil || declInfo.decl.Body == nil || declInfo.info == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || index >= sig.Params().Len() {
+		return false
+	}
+	param := sig.Params().At(index)
+	info := declInfo.info
+	isParam := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && info.Uses[ident] == param
+	}
+	isNil := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && info.Uses[ident] == types.Universe.Lookup("nil")
+	}
+	allowed := map[*ast.Ident]bool{}
+	addressed := map[ast.Expr]bool{}
+	local := true
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		if !local {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			ast.Inspect(n, func(inner ast.Node) bool {
+				if ident, ok := inner.(*ast.Ident); ok && info.Uses[ident] == param {
+					local = false
+				}
+				return local
+			})
+			return false
+		case *ast.UnaryExpr:
+			if n.Op == token.AND {
+				addressed[unwrapParens(n.X)] = true
+			}
+		case *ast.StarExpr:
+			if isParam(n.X) && !addressed[n] {
+				allowed[unwrapParens(n.X).(*ast.Ident)] = true
+			}
+		case *ast.SelectorExpr:
+			if isParam(n.X) && !addressed[n] {
+				if selection, ok := info.Selections[n]; ok && selection.Kind() == types.FieldVal {
+					allowed[unwrapParens(n.X).(*ast.Ident)] = true
+				}
+			}
+		case *ast.BinaryExpr:
+			if n.Op == token.EQL || n.Op == token.NEQ {
+				if isParam(n.X) && isNil(n.Y) {
+					allowed[unwrapParens(n.X).(*ast.Ident)] = true
+				}
+				if isParam(n.Y) && isNil(n.X) {
+					allowed[unwrapParens(n.Y).(*ast.Ident)] = true
+				}
+			}
+		}
+		return true
+	})
+	if !local {
+		return false
+	}
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		if ident, ok := node.(*ast.Ident); ok && info.Uses[ident] == param && !allowed[ident] {
+			local = false
+		}
+		return local
+	})
+	return local
 }
 
 func noEscapeElemPtrCallArgCompatible(arg ast.Expr, expected types.Type) bool {
@@ -5537,6 +5668,45 @@ type sourceFunctionParamKey struct {
 
 var sourceFunctionDeclsByFunc map[*types.Func]sourceFunctionDeclInfo
 var sourceFunctionReadOnlyParamCache map[sourceFunctionParamKey]bool
+
+// programFunctionDecls maps the functions of the program's main package to
+// their declarations, which sourceFunctionDeclsByFunc does not hold.
+var programFunctionDecls map[*types.Func]sourceFunctionDeclInfo
+
+func SetProgramFunctionDecls(decls map[*types.Func]sourceFunctionDeclInfo) {
+	programFunctionDecls = decls
+}
+
+// functionDeclsOfFiles maps each function and method declared in files to
+// its declaration.
+func functionDeclsOfFiles(files []*ast.File, info *types.Info) map[*types.Func]sourceFunctionDeclInfo {
+	decls := make(map[*types.Func]sourceFunctionDeclInfo)
+	if info == nil {
+		return decls
+	}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fnDecl, ok := decl.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			if fn, ok := info.Defs[fnDecl.Name].(*types.Func); ok && fn != nil {
+				decls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: info}
+			}
+		}
+	}
+	return decls
+}
+
+// functionDeclInfo returns the declaration of fn, a function of the main
+// package or of a package translated from source.
+func functionDeclInfo(fn *types.Func) (sourceFunctionDeclInfo, bool) {
+	if info, ok := sourceFunctionDeclsByFunc[fn]; ok {
+		return info, true
+	}
+	info, ok := programFunctionDecls[fn]
+	return info, ok
+}
 
 func SetSourceFunctionDeclsByFunc(decls map[*types.Func]sourceFunctionDeclInfo) {
 	sourceFunctionDeclsByFunc = decls

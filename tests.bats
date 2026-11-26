@@ -1296,6 +1296,14 @@ run_xfail_test() {
     run_test "tests/dynamic_format_strings"
 }
 
+@test "elem_ptr_call_args" {
+    run_test "tests/elem_ptr_call_args"
+}
+
+@test "elem_ptr_call_args_goroutines" {
+    run_test "tests/elem_ptr_call_args_goroutines"
+}
+
 @test "elided_nested_composites" {
     run_test "tests/elided_nested_composites"
 }
