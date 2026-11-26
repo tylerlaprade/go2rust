@@ -20,6 +20,23 @@ func set(p *int, v int) {
 
 func swap(a, b *int) { *a, *b = *b, *a }
 
+// reset replaces the whole struct, so only the write-back shows it.
+func reset(p *P) { *p = P{N: 9} }
+
+// both writes through two pointers that can be one element.
+func both(a, b *int) {
+	*a = 5
+	*b += 1
+}
+
+var calls []string
+
+func first() int { calls = append(calls, "first"); return 0 }
+
+func at(i int) int { calls = append(calls, "at"); return i }
+
+func add(x int, p *int) { *p += x + 10 }
+
 func double(p *int) int {
 	*p *= 2
 	return *p
@@ -39,4 +56,10 @@ func main() {
 	i := 1
 	fmt.Println(double(&arr[i]), arr)
 	fmt.Println(words, nums, ps, arr)
+	reset(&ps[0])
+	one := []int{1, 2}
+	both(&one[0], &one[0])
+	both(&one[1], &one[0])
+	add(first(), &one[at(1)])
+	fmt.Println(ps, one, calls)
 }

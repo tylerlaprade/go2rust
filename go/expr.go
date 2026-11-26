@@ -4444,7 +4444,7 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			return false
 		}
 		if noEscapeElemPtrCallArgCompatible(arg, params.At(i).Type()) {
-			if !bodylessNoEscape && !sourceFunctionPointerParamStaysLocal(call, i) {
+			if !bodylessNoEscape && (!sourceFunctionPointerParamStaysLocal(call, i) || pointerElemIsInterface(params.At(i).Type())) {
 				return false
 			}
 			elemArgs = append(elemArgs, noEscapeElemPtrCallArg{index: i, arg: arg})
@@ -4478,26 +4478,75 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString(" ")
 		}
 	}
-	for _, elemArg := range elemArgs {
+	// Go evaluates the arguments from left to right. When an argument
+	// before the last element pointer runs a call, every argument up to it
+	// is bound in order, not only the element pointers.
+	lastAdapted := elemArgs[len(elemArgs)-1].index
+	bindInOrder := false
+	for i := 0; i <= lastAdapted; i++ {
+		if binaryOperandHasCall(call.Args[i], true) {
+			bindInOrder = true
+		}
+	}
+	bound := make(map[int]bool)
+	var earlierSliceElems []string
+	for i, arg := range call.Args {
+		if !adapted[i] {
+			if bindInOrder && i < lastAdapted {
+				writeStmtIndent()
+				out.WriteString("let __arg")
+				out.WriteString(strconv.Itoa(i))
+				out.WriteString(" = ")
+				writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
+				out.WriteString(";")
+				finishStmt()
+				bound[i] = true
+			}
+			continue
+		}
 		writeStmtIndent()
-		index := strconv.Itoa(elemArg.index)
+		index := strconv.Itoa(i)
 		out.WriteString("let __elem_ptr_")
 		out.WriteString(index)
 		out.WriteString(" = ")
-		writeElemPtrNoEscapeOptionValue(out, elemArg.arg)
+		writeElemPtrNoEscapeOptionValue(out, arg)
 		out.WriteString(";")
 		finishStmt()
 		writeStmtIndent()
 		out.WriteString("let __arg")
 		out.WriteString(index)
 		out.WriteString(" = ")
+		// Two pointers to one element share one cell, so a write
+		// through either is seen through the other, as in Go.
+		_, isSliceElem := sliceElemPtrAddressElemRustType(arg)
+		if isSliceElem {
+			for _, earlier := range earlierSliceElems {
+				out.WriteString("if __elem_ptr_")
+				out.WriteString(index)
+				out.WriteString(".as_ref().zip(__elem_ptr_")
+				out.WriteString(earlier)
+				out.WriteString(".as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg")
+				out.WriteString(earlier)
+				out.WriteString(".clone() } else ")
+			}
+			if len(earlierSliceElems) > 0 {
+				out.WriteString("{ ")
+			}
+		}
 		out.WriteString(GetOuterWrapperType())
 		out.WriteString("::new(")
 		out.WriteString(GetInnerWrapperType())
 		out.WriteString("::new(__elem_ptr_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));")
+		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())))")
+		if isSliceElem && len(earlierSliceElems) > 0 {
+			out.WriteString(" }")
+		}
+		out.WriteString(";")
 		finishStmt()
+		if isSliceElem {
+			earlierSliceElems = append(earlierSliceElems, index)
+		}
 	}
 	writeStmtIndent()
 	out.WriteString("let __result = ")
@@ -4520,6 +4569,11 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("__arg")
 			out.WriteString(strconv.Itoa(i))
 			out.WriteString(".clone()")
+			continue
+		}
+		if bound[i] {
+			out.WriteString("__arg")
+			out.WriteString(strconv.Itoa(i))
 			continue
 		}
 		writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
@@ -4576,6 +4630,17 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 		out.WriteString("__result }")
 	}
 	return true
+}
+
+// pointerElemIsInterface reports whether typ is a pointer to an interface
+// type, whose element value has no Clone to copy it into a cell with.
+func pointerElemIsInterface(typ types.Type) bool {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	_, isInterface := ptr.Elem().Underlying().(*types.Interface)
+	return isInterface
 }
 
 // callTargetIsPlainSourceFunction reports whether call calls a function of
@@ -4646,6 +4711,7 @@ func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
 	}
 	allowed := map[*ast.Ident]bool{}
 	addressed := map[ast.Expr]bool{}
+	methodReceivers := map[ast.Expr]bool{}
 	local := true
 	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
 		if !local {
@@ -4665,10 +4731,16 @@ func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
 				addressed[unwrapParens(n.X)] = true
 			}
 		case *ast.StarExpr:
-			if isParam(n.X) && !addressed[n] {
+			if isParam(n.X) && !addressed[n] && !methodReceivers[n] {
 				allowed[unwrapParens(n.X).(*ast.Ident)] = true
 			}
 		case *ast.SelectorExpr:
+			// (*p).M() hands a pointer method &(*p), which is p.
+			if selection, ok := info.Selections[n]; ok && selection.Kind() == types.MethodVal {
+				if star, ok := unwrapParens(n.X).(*ast.StarExpr); ok {
+					methodReceivers[star] = true
+				}
+			}
 			if isParam(n.X) && !addressed[n] {
 				if selection, ok := info.Selections[n]; ok && selection.Kind() == types.FieldVal {
 					allowed[unwrapParens(n.X).(*ast.Ident)] = true

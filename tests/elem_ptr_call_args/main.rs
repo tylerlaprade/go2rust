@@ -1368,6 +1368,33 @@ impl std::fmt::Display for P {
 }
 
 
+pub(crate) struct GoGlobal<T> {
+    value: std::cell::UnsafeCell<Option<T>>,
+}
+unsafe impl<T> Sync for GoGlobal<T> {}
+impl<T> GoGlobal<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.value.get() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.value.get() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> where T: Clone {
+        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))
+    }
+}
+
+pub(crate) static calls: GoGlobal<Vec<String>> = GoGlobal::new();
+
+
+fn __go_init_globals() {
+    *calls.borrow_mut() = Some(Vec::nil());
+}
+
+
 pub fn tag(p: Rc<RefCell<Option<String>>>) {
     { (*p.borrow_mut().as_mut().unwrap()).push_str(&"!".to_string()); };
 }
@@ -1395,18 +1422,44 @@ pub fn swap(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) {
     };
 }
 
+/// reset replaces the whole struct, so only the write-back shows it.
+pub fn reset(p: Rc<RefCell<Option<P>>>) {
+    { let new_val = P { n: Rc::new(RefCell::new(Some(9))), ..Default::default() }; *p.borrow_mut() = Some(new_val); };
+}
+
+/// both writes through two pointers that can be one element.
+pub fn both(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) {
+    { let new_val = 5; *a.borrow_mut() = Some(new_val); };
+    { let __rhs = 1; let mut guard = b.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+}
+
+pub fn first() -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = calls.clone(); let __append_value = "first".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *calls.borrow_mut() = new_val; };
+    0
+}
+
+pub fn at(i: Rc<RefCell<Option<i64>>>) -> i64 {
+    { let new_val = { let __collection_holder = { let __append_target = calls.clone(); let __append_value = "at".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *calls.borrow_mut() = new_val; };
+    (*i.borrow().as_ref().unwrap())
+}
+
+pub fn add(x: Rc<RefCell<Option<i64>>>, p: Rc<RefCell<Option<i64>>>) {
+    { let __rhs = (*x.borrow().as_ref().unwrap()) + 10; let mut guard = p.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+}
+
 pub fn double(p: Rc<RefCell<Option<i64>>>) -> i64 {
     { let __rhs = 2; let mut guard = p.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
     { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }
 }
 
 fn main() {
+    __go_init_all();
     let mut words = Rc::new(RefCell::new(Some(vec!["ab".to_string(), "cd".to_string()])));
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(words.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = tag(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
     let mut nums = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = bump(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = set(__arg0.clone(), Rc::new(RefCell::new(Some(7)))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
-    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg1 = Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = swap(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(nums.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(nums.clone(), (1) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = swap(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
     let mut ps = Rc::new(RefCell::new(Some(vec![P { n: Rc::new(RefCell::new(Some(1))), ..Default::default() }, P { n: Rc::new(RefCell::new(Some(2))), ..Default::default() }])));
     { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = inc(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
     let mut arr = Rc::new(RefCell::new(Some([5i64, 6i64])));
@@ -1414,4 +1467,27 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(1i64)));
     println!("{} {}", format!("{}", { let __elem_ptr_0 = Some(GoArrayElemPtr::new(arr.clone(), ((*i.borrow().as_ref().unwrap())) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = double(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result }), format!("{}", format_slice(&arr)));
     println!("{} {} {} {}", format!("{}", format_slice(&words)), format!("{}", format_slice(&nums)), format!("{}", format_slice(&ps)), format!("{}", format_slice(&arr)));
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(ps.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = reset(__arg0.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; __result };
+    let mut one = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = both(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
+    { let __elem_ptr_0 = Some(GoSliceElemPtr::new(one.clone(), (1) as usize)); let __arg0 = Rc::new(RefCell::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (0) as usize)); let __arg1 = if __elem_ptr_1.as_ref().zip(__elem_ptr_0.as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg0.clone() } else { Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))) }; let __result = both(__arg0.clone(), __arg1.clone()); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.borrow()).clone(); }; if let Some(__ptr) = __elem_ptr_1.as_ref() { let mut __elem_guard_1 = __ptr.borrow_mut(); *__elem_guard_1 = (*__arg1.borrow()).clone(); }; __result };
+    {
+        let __arg0 = Rc::new(RefCell::new(Some(first())));
+        let __elem_ptr_1 = Some(GoSliceElemPtr::new(one.clone(), (at(Rc::new(RefCell::new(Some(1))))) as usize));
+        let __arg1 = Rc::new(RefCell::new(__elem_ptr_1.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+        let __result = add(
+            __arg0,
+            __arg1.clone()
+        );
+        if let Some(__ptr) = __elem_ptr_1.as_ref() {
+            let mut __elem_guard_1 = __ptr.borrow_mut();
+            *__elem_guard_1 = (*__arg1.borrow()).clone();
+        };
+        __result
+    };
+    println!("{} {} {}", format!("{}", format_slice(&ps)), format!("{}", format_slice(&one)), format!("{}", format_slice(&calls.clone())));
+}
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
 }
