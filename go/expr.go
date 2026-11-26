@@ -4713,6 +4713,34 @@ func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
 		ident, ok := unwrapParens(expr).(*ast.Ident)
 		return ok && info.Uses[ident] == types.Universe.Lookup("nil")
 	}
+	// rootedInPointee reports whether expr reaches into what the parameter
+	// points to: *p, p.f, (*p)[i] and what is selected or indexed from
+	// them. Its address, or a slice of it, would outlive the cell.
+	rootedInPointee := func(expr ast.Expr) bool {
+		for {
+			switch e := unwrapParens(expr).(type) {
+			case *ast.StarExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.IndexExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.SelectorExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.Ident:
+				return isParam(e)
+			default:
+				return false
+			}
+		}
+	}
 	allowed := map[*ast.Ident]bool{}
 	addressed := map[ast.Expr]bool{}
 	methodReceivers := map[ast.Expr]bool{}
@@ -4733,6 +4761,18 @@ func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
 		case *ast.UnaryExpr:
 			if n.Op == token.AND {
 				addressed[unwrapParens(n.X)] = true
+				if rootedInPointee(n.X) {
+					local = false
+				}
+			}
+		case *ast.SliceExpr:
+			if rootedInPointee(n.X) {
+				local = false
+			}
+		case *ast.IndexExpr:
+			// p[i] through a pointer to an array reads or writes an element.
+			if isParam(n.X) && !addressed[n] {
+				allowed[unwrapParens(n.X).(*ast.Ident)] = true
 			}
 		case *ast.StarExpr:
 			if isParam(n.X) && !addressed[n] && !methodReceivers[n] {
@@ -4743,6 +4783,16 @@ func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
 			if selection, ok := info.Selections[n]; ok && selection.Kind() == types.MethodVal {
 				if star, ok := unwrapParens(n.X).(*ast.StarExpr); ok {
 					methodReceivers[star] = true
+				}
+				// p.f.M() with a pointer receiver hands M &p.f.
+				if method, ok := selection.Obj().(*types.Func); ok {
+					if recvSig, ok := method.Type().(*types.Signature); ok && recvSig.Recv() != nil {
+						if _, ptrRecv := types.Unalias(recvSig.Recv().Type()).(*types.Pointer); ptrRecv {
+							if _, xIsPtr := types.Unalias(info.TypeOf(n.X)).Underlying().(*types.Pointer); !xIsPtr && rootedInPointee(n.X) {
+								local = false
+							}
+						}
+					}
 				}
 			}
 			if isParam(n.X) && !addressed[n] {
