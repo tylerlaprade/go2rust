@@ -10,6 +10,13 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub trait incer: std::fmt::Display + Any {
     fn __go_clone_box_incer(&self) -> Box<dyn incer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;

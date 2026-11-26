@@ -8,6 +8,13 @@ use go2rust_stdlib_stubs::*;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
+#[allow(unused_macros)]
+macro_rules! print {
+    ($($__arg:tt)*) => {{
+        std::print!($($__arg)*);
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }};
+}
 pub fn local__string(v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
     { let __owned = v.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }
 }
