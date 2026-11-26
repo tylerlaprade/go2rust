@@ -3524,6 +3524,7 @@ func TranspileSource(source string) (string, error) {
 }
 
 func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo, packageMapping map[string]string) (string, *ImportTracker, map[string]bool) {
+	stripCallSelectorParens(file)
 	// Create trackers
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}

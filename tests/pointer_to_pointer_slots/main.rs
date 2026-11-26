@@ -1053,7 +1053,7 @@ impl List {
 
 pub fn insert(mut pp: Rc<RefCell<Option<__ptrSlot_Node>>>, v: Rc<RefCell<Option<i64>>>) {
     while { let __nil_result = (*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow()).is_some(); __nil_result } {
-        if (*v.borrow().as_ref().unwrap()) < (*(*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap()) {
+        if (*v.borrow().as_ref().unwrap()) < (*(*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap()) {
         { let new_val = { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move |__slot_o1: Rc<RefCell<Option<Node>>>| -> Rc<RefCell<Option<__ptrSlot_Node>>> {
         let __slot_o1_closure_clone = __slot_o1.clone(); return Rc::new(RefCell::new(Some(__ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __slot_o1_closure_clone_closure_clone = __slot_o1_closure_clone.clone(); Rc::new(move || -> Rc<RefCell<Option<Node>>> {
         (*__slot_o1_closure_clone_closure_clone.borrow().as_ref().unwrap()).left.clone()
@@ -1084,7 +1084,7 @@ pub fn inorder(n: Rc<RefCell<Option<Node>>>, out: Rc<RefCell<Option<Vec<i64>>>>)
 }
 
 pub fn min_link(mut pp: Rc<RefCell<Option<__ptrSlot_Node>>>) -> Rc<RefCell<Option<__ptrSlot_Node>>> {
-    while { let __nil_target = (*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).left.clone(); let __nil_result = (*__nil_target.borrow()).is_some(); __nil_result } {
+    while { let __nil_target = (*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).left.clone(); let __nil_result = (*__nil_target.borrow()).is_some(); __nil_result } {
         { let new_val = { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move |__slot_o5: Rc<RefCell<Option<Node>>>| -> Rc<RefCell<Option<__ptrSlot_Node>>> {
         let __slot_o5_closure_clone = __slot_o5.clone(); return Rc::new(RefCell::new(Some(__ptrSlot_Node { get: Rc::new(RefCell::new(Some({ let __slot_o5_closure_clone_closure_clone = __slot_o5_closure_clone.clone(); Rc::new(move || -> Rc<RefCell<Option<Node>>> {
         (*__slot_o5_closure_clone_closure_clone.borrow().as_ref().unwrap()).left.clone()
@@ -1105,8 +1105,8 @@ pub fn remove(l: Rc<RefCell<Option<List>>>, v: Rc<RefCell<Option<i64>>>) -> bool
     }) as Rc<dyn Fn(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() })));
     }) as Rc<dyn Fn(Rc<RefCell<Option<List>>>) -> Rc<RefCell<Option<__ptrSlot_LNode>>>>))); let __f: Rc<dyn Fn(Rc<RefCell<Option<List>>>) -> Rc<RefCell<Option<__ptrSlot_LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(l.clone()) };
     while { let __nil_result = (*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow()).is_some(); __nil_result } {
-        if (*(*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()) == (*v.borrow().as_ref().unwrap()) {
-        { let __f_holder = (*pp.borrow().as_ref().unwrap()).set.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<LNode>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)({ let __field = (*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).next.clone(); __field }) };
+        if (*(*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()) == (*v.borrow().as_ref().unwrap()) {
+        { let __f_holder = (*pp.borrow().as_ref().unwrap()).set.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<LNode>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)({ let __field = (*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).next.clone(); __field }) };
         return true;
     }
         { let new_val = { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move |__slot_o9: Rc<RefCell<Option<LNode>>>| -> Rc<RefCell<Option<__ptrSlot_LNode>>> {
@@ -1149,8 +1149,8 @@ fn main() {
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> }))), set: Rc::new(RefCell::new(Some({ let __cell_root_1_closure_clone_closure_clone = __cell_root_1_closure_clone.clone(); Rc::new(move |__slot_v12: Rc<RefCell<Option<Node>>>| {
         { let new_val = __slot_v12.clone(); (*__cell_root_1_closure_clone_closure_clone.borrow_mut().as_mut().unwrap()).v = new_val; };
     }) as Rc<dyn Fn(Rc<RefCell<Option<Node>>>) -> ()> }))), ..Default::default() }; __arg_value }))));
-    println!("{} {}", format!("{}", "min".to_string()), format!("{}", (*(*({ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
-    { let __f_holder = (*low.borrow().as_ref().unwrap()).set.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<Node>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)({ let __field = (*({ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).right.clone(); __field }) };
+    println!("{} {}", format!("{}", "min".to_string()), format!("{}", (*(*{ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
+    { let __f_holder = (*low.borrow().as_ref().unwrap()).set.clone(); let __f: Rc<dyn Fn(Rc<RefCell<Option<Node>>>) -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)({ let __field = (*{ let __f_holder = (*low.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Node>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).right.clone(); __field }) };
     { let __slice_header = None; *vals.borrow_mut() = __slice_header; };
     inorder({ let __field = (*__cell_root_1.borrow().as_ref().unwrap()).v.clone(); __field }, vals.clone());
     println!("{} {}", format!("{}", "without min".to_string()), format!("{}", format_slice(&vals)));
@@ -1260,7 +1260,7 @@ fn main() {
     }) as Rc<dyn Fn(Rc<RefCell<Option<LNode>>>) -> ()> }))), ..Default::default() })));
     }) as Rc<dyn Fn() -> Rc<RefCell<Option<__ptrSlot_LNode>>>>))); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<__ptrSlot_LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     push(Rc::new(RefCell::new(Some({ let __arg_holder = pp.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))), Rc::new(RefCell::new(Some(9))));
-    println!("{} {}", format!("{}", (*(*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", { let __nil_target = (*({ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }).borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
+    println!("{} {}", format!("{}", (*(*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", { let __nil_target = (*{ let __f_holder = (*pp.borrow().as_ref().unwrap()).get.clone(); let __f: Rc<dyn Fn() -> Rc<RefCell<Option<LNode>>>> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
 
     let mut counts: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>> = Rc::new(RefCell::new(None));
     let mut __cell_counts_4 = Rc::new(RefCell::new(Some(AnonymousStruct3 { v: counts.clone() })));
