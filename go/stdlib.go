@@ -170,7 +170,6 @@ func init() {
 		"os.Remove":                transpileOsRemove,
 		"reflect.TypeOf":           transpileReflectTypeOf,
 		"reflect.ValueOf":          transpileReflectValueOf,
-		"sync/atomic.AddInt64":     transpileAtomicAddInt64,
 		"sync/atomic.LoadInt64":    transpileAtomicLoadInt64,
 		"sync/atomic.LoadUint32":   transpileAtomicLoadUint32,
 		"sync/atomic.StoreUint32":  transpileAtomicStoreUint32,
@@ -3059,27 +3058,6 @@ func writeAtomicTarget(out *strings.Builder, expr ast.Expr) {
 		}
 	}
 	TranspileExpression(out, expr)
-}
-
-func transpileAtomicAddInt64(out *strings.Builder, call *ast.CallExpr) {
-	if len(call.Args) < 2 {
-		out.WriteString("/* ERROR: atomic.AddInt64 requires pointer and delta */ unimplemented!()")
-		return
-	}
-
-	WriteWrapperPrefix(out)
-	out.WriteString("{ let __target = ")
-	writeAtomicTarget(out, call.Args[0])
-	out.WriteString("; let __delta = ")
-	TranspileExpression(out, call.Args[1])
-	out.WriteString(" as i64; ")
-	if NeedsConcurrentWrapper() {
-		out.WriteString("let mut __guard = __target.lock().unwrap();")
-	} else {
-		out.WriteString("let mut __guard = __target.borrow_mut();")
-	}
-	out.WriteString(" let __value = __guard.as_mut().unwrap(); *__value += __delta; *__value }")
-	WriteWrapperSuffix(out)
 }
 
 func transpileAtomicLoadInt64(out *strings.Builder, call *ast.CallExpr) {
