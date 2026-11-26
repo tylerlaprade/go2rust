@@ -750,11 +750,11 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static now: GoGlobal<Rc<dyn Fn() -> i64>> = GoGlobal::new();
+pub(crate) static now_1: GoGlobal<Rc<dyn Fn() -> i64>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *now.borrow_mut() = Some(Rc::new(move || -> i64 {
+    *now_1.borrow_mut() = Some(Rc::new(move || -> i64 {
         1
     }) as Rc<dyn Fn() -> i64>);
 }
@@ -886,14 +886,14 @@ fn main() {
     println!("{}", format!("{}", (*{ let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>>> = log.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("x".to_string())))) }.borrow().as_ref().unwrap())));
 
         // Saving and restoring a package-level func variable.
-    let mut orig = Rc::new(RefCell::new(Some({ let __global_func = GoFuncValue::go_func_value(&(*now.borrow())); Rc::new(move || -> i64 { (__global_func.as_ref().expect("runtime error: invalid memory address or nil pointer dereference"))() }) as Rc<dyn Fn() -> i64> })));
-    let mut orig = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(*now.borrow()))));
+    let mut orig = Rc::new(RefCell::new(Some({ let __global_func = GoFuncValue::go_func_value(&(*now_1.borrow())); Rc::new(move || -> i64 { (__global_func.as_ref().expect("runtime error: invalid memory address or nil pointer dereference"))() }) as Rc<dyn Fn() -> i64> })));
+    let mut orig = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(*now_1.borrow()))));
     { let new_val = Rc::new(move || -> i64 {
         42
-    }) as Rc<dyn Fn() -> i64>; *now.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", "global:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now.borrow().as_ref().unwrap().clone(); (__f)() }));
-    { let __func_value = GoFuncValue::go_func_value(&(orig)); *now.borrow_mut() = __func_value; };
-    println!("{} {}", format!("{}", "restored:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now.borrow().as_ref().unwrap().clone(); (__f)() }));
+    }) as Rc<dyn Fn() -> i64>; *now_1.borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", "global:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now_1.borrow().as_ref().unwrap().clone(); (__f)() }));
+    { let __func_value = GoFuncValue::go_func_value(&(orig)); *now_1.borrow_mut() = __func_value; };
+    println!("{} {}", format!("{}", "restored:".to_string()), format!("{}", { let __f: Rc<dyn Fn() -> i64> = now_1.borrow().as_ref().unwrap().clone(); (__f)() }));
 
         // Recursion through a variable, and a copy of it.
     let mut fib: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> = Rc::new(RefCell::new(None));

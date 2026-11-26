@@ -731,24 +731,24 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static shared: GoGlobal<Rc<RefCell<Option<Counter>>>> = GoGlobal::new();
+pub(crate) static shared_1: GoGlobal<Rc<RefCell<Option<Counter>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *shared.borrow_mut() = Some(Rc::new(RefCell::new(None)));
-    *shared.borrow_mut() = Some(Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))));
+    *shared_1.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    *shared_1.borrow_mut() = Some(Rc::new(RefCell::new(Some(Counter { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))));
 }
 
 
 impl Counter {
     pub fn value(&self) -> i64 {
-        return (*(*(*shared.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
+        return (*(*(*shared_1.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap()) + (*self.value.borrow().as_ref().unwrap());
     }
 }
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", { let __recv_holder = (*shared.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.value(); __result }));
+    println!("{}", format!("{}", { let __recv_holder = (*shared_1.borrow().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.borrow().as_ref().unwrap()).clone(); let __result = __recv_value.value(); __result }));
 }
 
 pub(crate) fn __go_init_all() {

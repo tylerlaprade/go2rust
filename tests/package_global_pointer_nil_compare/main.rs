@@ -731,19 +731,19 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static current: GoGlobal<Rc<RefCell<Option<state>>>> = GoGlobal::new();
+pub(crate) static current_1: GoGlobal<Rc<RefCell<Option<state>>>> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *current.borrow_mut() = Some(Rc::new(RefCell::new(None)));
+    *current_1.borrow_mut() = Some(Rc::new(RefCell::new(None)));
 }
 
 
 fn main() {
     __go_init_all();
-    println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }));
-    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone(); *current.borrow_mut() = Some(new_val); };
-    println!("{}", format!("{}", { let __slot_guard = current.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil }));
+    println!("{}", format!("{}", { let __slot_guard = current_1.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); !__not_nil }));
+    { let new_val = Rc::new(RefCell::new(Some(state { value: Rc::new(RefCell::new(Some(7))), ..Default::default() }))).clone(); *current_1.borrow_mut() = Some(new_val); };
+    println!("{}", format!("{}", { let __slot_guard = current_1.borrow(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.borrow()).is_some()).unwrap_or(false); __not_nil }));
 }
 
 pub(crate) fn __go_init_all() {

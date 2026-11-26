@@ -1,0 +1,4 @@
+3 3 9 true 2
+true false
+a b map[{1 2}:a {3 4}:b]
+map[[1 2]:3 [4 5]:9]

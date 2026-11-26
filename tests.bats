@@ -616,6 +616,14 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_map_keys" {
+    run_test "tests/array_map_keys"
+}
+
+@test "array_map_keys_goroutines" {
+    run_test "tests/array_map_keys_goroutines"
+}
+
 @test "array_slice_shares_elements" {
     run_test "tests/array_slice_shares_elements"
 }
@@ -1924,6 +1932,22 @@ run_xfail_test() {
     run_test "tests/goroutines_simple"
 }
 
+@test "goto_interleaved_labels" {
+    run_test "tests/goto_interleaved_labels"
+}
+
+@test "goto_interleaved_labels_goroutines" {
+    run_test "tests/goto_interleaved_labels_goroutines"
+}
+
+@test "goto_label_scopes" {
+    run_test "tests/goto_label_scopes"
+}
+
+@test "goto_label_scopes_goroutines" {
+    run_test "tests/goto_label_scopes_goroutines"
+}
+
 @test "goto_labels" {
     run_test "tests/goto_labels"
 }
@@ -1938,6 +1962,14 @@ run_xfail_test() {
 
 @test "hello_world" {
     run_test "tests/hello_world"
+}
+
+@test "helper_binding_global_names" {
+    run_test "tests/helper_binding_global_names"
+}
+
+@test "helper_binding_global_names_goroutines" {
+    run_test "tests/helper_binding_global_names_goroutines"
 }
 
 @test "if_else_basic" {
@@ -3322,6 +3354,14 @@ run_xfail_test() {
 
 @test "pointer_string_calls_helper" {
     run_test "tests/pointer_string_calls_helper"
+}
+
+@test "pointer_to_array_literals" {
+    run_test "tests/pointer_to_array_literals"
+}
+
+@test "pointer_to_array_literals_goroutines" {
+    run_test "tests/pointer_to_array_literals_goroutines"
 }
 
 @test "pointer_to_pointer_receiver_field" {

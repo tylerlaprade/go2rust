@@ -1512,80 +1512,80 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static prefix: GoGlobal<String> = GoGlobal::new();
+pub(crate) static prefix_1: GoGlobal<String> = GoGlobal::new();
 
-pub(crate) static verb: GoGlobal<i32> = GoGlobal::new();
+pub(crate) static verb_1: GoGlobal<i32> = GoGlobal::new();
 
-pub(crate) static text: GoGlobal<String> = GoGlobal::new();
+pub(crate) static text_1: GoGlobal<String> = GoGlobal::new();
 
-pub(crate) static spec: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static spec_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static out: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static out_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static args: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static args_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static format: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static format_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static digits: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static digits_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static sign: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static sign_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static chars: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static chars_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static next: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static next_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static items: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static items_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static fill: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static fill_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static magnitude: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static magnitude_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static negative: GoGlobal<bool> = GoGlobal::new();
+pub(crate) static negative_1: GoGlobal<bool> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *prefix.borrow_mut() = Some(String::new());
-    *verb.borrow_mut() = Some(0);
-    *text.borrow_mut() = Some(String::new());
-    *spec.borrow_mut() = Some(0);
-    *out.borrow_mut() = Some(0);
-    *args.borrow_mut() = Some(0);
-    *format.borrow_mut() = Some(0);
-    *digits.borrow_mut() = Some(0);
-    *sign.borrow_mut() = Some(0);
-    *chars.borrow_mut() = Some(0);
-    *next.borrow_mut() = Some(0);
-    *items.borrow_mut() = Some(0);
-    *fill.borrow_mut() = Some(0);
-    *magnitude.borrow_mut() = Some(0);
-    *negative.borrow_mut() = Some(false);
-    *prefix.borrow_mut() = Some("line ".to_string());
-    *verb.borrow_mut() = Some(('v' as i32));
-    *text.borrow_mut() = Some("t".to_string());
-    *spec.borrow_mut() = Some(1);
-    *out.borrow_mut() = Some(2);
-    *args.borrow_mut() = Some(3);
-    *format.borrow_mut() = Some(4);
-    *digits.borrow_mut() = Some(5);
-    *sign.borrow_mut() = Some(6);
-    *chars.borrow_mut() = Some(7);
-    *next.borrow_mut() = Some(8);
-    *items.borrow_mut() = Some(9);
-    *fill.borrow_mut() = Some(10);
-    *magnitude.borrow_mut() = Some(11);
-    *negative.borrow_mut() = Some(false);
+    *prefix_1.borrow_mut() = Some(String::new());
+    *verb_1.borrow_mut() = Some(0);
+    *text_1.borrow_mut() = Some(String::new());
+    *spec_1.borrow_mut() = Some(0);
+    *out_1.borrow_mut() = Some(0);
+    *args_1.borrow_mut() = Some(0);
+    *format_1.borrow_mut() = Some(0);
+    *digits_1.borrow_mut() = Some(0);
+    *sign_1.borrow_mut() = Some(0);
+    *chars_1.borrow_mut() = Some(0);
+    *next_1.borrow_mut() = Some(0);
+    *items_1.borrow_mut() = Some(0);
+    *fill_1.borrow_mut() = Some(0);
+    *magnitude_1.borrow_mut() = Some(0);
+    *negative_1.borrow_mut() = Some(false);
+    *prefix_1.borrow_mut() = Some("line ".to_string());
+    *verb_1.borrow_mut() = Some(('v' as i32));
+    *text_1.borrow_mut() = Some("t".to_string());
+    *spec_1.borrow_mut() = Some(1);
+    *out_1.borrow_mut() = Some(2);
+    *args_1.borrow_mut() = Some(3);
+    *format_1.borrow_mut() = Some(4);
+    *digits_1.borrow_mut() = Some(5);
+    *sign_1.borrow_mut() = Some(6);
+    *chars_1.borrow_mut() = Some(7);
+    *next_1.borrow_mut() = Some(8);
+    *items_1.borrow_mut() = Some(9);
+    *fill_1.borrow_mut() = Some(10);
+    *magnitude_1.borrow_mut() = Some(11);
+    *negative_1.borrow_mut() = Some(false);
 }
 
 
 fn main() {
     __go_init_all();
     let mut f = Rc::new(RefCell::new(Some("%s%d %q %5.2f|%-4s|%x\n".to_string())));
-    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = prefix.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(4i64) as Box<dyn Any>, Box::new({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = prefix_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(4i64) as Box<dyn Any>, Box::new({ let __arg_holder = text_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(3.14159) as Box<dyn Any>, Box::new("ab".to_string()) as Box<dyn Any>, Box::new(255i64) as Box<dyn Any>], false));
     let mut g = Rc::new(RefCell::new(Some("%v %c %v %+d\n".to_string())));
-    print!("{}", go_sprintf(&(*g.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = verb.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(6i64) as Box<dyn Any>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*g.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = verb_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = verb_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new(6i64) as Box<dyn Any>, Box::new({ let __arg_holder = digits_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     let mut h = Rc::new(RefCell::new(Some("%v %v %v %v %v %v\n".to_string())));
-    print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = spec.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = args.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = digits.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = sign.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
-    print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = chars.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = items.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = fill.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = magnitude.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = spec_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = out_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = args_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = format_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = digits_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = sign_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
+    print!("{}", go_sprintf(&(*h.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = chars_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = next_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = items_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = fill_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = magnitude_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>, Box::new({ let __arg_holder = negative_1.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf(&(*f.borrow().as_ref().unwrap()).clone(), &[Box::new("x".to_string()) as Box<dyn Any>, Box::new(1i64) as Box<dyn Any>, Box::new("y".to_string()) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>, Box::new("z".to_string()) as Box<dyn Any>, Box::new(16i64) as Box<dyn Any>], false))))).borrow().as_ref().unwrap())));
 }
 

@@ -702,45 +702,45 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static a: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static a_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static b: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static b_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static c: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static c_1: GoGlobal<i64> = GoGlobal::new();
 
-pub(crate) static d: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static d_1: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *a.borrow_mut() = Some(0);
-    *b.borrow_mut() = Some(0);
-    *c.borrow_mut() = Some(0);
-    *d.borrow_mut() = Some(0);
-    *d.borrow_mut() = Some(3);
-    *b.borrow_mut() = Some(f());
-    *c.borrow_mut() = Some(f());
-    *a.borrow_mut() = Some((*c.borrow().as_ref().unwrap()) + (*b.borrow().as_ref().unwrap()));
+    *a_1.borrow_mut() = Some(0);
+    *b_1.borrow_mut() = Some(0);
+    *c_1.borrow_mut() = Some(0);
+    *d_1.borrow_mut() = Some(0);
+    *d_1.borrow_mut() = Some(3);
+    *b_1.borrow_mut() = Some(f());
+    *c_1.borrow_mut() = Some(f());
+    *a_1.borrow_mut() = Some((*c_1.borrow().as_ref().unwrap()) + (*b_1.borrow().as_ref().unwrap()));
 }
 
 
 pub fn f() -> i64 {
-    { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    (*d.borrow().as_ref().unwrap())
+    { let mut guard = d_1.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    (*d_1.borrow().as_ref().unwrap())
 }
 
 fn __go_init_0() {
     println!("{}", format!("{}", "First init".to_string()));
-    { let mut guard = d.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    { let mut guard = d_1.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
 }
 
 fn __go_init_1() {
     println!("{}", format!("{}", "Second init".to_string()));
-    print!("a={}, b={}, c={}, d={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v });
+    print!("a={}, b={}, c={}, d={}\n", { let __v = (*a_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d_1.borrow().as_ref().unwrap()).clone(); __v });
 }
 
 fn main() {
     __go_init_all();
-    print!("In main: a={}, b={}, c={}, d={}\n", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d.borrow().as_ref().unwrap()).clone(); __v });
+    print!("In main: a={}, b={}, c={}, d={}\n", { let __v = (*a_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*b_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*c_1.borrow().as_ref().unwrap()).clone(); __v }, { let __v = (*d_1.borrow().as_ref().unwrap()).clone(); __v });
 }
 
 pub(crate) fn __go_init_all() {

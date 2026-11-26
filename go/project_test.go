@@ -200,7 +200,7 @@ func main() {
 	if strings.Contains(useRS, "use crate::defs::*;") || strings.Contains(useRS, "use crate::unused::*;") {
 		t.Fatalf("module should not glob-import sibling modules, got:\n%s", useRS)
 	}
-	if !strings.Contains(useRS, "use crate::{defs::{LIMIT, Shared, count, helper}};") {
+	if !strings.Contains(useRS, "use crate::{defs::{LIMIT, Shared, count_1, helper}};") {
 		t.Fatalf("module should import only referenced sibling items, got:\n%s", useRS)
 	}
 }

@@ -1,0 +1,11 @@
+[package]
+name = "pointer_to_array_literals"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_to_array_literals"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
