@@ -1001,15 +1001,29 @@ func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunction
 		out.WriteString("\n\n")
 	}
 	out.WriteString("pub(crate) fn __go_init_all() {\n")
+	writePackageInitOnceStart(out)
 	if hasGlobals {
-		out.WriteString("    self::__go_init_globals();\n")
+		out.WriteString("        self::__go_init_globals();\n")
 	}
 	for _, initName := range packageInitFunctionNames(initFunctionNames) {
-		out.WriteString("    self::")
+		out.WriteString("        self::")
 		out.WriteString(initName.rustName)
 		out.WriteString("();\n")
 	}
+	writePackageInitOnceEnd(out)
 	out.WriteString("}\n")
+}
+
+// writePackageInitOnceStart and writePackageInitOnceEnd make a package's
+// initialization run once: Go runs it before main, and a program that calls
+// main again does not run it again.
+func writePackageInitOnceStart(out *strings.Builder) {
+	out.WriteString("    static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();\n")
+	out.WriteString("    __GO_INIT_ONCE.call_once(|| {\n")
+}
+
+func writePackageInitOnceEnd(out *strings.Builder) {
+	out.WriteString("    });\n")
 }
 
 func initializerHasPackageGlobal(init *types.Initializer, globalByName map[string]packageGlobal) bool {

@@ -19,9 +19,12 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    aaa::__go_zero_globals();
-    bbb::__go_zero_globals();
-    aaa::__go_init_order_0();
-    bbb::__go_init_order_1();
-    aaa::__go_init_order_2();
+    static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
+    __GO_INIT_ONCE.call_once(|| {
+        aaa::__go_zero_globals();
+        bbb::__go_zero_globals();
+        aaa::__go_init_order_0();
+        bbb::__go_init_order_1();
+        aaa::__go_init_order_2();
+    });
 }

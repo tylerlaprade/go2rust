@@ -748,7 +748,7 @@ fn go_store_panic_payload(mut __payload: Box<dyn Any + Send>) {
     let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
         Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Ok(__text) => Box::new(go_runtime_error_text_of_string(*__text)),
             Err(__payload) => __payload,
         },
     };
@@ -792,33 +792,50 @@ fn go_resume_unrecovered_panic() {
 }
 
 fn go_install_panic_exit() {
-    std::panic::set_hook(Box::new(|__info| {
-        let __text = go_panic_payload_text(__info.payload());
-        {
-            use std::io::Write;
-            std::io::stdout().flush().ok();
-        }
-        eprintln!("panic: {}", __text);
-        std::process::exit(2);
-    }));
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
 }
 
 fn go_panic_payload_text(__payload: &dyn Any) -> String {
-    if let Some(__text) = __payload.downcast_ref::<String>() {
-        return go_runtime_error_text(__text.clone());
-    }
     if let Some(__text) = __payload.downcast_ref::<&'static str>() {
         return go_runtime_error_text(__text.to_string());
     }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
+    }
+    go_panic_value_text(__payload)
+}
+
+fn go_panic_value_text(__payload: &dyn Any) -> String {
+    // A boxed payload holds the Go value itself, so its string is printed
+    // as it is.
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return __text.clone();
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return __text.to_string();
+    }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-        let __text = go_panic_payload_text(&**__inner);
+        let __text = go_panic_value_text(&**__inner);
         return __text;
     }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
-        return go_panic_payload_text(&**__inner);
+        return go_panic_value_text(&**__inner);
     }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
-        return go_panic_payload_text(&**__inner);
+        return go_panic_value_text(&**__inner);
     }
     if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
         return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
@@ -863,6 +880,17 @@ fn go_runtime_error_text(__text: String) -> String {
     // A nil pointer's cell is empty, so reading through it unwraps None.
     if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
         return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
     }
     __text
 }
@@ -942,7 +970,7 @@ pub fn safe_divide(a: Rc<RefCell<Option<f64>>>, b: Rc<RefCell<Option<f64>>>) -> 
     }));
 
         if (*b.borrow().as_ref().unwrap()) == 0.0 {
-        panic!("division by zero");
+        std::panic::panic_any(format!("division by zero"));
     }
 
         { let new_val = (*a.borrow().as_ref().unwrap()) / (*b.borrow().as_ref().unwrap()); *result.borrow_mut() = Some(new_val); };
@@ -1051,12 +1079,12 @@ pub fn nested_panic() {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             print!("Inner recovery: {}\n", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() });;
-            panic!("re-panicking from inner function");;
+            std::panic::panic_any(format!("re-panicking from inner function"));;
         }
     }
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
-        panic!("original panic");
+        std::panic::panic_any(format!("original panic"));
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1123,20 +1151,20 @@ pub fn demonstrate_panic_types() {
 
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> () {
-        panic!("string panic message");
+        std::panic::panic_any(format!("string panic message"));
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> () {
-        panic!("{}", 42);
+        std::panic::panic_any(format!("{}", 42));
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
                 // Integer panic
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> () {
-        panic!("error panic");
+        std::panic::panic_any(format!("error panic"));
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
@@ -1189,7 +1217,7 @@ pub fn chained_defers() {
         __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> () {
         println!("{}", format!("{}", "Defer 2: This also runs".to_string()));
-        panic!("panic from defer");
+        std::panic::panic_any(format!("panic from defer"));
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 

@@ -9004,7 +9004,9 @@ const panicExitInstallCall = "go_install_panic_exit();"
 func typeInfoPackageIsMain() bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.pkg == nil {
-		return true
+		// Without the package's identity a function named main may be any
+		// package's; only the loader can say it is the program's entry.
+		return false
 	}
 	return typeInfo.pkg.Name() == "main"
 }

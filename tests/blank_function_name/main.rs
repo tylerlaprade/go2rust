@@ -679,23 +679,28 @@ impl std::io::Write for GoSlice<u8> {
 
 
 fn go_install_panic_exit() {
-    std::panic::set_hook(Box::new(|__info| {
-        let __text = go_panic_payload_text(__info.payload());
-        {
-            use std::io::Write;
-            std::io::stdout().flush().ok();
-        }
-        eprintln!("panic: {}", __text);
-        std::process::exit(2);
-    }));
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
 }
 
 fn go_panic_payload_text(__payload: &dyn Any) -> String {
-    if let Some(__text) = __payload.downcast_ref::<String>() {
-        return go_runtime_error_text(__text.clone());
-    }
     if let Some(__text) = __payload.downcast_ref::<&'static str>() {
         return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
     }
     String::from(GO_UNPRINTABLE_PANIC_VALUE)
 }
@@ -718,8 +723,19 @@ fn go_runtime_error_text(__text: String) -> String {
     __text
 }
 
+fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
+    }
+    __text
+}
+
 pub fn __blank() {
-    panic!("not called");
+    std::panic::panic_any(format!("not called"));
 }
 
 fn main() {

@@ -1591,7 +1591,9 @@ func replaceOrAppendMainPackageInitAll(rustCode string, plan generatedPackageIni
 func renderMainPackageInitAll(plan generatedPackageInitPlan) string {
 	var out strings.Builder
 	out.WriteString("pub(crate) fn __go_init_all() {\n")
-	writePackageInitPlanCalls(&out, plan, "    ")
+	writePackageInitOnceStart(&out)
+	writePackageInitPlanCalls(&out, plan, "        ")
+	writePackageInitOnceEnd(&out)
 	out.WriteString("}\n")
 	return out.String()
 }

@@ -4158,3 +4158,15 @@ func main() {
 		}
 	}
 }
+
+// Without the package's type information a function named main may belong
+// to any package, so it gets no panic hook.
+func TestMainWithoutPackageInfoInstallsNoPanicExit(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+func main() {}
+`, nil)
+	if strings.Contains(rust, "go_install_panic_exit") {
+		t.Fatalf("main without package info should not install the panic hook:\n%s", rust)
+	}
+}

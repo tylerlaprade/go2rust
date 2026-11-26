@@ -3192,6 +3192,14 @@ run_xfail_test() {
     run_test "tests/panic_runtime_error_exit"
 }
 
+@test "panic_string_payloads" {
+    run_test "tests/panic_string_payloads"
+}
+
+@test "panic_string_payloads_goroutines" {
+    run_test "tests/panic_string_payloads_goroutines"
+}
+
 @test "panic_struct_literal_value" {
     run_test "tests/panic_struct_literal_value"
 }

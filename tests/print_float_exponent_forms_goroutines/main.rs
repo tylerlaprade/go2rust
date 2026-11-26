@@ -819,7 +819,7 @@ fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text_of_string(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -887,36 +887,53 @@ fn go_resume_unrecovered_panic() {
 }
 
 fn go_install_panic_exit() {
-    std::panic::set_hook(Box::new(|__info| {
-        let __text = go_panic_payload_text(__info.payload());
-        {
-            use std::io::Write;
-            std::io::stdout().flush().ok();
-        }
-        eprintln!("panic: {}", __text);
-        std::process::exit(2);
-    }));
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
 }
 
 fn go_panic_payload_text(__payload: &dyn Any) -> String {
-    if let Some(__text) = __payload.downcast_ref::<String>() {
-        return go_runtime_error_text(__text.clone());
-    }
     if let Some(__text) = __payload.downcast_ref::<&'static str>() {
         return go_runtime_error_text(__text.to_string());
     }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
+    }
+    go_panic_value_text(__payload)
+}
+
+fn go_panic_value_text(__payload: &dyn Any) -> String {
+    // A boxed payload holds the Go value itself, so its string is printed
+    // as it is.
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return __text.clone();
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return __text.to_string();
+    }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
-        let __text = go_panic_payload_text(&**__inner);
+        let __text = go_panic_value_text(&**__inner);
         if __text == GO_UNPRINTABLE_PANIC_VALUE {
             return format_any(&**__inner);
         }
         return __text;
     }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
-        return go_panic_payload_text(&**__inner);
+        return go_panic_value_text(&**__inner);
     }
     if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
-        return go_panic_payload_text(&**__inner);
+        return go_panic_value_text(&**__inner);
     }
     if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
         return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
@@ -961,6 +978,17 @@ fn go_runtime_error_text(__text: String) -> String {
     // A nil pointer's cell is empty, so reading through it unwraps None.
     if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
         return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
     }
     __text
 }
