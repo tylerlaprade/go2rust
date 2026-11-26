@@ -1,17 +1,21 @@
 A false false 4 4
 B false false 3 11
 C false false 3 101
+G false false 3
 A false true 4 3
 B false true 3 10
 C false true 3 3
+G false true 2
 D false 3 7
 E false 3 2 1
 A true false 4 4
 B true false 3 3
 C true false 3 3
+G true false 3
 A true true 4 3
 B true true 3 3
 C true true 3 3
+G true true 2
 D true 3 7
 E true 2 2 1
 F 1 1

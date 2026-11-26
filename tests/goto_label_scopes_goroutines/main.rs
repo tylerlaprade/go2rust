@@ -986,6 +986,32 @@ pub fn case_e(x: Arc<Mutex<Option<bool>>>) {
     };
 }
 
+/// The early loop's label marks the statement with the forward goto.
+pub fn case_g(x: Arc<Mutex<Option<bool>>>, y: Arc<Mutex<Option<bool>>>) {
+    let mut n = Arc::new(Mutex::new(Some(0i64)));
+    let mut __goto_reenter_back = false;
+    'back: loop {
+        'end: {
+            'skip: {
+                if !__goto_reenter_back {
+                    if { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        break 'skip;
+    }
+                }
+                if { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x > __tmp_y } {
+        break 'end;
+    }
+                { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            }
+            if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
+        { __goto_reenter_back = true; continue 'back; }
+    }
+        }
+        println!("{} {} {} {}", format!("{}", "G".to_string()), format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        break 'back;
+    };
+}
+
 /// A loop label that no goto uses keeps its loop's continue.
 pub fn case_f(n: Arc<Mutex<Option<i64>>>) {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
@@ -1026,6 +1052,7 @@ fn main() {
         case_a(Arc::new(Mutex::new(Some(x.clone()))), Arc::new(Mutex::new(Some(y.clone()))), Arc::new(Mutex::new(Some(4))));
         case_b(Arc::new(Mutex::new(Some(x.clone()))), Arc::new(Mutex::new(Some(y.clone()))), Arc::new(Mutex::new(Some(3))));
         case_c(Arc::new(Mutex::new(Some(x.clone()))), Arc::new(Mutex::new(Some(y.clone()))), Arc::new(Mutex::new(Some(3))));
+        case_g(Arc::new(Mutex::new(Some(x.clone()))), Arc::new(Mutex::new(Some(y.clone()))));
     }
         case_d(Arc::new(Mutex::new(Some(x.clone()))));
         case_e(Arc::new(Mutex::new(Some(x.clone()))));

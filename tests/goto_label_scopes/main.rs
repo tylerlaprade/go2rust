@@ -817,6 +817,32 @@ pub fn case_e(x: Rc<RefCell<Option<bool>>>) {
     };
 }
 
+/// The early loop's label marks the statement with the forward goto.
+pub fn case_g(x: Rc<RefCell<Option<bool>>>, y: Rc<RefCell<Option<bool>>>) {
+    let mut n = Rc::new(RefCell::new(Some(0i64)));
+    let mut __goto_reenter_back = false;
+    'back: loop {
+        'end: {
+            'skip: {
+                if !__goto_reenter_back {
+                    if (*x.borrow().as_ref().unwrap()) {
+        break 'skip;
+    }
+                }
+                if (*y.borrow().as_ref().unwrap()) && (*n.borrow().as_ref().unwrap()) > 1 {
+        break 'end;
+    }
+                { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            }
+            if (*n.borrow().as_ref().unwrap()) < 3 {
+        { __goto_reenter_back = true; continue 'back; }
+    }
+        }
+        println!("{} {} {} {}", format!("{}", "G".to_string()), format!("{}", { let __v = (*x.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*y.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
+        break 'back;
+    };
+}
+
 /// A loop label that no goto uses keeps its loop's continue.
 pub fn case_f(n: Rc<RefCell<Option<i64>>>) {
     let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -846,6 +872,7 @@ fn main() {
         case_a(Rc::new(RefCell::new(Some(x.clone()))), Rc::new(RefCell::new(Some(y.clone()))), Rc::new(RefCell::new(Some(4))));
         case_b(Rc::new(RefCell::new(Some(x.clone()))), Rc::new(RefCell::new(Some(y.clone()))), Rc::new(RefCell::new(Some(3))));
         case_c(Rc::new(RefCell::new(Some(x.clone()))), Rc::new(RefCell::new(Some(y.clone()))), Rc::new(RefCell::new(Some(3))));
+        case_g(Rc::new(RefCell::new(Some(x.clone()))), Rc::new(RefCell::new(Some(y.clone()))));
     }
         case_d(Rc::new(RefCell::new(Some(x.clone()))));
         case_e(Rc::new(RefCell::new(Some(x.clone()))));

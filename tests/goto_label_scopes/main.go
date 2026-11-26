@@ -106,6 +106,25 @@ s1:
 	fmt.Println("E", x, n, m, __goto_reenter_a)
 }
 
+// The early loop's label marks the statement with the forward goto.
+func caseG(x, y bool) {
+	n := 0
+	if x {
+		goto Skip
+	}
+Back:
+	if y && n > 1 {
+		goto End
+	}
+	n++
+Skip:
+	if n < 3 {
+		goto Back
+	}
+End:
+	fmt.Println("G", x, y, n)
+}
+
 // A loop label that no goto uses keeps its loop's continue.
 func caseF(n int) {
 	i := 0
@@ -131,6 +150,7 @@ func main() {
 			caseA(x, y, 4)
 			caseB(x, y, 3)
 			caseC(x, y, 3)
+			caseG(x, y)
 		}
 		caseD(x)
 		caseE(x)
