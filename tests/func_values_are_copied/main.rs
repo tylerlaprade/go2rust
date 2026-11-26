@@ -911,7 +911,7 @@ fn main() {
     println!("{} {}", format!("{}", "nil:".to_string()), format!("{}", { let __nil_result = (*z.borrow()).is_none(); __nil_result }));
     { let __func_value = GoFuncValue::go_func_value(&(cb)); *z.borrow_mut() = __func_value; };
     *cb.borrow_mut() = None;
-    println!("{} {} {} {}", format!("{}", "nil after:".to_string()), format!("{}", { let __nil_result = (*z.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*cb.borrow()).is_none(); __nil_result }), format!("{}", (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = z.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())));
+    { let __go_print_arg_1 = { let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = z.borrow().as_ref().unwrap().clone(); (__f)() }; let __go_print_value = println!("{} {} {} {}", format!("{}", "nil after:".to_string()), format!("{}", { let __nil_result = (*z.borrow()).is_none(); __nil_result }), format!("{}", { let __nil_result = (*cb.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
         // A named func type with a method.
     let mut o: Op = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {

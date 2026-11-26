@@ -24222,6 +24222,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
+		if writeFmtCallWithCallOperandsFirst(out, call, handler) {
+			return
+		}
 		handler(out, call)
 		return
 	}

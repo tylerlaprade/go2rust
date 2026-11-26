@@ -1508,7 +1508,7 @@ fn main() {
     let mut a = Rc::new(RefCell::new(Some(Counter(Rc::new(RefCell::new(Some(1 as i64)))))));
     let mut b = { let __owned = a.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
     (*b.borrow_mut().as_mut().unwrap()).inc();
-    println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", (*bump(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).borrow().as_ref().unwrap())), format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }));
+    { let __go_print_arg_1 = bump(Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __go_print_value = println!("{} {} {} {}", format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*a.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
     let mut x = Rc::new(RefCell::new(Some(Celsius(Rc::new(RefCell::new(Some(1.0 as f64)))))));
     let mut y = { let __owned = x.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) };
