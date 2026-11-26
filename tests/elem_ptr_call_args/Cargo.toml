@@ -1,0 +1,11 @@
+[package]
+name = "elem_ptr_call_args"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "elem_ptr_call_args"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
