@@ -40,6 +40,7 @@ Use this when a function or method call emits nested handles, moves out of share
 - Named Go function types are aliases to wrapped closure handles. Track function-type aliases separately from general aliases.
 - Type conversions between named function types should preserve the wrapped function handle unless the callee explicitly expects a bare closure box.
 - Methods on named function types need an extension trait and trait impl for the alias. Rust aliases cannot have inherent impls.
+- A function returns a predeclared Copy scalar (`int`, `float64`, `bool`, ...) bare. A generic function or method whose Rust stays generic (one of the program's other packages, or a stdlib package translated from source) returns a type parameter in a cell whatever the type argument is, so whether a call's result is bare comes from the declared signature (`callResultShapeSignature`), not the instantiated one: `dep.Pick(7)` gives a cell, `dep.Size("s")` with a declared `int` result gives a bare value.
 - Function type signatures must use return-type lowering for results. Pointer returns are pointer handles, not wrappers around pointer handles.
 - Function-typed named results are nil handles by default. For explicit returns with defers, assign the boxed function into the named result slot rather than wrapping the whole function handle again.
 - Go function values lower to a shared closure: `Rc<dyn Fn...>`, or `Arc<dyn Fn... + Send + Sync>` with goroutines (`funcValueRustType` in `go/func_value.go`). A copy of a func value is a clone of the same closure.

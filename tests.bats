@@ -652,6 +652,14 @@ run_xfail_test() {
     run_test "tests/base64_encoding"
 }
 
+@test "binary_operands_read_after_calls" {
+    run_test "tests/binary_operands_read_after_calls"
+}
+
+@test "binary_operands_read_after_calls_goroutines" {
+    run_test "tests/binary_operands_read_after_calls_goroutines"
+}
+
 @test "blank_assignment_of_nil_values" {
     run_test "tests/blank_assignment_of_nil_values"
 }
@@ -2978,6 +2986,14 @@ run_xfail_test() {
 
 @test "package_function_type_conversion" {
     run_test "tests/package_function_type_conversion"
+}
+
+@test "package_generic_scalar_results" {
+    run_test "tests/package_generic_scalar_results"
+}
+
+@test "package_generic_scalar_results_goroutines" {
+    run_test "tests/package_generic_scalar_results_goroutines"
 }
 
 @test "package_global_anonymous_struct_array" {

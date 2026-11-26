@@ -1713,7 +1713,7 @@ impl Counter {
 
 impl Logger {
     pub fn log(&mut self, format: Rc<RefCell<Option<String>>>, args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.lines.clone(); let __append_value = format!("{}{}", (*self.prefix.clone().borrow().as_ref().unwrap()), (*Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, false))))).borrow().as_ref().unwrap())); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.lines.borrow_mut() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.lines.clone(); let __append_value = { let __go_rhs_1 = Rc::new(RefCell::new(Some(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, false))))); let __go_binary_value = format!("{}{}", (*self.prefix.clone().borrow().as_ref().unwrap()), (*__go_rhs_1.borrow().as_ref().unwrap())); __go_binary_value }; let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.lines.borrow_mut() = __slice_header; };
     }
 }
 

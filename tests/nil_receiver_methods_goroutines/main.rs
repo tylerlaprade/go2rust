@@ -352,11 +352,7 @@ impl Node {
         if false {
         return 0;
     }
-        return {
-            let __tmp_x = (*self.value.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = __go_nil_recv_node_sum({ let __field = self.next.clone(); __field });
-            __tmp_x + __tmp_y
-        };
+        return { let __go_rhs_1 = Arc::new(Mutex::new(Some(__go_nil_recv_node_sum({ let __field = self.next.clone(); __field })))); let __go_binary_value = { let __tmp_x = (*self.value.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*__go_rhs_1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value };
     }
 }
 
@@ -419,13 +415,13 @@ impl Elem {
         if false {
         return Arc::new(Mutex::new(Some("nil".to_string())));
     }
-        return Arc::new(Mutex::new(Some({
+        return Arc::new(Mutex::new(Some({ let __go_rhs_2 = __go_nil_recv_elem_string({ let __field = self.next.clone(); __field }); let __go_binary_value = {
             let mut __s = String::new();
             __s.push_str(&format!("{}", (*self.val.clone().lock().unwrap().as_ref().unwrap())));
             __s.push_str(&format!("{}", "->".to_string()));
-            __s.push_str(&format!("{}", (*__go_nil_recv_elem_string({ let __field = self.next.clone(); __field }).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", { let __v = (*__go_rhs_2.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             __s
-        })));
+        }; __go_binary_value })));
     }
 
     pub fn append(&mut self, v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Elem>>> {
@@ -616,13 +612,13 @@ pub fn __go_nil_recv_elem_string(e: Arc<Mutex<Option<Elem>>>) -> Arc<Mutex<Optio
     if { let __nil_result = (*e.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some("nil".to_string())));
     }
-    return Arc::new(Mutex::new(Some({
+    return Arc::new(Mutex::new(Some({ let __go_rhs_3 = __go_nil_recv_elem_string({ let __field = (*e.lock().unwrap().as_ref().unwrap()).next.clone(); __field }); let __go_binary_value = {
         let mut __s = String::new();
         __s.push_str(&format!("{}", (*{ let __field = (*e.lock().unwrap().as_ref().unwrap()).val.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
         __s.push_str(&format!("{}", "->".to_string()));
-        __s.push_str(&format!("{}", (*__go_nil_recv_elem_string({ let __field = (*e.lock().unwrap().as_ref().unwrap()).next.clone(); __field }).lock().unwrap().as_ref().unwrap())));
+        __s.push_str(&format!("{}", { let __v = (*__go_rhs_3.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         __s
-    })));
+    }; __go_binary_value })));
 }
 
 pub fn __go_nil_recv_node_len(n: Arc<Mutex<Option<Node>>>) -> i64 {
@@ -636,11 +632,7 @@ pub fn __go_nil_recv_node_sum(n: Arc<Mutex<Option<Node>>>) -> i64 {
     if { let __nil_result = (*n.lock().unwrap()).is_none(); __nil_result } {
         return 0;
     }
-    return {
-        let __tmp_x = (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap());
-        let __tmp_y = __go_nil_recv_node_sum({ let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field });
-        __tmp_x + __tmp_y
-    };
+    return { let __go_rhs_4 = Arc::new(Mutex::new(Some(__go_nil_recv_node_sum({ let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field })))); let __go_binary_value = { let __tmp_x = (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).value.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*__go_rhs_4.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __go_binary_value };
 }
 
 pub fn __go_nil_recv_tree_contains(mut t: Arc<Mutex<Option<Tree>>>, v: Arc<Mutex<Option<i64>>>) -> bool {

@@ -815,7 +815,7 @@ pub fn sum_array(arr: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {
     if (({ let __len = (*arr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) == (1 as i64) {
         return (*arr.borrow().as_ref().unwrap())[(0) as usize].clone();
     }
-    (*arr.borrow().as_ref().unwrap())[(0) as usize].clone() + sum_array(Rc::new(RefCell::new(Some({ let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))
+    { let __go_rhs_1 = Rc::new(RefCell::new(Some(sum_array(Rc::new(RefCell::new(Some({ let __seq_holder = arr.clone(); let __seq_guard = __seq_holder.borrow(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; __seq.reslice3_zeroed(__low, __high, __max) }))))))); let __go_binary_value = (*arr.borrow().as_ref().unwrap())[(0) as usize].clone() + (*__go_rhs_1.borrow().as_ref().unwrap()); __go_binary_value }
 }
 
 pub fn reverse_string(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {

@@ -1,0 +1,23 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_packagegenericscalarresultsgoroutines_dep",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "package_generic_scalar_results_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_generic_scalar_results_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+example_com_packagegenericscalarresultsgoroutines_dep = { path = "vendor/example_com_packagegenericscalarresultsgoroutines_dep" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
