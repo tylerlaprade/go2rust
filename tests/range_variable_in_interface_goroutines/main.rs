@@ -1745,7 +1745,7 @@ fn main() {
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))]))));
     for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         print!("{}", go_sprintf(&(*f.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new(({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(k.clone()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false));
-        show(Arc::new(Mutex::new(Some(vec![Box::new(k.clone()) as Box<dyn Any + Send + Sync>, Box::new(({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>]))));
+        show(Arc::new(Mutex::new(Some(vec![Box::new(k.clone()) as Box<dyn Any + Send + Sync>, { let __arg_value = Box::new(({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>; __arg_value }]))));
     }
 
     for n in vec![3i64, 4i64].iter().copied() {

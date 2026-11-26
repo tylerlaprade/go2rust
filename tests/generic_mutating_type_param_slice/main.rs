@@ -680,7 +680,7 @@ impl std::io::Write for GoSlice<u8> {
 
 
 pub fn sort_pair__slice_string__string(x: Rc<RefCell<Option<Vec<String>>>>, less: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> bool>>>>) {
-    if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = less.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(1) as usize].clone()))), Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(0) as usize].clone())))) } {
+    if { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = less.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*x.borrow().as_ref().unwrap())[(0) as usize].clone(); __arg_value })))) } {
         {
             let __go_lhs_sequence_0 = x.clone();
             let __go_lhs_index_0 = (0) as usize;

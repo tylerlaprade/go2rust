@@ -920,7 +920,7 @@ pub fn new_namer() -> Rc<RefCell<Option<Box<dyn namer>>>> {
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(alpha { name: Rc::new(RefCell::new(Some("one".to_string()))), ..Default::default() })));
     let mut b = Rc::new(RefCell::new(Some(beta { name: Rc::new(RefCell::new(Some("two".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn namer>)))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn namer>)))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some({ let __arg_value = Box::new({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn namer>; __arg_value })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some({ let __arg_value = Box::new({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn namer>; __arg_value })))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*{ let __recv = new_namer(); let __result = (*__recv.borrow().as_ref().unwrap()).name(); __result }.borrow().as_ref().unwrap())));
 }

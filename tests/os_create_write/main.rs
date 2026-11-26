@@ -1058,7 +1058,7 @@ impl Report {
             let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = f_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-            let mut w = bufio::new_writer(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Writer + Send + Sync>))));
+            let mut w = bufio::new_writer(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Writer + Send + Sync>; __arg_value }))));
             { let __s = format!("# {}\n", (*self.name.lock().unwrap().as_ref().unwrap())); (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };
             { let __range_holder = self.lines.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, line) in __range_values.iter().enumerate() {
         { let __s = format!("{}. {}\n", format!("{}", { let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", (*strings::to_upper(Arc::new(Mutex::new(Some((*line).clone())))).lock().unwrap().as_ref().unwrap()))); (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) };

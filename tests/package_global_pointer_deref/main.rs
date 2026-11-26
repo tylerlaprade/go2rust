@@ -731,8 +731,8 @@ fn main() {
     __go_init_all();
     println!("{}", format!("{}", (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()));
-    println!("{}", format!("{}", invert(Rc::new(RefCell::new(Some((*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone()))))));
-    println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some((*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone())))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", invert(Rc::new(RefCell::new(Some({ let __arg_value = (*(*enabled.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone(); __arg_value }))))));
+    println!("{}", format!("{}", (*suffix(Rc::new(RefCell::new(Some({ let __arg_value = (*(*label.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).clone(); __arg_value })))).borrow().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {

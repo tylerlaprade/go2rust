@@ -116,5 +116,5 @@ fn main() {
     let (mut r, mut n) = unicode_utf8::decode_last_rune_in_string(Rc::new(RefCell::new(Some("x\u{263a}".to_string()))));
     println!("{} {} {} {}", format!("{}", r), format!("{}", n), format!("{}", unicode_utf8::valid_rune(Rc::new(RefCell::new(Some(0xD800 as i32))))), format!("{}", unicode_utf8::valid_rune(Rc::new(RefCell::new(Some(('\u{263a}' as i32)))))));
     let mut buf = Rc::new(RefCell::new(Some(vec![0u8; (4) as usize])));
-    println!("{} {} {}", format!("{}", unicode_utf8::encode_rune(buf.clone(), Rc::new(RefCell::new(Some(('\u{1d11e}' as i32)))))), format!("{}", format_slice(&buf)), format!("{}", unicode_utf8::rune_start(Rc::new(RefCell::new(Some((*buf.borrow().as_ref().unwrap())[(1) as usize].clone()))))));
+    println!("{} {} {}", format!("{}", unicode_utf8::encode_rune(buf.clone(), Rc::new(RefCell::new(Some(('\u{1d11e}' as i32)))))), format!("{}", format_slice(&buf)), format!("{}", unicode_utf8::rune_start(Rc::new(RefCell::new(Some({ let __arg_value = (*buf.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value }))))));
 }

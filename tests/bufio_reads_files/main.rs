@@ -955,7 +955,7 @@ pub fn count_lines(path: Arc<Mutex<Option<String>>>) -> (i64, Arc<Mutex<Option<A
         let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = f_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+        let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
         let mut n = Arc::new(Mutex::new(Some(0i64)));
         while { let __recv = sc.clone(); let __recv_ptr: *mut bufio::scan::Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::scan::Scanner }; let __result = unsafe { &mut *__recv_ptr }.scan(); __result } {
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1011,7 +1011,7 @@ pub fn count_words(path: Arc<Mutex<Option<String>>>) -> i64 {
         let f_defer_captured = f.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = f_defer_captured.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
     }));
-        let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+        let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
         { let __recv = sc.clone(); let __recv_ptr: *mut bufio::scan::Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::scan::Scanner }; let __result = unsafe { &mut *__recv_ptr }.split(
             Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec<u8>>>>, __arg1: Arc<Mutex<Option<bool>>>| -> (i64, Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) { bufio::scan_words(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<bool>>>) -> (i64, Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) + Send + Sync>))),
         ); __result };
@@ -1064,7 +1064,7 @@ fn main() {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let mut content = Arc::new(Mutex::new(Some("alpha beta\ngamma\n\ndelta epsilon zeta\nlast line without newline".to_string())));
         {
-        let mut err = os::write_file("bufio_reads_files.txt".to_string(), Arc::new(Mutex::new(Some(({ let __v = (*content.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_go_slice()))), fs_FileMode(0o644 as u32));;
+        let mut err = os::write_file("bufio_reads_files.txt".to_string(), Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*content.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_go_slice(); __arg_value }))), fs_FileMode(0o644 as u32));;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "write failed:".to_string()), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));;
             {
@@ -1093,12 +1093,12 @@ fn main() {
         return;
     }
     }
-        let (mut data, __tmp_1) = io::read_all(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = g.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+        let (mut data, __tmp_1) = io::read_all(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = g.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         let mut data = { let __slice_header = GoSliceHeader::go_slice_header(&data); Arc::new(Mutex::new(__slice_header)) };
         { let __recv = g.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };
         println!("{} {} {} {}", format!("{}", "readall:".to_string()), format!("{}", ({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*data.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ({ let __v = (*content.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x == __tmp_y }));
         let (mut h, _) = os::open("bufio_reads_files.txt".to_string());
-        let mut r = bufio::new_reader(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+        let mut r = bufio::new_reader(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
         let mut i = Arc::new(Mutex::new(Some(0i64)));
     loop {
         let (mut line, mut err) = { let __recv = r.clone(); let __recv_ptr: *mut bufio::r#mod::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::r#mod::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_string(Arc::new(Mutex::new(Some(('\n' as u8) as u8)))); __result };

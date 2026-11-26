@@ -971,10 +971,10 @@ fn main() {
     let mut circle = Rc::new(RefCell::new(Some(Circle { radius: Rc::new(RefCell::new(Some(3.0))), ..Default::default() })));
 
     println!("{}", format!("{}", "Rectangle:".to_string()));
-    print_shape_info(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = rect.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>))));
+    print_shape_info(Rc::new(RefCell::new(Some({ let __arg_value = Box::new({ let __arg_holder = rect.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>; __arg_value }))));
 
     println!("{}", format!("{}", "Circle:".to_string()));
-    print_shape_info(Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = circle.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>))));
+    print_shape_info(Rc::new(RefCell::new(Some({ let __arg_value = Box::new({ let __arg_holder = circle.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>; __arg_value }))));
 
         // Interface slice
     let mut shapes = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = rect.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>))), Rc::new(RefCell::new(Some(Box::new({ let __arg_holder = circle.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }) as Box<dyn Shape>)))])));

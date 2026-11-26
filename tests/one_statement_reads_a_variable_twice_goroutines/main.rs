@@ -1065,10 +1065,10 @@ fn main() {
     let mut xs = Arc::new(Mutex::new(Some(vec![5i64, 6i64, 7i64])));
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(9i64))))]))));
     println!("{} {}", format!("{}", "conv".to_string()), format!("{}", two(
-        Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i32 as i64))),
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i32 as i64; __arg_value }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
     )));
-    println!("{} {}", format!("{}", "neg".to_string()), format!("{}", two(Arc::new(Mutex::new(Some(-(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }))))), Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    println!("{} {}", format!("{}", "neg".to_string()), format!("{}", two(Arc::new(Mutex::new(Some({ let __arg_value = -(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v })); __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
     println!("{} {}", format!("{}", "mul".to_string()), format!("{}", two(
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
@@ -1077,10 +1077,10 @@ fn main() {
         Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 2.0; __tmp_x / __tmp_y }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
     ).lock().unwrap().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "not".to_string()), format!("{}", flags(Arc::new(Mutex::new(Some(!{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
+    println!("{} {}", format!("{}", "not".to_string()), format!("{}", flags(Arc::new(Mutex::new(Some({ let __arg_value = !{ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))));
     println!("{} {}", format!("{}", "len".to_string()), format!("{}", (*strs(
         Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64)))
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*s.lock().unwrap().as_ref().unwrap()).len(); __len }) as i64; __arg_value })))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "index".to_string()), format!("{}", two(
         Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = xs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))),
@@ -1092,12 +1092,12 @@ fn main() {
         Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = xs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }))),
         xs.clone()
     )));
-    println!("{} {}", format!("{}", "map".to_string()), format!("{}", two(Arc::new(Mutex::new(Some({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }))), Arc::new(Mutex::new(Some({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }))))));
+    println!("{} {}", format!("{}", "map".to_string()), format!("{}", two(Arc::new(Mutex::new(Some({ let __arg_value = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_value = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"k".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }; __arg_value }))))));
     println!("{} {}", format!("{}", "conv2".to_string()), format!("{}", two(
-        Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i64))),
-        Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i64)))
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i64; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }) as i64; __arg_value })))
     )));
-    println!("{} {}", format!("{}", "paren".to_string()), format!("{}", two(Arc::new(Mutex::new(Some(({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v })))), Arc::new(Mutex::new(Some(-((({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v })))))))));
+    println!("{} {}", format!("{}", "paren".to_string()), format!("{}", two(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }); __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_value = -((({ let __v = (*x.lock().unwrap().as_ref().unwrap()); __v }))); __arg_value }))))));
     println!("{} {}", format!("{}", "bit".to_string()), format!("{}", two(
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x & __tmp_y }))),
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x | __tmp_y })))
@@ -1107,8 +1107,8 @@ fn main() {
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 9; __tmp_x < __tmp_y })))
     )));
     println!("{} {}", format!("{}", "byte".to_string()), format!("{}", two(
-        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64))),
-        Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64)))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i64; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as i64; __arg_value })))
     )));
 
     { let new_val = 3; *x.lock().unwrap() = Some(new_val); };

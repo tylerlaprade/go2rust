@@ -130,7 +130,7 @@ func hoistMethodCallArgs(text string, method string, arity int) (string, bool) {
 		return "", false
 	}
 	prefix := text[:open-len(needle)+1]
-	if strings.Contains(prefix, "let ") {
+	if !rustPreludeBindsOnlyReceiver(prefix) {
 		return "", false
 	}
 	// Only a receiver that is locked, or borrowed for writing, conflicts
@@ -158,6 +158,34 @@ func hoistMethodCallArgs(text string, method string, arity int) (string, bool) {
 	out.WriteString(text[close:])
 	out.WriteString(" }")
 	return out.String(), true
+}
+
+// rustPreludeBindsOnlyReceiver reports whether every let in the Rust before
+// a method call binds one of the receiver's own names, __recv, __recv_ptr
+// and __recv_guard, which no argument uses. With goroutines a pointer
+// receiver is written
+//
+//	{ let __recv = g.clone(); let __recv_ptr: *mut T = { ... }; let __result = unsafe { &mut *__recv_ptr }.put(<args>); __result }
+//
+// and the arguments, evaluated after the &mut T was made, read g through
+// a second reference while it was alive.
+func rustPreludeBindsOnlyReceiver(prefix string) bool {
+	for rest := prefix; ; {
+		at := strings.Index(rest, "let ")
+		if at < 0 {
+			return true
+		}
+		// The let of a binding, not the end of a name such as Outlet.
+		if at > 0 && isRustIdentByte(rest[at-1]) {
+			rest = rest[at+len("let "):]
+			continue
+		}
+		name := strings.TrimPrefix(rest[at+len("let "):], "mut ")
+		if !strings.HasPrefix(name, "__recv") && !strings.HasPrefix(name, "__result") {
+			return false
+		}
+		rest = rest[at+len("let "):]
+	}
 }
 
 // outermostRustCallParens finds needle (".add(") in Rust text, outside

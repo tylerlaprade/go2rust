@@ -2421,13 +2421,12 @@ func use(x Type) {
 }
 `)
 
-	if strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some({") ||
-		strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some({") ||
-		strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
+	if strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
 		t.Fatalf("fixed local-interface argument should not wrap indexed pointer handles directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type>)))") &&
-		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>)))") {
+	// The boxed value reads Typ, so it is read in a block before the call.
+	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some({ let __arg_value = Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type>; __arg_value })))") &&
+		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>; __arg_value })))") {
 		t.Fatalf("fixed local-interface argument should box the indexed pointer wrapper:\n%s", rust)
 	}
 }
@@ -3721,8 +3720,9 @@ func use(hash uint32) uint32 {
 		t.Fatalf("variadic byte conversion should emit raw u8 elements, not wrapped handles:\n%s", rust)
 	}
 	// The type checker gives the untyped 'm' the byte type of the variadic
-	// element, so the literal is a u8 already.
-	if !strings.Contains(rust, "vec![('m' as u8) as u8, (*") {
+	// element, so the literal is a u8 already. The element that reads a
+	// cell is read in a block of its own, before the call.
+	if !strings.Contains(rust, "vec![('m' as u8) as u8, { let __arg_value = (*") {
 		t.Fatalf("variadic byte arguments should use raw u8 vector elements:\n%s", rust)
 	}
 }
@@ -3799,7 +3799,7 @@ func caller(srcDir string, args []string) string {
 		strings.Contains(rust, "Arc::new(Mutex::new(Some({ let __s = &(arg);") {
 		t.Fatalf("variadic string slice expression should be packed as a raw String element:\n%s", rust)
 	}
-	if !strings.Contains(rust, "vec![(*srcDir") || !strings.Contains(rust, "{ let __s = &(arg);") {
+	if !strings.Contains(rust, "vec![{ let __arg_value = (*srcDir") || !strings.Contains(rust, "{ let __s = &(arg);") {
 		t.Fatalf("variadic string slice expression should stay inside the raw string vector:\n%s", rust)
 	}
 }

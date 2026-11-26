@@ -575,13 +575,13 @@ impl StdError for NotFound {}
 
 impl Label {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))))
+        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.x.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>; __arg_value }))))
     }
 }
 
 impl Missing {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some(format!("{}{}", "missing at ".to_string(), (*render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())))));
+        return Arc::new(Mutex::new(Some(format!("{}{}", "missing at ".to_string(), (*render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>; __arg_value })))).lock().unwrap().as_ref().unwrap())))));
     }
 }
 
@@ -661,15 +661,15 @@ fn main() {
     { let new_val = render(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("head".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(tail.clone()) as Box<dyn Any + Send + Sync>))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *text.lock().unwrap() = __moved_val; };
     println!("{} {} {}", format!("{}", "chain:".to_string()), format!("{}", strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("&{head 0x".to_string()))))), format!("{}", strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("tail".to_string()))))));
     println!("{} {}", format!("{}", "struct value, boxed:".to_string()), format!("{}", (*shape(
-        render(Arc::new(Mutex::new(Some(Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as Box<dyn Any + Send + Sync>)))),
+        render(Arc::new(Mutex::new(Some({ let __arg_value = Box::new({ let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }) as Box<dyn Any + Send + Sync>; __arg_value })))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "struct value, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some(format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v })))),
+        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __v = (*r#loop.lock().unwrap().as_ref().unwrap()).clone(); __v }); __arg_value }))),
         Arc::new(Mutex::new(Some("{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     println!("{} {}", format!("{}", "pointer, typed:".to_string()), format!("{}", (*shape(
-        Arc::new(Mutex::new(Some(format!("{}", { let __text = match r#loop.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text })))),
+        Arc::new(Mutex::new(Some({ let __arg_value = format!("{}", { let __text = match r#loop.lock().unwrap().as_ref() { Some(__value) => format!("&{}", __value), None => "<nil>".to_string() }; __text }); __arg_value }))),
         Arc::new(Mutex::new(Some("&{loop 0x".to_string())))
     ).lock().unwrap().as_ref().unwrap())));
     { let new_val = render(Arc::new(Mutex::new(Some(Box::new(Node { name: Arc::new(Mutex::new(Some("holder".to_string()))), next: Arc::new(Mutex::new(Some(Box::new(tail.clone()) as Box<dyn Any + Send + Sync>))), ..Default::default() }) as Box<dyn Any + Send + Sync>)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *text.lock().unwrap() = __moved_val; };

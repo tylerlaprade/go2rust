@@ -24351,10 +24351,34 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			if !isExternalStdlibStubCall {
 				goPtrHelperQualifier = packageSelectorCrateName(sel)
 			}
+			// As in the loop below for the package's own functions, each
+			// argument is read before the call (scopeCallArgumentGuards).
+			pkgCallOut := out
+			var pkgArgOut *strings.Builder
+			pkgArgSeed := 0
+			pkgArgIsFuncLit := false
+			flushPkgArg := func() {
+				if pkgArgOut != nil {
+					text := pkgArgOut.String()[pkgArgSeed:]
+					if !pkgArgIsFuncLit {
+						text = scopeCallArgumentGuards(text)
+					}
+					pkgCallOut.WriteString(text)
+					pkgArgOut = nil
+				}
+			}
 			for i, arg := range call.Args {
+				flushPkgArg()
+				out = pkgCallOut
 				if i > 0 {
 					out.WriteString(", ")
 				}
+				seed := currentLineText(pkgCallOut)
+				pkgArgOut = &strings.Builder{}
+				pkgArgOut.WriteString(seed)
+				pkgArgSeed = len(seed)
+				_, pkgArgIsFuncLit = arg.(*ast.FuncLit)
+				out = pkgArgOut
 				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
 					writeExternalStubMethodCallArgument(out, sel, arg, expectedArgType)
@@ -24454,6 +24478,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				}
 				out.WriteString(")))")
 			}
+			flushPkgArg()
+			out = pkgCallOut
 			out.WriteString(")")
 			return
 		}
@@ -25034,7 +25060,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], expectedArgType)
+			writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+				writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], expectedArgType)
+			})
 		}
 
 		// Now handle variadic args
@@ -25071,7 +25099,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				if i > variadicStart {
 					out.WriteString(", ")
 				}
-				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+					writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, variadicElemTypeExpr, variadicElemIsAny)
+				})
 			}
 			out.WriteString("]")
 			WriteWrapperSuffix(out)
@@ -25097,7 +25127,28 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		functionArgIndent = currentLineIndent(out)
 		out.WriteString("\n")
 	}
+	// Each argument is written into a builder of its own, seeded with the
+	// current line for the writers that look at it, so that a cell the
+	// argument borrows to read its value is free before the call
+	// (scopeCallArgumentGuards).
+	callOut := out
+	var argOut *strings.Builder
+	argSeed := 0
+	argIsFuncLit := false
+	flushArg := func() {
+		if argOut != nil {
+			text := argOut.String()[argSeed:]
+			// A function literal runs nothing until it is called.
+			if !argIsFuncLit {
+				text = scopeCallArgumentGuards(text)
+			}
+			callOut.WriteString(text)
+			argOut = nil
+		}
+	}
 	for i, arg := range call.Args {
+		flushArg()
+		out = callOut
 		if multilineFunctionArgs {
 			if i > 0 {
 				out.WriteString(",\n")
@@ -25107,6 +25158,12 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		} else if i > 0 {
 			out.WriteString(", ")
 		}
+		seed := currentLineText(callOut)
+		argOut = &strings.Builder{}
+		argOut.WriteString(seed)
+		argSeed = len(seed)
+		_, argIsFuncLit = arg.(*ast.FuncLit)
+		out = argOut
 
 		// Check if this parameter expects an interface type
 		needsInterfaceBoxing := false
@@ -25586,6 +25643,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpression(out, arg)
 		}
 	}
+	flushArg()
+	out = callOut
 	if multilineFunctionArgs {
 		out.WriteString("\n")
 		out.WriteString(functionArgIndent)
@@ -25813,7 +25872,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], params.At(i).Type())
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentGuards, func(b *strings.Builder) {
+			writeFunctionSignatureCallArgumentForCall(b, call, i, call.Args[i], params.At(i).Type())
+		})
 	}
 
 	if variadicStart > 0 {
@@ -25847,7 +25908,9 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > variadicStart {
 			out.WriteString(", ")
 		}
-		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		writeScopedCallArgument(out, call.Args[i], scopeCallArgumentValue, func(b *strings.Builder) {
+			writeVariadicPackedElementValue(b, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		})
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
@@ -26175,22 +26238,198 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		}
 	}
 	WriteWrapperPrefix(out)
-	if writeConstExpressionForExpectedGoType(out, arg, expected) {
+	var value strings.Builder
+	if writeConstExpressionForExpectedGoType(&value, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
-	} else if expected == nil && writeConstExpressionForTypeInfoType(out, arg) {
+	} else if expected == nil && writeConstExpressionForTypeInfoType(&value, arg) {
 		// Constant emitted in its contextual go/types representation.
-	} else if writeRangeStringCallArgumentValue(out, arg, expected) {
+	} else if writeRangeStringCallArgumentValue(&value, arg, expected) {
 		// Range string reference cloned for an owned string parameter.
-	} else if writeRangeCharForExpectedType(out, arg, expected) {
+	} else if writeRangeCharForExpectedType(&value, arg, expected) {
 		// String range runes are represented as Rust char but Go rune parameters use i32.
-	} else if writeLenCapCallArgumentForExpectedType(out, arg, expected) {
+	} else if writeLenCapCallArgumentForExpectedType(&value, arg, expected) {
 		// len/cap emits usize, but Go int parameters use i32.
-	} else if writeRangeIndexForExpectedType(out, arg, expected) {
+	} else if writeRangeIndexForExpectedType(&value, arg, expected) {
 		// Range indexes emit usize, but Go int parameters use i32.
-	} else if !writeCallArgumentValue(out, arg) {
-		TranspileExpression(out, arg)
+	} else if !writeCallArgumentValue(&value, arg) {
+		TranspileExpression(&value, arg)
 	}
+	writeCallArgumentValueScoped(out, value.String())
 	WriteWrapperSuffix(out)
+}
+
+// writeCallArgumentValueScoped writes an argument's value so that a cell it
+// borrows or locks to read is free again before the call. A guard made
+// inside an argument lives as long as the statement, so f(s, s[0]) would
+// still be borrowing s while f writes to it (DEV-218); the block ends the
+// guard with the value.
+func writeCallArgumentValueScoped(out *strings.Builder, value string) {
+	// A block's guards end inside it, but those of its tail expression
+	// live to the end of the statement the block is in.
+	if !rustTextTakesGuard(value) || (rustTextIsOneBlock(value) && !rustTextTakesGuard(rustBlockTail(value))) {
+		out.WriteString(value)
+		return
+	}
+	out.WriteString("{ let __arg_value = ")
+	out.WriteString(value)
+	out.WriteString("; __arg_value }")
+}
+
+// rustTextTakesGuard reports whether generated Rust borrows or locks a cell.
+func rustTextTakesGuard(value string) bool {
+	return strings.Contains(value, ".borrow()") || strings.Contains(value, ".borrow_mut()") || strings.Contains(value, ".lock()")
+}
+
+// scopeCallArgumentGuards rewrites an argument written as a new cell around
+// a value, Rc::new(RefCell::new(Some(v))), so that the value is read in a
+// block of its own (writeCallArgumentValueScoped). Any other argument is
+// returned as it is.
+func scopeCallArgumentGuards(arg string) string {
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	if !strings.HasPrefix(arg, prefix.String()) || !strings.HasSuffix(arg, ")))") {
+		return arg
+	}
+	value := arg[prefix.Len() : len(arg)-len(")))")]
+	if !rustParensBalanced(value) {
+		return arg
+	}
+	var out strings.Builder
+	out.WriteString(prefix.String())
+	writeCallArgumentValueScoped(&out, value)
+	out.WriteString(")))")
+	return out.String()
+}
+
+// scopeCallArgumentValue is scopeCallArgumentGuards for an argument that
+// may be a bare value, such as an element packed into a variadic slice.
+func scopeCallArgumentValue(arg string) string {
+	if scoped := scopeCallArgumentGuards(arg); scoped != arg {
+		return scoped
+	}
+	var out strings.Builder
+	writeCallArgumentValueScoped(&out, arg)
+	return out.String()
+}
+
+// writeScopedCallArgument writes an argument of a call with write and has
+// the guards it takes end before the call, unless it is a function literal,
+// which runs nothing until it is called. scope is scopeCallArgumentGuards
+// or scopeCallArgumentValue.
+func writeScopedCallArgument(out *strings.Builder, arg ast.Expr, scope func(string) string, write func(*strings.Builder)) {
+	if _, ok := unwrapParens(arg).(*ast.FuncLit); ok {
+		write(out)
+		return
+	}
+	seed := currentLineText(out)
+	var b strings.Builder
+	b.WriteString(seed)
+	write(&b)
+	out.WriteString(scope(b.String()[len(seed):]))
+}
+
+// rustBlockTail returns the tail expression of a block, { ...; tail }: the
+// text after its last statement.
+func rustBlockTail(text string) string {
+	last := 0
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{', '(', '[':
+			depth++
+		case '}', ')', ']':
+			depth--
+		case ';':
+			if depth == 1 {
+				last = i
+			}
+		}
+	}
+	if len(text) < 2 {
+		return text
+	}
+	return text[last+1 : len(text)-1]
+}
+
+// rustTextIsOneBlock reports whether generated Rust is a single block,
+// { ... }, whose guards end inside it. { m[k] } + s[0] starts with a block
+// but borrows s after it.
+func rustTextIsOneBlock(text string) bool {
+	if !strings.HasPrefix(text, "{") || !strings.HasSuffix(text, "}") {
+		return false
+	}
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+		case '\'':
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 && i != len(text)-1 {
+				return false
+			}
+		}
+	}
+	return depth == 0
+}
+
+// rustParensBalanced reports whether the parentheses of generated Rust
+// pair up, ignoring those in string and character literals, so that a
+// trailing ")))" is known to close the cell around the whole text.
+func rustParensBalanced(text string) bool {
+	depth := 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '"':
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
+					i++
+				}
+			}
+			if i >= len(text) {
+				return false
+			}
+		case '\'':
+			// A character literal: '(' or '\''; a lifetime has no closing quote.
+			if i+2 < len(text) && text[i+2] == '\'' {
+				i += 2
+			} else if i+3 < len(text) && text[i+1] == '\\' && text[i+3] == '\'' {
+				i += 3
+			}
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth < 0 {
+				return false
+			}
+		}
+	}
+	return depth == 0
 }
 
 func writeFunctionSignatureCallArgumentForCall(out *strings.Builder, call *ast.CallExpr, paramIndex int, arg ast.Expr, expected types.Type) {
