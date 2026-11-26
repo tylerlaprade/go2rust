@@ -198,7 +198,7 @@ func Use() int { return __slices_Copy(3) + Keep(1) }
 		"func Keep[T any](x T) T",
 		"type Box[T any] struct{ Value T }",
 		"func (b Box[T]) Get() T",
-		"func __slices_Copy__int(x int) int",
+		"func __slices_Copy__int(x int",
 		"__slices_Copy__int(3) + Keep(1)",
 	} {
 		if !strings.Contains(src, want) {

@@ -796,6 +796,7 @@ func (m *monomorphizer) rewrite() ([]*ast.File, bool) {
 			if gen, ok := decl.(*ast.GenDecl); ok && gen.Tok == token.TYPE {
 				var specs []ast.Spec
 				hasGeneric := false
+				keptGeneric := false
 				for _, spec := range gen.Specs {
 					if ts, ok := spec.(*ast.TypeSpec); ok && ts.TypeParams != nil && len(ts.TypeParams.List) > 0 {
 						if m.writesOut(ts) {
@@ -805,9 +806,17 @@ func (m *monomorphizer) rewrite() ([]*ast.File, bool) {
 						// A generic type that stays generic is copied as
 						// it is, type parameters and all.
 						specs = append(specs, astCopier{}.copyNode(spec).(ast.Spec))
+						keptGeneric = true
 						continue
 					}
 					specs = append(specs, c.copyNode(spec).(ast.Spec))
+				}
+				if m.err != nil {
+					return nil, false
+				}
+				if keptGeneric && !hasGeneric {
+					pf.decls = append(pf.decls, &ast.GenDecl{Doc: gen.Doc, TokPos: gen.TokPos, Tok: gen.Tok, Lparen: gen.Lparen, Specs: specs, Rparen: gen.Rparen})
+					continue
 				}
 				if hasGeneric {
 					pf.decls = append(pf.decls, gen) // placeholder
