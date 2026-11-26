@@ -1702,7 +1702,12 @@ func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.
 }
 
 func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallExpr, lhs ast.Expr) bool {
-	if call == nil || !isBareBuiltinReturn(call) {
+	if call == nil {
+		return false
+	}
+	// real and imag give a bare float, as len gives a bare int.
+	complexPart := isBareBuiltinCallName(call, "real") || isBareBuiltinCallName(call, "imag")
+	if !isBareBuiltinReturn(call) && !complexPart {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -1718,7 +1723,7 @@ func writeBareBuiltinShortDeclInitializer(out *strings.Builder, call *ast.CallEx
 	}
 	basic, ok := types.Unalias(lhsType).Underlying().(*types.Basic)
 	if !ok || basic.Kind() != types.Int {
-		if !isBareBuiltinCallName(call, "min") && !isBareBuiltinCallName(call, "max") {
+		if !isBareBuiltinCallName(call, "min") && !isBareBuiltinCallName(call, "max") && !complexPart {
 			return false
 		}
 	}

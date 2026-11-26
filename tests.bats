@@ -896,8 +896,16 @@ run_xfail_test() {
     run_test "tests/comment_preservation"
 }
 
+@test "complex_constants_and_parts" {
+    run_test "tests/complex_constants_and_parts"
+}
+
 @test "complex_expressions" {
     run_test "tests/complex_expressions"
+}
+
+@test "complex_numbers_and_math_cmplx" {
+    run_test "tests/complex_numbers_and_math_cmplx"
 }
 
 @test "compound_assign_len_int" {
@@ -3766,6 +3774,10 @@ run_xfail_test() {
 
 @test "runtime_gomaxprocs" {
     run_test "tests/runtime_gomaxprocs"
+}
+
+@test "runtime_scheduler_calls" {
+    run_test "tests/runtime_scheduler_calls"
 }
 
 @test "rust_keyword_identifiers" {
