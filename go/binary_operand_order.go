@@ -342,15 +342,16 @@ func writeBinaryWithLeftOperandFirst(out *strings.Builder, e *ast.BinaryExpr, ct
 
 func writeBinaryWithOperandInTemporary(out *strings.Builder, e *ast.BinaryExpr, ctx ExprContext, left bool) {
 	typeInfo := GetTypeInfo()
-	staged, other, prefix := e.Y, e.X, "__go_rhs_"
+	staged, prefix := e.Y, "__go_rhs_"
 	if left {
-		staged, other, prefix = e.X, e.Y, "__go_lhs_"
+		staged, prefix = e.X, "__go_lhs_"
 	}
 	stagedType := typeInfo.GetType(staged)
-	// The other operand reads its variables after the temporary is bound,
-	// so the temporary takes a name none of them has.
+	// The temporary takes a name that no identifier of the expression has,
+	// in Go or in Rust, and that Rust writes as it is: a package variable of
+	// the same name would make a local of it __go_rhs_N_local.
 	used := map[string]bool{}
-	ast.Inspect(other, func(node ast.Node) bool {
+	ast.Inspect(e, func(node ast.Node) bool {
 		if ident, ok := node.(*ast.Ident); ok {
 			used[ident.Name] = true
 			used[RustLocalIdent(ident.Name)] = true
@@ -359,7 +360,7 @@ func writeBinaryWithOperandInTemporary(out *strings.Builder, e *ast.BinaryExpr, 
 	})
 	binaryRightOperandTempCount++
 	name := fmt.Sprintf("%s%d", prefix, binaryRightOperandTempCount)
-	for used[name] {
+	for used[name] || RustLocalIdent(name) != name {
 		binaryRightOperandTempCount++
 		name = fmt.Sprintf("%s%d", prefix, binaryRightOperandTempCount)
 	}
@@ -367,12 +368,6 @@ func writeBinaryWithOperandInTemporary(out *strings.Builder, e *ast.BinaryExpr, 
 	v := types.NewVar(staged.Pos(), typeInfo.pkg, name, stagedType)
 	typeInfo.info.Uses[use] = v
 	typeInfo.info.Types[use] = types.TypeAndValue{Type: stagedType}
-	if vt := GetVarTable(); vt != nil {
-		vt.PushScope()
-		defer vt.PopScope()
-		vt.Register(name, &VarInfo{WrapLevel: WrapFull, RustType: goTypesTypeToRust(stagedType), Source: SourceLocal, GoType: stagedType})
-	}
-
 	out.WriteString("{ let ")
 	out.WriteString(name)
 	out.WriteString(" = ")
@@ -391,6 +386,13 @@ func writeBinaryWithOperandInTemporary(out *strings.Builder, e *ast.BinaryExpr, 
 	}
 	out.WriteString("; ")
 
+	// The temporary is a variable only from here on, where the staged
+	// operand has been written.
+	if vt := GetVarTable(); vt != nil {
+		vt.PushScope()
+		defer vt.PopScope()
+		vt.Register(name, &VarInfo{WrapLevel: WrapFull, RustType: goTypesTypeToRust(stagedType), Source: SourceLocal, GoType: stagedType})
+	}
 	if left {
 		e.X = use
 	} else {

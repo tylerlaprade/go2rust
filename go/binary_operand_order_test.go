@@ -172,3 +172,25 @@ func main() {
 		t.Fatalf("the temporary should not shadow __go_rhs_1:\n%s", rust)
 	}
 }
+
+// The temporary avoids the names of the operand it stages too, and a name
+// that a package variable would make Rust spell differently.
+func TestBinaryOperandTemporaryAvoidsStagedAndGlobalNames(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var limit = 5
+
+var __go_lhs_2 = 0
+
+func one() int { return 1 }
+
+func main() {
+	for __go_lhs_1 := range []int{0} {
+		println(min(__go_lhs_1, limit) + one())
+	}
+}
+`)
+	if strings.Contains(rust, "let __go_lhs_1 = ") || strings.Contains(rust, "let __go_lhs_2 = ") || !strings.Contains(rust, "let __go_lhs_3 = ") {
+		t.Fatalf("the temporary should skip __go_lhs_1 and __go_lhs_2:\n%s", rust)
+	}
+}
