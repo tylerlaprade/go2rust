@@ -46,12 +46,69 @@ func binaryNeedsRightOperandFirst(e *ast.BinaryExpr) bool {
 	if isConstantExpression(e) || isConstantExpression(e.X) {
 		return false
 	}
-	if !binaryOperandHasCall(e.Y) || binaryOperandHasCall(e.X) || !binaryOperandReadsStorage(e.X) {
+	if !binaryOperandHasCall(e.Y, false) || binaryOperandHasCall(e.X, true) || !binaryOperandReadsStorage(e.X) {
 		return false
 	}
 	// The temporary is a variable of the right operand's type; keep to
 	// the types whose values every binary lowering reads from a variable.
 	return binaryOperandTypeIsBasic(typeInfo.GetType(e.Y)) && binaryOperandTypeIsBasic(typeInfo.GetType(e.X))
+}
+
+// binaryNeedsLeftOperandFirst reports whether e's left operand has a part
+// gc orders before the right operand's call (a call, a builtin, && or ||)
+// and reads storage that call can change. Its value goes into a temporary
+// first, so the borrows it takes end before the call runs.
+func binaryNeedsLeftOperandFirst(e *ast.BinaryExpr) bool {
+	if e == nil || binaryRightOperandTemps[e] {
+		return false
+	}
+	switch e.Op {
+	case token.LAND, token.LOR:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
+		return false
+	}
+	if isConstantExpression(e) || isConstantExpression(e.X) {
+		return false
+	}
+	if !binaryOperandHasCall(e.Y, false) || !binaryOperandHasCall(e.X, true) || !binaryOperandReadsStorageOutsideCalls(e.X) {
+		return false
+	}
+	return binaryOperandTypeIsBasic(typeInfo.GetType(e.Y)) && binaryOperandTypeIsBasic(typeInfo.GetType(e.X))
+}
+
+// binaryOperandReadsStorageOutsideCalls reports whether expr reads storage
+// a call can change other than in the callee or the arguments of a call to
+// a function. A call's arguments are read before the call and its result
+// is a value of its own, so no borrow of them is left when the next call
+// runs; the arguments of a builtin such as len or min, and the operands of
+// && and ||, are read in place.
+func binaryOperandReadsStorageOutsideCalls(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		if call, ok := node.(*ast.CallExpr); ok {
+			if typeInfo.IsTypeConversion(call) {
+				return true
+			}
+			if ident, ok := unwrapParens(call.Fun).(*ast.Ident); ok {
+				if _, isBuiltin := typeInfo.info.Uses[ident].(*types.Builtin); isBuiltin {
+					return true
+				}
+			}
+			return false
+		}
+		if e, ok := node.(ast.Expr); ok && node != expr && binaryOperandReadsStorageNode(typeInfo, e) {
+			found = true
+		}
+		return !found
+	})
+	return found || binaryOperandReadsStorageNode(typeInfo, expr)
 }
 
 func binaryOperandTypeIsBasic(typ types.Type) bool {
@@ -65,9 +122,14 @@ func binaryOperandTypeIsBasic(typ types.Type) bool {
 	return basic.Info()&(types.IsNumeric|types.IsString|types.IsBoolean) != 0 && basic.Info()&types.IsUntyped == 0 && basic.Info()&types.IsComplex == 0
 }
 
-// binaryOperandHasCall reports whether expr calls a function other than a
-// builtin that only reads, such as len, or converts a value.
-func binaryOperandHasCall(expr ast.Expr) bool {
+// binaryOperandHasCall reports whether expr has a part that gc orders
+// among the calls of the expression: a call, a receive, or a builtin that
+// writes (append, copy, delete, clear, close, panic, print, println,
+// recover). With leftOperand, any builtin call and any && or || count too.
+// gc reads len(text) of a string, cap(c) and min(y, 5) before a later call
+// (but len of a slice after it), and evaluates x && b in place, so a left
+// operand with any of those keeps its order.
+func binaryOperandHasCall(expr ast.Expr, leftOperand bool) bool {
 	typeInfo := GetTypeInfo()
 	found := false
 	ast.Inspect(expr, func(node ast.Node) bool {
@@ -82,7 +144,7 @@ func binaryOperandHasCall(expr ast.Expr) bool {
 				return true
 			}
 			if ident, ok := unwrapParens(n.Fun).(*ast.Ident); ok && typeInfo != nil && typeInfo.info != nil {
-				if _, isBuiltin := typeInfo.info.Uses[ident].(*types.Builtin); isBuiltin {
+				if _, isBuiltin := typeInfo.info.Uses[ident].(*types.Builtin); isBuiltin && !leftOperand && !builtinWrites(ident.Name) {
 					return true
 				}
 			}
@@ -94,10 +156,25 @@ func binaryOperandHasCall(expr ast.Expr) bool {
 				found = true
 				return false
 			}
+		case *ast.BinaryExpr:
+			if leftOperand && (n.Op == token.LAND || n.Op == token.LOR) {
+				found = true
+				return false
+			}
 		}
 		return true
 	})
 	return found
+}
+
+// builtinWrites reports whether the builtin function name changes
+// something or has an effect beyond its result.
+func builtinWrites(name string) bool {
+	switch name {
+	case "append", "copy", "delete", "clear", "close", "panic", "print", "println", "recover":
+		return true
+	}
+	return false
 }
 
 // binaryOperandReadsStorage reports whether expr reads storage that a call
@@ -111,21 +188,28 @@ func binaryOperandReadsStorage(expr ast.Expr) bool {
 		if found {
 			return false
 		}
-		switch n := node.(type) {
-		case *ast.Ident:
-			if v, ok := typeInfo.info.Uses[n].(*types.Var); ok && varReachableByCalls(typeInfo, v) {
-				found = true
-			}
-		case *ast.IndexExpr, *ast.StarExpr:
+		if e, ok := node.(ast.Expr); ok && binaryOperandReadsStorageNode(typeInfo, e) {
 			found = true
-		case *ast.SelectorExpr:
-			if selection, ok := typeInfo.info.Selections[n]; ok && selection.Kind() == types.FieldVal {
-				found = true
-			}
 		}
 		return !found
 	})
 	return found
+}
+
+// binaryOperandReadsStorageNode reports whether node itself reads storage
+// a call can change.
+func binaryOperandReadsStorageNode(typeInfo *TypeInfo, node ast.Expr) bool {
+	switch n := node.(type) {
+	case *ast.Ident:
+		v, ok := typeInfo.info.Uses[n].(*types.Var)
+		return ok && varReachableByCalls(typeInfo, v)
+	case *ast.IndexExpr, *ast.StarExpr:
+		return true
+	case *ast.SelectorExpr:
+		selection, ok := typeInfo.info.Selections[n]
+		return ok && selection.Kind() == types.FieldVal
+	}
+	return false
 }
 
 // callReachableVarsByInfo holds, for each types.Info, the local variables
@@ -245,18 +329,48 @@ func rootLocalVar(info *types.Info, expr ast.Expr) *types.Var {
 // writeBinaryWithRightOperandFirst writes e as
 // { let __go_rhs_N = <right>; let __go_binary_value = <left> op __go_rhs_N; __go_binary_value }.
 func writeBinaryWithRightOperandFirst(out *strings.Builder, e *ast.BinaryExpr, ctx ExprContext) {
+	writeBinaryWithOperandInTemporary(out, e, ctx, false)
+}
+
+// writeBinaryWithLeftOperandFirst writes e as
+// { let __go_lhs_N = <left>; let __go_binary_value = __go_lhs_N op <right>; __go_binary_value },
+// which keeps Go's left-to-right order and ends the left operand's borrows
+// before the right operand's call runs.
+func writeBinaryWithLeftOperandFirst(out *strings.Builder, e *ast.BinaryExpr, ctx ExprContext) {
+	writeBinaryWithOperandInTemporary(out, e, ctx, true)
+}
+
+func writeBinaryWithOperandInTemporary(out *strings.Builder, e *ast.BinaryExpr, ctx ExprContext, left bool) {
 	typeInfo := GetTypeInfo()
-	rightType := typeInfo.GetType(e.Y)
+	staged, other, prefix := e.Y, e.X, "__go_rhs_"
+	if left {
+		staged, other, prefix = e.X, e.Y, "__go_lhs_"
+	}
+	stagedType := typeInfo.GetType(staged)
+	// The other operand reads its variables after the temporary is bound,
+	// so the temporary takes a name none of them has.
+	used := map[string]bool{}
+	ast.Inspect(other, func(node ast.Node) bool {
+		if ident, ok := node.(*ast.Ident); ok {
+			used[ident.Name] = true
+			used[RustLocalIdent(ident.Name)] = true
+		}
+		return true
+	})
 	binaryRightOperandTempCount++
-	name := fmt.Sprintf("__go_rhs_%d", binaryRightOperandTempCount)
-	use := &ast.Ident{NamePos: e.Y.Pos(), Name: name}
-	v := types.NewVar(e.Y.Pos(), typeInfo.pkg, name, rightType)
+	name := fmt.Sprintf("%s%d", prefix, binaryRightOperandTempCount)
+	for used[name] {
+		binaryRightOperandTempCount++
+		name = fmt.Sprintf("%s%d", prefix, binaryRightOperandTempCount)
+	}
+	use := &ast.Ident{NamePos: staged.Pos(), Name: name}
+	v := types.NewVar(staged.Pos(), typeInfo.pkg, name, stagedType)
 	typeInfo.info.Uses[use] = v
-	typeInfo.info.Types[use] = types.TypeAndValue{Type: rightType}
+	typeInfo.info.Types[use] = types.TypeAndValue{Type: stagedType}
 	if vt := GetVarTable(); vt != nil {
 		vt.PushScope()
 		defer vt.PopScope()
-		vt.Register(name, &VarInfo{WrapLevel: WrapFull, RustType: goTypesTypeToRust(rightType), Source: SourceLocal, GoType: rightType})
+		vt.Register(name, &VarInfo{WrapLevel: WrapFull, RustType: goTypesTypeToRust(stagedType), Source: SourceLocal, GoType: stagedType})
 	}
 
 	out.WriteString("{ let ")
@@ -265,26 +379,33 @@ func writeBinaryWithRightOperandFirst(out *strings.Builder, e *ast.BinaryExpr, c
 	// NeedsUnwrapping is what the binary lowering asks of an operand: whether
 	// its Rust is a cell. (f()) is f()'s cell, and f().n of an int field
 	// is the int.
-	if typeInfo.NeedsUnwrapping(e.Y) {
-		TranspileExpression(out, e.Y)
+	if typeInfo.NeedsUnwrapping(staged) {
+		TranspileExpression(out, staged)
 	} else {
 		WriteWrapperPrefix(out)
-		if !writeLenCapCallArgumentForExpectedType(out, unwrapParens(e.Y), rightType) {
+		if !writeLenCapCallArgumentForExpectedType(out, unwrapParens(staged), stagedType) {
 			// len and cap give a usize; the temporary is a Go int.
-			TranspileExpression(out, e.Y)
+			TranspileExpression(out, staged)
 		}
 		WriteWrapperSuffix(out)
 	}
 	out.WriteString("; ")
 
-	right := e.Y
-	e.Y = use
+	if left {
+		e.X = use
+	} else {
+		e.Y = use
+	}
 	binaryRightOperandTemps[e] = true
 	// The value goes into a let as well: the guards a block's tail
 	// expression takes would outlive the temporary they borrow.
 	out.WriteString("let __go_binary_value = ")
 	TranspileExpressionContext(out, e, ctx)
 	delete(binaryRightOperandTemps, e)
-	e.Y = right
+	if left {
+		e.X = staged
+	} else {
+		e.Y = staged
+	}
 	out.WriteString("; __go_binary_value }")
 }

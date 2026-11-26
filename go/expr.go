@@ -15159,6 +15159,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeBinaryWithRightOperandFirst(out, e, ctx)
 			return
 		}
+		if binaryNeedsLeftOperandFirst(e) {
+			writeBinaryWithLeftOperandFirst(out, e, ctx)
+			return
+		}
 		if writeFoldedConstantComparisonOrShift(out, e) {
 			return
 		}

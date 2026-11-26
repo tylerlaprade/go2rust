@@ -98,3 +98,77 @@ func main() {
 		t.Fatalf("s[0] > 0 && bump(s) should not use a temporary:\n%s", rust)
 	}
 }
+
+// gc evaluates a builtin call and x && b on the left in order with the
+// call on the right, so the left operand goes into a temporary first, which
+// also ends its borrows before the call.
+func TestBinaryOperandOrderedLeftOperandGoesFirst(t *testing.T) {
+	for name, src := range map[string]string{
+		"logical": `package main
+
+var flag bool
+
+func raise() bool { flag = true; return true }
+
+func main() {
+	yes := true
+	ok := (yes && flag) == raise()
+	_ = ok
+}
+`,
+		"len": `package main
+
+var text = "a"
+
+func grow() int { text = "abcd"; return 0 }
+
+func main() {
+	n := len(text) + grow()
+	_ = n
+}
+`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			rust := transpileTypedRegression(t, src)
+			if !strings.Contains(rust, "let __go_lhs_") || strings.Contains(rust, "let __go_rhs_") {
+				t.Fatalf("the left operand should go into a temporary before the call:\n%s", rust)
+			}
+		})
+	}
+}
+
+// A builtin that writes, such as copy, is ordered like a call.
+func TestBinaryOperandCopyOnTheRightCountsAsACall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func main() {
+	dst := []int{1}
+	n := dst[0] + copy(dst, []int{5})
+	_ = n
+}
+`)
+	if !strings.Contains(rust, "let __go_rhs_") {
+		t.Fatalf("copy should run before dst[0] is read:\n%s", rust)
+	}
+}
+
+// The temporary does not take the name of a variable the other operand
+// reads.
+func TestBinaryOperandTemporaryAvoidsTheOperandsNames(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bump(s []int) int { s[0]++; return 1 }
+
+func main() {
+	__go_rhs_1 := 10
+	s := []int{1}
+	p := &__go_rhs_1
+	_ = p
+	x := __go_rhs_1 + s[0] + bump(s)
+	_ = x
+}
+`)
+	if strings.Contains(rust, "let __go_rhs_1 = ") || !strings.Contains(rust, "let __go_rhs_") {
+		t.Fatalf("the temporary should not shadow __go_rhs_1:\n%s", rust)
+	}
+}

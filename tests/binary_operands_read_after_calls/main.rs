@@ -867,11 +867,22 @@ pub(crate) static counter: GoGlobal<i64> = GoGlobal::new();
 
 pub(crate) static label: GoGlobal<String> = GoGlobal::new();
 
+pub(crate) static flag: GoGlobal<bool> = GoGlobal::new();
+
+pub(crate) static text: GoGlobal<String> = GoGlobal::new();
+
+pub(crate) static spare: GoGlobal<Vec<i64>> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *counter.borrow_mut() = Some(0);
     *label.borrow_mut() = Some(String::new());
+    *flag.borrow_mut() = Some(false);
+    *text.borrow_mut() = Some(String::new());
+    *spare.borrow_mut() = Some(Vec::nil());
     *label.borrow_mut() = Some("a".to_string());
+    *text.borrow_mut() = Some("a".to_string());
+    *spare.borrow_mut() = Some((*Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(4) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v }))).borrow().as_ref().unwrap()).clone());
 }
 
 
@@ -935,6 +946,21 @@ pub fn twice(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
     Rc::new(RefCell::new(Some(format!("{}{}", (*s.borrow().as_ref().unwrap()), (*s.borrow().as_ref().unwrap())))))
 }
 
+pub fn raise() -> bool {
+    { let new_val = true; *flag.borrow_mut() = Some(new_val); };
+    true
+}
+
+pub fn grow() -> i64 {
+    { let new_val = "abcd".to_string(); *text.borrow_mut() = Some(new_val); };
+    0
+}
+
+pub fn regrow() -> i64 {
+    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some({ let mut v: Vec<i64> = (0..(9) as usize).map(|_| 0i64).collect(); v.truncate((1) as usize); v }))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *spare.borrow_mut() = new_val; };
+    0
+}
+
 fn main() {
     __go_init_all();
     let mut s = Rc::new(RefCell::new(Some(vec![1i64, 2i64])));
@@ -989,7 +1015,30 @@ fn main() {
     println!("{} {} {}", format!("{}", "float:".to_string()), { let __text = go_float_string(({ let __v = (*g.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text }, { let __text = go_float_string(({ let __v = (*f.borrow().as_ref().unwrap()).clone(); __v }) as f64, false); __text });
 
     let mut words = Rc::new(RefCell::new(Some(vec!["ab".to_string(), "cde".to_string()])));
-    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_17 = Rc::new(RefCell::new(Some((*twice(Rc::new(RefCell::new(Some({ let __arg_value = (*words.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value })))).borrow().as_ref().unwrap()).len() as i64))); let __go_binary_value = ((*words.borrow().as_ref().unwrap())[(0) as usize].clone().len() as i64) + ((*__go_rhs_17.borrow().as_ref().unwrap()) as i64); __go_binary_value }));
+    println!("{} {}", format!("{}", "len of a call:".to_string()), format!("{}", { let __go_rhs_17 = Rc::new(RefCell::new(Some((*twice(Rc::new(RefCell::new(Some({ let __arg_value = (*words.borrow().as_ref().unwrap())[(1) as usize].clone(); __arg_value })))).borrow().as_ref().unwrap()).len() as i64))); let __go_binary_value = (*counter.borrow().as_ref().unwrap()) + (*__go_rhs_17.borrow().as_ref().unwrap()); __go_binary_value }));
+
+    let mut yes = Rc::new(RefCell::new(Some(true)));
+    println!("{} {}", format!("{}", "&& on the left:".to_string()), format!("{}", { let __go_lhs_18 = Rc::new(RefCell::new(Some(((*yes.borrow().as_ref().unwrap()) && (*flag.borrow().as_ref().unwrap()))))); let __go_binary_value = (*__go_lhs_18.borrow().as_ref().unwrap()) == raise(); __go_binary_value }));
+    println!("{} {} {}", format!("{}", "len and cap on the left:".to_string()), format!("{}", { let __go_lhs_19 = Rc::new(RefCell::new(Some((*text.borrow().as_ref().unwrap()).len() as i64))); let __go_binary_value = (*__go_lhs_19.borrow().as_ref().unwrap()) + grow(); __go_binary_value }), format!("{}", { let __go_lhs_20 = Rc::new(RefCell::new(Some((*spare.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i64))); let __go_binary_value = (*__go_lhs_20.borrow().as_ref().unwrap()) + regrow(); __go_binary_value }));
+    let mut low = Rc::new(RefCell::new(Some(2i64)));
+    let mut pl = low.clone();
+    let pl_closure_clone = pl.clone(); println!("{} {}", format!("{}", "min on the left:".to_string()), format!("{}", { let __go_lhs_21 = Rc::new(RefCell::new(Some(std::cmp::min(((*low.borrow().as_ref().unwrap()) as i64), (5 as i64))))); let __go_binary_value = (*__go_lhs_21.borrow().as_ref().unwrap()) + { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
+        { let new_val = 0; *pl_closure_clone.borrow_mut() = Some(new_val); };
+        0
+    }) as Rc<dyn Fn() -> i64>))); let __f: Rc<dyn Fn() -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }; __go_binary_value }));
+    let pl_closure_clone = pl.clone(); println!("{} {}", format!("{}", "negation on the left:".to_string()), format!("{}", { let __go_rhs_22 = Rc::new(RefCell::new(Some({ let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
+        { let new_val = 7; *pl_closure_clone.borrow_mut() = Some(new_val); };
+        0
+    }) as Rc<dyn Fn() -> i64>))); let __f: Rc<dyn Fn() -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() }))); let __go_binary_value = -((*low.borrow().as_ref().unwrap())) + (*__go_rhs_22.borrow().as_ref().unwrap()); __go_binary_value }));
+    let mut dst = Rc::new(RefCell::new(Some(vec![1i64])));
+    println!("{} {} {}", format!("{}", "copy on the right:".to_string()), format!("{}", { let __go_rhs_23 = {
+        let _src = { let __copy_src_holder = Rc::new(RefCell::new(Some(vec![5i64]))).clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().map(|__s| __s.to_vec()).unwrap_or_default() };
+        let _n = std::cmp::min((*dst.borrow().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Rc::new(RefCell::new(Some(_n as i64)))
+    }; let __go_binary_value = (*dst.borrow().as_ref().unwrap())[(0) as usize].clone() + (*__go_rhs_23.borrow().as_ref().unwrap()); __go_binary_value }), format!("{}", format_slice(&dst)));
 
     let mut total = Rc::new(RefCell::new(Some(0i64)));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -999,7 +1048,7 @@ fn main() {
     }
     println!("{} {}", format!("{}", "plain local:".to_string()), format!("{}", { let __v = (*total.borrow().as_ref().unwrap()).clone(); __v }));
 
-    if { let __go_rhs_18 = Rc::new(RefCell::new(Some(bump(s.clone())))); let __go_binary_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() > (*__go_rhs_18.borrow().as_ref().unwrap()); __go_binary_value } {
+    if { let __go_rhs_24 = Rc::new(RefCell::new(Some(bump(s.clone())))); let __go_binary_value = (*s.borrow().as_ref().unwrap())[(0) as usize].clone() > (*__go_rhs_24.borrow().as_ref().unwrap()); __go_binary_value } {
         println!("{} {}", format!("{}", "condition: before".to_string()), format!("{}", format_slice(&s)));
     } else {
         println!("{} {}", format!("{}", "condition: after".to_string()), format!("{}", format_slice(&s)));

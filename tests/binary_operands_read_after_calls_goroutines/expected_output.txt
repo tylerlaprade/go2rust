@@ -15,6 +15,11 @@ method of a call's result: 311
 string: a!t a!
 map element: 2 2
 float: 6 2
-len of a call: 8
+len of a call: 311
+&& on the left: false
+len and cap on the left: 1 4
+min on the left: 2
+negation on the left: -7
+copy on the right: 6 [5]
 plain local: 6
 condition: before [6 4]

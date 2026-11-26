@@ -2,8 +2,11 @@ package main
 
 import "fmt"
 
-// Go calls the functions of an expression before it reads the plain
-// operands, so an operand that a call changes is read after the call.
+// The Go specification leaves the order of a plain operand's read and a call
+// in the same expression unspecified; these cases pin what gc does. gc runs
+// the calls of an expression before it reads the plain operands, so an
+// operand that a call changes is read after the call. A builtin call such as
+// len or min, and x && b, are evaluated in order with the calls.
 
 var counter int
 
@@ -43,6 +46,18 @@ func addOne(m map[string]int) int { m["a"]++; return 0 }
 func plain(i int) int { return i * 2 }
 
 func twice(s string) string { return s + s }
+
+var flag bool
+
+func raise() bool { flag = true; return true }
+
+var text = "a"
+
+func grow() int { text = "abcd"; return 0 }
+
+var spare = make([]int, 1, 4)
+
+func regrow() int { spare = make([]int, 1, 9); return 0 }
 
 func main() {
 	s := []int{1, 2}
@@ -87,7 +102,17 @@ func main() {
 	fmt.Println("float:", g, f)
 
 	words := []string{"ab", "cde"}
-	fmt.Println("len of a call:", len(words[0])+len(twice(words[1])))
+	fmt.Println("len of a call:", counter+len(twice(words[1])))
+
+	yes := true
+	fmt.Println("&& on the left:", (yes && flag) == raise())
+	fmt.Println("len and cap on the left:", len(text)+grow(), cap(spare)+regrow())
+	low := 2
+	pl := &low
+	fmt.Println("min on the left:", min(low, 5)+func() int { *pl = 0; return 0 }())
+	fmt.Println("negation on the left:", -low+func() int { *pl = 7; return 0 }())
+	dst := []int{1}
+	fmt.Println("copy on the right:", dst[0]+copy(dst, []int{5}), dst)
 
 	total := 0
 	for i := 0; i < 3; i++ {
