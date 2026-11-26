@@ -348,20 +348,50 @@ func printOperandsNeedDynamicSpacing(args []ast.Expr) bool {
 }
 
 func printOperandMayHoldString(arg ast.Expr) bool {
+	return printOperandSpacing(arg) != printSpacingStatic
+}
+
+type printSpacingMode int
+
+const (
+	// printSpacingStatic takes the operand's static type.
+	printSpacingStatic printSpacingMode = iota
+	// printSpacingReread formats the operand as usual and reads it again
+	// to ask what it holds: a variable or a chain of field reads. Any other
+	// interface operand, such as a field of a received value, could read
+	// differently the second time, and keeps the static spacing.
+	printSpacingReread
+)
+
+func printOperandSpacing(arg ast.Expr) printSpacingMode {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !isEmptyInterfaceValueExpr(arg) {
-		return false
+		return printSpacingStatic
 	}
 	if isExpressionResultBare(arg) {
 		// A range variable or other bare value is no interface handle.
-		return false
+		return printSpacingStatic
 	}
 	switch e := unwrapParens(arg).(type) {
 	case *ast.Ident:
-		_, isRangeVar := rangeLoopVars[e.Name]
-		return !isRangeVar
+		if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
+			return printSpacingStatic
+		}
+		return printSpacingReread
 	case *ast.SelectorExpr:
-		return !containsCallExpr(arg)
+		if isPlainSelectorChain(e) {
+			return printSpacingReread
+		}
+	}
+	return printSpacingStatic
+}
+
+func isPlainSelectorChain(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return true
+	case *ast.SelectorExpr:
+		return isPlainSelectorChain(e.X)
 	}
 	return false
 }
@@ -381,18 +411,7 @@ func writePrintOperandsDynamicSpacing(out *strings.Builder, args []ast.Expr) {
 		out.WriteString("let __print_is_string_")
 		out.WriteString(index)
 		out.WriteString(" = ")
-		switch {
-		case printOperandMayHoldString(arg):
-			out.WriteString("{ let __print_holder = ")
-			TranspileExpressionContext(out, arg, LValue)
-			out.WriteString(".clone(); let __print_guard = __print_holder")
-			WriteBorrowMethod(out, false)
-			out.WriteString("; __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }")
-		case printOperandIsString(arg):
-			out.WriteString("true")
-		default:
-			out.WriteString("false")
-		}
+		writePrintOperandIsString(out, arg)
 		out.WriteString("; ")
 		if i > 0 {
 			prev := strconv.Itoa(i - 1)
@@ -407,6 +426,23 @@ func writePrintOperandsDynamicSpacing(out *strings.Builder, args []ast.Expr) {
 		out.WriteString("); ")
 	}
 	out.WriteString("__print_text }")
+}
+
+// writePrintOperandIsString writes whether a print operand is a string: a
+// read of an interface operand's handle, or its static type.
+func writePrintOperandIsString(out *strings.Builder, arg ast.Expr) {
+	switch {
+	case printOperandSpacing(arg) == printSpacingReread:
+		out.WriteString("{ let __print_holder = ")
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone(); let __print_guard = __print_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }")
+	case printOperandIsString(arg):
+		out.WriteString("true")
+	default:
+		out.WriteString("false")
+	}
 }
 
 // printOperandIsString reports whether a fmt.Print operand is a string, of

@@ -31,6 +31,10 @@ func main() {
 	fmt.Print(x, z, "\n")
 	fmt.Print(y, x, "\n")
 	fmt.Fprint(os.Stdout, x, y, z, "\n")
+	// A receive in an operand runs once.
+	ch := make(chan S, 1)
+	ch <- S{V: 2}
+	fmt.Print((<-ch).V, 1, "\n")
 
 	m := map[string][]int{"j": nil, "k": {1}}
 	mm := map[string]map[string]int{"a": nil}

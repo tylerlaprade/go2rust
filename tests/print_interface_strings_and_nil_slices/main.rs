@@ -5,11 +5,10 @@ macro_rules! vec {
     ($($__x:expr),+ $(,)?) => (GoSlice::from(<[_]>::into_vec(std::boxed::Box::new([$($__x),+]))));
 }
 use std::any::Any;
-use std::cell::{RefCell};
 use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
 #[allow(unused_macros)]
 macro_rules! print {
@@ -689,7 +688,7 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
-fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
     V: Display,
 {
@@ -698,11 +697,11 @@ where
 
 // format_map_nil prints a value the map holds no value for as __nil_text:
 // [] for a nil slice, as Go prints one.
-fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
 where
     V: Display,
 {
-    let guard = map.borrow();
+    let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
         items.sort_by_key(|(k, _)| (*k).clone());
@@ -710,7 +709,7 @@ where
         let formatted: Vec<String> = items
             .into_iter()
             .map(|(k, v)| {
-                let v_guard = v.borrow();
+                let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
@@ -724,12 +723,12 @@ where
         "map[]".to_string()
     }
 }
-fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
         format!("[{}]", formatted.join(" "))
@@ -746,15 +745,15 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
-    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.as_ref().iter().map(|v| {
-            let inner = v.borrow();
+            let inner = v.lock().unwrap();
             match inner.as_ref() {
                 Some(value) => format!("&{}", value),
                 None => "<nil>".to_string(),
@@ -765,13 +764,13 @@ where
         "[]".to_string()
     }
 }
-fn format_nested_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+fn format_nested_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[Inner]>,
     Inner: AsRef<[T]>,
     T: Display,
 {
-    let guard = slice.borrow();
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         format_nested_slice_values(s.as_ref())
     } else {
@@ -787,7 +786,7 @@ where
     format!("[{}]", formatted.join(" "))
 }
 
-fn format_any(value: &dyn Any) -> String {
+fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<i64>() {
@@ -818,7 +817,7 @@ fn format_any(value: &dyn Any) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<usize>() {
         v.to_string()
-    } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
+    } else if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() {
         format_slice(v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
@@ -827,12 +826,12 @@ fn format_any(value: &dyn Any) -> String {
 
 // Prints a value held inside the one being printed. Nothing this program
 // puts in an interface prints differently there.
-fn format_any_nested(value: &dyn Any) -> String {
+fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
     format_any(value)
 }
 
-fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
-    let guard = slice.borrow();
+fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    let guard = slice.lock().unwrap();
     if let Some(ref s) = *guard {
         let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
         formatted.join(" ")
@@ -841,12 +840,181 @@ fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> St
     }
 }
 
-fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
     format!("[{}]", format_any_slice_values(slice))
 }
 
-fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
     format_any_slice_values(slice)
+}
+
+struct GoChannel<T> {
+    tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
+    rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
+    is_nil: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    len: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    capacity: usize,
+}
+
+impl<T> GoChannel<T> {
+    fn new() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+
+    fn new_buffered(cap: usize) -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(cap);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: cap,
+        }
+    }
+
+    fn send(&self, val: T) {
+        if self.is_nil() {
+            return;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.send(val).is_ok() && self.capacity > 0 {
+                self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+    }
+
+    fn try_send(&self, val: T) -> bool {
+        if self.is_nil() {
+            return false;
+        }
+        let tx = self.tx.lock().unwrap().clone();
+        if let Some(tx) = tx {
+            if tx.try_send(val).is_ok() {
+                if self.capacity > 0 {
+                    self.len.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    fn try_recv(&self) -> Option<T> {
+        if self.is_nil() {
+            return None;
+        }
+        let value = self.rx.lock().unwrap().try_recv().ok();
+        if value.is_some() && self.capacity > 0 {
+            let _ = self.len.fetch_update(
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+                |__go_current| __go_current.checked_sub(1),
+            );
+        }
+        value
+    }
+
+    // A select case's receive: Some(Some(v)) for a value, Some(None) when
+    // the channel is closed and drained, None when nothing is ready yet.
+    fn try_recv_select(&self) -> Option<Option<T>> {
+        if self.is_nil() {
+            return None;
+        }
+        match self.rx.lock().unwrap().try_recv() {
+            Ok(value) => {
+                if self.capacity > 0 {
+                    let _ = self.len.fetch_update(
+                        std::sync::atomic::Ordering::SeqCst,
+                        std::sync::atomic::Ordering::SeqCst,
+                        |__go_current| __go_current.checked_sub(1),
+                    );
+                }
+                Some(Some(value))
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Some(None),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+        }
+    }
+
+    fn close(&self) {
+        *self.tx.lock().unwrap() = None;
+    }
+
+    fn is_nil(&self) -> bool {
+        self.is_nil.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn len(&self) -> usize {
+        self.len.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+impl<T> Clone for GoChannel<T> {
+    fn clone(&self) -> Self {
+        GoChannel {
+            tx: self.tx.clone(),
+            rx: self.rx.clone(),
+            is_nil: self.is_nil.clone(),
+            len: self.len.clone(),
+            capacity: self.capacity,
+        }
+    }
+}
+
+impl<T> Default for GoChannel<T> {
+    fn default() -> Self {
+        let (tx, rx) = std::sync::mpsc::sync_channel(0);
+        GoChannel {
+            tx: std::sync::Arc::new(std::sync::Mutex::new(Some(tx))),
+            rx: std::sync::Arc::new(std::sync::Mutex::new(rx)),
+            is_nil: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)),
+            len: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            capacity: 0,
+        }
+    }
+}
+
+impl<T> std::fmt::Debug for GoChannel<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "GoChannel")
+    }
+}
+
+impl<T> Iterator for GoChannel<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<T> {
+        self.recv()
+    }
 }
 
 fn go_float_string(__value: f64, __single: bool) -> String {
@@ -903,7 +1071,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 #[derive(Clone, Default)]
 pub struct S {
-    pub v: Rc<RefCell<Option<Box<dyn Any>>>>,
+    pub v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
 }
 
 impl S {
@@ -918,7 +1086,7 @@ impl S {
 impl std::fmt::Display for S {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_plus = f.alternate();
-        let __go_fmt_0 = format!("{}", match self.v.borrow().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
+        let __go_fmt_0 = format!("{}", match self.v.lock().unwrap().as_ref() { Some(__v) => format_any_nested(__v.as_ref()), None => "<nil>".to_string() });
         if __go_plus {
             return write!(f, "{{V:{}}}", __go_fmt_0);
         }
@@ -929,14 +1097,14 @@ impl std::fmt::Display for S {
 
 #[derive(Debug, Clone, Default)]
 pub struct T {
-    pub s: Rc<RefCell<Option<Vec<i64>>>>,
-    pub m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>,
-    pub p: Rc<RefCell<Option<i64>>>,
+    pub s: Arc<Mutex<Option<Vec<i64>>>>,
+    pub m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>,
+    pub p: Arc<Mutex<Option<i64>>>,
 }
 
 impl T {
     pub fn __go_value_clone(&self) -> Self {
-        let __go_clone_0_0 = { let __guard = self.s.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        let __go_clone_0_0 = { let __guard = self.s.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
         let __go_clone_1_0 = self.m.clone();
         let __go_clone_2_0 = self.p.clone();
         Self {
@@ -952,7 +1120,7 @@ impl std::fmt::Display for T {
         let __go_plus = f.alternate();
         let __go_fmt_0 = format!("{}", format_slice(&self.s));
         let __go_fmt_1 = format!("{}", format_map(&self.m));
-        let __go_fmt_2 = format!("{}", { let __guard = self.p.borrow(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_2 = format!("{}", { let __guard = self.p.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         if __go_plus {
             return write!(f, "{{S:{} M:{} P:{}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2);
         }
@@ -962,21 +1130,26 @@ impl std::fmt::Display for T {
 
 
 fn main() {
-    let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>)));
-    let mut y: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("s".to_string()) as Box<dyn Any>)));
-    let mut z: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(2.5) as Box<dyn Any>)));
-    let mut n: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
-    let mut s = Rc::new(RefCell::new(Some(S { v: Rc::new(RefCell::new(Some(Box::new("in".to_string()) as Box<dyn Any>))), ..Default::default() })));
-    println!("{} {} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match z.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = z.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = y.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match n.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = n.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_2 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).borrow().as_ref().unwrap())));
-    println!("{} {} {}", format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match (*s.borrow().as_ref().unwrap()).v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = (*s.borrow().as_ref().unwrap()).v.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", 3)); let __print_is_string_1 = false; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", 3)); let __print_is_string_0 = false; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match (*s.borrow().as_ref().unwrap()).v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = (*s.borrow().as_ref().unwrap()).v.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", 4)); let __print_is_string_2 = false; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).borrow().as_ref().unwrap())), format!("{}", (*Rc::new(RefCell::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", "a".to_string())); let __print_is_string_0 = true; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "b".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).borrow().as_ref().unwrap())));
-    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match z.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = z.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text });
-    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = y.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text });
-    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", match z.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_2 = { let __print_holder = z.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); let __print_part_3 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_3 = true; if !__print_is_string_2 && !__print_is_string_3 { __print_text.push(' '); } __print_text.push_str(&__print_part_3); __print_text });
+    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(1i64) as Box<dyn Any + Send + Sync>)));
+    let mut y: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("s".to_string()) as Box<dyn Any + Send + Sync>)));
+    let mut z: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>)));
+    let mut n: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    let mut s = Arc::new(Mutex::new(Some(S { v: Arc::new(Mutex::new(Some(Box::new("in".to_string()) as Box<dyn Any + Send + Sync>))), ..Default::default() })));
+    println!("{} {} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match z.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = z.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = y.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match n.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = n.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_2 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match (*s.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = (*s.lock().unwrap().as_ref().unwrap()).v.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", 3)); let __print_is_string_1 = false; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", 3)); let __print_is_string_0 = false; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match (*s.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = (*s.lock().unwrap().as_ref().unwrap()).v.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", 4)); let __print_is_string_2 = false; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", "a".to_string())); let __print_is_string_0 = true; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "b".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text })))).lock().unwrap().as_ref().unwrap())));
+    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match z.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = z.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text });
+    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = y.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_2 = true; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); __print_text });
+    print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = y.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); let __print_part_2 = format!("{}", format!("{}", { let __text = match z.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_2 = { let __print_holder = z.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_1 && !__print_is_string_2 { __print_text.push(' '); } __print_text.push_str(&__print_part_2); let __print_part_3 = format!("{}", format!("{}", "\n".to_string())); let __print_is_string_3 = true; if !__print_is_string_2 && !__print_is_string_3 { __print_text.push(' '); } __print_text.push_str(&__print_part_3); __print_text });
 
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("j".to_string(), Rc::new(RefCell::new(None))), ("k".to_string(), Rc::new(RefCell::new(Some(vec![1i64]))))]))));
-    let mut mm = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>::from([("a".to_string(), Rc::new(RefCell::new(None)))]))));
-    println!("{} {}", format!("{}", format_map_nil(&m, "[]")), format!("{}", { let __map_holder = mm.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
-    println!("{}", format!("{}", format_nested_slice(&Rc::new(RefCell::new(Some(vec![Vec::new(), vec![2i64]]))))));
-    println!("{} {}", format!("{}", T { s: Default::default(), m: Default::default(), p: Default::default() }), format!("{}", format_any_slice(&Rc::new(RefCell::new(Some(vec![Box::new(Rc::new(RefCell::new(None::<Vec<i64>>))) as Box<dyn Any>]))))));
-    print!("{} {:#}\n", T { s: Default::default(), m: Default::default(), p: Default::default() }, format_map_nil(&m, "[]"));
+        // A receive in an operand runs once.
+    let mut ch = GoChannel::<S>::new_buffered(1 as usize);
+    ch.send(S { v: Arc::new(Mutex::new(Some(Box::new(2i64) as Box<dyn Any + Send + Sync>))), ..Default::default() });
+    print!("{} {}{}", format!("{}", { let __text = match (ch.recv().unwrap_or_default()).v.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", 1), format!("{}", "\n".to_string()));
+
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("j".to_string(), Arc::new(Mutex::new(None))), ("k".to_string(), Arc::new(Mutex::new(Some(vec![1i64]))))]))));
+    let mut mm = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>>::from([("a".to_string(), Arc::new(Mutex::new(None)))]))));
+    println!("{} {}", format!("{}", format_map_nil(&m, "[]")), format!("{}", { let __map_holder = mm.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", go_display_value(__k), format_map(__v))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{}", format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some(vec![Vec::new(), vec![2i64]]))))));
+    println!("{} {}", format!("{}", T { s: Default::default(), m: Default::default(), p: Default::default() }), format!("{}", format_any_slice(&Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(None::<Vec<i64>>))) as Box<dyn Any + Send + Sync>]))))));
+    print!("{} {}\n", format!("{}", T { s: Default::default(), m: Default::default(), p: Default::default() }), format!("{:#}", format_map_nil(&m, "[]")));
 }
