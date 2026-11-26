@@ -692,6 +692,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Ar
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -704,7 +713,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), nil_text)
                 }
             })
             .collect();
@@ -1155,7 +1164,7 @@ fn main() {
     { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("pear".to_string()))), Arc::new(Mutex::new(Some(1)))); __result };
     { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some(3)))); __result };
     println!("{}", format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).items)));
-    println!("{} {}", format!("{}", format_map(&(*(*inv.lock().unwrap().as_mut().unwrap()).counts.lock().unwrap().as_mut().unwrap()).by_name)), format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).tags)));
+    println!("{} {}", format!("{}", format_map(&(*(*inv.lock().unwrap().as_mut().unwrap()).counts.lock().unwrap().as_mut().unwrap()).by_name)), format!("{}", format_map_nil(&(*inv.lock().unwrap().as_ref().unwrap()).tags, "[]")));
     println!("{}", format!("{}", format_map(&(*(*inv.lock().unwrap().as_ref().unwrap()).inner.lock().unwrap().as_ref().unwrap()).m)));
     print!("{} {}\n", format!("{}", format_map(&(*inv.lock().unwrap().as_ref().unwrap()).items)), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*inv.lock().unwrap().as_ref().unwrap()).items.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
     let mut v = Arc::new(Mutex::new(Some(counts { by_name: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64)))), ("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));

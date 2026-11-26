@@ -685,6 +685,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, R
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.borrow();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -697,7 +706,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), nil_text)
                 }
             })
             .collect();
@@ -836,9 +845,9 @@ fn main() {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64, 2i64]))))]))));
     let mut x = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = 3; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) };
     { let __idx = (0) as usize; let __rhs = 100; (*x.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
-    println!("{} {}", format!("{}", format_map(&m)), format!("{}", format_slice(&x)));
+    println!("{} {}", format!("{}", format_map_nil(&m, "[]")), format!("{}", format_slice(&x)));
     { let __map_key = "a".to_string(); let __map_value = { let __slice = { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().unwrap().get(&"a".to_string()).cloned().unwrap_or_else(|| Rc::new(RefCell::new(None))) }; let __append_value = 9; let mut __appended = (*__slice.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) }; (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    println!("{}", format!("{}", format_map(&m)));
+    println!("{}", format!("{}", format_map_nil(&m, "[]")));
 
     let mut grid = Rc::new(RefCell::new(Some(vec![vec![1i64], vec![2i64]])));
     let mut y = { let __append_idx = (0) as usize; let __append_value = 5; let mut __appended = (*grid.borrow().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended };

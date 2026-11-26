@@ -109,7 +109,7 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 pub fn print_list(l: Rc<RefCell<Option<container_list::r#mod::List>>>) {
     let mut e = (*l.borrow().as_ref().unwrap()).front();
     while { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-        print!("{}{}", format!("{}", match (*e.borrow().as_ref().unwrap()).value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
+        print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match (*e.borrow().as_ref().unwrap()).value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = (*e.borrow().as_ref().unwrap()).value.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", " ".to_string())); let __print_is_string_1 = true; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text });
         { let new_val = (*e.borrow().as_ref().unwrap()).next().clone(); e = new_val; };
     }
     println!("{} {}", format!("{}", "| len".to_string()), format!("{}", (*l.borrow().as_ref().unwrap()).len()));
@@ -135,7 +135,7 @@ fn main() {
     print_list(l.clone());
     let mut e = (*l.borrow().as_ref().unwrap()).back();
     while { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
-        print!("{}{}", format!("{}", match (*e.borrow().as_ref().unwrap()).value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
+        print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match (*e.borrow().as_ref().unwrap()).value.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = (*e.borrow().as_ref().unwrap()).value.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", " ".to_string())); let __print_is_string_1 = true; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text });
         { let new_val = (*e.borrow().as_ref().unwrap()).prev().clone(); e = new_val; };
     }
     println!();
@@ -147,7 +147,7 @@ fn main() {
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     container_ring::__go_nil_recv_ring_r_do(r.clone(), Rc::new(RefCell::new(Some(Rc::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {
-        print!("{}{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", " ".to_string()));
+        print!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", match v.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() })); let __print_is_string_0 = { let __print_holder = v.clone(); let __print_guard = __print_holder.borrow(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", " ".to_string())); let __print_is_string_1 = true; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text });
     }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Any>>>>) -> ()>))));
     println!("{}", format!("{}", container_ring::__go_nil_recv_ring_len(r.clone())));
 }

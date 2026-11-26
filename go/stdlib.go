@@ -224,7 +224,10 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("print!")
 	out.WriteString("(")
 
-	if len(call.Args) > 0 {
+	if printOperandsNeedDynamicSpacing(call.Args) {
+		out.WriteString("\"{}\", ")
+		writePrintOperandsDynamicSpacing(out, call.Args)
+	} else if len(call.Args) > 0 {
 		out.WriteString("\"")
 		for i := range call.Args {
 			// Print puts a space between two operands only when neither is
@@ -250,6 +253,11 @@ func transpileFmtPrint(out *strings.Builder, call *ast.CallExpr) {
 // does when line is true: Println puts a space between every two operands
 // and ends with a newline, Print puts one only between two non-strings.
 func writePrintOperandsFormat(out *strings.Builder, args []ast.Expr, line bool) {
+	if !line && printOperandsNeedDynamicSpacing(args) {
+		out.WriteString("\"{}\", ")
+		writePrintOperandsDynamicSpacing(out, args)
+		return
+	}
 	out.WriteString("\"")
 	for i := range args {
 		if i > 0 && (line || (!printOperandIsString(args[i-1]) && !printOperandIsString(args[i]))) {
@@ -320,6 +328,78 @@ func writeSprintVariadicAny(out *strings.Builder, arg ast.Expr) {
 	out.WriteString("if __sprint_index > 0 && !__sprint_is_string && !__sprint_after_string { __sprint_text.push(' '); } ")
 	out.WriteString("__sprint_text.push_str(&format_any(__sprint_value.as_ref())); __sprint_after_string = __sprint_is_string; } ")
 	out.WriteString("__sprint_text }")
+}
+
+// printOperandsNeedDynamicSpacing reports whether fmt.Print's spacing of
+// args depends on what an interface operand holds: a space goes between two
+// operands only when neither is a string, and an empty interface holding a
+// string counts as one. Only an operand that can be read again without
+// side effects is looked into.
+func printOperandsNeedDynamicSpacing(args []ast.Expr) bool {
+	if len(args) < 2 {
+		return false
+	}
+	for _, arg := range args {
+		if printOperandMayHoldString(arg) {
+			return true
+		}
+	}
+	return false
+}
+
+func printOperandMayHoldString(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isEmptyInterfaceValueExpr(arg) {
+		return false
+	}
+	switch unwrapParens(arg).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		return !containsCallExpr(arg)
+	}
+	return false
+}
+
+// writePrintOperandsDynamicSpacing writes a block that formats args and
+// joins them as fmt.Print does, asking each interface operand whether it
+// holds a string.
+func writePrintOperandsDynamicSpacing(out *strings.Builder, args []ast.Expr) {
+	out.WriteString("{ let mut __print_text = String::new(); ")
+	for i, arg := range args {
+		index := strconv.Itoa(i)
+		out.WriteString("let __print_part_")
+		out.WriteString(index)
+		out.WriteString(" = format!(\"{}\", ")
+		transpilePrintArgString(out, arg)
+		out.WriteString("); ")
+		out.WriteString("let __print_is_string_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		switch {
+		case printOperandMayHoldString(arg):
+			out.WriteString("{ let __print_holder = ")
+			TranspileExpressionContext(out, arg, LValue)
+			out.WriteString(".clone(); let __print_guard = __print_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }")
+		case printOperandIsString(arg):
+			out.WriteString("true")
+		default:
+			out.WriteString("false")
+		}
+		out.WriteString("; ")
+		if i > 0 {
+			prev := strconv.Itoa(i - 1)
+			out.WriteString("if !__print_is_string_")
+			out.WriteString(prev)
+			out.WriteString(" && !__print_is_string_")
+			out.WriteString(index)
+			out.WriteString(" { __print_text.push(' '); } ")
+		}
+		out.WriteString("__print_text.push_str(&__print_part_")
+		out.WriteString(index)
+		out.WriteString("); ")
+	}
+	out.WriteString("__print_text }")
 }
 
 // printOperandIsString reports whether a fmt.Print operand is a string, of
@@ -922,6 +1002,13 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
+			if mapValuesAreSlices(argType) {
+				// A nil slice value prints as [].
+				out.WriteString("format_map_nil(&")
+				writeHandle()
+				out.WriteString(", \"[]\")")
+				return
+			}
 			out.WriteString("format_map(&")
 			writeHandle()
 			out.WriteString(")")
@@ -2493,6 +2580,20 @@ func mapArrayValueFormatter(mapType types.Type) (string, bool) {
 		return "format_nested_slice_values", true
 	}
 	return "", false
+}
+
+// mapValuesAreSlices reports whether mapType is a map whose values are
+// slices.
+func mapValuesAreSlices(mapType types.Type) bool {
+	if mapType == nil {
+		return false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	_, isSlice := types.Unalias(m.Elem()).Underlying().(*types.Slice)
+	return isSlice
 }
 
 // mapValuesAreBasicMaps reports whether mapType is a map whose values are
@@ -7512,6 +7613,15 @@ func generateMapFormatter(out *strings.Builder) {
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -7524,7 +7634,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), nil_text)
                 }
             })
             .collect();
@@ -7542,6 +7652,15 @@ where
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.borrow();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -7554,7 +7673,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), nil_text)
                 }
             })
             .collect();

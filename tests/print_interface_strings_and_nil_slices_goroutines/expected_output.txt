@@ -1,0 +1,9 @@
+1s 1 2.5 ss 1 <nil> 1
+in3 3in4 a1b
+1 2.5
+s1
+1s2.5
+map[j:[] k:[1]] map[a:map[]]
+[[] [2]]
+{[] map[] <nil>} [[]]
+{[] map[] <nil>} map[j:[] k:[1]]

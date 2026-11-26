@@ -1126,7 +1126,7 @@ pub fn safe_div(a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, results:
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
-            results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "recovered: ".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());;
+            results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", "recovered: ".to_string())); let __print_is_string_0 = true; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = r.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap()).clone());;
         }
     }
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
@@ -1189,7 +1189,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         let results_defer_captured = results_thread.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         let mut r = go_recover();
-        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "inline recovered: ".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }))))).lock().unwrap().as_ref().unwrap()).clone());
+        results_defer_captured.send((*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", "inline recovered: ".to_string())); let __print_is_string_0 = true; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_1 = { let __print_holder = r.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap()).clone());
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));;
         let mut m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<i64>>>>>>>> = Arc::new(Mutex::new(None));;
