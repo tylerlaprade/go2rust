@@ -1916,6 +1916,22 @@ run_xfail_test() {
     run_test "tests/goroutines_simple"
 }
 
+@test "goto_interleaved_labels" {
+    run_test "tests/goto_interleaved_labels"
+}
+
+@test "goto_interleaved_labels_goroutines" {
+    run_test "tests/goto_interleaved_labels_goroutines"
+}
+
+@test "goto_label_scopes" {
+    run_test "tests/goto_label_scopes"
+}
+
+@test "goto_label_scopes_goroutines" {
+    run_test "tests/goto_label_scopes_goroutines"
+}
+
 @test "goto_labels" {
     run_test "tests/goto_labels"
 }
