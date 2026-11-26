@@ -1,0 +1,12 @@
+started
+ab/Xd/
+ab/Xd/ 2 tags 1 counts <1,2,3>
+ab/Xd/ 2 tags 1 counts <1,2,3>
+2 tags|<1,2,3> 1 counts
+ab/Xd/ 2 tags 3 tags
+bad 3 tags
+2 tags 1 counts
+322074616773|322074616773|    2 tags|<1,2,3> |
+726177 raw raw
+2 tags 2 tags
+3 tags

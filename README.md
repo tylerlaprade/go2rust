@@ -195,6 +195,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Typed nil arguments passed to package functions | ✅ |
 | └ Function-valued struct field calls | ✅ |
 | └ Method selectors returning function values stay method calls | ✅ |
+| └ Named slice, array and map types with a String method print through it | ✅ |
 | └ Fields and methods of a parenthesized call, `(f()).s` and `(f()).m()` | ✅ |
 | └ Pointer-receiver method values returned or assigned as `func` values | ✅ |
 | └ Named function type conversions | ✅ |

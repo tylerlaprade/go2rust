@@ -2608,6 +2608,14 @@ run_xfail_test() {
     run_test "tests/named_basic_value_in_interface_goroutines"
 }
 
+@test "named_collection_stringers" {
+    run_test "tests/named_collection_stringers"
+}
+
+@test "named_collection_stringers_goroutines" {
+    run_test "tests/named_collection_stringers_goroutines"
+}
+
 @test "named_const_method_call" {
     run_test "tests/named_const_method_call"
 }

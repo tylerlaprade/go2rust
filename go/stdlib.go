@@ -883,6 +883,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			return
 		}
 
+		if (typeInfo.IsMap(arg) || typeInfo.IsSlice(arg) || typeInfo.IsArray(arg)) && writeNamedCollectionStringerPrintArg(out, arg, argType) {
+			return
+		}
 		if typeInfo.IsMap(arg) {
 			writeHandle := func() {
 				if ident, ok := arg.(*ast.Ident); ok {
@@ -1324,6 +1327,59 @@ func withPrintArgPlusV(plusV bool, write func()) {
 	write()
 }
 
+// printArgVerb is the verb of the Printf argument being written, with '#'
+// for %#v, or 0 outside Printf, where every operand prints as %v does.
+var printArgVerb byte
+
+func withPrintArgPlusVVerb(plusV bool, verb byte, write func()) {
+	saved := printArgVerb
+	printArgVerb = verb
+	defer func() { printArgVerb = saved }()
+	withPrintArgPlusV(plusV, write)
+}
+
+// printArgUsesStringMethod reports whether the verb of the argument being
+// written prints a value through its String method: %v (not %#v) and %s,
+// and every operand of Print, Println and Sprint.
+func printArgUsesStringMethod() bool {
+	return printArgVerb == 0 || printArgVerb == 'v' || printArgVerb == 's'
+}
+
+// formatArgVerbs returns the verb of each argument of a literal format,
+// counted as formatPlusVArgIndices counts them; %#v is '#'.
+func formatArgVerbs(format string) map[int]byte {
+	verbs := map[int]byte{}
+	argIndex := 0
+	for i := 0; i < len(format); i++ {
+		if format[i] != '%' {
+			continue
+		}
+		if i+1 < len(format) && format[i+1] == '%' {
+			i++
+			continue
+		}
+		sharp := false
+		j := i + 1
+		for j < len(format) && strings.IndexByte("+-# 0123456789.", format[j]) >= 0 {
+			if format[j] == '#' {
+				sharp = true
+			}
+			j++
+		}
+		if j >= len(format) {
+			break
+		}
+		verb := format[j]
+		if sharp && verb == 'v' {
+			verb = '#'
+		}
+		verbs[argIndex] = verb
+		argIndex++
+		i = j
+	}
+	return verbs
+}
+
 // formatPlusVArgIndices returns the arguments of a literal format that a
 // %+v verb formats, counted as convertFormatStringWithSkips counts them.
 func formatPlusVArgIndices(format string) map[int]bool {
@@ -1663,6 +1719,23 @@ func transpileFormatPointerArg(out *strings.Builder, arg ast.Expr) {
 func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string) {
 	upper := strings.Contains(formatSpec, "X")
 	typeInfo := GetTypeInfo()
+	if typeInfo != nil && (typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) || typeInfo.IsMap(arg)) && typeHasGoStringMethod(typeInfo.GetType(arg)) {
+		if _, isNamed := types.Unalias(typeInfo.GetType(arg)).(*types.Named); isNamed {
+			// %x of a value with a String method is %x of its text
+			// (DEV-234).
+			NeedHexFormat()
+			TrackImport("Display")
+			out.WriteString("go_format_hex_bytes(format!(\"{}\", ")
+			writeUnwrappedForFormat(out, arg)
+			out.WriteString(").as_bytes()")
+			if upper {
+				out.WriteString(", true)")
+			} else {
+				out.WriteString(", false)")
+			}
+			return
+		}
+	}
 	if typeInfo != nil && typeInfo.IsByteSliceOrArray(arg) {
 		NeedHexFormat()
 		out.WriteString("go_format_hex_bytes(")
@@ -1985,11 +2058,13 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var argVerbs map[int]byte
 	if len(call.Args) > formatArgIndex {
 		if literal, ok := expandedFormat(call, formatArgIndex); ok {
 			// Convert Go format verbs to Rust and get skip/char/typeName indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			argVerbs = formatArgVerbs(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2006,7 +2081,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 						continue
 					}
 					var arg strings.Builder
-					withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
+					withPrintArgPlusVVerb(plusVArgs[i-formatArgIndex-1], argVerbs[i-formatArgIndex-1], func() {
 						transpileFormatArg(&arg, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 					})
 					args = append(args, arg.String())
@@ -2042,7 +2117,7 @@ func writeFmtMacroCall(out *strings.Builder, macro string, call *ast.CallExpr, f
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				withPrintArgPlusV(plusVArgs[i-formatArgIndex-1], func() {
+				withPrintArgPlusVVerb(plusVArgs[i-formatArgIndex-1], argVerbs[i-formatArgIndex-1], func() {
 					transpileFormatArg(out, call.Args[i], i-formatArgIndex-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
@@ -2501,6 +2576,23 @@ func writeNamedArrayPrintArg(out *strings.Builder, arg ast.Expr, argType types.T
 	return true
 }
 
+// writeNamedCollectionStringerPrintArg prints a value of a named slice,
+// array or map type that has a String method through it: the newtype's
+// Display calls String (DEV-234).
+func writeNamedCollectionStringerPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if argType == nil || !typeHasGoStringMethod(argType) || !printArgUsesStringMethod() {
+		return false
+	}
+	if _, isNamed := types.Unalias(argType).(*types.Named); !isNamed {
+		return false
+	}
+	TrackImport("Display")
+	out.WriteString("format!(\"{}\", ")
+	writeUnwrappedForFormat(out, arg)
+	out.WriteString(")")
+	return true
+}
+
 func writeNamedSlicePrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
 	_, sliceType, ok := namedSliceTypeForExpr(arg)
 	if !ok || typeHasGoStringMethod(argType) {
@@ -2791,12 +2883,14 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var argVerbs map[int]byte
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		if literal, ok := expandedFormat(call, 0); ok {
 			// Convert Go format verbs to Rust and get skip indices
 			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			argVerbs = formatArgVerbs(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2813,7 +2907,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 						continue
 					}
 					var arg strings.Builder
-					withPrintArgPlusV(plusVArgs[i-1], func() {
+					withPrintArgPlusVVerb(plusVArgs[i-1], argVerbs[i-1], func() {
 						transpileFormatArg(&arg, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 					})
 					args = append(args, arg.String())
@@ -2850,7 +2944,7 @@ func transpileFmtSprintf(out *strings.Builder, call *ast.CallExpr) {
 			}
 			if !shouldSkip {
 				out.WriteString(", ")
-				withPrintArgPlusV(plusVArgs[i-1], func() {
+				withPrintArgPlusVVerb(plusVArgs[i-1], argVerbs[i-1], func() {
 					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
@@ -2903,6 +2997,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 	var pointerIndices []int
 	hexFormats := make(map[int]string)
 	var plusVArgs map[int]bool
+	var argVerbs map[int]byte
 	if len(call.Args) > 0 {
 		// First arg is the format string
 		literalFormat := false
@@ -2910,6 +3005,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 			// Convert Go format verbs to Rust
 			format, skips, chars, typeNames, unicodes, pointers, hexes, strs := convertFormatStringWithSkips(literal)
 			plusVArgs = formatPlusVArgIndices(literal)
+			argVerbs = formatArgVerbs(literal)
 			skipIndices = skips
 			charIndices = chars
 			typeNameIndices = typeNames
@@ -2946,7 +3042,7 @@ func transpileFmtErrorf(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(" { Some(__wrapped) => format!(\"{}\", __wrapped), None => \"%!w(<nil>)\".to_string() }")
 					continue
 				}
-				withPrintArgPlusV(plusVArgs[i-1], func() {
+				withPrintArgPlusVVerb(plusVArgs[i-1], argVerbs[i-1], func() {
 					transpileFormatArg(out, call.Args[i], i-1, charIndices, typeNameIndices, unicodeIndices, pointerIndices, hexFormats, stringIndices)
 				})
 			}
