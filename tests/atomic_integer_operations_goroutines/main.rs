@@ -895,7 +895,7 @@ fn main() {
     let mut b: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(10)));
     let mut hits = b.clone();
     let mut s = Arc::new(Mutex::new(Some(stats { hits: hits.clone(), ..Default::default() })));
-    Arc::new(Mutex::new(Some({ let __target = (*s.lock().unwrap().as_ref().unwrap()).hits.clone(); let __delta = 7 as i64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value += __delta; *__value })));
+    Arc::new(Mutex::new(Some({ let __target = (*s.lock().unwrap().as_ref().unwrap()).hits.clone(); let __delta = (7) as i64; let mut __guard = __target.lock().unwrap(); let __value = __guard.as_mut().unwrap(); *__value = __value.wrapping_add(__delta); *__value })));
     let mut loaded = Arc::new(Mutex::new(Some({ let __target = b.clone(); let __guard = __target.lock().unwrap(); *__guard.as_ref().unwrap() })));
     let mut old = Arc::new(Mutex::new(Some({ let __target = b.clone(); let __stored = (100) as i64; let mut __guard = __target.lock().unwrap(); std::mem::replace(__guard.as_mut().unwrap(), __stored) })));
     println!("{} {} {}", format!("{}", { let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }));

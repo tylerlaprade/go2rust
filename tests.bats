@@ -628,6 +628,14 @@ run_xfail_test() {
     run_test "tests/asserted_collections_shared_goroutines"
 }
 
+@test "atomic_add_int64_deltas" {
+    run_test "tests/atomic_add_int64_deltas"
+}
+
+@test "atomic_add_int64_deltas_goroutines" {
+    run_test "tests/atomic_add_int64_deltas_goroutines"
+}
+
 @test "atomic_integer_operations" {
     run_test "tests/atomic_integer_operations"
 }

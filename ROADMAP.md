@@ -189,6 +189,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 
 ### ✅ Phase 7: Goroutines and Concurrency (Core Complete)
 
+- ✅ atomic.AddInt64 with any delta - a conversion such as `int64(len(words))`, a call, a field or a constant, through the same writer as the other atomic Add functions, which wraps around as Go does (atomic_add_int64_deltas added, 2026-11-26)
 - ✅ Goroutines (thread::spawn with variable capture)
 - ✅ Channels (buffered, unbuffered, close, range)
 - ✅ Channel struct fields - bare `GoChannel` fields support zero values, explicit literals, nil assignment/checks, send/receive, len, and cap (channel_struct_fields promoted, 2026-05-07)
