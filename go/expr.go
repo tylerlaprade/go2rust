@@ -1340,7 +1340,13 @@ func writePointerDerefSequenceIndexValue(out *strings.Builder, expr ast.Expr, in
 		return false
 	}
 	out.WriteString("{ let __seq = ")
+	// Only one element is read, and it must be the element itself: a
+	// pointer method called on (*a)[i] runs on (*a)[i], and a read of it
+	// as a value applies its own copy.
+	prevShared := pointeeReadSharesStorage
+	pointeeReadSharesStorage = unwrapParens(expr)
 	TranspileExpression(out, expr)
+	pointeeReadSharesStorage = prevShared
 	out.WriteString("; __seq[")
 	writeExpressionAsUsize(out, index)
 	out.WriteString("].clone() }")

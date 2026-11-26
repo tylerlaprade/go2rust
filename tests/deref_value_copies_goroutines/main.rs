@@ -1073,6 +1073,19 @@ pub fn get(p: Arc<Mutex<Option<P>>>) -> Arc<Mutex<Option<P>>> {
     Arc::new(Mutex::new(Some({ let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v })))
 }
 
+/// An element read through a pointer to an array is that element: its
+/// pointer method changes the array, and a copy of it is its own.
+pub fn bump_first(arr: Arc<Mutex<Option<[P; 1]>>>) -> i64 {
+    {
+        let mut __recv = { let __seq = ({ let __v = (*arr.lock().unwrap().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() };
+        let __result = __recv.inc();
+        __result
+    };
+    let mut x = Arc::new(Mutex::new(Some({ let __seq = ({ let __v = (*arr.lock().unwrap().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() }.__go_value_clone())));
+    { let new_val = 100; *(*x.lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
+    return (*(*x.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap());
+}
+
 fn main() {
         // A goroutine makes every variable a locked one.
     let mut started = GoChannel::<String>::new_buffered(1 as usize);
@@ -1146,6 +1159,10 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.n) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.n) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }));
+
+    let mut one: Arc<Mutex<Option<[P; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
+    { let new_val = 1; *{ let __seq = { let __seq_holder = one.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.n.lock().unwrap() = Some(new_val); };
+    println!("{} {}", format!("{}", bump_first(one.clone())), format!("{}", (*{ let __seq = { let __seq_holder = one.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.n.lock().unwrap().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]

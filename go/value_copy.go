@@ -401,13 +401,17 @@ func rangeVarGoValueCopyCall(ident *ast.Ident) (call string, known bool) {
 	return goValueCopyCallForExpr(ident)
 }
 
+// pointeeReadSharesStorage is the dereference being written as the operand
+// of an index, which reads the pointee's storage rather than a copy of it.
+var pointeeReadSharesStorage ast.Expr
+
 // writePointeeValueCopy writes the value of deref, the dereference of the
 // pointer pointer, as Go's copy of the pointee. The pointee's Clone is a
 // second handle on the same struct, so "bump(*p)" changed *p through its
 // parameter; a dereference read as a value is a Go copy wherever it is used.
 func writePointeeValueCopy(out *strings.Builder, deref ast.Expr, pointer ast.Expr) {
 	copyCall := ".clone()"
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && deref != pointeeReadSharesStorage {
 		copyCall = goValueCopyCallForType(typeInfo.GetType(deref))
 	}
 	out.WriteString("{ let __v = (*")

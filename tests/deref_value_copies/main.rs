@@ -904,6 +904,15 @@ pub fn get(p: Rc<RefCell<Option<P>>>) -> Rc<RefCell<Option<P>>> {
     Rc::new(RefCell::new(Some({ let __v = (*p.borrow().as_ref().unwrap()).__go_value_clone(); __v })))
 }
 
+/// An element read through a pointer to an array is that element: its
+/// pointer method changes the array, and a copy of it is its own.
+pub fn bump_first(arr: Rc<RefCell<Option<[P; 1]>>>) -> i64 {
+    { let __seq = ({ let __v = (*arr.borrow().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() }.inc();
+    let mut x = Rc::new(RefCell::new(Some({ let __seq = ({ let __v = (*arr.borrow().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() }.__go_value_clone())));
+    { let new_val = 100; *(*x.borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
+    return (*(*x.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap());
+}
+
 fn main() {
     let mut a = Rc::new(RefCell::new(Some(P { n: Rc::new(RefCell::new(Some(1))), tags: Rc::new(RefCell::new(Some(vec!["a".to_string()]))), ..Default::default() })));
     let mut r = bump(Rc::new(RefCell::new(Some({ let __v = (*a.borrow().as_ref().unwrap()).__go_value_clone(); __v }))));
@@ -958,6 +967,10 @@ fn main() {
     { let __target = (*a.borrow().as_ref().unwrap()).n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*a.borrow().as_ref().unwrap()).tags.clone(); let __append_value = "t".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *(*a.borrow().as_ref().unwrap()).tags.borrow_mut() = __slice_header; };
     println!("{} {} {} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*a.borrow().as_ref().unwrap()).get()), format!("{}", format_slice_values(&(*(*a.borrow().as_ref().unwrap()).tags.borrow().as_ref().unwrap()).clone())), format!("{}", { let __left = (*a.borrow().as_ref().unwrap()).self_(); let __right = a.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right) || { let __left_id = __left.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); let __right_id = __right.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); __left_id.is_some() && __left_id == __right_id }; __eq }));
+
+    let mut one: Rc<RefCell<Option<[P; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
+    { let new_val = 1; *(*one.borrow().as_ref().unwrap())[(0) as usize].clone().n.borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", bump_first(one.clone())), format!("{}", (*(*one.borrow().as_ref().unwrap())[(0) as usize].clone().n.borrow().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone)]

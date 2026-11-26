@@ -26,6 +26,15 @@ func (p *P) Self() *P { return p }
 
 type Box struct{ Inner *P }
 
+// An element read through a pointer to an array is that element: its
+// pointer method changes the array, and a copy of it is its own.
+func bumpFirst(arr *[1]P) int {
+	(*arr)[0].Inc()
+	x := (*arr)[0]
+	x.N = 100
+	return x.N
+}
+
 func main() {
 	a := &P{N: 1, Tags: []string{"a"}}
 	r := bump(*a)
@@ -70,4 +79,8 @@ func main() {
 	(*a).N++
 	(*a).Tags = append((*a).Tags, "t")
 	fmt.Println(a.N, (*a).Get(), a.Tags, (*a).Self() == a)
+
+	var one [1]P
+	one[0].N = 1
+	fmt.Println(bumpFirst(&one), one[0].N)
 }
