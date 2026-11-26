@@ -1176,7 +1176,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
                     Arc::new(Mutex::new(Some(4)))
                 )
             }))),
-            Arc::new(Mutex::new(Some({
+            Arc::new(Mutex::new(Some({ let __arg_value = {
                 let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync> = {
                     let mut __f_guard = subtract.lock().unwrap();
                     __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>
@@ -1196,7 +1196,7 @@ let mut chanResult = Arc::new(Mutex::new(Some(__go_binary_8)));
                         )
                     })))
                 )
-            })))
+            }; __arg_value })))
         )
     };
     print!("add(multiply(3, 4), subtract(20, multiply(2, 5))) = {}\n", nestedResult);

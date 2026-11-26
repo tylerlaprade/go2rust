@@ -866,7 +866,7 @@ fn main() {
 
     let mut text = Arc::new(Mutex::new(Some("the quick brown fox jumps over the lazy dog the end".to_string())));
     let mut counts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([]))));
-    let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some(Box::new(strings::reader::ReaderPtr(strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone())) as Box<dyn io::r#mod::Reader + Send + Sync>))));
+    let mut sc = bufio::new_scanner(Arc::new(Mutex::new(Some({ let __arg_value = Box::new(strings::reader::ReaderPtr(strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone())) as Box<dyn io::r#mod::Reader + Send + Sync>; __arg_value }))));
     { let __recv = sc.clone(); let __recv_ptr: *mut bufio::scan::Scanner = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bufio::scan::Scanner }; let __result = unsafe { &mut *__recv_ptr }.split(
         Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<Vec<u8>>>>, __arg1: Arc<Mutex<Option<bool>>>| -> (i64, Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) { bufio::scan_words(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<bool>>>) -> (i64, Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) + Send + Sync>))),
     ); __result };

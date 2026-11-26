@@ -808,7 +808,7 @@ pub fn fill(s: Rc<RefCell<Option<Vec<i64>>>>, n: Rc<RefCell<Option<i64>>>) {
 }
 
 pub fn shift(s: Rc<RefCell<Option<Vec<i64>>>>, r: Rc<RefCell<Option<i64>>>) {
-    fill(s.clone(), Rc::new(RefCell::new(Some((({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - ((*r.borrow().as_ref().unwrap()) as i64)))));
+    fill(s.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) - ((*r.borrow().as_ref().unwrap()) as i64); __arg_value }))));
 }
 
 pub fn count(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>, n: Rc<RefCell<Option<i64>>>) {
@@ -817,11 +817,11 @@ pub fn count(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>,
 
 fn main() {
     let mut s = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64])));
-    fill(s.clone(), Rc::new(RefCell::new(Some(({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))));
+    fill(s.clone(), Rc::new(RefCell::new(Some({ let __arg_value = ({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))));
     println!("{}", format!("{}", format_slice(&s)));
     shift(s.clone(), Rc::new(RefCell::new(Some(1))));
     println!("{}", format!("{}", format_slice(&s)));
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))));
-    count(m.clone(), Rc::new(RefCell::new(Some(({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))));
+    count(m.clone(), Rc::new(RefCell::new(Some({ let __arg_value = ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))));
     println!("{}", format!("{}", format_map(&m)));
 }

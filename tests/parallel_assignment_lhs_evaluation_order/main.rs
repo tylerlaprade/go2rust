@@ -826,7 +826,7 @@ fn main() {
         let __go_lhs_index_0_ = (index(Rc::new(RefCell::new(Some("left index".to_string()))), Rc::new(RefCell::new(Some(0))))) as usize;
         let __go_lhs_sequence_1 = target(Rc::new(RefCell::new(Some("right sequence".to_string()))), right.clone()).clone();
         let __go_lhs_index_1 = (index(Rc::new(RefCell::new(Some("right index".to_string()))), Rc::new(RefCell::new(Some(1))))) as usize;
-        let __tmp_0 = result(Rc::new(RefCell::new(Some("left result".to_string()))), Rc::new(RefCell::new(Some((*__go_lhs_sequence_0.borrow().as_ref().unwrap())[((*__go_lhs_index_0.borrow().as_ref().unwrap())) as usize].clone()))));
+        let __tmp_0 = result(Rc::new(RefCell::new(Some("left result".to_string()))), Rc::new(RefCell::new(Some({ let __arg_value = (*__go_lhs_sequence_0.borrow().as_ref().unwrap())[((*__go_lhs_index_0.borrow().as_ref().unwrap())) as usize].clone(); __arg_value }))));
         let __tmp_1 = result(Rc::new(RefCell::new(Some("right result".to_string()))), Rc::new(RefCell::new(Some(20))));
         (*__go_lhs_sequence_0_.borrow_mut().as_mut().unwrap())[__go_lhs_index_0_] = __tmp_0;
         (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;

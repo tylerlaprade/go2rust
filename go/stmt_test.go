@@ -3747,8 +3747,8 @@ func use(alias *Alias) {
 		!strings.Contains(rust, "*__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone();") {
 		t.Fatalf("pointer-to-pointer assignment should write through the pointee handle stored in the slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "collect(Rc::new(RefCell::new(Some((*alias.borrow().as_ref().unwrap()).tparams.clone()))))") &&
-		!strings.Contains(rust, "collect(Arc::new(Mutex::new(Some((*alias.lock().unwrap().as_ref().unwrap()).tparams.clone()))))") {
+	if !strings.Contains(rust, "collect(Rc::new(RefCell::new(Some({ let __arg_value = (*alias.borrow().as_ref().unwrap()).tparams.clone(); __arg_value }))))") &&
+		!strings.Contains(rust, "collect(Arc::new(Mutex::new(Some({ let __arg_value = (*alias.lock().unwrap().as_ref().unwrap()).tparams.clone(); __arg_value }))))") {
 		t.Fatalf("address-of pointer field should pass a pointer slot containing the field handle:\n%s", rust)
 	}
 }
@@ -7100,8 +7100,8 @@ func call(z nat, n int) {
 	if strings.Contains(rust, "take(nat(") {
 		t.Fatalf("named-slice slice call argument for named parameter should not pass a bare named value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "take(Rc::new(RefCell::new(Some(nat(") &&
-		!strings.Contains(rust, "take(Arc::new(Mutex::new(Some(nat(") {
+	if !strings.Contains(rust, "take(Rc::new(RefCell::new(Some({ let __arg_value = nat(") &&
+		!strings.Contains(rust, "take(Arc::new(Mutex::new(Some({ let __arg_value = nat(") {
 		t.Fatalf("named-slice slice call argument for named parameter should wrap the named value:\n%s", rust)
 	}
 }

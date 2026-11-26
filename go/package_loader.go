@@ -134,6 +134,26 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load packages: %v", err)
 	}
+	// A standard-library package translated from source that calls slices
+	// or maps gets its copies of them in its source, and the program is
+	// loaded again so that every package sees that source (DEV-223).
+	if len(pkgs) > 0 {
+		if rewritten := stdlibPackagesWithGenericCopies(pkgs[0]); len(rewritten) > 0 {
+			reloadCfg := *cfg
+			reloadCfg.Overlay = map[string][]byte{}
+			for path, content := range cfg.Overlay {
+				reloadCfg.Overlay[path] = content
+			}
+			for path, content := range rewritten {
+				reloadCfg.Overlay[path] = content
+			}
+			if reloaded, err := packages.Load(&reloadCfg, patterns...); err == nil && len(reloaded) > 0 && !packagesHaveErrors(reloaded[0], rewritten) {
+				pkgs = reloaded
+			} else {
+				stdlibInlineDebugf("the program does not load with the copies: %v", err)
+			}
+		}
+	}
 
 	// Check for errors but continue
 	for _, pkg := range pkgs {

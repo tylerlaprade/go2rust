@@ -1278,7 +1278,7 @@ fn main() {
     { let new_val = 2; *(*c.borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
     show(Rc::new(RefCell::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))));
 
-    println!("{}", format!("{}", (*join(Rc::new(RefCell::new(Some(Vec::<fmt_Stringer>::from([fmt_Stringer::__go_from_display(Celsius { deg: Rc::new(RefCell::new(Some(-3))), ..Default::default() }), fmt_Stringer::__go_from_display_cell(Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(9))), ..Default::default() })))), (*s.borrow().as_ref().unwrap()).clone()]))))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*join(Rc::new(RefCell::new(Some({ let __arg_value = Vec::<fmt_Stringer>::from([fmt_Stringer::__go_from_display(Celsius { deg: Rc::new(RefCell::new(Some(-3))), ..Default::default() }), fmt_Stringer::__go_from_display_cell(Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(9))), ..Default::default() })))), (*s.borrow().as_ref().unwrap()).clone()]); __arg_value })))).borrow().as_ref().unwrap())));
 
     println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new(Celsius { deg: Rc::new(RefCell::new(Some(5))), ..Default::default() }) as Box<dyn Any>)))).borrow().as_ref().unwrap())));
     println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(Box::new(c.clone()) as Box<dyn Any>)))).borrow().as_ref().unwrap())));

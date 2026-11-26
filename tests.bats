@@ -744,6 +744,14 @@ run_xfail_test() {
     run_test "tests/call_argument_len_of_written_slice"
 }
 
+@test "call_arguments_read_what_the_callee_writes" {
+    run_test "tests/call_arguments_read_what_the_callee_writes"
+}
+
+@test "call_arguments_read_what_the_callee_writes_goroutines" {
+    run_test "tests/call_arguments_read_what_the_callee_writes_goroutines"
+}
+
 @test "cap_struct_slice_field" {
     run_test "tests/cap_struct_slice_field"
 }
@@ -4038,6 +4046,10 @@ run_xfail_test() {
 
 @test "slices_sort_func" {
     run_test "tests/slices_sort_func"
+}
+
+@test "sort_and_filepath_call_slices" {
+    run_test "tests/sort_and_filepath_call_slices"
 }
 
 @test "sort_func_interface_param_call" {

@@ -1376,7 +1376,7 @@ fn main() {
     { let new_val = 2; *(*c.lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
     show(Arc::new(Mutex::new(Some(fmt_Stringer::__go_from_display_cell(c.clone())))));
 
-    println!("{}", format!("{}", (*join(Arc::new(Mutex::new(Some(Vec::<fmt_Stringer>::from([fmt_Stringer::__go_from_display(Celsius { deg: Arc::new(Mutex::new(Some(-3))), ..Default::default() }), fmt_Stringer::__go_from_display_cell(Arc::new(Mutex::new(Some(Counter { n: Arc::new(Mutex::new(Some(9))), ..Default::default() })))), ({ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))).lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*join(Arc::new(Mutex::new(Some({ let __arg_value = Vec::<fmt_Stringer>::from([fmt_Stringer::__go_from_display(Celsius { deg: Arc::new(Mutex::new(Some(-3))), ..Default::default() }), fmt_Stringer::__go_from_display_cell(Arc::new(Mutex::new(Some(Counter { n: Arc::new(Mutex::new(Some(9))), ..Default::default() })))), ({ let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v })]); __arg_value })))).lock().unwrap().as_ref().unwrap())));
 
     println!("{}", format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(Celsius { deg: Arc::new(Mutex::new(Some(5))), ..Default::default() }) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));
     println!("{}", format!("{}", (*describe(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>)))).lock().unwrap().as_ref().unwrap())));

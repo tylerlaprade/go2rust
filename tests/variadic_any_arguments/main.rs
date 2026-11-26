@@ -792,5 +792,5 @@ pub fn count(args: Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> i64 {
 
 fn main() {
     let mut err = fail();
-    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>]))))));
+    println!("{}", format!("{}", count(Rc::new(RefCell::new(Some(vec![{ let __arg_value = Box::new({ let __v = label(); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>; __arg_value }, { let __err_holder = err.clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } }, Box::new("literal".to_string()) as Box<dyn Any>, Box::new(3i64) as Box<dyn Any>]))))));
 }

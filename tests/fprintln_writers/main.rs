@@ -875,7 +875,7 @@ impl std::fmt::Display for Lines {
 
 impl Lines {
     pub fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.got.clone(); let __append_value = (*strings::trim_suffix(Arc::new(Mutex::new(Some(String::from_utf8(std::vec::Vec::from((*p.lock().unwrap().as_ref().unwrap()).clone())).unwrap()))), Arc::new(Mutex::new(Some("\n".to_string())))).lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.got.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.got.clone(); let __append_value = (*strings::trim_suffix(Arc::new(Mutex::new(Some({ let __arg_value = String::from_utf8(std::vec::Vec::from((*p.lock().unwrap().as_ref().unwrap()).clone())).unwrap(); __arg_value }))), Arc::new(Mutex::new(Some("\n".to_string())))).lock().unwrap().as_ref().unwrap()).clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.got.lock().unwrap() = __slice_header; };
         (
             ({ let __len = (*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64,
             Arc::new(Mutex::new(None))

@@ -777,21 +777,21 @@ pub fn factorial(n: Rc<RefCell<Option<i64>>>) -> i64 {
     if (*n.borrow().as_ref().unwrap()) <= 1 {
         return 1;
     }
-    (*n.borrow().as_ref().unwrap()) * factorial(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1))))
+    (*n.borrow().as_ref().unwrap()) * factorial(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value }))))
 }
 
 pub fn fibonacci(n: Rc<RefCell<Option<i64>>>) -> i64 {
     if (*n.borrow().as_ref().unwrap()) <= 1 {
         return (*n.borrow().as_ref().unwrap());
     }
-    fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 1)))) + fibonacci(Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - 2))))
+    fibonacci(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value })))) + fibonacci(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 2; __arg_value }))))
 }
 
 pub fn gcd(a: Rc<RefCell<Option<i64>>>, b: Rc<RefCell<Option<i64>>>) -> i64 {
     if (*b.borrow().as_ref().unwrap()) == 0 {
         return (*a.borrow().as_ref().unwrap());
     }
-    gcd(Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap())))))
+    gcd(Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) % (*b.borrow().as_ref().unwrap()); __arg_value }))))
 }
 
 pub fn power(base: Rc<RefCell<Option<i64>>>, exp: Rc<RefCell<Option<i64>>>) -> i64 {
@@ -802,10 +802,10 @@ pub fn power(base: Rc<RefCell<Option<i64>>>, exp: Rc<RefCell<Option<i64>>>) -> i
         return (*base.borrow().as_ref().unwrap());
     }
     if (*exp.borrow().as_ref().unwrap()) % 2 == 0 {
-        let mut half = power(Rc::new(RefCell::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) / 2))));
+        let mut half = power(Rc::new(RefCell::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*exp.borrow().as_ref().unwrap()) / 2; __arg_value }))));
         return half * half;
     }
-    (*base.borrow().as_ref().unwrap()) * power(Rc::new(RefCell::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some((*exp.borrow().as_ref().unwrap()) - 1))))
+    (*base.borrow().as_ref().unwrap()) * power(Rc::new(RefCell::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*exp.borrow().as_ref().unwrap()) - 1; __arg_value }))))
 }
 
 pub fn sum_array(arr: Rc<RefCell<Option<Vec<i64>>>>) -> i64 {

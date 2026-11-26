@@ -944,7 +944,7 @@ pub fn note(s: Rc<RefCell<Option<String>>>) {
 }
 
 pub fn compute(s: Rc<RefCell<Option<String>>>) -> i64 {
-    note(Rc::new(RefCell::new(Some(format!("{}{}", "compute ".to_string(), (*s.borrow().as_ref().unwrap()))))));
+    note(Rc::new(RefCell::new(Some({ let __arg_value = format!("{}{}", "compute ".to_string(), (*s.borrow().as_ref().unwrap())); __arg_value }))));
     (*s.borrow().as_ref().unwrap()).len() as i64
 }
 

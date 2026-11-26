@@ -1912,7 +1912,7 @@ impl Level {
 
 impl Label {
     pub fn upper(&self) -> Arc<Mutex<Option<String>>> {
-        strings::to_upper(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))))
+        strings::to_upper(Arc::new(Mutex::new(Some({ let __arg_value = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); __arg_value }))))
     }
 }
 

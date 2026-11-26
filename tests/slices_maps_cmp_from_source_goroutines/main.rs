@@ -2684,8 +2684,8 @@ pub fn __slices__compact_func__slice_string__string(s: Arc<Mutex<Option<Vec<Stri
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             )
         } {
         let mut s2 = Arc::new(Mutex::new(Some({
@@ -2708,8 +2708,8 @@ pub fn __slices__compact_func__slice_string__string(s: Arc<Mutex<Option<Vec<Stri
             };
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*k2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*k2.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*k2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*k2.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             )
         } {
         { let __idx = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __rhs = { let __seq = { let __seq_holder = s2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*k2.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
@@ -2757,7 +2757,7 @@ pub fn __slices__repeat__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>
     }
     const maxInt: u64 = !(0 as u64) >> 1;
 
-    let (mut hi, mut lo) = math_bits::mul(Arc::new(Mutex::new(Some(({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as u64))), Arc::new(Mutex::new(Some(({ let __v = (*count.lock().unwrap().as_ref().unwrap()); __v }) as u64))));
+    let (mut hi, mut lo) = math_bits::mul(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as u64; __arg_value }))), Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*count.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value }))));
     if { let __tmp_x = hi; let __tmp_y = 0 as u64; __tmp_x > __tmp_y } || { let __tmp_x = lo; let __tmp_y = maxInt as u64; __tmp_x > __tmp_y } {
         std::panic::panic_any(Box::new("the result of (len(x) * count) overflows".to_string()) as Box<dyn Any + Send + Sync>);
     }
@@ -2894,7 +2894,7 @@ pub fn __slices__backward__slice_string__string(s: Arc<Mutex<Option<Vec<String>>
             let __f = unsafe { &mut *__f_ptr };
             (*__f)(
                 i.clone(),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = s_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = s_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             )
         } {
         return;
@@ -2968,7 +2968,7 @@ pub fn __slices__equal_func__slice_int__slice_string__int__string(s1: Arc<Mutex<
 pub fn __slices__sort_stable_func__slice__item___item(x: Arc<Mutex<Option<Vec<Item>>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Item>>>, Arc<Mutex<Option<Item>>>) -> i64 + Send + Sync>>>>) {
     __slices_stable_cmp_func___item(
         x.clone(),
-        Arc::new(Mutex::new(Some(({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))),
+        Arc::new(Mutex::new(Some({ let __arg_value = ({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))),
         cmp.clone()
     );
 }
@@ -3048,8 +3048,8 @@ pub fn __slices__is_sorted_func__slice__item___item(x: Arc<Mutex<Option<Vec<Item
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -3076,7 +3076,7 @@ pub fn __slices__binary_search_func__slice__item___item__int(x: Arc<Mutex<Option
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                         target.clone()
                     )
                 };
@@ -3102,7 +3102,7 @@ pub fn __slices__binary_search_func__slice__item___item__int(x: Arc<Mutex<Option
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 target.clone()
                             )
                         };
@@ -3133,7 +3133,7 @@ pub fn __slices__min_func__slice__item___item(x: Arc<Mutex<Option<Vec<Item>>>>, 
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                         m.clone()
                     )
                 };
@@ -3163,7 +3163,7 @@ pub fn __slices__max_func__slice__item___item(x: Arc<Mutex<Option<Vec<Item>>>>, 
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                         m.clone()
                     )
                 };
@@ -3254,7 +3254,7 @@ pub fn __slices__sort_func__slice_ptr__task__ptr__task(x: Arc<Mutex<Option<Vec<A
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64))))))),
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
         cmp.clone()
     );
 }
@@ -3265,7 +3265,7 @@ pub fn __slices__sort_func__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>, cmp:
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64))))))),
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
         cmp.clone()
     );
 }
@@ -3316,7 +3316,7 @@ pub fn __slices__sort__slice__celsius___celsius(x: Arc<Mutex<Option<Vec<Celsius>
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3326,7 +3326,7 @@ pub fn __slices__sort___i_ds__int(x: Arc<Mutex<Option<IDs>>>) {
         { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice },
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3336,7 +3336,7 @@ pub fn __slices__sort__slice_float64__float64(x: Arc<Mutex<Option<Vec<f64>>>>) {
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3346,7 +3346,7 @@ pub fn __slices__sort__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>) {
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3356,7 +3356,7 @@ pub fn __slices__sort__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>) 
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-        Arc::new(Mutex::new(Some(math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))))
+        Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value })))
     );
 }
 
@@ -3481,8 +3481,8 @@ pub fn __slices__is_sorted__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>) -> b
     let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = (({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         if __cmp__less__int(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         return false;
     }
@@ -4044,7 +4044,7 @@ pub fn __slices_pdqsort_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, mut a:
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                             )
                         };
@@ -4133,7 +4133,7 @@ pub fn __slices_pdqsort_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>>>
             let __go_cond_0 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                     Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                 );
                 __go_cond_1
@@ -4214,7 +4214,7 @@ pub fn __slices_pdqsort_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, mut a: 
             let __go_cond_0 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                     Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                 );
                 __go_cond_1
@@ -4295,7 +4295,7 @@ pub fn __slices_pdqsort_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, mut
             let __go_cond_0 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                     Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                 );
                 __go_cond_1
@@ -4376,7 +4376,7 @@ pub fn __slices_pdqsort_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>, m
             let __go_cond_0 = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                     Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                 );
                 __go_cond_1
@@ -4518,8 +4518,8 @@ pub fn __slices_insertion_sort_cmp_func___item(data: Arc<Mutex<Option<Vec<Item>>
                         };
                         let __f = unsafe { &mut *__f_ptr };
                         (*__f)(
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                         )
                     };
                 let __tmp_y = 0;
@@ -4606,8 +4606,8 @@ pub fn __slices_insertion_sort_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>,
                         };
                         let __f = unsafe { &mut *__f_ptr };
                         (*__f)(
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                         )
                     };
                 let __tmp_y = 0;
@@ -4649,8 +4649,8 @@ pub fn __slices_sym_merge_cmp_func___item(data: Arc<Mutex<Option<Vec<Item>>>>, a
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -4691,8 +4691,8 @@ pub fn __slices_sym_merge_cmp_func___item(data: Arc<Mutex<Option<Vec<Item>>>>, a
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -4741,8 +4741,8 @@ pub fn __slices_sym_merge_cmp_func___item(data: Arc<Mutex<Option<Vec<Item>>>>, a
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -5208,8 +5208,8 @@ const shortestShifting: i64 = 50;
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -5250,8 +5250,8 @@ const shortestShifting: i64 = 50;
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -5284,8 +5284,8 @@ const shortestShifting: i64 = 50;
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -5424,8 +5424,8 @@ pub fn __slices_partition_equal_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -5450,8 +5450,8 @@ pub fn __slices_partition_equal_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -5684,8 +5684,8 @@ pub fn __slices_partition_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: A
                         };
                         let __f = unsafe { &mut *__f_ptr };
                         (*__f)(
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                         )
                     };
                 let __tmp_y = 0;
@@ -5710,8 +5710,8 @@ pub fn __slices_partition_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: A
                         };
                         let __f = unsafe { &mut *__f_ptr };
                         (*__f)(
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                         )
                     };
                 let __tmp_y = 0;
@@ -5762,8 +5762,8 @@ pub fn __slices_partition_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: A
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -5788,8 +5788,8 @@ pub fn __slices_partition_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: A
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -5839,8 +5839,8 @@ pub fn __slices_insertion_sort_ordered___celsius(data: Arc<Mutex<Option<Vec<Cels
         let __go_cond_0 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less___celsius(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -5871,8 +5871,8 @@ pub fn __slices_insertion_sort_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, 
         let __go_cond_0 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__int(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -5903,8 +5903,8 @@ pub fn __slices_insertion_sort_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>
         let __go_cond_0 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__float64(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -5935,8 +5935,8 @@ pub fn __slices_insertion_sort_ordered__string(data: Arc<Mutex<Option<Vec<String
         let __go_cond_0 = { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__string(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -6466,8 +6466,8 @@ const shortestShifting: i64 = 50;
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6496,8 +6496,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >= __tmp_y } {
         if !__cmp__less___celsius(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6518,8 +6518,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         if !__cmp__less___celsius(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6552,8 +6552,8 @@ const shortestShifting: i64 = 50;
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6582,8 +6582,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >= __tmp_y } {
         if !__cmp__less__int(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6604,8 +6604,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         if !__cmp__less__int(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6638,8 +6638,8 @@ const shortestShifting: i64 = 50;
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6668,8 +6668,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >= __tmp_y } {
         if !__cmp__less__float64(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6690,8 +6690,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         if !__cmp__less__float64(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6724,8 +6724,8 @@ const shortestShifting: i64 = 50;
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6754,8 +6754,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >= __tmp_y } {
         if !__cmp__less__string(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6776,8 +6776,8 @@ const shortestShifting: i64 = 50;
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         if !__cmp__less__string(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         break
     }
@@ -6818,8 +6818,8 @@ pub fn __slices_partition_equal_ordered___celsius(data: Arc<Mutex<Option<Vec<Cel
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6832,8 +6832,8 @@ pub fn __slices_partition_equal_ordered___celsius(data: Arc<Mutex<Option<Vec<Cel
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6880,8 +6880,8 @@ pub fn __slices_partition_equal_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>,
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6894,8 +6894,8 @@ pub fn __slices_partition_equal_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>,
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6942,8 +6942,8 @@ pub fn __slices_partition_equal_ordered__float64(data: Arc<Mutex<Option<Vec<f64>
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -6956,8 +6956,8 @@ pub fn __slices_partition_equal_ordered__float64(data: Arc<Mutex<Option<Vec<f64>
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7004,8 +7004,8 @@ pub fn __slices_partition_equal_ordered__string(data: Arc<Mutex<Option<Vec<Strin
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7018,8 +7018,8 @@ pub fn __slices_partition_equal_ordered__string(data: Arc<Mutex<Option<Vec<Strin
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7066,8 +7066,8 @@ pub fn __slices_partition_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less___celsius(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7080,8 +7080,8 @@ pub fn __slices_partition_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = !__cmp__less___celsius(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7120,8 +7120,8 @@ pub fn __slices_partition_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7134,8 +7134,8 @@ pub fn __slices_partition_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7192,8 +7192,8 @@ pub fn __slices_partition_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Ar
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__int(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7206,8 +7206,8 @@ pub fn __slices_partition_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Ar
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = !__cmp__less__int(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7246,8 +7246,8 @@ pub fn __slices_partition_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Ar
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7260,8 +7260,8 @@ pub fn __slices_partition_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Ar
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7318,8 +7318,8 @@ pub fn __slices_partition_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__float64(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7332,8 +7332,8 @@ pub fn __slices_partition_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = !__cmp__less__float64(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7372,8 +7372,8 @@ pub fn __slices_partition_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7386,8 +7386,8 @@ pub fn __slices_partition_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7444,8 +7444,8 @@ pub fn __slices_partition_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = __cmp__less__string(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7458,8 +7458,8 @@ pub fn __slices_partition_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
         let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
         if __go_cond_0 {
             let __go_cond_1 = !__cmp__less__string(
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
             );
             __go_cond_1
         } else {
@@ -7498,8 +7498,8 @@ pub fn __slices_partition_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7512,8 +7512,8 @@ pub fn __slices_partition_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
             let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = !__cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7668,8 +7668,8 @@ pub fn __slices_sift_down_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: 
                             };
                             let __f = unsafe { &mut *__f_ptr };
                             (*__f)(
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() })))
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                                Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                             )
                         };
                     let __tmp_y = 0;
@@ -7691,8 +7691,8 @@ pub fn __slices_sift_down_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: 
                     };
                     let __f = unsafe { &mut *__f_ptr };
                     (*__f)(
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() })))
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                     )
                 };
             let __tmp_y = 0;
@@ -7715,7 +7715,7 @@ pub fn __slices_sift_down_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: 
 }
 
 pub fn __slices_next_power_of_two(length: Arc<Mutex<Option<i64>>>) -> u64 {
-    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some(({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
+    return { let __shift_x = 1u64; let __shift_c = (math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value }))))) as i128; if __shift_c < 0 { panic!("runtime error: negative shift amount") } let __shift_bits = (std::mem::size_of_val(&__shift_x) * 8) as u32; if __shift_c >= __shift_bits as i128 { 0 } else { __shift_x << (__shift_c as u32) } };
 }
 
 pub fn __slices_median_adjacent_cmp_func__ptr__task(data: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Task>>>>>>>, a: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Task>>>, Arc<Mutex<Option<Task>>>) -> i64 + Send + Sync>>>>) -> i64 {
@@ -7801,8 +7801,8 @@ pub fn __slices_sift_down_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
             let __go_cond_0 = { let __tmp_x = { let __tmp_x = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less___celsius(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7812,8 +7812,8 @@ pub fn __slices_sift_down_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>
         { let mut guard = child.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if !__cmp__less___celsius(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         return;
     }
@@ -7842,8 +7842,8 @@ pub fn __slices_sift_down_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: A
             let __go_cond_0 = { let __tmp_x = { let __tmp_x = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__int(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7853,8 +7853,8 @@ pub fn __slices_sift_down_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, lo: A
         { let mut guard = child.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if !__cmp__less__int(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         return;
     }
@@ -7883,8 +7883,8 @@ pub fn __slices_sift_down_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, l
             let __go_cond_0 = { let __tmp_x = { let __tmp_x = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__float64(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7894,8 +7894,8 @@ pub fn __slices_sift_down_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, l
         { let mut guard = child.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if !__cmp__less__float64(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         return;
     }
@@ -7924,8 +7924,8 @@ pub fn __slices_sift_down_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
             let __go_cond_0 = { let __tmp_x = { let __tmp_x = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = __cmp__less__string(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                 );
                 __go_cond_1
             } else {
@@ -7935,8 +7935,8 @@ pub fn __slices_sift_down_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>,
         { let mut guard = child.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if !__cmp__less__string(
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() })))
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
+            Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
         ) {
         return;
     }
@@ -8132,8 +8132,8 @@ pub fn __slices_order2_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<
                 };
                 let __f = unsafe { &mut *__f_ptr };
                 (*__f)(
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-                    Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+                    Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 )
             };
         let __tmp_y = 0;
@@ -8147,8 +8147,8 @@ pub fn __slices_order2_cmp_func__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<
 
 pub fn __slices_order2_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>) -> (i64, i64) {
     if __cmp__less___celsius(
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
     ) {
         { let mut guard = swaps.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -8158,8 +8158,8 @@ pub fn __slices_order2_ordered___celsius(data: Arc<Mutex<Option<Vec<Celsius>>>>,
 
 pub fn __slices_order2_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>) -> (i64, i64) {
     if __cmp__less__int(
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
     ) {
         { let mut guard = swaps.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -8169,8 +8169,8 @@ pub fn __slices_order2_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<M
 
 pub fn __slices_order2_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>) -> (i64, i64) {
     if __cmp__less__float64(
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
     ) {
         { let mut guard = swaps.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v });
@@ -8180,8 +8180,8 @@ pub fn __slices_order2_ordered__float64(data: Arc<Mutex<Option<Vec<f64>>>>, a: A
 
 pub fn __slices_order2_ordered__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>) -> (i64, i64) {
     if __cmp__less__string(
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }))),
-        Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
+        Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
     ) {
         { let mut guard = swaps.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         return ({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v });
