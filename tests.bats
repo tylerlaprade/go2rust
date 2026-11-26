@@ -3408,6 +3408,14 @@ run_xfail_test() {
     run_test "tests/print_float_exponent_forms_goroutines"
 }
 
+@test "print_interface_strings_and_nil_slices" {
+    run_test "tests/print_interface_strings_and_nil_slices"
+}
+
+@test "print_interface_strings_and_nil_slices_goroutines" {
+    run_test "tests/print_interface_strings_and_nil_slices_goroutines"
+}
+
 @test "print_interface_value_twice_goroutines" {
     run_test "tests/print_interface_value_twice_goroutines"
 }

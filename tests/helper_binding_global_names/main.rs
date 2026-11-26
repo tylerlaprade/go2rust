@@ -33,6 +33,15 @@ fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Ar
 where
     V: Display,
 {
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
     let guard = map.lock().unwrap();
     if let Some(ref m) = *guard {
         let mut items: Vec<_> = m.iter().collect();
@@ -45,7 +54,7 @@ where
                 if let Some(ref val) = *v_guard {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
-                    format!("{}:<nil>", k)
+                    format!("{}:{}", go_display_value(k), __nil_text)
                 }
             })
             .collect();
@@ -2358,7 +2367,7 @@ fn main() {
     let mut y_local: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("s".to_string()) as Box<dyn Any + Send + Sync>)));
     println!("{} {} {} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match y_local.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", go_any_eq(&x, &y_local)), format!("{}", format_any_slice(&Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("a".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>, Box::new(GoNilAny) as Box<dyn Any + Send + Sync>]))))));
     let mut m_local = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(vec![1i64, 2i64])))), ("j".to_string(), Arc::new(Mutex::new(Some(vec![3i64]))))]))));
-    println!("{} {}", format!("{}", format_map(&m_local)), format!("{}", ({ let __len = (*m_local.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+    println!("{} {}", format!("{}", format_map_nil(&m_local, "[]")), format!("{}", ({ let __len = (*m_local.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     let mut nested_local = Arc::new(Mutex::new(Some(vec![vec!["a".to_string()], vec!["b".to_string(), "c".to_string()]])));
     println!("{} {}", format!("{}", format_nested_slice(&nested_local)), format!("{}", format_nested_slice(&Arc::new(Mutex::new(Some([[1i64, 2i64], [3i64, 4i64]]))))));
     let mut p_local = Arc::new(Mutex::new(Some(point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() })));
@@ -2372,7 +2381,7 @@ fn main() {
     sort::strings(words.clone());
     let (mut n_local, mut convErr) = strconv::atoi(Arc::new(Mutex::new(Some("42".to_string()))));
     { let __go_print_arg_3 = strings::join(words.clone(), Arc::new(Mutex::new(Some("-".to_string())))); let __go_print_arg_4 = strconv::quote(Arc::new(Mutex::new(Some("hi".to_string())))); let __go_print_value = println!("{} {} {} {} {}", format!("{}", format_slice(&words)), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", n_local), format!("{}", { let __text = match convErr.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*__go_print_arg_4.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
-    println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", 2))))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%08.3f|%-4d|%x".to_string(), &[{ let __go_format_arg = Box::new(3.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(7i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("hi".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", { let mut __print_text = String::new(); let __print_part_0 = format!("{}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text })); let __print_is_string_0 = { let __print_holder = x.clone(); let __print_guard = __print_holder.lock().unwrap(); __print_guard.as_ref().map_or(false, |__value| __value.is::<String>()) }; __print_text.push_str(&__print_part_0); let __print_part_1 = format!("{}", format!("{}", 2)); let __print_is_string_1 = false; if !__print_is_string_0 && !__print_is_string_1 { __print_text.push(' '); } __print_text.push_str(&__print_part_1); __print_text })))).lock().unwrap().as_ref().unwrap())), format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&"%08.3f|%-4d|%x".to_string(), &[{ let __go_format_arg = Box::new(3.5) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new(7i64) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new("hi".to_string()) as Box<dyn Any + Send + Sync>; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())));
 }
 
 pub(crate) fn __go_init_all() {
