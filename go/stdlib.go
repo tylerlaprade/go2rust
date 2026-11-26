@@ -1132,6 +1132,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		} else if _, ok := callExpr.Fun.(*ast.Ident); ok && GetStdlibHandler(callExpr) == nil {
 			// User function call (not stdlib)
 			needsUnwrap = true
+		} else if callCallsFuncValueExpression(callExpr) {
+			// f()(), m[k]() or fs[i](): a func value returns its
+			// result in a cell, as a function does.
+			needsUnwrap = true
 		}
 
 		if needsUnwrap {
@@ -8621,4 +8625,30 @@ func makeElementsNeedOwnValues(sliceTypeExpr ast.Expr) bool {
 func isUntypedBasic(typ types.Type) bool {
 	basic, ok := typ.(*types.Basic)
 	return ok && basic.Info()&types.IsUntyped != 0
+}
+
+// callCallsFuncValueExpression reports whether call calls the func value of
+// an expression other than a name or a selector: the result of a call, an
+// element of a map or slice, a function literal, a type assertion or a
+// pointer dereference.
+func callCallsFuncValueExpression(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	fun := unwrapParens(call.Fun)
+	switch fun.(type) {
+	case *ast.CallExpr, *ast.IndexExpr, *ast.FuncLit, *ast.TypeAssertExpr, *ast.StarExpr:
+	default:
+		return false
+	}
+	if index, ok := fun.(*ast.IndexExpr); ok {
+		// An instantiated generic function, f[int](x), is a function.
+		if ident, ok := unwrapParens(index.X).(*ast.Ident); ok {
+			if _, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
+				return false
+			}
+		}
+	}
+	return isFunctionSignatureType(typeInfo.GetType(fun))
 }

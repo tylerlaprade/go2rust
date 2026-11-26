@@ -1,0 +1,11 @@
+orig
+orig
+orig 4
+5
+orig|{x y}
+orig!
+equal
+orig orig x lit
+hi orig orig
+[orig orig] map[k:orig]
+orig
