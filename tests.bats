@@ -4032,6 +4032,14 @@ run_xfail_test() {
     run_test "tests/sort_nil_slice"
 }
 
+@test "sort_package_slice_types" {
+    run_test "tests/sort_package_slice_types"
+}
+
+@test "sort_package_slice_types_goroutines" {
+    run_test "tests/sort_package_slice_types_goroutines"
+}
+
 @test "sort_reverse_and_search_sorted" {
     run_test "tests/sort_reverse_and_search_sorted"
 }

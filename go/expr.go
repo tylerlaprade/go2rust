@@ -5221,10 +5221,83 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		TranspileExpression(out, arg)
 		return
 	}
+	if !argIsPointer {
+		if value, ok := bareTypeConversionValue(arg); ok {
+			out.WriteString(value)
+			return
+		}
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, arg, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+// writeNamedSliceCompositeLiteral writes a slice literal of a named slice
+// type: the elements in a cell, inside newtype when it is not empty.
+func writeNamedSliceCompositeLiteral(out *strings.Builder, e *ast.CompositeLit, sliceType *types.Slice, newtype string) {
+	if newtype != "" {
+		out.WriteString(newtype)
+		out.WriteString("(")
+	}
+	WriteWrapperPrefix(out)
+	values := orderedArrayLiteralValues(e.Elts)
+	multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
+	sliceLiteralIndent := ""
+	if multilineSliceLiteral {
+		sliceLiteralIndent = currentLineIndent(out)
+		out.WriteString("vec![\n")
+	} else {
+		out.WriteString("vec![")
+	}
+	for i, elt := range values {
+		if multilineSliceLiteral {
+			out.WriteString(sliceLiteralIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		if multilineSliceLiteral {
+			out.WriteString(",\n")
+		}
+	}
+	if multilineSliceLiteral {
+		out.WriteString(sliceLiteralIndent)
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	if newtype != "" {
+		out.WriteString(")")
+	}
+}
+
+// bareTypeConversionValue returns the Rust of a conversion that is written
+// as the converted value itself, with no cell around it. A conversion to a
+// named slice of another package, sort.IntSlice(nums), is the IntSlice
+// newtype, though typeConversionEmitsWrappedValue, which knows the
+// package's own types, says it is wrapped.
+func bareTypeConversionValue(expr ast.Expr) (string, bool) {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return "", false
+	}
+	var value strings.Builder
+	TranspileExpression(&value, call)
+	var prefix strings.Builder
+	WriteWrapperPrefix(&prefix)
+	if strings.HasPrefix(value.String(), prefix.String()) {
+		return "", false
+	}
+	return value.String(), true
 }
 
 // writeBoxedInterfaceIndexCallArgument handles passing an indexed slice/array
@@ -16027,6 +16100,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				out.WriteString("String::new()")
 				return
 			}
+			// sort.Float64Slice{2.5, 1.5}: the package's newtype over the
+			// slice, as for the program's own named slices.
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(e); typ != nil {
+					// An alias of the type, which Rust cannot call as a
+					// constructor, is written as the type it names.
+					if named, isNamed := types.Unalias(typ).(*types.Named); isNamed {
+						if sliceType, ok := typ.Underlying().(*types.Slice); ok {
+							writeNamedSliceCompositeLiteral(out, e, sliceType, goTypesNamedTypeToRust(named))
+							return
+						}
+					}
+				}
+			}
 			if ident, ok := sel.X.(*ast.Ident); ok && isStdlibPackage(goPackageImports[ident.Name]) && len(e.Elts) == 0 {
 				rustName := goTypeToRustBase(sel)
 				out.WriteString(rustName)
@@ -16323,45 +16410,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
-						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
-						if wrapInTypeDefinition {
-							out.WriteString(RustTypeNameForUse(ident.Name))
-							out.WriteString("(")
+						newtype := ""
+						if !IsTypeAlias(ident.Name) {
+							newtype = RustTypeNameForUse(ident.Name)
 						}
-						WriteWrapperPrefix(out)
-						values := orderedArrayLiteralValues(e.Elts)
-						multilineSliceLiteral := sliceLiteralShouldUseMultiline(values)
-						sliceLiteralIndent := ""
-						if multilineSliceLiteral {
-							sliceLiteralIndent = currentLineIndent(out)
-							out.WriteString("vec![\n")
-						} else {
-							out.WriteString("vec![")
-						}
-						for i, elt := range values {
-							if multilineSliceLiteral {
-								out.WriteString(sliceLiteralIndent)
-								out.WriteString("    ")
-							} else if i > 0 {
-								out.WriteString(", ")
-							}
-							if elt == nil {
-								out.WriteString(zeroValueForTypesType(sliceType.Elem()))
-							} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
-								TranspileExpression(out, elt)
-							}
-							if multilineSliceLiteral {
-								out.WriteString(",\n")
-							}
-						}
-						if multilineSliceLiteral {
-							out.WriteString(sliceLiteralIndent)
-						}
-						out.WriteString("]")
-						WriteWrapperSuffix(out)
-						if wrapInTypeDefinition {
-							out.WriteString(")")
-						}
+						writeNamedSliceCompositeLiteral(out, e, sliceType, newtype)
 						return
 					}
 				}
