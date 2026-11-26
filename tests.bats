@@ -652,6 +652,14 @@ run_xfail_test() {
     run_test "tests/base64_encoding"
 }
 
+@test "binary_operands_read_after_calls" {
+    run_test "tests/binary_operands_read_after_calls"
+}
+
+@test "binary_operands_read_after_calls_goroutines" {
+    run_test "tests/binary_operands_read_after_calls_goroutines"
+}
+
 @test "blank_assignment_of_nil_values" {
     run_test "tests/blank_assignment_of_nil_values"
 }
