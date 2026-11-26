@@ -849,7 +849,7 @@ fn main() {
 
         // Sum array
     let mut numbers = Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64, 4i64, 5i64])));
-    { let __go_print_arg_1 = Rc::new(RefCell::new(Some(sum_array(numbers.clone())))); let __go_print_value = println!("{} {} {} {}", format!("{}", "Sum of".to_string()), format!("{}", format_slice(&numbers)), format!("{}", "=".to_string()), format!("{}", { let __v = (*__go_print_arg_1.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let __go_print_arg_1 = sum_array(numbers.clone()); let __go_print_value = println!("{} {} {} {}", format!("{}", "Sum of".to_string()), format!("{}", format_slice(&numbers)), format!("{}", "=".to_string()), format!("{}", __go_print_arg_1)); __go_print_value };
 
         // Reverse string
     let mut original = Rc::new(RefCell::new(Some("hello".to_string())));

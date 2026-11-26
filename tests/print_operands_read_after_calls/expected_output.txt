@@ -17,6 +17,9 @@ b c b!
 [writer writer step format step]
 5 &{6}
 6 &{7}
+7 [1]
+10 x
+[writer spread]
 [3 4 0 0] [3 4]
 2 1 2 2
 3 3 {3}

@@ -135,6 +135,14 @@ func inOrder() {
 	// A pointer operand is staged as the handle it is.
 	fmt.Println(len(order), &box{step()})
 	fmt.Println(len(order), newBox())
+	// An element of a [][]int is staged as the slice it is.
+	rows := [][]int{{1}, {2, 3}}
+	fmt.Println(len(order), rows[step()%2])
+	// The writer runs before a spread operand's call.
+	fmt.Fprintln(writer(), spread()...)
+	fmt.Println(order[len(order)-2:])
 }
+
+func spread() []any { order = append(order, "spread"); return []any{len(order), "x"} }
 
 func newBox() *box { return &box{n: step()} }

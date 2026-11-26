@@ -275,7 +275,9 @@ fn main() {
         a = __tmp_0;
         b = __tmp_1;
     };
-    { let __go_print_arg_1 = keys(b.clone()); let __go_print_arg_2 = keys(c.clone()); let __go_print_arg_3 = Arc::new(Mutex::new(Some(({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_value = println!("{} {} {} {}", format!("{}", { let __nil_result = (*a.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&__go_print_arg_1)), format!("{}", format_slice(&__go_print_arg_2)), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let __go_print_arg_1 = keys(b.clone());
+let mut __go_print_arg_1 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_1); Arc::new(Mutex::new(__slice_header)) }; let __go_print_arg_2 = keys(c.clone());
+let mut __go_print_arg_2 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_2); Arc::new(Mutex::new(__slice_header)) }; let __go_print_arg_3 = Arc::new(Mutex::new(Some(({ let __len = (*a.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_value = println!("{} {} {} {}", format!("{}", { let __nil_result = (*a.lock().unwrap()).is_none(); __nil_result }), format!("{}", format_slice(&__go_print_arg_1)), format!("{}", format_slice(&__go_print_arg_2)), format!("{}", { let __v = (*__go_print_arg_3.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
 }
 
 impl GoValueClone for Inventory {

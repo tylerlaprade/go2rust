@@ -1461,11 +1461,11 @@ fn main() {
     };
     *fromClosure.lock().unwrap() = None;
     { let __go_print_arg_2 = Arc::new(Mutex::new(Some({ let __left = {
-        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = check.lock().unwrap().as_ref().unwrap().clone();
-        (__f)(
+    let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = check.lock().unwrap().as_ref().unwrap().clone();
+    (__f)(
 
-        )
-    }.clone(); let __right = err.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }))); let __go_print_value = println!("{} {} {}", format!("{}", { let __nil_result = (*fromClosure.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    )
+}.clone(); let __right = err.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }))); let __go_print_value = println!("{} {} {}", format!("{}", { let __nil_result = (*fromClosure.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
 
         // A deferred function can still replace a named result.
     println!("{} {}", format!("{}", { let __text = match work(Arc::new(Mutex::new(Some(true)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match work(Arc::new(Mutex::new(Some(false)))).lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

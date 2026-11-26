@@ -44,7 +44,7 @@ var fmtOperandTempCount int
 // { let __go_print_arg_N = <operand>; ...; let __go_print_value = <print>; __go_print_value }.
 func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr, handler StdlibHandler) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil || call.Ellipsis.IsValid() {
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
 		return false
 	}
 	first := fmtFirstOperand(call)
@@ -70,8 +70,22 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 	// lowering of a print to the terminal does not evaluate a writer at
 	// all; a temporary of type *os.File is written to as the file it is.
 	leadingCall := len(staged) > 0
+	if call.Ellipsis.IsValid() {
+		// fmt.Fprintln(writer(), operands()...): the spread slice is the
+		// only operand; it is staged after the writer when it runs a
+		// call, and read after it otherwise.
+		if !leadingCall || first != len(call.Args)-1 {
+			return false
+		}
+		if spread := call.Args[first]; binaryOperandHasCall(spread, true) {
+			if !fmtOperandCanBeStaged(spread) {
+				return false
+			}
+			staged = append(staged, first)
+		}
+	}
 	readBeforeCall := false
-	for i := first; i < len(call.Args); i++ {
+	for i := first; i < len(call.Args) && !call.Ellipsis.IsValid(); i++ {
 		arg := call.Args[i]
 		// gc evaluates a builtin call such as len(s), and x && b, in
 		// order with the calls, so such an operand is staged in its place
@@ -123,29 +137,24 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 			fmtOperandTempCount++
 			name = fmt.Sprintf("__go_print_arg_%d", fmtOperandTempCount)
 		}
-		out.WriteString("let ")
-		out.WriteString(name)
-		out.WriteString(" = ")
-		// NeedsUnwrapping reports whether the operand's Rust is a cell. A
-		// pointer's Rust is its handle, which a pointer variable holds as
-		// it is: &box{...} must not be wrapped again.
-		if _, isPointer := types.Unalias(argType).Underlying().(*types.Pointer); isPointer || typeInfo.NeedsUnwrapping(arg) {
-			TranspileExpression(out, arg)
-		} else {
-			WriteWrapperPrefix(out)
-			if !writeLenCapCallArgumentForExpectedType(out, unwrapParens(arg), argType) {
-				TranspileExpression(out, arg)
-			}
-			WriteWrapperSuffix(out)
-		}
-		out.WriteString("; ")
+		// The operand goes into its temporary as name := operand would:
+		// the statement lowering knows the Rust shape of every kind of
+		// operand, a bare element of a [][]int and a pointer's handle
+		// among them, and registers the temporary as the variable it
+		// declares.
+		def := &ast.Ident{NamePos: arg.Pos(), Name: name}
+		obj := types.NewVar(arg.Pos(), typeInfo.pkg, name, argType)
+		typeInfo.info.Defs[def] = obj
+		typeInfo.info.Types[def] = types.TypeAndValue{Type: argType}
+		var decl strings.Builder
+		TranspileStatementSimple(&decl, &ast.AssignStmt{Lhs: []ast.Expr{def}, TokPos: arg.Pos(), Tok: token.DEFINE, Rhs: []ast.Expr{arg}}, nil, token.NewFileSet())
+		// Nothing writes the temporary, so it needs no mut.
+		out.WriteString(strings.Replace(decl.String(), "let mut "+name+" ", "let "+name+" ", 1))
+		out.WriteString(" ")
 
 		use := &ast.Ident{NamePos: arg.Pos(), Name: name}
-		typeInfo.info.Uses[use] = types.NewVar(arg.Pos(), typeInfo.pkg, name, argType)
+		typeInfo.info.Uses[use] = obj
 		typeInfo.info.Types[use] = types.TypeAndValue{Type: argType}
-		if vt != nil {
-			vt.Register(name, &VarInfo{WrapLevel: WrapFull, RustType: goTypesTypeToRust(argType), Source: SourceLocal, GoType: argType})
-		}
 		call.Args[i] = use
 	}
 	// The print goes into a let too: the guards a block's tail expression
