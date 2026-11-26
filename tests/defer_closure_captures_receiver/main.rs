@@ -721,9 +721,10 @@ impl parser {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut p_defer_captured = p_defer_captured.clone();
         println!("{} {}", format!("{}", "deferred".to_string()), format!("{}", (*p_defer_captured.n.borrow().as_ref().unwrap())));
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         { let new_val = 42; *self.n.borrow_mut() = Some(new_val); };
         println!("{} {}", format!("{}", "body".to_string()), format!("{}", (*self.n.borrow().as_ref().unwrap())));

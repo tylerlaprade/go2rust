@@ -980,17 +980,13 @@ fn main() {
     let mut items = (*q.lock().unwrap().as_ref().unwrap()).items.clone();
     let mut items = { let __slice_header = GoSliceHeader::go_slice_header(&items); Arc::new(Mutex::new(__slice_header)) };
     println!("{}", format!("{}", { let __nil_result = (*items.lock().unwrap()).is_none(); __nil_result }));
-    let s_closure_clone = s.clone(); let mut f = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Vec<i64>>>> {
+    let s_closure_clone = s.clone(); let mut f = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<Vec<i64>>>> {
         let mut c = Arc::new(Mutex::new(s_closure_clone.lock().unwrap().clone()));
         return c.clone();
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync>)));
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync>)));
     println!("{}", format!("{}", { let __nil_result = (*{
-        let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync> = {
-            let mut __f_guard = f.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }.lock().unwrap()).is_none(); __nil_result }));

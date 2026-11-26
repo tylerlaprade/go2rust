@@ -680,6 +680,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -862,25 +887,22 @@ fn main() {
     });
     done.recv().unwrap_or_default();
 
-    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
+    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
         5
-    }) as Box<dyn FnMut() -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>)));
-    let mut f = ({ let val = x.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    }) as Arc<dyn Fn() -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>)));
+    let mut f = ({ let val = x.clone(); let guard = val.lock().unwrap(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
+    let mut f = Arc::new(Mutex::new(GoFuncValue::go_func_value(&f)));
     println!("{}", format!("{}", {
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = f.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }));
     println!("{}", format!("{}", ({
-        let __f_holder = { let val = x.clone(); let guard = val.lock().unwrap(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Arc<Mutex<Option<Box<dyn FnMut() -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
+        let __f_holder = { let val = x.clone(); let guard = val.lock().unwrap(); match guard.as_ref() { Some(any_val) => any_val.downcast_ref::<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>>().expect("type assertion failed").clone(), None => panic!("type assertion on nil interface") } };
         (|| {
             let mut __f_guard = __f_holder.lock().unwrap();
-            let __f: &mut Box<dyn FnMut() -> i64 + Send + Sync> = __f_guard.as_mut().expect("call of nil function");
+            let __f: &mut Arc<dyn Fn() -> i64 + Send + Sync> = __f_guard.as_mut().expect("call of nil function");
             let __f_result = (*__f)();
             __f_result
         })()

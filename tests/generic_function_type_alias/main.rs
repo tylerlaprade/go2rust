@@ -679,20 +679,20 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
-pub fn words() -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>> {
-    return Rc::new(RefCell::new(Some(Box::new(move |r#yield: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>| {
-        if !{ let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = r#yield.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("go".to_string())))) } {
+pub fn words() -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>> {
+    return Rc::new(RefCell::new(Some(Rc::new(move |r#yield: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>| {
+        if !{ let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("go".to_string())))) } {
         return;
     }
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> = { let mut __f_guard = r#yield.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some("rust".to_string())))) };
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>)));
+        { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some("rust".to_string())))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>)));
 }
 
-pub fn print_until_stop(seq: Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) {
-    { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()> = { let mut __f_guard = seq.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(Box::new(move |word: Rc<RefCell<Option<String>>>| -> bool {
+pub fn print_until_stop(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) {
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()> = seq.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(Rc::new(move |word: Rc<RefCell<Option<String>>>| -> bool {
         println!("{} {}", format!("{}", "word:".to_string()), format!("{}", { let __v = (*word.borrow().as_ref().unwrap()).clone(); __v }));
         (*word.borrow().as_ref().unwrap()).clone() != "go".to_string()
-    }) as Box<dyn FnMut(Rc<RefCell<Option<String>>>) -> bool>)))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>)))) };
 }
 
 fn main() {

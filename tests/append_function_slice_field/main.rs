@@ -680,9 +680,34 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 #[derive(Clone, Default)]
 pub struct queue {
-    pub later: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>>>>,
+    pub later: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>>>>>,
 }
 
 impl queue {
@@ -703,8 +728,8 @@ impl std::fmt::Display for queue {
 
 
 impl queue {
-    pub fn add(&mut self, r#fn: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = r#fn.clone(); let mut __appended: Vec<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.later.lock().unwrap() = __slice_header; };
+    pub fn add(&mut self, r#fn: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#fn)))); let mut __appended: Vec<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.later.lock().unwrap() = __slice_header; };
     }
 }
 
@@ -719,20 +744,17 @@ fn main() {
     }
     });
 
-    let mut q = Arc::new(Mutex::new(Some(queue { later: Arc::new(Mutex::new(Some(Vec::<Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>>::new()))), ..Default::default() })));
+    let mut q = Arc::new(Mutex::new(Some(queue { later: Arc::new(Mutex::new(Some(Vec::<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>>::new()))), ..Default::default() })));
     (*q.lock().unwrap().as_mut().unwrap()).add(
-        Arc::new(Mutex::new(Some(Box::new(move || {
+        Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", format!("{}", "later".to_string()));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))),
+    }) as Arc<dyn Fn() -> () + Send + Sync>))),
     );
     let mut f = { let __seq = { let __seq_holder = (*q.lock().unwrap().as_ref().unwrap()).later.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
+    let mut f = Arc::new(Mutex::new(GoFuncValue::go_func_value(&f)));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = f.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };

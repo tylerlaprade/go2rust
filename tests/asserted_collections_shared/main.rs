@@ -821,10 +821,10 @@ fn main() {
     { let __map_key = "x".to_string(); let __map_value = Rc::new(RefCell::new(Some(7))); (*c.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{}", format!("{}", { let __map_holder = ({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"x".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
 
-    let counts_closure_clone = counts.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+    let counts_closure_clone = counts.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let mut inner = ({ let val = counts_closure_clone.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } });
         { let __map_key = "y".to_string(); let __map_value = Rc::new(RefCell::new(Some(5))); (*inner.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     println!("{}", format!("{}", ({ let __len = (*({ let val = counts.clone(); let guard = val.borrow(); if let Some(ref any_val) = *guard { any_val.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>().expect("type assertion failed").clone() } else { panic!("type assertion on nil interface") } }).borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
 
     let mut list: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64, 3i64]))).clone()) as Box<dyn Any>)));

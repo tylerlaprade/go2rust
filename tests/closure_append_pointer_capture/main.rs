@@ -726,18 +726,15 @@ fn main() {
     let mut items: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     let mut result: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>> = Arc::new(Mutex::new(None));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = items.clone(); let __append_value = n.clone(); let mut __appended: Vec<Arc<Mutex<Option<node>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *items.lock().unwrap() = __slice_header; };
-    let mut result_closure_clone = result.clone(); let mut visit = Arc::new(Mutex::new(Some(Box::new(move |xs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>| {
+    let mut result_closure_clone = result.clone(); let mut visit = Arc::new(Mutex::new(Some(Arc::new(move |xs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>| {
+        let mut result_closure_clone = result_closure_clone.clone();
         { let __range_holder = xs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for p in __range_values.iter() {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = result_closure_clone.clone(); let __append_value = p.clone(); let mut __appended: Vec<Arc<Mutex<Option<node>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *result_closure_clone.lock().unwrap() = __slice_header; };
     } }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>)));
     {
-        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> = {
-            let mut __f_guard = visit.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec<Arc<Mutex<Option<node>>>>>>>) -> () + Send + Sync> = visit.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
             items.clone()
         )
     };

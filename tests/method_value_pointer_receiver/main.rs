@@ -680,6 +680,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 #[derive(Debug, Clone)]
 pub struct tracker {
     pub value: Arc<Mutex<Option<i64>>>,
@@ -718,32 +743,25 @@ impl tracker {
     }
 }
 
-pub fn make_bump(t: Arc<Mutex<Option<tracker>>>) -> Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some({ let __recv = t.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Box<dyn FnMut() -> () + Send + Sync> })))
+pub fn make_bump(t: Arc<Mutex<Option<tracker>>>) -> Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> {
+    Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Arc<dyn Fn() -> () + Send + Sync> })))
 }
 
 fn main() {
     let mut t = Arc::new(Mutex::new(Some(tracker { value: Arc::new(Mutex::new(Some(0))) })));
     let mut first = make_bump(t.clone());
+    let mut first = Arc::new(Mutex::new(GoFuncValue::go_func_value(&first)));
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = first.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = first.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };
-    let mut second: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    { let new_val = Arc::new(Mutex::new(Some({ let __recv = t.clone(); Box::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Box<dyn FnMut() -> () + Send + Sync> }))); second = new_val; };
+    let mut second: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
+    { let new_val = Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Arc<dyn Fn() -> () + Send + Sync> }))); second = new_val; };
     {
-        let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-            let mut __f_guard = second.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = second.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     };

@@ -1265,7 +1265,7 @@ fn main() {
         // Complex error handling flow
     println!("{}", format!("{}", "\n=== Complex error handling flow ===".to_string()));
 
-    let mut processData = Arc::new(Mutex::new(Some(Box::new(move |data: Arc<Mutex<Option<Vec<i64>>>>| -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
+    let mut processData = Arc::new(Mutex::new(Some(Arc::new(move |data: Arc<Mutex<Option<Vec<i64>>>>| -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> {
         if { let __tmp_x = (({ let __len = (*data.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from(format!("empty data"))))));
     }
@@ -1278,7 +1278,7 @@ fn main() {
     }
     } }
         return Arc::new(Mutex::new(None));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>)));
 
     let mut testData = Arc::new(Mutex::new(Some(vec![
         vec![1i64, 2i64, 3i64],
@@ -1292,12 +1292,8 @@ fn main() {
         print!("Testing dataset {}: {}\n", format!("{}", { let __tmp_x = i as i64; let __tmp_y = 1; __tmp_x + __tmp_y }), format!("{}", format_slice_values(data)));
         {
         let mut err = {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = {
-                let mut __f_guard = processData.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn(Arc<Mutex<Option<Vec<i64>>>>) -> Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>> + Send + Sync> = processData.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
                 Arc::new(Mutex::new(Some((*data).clone())))
             )
         };;

@@ -848,16 +848,12 @@ impl<T> Iterator for GoChannel<T> {
     }
 }
 
-pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>, done: GoChannel<String>) {
+pub fn run(f: Arc<Mutex<Option<Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>>>>, done: GoChannel<String>) {
     let done_thread = done.clone(); let f_thread = f.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         done_thread.send((*{
-            let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync> = {
-                let mut __f_guard = f_thread.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = f_thread.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         }.lock().unwrap().as_ref().unwrap()).clone());;;
@@ -871,8 +867,8 @@ pub fn run(f: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + S
 
 fn main() {
     let mut done = GoChannel::<String>::new();
-    run(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<String>>> {
+    run(Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("ok".to_string())))
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<String>>> + Send + Sync>))), done.clone());
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>))), done.clone());
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 }

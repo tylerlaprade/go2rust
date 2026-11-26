@@ -682,7 +682,7 @@ impl std::io::Write for GoSlice<u8> {
 
 #[derive(Clone, Default)]
 pub struct queue {
-    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
+    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>>>>>,
 }
 
 impl queue {
@@ -703,6 +703,6 @@ impl std::fmt::Display for queue {
 
 
 fn main() {
-    let mut q = Rc::new(RefCell::new(Some(queue { later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
+    let mut q = Rc::new(RefCell::new(Some(queue { later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>>::new()))), ..Default::default() })));
     println!("{}", format!("{}", (*q.borrow().as_ref().unwrap())));
 }

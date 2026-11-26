@@ -777,9 +777,9 @@ fn main() {
     let (mut __go_mv_5_0, mut __go_mv_5_1) = divmod(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(2))));
     let mut msg = Rc::new(RefCell::new(Some(format!("{} {}", format!("{}", __go_mv_5_0), format!("{}", __go_mv_5_1)))));
     println!("{}", format!("{}", { let __v = (*msg.borrow().as_ref().unwrap()).clone(); __v }));
-    let mut run = Rc::new(RefCell::new(Some(Box::new(move || {
+    let mut run = Rc::new(RefCell::new(Some(Rc::new(move || {
         let (mut __go_mv_6_0, mut __go_mv_6_1) = divmod(Rc::new(RefCell::new(Some(100))), Rc::new(RefCell::new(Some(7))));
 println!("{} {}", format!("{}", __go_mv_6_0), format!("{}", __go_mv_6_1));
-    }) as Box<dyn FnMut() -> ()>)));
-    { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = run.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>)));
+    { let __f: Rc<dyn Fn() -> ()> = run.borrow().as_ref().unwrap().clone(); (__f)() };
 }

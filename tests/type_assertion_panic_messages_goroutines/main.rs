@@ -1121,28 +1121,24 @@ impl std::fmt::Display for Rect {
 }
 
 
-pub fn r#try(f: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
+pub fn r#try(f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));;
         }
     }
-    }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         {
-            let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = {
-                let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
 
             )
         };
@@ -1185,7 +1181,7 @@ fn main() {
     started.recv().unwrap_or_default();
 
     let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
-    let a_closure_clone = a.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let a_closure_clone = a.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = a_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1195,9 +1191,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "string")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut b: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
-    let b_closure_clone = b.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let b_closure_clone = b.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = b_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1207,9 +1203,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut c: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(42i64) as Box<dyn Any + Send + Sync>)));
-    let c_closure_clone = c.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let c_closure_clone = c.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = c_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1219,9 +1215,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "*main.Rect")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut d: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1))), h: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>)));
-    let d_closure_clone = d.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let d_closure_clone = d.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = d_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1231,9 +1227,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut e: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(Rect { w: Arc::new(Mutex::new(Some(1))), h: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>)));
-    let e_closure_clone = e.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let e_closure_clone = e.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", format!("{}", (*({
         let val = e_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1243,9 +1239,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }
     }).w.lock().unwrap().as_ref().unwrap())));
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut f: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let f_closure_clone = f.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let f_closure_clone = f.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = f_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1255,9 +1251,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut items = Arc::new(Mutex::new(Some(vec![Box::new("a".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2.5) as Box<dyn Any + Send + Sync>])));
-    let items_closure_clone = items.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let items_closure_clone = items.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let __idx = (1) as usize;
         let __seq_holder = items_closure_clone.clone();
@@ -1265,9 +1261,9 @@ fn main() {
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut g: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new("text".to_string()) as Box<dyn Any + Send + Sync>)));
-    let g_closure_clone = g.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let g_closure_clone = g.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         let _ = ({
         let val = g_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1277,9 +1273,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }
     });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
     let mut h: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(3.5) as Box<dyn Any + Send + Sync>)));
-    let h_closure_clone = h.clone(); r#try(Arc::new(Mutex::new(Some(Box::new(move || {
+    let h_closure_clone = h.clone(); r#try(Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", { let __text = go_float_string((({
         let val = h_closure_clone.clone();
         let guard = val.lock().unwrap();
@@ -1289,5 +1285,5 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "float64")
         }
     })) as f64, false); __text });
-    }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    }) as Arc<dyn Fn() -> () + Send + Sync>))));
 }

@@ -9,6 +9,32 @@ use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
+
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 pub(crate) const __SLICES_UNKNOWN_HINT: i64 = 0;
 pub(crate) const __SLICES_INCREASING_HINT: i64 = 1;
 pub(crate) const __SLICES_DECREASING_HINT: i64 = 2;
@@ -824,7 +850,7 @@ fn main() {
     __slices__sort__slice_int__int(ordered.clone());
     println!("{} {} {} {}", format!("{}", "slices".to_string()), format!("{}", ({ let __len = (*ordered.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*ordered.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", { let __nil_result = (*ordered.lock().unwrap()).is_none(); __nil_result }));
     let mut words: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
-    __slices__sort_func__slice_string__string(words.clone(), Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<String>>>, __arg1: Arc<Mutex<Option<String>>>| -> i64 { compare_strings(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>))));
+    __slices__sort_func__slice_string__string(words.clone(), Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>, __arg1: Arc<Mutex<Option<String>>>| -> i64 { compare_strings(__arg0, __arg1) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>))));
     println!("{} {} {} {}", format!("{}", "sortfunc".to_string()), format!("{}", ({ let __len = (*words.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", (*words.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)), format!("{}", { let __nil_result = (*words.lock().unwrap()).is_none(); __nil_result }));
 }
 
@@ -838,14 +864,14 @@ pub fn __slices__sort__slice_int__int(x: Arc<Mutex<Option<Vec<i64>>>>) {
     );
 }
 
-pub fn __slices__sort_func__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices__sort_func__slice_string__string(x: Arc<Mutex<Option<Vec<String>>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut n = Arc::new(Mutex::new(Some(({ let __len = (*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
     __slices_pdqsort_cmp_func__string(
         x.clone(),
         Arc::new(Mutex::new(Some(0))),
         Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         Arc::new(Mutex::new(Some({ let __arg_value = math_bits::len(Arc::new(Mutex::new(Some({ let __arg_value = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()); __v }) as u64; __arg_value })))); __arg_value }))),
-        cmp.clone()
+        Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
     );
 }
 
@@ -930,7 +956,7 @@ pub fn __slices_pdqsort_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, mut a: 
     }
 }
 
-pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, mut a: Arc<Mutex<Option<i64>>>, mut b: Arc<Mutex<Option<i64>>>, mut limit: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, mut a: Arc<Mutex<Option<i64>>>, mut b: Arc<Mutex<Option<i64>>>, mut limit: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     const maxInsertion: i64 = 12;
 
     let mut wasBalanced = Arc::new(Mutex::new(Some(true)));let mut wasPartitioned = Arc::new(Mutex::new(Some(true)));
@@ -941,7 +967,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         return;
     }
@@ -950,7 +976,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         return;
     }
@@ -959,7 +985,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let mut guard = limit.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
@@ -967,14 +993,14 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         if { let __tmp_x = ({ let __v = (*hint.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = __slices_sortedHint(Arc::new(Mutex::new(Some(__SLICES_DECREASING_HINT as i64)))); __tmp_x == __tmp_y } {
         __slices_reverse_range_cmp_func__string(
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let new_val = { let __tmp_x = ({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = pivot; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x - __tmp_y }; pivot = new_val; };
         { let new_val = __slices_sortedHint(Arc::new(Mutex::new(Some(__SLICES_INCREASING_HINT as i64)))); *hint.lock().unwrap() = Some(new_val); };
@@ -984,7 +1010,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         ) {
         return;
     }
@@ -995,12 +1021,8 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
                 let __go_cond_1 = !({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(pivot) as usize].clone() })))
                             )
@@ -1018,7 +1040,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(pivot))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let new_val = mid; *a.lock().unwrap() = Some(new_val); };
         continue
@@ -1028,7 +1050,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(pivot))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let new_val = alreadyPartitioned; *wasPartitioned.lock().unwrap() = Some(new_val); };
         let (mut leftLen, mut rightLen) = ({ let __tuple_value = Arc::new(Mutex::new(Some({ let __tmp_x = mid; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))); __tuple_value }, { let __tuple_value = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = mid; __tmp_x - __tmp_y }))); __tuple_value });
@@ -1040,7 +1062,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(mid))),
             Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let new_val = { let __tmp_x = mid; let __tmp_y = 1; __tmp_x + __tmp_y }; *a.lock().unwrap() = Some(new_val); };
     } else {
@@ -1050,7 +1072,7 @@ pub fn __slices_pdqsort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, 
             Arc::new(Mutex::new(Some({ let __tmp_x = mid; let __tmp_y = 1; __tmp_x + __tmp_y }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let new_val = mid; *b.lock().unwrap() = Some(new_val); };
     }
@@ -1491,7 +1513,7 @@ pub fn __slices_partition_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Ar
     return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, false);
 }
 
-pub fn __slices_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         let mut j = { let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
@@ -1501,12 +1523,8 @@ pub fn __slices_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<Strin
             let __go_cond_1 = ({
                 let __tmp_x =
                     {
-                        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                            let mut __f_guard = cmp.lock().unwrap();
-                            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                        };
-                        let __f = unsafe { &mut *__f_ptr };
-                        (*__f)(
+                        let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                        (__f)(
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                         )
@@ -1535,7 +1553,7 @@ pub fn __slices_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<Strin
     }
 }
 
-pub fn __slices_heap_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_heap_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut first = { let __owned = a.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     let mut lo = Arc::new(Mutex::new(Some(0i64)));
     let mut hi = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
@@ -1546,7 +1564,7 @@ pub fn __slices_heap_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
             Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
@@ -1567,13 +1585,13 @@ pub fn __slices_heap_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
             Arc::new(Mutex::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         );
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
 }
 
-pub fn __slices_break_patterns_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_break_patterns_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut length = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
     if { let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >= __tmp_y } {
         let mut random = Arc::new(Mutex::new(Some(__slices_xorshift(Arc::new(Mutex::new(Some(({ let __v = (*length.lock().unwrap().as_ref().unwrap()); __v }) as u64)))))));
@@ -1608,7 +1626,7 @@ let mut idx = Arc::new(Mutex::new(Some(__go_binary_8)));
     }
 }
 
-pub fn __slices_choose_pivot_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<__slices_sortedHint>>>) {
+pub fn __slices_choose_pivot_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<__slices_sortedHint>>>) {
     let mut pivot: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut hint: Arc<Mutex<Option<__slices_sortedHint>>> = Arc::new(Mutex::new(Some(Default::default())));
 
@@ -1623,19 +1641,19 @@ const maxSwaps: i64 = 4 * 3;
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             swaps.clone(),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         ); *i.lock().unwrap() = Some(new_val); };
         { let new_val = __slices_median_adjacent_cmp_func__string(
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             swaps.clone(),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         ); *j.lock().unwrap() = Some(new_val); };
         { let new_val = __slices_median_adjacent_cmp_func__string(
             data.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             swaps.clone(),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         ); *k.lock().unwrap() = Some(new_val); };
     }
         { let new_val = __slices_median_cmp_func__string(
@@ -1644,7 +1662,7 @@ const maxSwaps: i64 = 4 * 3;
             Arc::new(Mutex::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             swaps.clone(),
-            cmp.clone()
+            Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
         ); *j.lock().unwrap() = Some(new_val); };
     }
     { let _switch_val = { let __v = (*swaps.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -1658,7 +1676,7 @@ const maxSwaps: i64 = 4 * 3;
     }
 }
 
-pub fn __slices_reverse_range_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_reverse_range_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut i = { let __owned = a.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
@@ -1677,7 +1695,7 @@ pub fn __slices_reverse_range_cmp_func__string(data: Arc<Mutex<Option<Vec<String
     }
 }
 
-pub fn __slices_partial_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> bool {
+pub fn __slices_partial_insertion_sort_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> bool {
     const maxSteps: i64 = 5;
 const shortestShifting: i64 = 50;
 
@@ -1690,12 +1708,8 @@ const shortestShifting: i64 = 50;
                 let __go_cond_1 = !({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                             )
@@ -1732,12 +1746,8 @@ const shortestShifting: i64 = 50;
         if !({
             let __tmp_x =
                 {
-                    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                        let mut __f_guard = cmp.lock().unwrap();
-                        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                    };
-                    let __f = unsafe { &mut *__f_ptr };
-                    (*__f)(
+                    let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                    (__f)(
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                     )
@@ -1766,12 +1776,8 @@ const shortestShifting: i64 = 50;
         if !({
             let __tmp_x =
                 {
-                    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                        let mut __f_guard = cmp.lock().unwrap();
-                        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                    };
-                    let __f = unsafe { &mut *__f_ptr };
-                    (*__f)(
+                    let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                    (__f)(
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __arg_value })))
                     )
@@ -1799,7 +1805,7 @@ const shortestShifting: i64 = 50;
     false
 }
 
-pub fn __slices_partition_equal_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, pivot: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
+pub fn __slices_partition_equal_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, pivot: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
     let mut newpivot: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
     {
@@ -1820,12 +1826,8 @@ pub fn __slices_partition_equal_cmp_func__string(data: Arc<Mutex<Option<Vec<Stri
                 let __go_cond_1 = !({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
@@ -1846,12 +1848,8 @@ pub fn __slices_partition_equal_cmp_func__string(data: Arc<Mutex<Option<Vec<Stri
                 let __go_cond_1 = ({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
@@ -1885,7 +1883,7 @@ pub fn __slices_partition_equal_cmp_func__string(data: Arc<Mutex<Option<Vec<Stri
     return { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
 
-pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, pivot: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, bool) {
+pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, pivot: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, bool) {
     let mut newpivot: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut alreadyPartitioned: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
@@ -1906,12 +1904,8 @@ pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
             let __go_cond_1 = ({
                 let __tmp_x =
                     {
-                        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                            let mut __f_guard = cmp.lock().unwrap();
-                            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                        };
-                        let __f = unsafe { &mut *__f_ptr };
-                        (*__f)(
+                        let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                        (__f)(
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                         )
@@ -1932,12 +1926,8 @@ pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
             let __go_cond_1 = !({
                 let __tmp_x =
                     {
-                        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                            let mut __f_guard = cmp.lock().unwrap();
-                            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                        };
-                        let __f = unsafe { &mut *__f_ptr };
-                        (*__f)(
+                        let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                        (__f)(
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                             Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                         )
@@ -1984,12 +1974,8 @@ pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
                 let __go_cond_1 = ({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
@@ -2010,12 +1996,8 @@ pub fn __slices_partition_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
                 let __go_cond_1 = !({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                             )
@@ -2140,7 +2122,7 @@ pub fn __cmp_is_na_n__int(x: Arc<Mutex<Option<i64>>>) -> bool {
     return { let __bin_x = ({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_x != __bin_x };
 }
 
-pub fn __slices_sift_down_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, lo: Arc<Mutex<Option<i64>>>, hi: Arc<Mutex<Option<i64>>>, first: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
+pub fn __slices_sift_down_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, lo: Arc<Mutex<Option<i64>>>, hi: Arc<Mutex<Option<i64>>>, first: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) {
     let mut root = { let __owned = lo.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     loop {
         let mut child = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y })));
@@ -2153,12 +2135,8 @@ pub fn __slices_sift_down_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
                 let __go_cond_1 = ({
                     let __tmp_x =
                         {
-                            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                                let mut __f_guard = cmp.lock().unwrap();
-                                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                            };
-                            let __f = unsafe { &mut *__f_ptr };
-                            (*__f)(
+                            let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                            (__f)(
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
                                 Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                             )
@@ -2176,12 +2154,8 @@ pub fn __slices_sift_down_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
         if !({
             let __tmp_x =
                 {
-                    let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                        let mut __f_guard = cmp.lock().unwrap();
-                        __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                    };
-                    let __f = unsafe { &mut *__f_ptr };
-                    (*__f)(
+                    let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                    (__f)(
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*root.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value }))),
                         Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*child.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone() }; __arg_value })))
                     )
@@ -2205,38 +2179,38 @@ pub fn __slices_sift_down_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>
     }
 }
 
-pub fn __slices_median_adjacent_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
+pub fn __slices_median_adjacent_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
     __slices_median_cmp_func__string(
         data.clone(),
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))),
         swaps.clone(),
-        cmp.clone()
+        Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
     )
 }
 
-pub fn __slices_median_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, mut a: Arc<Mutex<Option<i64>>>, mut b: Arc<Mutex<Option<i64>>>, mut c: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
+pub fn __slices_median_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, mut a: Arc<Mutex<Option<i64>>>, mut b: Arc<Mutex<Option<i64>>>, mut c: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> i64 {
     { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__string(
         data.clone(),
         Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         swaps.clone(),
-        cmp.clone()
+        Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
     ); *a.lock().unwrap() = Some(__tmp_0); *b.lock().unwrap() = Some(__tmp_1); };
     { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__string(
         data.clone(),
         Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         swaps.clone(),
-        cmp.clone()
+        Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
     ); *b.lock().unwrap() = Some(__tmp_0); *c.lock().unwrap() = Some(__tmp_1); };
     { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__string(
         data.clone(),
         Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         swaps.clone(),
-        cmp.clone()
+        Arc::new(Mutex::new(GoFuncValue::go_func_value(&(cmp))))
     ); *a.lock().unwrap() = Some(__tmp_0); *b.lock().unwrap() = Some(__tmp_1); };
     return { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v };
 }
@@ -2252,16 +2226,12 @@ pub fn __slices_order2_ordered__int(data: Arc<Mutex<Option<Vec<i64>>>>, a: Arc<M
     return ({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v });
 }
 
-pub fn __slices_order2_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, i64) {
+pub fn __slices_order2_cmp_func__string(data: Arc<Mutex<Option<Vec<String>>>>, a: Arc<Mutex<Option<i64>>>, b: Arc<Mutex<Option<i64>>>, swaps: Arc<Mutex<Option<i64>>>, cmp: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>>>>) -> (i64, i64) {
     if {
         let __tmp_x =
             {
-                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = {
-                    let mut __f_guard = cmp.lock().unwrap();
-                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync>
-                };
-                let __f = unsafe { &mut *__f_ptr };
-                (*__f)(
+                let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) -> i64 + Send + Sync> = cmp.lock().unwrap().as_ref().unwrap().clone();
+                (__f)(
                     Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value }))),
                     Arc::new(Mutex::new(Some({ let __arg_value = { let __seq = { let __seq_holder = data.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; __arg_value })))
                 )

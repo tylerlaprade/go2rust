@@ -792,7 +792,7 @@ pub fn get_name(s: Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<Stri
 }
 
 pub fn call_via_closure(a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>> {
-    let mut f = Rc::new(RefCell::new(Some(Box::new(move |x: Rc<RefCell<Option<Box<dyn Spec>>>>, y: Rc<RefCell<Option<Box<dyn Spec>>>>| -> Rc<RefCell<Option<String>>> {
+    let mut f = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<Box<dyn Spec>>>>, y: Rc<RefCell<Option<Box<dyn Spec>>>>| -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some({
             let mut __s = String::new();
             __s.push_str(&format!("{}", (*get_name(x.clone()).borrow().as_ref().unwrap())));
@@ -800,8 +800,8 @@ pub fn call_via_closure(a: Rc<RefCell<Option<Box<dyn Spec>>>>, b: Rc<RefCell<Opt
             __s.push_str(&format!("{}", (*get_name(y.clone()).borrow().as_ref().unwrap())));
             __s
         })))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>>)));
-    return { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(a.clone(), b.clone()) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>>)));
+    return { let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Spec>>>>, Rc<RefCell<Option<Box<dyn Spec>>>>) -> Rc<RefCell<Option<String>>>> = f.borrow().as_ref().unwrap().clone(); (__f)(a.clone(), b.clone()) };
 }
 
 fn main() {

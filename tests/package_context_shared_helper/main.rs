@@ -11,9 +11,9 @@ fn main() {
     ::example_com_contextshared_core::__go_init_all();
     ::example_com_contextshared_event::__go_init_all();
 
-    let mut ctx = example_com_contextshared_event::set_exporter(Arc::new(Mutex::new(Some(Box::new(move |ctx: Arc<Mutex<Option<GoContext>>>| -> Arc<Mutex<Option<GoContext>>> {
+    let mut ctx = example_com_contextshared_event::set_exporter(Arc::new(Mutex::new(Some(Arc::new(move |ctx: Arc<Mutex<Option<GoContext>>>| -> Arc<Mutex<Option<GoContext>>> {
         return ctx.clone();
-    }) as Box<dyn FnMut(Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<GoContext>>> + Send + Sync>))));
+    }) as Arc<dyn Fn(Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<GoContext>>> + Send + Sync>))));
     let _ = &ctx;
     println!("{}", format!("{}", "compiled".to_string()));
 }

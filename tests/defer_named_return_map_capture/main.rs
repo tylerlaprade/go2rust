@@ -792,9 +792,10 @@ impl Free {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::new()))); self.seen = new_val; };
     }
         let mut f_defer_captured = self.clone(); let key_defer_captured = key.clone(); let res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut f_defer_captured = f_defer_captured.clone();
         { let __map_key = (*key_defer_captured.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some((*res_defer_captured.borrow().as_ref().unwrap()).clone()))); (*f_defer_captured.seen.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
         { let new_val = true; *res.borrow_mut() = Some(new_val); };
         {

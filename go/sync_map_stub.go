@@ -292,8 +292,7 @@ impl sync_Map {
     pub fn range(&self, f: RANGE_FUNC) {
         let entries: Vec<(ANY_HANDLE, ANY_HANDLE)> = self.__go_entries LOCK_TABLE.values().map(|entry| (entry.key.handle(), entry.value.handle())).collect();
         for (key, value) in entries {
-            let mut guard = f LOCK_CELL_MUT;
-            let call = guard.as_mut().expect("call of nil function");
+            let call = f LOCK_CELL.as_ref().expect("call of nil function").clone();
             if !call(key, value) {
                 break;
             }
@@ -304,7 +303,7 @@ impl sync_Map {
         self.__go_entries LOCK_TABLE.clear();
     }
 }`
-	rangeFunc := wrappedExternalStubType("Box<dyn FnMut(" + anyHandle + ", " + anyHandle + ") -> bool" + bound + ">")
+	rangeFunc := wrappedExternalStubType(funcValueRustTypeQualified(anyHandle+", "+anyHandle, "bool"))
 	replacer := strings.NewReplacer(
 		"RANGE_FUNC", rangeFunc,
 		"ANY_HANDLE", anyHandle,

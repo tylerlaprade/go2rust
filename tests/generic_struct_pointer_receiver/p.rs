@@ -1,4 +1,5 @@
 use crate::{
+    GoFuncValue,
     GoSlice,
     GoSliceAppendBoxed,
     GoSliceFromSlice,

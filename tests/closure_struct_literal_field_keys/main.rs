@@ -680,6 +680,31 @@ impl std::io::Write for GoSlice<u8> {
 }
 
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<dyn Fn($($arg),*) -> R> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::rc::Rc<dyn Fn($($arg),*) -> R>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::rc::Rc<std::cell::RefCell<Option<std::rc::Rc<dyn Fn($($arg),*) -> R>>>> {
+            type Func = dyn Fn($($arg),*) -> R;
+            fn go_func_value(&self) -> Option<std::rc::Rc<Self::Func>> { self.borrow().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub mode: Rc<RefCell<Option<String>>>,
@@ -780,15 +805,16 @@ impl std::fmt::Display for Request {
 }
 
 
-pub fn make_request(prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>>>> {
-    let prefix_closure_clone = prefix.clone(); return Rc::new(RefCell::new(Some(Box::new(move |cfg: Rc<RefCell<Option<Config>>>| -> Rc<RefCell<Option<Request>>> {
+pub fn make_request(prefix: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>>>> {
+    let prefix_closure_clone = prefix.clone(); return Rc::new(RefCell::new(Some(Rc::new(move |cfg: Rc<RefCell<Option<Config>>>| -> Rc<RefCell<Option<Request>>> {
         Rc::new(RefCell::new(Some(Request { mode: Rc::new(RefCell::new(Some(format!("{}{}", (*prefix_closure_clone.borrow().as_ref().unwrap()), (*(*cfg.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).clone())))), env: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).env.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), build_flags: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).build_flags.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), tests: Rc::new(RefCell::new(Some({ let __selector_holder = (*cfg.borrow().as_ref().unwrap()).tests.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), ..Default::default() })))
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>)));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>>)));
 }
 
 fn main() {
     let mut build = make_request(Rc::new(RefCell::new(Some("driver:".to_string()))));
-    let mut req = { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> = { let mut __f_guard = build.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some(Config { mode: Rc::new(RefCell::new(Some("load".to_string()))), env: Rc::new(RefCell::new(Some("GOOS=darwin".to_string()))), build_flags: Rc::new(RefCell::new(Some("-mod=vendor".to_string()))), tests: Rc::new(RefCell::new(Some(true))), ..Default::default() })))) };
+    let mut build = Rc::new(RefCell::new(GoFuncValue::go_func_value(&build)));
+    let mut req = { let __f: Rc<dyn Fn(Rc<RefCell<Option<Config>>>) -> Rc<RefCell<Option<Request>>>> = build.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(Config { mode: Rc::new(RefCell::new(Some("load".to_string()))), env: Rc::new(RefCell::new(Some("GOOS=darwin".to_string()))), build_flags: Rc::new(RefCell::new(Some("-mod=vendor".to_string()))), tests: Rc::new(RefCell::new(Some(true))), ..Default::default() })))) };
     println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).mode.borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).env.borrow().as_ref().unwrap()).clone()));
     println!("{}", format!("{}", (*(*req.borrow().as_ref().unwrap()).build_flags.borrow().as_ref().unwrap()).clone()));

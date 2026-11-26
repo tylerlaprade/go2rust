@@ -34,8 +34,8 @@ Use this when generated Rust moves a value into a closure too early, captures a 
 ## Function Values
 
 - Function literals passed as immediate `sync.Once.Do(func(){...})` callbacks should not use ordinary statement-level pre-clone handling; the callback is invoked synchronously by the helper.
-- Go function values are mutable closures. Use `FnMut`, not `Fn`.
-- Function-typed values are handles. Appending, indexing, assigning, passing, and calling them should preserve/clone the handle rather than unwrapping to the boxed closure.
+- Go function values are immutable, so their closures are `Fn`: a closure changes the variables it captured through their cells.
+- A function-typed variable is a cell around a func value. A closure that captures the variable sees later assignments to it; appending, storing or passing the variable copies the func value into a new cell.
 - Struct `Display` for `[]func` fields should use an opaque function placeholder per element.
 - Struct `Display` should delegate to a go/types-proven `String() string` method before field formatting, checking named and pointer method sets.
 

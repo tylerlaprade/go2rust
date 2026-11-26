@@ -893,23 +893,24 @@ fn main() {
     let mut s = Rc::new(RefCell::new(Some(Store { data: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])))), ..Default::default() })));
     let mut words = Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string(), "a".to_string(), "c".to_string(), "a".to_string()])));
     { let __range_holder = words.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for w in __range_values.iter() {
-        let s_closure_clone = s.clone(); let w_closure_clone = w.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        let s_closure_clone = s.clone(); let w_closure_clone = w.clone(); { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let __mutex_guard_source_338 = (*s_closure_clone.borrow().as_ref().unwrap()).mu.clone(); let __mutex_guard_338 = __mutex_guard_source_338.guard();
         // mu.Unlock() handled by RAII guard
         { let __map_holder = (*s_closure_clone.borrow().as_ref().unwrap()).data.clone(); let __key = w_closure_clone.clone(); let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     } }
     let mut mu = GoMutex::new();
     let mut count = Rc::new(RefCell::new(Some(0i64)));
     let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < 3 {
-        let mut count_closure_clone = count.clone(); let mu_closure_clone = mu.clone(); let mut add = Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<i64>>>| -> i64 {
+        let mut count_closure_clone = count.clone(); let mu_closure_clone = mu.clone(); let mut add = Rc::new(RefCell::new(Some(Rc::new(move |n: Rc<RefCell<Option<i64>>>| -> i64 {
+        let mut count_closure_clone = count_closure_clone.clone();
         let __mutex_guard_source_484 = mu_closure_clone.clone(); let __mutex_guard_484 = __mutex_guard_source_484.guard();
         // mu.Unlock() handled by RAII guard
         { let __rhs = (*n.borrow().as_ref().unwrap()); let mut guard = count_closure_clone.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         return (*count_closure_clone.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64>)));
-        println!("{}", format!("{}", { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<i64>>>) -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*i.borrow().as_ref().unwrap()) + 1; __arg_value })))) }));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
+        println!("{}", format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = add.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*i.borrow().as_ref().unwrap()) + 1; __arg_value })))) }));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{} {} {} {}", format!("{}", { let __map_holder = (*s.borrow().as_ref().unwrap()).data.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = (*s.borrow().as_ref().unwrap()).data.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __map_holder = (*s.borrow().as_ref().unwrap()).data.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"c".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v }));

@@ -699,7 +699,7 @@ impl Clone for Box<dyn Node> {
 /// mirroring go/ast's `type inspector func(Node) bool`. Assigning a plain
 /// func(Node) bool value to inspector requires the named-type definition and
 /// function value to use the same interface-parameter representation.
-pub type inspector = Rc<RefCell<Option<Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool>>>>;
+pub type inspector = Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool>>>>;
 
 
 pub trait inspectorMethods {
@@ -708,15 +708,15 @@ pub trait inspectorMethods {
 
 impl inspectorMethods for inspector {
     fn visit(&self, n: Rc<RefCell<Option<Box<dyn Node>>>>) -> bool {
-        { let __f_ptr: *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(n.clone()) }
+        { let __f: Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool> = self.borrow().as_ref().unwrap().clone(); (__f)(n.clone()) }
     }
 }
 
 fn main() {
-    let mut insp: inspector = Rc::new(RefCell::new(Some(Box::new(move |n: Rc<RefCell<Option<Box<dyn Node>>>>| -> bool {
+    let mut insp: inspector = Rc::new(RefCell::new(Some(Rc::new(move |n: Rc<RefCell<Option<Box<dyn Node>>>>| -> bool {
         println!("{}", format!("{}", (*(*n.borrow().as_ref().unwrap()).name().borrow().as_ref().unwrap())));
         true
-    }) as Box<dyn FnMut(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool>)));
+    }) as Rc<dyn Fn(Rc<RefCell<Option<Box<dyn Node>>>>) -> bool>)));
     if { let __nil_result = (*insp.borrow()).is_some(); __nil_result } {
         println!("{}", format!("{}", "assigned".to_string()));
     }

@@ -113,7 +113,7 @@ impl localDecl for localVarDeclPtr {
     }
 }
 
-pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>>>>) {
+pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>, f: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>>>>) {
     let mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>> = Arc::new(Mutex::new(d.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Decl::__go_clone_box_decl(__v.as_ref()))));
     {
     let _ts_subject = d.clone();
@@ -154,12 +154,8 @@ pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Sen
             __tmp_x == __tmp_y
         } {
         {
-            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync> = {
-                let mut __f_guard = f.lock().unwrap();
-                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>
-            };
-            let __f = unsafe { &mut *__f_ptr };
-            (*__f)(
+            let __f: Arc<dyn Fn(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
                 Arc::new(Mutex::new(Some(Box::new(localVarDecl { spec: s.clone(), ..Default::default() }) as Box<dyn localDecl + Send + Sync>)))
             )
         };
@@ -174,7 +170,7 @@ pub fn local_walk_decl(mut d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Sen
 pub fn local_decl_stmt(d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>) {
     local_walk_decl(
         d.clone(),
-        Arc::new(Mutex::new(Some(Box::new(move |d: Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>| {
+        Arc::new(Mutex::new(Some(Arc::new(move |d: Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>| {
         {
     let _ts_subject = d.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -195,7 +191,7 @@ pub fn local_decl_stmt(d: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + 
         println!("{}", format!("{}", "local unknown".to_string()));;
     }
     }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>)))
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Box<dyn localDecl + Send + Sync>>>>) -> () + Send + Sync>)))
     );
 }
 

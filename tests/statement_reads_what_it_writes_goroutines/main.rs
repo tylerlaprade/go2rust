@@ -1146,16 +1146,12 @@ fn main() {
     (*b.lock().unwrap().as_mut().unwrap()).dup();
     println!("{} {}", format!("{}", "append to a field".to_string()), format!("{}", format_slice_values(&(*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).items.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())));
 
-    let n_closure_clone = n.clone(); let mut total = Arc::new(Mutex::new(Some(Box::new(move || -> i64 {
+    let n_closure_clone = n.clone(); let mut total = Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
         return ({ let __len = (*n_closure_clone.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64;
-    }) as Box<dyn FnMut() -> i64 + Send + Sync>)));
+    }) as Arc<dyn Fn() -> i64 + Send + Sync>)));
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = n.clone(); let __append_value = {
-        let __f_ptr: *mut Box<dyn FnMut() -> i64 + Send + Sync> = {
-            let mut __f_guard = total.lock().unwrap();
-            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64 + Send + Sync>
-        };
-        let __f = unsafe { &mut *__f_ptr };
-        (*__f)(
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = total.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
 
         )
     }; let mut __appended: Vec<i64> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *n.lock().unwrap() = __slice_header; };

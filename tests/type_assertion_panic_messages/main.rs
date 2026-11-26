@@ -909,22 +909,22 @@ impl std::fmt::Display for Rect {
 }
 
 
-pub fn r#try(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
+pub fn r#try(f: Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>) {
     let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.borrow()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
             println!("{} {}", format!("{}", "recovered:".to_string()), format!("{}", match r.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));;
         }
     }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
-        { let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = f.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+        { let __f: Rc<dyn Fn() -> ()> = f.borrow().as_ref().unwrap().clone(); (__f)() };
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -952,7 +952,7 @@ pub fn r#try(f: Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>) {
 
 fn main() {
     let mut a: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
-    let a_closure_clone = a.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let a_closure_clone = a.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = a_closure_clone.clone();
         let guard = val.borrow();
@@ -962,9 +962,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "string")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut b: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
-    let b_closure_clone = b.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let b_closure_clone = b.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = b_closure_clone.clone();
         let guard = val.borrow();
@@ -974,9 +974,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut c: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(42i64) as Box<dyn Any>)));
-    let c_closure_clone = c.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let c_closure_clone = c.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = c_closure_clone.clone();
         let guard = val.borrow();
@@ -986,9 +986,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "*main.Rect")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut d: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1))), h: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>)));
-    let d_closure_clone = d.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let d_closure_clone = d.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = d_closure_clone.clone();
         let guard = val.borrow();
@@ -998,9 +998,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut e: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(Rect { w: Rc::new(RefCell::new(Some(1))), h: Rc::new(RefCell::new(Some(2))), ..Default::default() }) as Box<dyn Any>)));
-    let e_closure_clone = e.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let e_closure_clone = e.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{}", format!("{}", (*({
         let val = e_closure_clone.clone();
         let guard = val.borrow();
@@ -1010,9 +1010,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Rect")
         }
     }).w.borrow().as_ref().unwrap())));
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut f: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(None));
-    let f_closure_clone = f.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let f_closure_clone = f.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = f_closure_clone.clone();
         let guard = val.borrow();
@@ -1022,9 +1022,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "int")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new("a".to_string()) as Box<dyn Any>, Box::new(2.5) as Box<dyn Any>])));
-    let items_closure_clone = items.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let items_closure_clone = items.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let __idx = (1) as usize;
         let __seq_holder = items_closure_clone.clone();
@@ -1032,9 +1032,9 @@ fn main() {
         let any_val = __seq_guard.as_ref().expect("nil []any in type assertion")[__idx].as_ref();
         any_val.downcast_ref::<String>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(any_val), "string")).clone()
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut g: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new("text".to_string()) as Box<dyn Any>)));
-    let g_closure_clone = g.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let g_closure_clone = g.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         let _ = ({
         let val = g_closure_clone.clone();
         let guard = val.borrow();
@@ -1044,9 +1044,9 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "[]int")
         }
     });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
     let mut h: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(3.5) as Box<dyn Any>)));
-    let h_closure_clone = h.clone(); r#try(Rc::new(RefCell::new(Some(Box::new(move || {
+    let h_closure_clone = h.clone(); r#try(Rc::new(RefCell::new(Some(Rc::new(move || {
         println!("{}", { let __text = go_float_string((({
         let val = h_closure_clone.clone();
         let guard = val.borrow();
@@ -1056,5 +1056,5 @@ fn main() {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "float64")
         }
     })) as f64, false); __text });
-    }) as Box<dyn FnMut() -> ()>))));
+    }) as Rc<dyn Fn() -> ()>))));
 }

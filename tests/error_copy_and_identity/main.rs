@@ -1046,11 +1046,12 @@ pub fn work(fail: Rc<RefCell<Option<bool>>>) -> Rc<RefCell<Option<Rc<dyn StdErro
     let mut err: Rc<RefCell<Option<Rc<dyn StdError>>>> = Rc::new(RefCell::new(None));
 
     let mut err_defer_captured = err.clone(); __defer_stack.push(Box::new(move || {
-        { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
+        { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
+        let mut err_defer_captured = err_defer_captured.clone();
         if { let __nil_result = (*err_defer_captured.borrow()).is_some(); __nil_result } {
         { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("wrapped: {}", { let __text = match err_defer_captured.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text })))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *err_defer_captured.borrow_mut() = new_val; };
     }
-    }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
     if (*fail.borrow().as_ref().unwrap()) {
         {
@@ -1150,12 +1151,12 @@ fn main() {
     println!("{} {}", format!("{}", match boxed.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
 
         // So does what a closure returns.
-    let err_closure_clone = err.clone(); let mut check = Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
+    let err_closure_clone = err.clone(); let mut check = Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<Rc<dyn StdError>>>> {
         return { let __err_source = err_closure_clone.clone(); let __err_copy = (*__err_source.borrow()).clone(); Rc::new(RefCell::new(__err_copy)) };
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>)));
-    let mut fromClosure = { let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> = { let mut __f_guard = check.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>>)));
+    let mut fromClosure = { let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> = check.borrow().as_ref().unwrap().clone(); (__f)() };
     *fromClosure.borrow_mut() = None;
-    println!("{} {} {}", format!("{}", { let __nil_result = (*fromClosure.borrow()).is_none(); __nil_result }), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __left = { let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> = { let mut __f_guard = check.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.clone(); let __right = err.clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));
+    println!("{} {} {}", format!("{}", { let __nil_result = (*fromClosure.borrow()).is_none(); __nil_result }), format!("{}", { let __text = match err.borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __left = { let __f: Rc<dyn Fn() -> Rc<RefCell<Option<Rc<dyn StdError>>>>> = check.borrow().as_ref().unwrap().clone(); (__f)() }.clone(); let __right = err.clone(); let __same_handle = Rc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.borrow(); let __right_guard = __right.borrow(); match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__l), Some(__r)) => std::ptr::addr_eq(&**__l, &**__r), (None, None) => true, _ => false } }; __eq }));
 
         // A deferred function can still replace a named result.
     println!("{} {}", format!("{}", { let __text = match work(Rc::new(RefCell::new(Some(true)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match work(Rc::new(RefCell::new(Some(false)))).borrow().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));

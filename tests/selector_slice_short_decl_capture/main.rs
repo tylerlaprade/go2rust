@@ -798,7 +798,7 @@ impl std::fmt::Display for dict {
 #[derive(Clone, Default)]
 pub struct reader {
     pub dict: Rc<RefCell<Option<dict>>>,
-    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>>>>,
+    pub later: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>>>>>,
 }
 
 impl reader {
@@ -826,18 +826,18 @@ impl reader {
         let mut vals = Rc::new(RefCell::new((*vals.borrow()).clone()));
         let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
         let mut tparams = { let __slice_header = GoSliceHeader::go_slice_header(&tparams); Rc::new(RefCell::new(__slice_header)) };
-        let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Box::new(move || {
+        let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
         { let __idx = (i) as usize; let __rhs = val; (*tparams_closure_clone.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     } }
-    }) as Box<dyn FnMut() -> ()>))); let mut __appended: Vec<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.later.borrow_mut() = __slice_header; };
+    }) as Rc<dyn Fn() -> ()>))); let mut __appended: Vec<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.later.borrow_mut() = __slice_header; };
     }
 }
 
 fn main() {
-    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1i64, 2i64]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Box<dyn FnMut() -> ()>>>>>::new()))), ..Default::default() })));
+    let mut r = Rc::new(RefCell::new(Some(reader { dict: Rc::new(RefCell::new(Some(dict { tparams: Rc::new(RefCell::new(Some(vec![1i64, 2i64]))), ..Default::default() }))).clone(), later: Rc::new(RefCell::new(Some(Vec::<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>>::new()))), ..Default::default() })));
     let mut vals = Rc::new(RefCell::new(Some(vec![3i64, 4i64])));
     (*r.borrow_mut().as_mut().unwrap()).collect(vals.clone());
-    { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

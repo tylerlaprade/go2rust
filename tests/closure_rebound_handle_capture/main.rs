@@ -790,19 +790,20 @@ pub fn grouped() -> i64 {
     let mut names: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
     let mut typ: Rc<RefCell<Option<Box<dyn expr>>>> = Rc::new(RefCell::new(None));
     let mut source: Rc<RefCell<Option<Box<dyn expr>>>> = Rc::new(RefCell::new(None));
-    let mut names_closure_clone = names.clone(); let typ_closure_clone = typ.clone(); let mut add = Rc::new(RefCell::new(Some(Box::new(move || -> i64 {
+    let mut names_closure_clone = names.clone(); let typ_closure_clone = typ.clone(); let mut add = Rc::new(RefCell::new(Some(Rc::new(move || -> i64 {
+        let mut names_closure_clone = names_closure_clone.clone();
         if { let __nil_result = (*typ_closure_clone.borrow()).is_none(); __nil_result } {
         return -(1);
     }
         let mut n = Rc::new(RefCell::new(Some(({ let __len = (*names_closure_clone.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
         { let __slice_header = None; *names_closure_clone.borrow_mut() = __slice_header; };
         return (*n.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut() -> i64>)));
+    }) as Rc<dyn Fn() -> i64>)));
 
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_values = vec!["a".to_string(), "b".to_string()]; let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.extend(__append_values); Rc::new(RefCell::new(Some(__appended))) })); *names.borrow_mut() = __slice_header; };
     { let __iface_handle = Rc::new(RefCell::new(Some(Box::new(identPtr(Rc::new(RefCell::new(Some(ident { name: Rc::new(RefCell::new(Some("int".to_string()))), ..Default::default() }))).clone())) as Box<dyn expr>))); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *source.borrow_mut() = __iface_value; };
     { let __iface_handle = source.clone(); let __iface_value = { let __iface_guard = __iface_handle.borrow(); (*__iface_guard).clone() }; *typ.borrow_mut() = __iface_value; };
-    return { let __f_ptr: *mut Box<dyn FnMut() -> i64> = { let mut __f_guard = add.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i64> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
+    return { let __f: Rc<dyn Fn() -> i64> = add.borrow().as_ref().unwrap().clone(); (__f)() };
 }
 
 fn main() {

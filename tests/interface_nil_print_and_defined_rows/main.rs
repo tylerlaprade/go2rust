@@ -915,7 +915,7 @@ impl Clone for Box<dyn Runner> {
     }
 }
 
-pub type First = Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>>>>;
+pub type First = Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>;
 
 #[derive(Clone)]
 pub struct FirstAsRunner(pub First);
@@ -942,7 +942,7 @@ impl Runner for FirstAsRunner {
 }
 
 
-pub type Second = Rc<RefCell<Option<Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>>>>;
+pub type Second = Rc<RefCell<Option<Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>>>>;
 
 #[derive(Clone)]
 pub struct SecondAsRunner(pub Second);
@@ -1195,7 +1195,7 @@ pub trait FirstMethods {
 
 impl FirstMethods for First {
     fn run(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", "first:".to_string(), (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some(format!("{}{}", "first:".to_string(), (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = self.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())))))
     }
 }
 
@@ -1205,7 +1205,7 @@ pub trait SecondMethods {
 
 impl SecondMethods for Second {
     fn run(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some(format!("{}{}", "second:".to_string(), (*{ let __f_ptr: *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> = { let mut __f_guard = self.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Rc<RefCell<Option<String>>>> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.borrow().as_ref().unwrap())))))
+        Rc::new(RefCell::new(Some(format!("{}{}", "second:".to_string(), (*{ let __f: Rc<dyn Fn() -> Rc<RefCell<Option<String>>>> = self.borrow().as_ref().unwrap().clone(); (__f)() }.borrow().as_ref().unwrap())))))
     }
 }
 
@@ -1222,11 +1222,11 @@ fn main() {
     println!("{}", format!("{}", match (*h.borrow().as_ref().unwrap()).s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }));
     let mut sp: Rc<RefCell<Option<Box<dyn Shape>>>> = Rc::new(RefCell::new(Some(Box::new(Spare__int { v: Rc::new(RefCell::new(Some(1))), ..Default::default() }) as Box<dyn Shape>)));
     println!("{}", { let __text = go_float_string(((*sp.borrow().as_ref().unwrap()).area()) as f64, false); __text });
-    let mut rs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(FirstAsRunner(Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+    let mut rs = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::new(FirstAsRunner(Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("a".to_string())))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>))), Rc::new(RefCell::new(Some(Box::new(SecondAsRunner(Rc::new(RefCell::new(Some(Box::new(move || -> Rc<RefCell<Option<String>>> {
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>))), Rc::new(RefCell::new(Some(Box::new(SecondAsRunner(Rc::new(RefCell::new(Some(Rc::new(move || -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some("b".to_string())))
-    }) as Box<dyn FnMut() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>)))])));
+    }) as Rc<dyn Fn() -> Rc<RefCell<Option<String>>>>))))) as Box<dyn Runner>)))])));
     { let __range_holder = rs.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for r in __range_values.iter() {
         println!("{}", format!("{}", (*(*r.borrow().as_ref().unwrap()).run().borrow().as_ref().unwrap())));
     } }
