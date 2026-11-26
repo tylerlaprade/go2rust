@@ -695,17 +695,17 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static n: GoGlobal<i64> = GoGlobal::new();
+pub(crate) static n_1: GoGlobal<i64> = GoGlobal::new();
 
 
 fn __go_init_globals() {
-    *n.borrow_mut() = Some(0);
+    *n_1.borrow_mut() = Some(0);
 }
 
 
 pub fn next() -> i64 {
-    { let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    (*n.borrow().as_ref().unwrap())
+    { let mut guard = n_1.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    (*n_1.borrow().as_ref().unwrap())
 }
 
 fn main() {
@@ -715,7 +715,7 @@ fn main() {
         let __tmp_1 = next();
         let __tmp_2 = next();
     };
-    println!("{}", format!("{}", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", { let __v = (*n_1.borrow().as_ref().unwrap()).clone(); __v }));
 }
 
 pub(crate) fn __go_init_all() {

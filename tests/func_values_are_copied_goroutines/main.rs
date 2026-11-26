@@ -1068,11 +1068,11 @@ impl std::fmt::Display for Box_ {
 pub type Op = Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>>>>;
 
 
-pub(crate) static now: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static now_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
-    *now.lock().unwrap() = Some(Arc::new(move || -> i64 {
+    *now_1.lock().unwrap() = Some(Arc::new(move || -> i64 {
         1
     }) as Arc<dyn Fn() -> i64 + Send + Sync>);
 }
@@ -1362,20 +1362,20 @@ fn main() {
     }.lock().unwrap().as_ref().unwrap())));
 
         // Saving and restoring a package-level func variable.
-    let mut orig = Arc::new(Mutex::new(Some({ let __global_func = GoFuncValue::go_func_value(&(*now.lock().unwrap())); Arc::new(move || -> i64 { (__global_func.as_ref().expect("runtime error: invalid memory address or nil pointer dereference"))() }) as Arc<dyn Fn() -> i64 + Send + Sync> })));
-    let mut orig = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(*now.lock().unwrap()))));
+    let mut orig = Arc::new(Mutex::new(Some({ let __global_func = GoFuncValue::go_func_value(&(*now_1.lock().unwrap())); Arc::new(move || -> i64 { (__global_func.as_ref().expect("runtime error: invalid memory address or nil pointer dereference"))() }) as Arc<dyn Fn() -> i64 + Send + Sync> })));
+    let mut orig = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(*now_1.lock().unwrap()))));
     { let new_val = Arc::new(move || -> i64 {
         42
-    }) as Arc<dyn Fn() -> i64 + Send + Sync>; *now.lock().unwrap() = Some(new_val); };
+    }) as Arc<dyn Fn() -> i64 + Send + Sync>; *now_1.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", "global:".to_string()), format!("{}", {
-        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = now.lock().unwrap().as_ref().unwrap().clone();
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = now_1.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
 
         )
     }));
-    { let __func_value = GoFuncValue::go_func_value(&(orig)); *now.lock().unwrap() = __func_value; };
+    { let __func_value = GoFuncValue::go_func_value(&(orig)); *now_1.lock().unwrap() = __func_value; };
     println!("{} {}", format!("{}", "restored:".to_string()), format!("{}", {
-        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = now.lock().unwrap().as_ref().unwrap().clone();
+        let __f: Arc<dyn Fn() -> i64 + Send + Sync> = now_1.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
 
         )

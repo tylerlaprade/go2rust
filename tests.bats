@@ -1916,6 +1916,14 @@ run_xfail_test() {
     run_test "tests/hello_world"
 }
 
+@test "helper_binding_global_names" {
+    run_test "tests/helper_binding_global_names"
+}
+
+@test "helper_binding_global_names_goroutines" {
+    run_test "tests/helper_binding_global_names_goroutines"
+}
+
 @test "if_else_basic" {
     run_test "tests/if_else_basic"
 }
