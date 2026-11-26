@@ -1,0 +1,11 @@
+[package]
+name = "deref_value_copies"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "deref_value_copies"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

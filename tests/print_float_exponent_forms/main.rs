@@ -1781,7 +1781,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = 1e+08; (*arr.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     println!("{}", format!("{}", format_slice(&arr)));
     let mut p = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1e+06))), ..Default::default() })));
-    println!("{}", format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", { let __v = (*p.borrow().as_ref().unwrap()).__go_value_clone(); __v }));
     let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new(1e10) as Box<dyn Any>)));
     let mut y: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __v = Rc::new(RefCell::new(Some(2e-6 as f32))); let __owned = (*__v.borrow().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any>)));
     println!("{} {}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));

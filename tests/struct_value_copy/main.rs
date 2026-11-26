@@ -1095,9 +1095,9 @@ fn main() {
     let mut n1 = Rc::new(RefCell::new(Some(Node { p: Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }))).clone(), ..Default::default() })));
     let mut n2 = { let __owned = n1.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) };
     { let new_val = 3; *(*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
-    println!("{} {} {}", format!("{}", "pointer field shared".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {} {}", format!("{}", "pointer field shared".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).__go_value_clone(); __v }));
     { let new_val = Rc::new(RefCell::new(Some(Point { x: Rc::new(RefCell::new(Some(8))), y: Rc::new(RefCell::new(Some(8))), ..Default::default() }))).clone(); (*n2.borrow_mut().as_mut().unwrap()).p = new_val; };
-    println!("{} {} {}", format!("{}", "pointer field replaced".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).clone(); __v }));
+    println!("{} {} {}", format!("{}", "pointer field replaced".to_string()), format!("{}", { let __v = (*(*n1.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*(*n2.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).__go_value_clone(); __v }));
 
         // A range over a slice reads each element when its turn comes, so it
         // sees a field that the loop itself wrote. The loop variable is still a

@@ -1284,6 +1284,14 @@ run_xfail_test() {
     run_test "tests/defined_byte_slice_conversions_goroutines"
 }
 
+@test "deref_value_copies" {
+    run_test "tests/deref_value_copies"
+}
+
+@test "deref_value_copies_goroutines" {
+    run_test "tests/deref_value_copies_goroutines"
+}
+
 @test "dynamic_format_strings" {
     run_test "tests/dynamic_format_strings"
 }

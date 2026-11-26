@@ -1948,7 +1948,7 @@ fn main() {
     { let __idx = (0) as usize; let __rhs = 1e+08; (*arr.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     println!("{}", format!("{}", format_slice(&arr)));
     let mut p = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(1e+06))), ..Default::default() })));
-    println!("{}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    println!("{}", format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
     let mut wg = WaitGroup::new();
     wg.add(1);
     let wg_thread = wg.clone(); std::thread::spawn(move || {

@@ -740,7 +740,7 @@ pub fn __go_nil_recv_tracker_without_shared(t: Rc<RefCell<Option<Tracker>>>) -> 
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(None));
     }
-    let mut copy = Rc::new(RefCell::new(Some({ let __v = (*t.borrow().as_ref().unwrap()).clone(); __v }.__go_value_clone())));
+    let mut copy = Rc::new(RefCell::new(Some({ let __v = (*t.borrow().as_ref().unwrap()).__go_value_clone(); __v })));
     { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_channel.borrow_mut() = Some(new_val); };
     { let new_val = false; *(*copy.borrow().as_ref().unwrap()).needs_context.borrow_mut() = Some(new_val); };
     return copy.clone();
