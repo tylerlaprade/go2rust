@@ -4164,6 +4164,40 @@ func currentBreakTarget() string {
 	return breakTargetStack[len(breakTargetStack)-1]
 }
 
+// continueTargetStack holds the Rust label an unlabeled continue names, and
+// the loop depth it belongs to. A for loop whose body is lowered with goto
+// blocks and loops gets a label of its own: in Rust an unlabeled continue
+// inside a labeled block does not compile, and inside a goto loop it would
+// continue that loop instead of the for loop.
+type continueTarget struct {
+	label string
+	depth int
+}
+
+var continueTargetStack []continueTarget
+
+func pushContinueTarget(label string) func() {
+	continueTargetStack = append(continueTargetStack, continueTarget{label: label, depth: currentLoopDepth})
+	return func() {
+		continueTargetStack = continueTargetStack[:len(continueTargetStack)-1]
+	}
+}
+
+// currentContinueTarget returns the label an unlabeled continue at the
+// current loop depth names, or "".
+func currentContinueTarget() string {
+	if len(continueTargetStack) == 0 {
+		return ""
+	}
+	top := continueTargetStack[len(continueTargetStack)-1]
+	if top.depth != currentLoopDepth {
+		return ""
+	}
+	return top.label
+}
+
+var gotoLoopLabelCount int
+
 func pushForPost(post ast.Stmt) func() {
 	hasPost := post != nil
 	if hasPost {
@@ -15758,6 +15792,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			pendingLoopLabel = ""
 		}
+		// A body lowered with goto blocks names the loop in its break and
+		// continue statements.
+		gotoBody := stmtListHasPlannedGoto(s.Body.List)
+		bodyLoopLabel := currentLoopLabel
+		if gotoBody && bodyLoopLabel == "" {
+			for {
+				gotoLoopLabelCount++
+				bodyLoopLabel = fmt.Sprintf("__go_loop_%d", gotoLoopLabelCount)
+				if !gotoSyntheticNames[bodyLoopLabel] {
+					break
+				}
+			}
+			out.WriteString("'" + bodyLoopLabel + ": ")
+		}
 		if s.Cond != nil {
 			out.WriteString("while ")
 			transpileCondition(out, s.Cond)
@@ -15766,14 +15814,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		out.WriteString(" {\n")
 		popForPost := pushForPost(s.Post)
-		restoreLoopBreakTarget := pushBreakTarget("")
+		breakTarget := ""
+		if gotoBody {
+			breakTarget = bodyLoopLabel
+		}
+		restoreLoopBreakTarget := pushBreakTarget(breakTarget)
 
 		currentLoopDepth++
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
 		var captureShadowRestores []func()
-		if stmtListHasPlannedGoto(s.Body.List) {
-			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
+		if gotoBody {
+			func() {
+				defer pushContinueTarget(bodyLoopLabel)()
+				prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
+			}()
 		} else {
 			for i, stmt := range s.Body.List {
 				// Add blank line if there was one in the source
@@ -15794,6 +15849,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Add the post statement (increment) if present
 		if s.Post != nil {
+			if gotoBody {
+				// The goto lowering leaves its last statement open; a
+				// break or continue there would take the post statement's
+				// block as its operand.
+				if body := strings.TrimRight(out.String(), " \t\n"); !strings.HasSuffix(body, ";") && !strings.HasSuffix(body, "}") && !strings.HasSuffix(body, "{") {
+					out.Reset()
+					out.WriteString(body)
+					out.WriteString(";\n")
+				}
+			}
 			out.WriteString("        ")
 			TranspileStatementSimple(out, s.Post, fnType, fileSet)
 			out.WriteString("\n")
@@ -17123,11 +17188,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString("; ")
 				}
 				out.WriteString("continue")
+				if target := currentContinueTarget(); target != "" {
+					out.WriteString(" '")
+					out.WriteString(target)
+				}
 			}
 		case token.GOTO:
 			if s.Label != nil {
 				label := ToSnakeCase(s.Label.Name)
-				if mode, ok := currentGotoLabelModes[label]; ok {
+				if mode, ok := currentGotoLabelModes[label]; ok && mode == gotoReenterMode {
+					// A goto back to a label whose loop was entered
+					// early, at a forward goto before it, skips the
+					// statements between the two on the way round.
+					out.WriteString("{ ")
+					out.WriteString(gotoReenterFlag(label))
+					out.WriteString(" = true; continue '")
+					out.WriteString(label)
+					out.WriteString("; }")
+				} else if ok {
 					out.WriteString(mode)
 					out.WriteString(" '")
 					out.WriteString(label)

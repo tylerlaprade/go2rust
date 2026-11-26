@@ -1,0 +1,11 @@
+[package]
+name = "goto_interleaved_labels"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "goto_interleaved_labels"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

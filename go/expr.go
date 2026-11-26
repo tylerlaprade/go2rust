@@ -4418,7 +4418,15 @@ func noEscapeElemPtrArgShouldUseMultiline(arg ast.Expr) bool {
 }
 
 func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
-	if call == nil || !sourceFunctionNoEscapeBodylessDecl(call) {
+	if call == nil {
+		return false
+	}
+	// A bodyless //go:noescape function keeps none of its pointers. A
+	// function of the program whose body only reads and writes through a
+	// pointer parameter keeps none either (DEV-229): the element is copied
+	// into a cell for the call and the cell's value written back after it.
+	bodylessNoEscape := sourceFunctionNoEscapeBodylessDecl(call)
+	if !bodylessNoEscape && !callTargetIsPlainSourceFunction(call) {
 		return false
 	}
 	sig, ok := sourceFunctionSignatureForCall(call)
@@ -4436,6 +4444,9 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			return false
 		}
 		if noEscapeElemPtrCallArgCompatible(arg, params.At(i).Type()) {
+			if !bodylessNoEscape && (!sourceFunctionPointerParamStaysLocal(call, i) || pointerElemIsInterface(params.At(i).Type())) {
+				return false
+			}
 			elemArgs = append(elemArgs, noEscapeElemPtrCallArg{index: i, arg: arg})
 			adapted[i] = true
 		}
@@ -4467,27 +4478,114 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString(" ")
 		}
 	}
-	for _, elemArg := range elemArgs {
+	// Go evaluates the arguments from left to right, and the callee reads
+	// the element only when it runs. When an argument runs a call, every
+	// argument is bound in order first, and the cells take the elements'
+	// values after all of them, so a call that changes the element is seen.
+	bindInOrder := false
+	for i, arg := range call.Args {
+		if !adapted[i] && binaryOperandHasCall(arg, true) {
+			bindInOrder = true
+		}
+	}
+	bound := make(map[int]bool)
+	for i, arg := range call.Args {
+		index := strconv.Itoa(i)
+		if !adapted[i] {
+			if bindInOrder {
+				writeStmtIndent()
+				out.WriteString("let __arg")
+				out.WriteString(index)
+				out.WriteString(" = ")
+				writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
+				out.WriteString(";")
+				finishStmt()
+				bound[i] = true
+			}
+			continue
+		}
 		writeStmtIndent()
-		index := strconv.Itoa(elemArg.index)
 		out.WriteString("let __elem_ptr_")
 		out.WriteString(index)
 		out.WriteString(" = ")
-		writeElemPtrNoEscapeOptionValue(out, elemArg.arg)
+		writeElemPtrNoEscapeOptionValue(out, arg)
 		out.WriteString(";")
 		finishStmt()
+	}
+	var earlierSliceElems []string
+	for _, elemArg := range elemArgs {
+		arg := elemArg.arg
 		writeStmtIndent()
+		index := strconv.Itoa(elemArg.index)
 		out.WriteString("let __arg")
 		out.WriteString(index)
 		out.WriteString(" = ")
+		// Two pointers to one element share one cell, so a write
+		// through either is seen through the other, as in Go.
+		_, isSliceElem := sliceElemPtrAddressElemRustType(arg)
+		if isSliceElem {
+			for _, earlier := range earlierSliceElems {
+				out.WriteString("if __elem_ptr_")
+				out.WriteString(index)
+				out.WriteString(".as_ref().zip(__elem_ptr_")
+				out.WriteString(earlier)
+				out.WriteString(".as_ref()).map_or(false, |(__a, __b)| __a.identity() == __b.identity()) { __arg")
+				out.WriteString(earlier)
+				out.WriteString(".clone() } else ")
+			}
+			if len(earlierSliceElems) > 0 {
+				out.WriteString("{ ")
+			}
+		}
 		out.WriteString(GetOuterWrapperType())
 		out.WriteString("::new(")
 		out.WriteString(GetInnerWrapperType())
 		out.WriteString("::new(__elem_ptr_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));")
+		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())))")
+		if isSliceElem && len(earlierSliceElems) > 0 {
+			out.WriteString(" }")
+		}
+		out.WriteString(";")
 		finishStmt()
+		if isSliceElem {
+			earlierSliceElems = append(earlierSliceElems, index)
+		}
 	}
+	// The cells' values go back into the elements when the call returns
+	// and also when it panics, as a write through the pointer would stay
+	// in Go: a guard does the writes when it is dropped.
+	NeedGoWriteBack()
+	writeStmtIndent()
+	out.WriteString("let __write_back = GoWriteBack(|| {")
+	if multiline {
+		out.WriteString("\n")
+	} else {
+		out.WriteString(" ")
+	}
+	writeBackIndent := innerIndent + "    "
+	for _, elemArg := range elemArgs {
+		index := strconv.Itoa(elemArg.index)
+		if multiline {
+			out.WriteString(writeBackIndent)
+		}
+		out.WriteString("if let Some(__ptr) = __elem_ptr_")
+		out.WriteString(index)
+		out.WriteString(".as_ref() { *__ptr.borrow_mut() = (*__arg")
+		out.WriteString(index)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone(); }")
+		if multiline {
+			out.WriteString("\n")
+		} else {
+			out.WriteString(" ")
+		}
+	}
+	if multiline {
+		out.WriteString(innerIndent)
+	}
+	out.WriteString("});")
+	finishStmt()
 	writeStmtIndent()
 	out.WriteString("let __result = ")
 	writeNoEscapeElemPtrCallTarget(out, call)
@@ -4511,6 +4609,11 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString(".clone()")
 			continue
 		}
+		if bound[i] {
+			out.WriteString("__arg")
+			out.WriteString(strconv.Itoa(i))
+			continue
+		}
 		writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
 	}
 	if multiline {
@@ -4519,43 +4622,9 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	out.WriteString(");")
 	finishStmt()
-	for _, elemArg := range elemArgs {
-		index := strconv.Itoa(elemArg.index)
-		writeStmtIndent()
-		out.WriteString("if let Some(__ptr) = __elem_ptr_")
-		out.WriteString(index)
-		out.WriteString(".as_ref() {")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("    ")
-		} else {
-			out.WriteString(" ")
-		}
-		out.WriteString("let mut __elem_guard_")
-		out.WriteString(index)
-		out.WriteString(" = __ptr.borrow_mut();")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("    ")
-		} else {
-			out.WriteString(" ")
-		}
-		out.WriteString("*__elem_guard_")
-		out.WriteString(index)
-		out.WriteString(" = (*__arg")
-		out.WriteString(index)
-		WriteBorrowMethod(out, false)
-		out.WriteString(").clone();")
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(innerIndent)
-			out.WriteString("};\n")
-		} else {
-			out.WriteString(" }; ")
-		}
-	}
+	writeStmtIndent()
+	out.WriteString("drop(__write_back);")
+	finishStmt()
 	if multiline {
 		out.WriteString(innerIndent)
 		out.WriteString("__result\n")
@@ -4565,6 +4634,194 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 		out.WriteString("__result }")
 	}
 	return true
+}
+
+// pointerElemIsInterface reports whether typ is a pointer to an interface
+// type, whose element value has no Clone to copy it into a cell with.
+func pointerElemIsInterface(typ types.Type) bool {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	_, isInterface := ptr.Elem().Underlying().(*types.Interface)
+	return isInterface
+}
+
+// callTargetIsPlainSourceFunction reports whether call calls a function of
+// the program by its name, or a translated package's function by its
+// qualified name: a call whose arguments the element-pointer writer can
+// pass in place.
+func callTargetIsPlainSourceFunction(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var name *ast.Ident
+	switch fun := unwrapParens(call.Fun).(type) {
+	case *ast.Ident:
+		name = fun
+	case *ast.SelectorExpr:
+		pkg, ok := fun.X.(*ast.Ident)
+		if !ok {
+			return false
+		}
+		if _, isPkg := typeInfo.info.Uses[pkg].(*types.PkgName); !isPkg {
+			return false
+		}
+		name = fun.Sel
+	default:
+		return false
+	}
+	fn, ok := typeInfo.info.Uses[name].(*types.Func)
+	if !ok {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() != nil || sig.TypeParams().Len() > 0 {
+		return false
+	}
+	declInfo, ok := functionDeclInfo(fn)
+	return ok && declInfo.decl != nil && declInfo.decl.Body != nil && declInfo.info != nil
+}
+
+// sourceFunctionPointerParamStaysLocal reports whether the function that
+// call calls only reads and writes through its pointer parameter index:
+// every use of the parameter is *p, a field p.f, or a comparison with nil,
+// outside any function literal, and never under &. Such a function cannot
+// keep the pointer, so a pointer to a slice or array element can be passed
+// as a cell whose value is written back after the call.
+func sourceFunctionPointerParamStaysLocal(call *ast.CallExpr, index int) bool {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil {
+		return false
+	}
+	declInfo, ok := functionDeclInfo(fn)
+	if !ok || declInfo.decl == nil || declInfo.decl.Body == nil || declInfo.info == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || index >= sig.Params().Len() {
+		return false
+	}
+	param := sig.Params().At(index)
+	info := declInfo.info
+	isParam := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && info.Uses[ident] == param
+	}
+	isNil := func(expr ast.Expr) bool {
+		ident, ok := unwrapParens(expr).(*ast.Ident)
+		return ok && info.Uses[ident] == types.Universe.Lookup("nil")
+	}
+	// rootedInPointee reports whether expr reaches into what the parameter
+	// points to: *p, p.f, (*p)[i] and what is selected or indexed from
+	// them. Its address, or a slice of it, would outlive the cell.
+	rootedInPointee := func(expr ast.Expr) bool {
+		for {
+			switch e := unwrapParens(expr).(type) {
+			case *ast.StarExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.IndexExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.SelectorExpr:
+				if isParam(e.X) {
+					return true
+				}
+				expr = e.X
+			case *ast.Ident:
+				return isParam(e)
+			default:
+				return false
+			}
+		}
+	}
+	allowed := map[*ast.Ident]bool{}
+	addressed := map[ast.Expr]bool{}
+	methodReceivers := map[ast.Expr]bool{}
+	local := true
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		if !local {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			ast.Inspect(n, func(inner ast.Node) bool {
+				if ident, ok := inner.(*ast.Ident); ok && info.Uses[ident] == param {
+					local = false
+				}
+				return local
+			})
+			return false
+		case *ast.UnaryExpr:
+			if n.Op == token.AND {
+				addressed[unwrapParens(n.X)] = true
+				if rootedInPointee(n.X) {
+					local = false
+				}
+			}
+		case *ast.SliceExpr:
+			if rootedInPointee(n.X) {
+				local = false
+			}
+		case *ast.IndexExpr:
+			// p[i] through a pointer to an array reads or writes an element.
+			if isParam(n.X) && !addressed[n] {
+				allowed[unwrapParens(n.X).(*ast.Ident)] = true
+			}
+		case *ast.StarExpr:
+			if isParam(n.X) && !addressed[n] && !methodReceivers[n] {
+				allowed[unwrapParens(n.X).(*ast.Ident)] = true
+			}
+		case *ast.SelectorExpr:
+			// (*p).M() hands a pointer method &(*p), which is p.
+			if selection, ok := info.Selections[n]; ok && selection.Kind() == types.MethodVal {
+				if star, ok := unwrapParens(n.X).(*ast.StarExpr); ok {
+					methodReceivers[star] = true
+				}
+				// p.f.M() with a pointer receiver hands M &p.f.
+				if method, ok := selection.Obj().(*types.Func); ok {
+					if recvSig, ok := method.Type().(*types.Signature); ok && recvSig.Recv() != nil {
+						if _, ptrRecv := types.Unalias(recvSig.Recv().Type()).(*types.Pointer); ptrRecv {
+							if _, xIsPtr := types.Unalias(info.TypeOf(n.X)).Underlying().(*types.Pointer); !xIsPtr && rootedInPointee(n.X) {
+								local = false
+							}
+						}
+					}
+				}
+			}
+			if isParam(n.X) && !addressed[n] {
+				if selection, ok := info.Selections[n]; ok && selection.Kind() == types.FieldVal {
+					allowed[unwrapParens(n.X).(*ast.Ident)] = true
+				}
+			}
+		case *ast.BinaryExpr:
+			if n.Op == token.EQL || n.Op == token.NEQ {
+				if isParam(n.X) && isNil(n.Y) {
+					allowed[unwrapParens(n.X).(*ast.Ident)] = true
+				}
+				if isParam(n.Y) && isNil(n.X) {
+					allowed[unwrapParens(n.Y).(*ast.Ident)] = true
+				}
+			}
+		}
+		return true
+	})
+	if !local {
+		return false
+	}
+	ast.Inspect(declInfo.decl.Body, func(node ast.Node) bool {
+		if ident, ok := node.(*ast.Ident); ok && info.Uses[ident] == param && !allowed[ident] {
+			local = false
+		}
+		return local
+	})
+	return local
 }
 
 func noEscapeElemPtrCallArgCompatible(arg ast.Expr, expected types.Type) bool {
@@ -5537,6 +5794,45 @@ type sourceFunctionParamKey struct {
 
 var sourceFunctionDeclsByFunc map[*types.Func]sourceFunctionDeclInfo
 var sourceFunctionReadOnlyParamCache map[sourceFunctionParamKey]bool
+
+// programFunctionDecls maps the functions of the program's main package to
+// their declarations, which sourceFunctionDeclsByFunc does not hold.
+var programFunctionDecls map[*types.Func]sourceFunctionDeclInfo
+
+func SetProgramFunctionDecls(decls map[*types.Func]sourceFunctionDeclInfo) {
+	programFunctionDecls = decls
+}
+
+// functionDeclsOfFiles maps each function and method declared in files to
+// its declaration.
+func functionDeclsOfFiles(files []*ast.File, info *types.Info) map[*types.Func]sourceFunctionDeclInfo {
+	decls := make(map[*types.Func]sourceFunctionDeclInfo)
+	if info == nil {
+		return decls
+	}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fnDecl, ok := decl.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			if fn, ok := info.Defs[fnDecl.Name].(*types.Func); ok && fn != nil {
+				decls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: info}
+			}
+		}
+	}
+	return decls
+}
+
+// functionDeclInfo returns the declaration of fn, a function of the main
+// package or of a package translated from source.
+func functionDeclInfo(fn *types.Func) (sourceFunctionDeclInfo, bool) {
+	if info, ok := sourceFunctionDeclsByFunc[fn]; ok {
+		return info, true
+	}
+	info, ok := programFunctionDecls[fn]
+	return info, ok
+}
 
 func SetSourceFunctionDeclsByFunc(decls map[*types.Func]sourceFunctionDeclInfo) {
 	sourceFunctionDeclsByFunc = decls
@@ -12754,6 +13050,10 @@ func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType type
 	if writeStringValueForExpectedBasicType(out, key, keyType) {
 		return true
 	}
+	// An array literal key, m[[2]int{1, 2}], is the array, not a handle.
+	if writeBareFixedArrayCompositeLiteral(out, key, keyType) {
+		return true
+	}
 	if writeLenCapCallArgumentForExpectedType(out, key, keyType) {
 		return true
 	}
@@ -13641,6 +13941,18 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 		return false
 	}
 	return typeNeedsGoValueClone(typeInfo.GetType(expr))
+}
+
+// unnamedArrayLiteral reports whether lit is a literal of an unnamed array
+// type, [N]T{...}, which translates to its handle. A defined array type's
+// literal is its newtype, which a pointer wraps.
+func unnamedArrayLiteral(lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(lit)).(*types.Array)
+	return ok
 }
 
 func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
@@ -14978,7 +15290,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
+				if unnamedArrayLiteral(compositeLit) {
+					// A pointer to an array is the array's handle, as p := &arr
+					// shares arr's: the new array's handle is the pointer.
+					TranspileExpression(out, compositeLit)
+				} else if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
 					// For struct literals, wrap the whole thing
 					WriteWrapperPrefix(out)
 					TranspileExpressionContext(out, compositeLit, AddressOf)
