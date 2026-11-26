@@ -10,9 +10,11 @@ b c b!
 2 2
 9 0
 1 5
-1 2
-3 4
-[writer step format step]
+[9] 0
+1
+2 3
+4 5
+[writer writer step format step]
 [3 4 0 0] [3 4]
 2 1 2 2
 3 3 {3}

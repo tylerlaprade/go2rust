@@ -48,7 +48,7 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 		return false
 	}
 	first := fmtFirstOperand(call)
-	if first < 0 || first >= len(call.Args) {
+	if first < 0 || first > len(call.Args) {
 		return false
 	}
 	var staged []int
@@ -65,10 +65,11 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 			staged = append(staged, i)
 		}
 	}
-	// The print writes the format or the writer after its operands, so a
-	// call there must be staged when an operand runs a call too.
+	// A call in the format or the writer is always staged. The print
+	// evaluates the format and the writer after its operands, and the
+	// lowering of a print to the terminal does not evaluate a writer at
+	// all; a temporary of type *os.File is written to as the file it is.
 	leadingCall := len(staged) > 0
-	operandCall := false
 	readBeforeCall := false
 	for i := first; i < len(call.Args); i++ {
 		arg := call.Args[i]
@@ -86,16 +87,13 @@ func writeFmtCallWithCallOperandsFirst(out *strings.Builder, call *ast.CallExpr,
 			// staged ones.
 			return false
 		}
-		if binaryOperandHasCall(arg, false) {
-			operandCall = true
-			if len(plain) > 0 {
-				readBeforeCall = true
-			}
+		if len(plain) > 0 && binaryOperandHasCall(arg, false) {
+			readBeforeCall = true
 		}
 		staged = append(staged, i)
 		withCalls = append(withCalls, arg)
 	}
-	if !(leadingCall && operandCall) && (!readBeforeCall || !fmtPlainOperandsMayChange(plain, withCalls)) {
+	if !leadingCall && (!readBeforeCall || !fmtPlainOperandsMayChange(plain, withCalls)) {
 		return false
 	}
 
@@ -315,6 +313,16 @@ func fmtCallOnlyReadsElements(call *ast.CallExpr, index int) bool {
 			}
 		case *ast.IncDecStmt:
 			written[unwrapParens(n.X)] = true
+		case *ast.RangeStmt:
+			// for s[0] = range ... assigns each value to its target.
+			if n.Tok == token.ASSIGN {
+				if n.Key != nil {
+					written[unwrapParens(n.Key)] = true
+				}
+				if n.Value != nil {
+					written[unwrapParens(n.Value)] = true
+				}
+			}
 		case *ast.UnaryExpr:
 			if n.Op == token.AND {
 				written[unwrapParens(n.X)] = true

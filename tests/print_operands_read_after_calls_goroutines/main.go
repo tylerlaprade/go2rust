@@ -89,6 +89,13 @@ func change(p *box) int { return p.inc() }
 func setFirst(s []int) int { s[0] = 9; return 0 }
 
 // sum only reads the elements of s, so it cannot change them.
+// rangeSet writes s[0] through a range assignment.
+func rangeSet(s []int) int {
+	for _, s[0] = range []int{9} {
+	}
+	return 0
+}
+
 func sum(s []int) int {
 	t := 0
 	for _, v := range s {
@@ -119,6 +126,9 @@ func inOrder() {
 	fmt.Println(first[0], setFirst(alias))
 	t := []int{1, 2}
 	fmt.Println(t[0], sum(t))
+	u := []int{1}
+	fmt.Println(u, rangeSet(u))
+	fmt.Fprintln(writer(), len(order))
 	fmt.Fprintln(writer(), len(order), step())
 	fmt.Printf(format(), len(order), step())
 	fmt.Println(order)

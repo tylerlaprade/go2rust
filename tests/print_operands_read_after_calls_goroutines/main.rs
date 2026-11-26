@@ -2385,6 +2385,14 @@ pub fn set_first(s: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
 }
 
 /// sum only reads the elements of s, so it cannot change them.
+/// rangeSet writes s[0] through a range assignment.
+pub fn range_set(s: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
+    for __range_value in vec![9i64].iter().copied() {
+        { let __idx = (0) as usize; let __rhs = __range_value; (*s.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    }
+    0
+}
+
 pub fn sum(s: Arc<Mutex<Option<Vec<i64>>>>) -> i64 {
     let mut t = Arc::new(Mutex::new(Some(0i64)));
     { let __range_holder = s.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for v in __range_values.iter().copied() {
@@ -2436,8 +2444,11 @@ pub fn in_order() {
     { let __go_print_arg_23 = Arc::new(Mutex::new(Some(set_first(alias.clone())))); let __go_print_value = println!("{} {}", format!("{}", { let __seq = { let __seq_holder = first.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __v = (*__go_print_arg_23.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
     let mut t = Arc::new(Mutex::new(Some(vec![1i64, 2i64])));
     { let __go_print_arg_24 = Arc::new(Mutex::new(Some(sum(t.clone())))); let __go_print_value = println!("{} {}", format!("{}", { let __seq = { let __seq_holder = t.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __v = (*__go_print_arg_24.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
-    { let __go_print_arg_25 = writer(); let __go_print_arg_26 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_27 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = { let __s = format!("{} {}\n", format!("{}", { let __v = (*__go_print_arg_26.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_27.lock().unwrap().as_ref().unwrap()).clone(); __v })); (*__go_print_arg_25.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) }; __go_print_value };
-    { let __go_print_arg_28 = format(); let __go_print_arg_29 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_30 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = print!("{}", go_sprintf(&(*__go_print_arg_28.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_29.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_30.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); __go_print_value };
+    let mut u = Arc::new(Mutex::new(Some(vec![1i64])));
+    { let __go_print_arg_25 = Arc::new(Mutex::new(Some(range_set(u.clone())))); let __go_print_value = println!("{} {}", format!("{}", format_slice(&u)), format!("{}", { let __v = (*__go_print_arg_25.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let __go_print_arg_26 = writer(); let __go_print_arg_27 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_value = { let __s = format!("{}\n", format!("{}", { let __v = (*__go_print_arg_27.lock().unwrap().as_ref().unwrap()).clone(); __v })); (*__go_print_arg_26.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) }; __go_print_value };
+    { let __go_print_arg_28 = writer(); let __go_print_arg_29 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_30 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = { let __s = format!("{} {}\n", format!("{}", { let __v = (*__go_print_arg_29.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_30.lock().unwrap().as_ref().unwrap()).clone(); __v })); (*__go_print_arg_28.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::from(__s.into_bytes()))))) }; __go_print_value };
+    { let __go_print_arg_31 = format(); let __go_print_arg_32 = Arc::new(Mutex::new(Some(({ let __len = (*order.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); let __go_print_arg_33 = Arc::new(Mutex::new(Some(step()))); let __go_print_value = print!("{}", go_sprintf(&(*__go_print_arg_31.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_32.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }, { let __go_format_arg = Box::new({ let __arg_holder = __go_print_arg_33.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>; __go_format_arg }], false)); __go_print_value };
     println!("{}", format!("{}", format_slice(&order.clone())));
 }
 
