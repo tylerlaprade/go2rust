@@ -23,11 +23,17 @@ import (
 var receiveAssignmentTempCount int
 
 // receiveAssignmentTemp makes a variable of type typ for a rewritten
-// receive: its defining identifier and an identifier that uses it.
-func receiveAssignmentTemp(prefix string, typ types.Type, pos token.Pos) (*ast.Ident, *ast.Ident) {
+// receive: its defining identifier and an identifier that uses it. Its name
+// is none of the names in used, which hold the identifiers of the statement
+// it is written in, and Rust writes it as it is.
+func receiveAssignmentTemp(prefix string, typ types.Type, pos token.Pos, used map[string]bool) (*ast.Ident, *ast.Ident) {
 	typeInfo := GetTypeInfo()
 	receiveAssignmentTempCount++
 	name := fmt.Sprintf("%s%d", prefix, receiveAssignmentTempCount)
+	for used[name] || RustLocalIdent(name) != name {
+		receiveAssignmentTempCount++
+		name = fmt.Sprintf("%s%d", prefix, receiveAssignmentTempCount)
+	}
 	v := types.NewVar(pos, typeInfo.pkg, name, typ)
 	def := &ast.Ident{NamePos: pos, Name: name}
 	use := &ast.Ident{NamePos: pos, Name: name}
@@ -37,17 +43,37 @@ func receiveAssignmentTemp(prefix string, typ types.Type, pos token.Pos) (*ast.I
 	return def, use
 }
 
-// receiveAssignmentTargets returns the assignments that store the fresh
-// variables uses into the targets lhs, skipping blank targets.
+// receiveAssignmentTargets returns the assignment that stores the fresh
+// variables uses into the targets lhs, skipping blank targets. It is one
+// assignment, so case i, flags[i] = <-ch evaluates flags[i] with the old i,
+// as Go evaluates every target before it stores into any.
 func receiveAssignmentTargets(lhs []ast.Expr, uses []*ast.Ident) []ast.Stmt {
-	var stmts []ast.Stmt
+	var targets, values []ast.Expr
 	for i, target := range lhs {
 		if i >= len(uses) || uses[i] == nil {
 			continue
 		}
-		stmts = append(stmts, &ast.AssignStmt{Lhs: []ast.Expr{target}, TokPos: target.End(), Tok: token.ASSIGN, Rhs: []ast.Expr{uses[i]}})
+		targets = append(targets, target)
+		values = append(values, uses[i])
 	}
-	return stmts
+	if len(targets) == 0 {
+		return nil
+	}
+	return []ast.Stmt{&ast.AssignStmt{Lhs: targets, TokPos: targets[0].End(), Tok: token.ASSIGN, Rhs: values}}
+}
+
+// identifierNames returns the names, in Go and in Rust, of the identifiers
+// in node.
+func identifierNames(node ast.Node) map[string]bool {
+	used := map[string]bool{}
+	ast.Inspect(node, func(n ast.Node) bool {
+		if ident, ok := n.(*ast.Ident); ok {
+			used[ident.Name] = true
+			used[RustLocalIdent(ident.Name)] = true
+		}
+		return true
+	})
+	return used
 }
 
 func isBlankExpr(expr ast.Expr) bool {
@@ -56,24 +82,28 @@ func isBlankExpr(expr ast.Expr) bool {
 }
 
 // rewriteSelectReceiveAssignment rewrites case x, ok = <-ch as the declaring
-// form and returns a function that restores the clause.
-func rewriteSelectReceiveAssignment(cc *ast.CommClause) func() {
+// form and returns a function that restores the clause. needsTypeInfo is
+// true for an assigning receive that cannot be written without go/types;
+// the caller writes a loud unimplemented! for it, since the declaring
+// lowering would leave the target unchanged.
+func rewriteSelectReceiveAssignment(cc *ast.CommClause) (restore func(), needsTypeInfo bool) {
 	comm, ok := cc.Comm.(*ast.AssignStmt)
 	if !ok || comm.Tok != token.ASSIGN || len(comm.Rhs) != 1 || len(comm.Lhs) == 0 || len(comm.Lhs) > 2 {
-		return nil
+		return nil, false
 	}
 	unary, ok := unwrapParens(comm.Rhs[0]).(*ast.UnaryExpr)
 	if !ok || unary.Op != token.ARROW {
-		return nil
+		return nil, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
-		return nil
+		return nil, true
 	}
 	chanType, ok := types.Unalias(typeInfo.GetType(unary.X)).Underlying().(*types.Chan)
 	if !ok {
-		return nil
+		return nil, true
 	}
+	used := identifierNames(cc)
 	newLhs := make([]ast.Expr, len(comm.Lhs))
 	uses := make([]*ast.Ident, len(comm.Lhs))
 	for i, target := range comm.Lhs {
@@ -86,7 +116,7 @@ func rewriteSelectReceiveAssignment(cc *ast.CommClause) func() {
 		if i == 1 {
 			typ, prefix = types.Typ[types.Bool], "__go_recv_ok_"
 		}
-		def, use := receiveAssignmentTemp(prefix, typ, target.Pos())
+		def, use := receiveAssignmentTemp(prefix, typ, target.Pos(), used)
 		newLhs[i] = def
 		uses[i] = use
 	}
@@ -97,25 +127,27 @@ func rewriteSelectReceiveAssignment(cc *ast.CommClause) func() {
 	return func() {
 		cc.Comm = comm
 		cc.Body = originalBody
-	}
+	}, false
 }
 
 // rewriteChannelRangeAssignment rewrites for x = range ch as the declaring
-// form and returns a function that restores the statement.
-func rewriteChannelRangeAssignment(s *ast.RangeStmt) func() {
+// form and returns a function that restores the statement, or reports that
+// it needs go/types, as rewriteSelectReceiveAssignment does.
+func rewriteChannelRangeAssignment(s *ast.RangeStmt) (restore func(), needsTypeInfo bool) {
 	if s.Tok != token.ASSIGN || s.Key == nil || s.Value != nil || isBlankExpr(s.Key) {
-		return nil
+		return nil, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
-		return nil
+		return nil, true
 	}
 	chanType, ok := types.Unalias(typeInfo.GetType(s.X)).Underlying().(*types.Chan)
 	if !ok {
-		return nil
+		// Not a range over a channel.
+		return nil, false
 	}
 	key := s.Key
-	def, use := receiveAssignmentTemp("__go_recv_value_", chanType.Elem(), key.Pos())
+	def, use := receiveAssignmentTemp("__go_recv_value_", chanType.Elem(), key.Pos(), identifierNames(s))
 	originalBody := s.Body.List
 	s.Key = def
 	s.Tok = token.DEFINE
@@ -124,5 +156,5 @@ func rewriteChannelRangeAssignment(s *ast.RangeStmt) func() {
 		s.Key = key
 		s.Tok = token.ASSIGN
 		s.Body.List = originalBody
-	}
+	}, false
 }

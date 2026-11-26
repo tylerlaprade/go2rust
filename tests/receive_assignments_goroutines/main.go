@@ -103,6 +103,24 @@ func main() {
 	}
 	fmt.Println(sh.area())
 
+	// Both targets are evaluated before either is stored.
+	idx := make(chan int, 1)
+	idx <- 1
+	i := 0
+	flags := []bool{false, false}
+	select {
+	case i, flags[i] = <-idx:
+	}
+	fmt.Println(i, flags)
+
+	// A variable named like the temporaries keeps its value.
+	__go_recv_value_1 := "kept"
+	idx <- 2
+	select {
+	case i = <-idx:
+	}
+	fmt.Println(i, __go_recv_value_1)
+
 	pc := make(chan holder, 1)
 	pc <- holder{n: 42}
 	var hv holder

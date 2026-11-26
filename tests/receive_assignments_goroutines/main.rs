@@ -1177,8 +1177,12 @@ fn main() {
             let __go_recv_value_2 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut __go_recv_ok_3 = Arc::new(Mutex::new(Some(__select_ok)));
             let mut __go_recv_value_2 = Arc::new(Mutex::new(Some(__go_recv_value_2)));
-            { let new_val = __go_recv_value_2.lock().unwrap().as_ref().unwrap().clone(); *x.lock().unwrap() = Some(new_val); };
-            { let new_val = __go_recv_ok_3.lock().unwrap().as_ref().unwrap().clone(); *ok.lock().unwrap() = Some(new_val); };
+            {
+                let __tmp_0 = ({ let __v = (*__go_recv_value_2.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                let __tmp_1 = ({ let __v = (*__go_recv_ok_3.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                *x.lock().unwrap() = Some(__tmp_0);
+                *ok.lock().unwrap() = Some(__tmp_1);
+            };
             println!("{} {} {}", format!("{}", "in case:".to_string()), format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));
             break;
         }
@@ -1242,8 +1246,12 @@ fn main() {
             let __go_recv_value_7 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut __go_recv_ok_8 = Arc::new(Mutex::new(Some(__select_ok)));
             let mut __go_recv_value_7 = Arc::new(Mutex::new(Some(__go_recv_value_7)));
-            { let new_val = __go_recv_value_7.lock().unwrap().as_ref().unwrap().clone(); *x.lock().unwrap() = Some(new_val); };
-            { let new_val = __go_recv_ok_8.lock().unwrap().as_ref().unwrap().clone(); *ok.lock().unwrap() = Some(new_val); };
+            {
+                let __tmp_0 = ({ let __v = (*__go_recv_value_7.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                let __tmp_1 = ({ let __v = (*__go_recv_ok_8.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                *x.lock().unwrap() = Some(__tmp_0);
+                *ok.lock().unwrap() = Some(__tmp_1);
+            };
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -1320,6 +1328,52 @@ fn main() {
     }
     println!("{}", format!("{}", (*sh.lock().unwrap().as_ref().unwrap()).area()));
 
+        // Both targets are evaluated before either is stored.
+    let mut idx = GoChannel::<i64>::new_buffered(1 as usize);
+    idx.send(1);
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    let mut flags = Arc::new(Mutex::new(Some(vec![false, false])));
+    {
+    let __go_select_channel_0 = idx.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let __go_recv_value_14 = match __select_recv { Some(__v) => __v, None => Default::default() };
+            let mut __go_recv_ok_15 = Arc::new(Mutex::new(Some(__select_ok)));
+            let mut __go_recv_value_14 = Arc::new(Mutex::new(Some(__go_recv_value_14)));
+            {
+                let __go_lhs_sequence_1 = flags.clone();
+                let __go_lhs_index_1 = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+                let __tmp_0 = ({ let __v = (*__go_recv_value_14.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                let __tmp_1 = ({ let __v = (*__go_recv_ok_15.lock().unwrap().as_ref().unwrap()).clone(); __v });
+                *i.lock().unwrap() = Some(__tmp_0);
+                (*__go_lhs_sequence_1.lock().unwrap().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
+            };
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    }
+    println!("{} {}", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&flags)));
+
+        // A variable named like the temporaries keeps its value.
+    let mut __go_recv_value_1 = Arc::new(Mutex::new(Some("kept".to_string())));
+    idx.send(2);
+    {
+    let __go_select_channel_0 = idx.clone();
+    loop {
+        if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
+            let __select_ok = __select_recv.is_some();
+            let __go_recv_value_16 = match __select_recv { Some(__v) => __v, None => Default::default() };
+            let mut __go_recv_value_16 = Arc::new(Mutex::new(Some(__go_recv_value_16)));
+            { let new_val = __go_recv_value_16.lock().unwrap().as_ref().unwrap().clone(); *i.lock().unwrap() = Some(new_val); };
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    }
+    println!("{} {}", format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_recv_value_1.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+
     let mut pc = GoChannel::<holder>::new_buffered(1 as usize);
     pc.send(holder { n: Arc::new(Mutex::new(Some(42))), ..Default::default() });
     let mut hv: Arc<Mutex<Option<holder>>> = Arc::new(Mutex::new(Some(Default::default())));
@@ -1328,9 +1382,9 @@ fn main() {
     loop {
         if let Some(__select_recv) = __go_select_channel_0.try_recv_select() {
             let __select_ok = __select_recv.is_some();
-            let __go_recv_value_14 = match __select_recv { Some(__v) => __v, None => Default::default() };
-            let mut __go_recv_value_14 = Arc::new(Mutex::new(Some(__go_recv_value_14)));
-            { let new_val = __go_recv_value_14.lock().unwrap().as_ref().unwrap().__go_value_clone(); *hv.lock().unwrap() = Some(new_val); };
+            let __go_recv_value_17 = match __select_recv { Some(__v) => __v, None => Default::default() };
+            let mut __go_recv_value_17 = Arc::new(Mutex::new(Some(__go_recv_value_17)));
+            { let new_val = __go_recv_value_17.lock().unwrap().as_ref().unwrap().__go_value_clone(); *hv.lock().unwrap() = Some(new_val); };
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
