@@ -8633,16 +8633,21 @@ func isUntypedBasic(typ types.Type) bool {
 
 // callCallsFuncValueExpression reports whether call calls the func value of
 // an expression other than a name or a selector: the result of a call, an
-// element of a map or slice, a function literal, a type assertion or a
-// pointer dereference.
+// element of a map or slice, a function literal, a type assertion, a
+// pointer dereference or a receive.
 func callCallsFuncValueExpression(call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.IsTypeConversion(call) {
 		return false
 	}
 	fun := unwrapParens(call.Fun)
-	switch fun.(type) {
+	switch f := fun.(type) {
 	case *ast.CallExpr, *ast.IndexExpr, *ast.FuncLit, *ast.TypeAssertExpr, *ast.StarExpr:
+	case *ast.UnaryExpr:
+		// (<-ch)(): a func value received from a channel.
+		if f.Op != token.ARROW {
+			return false
+		}
 	default:
 		return false
 	}
