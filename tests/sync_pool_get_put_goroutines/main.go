@@ -38,7 +38,8 @@ func main() {
 	}
 	wg.Wait()
 	fmt.Println(out)
-	v, ok := bare.Get().(*bytes.Buffer)
-	fmt.Println(v == nil, ok)
+	got := bare.Get()
+	v, ok := got.(*bytes.Buffer)
+	fmt.Println(got == nil, v == nil, ok)
 	bare.Put(new(bytes.Buffer))
 }

@@ -53,6 +53,11 @@ where
     }
 }
 
+/// A nil interface value in a slot that holds a Box<dyn Any>, such as a
+/// []any element: it copies, prints and compares as nil.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct GoNilAny;
+
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
 }
@@ -184,6 +189,7 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     if val.is::<Arc<Mutex<Option<bytes::buffer::Buffer>>>>() { return "*bytes.Buffer" }
+    if val.is::<GoNilAny>() { return "<nil>" }
     std::any::type_name_of_val(val)
 }
 
@@ -328,8 +334,9 @@ fn main() {
         { let __idx = (i) as usize; let __rhs = (*render(Arc::new(Mutex::new(Some(i as i64)))).lock().unwrap().as_ref().unwrap()).clone(); (*out.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
     println!("{}", format!("{}", format_slice(&out)));
+    let mut got = (*bare.lock().unwrap().as_mut().unwrap()).get();
     let (mut v, mut ok) = ({
-        let val = (*bare.lock().unwrap().as_mut().unwrap()).get().clone();
+        let val = got.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<bytes::buffer::Buffer>>>>() {
@@ -341,7 +348,7 @@ fn main() {
             (Arc::new(Mutex::new(None::<bytes::buffer::Buffer>)), false)
         }
     });
-    println!("{} {}", format!("{}", { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result }), format!("{}", ok));
+    println!("{} {} {}", format!("{}", { let __nil_result = (*got.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }), format!("{}", { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result }), format!("{}", ok));
     (*bare.lock().unwrap().as_mut().unwrap()).put(Arc::new(Mutex::new(Some(bytes::buffer::Buffer::default()))));
 }
 
