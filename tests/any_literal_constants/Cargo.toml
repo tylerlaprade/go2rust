@@ -1,0 +1,11 @@
+[package]
+name = "any_literal_constants"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_literal_constants"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

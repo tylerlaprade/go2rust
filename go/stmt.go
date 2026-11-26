@@ -1165,7 +1165,7 @@ func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 	if writeNamedIntegerConstNewtypeValue(out, expr) || writeIntegerConstForAnyBox(out, expr) {
 		return
 	}
-	if ident, ok := expr.(*ast.Ident); ok {
+	if ident, ok := expr.(*ast.Ident); ok && !isConstIdent(ident) {
 		switch ident.Name {
 		case "nil", "true", "false":
 		default:

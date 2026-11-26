@@ -1,0 +1,5 @@
+Mon
+red
+Mon [Mon 3 7 Mon red 3.5 hi 0.25 true 9 w] 11 red 3
+red main.Color main.Level float64
+red hi
