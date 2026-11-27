@@ -5577,10 +5577,19 @@ func writePointerDerefMapHandleAssignment(out *strings.Builder, star *ast.StarEx
 	if !ok {
 		return false
 	}
+	// A package global's slot holds the pointer: the map is reached through
+	// the handle read out of it.
+	writeTarget := func() { TranspileExpressionContext(out, target, LValue) }
 	out.WriteString("{ ")
+	if mapPointerIsPackageGlobal(target) {
+		out.WriteString("let __map_target = ")
+		writeMapPointerHandle(out, target)
+		out.WriteString("; ")
+		writeTarget = func() { out.WriteString("__map_target") }
+	}
 	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("*")
-		TranspileExpressionContext(out, target, LValue)
+		writeTarget()
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = None; }")
 		return true
@@ -5590,7 +5599,7 @@ func writePointerDerefMapHandleAssignment(out *strings.Builder, star *ast.StarEx
 	out.WriteString("; let __cloned_val = { let __guard = new_val")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__guard).clone() }; *")
-	TranspileExpressionContext(out, target, LValue)
+	writeTarget()
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = __cloned_val; }")
 	return true
