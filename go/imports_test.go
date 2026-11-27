@@ -23,6 +23,34 @@ func TestFormatSliceImportNamesIncludeWrappedFormatter(t *testing.T) {
 	}
 }
 
+// The inline printers of maps of maps call go_display_value for each key, so
+// a module other than the crate root that writes one imports it.
+func TestInlineMapOfMapsPrinterImportsGoDisplayValue(t *testing.T) {
+	helpers := &HelperTracker{}
+	SetTranspileContext(&TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), helpers, nil),
+		Helpers: helpers,
+	})
+	defer SetTranspileContext(nil)
+
+	var out strings.Builder
+	writeMapOfMapsDisplay(&out, func() { out.WriteString("m") }, false)
+	if !strings.Contains(out.String(), "go_display_value(__k)") {
+		t.Fatalf("the printer should format keys with go_display_value: %s", out.String())
+	}
+	seen := false
+	for _, name := range helpers.ImportNames() {
+		seen = seen || name == "go_display_value"
+	}
+	if !seen {
+		t.Fatalf("ImportNames() missing go_display_value in %v", helpers.ImportNames())
+	}
+	if helper := helpers.GenerateHelpers(); !strings.Contains(helper, "fn go_display_value<T: Display>") {
+		t.Fatalf("the helpers should define go_display_value:\n%s", helper)
+	}
+}
+
 func TestGoRWMutexHelperExportsLockMethods(t *testing.T) {
 	ht := &HelperTracker{needsGoRWMutex: true}
 	helper := ht.GenerateHelperModule()
