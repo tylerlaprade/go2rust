@@ -1046,7 +1046,7 @@ fn main() {
     }) as Rc<dyn Fn() -> ()>))));
     let mut list = Rc::new(RefCell::new(Some(Node { val: Rc::new(RefCell::new(Some(1))), ..Default::default() })));
     let list_closure_clone = list.clone(); safely(Rc::new(RefCell::new(Some("next".to_string()))), Rc::new(RefCell::new(Some(Rc::new(move || {
-        println!("{}", format!("{}", (*(*(*list_closure_clone.borrow().as_ref().unwrap()).next.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*{ let __base = (*list_closure_clone.borrow().as_ref().unwrap()).next.clone(); __base }.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
     }) as Rc<dyn Fn() -> ()>))));
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Node>>>>::from([]))));
     let m_closure_clone = m.clone(); safely(Rc::new(RefCell::new(Some("missing".to_string()))), Rc::new(RefCell::new(Some(Rc::new(move || {

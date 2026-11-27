@@ -1144,7 +1144,7 @@ fn main() {
     let list_closure_clone = list.clone(); safely(
         Arc::new(Mutex::new(Some("next".to_string()))),
         Arc::new(Mutex::new(Some(Arc::new(move || {
-        println!("{}", format!("{}", (*(*(*list_closure_clone.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*{ let __base = (*list_closure_clone.lock().unwrap().as_ref().unwrap()).next.clone(); __base }.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
     }) as Arc<dyn Fn() -> () + Send + Sync>)))
     );
     let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Node>>>>::from([]))));

@@ -1,0 +1,6 @@
+2
+6 6
+true
+9 1
+ops dan
+ops3

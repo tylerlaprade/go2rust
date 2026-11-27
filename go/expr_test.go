@@ -10372,3 +10372,41 @@ func run() {
 		t.Errorf("Do must not release the lock before f runs:\n%s", helper)
 	}
 }
+
+// A pointer read out of a field is read in a block of its own before the
+// selector borrows its pointee, so kid.parent.left.val, with parent.left ==
+// kid, does not borrow or lock kid twice.
+func TestSelectorChainReadsEachPointerInItsOwnBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Node struct {
+	val    int
+	parent *Node
+	left   *Node
+}
+
+func main() {
+	root := &Node{val: 1}
+	kid := &Node{val: 2, parent: root}
+	root.left = kid
+	fmt.Println(kid.parent.left.val)
+	kid.parent.left.parent = nil
+}
+`)
+	chain := "{ let __base = (*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.clone(); __base }"
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "println!") && strings.Contains(line, ".val.borrow()") && !strings.Contains(line, chain) {
+			t.Fatalf("the read should read each pointer in a block of its own:\n%s", line)
+		}
+	}
+	if !strings.Contains(rust, chain) {
+		t.Fatalf("the read should read each pointer in a block of its own:\n%s", rust)
+	}
+	// The write borrows kid mutably through left only after the block that
+	// read parent out of kid has ended.
+	if !strings.Contains(rust, "(*(*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.borrow_mut().as_mut().unwrap()).parent = new_val") {
+		t.Fatalf("the write should read parent in a block of its own:\n%s", rust)
+	}
+}

@@ -1063,7 +1063,7 @@ pub fn linked() {
     let mut first = Arc::new(Mutex::new(Some(node { val: Arc::new(Mutex::new(Some(1))), next: second.clone(), ..Default::default() })));
     let mut saved = (*first.lock().unwrap().as_ref().unwrap()).next.clone();
     { let new_val = Arc::new(Mutex::new(None)); (*first.lock().unwrap().as_mut().unwrap()).next = new_val; };
-    println!("{} {} {}", format!("{}", { let __nil_target = (*first.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __field = (*saved.lock().unwrap().as_ref().unwrap()).val.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*second.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
+    println!("{} {} {}", format!("{}", { let __nil_target = (*first.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __field = (*saved.lock().unwrap().as_ref().unwrap()).val.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*{ let __base = (*second.lock().unwrap().as_ref().unwrap()).next.clone(); __base }.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
 
     let mut l = Arc::new(Mutex::new(Some(list { head: first.clone(), ..Default::default() })));
     let mut keep = (*l.lock().unwrap().as_ref().unwrap()).head.clone();
