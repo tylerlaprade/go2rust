@@ -2216,6 +2216,14 @@ run_xfail_test() {
     run_test "tests/interfaces_simple"
 }
 
+@test "inventory_report_writer" {
+    run_test "tests/inventory_report_writer"
+}
+
+@test "inventory_report_writer_goroutines" {
+    run_test "tests/inventory_report_writer_goroutines"
+}
+
 @test "iota_complex" {
     run_test "tests/iota_complex"
 }

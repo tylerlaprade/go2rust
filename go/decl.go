@@ -6987,6 +6987,15 @@ func compositeMapDisplay(mapType *types.Map) (func(*strings.Builder), bool) {
 			out.WriteString("format_map(&self.0)")
 		}, true
 	}
+	// A map of pointers to the program's structs holds each pointer's
+	// handle, the struct's cell, which format_map prints the way the typed
+	// print path prints such a map.
+	if ptr, ok := types.Unalias(mapType.Elem()).(*types.Pointer); ok && pointerElementHasGeneratedStructDisplay(ptr.Elem()) {
+		return func(out *strings.Builder) {
+			NeedFormatMap()
+			out.WriteString("format_map(&self.0)")
+		}, true
+	}
 	return nil, false
 }
 

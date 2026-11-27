@@ -1,0 +1,7 @@
+== stock ==
+nut     10 x   0.10 []
+apple    5 x   0.50 [fruit,red]
+pear     1 x   0.75 [fruit,green]
+total: 4.25
+3 <nil> 12 + 30 42
+ 12.3%|ff|00000101|'x'|[a]|main.Inventory
