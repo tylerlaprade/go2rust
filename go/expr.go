@@ -17807,6 +17807,17 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 		out.WriteString(" { ")
 		writeReceiverHandleHintedPointer(out, "__recv", true)
 		out.WriteString("unsafe { &mut *__recv_ptr }.")
+	} else if recvType, ok := methodValueReceiverPointeeRustType(sel); ok {
+		// The call holds no borrow of the receiver while the method runs,
+		// as a direct call holds none: the method may run code that reads
+		// the receiver, a callback it is passed, say.
+		out.WriteString(" { let __recv_ptr: *mut ")
+		out.WriteString(recvType)
+		out.WriteString(" = { let mut __recv_guard = __recv")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __recv_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(recvType)
+		out.WriteString(" }; unsafe { &mut *__recv_ptr }.")
 	} else {
 		out.WriteString(" { (*__recv")
 		WriteBorrowMethod(out, true)
@@ -27919,4 +27930,29 @@ func writeEmptyInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 	WriteBorrowMethod(out, false)
 	out.WriteString(").as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }")
 	return true
+}
+
+// methodValueReceiverPointeeRustType returns the Rust type of the struct a
+// pointer method value is bound to, for a raw pointer to it.
+func methodValueReceiverPointeeRustType(sel *ast.SelectorExpr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || sel == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(sel.X)
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || typeMentionsTypeParam(named) {
+		return "", false
+	}
+	if _, isStruct := named.Underlying().(*types.Struct); !isStruct {
+		return "", false
+	}
+	rustType := goTypesTypeToRust(named)
+	if rustType == "" {
+		return "", false
+	}
+	return rustType, true
 }

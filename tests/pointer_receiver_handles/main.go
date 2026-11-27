@@ -32,6 +32,9 @@ func (n *Node) Link(name string) *Node {
 
 var lastVisited *Node
 
+// Bind returns Visit bound to n; the method value takes n's handle.
+func (n *Node) Bind() func(func()) { return n.Visit }
+
 // Visit sets a field and then runs f, which reads it through the caller's
 // pointer.
 func (n *Node) Visit(f func()) {
@@ -175,6 +178,14 @@ func main() {
 	leadDept := team.Lead.Dept
 	*leadDept = Dept{Name: "ops2"}
 	fmt.Println(team.Name)
+
+	// A method value bound to a pointer holds no borrow of it while the
+	// method runs, so a callback can read the pointer: through a method
+	// value a method returns for its own receiver, and directly.
+	bound := fresh[0].Bind()
+	bound(func() { fmt.Println("bound", fresh[0].tags["seen"]) })
+	plain := fresh[1].Visit
+	plain(func() { fmt.Println("plain", fresh[1].tags["seen"]) })
 
 	// A method that passes its receiver on hands over the caller's
 	// pointer, so pointer, map and channel fields set through it stick

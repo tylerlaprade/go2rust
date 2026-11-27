@@ -90,6 +90,31 @@ where
     }
 }
 
+/// The Go func value a func-typed expression holds, or None for a nil func.
+/// A copy of a func value is a clone of the same closure.
+trait GoFuncValue {
+    type Func: ?Sized;
+    fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>>;
+}
+
+macro_rules! impl_go_func_value {
+    ($(($($arg:ident),*)),* $(,)?) => { $(
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { Some(self.clone()) }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.clone() }
+        }
+        impl<R: 'static, $($arg: 'static),*> GoFuncValue for std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn Fn($($arg),*) -> R + Send + Sync>>>> {
+            type Func = dyn Fn($($arg),*) -> R + Send + Sync;
+            fn go_func_value(&self) -> Option<std::sync::Arc<Self::Func>> { self.lock().unwrap().clone() }
+        }
+    )* };
+}
+impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
+
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
 }
@@ -873,6 +898,15 @@ impl Node {
         }
     }
 
+    /// Bind returns Visit bound to n; the method value takes n's handle.
+    pub fn bind(&self) -> Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync>>>> {
+        if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return Arc::new(Mutex::new(Some({ let __recv = n.clone(); Arc::new(move |__arg0: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>| { let __recv_ptr = go_hint_receiver_mut(&__recv); unsafe { &mut *__recv_ptr }.visit(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> })));
+        } else {
+        Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Arc::new(move |__arg0: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>| { let mut __recv = __recv.clone(); __recv.visit(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> })))
+        }
+    }
+
     /// Visit sets a field and then runs f, which reads it through the caller's
     /// pointer.
     pub fn visit(&mut self, f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
@@ -1310,6 +1344,25 @@ fn main() {
     let mut leadDept = (*(*(*team.lock().unwrap().as_mut().unwrap()).dept.lock().unwrap().as_mut().unwrap()).lead.lock().unwrap().as_ref().unwrap()).dept.clone();
     { let new_val = Dept { name: Arc::new(Mutex::new(Some("ops2".to_string()))), ..Default::default() }; *leadDept.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*(*(*team.lock().unwrap().as_ref().unwrap()).dept.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
+    let mut bound = { let __recv = { let __seq = { let __seq_holder = fresh.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.bind(); __result };
+    let mut bound = Arc::new(Mutex::new(GoFuncValue::go_func_value(&bound)));
+    let fresh_closure_clone = fresh.clone(); {
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> = bound.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+            Arc::new(Mutex::new(Some(Arc::new(move || {
+        println!("{} {}", format!("{}", "bound".to_string()), format!("{}", { let __map = { let __map_holder = (*{ let __seq = { let __seq_holder = fresh_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)))
+        )
+    };
+    let mut plain = Arc::new(Mutex::new(Some({ let __recv = { let __seq = { let __seq_holder = fresh.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; Arc::new(move |__arg0: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>| { let __recv_ptr = go_hint_receiver_mut(&__recv); unsafe { &mut *__recv_ptr }.visit(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> })));
+    let fresh_closure_clone = fresh.clone(); {
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> = plain.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+            Arc::new(Mutex::new(Some(Arc::new(move || {
+        println!("{} {}", format!("{}", "plain".to_string()), format!("{}", { let __map = { let __map_holder = (*{ let __seq = { let __seq_holder = fresh_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync>)))
+        )
+    };
     let mut holder = Arc::new(Mutex::new(Some(List { head: Default::default(), m: Default::default(), ch: Default::default() })));
     { let __recv = holder.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.reset(Arc::new(Mutex::new(Some(5)))); __result };
     println!("{} {}", format!("{}", { let __nil_target = (*holder.lock().unwrap().as_ref().unwrap()).head.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __v = (*(*holder.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_ref().unwrap()).clone(); __v }));

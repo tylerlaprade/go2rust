@@ -828,7 +828,7 @@ impl lexer {
 
     pub fn scan(&self) -> i64 {
         if let Some(mut l) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
-        return { let __recv = l.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.scan_with(Rc::new(RefCell::new(Some({ let __recv = l.clone(); Rc::new(move || -> i64 { (*__recv.borrow_mut().as_mut().unwrap()).next() }) as Rc<dyn Fn() -> i64> })))); __result };
+        return { let __recv = l.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.scan_with(Rc::new(RefCell::new(Some({ let __recv = l.clone(); Rc::new(move || -> i64 { let __recv_ptr: *mut lexer = { let mut __recv_guard = __recv.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut lexer }; unsafe { &mut *__recv_ptr }.next() }) as Rc<dyn Fn() -> i64> })))); __result };
         } else {
         { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move || -> i64 { let mut __recv = __recv.clone(); __recv.next() }) as Rc<dyn Fn() -> i64> }))); self.scan_with(__method_arg0) }
         }

@@ -199,6 +199,42 @@ func main() {
 	}
 }
 
+// A method value bound to a pointer calls the method through a raw pointer,
+// holding no borrow of the receiver, so a callback the method runs can read
+// it; that includes a method value a method returns for its own receiver.
+func TestPointerMethodValueHoldsNoReceiverBorrow(t *testing.T) {
+	src := `package main
+
+type T struct{ n int }
+
+var keep []*T
+
+func (t *T) Visit(f func()) {
+	t.n++
+	f()
+}
+
+func (t *T) Bind() func(func()) {
+	keep = append(keep, t)
+	return t.Visit
+}
+
+func main() {
+	p := &T{}
+	f := p.Visit
+	f(func() { _ = p.n })
+	p.Bind()(func() {})
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	if !strings.Contains(rust, "let __recv_ptr: *mut T = { let mut __recv_guard = __recv.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut T }; unsafe { &mut *__recv_ptr }.visit(") {
+		t.Fatalf("the method value should call through a raw pointer:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*__recv.borrow_mut().as_mut().unwrap()).visit(") {
+		t.Fatalf("the method value should not hold the receiver's borrow:\n%s", rust)
+	}
+}
+
 func transpileReceiverHandleSource(t *testing.T, src string) string {
 	t.Helper()
 	fset := token.NewFileSet()

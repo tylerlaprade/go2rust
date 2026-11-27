@@ -1858,7 +1858,7 @@ fn main() {
     (*c.borrow_mut().as_mut().unwrap()).deferred();
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
-    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Rc::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Rc<dyn Fn() -> ()> }; __arg_value }))));
+    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Rc::new(move || { let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut Counter }; unsafe { &mut *__recv_ptr }.inc() }) as Rc<dyn Fn() -> ()> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     add_to(c.clone());

@@ -2098,7 +2098,7 @@ fn main() {
     { let __recv = c.clone(); let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; let __result = unsafe { &mut *__recv_ptr }.deferred(); __result };
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
-    apply(Arc::new(Mutex::new(Some({ let __arg_value = { let __recv = c.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).inc() }) as Arc<dyn Fn() -> () + Send + Sync> }; __arg_value }))));
+    apply(Arc::new(Mutex::new(Some({ let __arg_value = { let __recv = c.clone(); Arc::new(move || { let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; unsafe { &mut *__recv_ptr }.inc() }) as Arc<dyn Fn() -> () + Send + Sync> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     add_to(c.clone());

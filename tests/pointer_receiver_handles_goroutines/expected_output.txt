@@ -25,5 +25,7 @@ r 1
 s 1
 r swapped
 ops2
+bound 1
+plain 1
 true 5
 2 3
