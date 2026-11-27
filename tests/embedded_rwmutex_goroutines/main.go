@@ -138,7 +138,9 @@ func main() {
 
 	// Goroutines lock a Registry variable they share while main holds the
 	// lock. Each waits for the mutex holding nothing main needs to reach
-	// shared.Unlock() through the same variable.
+	// shared.Unlock() through the same variable. The contention is best
+	// effort: the sleep gives the workers time to reach Lock, and on a
+	// transpiler that held the cell this run timed out.
 	shared := Registry{Table: &Table{m: map[string]int{}}, name: "shared"}
 	shared.Lock()
 	waiting := make(chan bool)
@@ -163,4 +165,31 @@ func main() {
 	shared.Unlock()
 	wg3.Wait()
 	fmt.Println(shared.name, len(shared.m))
+
+	// A reader that waits behind a writer gets the lock before the next
+	// writer does, as in Go, so a writer that waits for that reader inside
+	// its critical section finishes.
+	var mu sync.RWMutex
+	mu.Lock()
+	readerIn := make(chan bool, 1)
+	readerDone := make(chan bool)
+	go func() {
+		mu.RLock()
+		readerIn <- true
+		mu.RUnlock()
+		readerDone <- true
+	}()
+	time.Sleep(20 * time.Millisecond)
+	writerDone := make(chan bool)
+	go func() {
+		mu.Lock()
+		<-readerIn
+		mu.Unlock()
+		writerDone <- true
+	}()
+	time.Sleep(20 * time.Millisecond)
+	mu.Unlock()
+	<-readerDone
+	<-writerDone
+	fmt.Println("reader before writer")
 }

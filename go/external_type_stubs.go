@@ -5407,12 +5407,18 @@ func embeddedRWMutexPromotedMethods(field *ast.Field, selected func(string) bool
 	}
 	named := types.Unalias(GetTypeInfo().GetType(field.Type)).(*types.Named)
 	var promoted []externalPromotedMethod
+	// The accessor is written whenever Go selects the mutex through this
+	// field, even when every method name is already taken, as by forwarders
+	// of methods of the same names promoted from deeper in the struct: the
+	// calls on a struct variable reach the mutex through it.
+	mutexSelected := false
 	methodSet := types.NewMethodSet(types.NewPointer(named))
 	for i := 0; i < methodSet.Len(); i++ {
 		fn, ok := methodSet.At(i).Obj().(*types.Func)
 		if !ok || !isEmbeddedRWMutexMethod(fn) || !selected(fn.Name()) {
 			continue
 		}
+		mutexSelected = true
 		rustMethodName := ToSnakeCase(fn.Name())
 		if existingRustNames[rustMethodName] {
 			continue
@@ -5431,7 +5437,7 @@ func embeddedRWMutexPromotedMethods(field *ast.Field, selected func(string) bool
 			RawEmbeddedField:  true,
 		})
 	}
-	if len(promoted) > 0 && !existingRustNames[rwMutexAccessorName] {
+	if mutexSelected && !existingRustNames[rwMutexAccessorName] {
 		existingRustNames[rwMutexAccessorName] = true
 		promoted = append(promoted, externalPromotedMethod{
 			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
@@ -5503,12 +5509,18 @@ func embeddedStructRWMutexPromotedMethods(field *ast.Field, selected func(string
 		return nil
 	}
 	var promoted []externalPromotedMethod
+	// The accessor is written whenever Go selects the mutex through this
+	// field, even when every method name is already taken, as by forwarders
+	// of methods of the same names promoted from deeper in the struct: the
+	// calls on a struct variable reach the mutex through it.
+	mutexSelected := false
 	methodSet := types.NewMethodSet(types.NewPointer(named))
 	for i := 0; i < methodSet.Len(); i++ {
 		fn, ok := methodSet.At(i).Obj().(*types.Func)
 		if !ok || !isEmbeddedRWMutexMethod(fn) || !selected(fn.Name()) {
 			continue
 		}
+		mutexSelected = true
 		rustMethodName := ToSnakeCase(fn.Name())
 		if existingRustNames[rustMethodName] {
 			continue
@@ -5527,7 +5539,7 @@ func embeddedStructRWMutexPromotedMethods(field *ast.Field, selected func(string
 			ThroughRWMutexAccessor: true,
 		})
 	}
-	if len(promoted) > 0 && !existingRustNames[rwMutexAccessorName] {
+	if mutexSelected && !existingRustNames[rwMutexAccessorName] {
 		existingRustNames[rwMutexAccessorName] = true
 		promoted = append(promoted, externalPromotedMethod{
 			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),

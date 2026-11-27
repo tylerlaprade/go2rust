@@ -201,3 +201,39 @@ func TestRWMutexForwarderWithoutSelectionIsUnimplemented(t *testing.T) {
 		t.Fatalf("a known selection should keep its forwarder: %+v", kept[0])
 	}
 }
+
+// When forwarders of methods named Lock, Unlock, RLock and RUnlock promoted
+// from deeper in the struct have taken the names, a directly embedded
+// sync.RWMutex, which Go selects, still gets the __go_rw_mutex accessor
+// that a call on a struct variable reaches the mutex through.
+func TestRWMutexAccessorIsWrittenWhenItsMethodNamesAreTaken(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Custom struct{ n int }
+
+func (c *Custom) Lock()    { c.n++ }
+func (c *Custom) Unlock()  { c.n-- }
+func (c *Custom) RLock()   {}
+func (c *Custom) RUnlock() {}
+
+type Deep struct {
+	*Custom
+}
+
+type Outer struct {
+	*Deep
+	sync.RWMutex
+}
+
+func main() {
+	o := Outer{Deep: &Deep{Custom: &Custom{}}}
+	o.Lock()
+	o.Unlock()
+}
+`)
+	if !strings.Contains(rust, "pub fn __go_rw_mutex(&self) -> GoRWMutex {\n        self.r_w_mutex.clone()") {
+		t.Fatalf("Outer should reach its own mutex through __go_rw_mutex:\n%s", rust)
+	}
+}

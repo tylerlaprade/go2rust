@@ -5,3 +5,4 @@ reg 8
 both 16
 outer 7
 shared 4
+reader before writer

@@ -350,13 +350,26 @@ impl std::fmt::Debug for WaitGroup {
 }
 
 // A readers-writer lock: any number of readers, or one writer. A clone is
-// the same lock, as a *sync.RWMutex is. A writer waiting for the lock holds
-// off new readers, as Go's does.
+// the same lock, as a *sync.RWMutex is. As in Go, a writer waiting for the
+// lock holds off readers that come after it, and the readers that were
+// waiting when a writer unlocks are let in before the next writer.
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex {
-    // (a writer holds it, how many readers hold it, how many writers wait
-    // for it), and the waiters.
-    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize, usize)>, std::sync::Condvar)>,
+    inner: std::sync::Arc<(std::sync::Mutex<GoRWMutexState>, std::sync::Condvar)>,
+}
+
+#[derive(Debug, Default)]
+pub struct GoRWMutexState {
+    writer: bool,
+    readers: usize,
+    waiting_writers: usize,
+    // A reader that has to wait takes a ticket. A writer's unlock admits
+    // every ticket issued so far, and the next writer waits until the
+    // admitted readers have taken the lock.
+    waiting_readers: usize,
+    next_ticket: u64,
+    admit_below: u64,
+    admitted_waiting: usize,
 }
 
 impl GoRWMutex {
@@ -367,41 +380,54 @@ impl GoRWMutex {
     pub fn lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        held.2 += 1;
-        while held.0 || held.1 > 0 {
+        held.waiting_writers += 1;
+        while held.writer || held.readers > 0 || held.admitted_waiting > 0 {
             held = ready.wait(held).unwrap();
         }
-        held.2 -= 1;
-        held.0 = true;
+        held.waiting_writers -= 1;
+        held.writer = true;
     }
 
     pub fn unlock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        if !held.0 {
+        if !held.writer {
             panic!("sync: Unlock of unlocked RWMutex");
         }
-        held.0 = false;
+        held.writer = false;
+        held.admit_below = held.next_ticket;
+        held.admitted_waiting = held.waiting_readers;
         ready.notify_all();
     }
 
     pub fn r_lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        while held.0 || held.2 > 0 {
+        if !held.writer && held.waiting_writers == 0 {
+            held.readers += 1;
+            return;
+        }
+        let ticket = held.next_ticket;
+        held.next_ticket += 1;
+        held.waiting_readers += 1;
+        while held.writer || (held.waiting_writers > 0 && ticket >= held.admit_below) {
             held = ready.wait(held).unwrap();
         }
-        held.1 += 1;
+        held.waiting_readers -= 1;
+        if ticket < held.admit_below {
+            held.admitted_waiting -= 1;
+        }
+        held.readers += 1;
     }
 
     pub fn r_unlock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        if held.1 == 0 {
+        if held.readers == 0 {
             panic!("sync: RUnlock of unlocked RWMutex");
         }
-        held.1 -= 1;
-        if held.1 == 0 {
+        held.readers -= 1;
+        if held.readers == 0 {
             ready.notify_all();
         }
     }
@@ -1195,6 +1221,41 @@ let wg3_defer_captured = wg3_thread.clone(); __defer_stack.push(Box::new(move ||
     { let __sync_value = (*shared.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
     wg3.wait();
     println!("{} {}", format!("{}", (*{ let __field = (*shared.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*shared.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    let mut mu = GoRWMutex::new();
+    mu.lock();
+    let mut readerIn = GoChannel::<bool>::new_buffered(1 as usize);
+    let mut readerDone = GoChannel::<bool>::new();
+    let mu_thread = mu.clone(); let readerDone_thread = readerDone.clone(); let readerIn_thread = readerIn.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        mu_thread.r_lock();;
+        readerIn_thread.send(true);;
+        mu_thread.r_unlock();;
+        readerDone_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
+    });
+    time::sleep(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((20 as i64 * time::MILLISECOND) as i64))))))));
+    let mut writerDone = GoChannel::<bool>::new();
+    let mu_thread = mu.clone(); let readerIn_thread = readerIn.clone(); let writerDone_thread = writerDone.clone(); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        mu_thread.lock();;
+        readerIn_thread.recv().unwrap_or_default();;
+        mu_thread.unlock();;
+        writerDone_thread.send(true);;;
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
+    });
+    time::sleep(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((20 as i64 * time::MILLISECOND) as i64))))))));
+    mu.unlock();
+    readerDone.recv().unwrap_or_default();
+    writerDone.recv().unwrap_or_default();
+    println!("{}", format!("{}", "reader before writer".to_string()));
 }
 
 impl GoValueClone for Table {
