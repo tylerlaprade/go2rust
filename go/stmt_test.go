@@ -10722,3 +10722,28 @@ func main() {
 		t.Errorf("a map field must not be copied into the variable:\n%s", rust)
 	}
 }
+
+// `*a.b = v` reads the pointer a.b in a let of its own before writing
+// through it, so the borrows the selector chain takes end first; a pointer
+// back into the chain, `*team.Lead.Dept` with Lead.Dept == &team.Dept,
+// would otherwise be borrowed twice.
+func TestDerefAssignmentThroughSelectorReadsThePointerFirst(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Dept struct {
+	Name string
+	Lead *Employee
+}
+
+type Employee struct{ Dept *Dept }
+
+func main() {
+	d := &Dept{Name: "a"}
+	d.Lead = &Employee{Dept: d}
+	*d.Lead.Dept = Dept{Name: "b"}
+}
+`)
+	if !strings.Contains(rust, "let __deref_target = ") || !strings.Contains(rust, ".dept.clone(); *__deref_target.borrow_mut() = Some(new_val); }") {
+		t.Fatalf("the assignment should read the pointer before writing through it:\n%s", rust)
+	}
+}
