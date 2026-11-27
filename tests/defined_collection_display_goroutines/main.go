@@ -11,6 +11,9 @@ type Lists map[string][]int
 
 type Pairs map[string][2]int
 
+// MoreLists stores a Lists and prints through its Display.
+type MoreLists Lists
+
 type Point struct{ X, Y int }
 
 type Places map[string]Point

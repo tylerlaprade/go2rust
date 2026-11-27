@@ -17,6 +17,7 @@ type Point struct{ X, Y int }
 type Lists map[string][]int
 type Pairs map[string][2]int
 type Places map[string]Point
+type MoreLists Lists
 
 func main() {
 	fmt.Println([]Lists{{"a": nil}}, []Pairs{{"k": {1, 2}}}, []Places{{"p": {1, 2}}})
@@ -33,6 +34,11 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)
 		}
+	}
+	// MoreLists stores a Lists, not the map's handle, and prints through
+	// the Display of the Lists it holds.
+	if !strings.Contains(rust, "impl Display for MoreLists {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", self.0.borrow().as_ref().unwrap())") {
+		t.Fatalf("MoreLists should print through the Lists it holds:\n%s", rust)
 	}
 }
 

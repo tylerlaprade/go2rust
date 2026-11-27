@@ -6732,7 +6732,11 @@ func namedTypeHasGeneratedDisplay(named *types.Named) bool {
 		_, ok := sequenceDisplayFormatter(underlying.Elem())
 		return ok
 	case *types.Map:
-		return mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem())
+		if mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem()) {
+			return true
+		}
+		_, ok := compositeMapDisplay(underlying)
+		return ok
 	default:
 		return false
 	}
@@ -6930,6 +6934,11 @@ func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 // slice as [], or map[k:{1 2}]. The map's handle is the newtype's field.
 func typeDefinitionCompositeMapDisplay(typeSpec *ast.TypeSpec) (func(*strings.Builder), bool) {
 	if typeSpec == nil || typeSpec.Name == nil || typeSpec.TypeParams != nil {
+		return nil, false
+	}
+	// "type Other Lists" stores a Lists, whose own Display it prints
+	// through; only a declaration of a map type stores the map's handle.
+	if _, named := typeDefinitionUnderlyingNamedType(typeSpec); named {
 		return nil, false
 	}
 	typeInfo := GetTypeInfo()

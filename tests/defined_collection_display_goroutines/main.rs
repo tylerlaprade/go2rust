@@ -1197,6 +1197,17 @@ impl Display for Pairs {
 }
 
 
+/// MoreLists stores a Lists and prints through its Display.
+#[derive(Debug, Clone, Default)]
+pub struct MoreLists(pub Arc<Mutex<Option<Lists>>>);
+
+impl Display for MoreLists {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+    }
+}
+
+
 #[derive(Debug, Clone)]
 pub struct Point {
     pub x: Arc<Mutex<Option<i64>>>,
