@@ -948,11 +948,13 @@ impl std::fmt::Debug for GoMutex {
 }
 
 // A readers-writer lock: any number of readers, or one writer. A clone is
-// the same lock, as a *sync.RWMutex is.
+// the same lock, as a *sync.RWMutex is. A writer waiting for the lock holds
+// off new readers, as Go's does.
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex {
-    // (a writer holds it, how many readers hold it), and the waiters.
-    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize)>, std::sync::Condvar)>,
+    // (a writer holds it, how many readers hold it, how many writers wait
+    // for it), and the waiters.
+    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize, usize)>, std::sync::Condvar)>,
 }
 
 impl GoRWMutex {
@@ -963,9 +965,11 @@ impl GoRWMutex {
     pub fn lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
+        held.2 += 1;
         while held.0 || held.1 > 0 {
             held = ready.wait(held).unwrap();
         }
+        held.2 -= 1;
         held.0 = true;
     }
 
@@ -982,7 +986,7 @@ impl GoRWMutex {
     pub fn r_lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        while held.0 {
+        while held.0 || held.2 > 0 {
             held = ready.wait(held).unwrap();
         }
         held.1 += 1;

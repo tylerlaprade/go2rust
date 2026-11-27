@@ -24597,14 +24597,12 @@ func promotedMethodCallInfo(sel *ast.SelectorExpr) ([]string, *types.Func, bool)
 		return nil, nil, false
 	}
 	// An embedded sync.RWMutex is held bare, not in a cell; its methods are
-	// called through the forwarders the struct embedding it gets for them
-	// (embeddedRWMutexPromotedMethods): on the receiver itself, or on the
-	// struct along the path that embeds the mutex.
+	// called through the forwarders every struct that has them by embedding
+	// gets (embeddedRWMutexPromotedMethods), on the receiver itself. Those
+	// reach the mutex holding no guard of a struct on the way, which a
+	// promoted call would hold while the lock waits.
 	if isEmbeddedRWMutexMethod(fn) {
-		if len(fields) == 1 {
-			return nil, nil, false
-		}
-		return fields[:len(fields)-1], fn, true
+		return nil, nil, false
 	}
 	return fields, fn, true
 }

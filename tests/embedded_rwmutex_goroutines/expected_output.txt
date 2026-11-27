@@ -1,3 +1,5 @@
 [a b c w0 w1 w2 w3] 2 0
 reg 8
 16
+5
+both 16

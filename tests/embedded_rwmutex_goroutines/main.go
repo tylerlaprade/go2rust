@@ -31,6 +31,20 @@ type Registry struct {
 	name string
 }
 
+// Bump locks through Table's mutex from a method of Registry.
+func (r *Registry) Bump(k string) {
+	r.Lock()
+	r.m[k]++
+	r.Unlock()
+}
+
+// Both embeds Table, which has its own mutex, and a mutex of its own: Go
+// picks the shallower one, Both's own.
+type Both struct {
+	*Table
+	sync.RWMutex
+}
+
 func main() {
 	t := &Table{m: map[string]int{"a": 1}}
 	var wg sync.WaitGroup
@@ -80,4 +94,15 @@ func main() {
 	}
 	wg2.Wait()
 	fmt.Println(len(t.m))
+
+	r.Bump("d")
+	fmt.Println(r.m["d"])
+	both := &Both{Table: t}
+	both.Lock()
+	t.Lock() // Both's own mutex is held, not Table's
+	t.Unlock()
+	both.Unlock()
+	both.RLock()
+	fmt.Println("both", len(both.m))
+	both.RUnlock()
 }

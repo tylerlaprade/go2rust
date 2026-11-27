@@ -294,11 +294,13 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
 }
 
 // A readers-writer lock: any number of readers, or one writer. A clone is
-// the same lock, as a *sync.RWMutex is.
+// the same lock, as a *sync.RWMutex is. A writer waiting for the lock holds
+// off new readers, as Go's does.
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex {
-    // (a writer holds it, how many readers hold it), and the waiters.
-    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize)>, std::sync::Condvar)>,
+    // (a writer holds it, how many readers hold it, how many writers wait
+    // for it), and the waiters.
+    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize, usize)>, std::sync::Condvar)>,
 }
 
 impl GoRWMutex {
@@ -309,9 +311,11 @@ impl GoRWMutex {
     pub fn lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
+        held.2 += 1;
         while held.0 || held.1 > 0 {
             held = ready.wait(held).unwrap();
         }
+        held.2 -= 1;
         held.0 = true;
     }
 
@@ -328,7 +332,7 @@ impl GoRWMutex {
     pub fn r_lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        while held.0 {
+        while held.0 || held.2 > 0 {
             held = ready.wait(held).unwrap();
         }
         held.1 += 1;
@@ -480,6 +484,45 @@ impl std::fmt::Display for Registry {
 }
 
 
+/// Both embeds Table, which has its own mutex, and a mutex of its own: Go
+/// picks the shallower one, Both's own.
+#[derive(Clone)]
+pub struct Both {
+    pub table: Arc<Mutex<Option<Table>>>,
+    pub r_w_mutex: GoRWMutex,
+}
+
+impl Both {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.table.clone();
+        let __go_clone_1_0 = self.r_w_mutex.clone();
+        Self {
+            table: __go_clone_0_0,
+            r_w_mutex: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Both {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = GoRWMutex::new();
+        Self {
+            table: __go_default_0_0,
+            r_w_mutex: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Both {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.table.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
 impl Table {
     pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
@@ -550,6 +593,13 @@ impl Table {
 }
 
 impl Registry {
+    /// Bump locks through Table's mutex from a method of Registry.
+    pub fn bump(&mut self, k: Arc<Mutex<Option<String>>>) {
+        self.lock();
+        { let __map_holder = (*self.table.lock().unwrap().as_ref().unwrap()).m.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+        self.unlock();
+    }
+
     pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         // Forward to embedded type's method
         let embedded = self.table.clone();
@@ -589,6 +639,48 @@ impl Registry {
     }
 }
 
+impl Both {
+    pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
+        // Forward to embedded type's method
+        let embedded = self.table.clone();
+        let guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_ref().unwrap();
+        embedded_ref.read(k)
+    }
+
+    pub fn write(&mut self, k: Arc<Mutex<Option<String>>>, v: Arc<Mutex<Option<i64>>>) {
+        // Forward to embedded type's method
+        let embedded = self.table.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.write(k, v)
+    }
+
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        self.r_w_mutex.clone()
+    }
+
+    pub fn lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.lock()
+    }
+
+    pub fn r_lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.unlock()
+    }
+}
+
 fn main() {
     go_install_panic_exit();
     ::math_bits::__go_init_all();
@@ -612,6 +704,22 @@ fn main() {
     (*r.lock().unwrap().as_mut().unwrap()).r_lock();
     println!("{} {}", format!("{}", (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*r.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
     (*r.lock().unwrap().as_mut().unwrap()).r_unlock();
+    (*r.lock().unwrap().as_mut().unwrap()).bump(Arc::new(Mutex::new(Some("d".to_string()))));
+    println!("{}", format!("{}", { let __map = { let __map_holder = (*(*r.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"d".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    let mut both = {
+        let __owner = Arc::new(Mutex::new(Some(Both { table: t.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().table.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
+    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
+    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
+    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };
+    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };
+    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_lock(); __result };
+    println!("{} {}", format!("{}", "both".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*both.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_unlock(); __result };
 }
 
 impl GoValueClone for Table {
@@ -622,6 +730,13 @@ impl GoValueClone for Table {
 
 
 impl GoValueClone for Registry {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Both {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

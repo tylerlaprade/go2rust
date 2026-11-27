@@ -49,3 +49,37 @@ func main() {
 		t.Fatalf("the embedded RWMutex is held bare and is not locked as a cell:\n%s", rust)
 	}
 }
+
+// A directly embedded sync.RWMutex is at depth zero and wins over the one a
+// struct embedded beside it has, whatever the field order.
+func TestDirectlyEmbeddedRWMutexWinsOverPromotedOne(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Table struct {
+	sync.RWMutex
+}
+
+type Both struct {
+	*Table
+	sync.RWMutex
+}
+
+func (b *Both) Hold() {
+	b.Lock()
+	b.Unlock()
+}
+`)
+	start := strings.Index(rust, "impl Both {")
+	if start < 0 {
+		t.Fatalf("missing impl Both:\n%s", rust)
+	}
+	both := rust[start:]
+	if !strings.Contains(both, "pub fn lock(&self) {\n        let embedded_ref = &self.r_w_mutex;\n        embedded_ref.lock()") {
+		t.Fatalf("Both's lock should be its own mutex's:\n%s", both)
+	}
+	if strings.Contains(both, "fn lock(&self) {\n        self.__go_rw_mutex().lock()") {
+		t.Fatalf("Both's lock should not go through Table:\n%s", both)
+	}
+}

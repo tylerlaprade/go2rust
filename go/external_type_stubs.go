@@ -426,12 +426,21 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 	}
 
 	var promoted []externalPromotedMethod
+	// A directly embedded sync.RWMutex is at depth zero and wins over one
+	// promoted through an embedded struct, whatever the field order.
 	for _, field := range structDef.ASTType.Fields.List {
 		if len(field.Names) > 0 {
 			continue
 		}
 		if methods, ok := embeddedRWMutexPromotedMethods(field, existingRustNames); ok {
 			promoted = append(promoted, methods...)
+		}
+	}
+	for _, field := range structDef.ASTType.Fields.List {
+		if len(field.Names) > 0 {
+			continue
+		}
+		if isSyncRWMutexField(field) {
 			continue
 		}
 		promoted = append(promoted, embeddedStructRWMutexPromotedMethods(field, existingRustNames)...)
@@ -5381,14 +5390,10 @@ func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, i
 // the helper's own method on it: t.RLock() on a struct embedding one is
 // t.r_w_mutex.r_lock().
 func embeddedRWMutexPromotedMethods(field *ast.Field, existingRustNames map[string]bool) ([]externalPromotedMethod, bool) {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || field == nil {
+	if !isSyncRWMutexField(field) {
 		return nil, false
 	}
-	named, ok := types.Unalias(typeInfo.GetType(field.Type)).(*types.Named)
-	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "sync" || named.Obj().Name() != "RWMutex" {
-		return nil, false
-	}
+	named := types.Unalias(GetTypeInfo().GetType(field.Type)).(*types.Named)
 	var promoted []externalPromotedMethod
 	methodSet := types.NewMethodSet(types.NewPointer(named))
 	for i := 0; i < methodSet.Len(); i++ {
@@ -5483,4 +5488,14 @@ func embeddedStructRWMutexPromotedMethods(field *ast.Field, existingRustNames ma
 		})
 	}
 	return promoted
+}
+
+// isSyncRWMutexField reports whether field embeds a sync.RWMutex value.
+func isSyncRWMutexField(field *ast.Field) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(field.Type)).(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "RWMutex"
 }
