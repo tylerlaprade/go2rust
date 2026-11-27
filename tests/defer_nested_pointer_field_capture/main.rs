@@ -916,11 +916,11 @@ impl writer {
 
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            { let __target = (*self.p.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            { let __target = (*{ let __base = self.p.clone(); __base }.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
             let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move || {
         let mut w_defer_captured = w_defer_captured.clone();
-        { let __target = (*w_defer_captured.p.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
+        { let __target = (*{ let __base = w_defer_captured.p.clone(); __base }.borrow().as_ref().unwrap()).indent.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }) as Rc<dyn Fn() -> ()>))); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
     }));
 
@@ -953,5 +953,5 @@ fn main() {
     go_install_panic_exit();
     let mut w = Rc::new(RefCell::new(Some(writer { p: Rc::new(RefCell::new(Some(exporter { indent: Rc::new(RefCell::new(Some(0))) }))).clone(), ..Default::default() })));
     (*w.borrow_mut().as_mut().unwrap()).do_trace();
-    println!("{}", format!("{}", (*(*(*w.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*{ let __base = (*w.borrow().as_ref().unwrap()).p.clone(); __base }.borrow().as_ref().unwrap()).indent.borrow().as_ref().unwrap())));
 }

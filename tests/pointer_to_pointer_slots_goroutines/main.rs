@@ -1518,7 +1518,7 @@ fn main() {
     }
     { let __slice_header = None; *vals.lock().unwrap() = __slice_header; };
     inorder({ let __field = (*t.lock().unwrap().as_ref().unwrap()).root.clone(); __field }, vals.clone());
-    println!("{} {}", format!("{}", format_slice(&vals)), format!("{}", (*(*(*t.lock().unwrap().as_ref().unwrap()).root.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", format_slice(&vals)), format!("{}", (*(*{ let __base = (*t.lock().unwrap().as_ref().unwrap()).root.clone(); __base }.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap())));
 
     let mut l = Arc::new(Mutex::new(Some(List { head: Default::default() })));
     let mut i = Arc::new(Mutex::new(Some(1i64)));

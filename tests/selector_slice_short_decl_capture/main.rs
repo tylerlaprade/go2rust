@@ -881,7 +881,7 @@ impl std::fmt::Display for reader {
 impl reader {
     pub fn collect(&mut self, vals: Rc<RefCell<Option<Vec<i64>>>>) {
         let mut vals = Rc::new(RefCell::new((*vals.borrow()).clone()));
-        let mut tparams = (*self.dict.borrow().as_ref().unwrap()).tparams.clone();
+        let mut tparams = (*{ let __base = self.dict.clone(); __base }.borrow().as_ref().unwrap()).tparams.clone();
         let mut tparams = { let __slice_header = GoSliceHeader::go_slice_header(&tparams); Rc::new(RefCell::new(__slice_header)) };
         let tparams_closure_clone = tparams.clone(); let vals_closure_clone = vals.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Rc::new(RefCell::new(Some(Rc::new(move || {
         { let __range_holder = vals_closure_clone.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, val) in __range_values.iter().copied().enumerate() {
@@ -897,5 +897,5 @@ fn main() {
     let mut vals = Rc::new(RefCell::new(Some(vec![3i64, 4i64])));
     (*r.borrow_mut().as_mut().unwrap()).collect(vals.clone());
     { let __f_holder = (*(*r.borrow().as_ref().unwrap()).later.borrow().as_ref().unwrap())[(0) as usize].clone(); let __f: Rc<dyn Fn() -> ()> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)() };
-    println!("{} {}", format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*(*r.borrow().as_ref().unwrap()).dict.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone()));
+    println!("{} {}", format!("{}", (*(*{ let __base = (*r.borrow().as_ref().unwrap()).dict.clone(); __base }.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(0) as usize].clone()), format!("{}", (*(*{ let __base = (*r.borrow().as_ref().unwrap()).dict.clone(); __base }.borrow().as_ref().unwrap()).tparams.borrow().as_ref().unwrap())[(1) as usize].clone()));
 }

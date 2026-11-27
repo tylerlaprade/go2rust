@@ -1124,8 +1124,8 @@ fn main() {
     let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
     let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
     __eq
-}), format!("{}", (*(*(*c.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
-    { let new_val = "renamed".to_string(); *(*(*c.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = Some(new_val); };
+}), format!("{}", (*(*{ let __base = (*c.lock().unwrap().as_ref().unwrap()).parent.clone(); __base }.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let new_val = "renamed".to_string(); *(*{ let __base = (*c.lock().unwrap().as_ref().unwrap()).parent.clone(); __base }.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = Some(new_val); };
     println!("{}", format!("{}", (*{ let __field = (*root.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
     let mut done = GoChannel::<bool>::new();
     let c_thread = c.clone(); let done_thread = done.clone(); let root_thread = root.clone(); std::thread::spawn(move || {
@@ -1139,7 +1139,7 @@ fn main() {
             let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
             __eq
         } && {
-            let __left = (*(*k.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).parent.clone();
+            let __left = (*{ let __base = (*k.lock().unwrap().as_ref().unwrap()).parent.clone(); __base }.lock().unwrap().as_ref().unwrap()).parent.clone();
             let __right = root_thread.clone();
             let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
             let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };

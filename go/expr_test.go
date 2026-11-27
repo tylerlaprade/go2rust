@@ -10366,3 +10366,28 @@ func run() {
 		t.Errorf("Do must not release the lock before f runs:\n%s", helper)
 	}
 }
+
+// A pointer read out of a field is read in a block of its own before the
+// selector borrows its pointee, so kid.parent.left.val, with parent.left ==
+// kid, does not borrow or lock kid twice.
+func TestSelectorChainReadsEachPointerInItsOwnBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct {
+	val    int
+	parent *Node
+	left   *Node
+}
+
+func main() {
+	root := &Node{val: 1}
+	kid := &Node{val: 2, parent: root}
+	root.left = kid
+	kid.parent.left.parent = nil
+	_ = kid.parent.left.val
+}
+`)
+	if !strings.Contains(rust, "{ let __base = (*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.clone(); __base }") {
+		t.Fatalf("each pointer in the chain should be read in a block of its own:\n%s", rust)
+	}
+}

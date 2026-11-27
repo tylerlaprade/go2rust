@@ -571,7 +571,7 @@ pub fn recovered() -> Arc<Mutex<Option<Node>>> {
         {
         let mut r = go_recover();;
         if !{ let __nil_result = (*r.lock().unwrap()).as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result } {
-            println!("{} {} {}", format!("{}", "recovered".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*(*(*__cell_last_3_defer_captured.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));;
+            println!("{} {} {}", format!("{}", "recovered".to_string()), format!("{}", { let __text = match r.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", (*(*{ let __base = (*__cell_last_3_defer_captured.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));;
         }
     }
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
@@ -756,7 +756,7 @@ fn main() {
             } else {
                 let __go_cond_1 = {
                     let __tmp_x = (*(*{ let __seq = { let __seq_holder = list_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
-                    let __tmp_y = (*(*(*__cell_best_8_closure_clone.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = (*(*{ let __base = (*__cell_best_8_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
                     __tmp_x > __tmp_y
                 };
                 __go_cond_1
@@ -770,7 +770,7 @@ fn main() {
             __tmp_x < __tmp_y
         };
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>, Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))); let __sort_len = { let __sort_guard = __sort_target.lock().unwrap(); __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less.lock().unwrap(); let __less = __less_guard.as_mut().expect("sort.Slice less function is nil"); __less(Arc::new(Mutex::new(Some(__sort_j as i64))), Arc::new(Mutex::new(Some((__sort_j - 1) as i64)))) }; if !__should_swap { break; } { let mut __sort_guard = __sort_target.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } };
-        println!("{} {}", format!("{}", (*(*(*__cell_best_8.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*{ let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
+        println!("{} {}", format!("{}", (*(*{ let __base = (*__cell_best_8.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*{ let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
         let mut cur: Arc<Mutex<Option<Node>>> = Arc::new(Mutex::new(None));
         let mut __cell_cur_9 = Arc::new(Mutex::new(Some(AnonymousStruct1 { v: cur.clone() })));
         let mut fs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
@@ -778,7 +778,7 @@ fn main() {
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x < __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x * __tmp_y }))), ..Default::default() }))).clone(); (*__cell_cur_9.lock().unwrap().as_mut().unwrap()).v = new_val; };
         let __cell_cur_9_closure_clone = __cell_cur_9.clone(); { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = fs.clone(); let __append_value = Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
-        return (*(*(*__cell_cur_9_closure_clone.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
+        return (*(*{ let __base = (*__cell_cur_9_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap());
     }) as Arc<dyn Fn() -> i64 + Send + Sync>))); let mut __appended: Vec<Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *fs.lock().unwrap() = __slice_header; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -797,7 +797,7 @@ fn main() {
         let mut __rf_done_2: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         let __cell_q_10_closure_clone = __cell_q_10.clone(); { let __f_holder = nodes(Arc::new(Mutex::new(Some(vec![1, 2, 3])))); let __f: Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<Node>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(Arc::new(move |__rf_param_2_0: Arc<Mutex<Option<Node>>>| -> bool {
         { let new_val = __rf_param_2_0.clone(); (*__cell_q_10_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
-        println!("{} {}", format!("{}", "bound".to_string()), format!("{}", (*(*(*__cell_q_10_closure_clone.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "bound".to_string()), format!("{}", (*(*{ let __base = (*__cell_q_10_closure_clone.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
         { let new_val = Arc::new(Mutex::new(None)); (*__cell_q_10_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
         return false;
         true
@@ -831,7 +831,7 @@ fn main() {
         return;
     }
     }
-        println!("{}", format!("{}", (*(*(*__cell_last_11.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
+        println!("{}", format!("{}", (*(*{ let __base = (*__cell_last_11.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
         let mut lm: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>> = Arc::new(Mutex::new(None));
         let mut __cell_lm_12 = Arc::new(Mutex::new(Some(AnonymousStruct2 { v: lm.clone() })));
         let mut __rf_done_4: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
@@ -854,7 +854,7 @@ fn main() {
         let mut __cell_done_13 = Arc::new(Mutex::new(Some(AnonymousStruct1 { v: done.clone() })));
         let __cell_done_13_defer_captured = __cell_done_13.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
-        println!("{} {}", format!("{}", "done".to_string()), format!("{}", (*(*(*__cell_done_13_defer_captured.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
+        println!("{} {}", format!("{}", "done".to_string()), format!("{}", (*(*{ let __base = (*__cell_done_13_defer_captured.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())));
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }));
         { let new_val = Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some(42))), ..Default::default() }))).clone(); (*__cell_done_13.lock().unwrap().as_mut().unwrap()).v = new_val; };
