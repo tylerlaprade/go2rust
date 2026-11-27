@@ -746,13 +746,18 @@ fn go_panic_value_text(__payload: &dyn Any) -> String {
         };
     }
     go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
-    if let Some(__value) = __payload.downcast_ref::<f64>() {
-        // Go prints a float in a panic as +1.500000e+000.
+    // Go prints a float in a panic as +1.500000e+000; a float32 is widened
+    // to float64 first, as Go's print does.
+    let __float = __payload
+        .downcast_ref::<f64>()
+        .copied()
+        .or_else(|| __payload.downcast_ref::<f32>().map(|__value| *__value as f64));
+    if let Some(__value) = __float {
         if __value.is_nan() {
             return String::from("NaN");
         }
         if __value.is_infinite() {
-            return String::from(if *__value > 0.0 { "+Inf" } else { "-Inf" });
+            return String::from(if __value > 0.0 { "+Inf" } else { "-Inf" });
         }
         let __text = format!("{:+.6e}", __value);
         if let Some((__mantissa, __exponent)) = __text.split_once('e') {

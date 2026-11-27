@@ -1,0 +1,4 @@
+started
+recovered: 2.5
+recovered: 0.25
+panic: +1.500000e+000
