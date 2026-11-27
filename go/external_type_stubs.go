@@ -1332,7 +1332,6 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsHexFormat = dst.needsHexFormat || src.needsHexFormat
 	dst.needsStrconvFormat = dst.needsStrconvFormat || src.needsStrconvFormat
 	dst.needsUrl = dst.needsUrl || src.needsUrl
-	dst.needsRegexp = dst.needsRegexp || src.needsRegexp
 	dst.needsJsonEscape = dst.needsJsonEscape || src.needsJsonEscape
 	dst.needsGoNilAny = dst.needsGoNilAny || src.needsGoNilAny
 	dst.needsGoSliceAppendCopying = dst.needsGoSliceAppendCopying || src.needsGoSliceAppendCopying

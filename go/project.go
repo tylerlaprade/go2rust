@@ -84,6 +84,41 @@ func NewProjectGenerator(goFiles []string) *ProjectGenerator {
 	}
 }
 
+// packageLoadPatterns names the program's package for go list: the
+// directory inside a Go module, and the files themselves outside one,
+// where go list resolves no package "." but runs files as go run does.
+func (pg *ProjectGenerator) packageLoadPatterns() []string {
+	if directoryIsInGoModule(pg.projectPath) {
+		return []string{"."}
+	}
+	patterns := make([]string, 0, len(pg.goFiles))
+	for _, file := range pg.goFiles {
+		patterns = append(patterns, filepath.Base(file))
+	}
+	return patterns
+}
+
+// directoryIsInGoModule reports whether dir or a parent holds a go.mod or
+// a go.work.
+func directoryIsInGoModule(dir string) bool {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return true
+	}
+	for {
+		for _, name := range []string{"go.mod", "go.work"} {
+			if _, err := os.Stat(filepath.Join(abs, name)); err == nil {
+				return true
+			}
+		}
+		parent := filepath.Dir(abs)
+		if parent == abs {
+			return false
+		}
+		abs = parent
+	}
+}
+
 // SetExternalPackageMode sets how external packages should be handled
 func (pg *ProjectGenerator) SetExternalPackageMode(mode ExternalPackageMode) {
 	pg.externalMode = mode
@@ -177,7 +212,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		loader := NewPackageLoader(pg.projectPath)
 
 		// Load with the current directory pattern
-		if err := loader.LoadWithDependencies([]string{"."}); err != nil {
+		if err := loader.LoadWithDependencies(pg.packageLoadPatterns()); err != nil {
 			return fmt.Errorf("failed to load packages: %v", err)
 		}
 

@@ -1,0 +1,10 @@
+[[a@b.com a b] [c@d.com c d]]
+[2 9] 2
+A@B.COM
+b at a
+year 2024
+month 05
+[a b c]
+1\+1=2\? true
+error parsing regexp: missing closing ): `a(b`
+true (\w+)@(\w+)\.com

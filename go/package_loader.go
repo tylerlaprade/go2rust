@@ -87,6 +87,8 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"container/heap":        true,
 	"sort":                  true,
 	"math/cmplx":            true,
+	"regexp":                true,
+	"regexp/syntax":         true,
 }
 
 // NewPackageLoader creates a new package loader

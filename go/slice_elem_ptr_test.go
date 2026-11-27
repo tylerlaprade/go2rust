@@ -4230,7 +4230,8 @@ func pick(bucket []entry) *entry {
 	if strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
 		t.Fatalf("direct slice element pointer return should not hit the loud fallback:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(GoSliceElemPtr::new(bucket.clone(),") {
+	// The index reads the slice, so it is bound before the pointer is built.
+	if !strings.Contains(rust, "Some({ let __elem_slice = bucket.clone(); let __elem_index = ") || !strings.Contains(rust, "GoSliceElemPtr::new(__elem_slice, __elem_index) })") {
 		t.Fatalf("direct slice element pointer return should preserve slice/index identity:\n%s", rust)
 	}
 }
