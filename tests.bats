@@ -1316,6 +1316,14 @@ run_xfail_test() {
     run_test "tests/defined_byte_slice_conversions_goroutines"
 }
 
+@test "defined_collection_display" {
+    run_test "tests/defined_collection_display"
+}
+
+@test "defined_collection_display_goroutines" {
+    run_test "tests/defined_collection_display_goroutines"
+}
+
 @test "defined_collection_types_local_and_elided" {
     run_test "tests/defined_collection_types_local_and_elided"
 }
