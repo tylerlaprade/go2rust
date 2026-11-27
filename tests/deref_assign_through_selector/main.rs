@@ -1000,13 +1000,13 @@ fn main() {
         __owner
     };
     { let new_val = Rc::new(RefCell::new(Some(Employee { name: Rc::new(RefCell::new(Some("dan".to_string()))), dept: (*team.borrow().as_ref().unwrap()).dept.clone().clone(), ..Default::default() }))).clone(); (*(*team.borrow_mut().as_mut().unwrap()).dept.borrow_mut().as_mut().unwrap()).lead = new_val; };
-    { let new_val = Dept { name: Rc::new(RefCell::new(Some("ops2".to_string()))), ..Default::default() }; let __deref_target = (*(*(*team.borrow_mut().as_mut().unwrap()).dept.borrow_mut().as_mut().unwrap()).lead.borrow().as_ref().unwrap()).dept.clone(); *__deref_target.borrow_mut() = Some(new_val); };
+    { let new_val = Dept { name: Rc::new(RefCell::new(Some("ops2".to_string()))), ..Default::default() }; let __deref_target = (*{ let __base = (*(*team.borrow_mut().as_mut().unwrap()).dept.borrow_mut().as_mut().unwrap()).lead.clone(); __base }.borrow().as_ref().unwrap()).dept.clone(); *__deref_target.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", (*(*(*team.borrow().as_ref().unwrap()).dept.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", { let __nil_target = (*(*team.borrow_mut().as_mut().unwrap()).dept.borrow_mut().as_mut().unwrap()).lead.clone(); let __nil_result = (*__nil_target.borrow()).is_none(); __nil_result }));
 
     let mut d = Rc::new(RefCell::new(Some(Dept { name: Rc::new(RefCell::new(Some("a".to_string()))), ..Default::default() })));
     { let new_val = Rc::new(RefCell::new(Some(Employee { name: Rc::new(RefCell::new(Some("e".to_string()))), dept: d.clone(), ..Default::default() }))).clone(); (*d.borrow_mut().as_mut().unwrap()).lead = new_val; };
-    { let new_val = Dept { name: Rc::new(RefCell::new(Some("b".to_string()))), lead: { let __field = (*d.borrow().as_ref().unwrap()).lead.clone(); __field }, ..Default::default() }; let __deref_target = (*(*d.borrow().as_ref().unwrap()).lead.borrow().as_ref().unwrap()).dept.clone(); *__deref_target.borrow_mut() = Some(new_val); };
-    println!("{} {}", format!("{}", (*(*d.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*(*d.borrow().as_ref().unwrap()).lead.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
+    { let new_val = Dept { name: Rc::new(RefCell::new(Some("b".to_string()))), lead: { let __field = (*d.borrow().as_ref().unwrap()).lead.clone(); __field }, ..Default::default() }; let __deref_target = (*{ let __base = (*d.borrow().as_ref().unwrap()).lead.clone(); __base }.borrow().as_ref().unwrap()).dept.clone(); *__deref_target.borrow_mut() = Some(new_val); };
+    println!("{} {}", format!("{}", (*(*d.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()), format!("{}", (*(*{ let __base = (*d.borrow().as_ref().unwrap()).lead.clone(); __base }.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone()));
 
     let mut b = Rc::new(RefCell::new(Some(Box_ { items: Rc::new(RefCell::new(Some(vec![d.clone()]))), ..Default::default() })));
     { let new_val = Dept { name: Rc::new(RefCell::new(Some("c".to_string()))), ..Default::default() }; let __deref_target = (*(*b.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap())[(0) as usize].clone().clone(); *__deref_target.borrow_mut() = Some(new_val); };
