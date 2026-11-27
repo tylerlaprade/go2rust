@@ -83,3 +83,51 @@ func (b *Both) Hold() {
 		t.Fatalf("Both's lock should not go through Table:\n%s", both)
 	}
 }
+
+// Go promotes a sync.RWMutex method from the shallowest embedded field, so
+// with Outer{ *Middle; *Shallow } and Middle's mutex one level deeper than
+// Shallow's, Outer's forwarders go through Shallow even though Middle comes
+// first.
+func TestRWMutexMethodsComeFromTheShallowestEmbeddedField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Deep struct {
+	sync.RWMutex
+}
+
+type Middle struct {
+	*Deep
+}
+
+type Shallow struct {
+	sync.RWMutex
+}
+
+type Outer struct {
+	*Middle
+	*Shallow
+}
+
+func main() {
+	o := Outer{Middle: &Middle{Deep: &Deep{}}, Shallow: &Shallow{}}
+	o.Lock()
+	o.Shallow.Unlock()
+}
+`)
+	start := strings.Index(rust, "impl Outer {\n    pub fn __go_rw_mutex")
+	if start < 0 {
+		t.Fatalf("missing Outer's RWMutex forwarders:\n%s", rust)
+	}
+	outer := rust[start:]
+	if end := strings.Index(outer[1:], "\nimpl "); end >= 0 {
+		outer = outer[:end+1]
+	}
+	if !strings.Contains(outer, "let embedded = self.shallow.clone();") {
+		t.Fatalf("Outer's mutex should be Shallow's:\n%s", outer)
+	}
+	if strings.Contains(outer, "self.middle.clone()") {
+		t.Fatalf("Outer's mutex should not come through Middle:\n%s", outer)
+	}
+}

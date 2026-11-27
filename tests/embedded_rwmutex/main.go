@@ -45,6 +45,26 @@ type Both struct {
 	sync.RWMutex
 }
 
+// Deep's mutex is two levels below Outer and Shallow's is one, so Go
+// promotes Outer.Lock from Shallow.
+type Deep struct {
+	sync.RWMutex
+}
+
+type Middle struct {
+	*Deep
+}
+
+type Shallow struct {
+	sync.RWMutex
+	n int
+}
+
+type Outer struct {
+	*Middle
+	*Shallow
+}
+
 func main() {
 	t := &Table{m: map[string]int{"a": 1}}
 	t.Write("b", 2)
@@ -75,4 +95,13 @@ func main() {
 	both.RLock()
 	fmt.Println("both", len(both.m))
 	both.RUnlock()
+
+	o := Outer{Middle: &Middle{Deep: &Deep{}}, Shallow: &Shallow{n: 7}}
+	o.Lock()
+	o.Shallow.Unlock() // the lock o.Lock took
+	o.Deep.Lock()      // free: o.Lock did not take it
+	o.Deep.Unlock()
+	o.RLock()
+	fmt.Println("outer", o.n)
+	o.RUnlock()
 }

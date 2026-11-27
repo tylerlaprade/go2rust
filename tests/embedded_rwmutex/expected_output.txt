@@ -2,3 +2,4 @@
 reg 4
 5
 both 4
+outer 7

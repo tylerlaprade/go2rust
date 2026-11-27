@@ -523,6 +523,124 @@ impl std::fmt::Display for Both {
 }
 
 
+/// Deep's mutex is two levels below Outer and Shallow's is one, so Go
+/// promotes Outer.Lock from Shallow.
+#[derive(Clone)]
+pub struct Deep {
+    pub r_w_mutex: GoRWMutex,
+}
+
+impl Deep {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.r_w_mutex.clone();
+        Self {
+            r_w_mutex: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Deep {
+    fn default() -> Self {
+        let __go_default_0_0 = GoRWMutex::new();
+        Self {
+            r_w_mutex: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Deep {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
+    }
+}
+
+
+#[derive(Clone, Default)]
+pub struct Middle {
+    pub deep: Arc<Mutex<Option<Deep>>>,
+}
+
+impl Middle {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.deep.clone();
+        Self {
+            deep: __go_clone_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Middle {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.deep.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct Shallow {
+    pub r_w_mutex: GoRWMutex,
+    pub n: Arc<Mutex<Option<i64>>>,
+}
+
+impl Shallow {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.r_w_mutex.clone();
+        let __go_clone_1_0 = { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            r_w_mutex: __go_clone_0_0,
+            n: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Shallow {
+    fn default() -> Self {
+        let __go_default_0_0 = GoRWMutex::new();
+        let __go_default_1_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            r_w_mutex: __go_default_0_0,
+            n: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Shallow {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.n.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone, Default)]
+pub struct Outer {
+    pub middle: Arc<Mutex<Option<Middle>>>,
+    pub shallow: Arc<Mutex<Option<Shallow>>>,
+}
+
+impl Outer {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.middle.clone();
+        let __go_clone_1_0 = self.shallow.clone();
+        Self {
+            middle: __go_clone_0_0,
+            shallow: __go_clone_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Outer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.middle.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __guard = self.shallow.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 impl Table {
     pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
@@ -681,6 +799,106 @@ impl Both {
     }
 }
 
+impl Deep {
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        self.r_w_mutex.clone()
+    }
+
+    pub fn lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.lock()
+    }
+
+    pub fn r_lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.unlock()
+    }
+}
+
+impl Middle {
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        let embedded = self.deep.clone();
+        let guard = embedded.lock().unwrap();
+        guard.as_ref().unwrap().__go_rw_mutex()
+    }
+
+    pub fn lock(&self) {
+        self.__go_rw_mutex().lock()
+    }
+
+    pub fn r_lock(&self) {
+        self.__go_rw_mutex().r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        self.__go_rw_mutex().r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        self.__go_rw_mutex().unlock()
+    }
+}
+
+impl Outer {
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        let embedded = self.shallow.clone();
+        let guard = embedded.lock().unwrap();
+        guard.as_ref().unwrap().__go_rw_mutex()
+    }
+
+    pub fn lock(&self) {
+        self.__go_rw_mutex().lock()
+    }
+
+    pub fn r_lock(&self) {
+        self.__go_rw_mutex().r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        self.__go_rw_mutex().r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        self.__go_rw_mutex().unlock()
+    }
+}
+
+impl Shallow {
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        self.r_w_mutex.clone()
+    }
+
+    pub fn lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.lock()
+    }
+
+    pub fn r_lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.unlock()
+    }
+}
+
 fn main() {
     go_install_panic_exit();
     ::math_bits::__go_init_all();
@@ -720,6 +938,27 @@ fn main() {
     { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_lock(); __result };
     println!("{} {}", format!("{}", "both".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*both.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
     { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_unlock(); __result };
+    let mut o = Arc::new(Mutex::new(Some(Outer {
+        middle: {
+            let __owner = Arc::new(Mutex::new(Some(Middle {
+                deep: Arc::new(Mutex::new(Some(Deep { r_w_mutex: GoRWMutex::new() }))).clone(),
+                ..Default::default()
+            })));
+            let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().deep.clone() };
+            let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+            go_register_embedded_owner(__embedded_key, __owner.clone());
+            __owner
+        }.clone(),
+        shallow: Arc::new(Mutex::new(Some(Shallow { n: Arc::new(Mutex::new(Some(7))), ..Default::default() }))).clone(),
+        ..Default::default()
+    })));
+    (*o.lock().unwrap().as_mut().unwrap()).lock();
+    (*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_mut().unwrap()).unlock();
+    (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).lock();
+    (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).unlock();
+    (*o.lock().unwrap().as_mut().unwrap()).r_lock();
+    println!("{} {}", format!("{}", "outer".to_string()), format!("{}", (*(*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
+    (*o.lock().unwrap().as_mut().unwrap()).r_unlock();
 }
 
 impl GoValueClone for Table {
@@ -737,6 +976,34 @@ impl GoValueClone for Registry {
 
 
 impl GoValueClone for Both {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Deep {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Middle {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Shallow {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Outer {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

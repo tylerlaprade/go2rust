@@ -3,3 +3,4 @@ reg 8
 16
 5
 both 16
+outer 7
