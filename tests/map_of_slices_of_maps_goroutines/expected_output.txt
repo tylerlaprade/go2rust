@@ -1,0 +1,8 @@
+started
+map[a:[map[x:1 y:2] map[]] b:[]]
+[map[x:1 y:2] map[]] 0
+map[a:[map[x:1 y:2] map[]] b:[map[z:3]]]
+map[a:[map[x:1 y:2] map[]] b:[map[z:3]] c:[map[q:9] map[]]]
+map[docs:[map[go:[spec faq] rust:[]]]]
+map[1:[map[origin:{0 0}] map[corner:{3 4}]]]
+map[]

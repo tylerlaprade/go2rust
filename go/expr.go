@@ -16500,8 +16500,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if i > 0 {
 								out.WriteString(", ")
 							}
+							// A slice holds its maps bare, and a bare map
+							// cannot be nil: a nil element is an empty map,
+							// as in an explicit []map[K]V literal.
+							elemType := typ.Underlying().(*types.Slice).Elem()
+							if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" {
+								if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap {
+									out.WriteString(zeroValueForTypesType(elemType))
+									continue
+								}
+							}
 							// Recursively transpile elements.
-							if !writeArraySliceLiteralElementValue(out, elt, typ.Underlying().(*types.Slice).Elem()) {
+							if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 								TranspileExpression(out, elt)
 							}
 						}
