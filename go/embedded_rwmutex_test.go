@@ -391,3 +391,36 @@ func TestPromotedMethodsWithoutTypeInfoAreUnimplemented(t *testing.T) {
 		t.Fatalf("the forwarder should be unimplemented without type info:\n%s", got)
 	}
 }
+
+// go r.Unlock() takes the mutex before the goroutine starts, and get().Lock()
+// and items[0].Lock() take it out of the pointee before waiting.
+func TestRWMutexGoStatementAndCallOrIndexReceivers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Table struct {
+	sync.RWMutex
+}
+
+type Registry struct {
+	*Table
+}
+
+func main() {
+	regs := []*Registry{{Table: &Table{}}}
+	get := func() *Registry { return regs[0] }
+	get().Lock()
+	go regs[0].Unlock()
+	r := regs[0]
+	r.Lock()
+	go r.Unlock()
+}
+`)
+	if !strings.Contains(rust, "let __go_mutex = { let __recv = r.clone(); ") || !strings.Contains(rust, "__go_mutex.unlock();") {
+		t.Fatalf("go r.Unlock() should take the mutex before spawning:\n%s", rust)
+	}
+	if strings.Count(rust, "__go_rw_mutex(); __sync_value } }.lock()") < 1 {
+		t.Fatalf("get().Lock() should take the mutex out before waiting:\n%s", rust)
+	}
+}

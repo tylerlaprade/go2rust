@@ -163,4 +163,13 @@ func main() {
 	swapped.Lock()
 	swapped.Unlock()
 	fmt.Println("deferred unlock", len(swapped.m))
+
+	// Receivers read from a call or an index lock the same mutex.
+	regs := []*Registry{{Table: &Table{m: map[string]int{}}}}
+	get := func() *Registry { return regs[0] }
+	get().Lock()
+	regs[0].Unlock()
+	regs[0].Lock()
+	get().Unlock()
+	fmt.Println("call and index receivers")
 }

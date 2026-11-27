@@ -17706,6 +17706,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		// go r.Unlock() through an embedded sync.RWMutex: Go follows the
+		// embedded fields to the mutex before the goroutine starts, so the
+		// goroutine unlocks that mutex even if one of those fields is
+		// reassigned before it runs.
+		goMutexCall := ""
+		if sel, ok := s.Call.Fun.(*ast.SelectorExpr); ok && len(s.Call.Args) == 0 && isForwardedRWMutexMethodCall(sel) {
+			out.WriteString("let __go_mutex = ")
+			writeForwardedRWMutexOf(out, sel.X)
+			out.WriteString("; ")
+			goMutexCall = "__go_mutex." + rustMethodSelectorName(sel) + "()"
+		}
+
 		// Store current capture renames for nested transpilation
 		captureRenames := make(map[string]string)
 		for _, varName := range capturedVars {
@@ -17826,6 +17838,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					finishPanicRecoverCatchWith(out, "        ", func() { out.WriteString("()") })
 				}
 			}
+		} else if goMutexCall != "" {
+			out.WriteString(goMutexCall)
 		} else {
 			// Regular function call
 			TranspileCall(out, s.Call)

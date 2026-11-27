@@ -1234,6 +1234,31 @@ fn main() {
     { let __sync_value = (*swapped.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
     { let __sync_value = (*swapped.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
     println!("{} {}", format!("{}", "deferred unlock".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*swapped.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    let mut regs = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Registry {
+        table: Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), ..Default::default() }))).clone(),
+        ..Default::default()
+    })))])));
+    let regs_closure_clone = regs.clone(); let mut get = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<Registry>>> {
+        return {
+            let __seq = { let __seq_holder = regs_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned };
+            __seq[(0) as usize].clone()
+        };
+    }) as Arc<dyn Fn() -> Arc<Mutex<Option<Registry>>> + Send + Sync>)));
+    { let __recv = {
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Registry>>> + Send + Sync> = get.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+
+        )
+    }; { let __sync_value = (*__recv.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value } }.lock();
+    { let __recv = { let __seq = { let __seq_holder = regs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; { let __sync_value = (*__recv.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value } }.unlock();
+    { let __recv = { let __seq = { let __seq_holder = regs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; { let __sync_value = (*__recv.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value } }.lock();
+    { let __recv = {
+        let __f: Arc<dyn Fn() -> Arc<Mutex<Option<Registry>>> + Send + Sync> = get.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+
+        )
+    }; { let __sync_value = (*__recv.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value } }.unlock();
+    println!("{}", format!("{}", "call and index receivers".to_string()));
 }
 
 impl GoValueClone for Table {

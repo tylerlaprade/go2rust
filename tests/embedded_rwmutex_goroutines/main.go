@@ -198,33 +198,36 @@ func main() {
 	fmt.Println(shared.name, len(shared.m))
 
 	// A reader that waits behind a writer gets the lock before the next
-	// writer does, as in Go. The order is best effort: the sleeps give the
-	// reader, then the writer, time to start waiting. A goroutine that starts
-	// late changes the order printed, and never leaves the program waiting.
-	var mu sync.RWMutex
-	mu.Lock()
-	order := make(chan string, 2)
-	finished := make(chan bool)
-	go func() {
-		mu.RLock()
-		order <- "reader"
-		mu.RUnlock()
-		finished <- true
-	}()
-	time.Sleep(20 * time.Millisecond)
-	go func() {
+	// writer does, as in Go. Each round gives the reader, then a second
+	// writer, time to start waiting before the lock is let go; a goroutine
+	// that starts late only changes that round's order. Over rounds with
+	// longer waits, a lock that lets waiting readers in first shows it.
+	readerFirst := false
+	for round, wait := 0, 10*time.Millisecond; round < 5 && !readerFirst; round, wait = round+1, wait*2 {
+		var mu sync.RWMutex
 		mu.Lock()
-		order <- "writer"
+		order := make(chan string, 2)
+		finished := make(chan bool)
+		go func() {
+			mu.RLock()
+			order <- "reader"
+			mu.RUnlock()
+			finished <- true
+		}()
+		time.Sleep(wait)
+		go func() {
+			mu.Lock()
+			order <- "writer"
+			mu.Unlock()
+			finished <- true
+		}()
+		time.Sleep(wait)
 		mu.Unlock()
-		finished <- true
-	}()
-	time.Sleep(20 * time.Millisecond)
-	mu.Unlock()
-	<-finished
-	<-finished
-	first := <-order
-	second := <-order
-	fmt.Println(first, "before", second)
+		<-finished
+		<-finished
+		readerFirst = <-order == "reader"
+	}
+	fmt.Println("waiting reader before the next writer:", readerFirst)
 
 	// Goroutines lock a mutex reached through pointer fields while main
 	// holds it, and main unlocks it through the same fields: each waits
@@ -277,4 +280,43 @@ func main() {
 	swapped.Lock()
 	swapped.Unlock()
 	fmt.Println("deferred unlock", len(swapped.m))
+
+	// A go statement takes the mutex it unlocks when it is run, not when
+	// the goroutine starts.
+	gheld := &Table{m: map[string]int{}}
+	greg := &Registry{Table: gheld}
+	greg.Lock()
+	go greg.Unlock()
+	greg.Table = &Table{m: map[string]int{}}
+	gheld.Lock() // waits for the goroutine to unlock gheld
+	gheld.Unlock()
+	fmt.Println("go unlock")
+
+	// Goroutines lock through a call and an index while main holds the
+	// mutex; each waits holding no cell main needs to unlock it.
+	regs := []*Registry{{Table: &Table{m: map[string]int{}}}}
+	get := func() *Registry { return regs[0] }
+	get().Lock()
+	ready := make(chan bool)
+	var wg5 sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg5.Add(1)
+		go func(i int) {
+			defer wg5.Done()
+			ready <- true
+			if i == 0 {
+				get().Lock()
+				get().Unlock()
+			} else {
+				regs[0].Lock()
+				regs[0].Unlock()
+			}
+		}(i)
+	}
+	<-ready
+	<-ready
+	time.Sleep(20 * time.Millisecond)
+	regs[0].Unlock()
+	wg5.Wait()
+	fmt.Println("call and index receivers")
 }

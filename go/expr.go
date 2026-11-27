@@ -24677,10 +24677,29 @@ func writeForwardedRWMutexReceiver(out *strings.Builder, cell string) {
 	out.WriteString(".")
 }
 
+// writeForwardedRWMutexCallOnPointerResult writes get().Lock() or
+// items[0].Lock(), a sync.RWMutex method through an embedded mutex on a
+// pointer read from a call or an index: the mutex is taken out of the
+// pointee first, so the call waits holding none of its guards, as a call on
+// a variable or a field does.
+func writeForwardedRWMutexCallOnPointerResult(out *strings.Builder, call *ast.CallExpr, sel *ast.SelectorExpr) bool {
+	if len(call.Args) != 0 || !isForwardedRWMutexMethodCall(sel) || !typeInfoIsPointerExpr(sel.X) {
+		return false
+	}
+	switch unwrapParens(sel.X).(type) {
+	case *ast.CallExpr, *ast.IndexExpr:
+	default:
+		return false
+	}
+	writeForwardedRWMutexOf(out, sel.X)
+	out.WriteString("." + rustMethodSelectorName(sel) + "()")
+	return true
+}
+
 // writeForwardedRWMutexOf writes, as a block, the sync.RWMutex that recv has
-// by embedding one, as Go selects it now: for a method value or a deferred
-// call, which follow the embedded fields when they are made, not when they
-// run.
+// by embedding one, as Go selects it now: for a method value, a deferred
+// call or a go statement, which follow the embedded fields when they are
+// made, not when they run.
 func writeForwardedRWMutexOf(out *strings.Builder, recv ast.Expr) {
 	out.WriteString("{ let __recv = ")
 	writePointerHandleExpression(out, recv)
@@ -25230,6 +25249,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		if writeNamedIntegerValueReceiverMethodCall(out, sel, call) {
+			return
+		}
+		if writeForwardedRWMutexCallOnPointerResult(out, call, sel) {
 			return
 		}
 

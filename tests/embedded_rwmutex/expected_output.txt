@@ -7,3 +7,4 @@ picky locked 0
 picky 0
 method value 1
 deferred unlock 1
+call and index receivers

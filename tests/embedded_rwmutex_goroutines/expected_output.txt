@@ -5,9 +5,11 @@ reg 8
 both 16
 outer 7
 shared 4
-reader before writer
+waiting reader before the next writer: true
 deep shared
 picky locked 0
 picky 0
 method value 1
 deferred unlock 1
+go unlock
+call and index receivers
