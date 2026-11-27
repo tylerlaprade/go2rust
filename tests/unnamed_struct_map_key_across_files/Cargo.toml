@@ -1,0 +1,11 @@
+[package]
+name = "unnamed_struct_map_key_across_files"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "unnamed_struct_map_key_across_files"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

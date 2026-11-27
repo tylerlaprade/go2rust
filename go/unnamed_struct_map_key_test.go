@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -77,5 +78,49 @@ func main() {
 	ordered := strings.Count(mainRS, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct AnonymousStruct")
 	if ordered != 2 {
 		t.Fatalf("the key struct and its unnamed struct field should both be ordered (got %d):\n%s", ordered, mainRS)
+	}
+}
+
+// An unnamed struct type written in one file of a package and used as a map
+// key only in another gets the key's equality and order.
+func TestUnnamedStructMapKeyFromAnotherFileIsOrdered(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "helpers.go"), `package main
+
+func origin() struct{ x, y int } { return struct{ x, y int }{0, 0} }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+func main() {
+	seen := map[struct{ x, y int }]bool{}
+	seen[origin()] = true
+	fmt.Println(len(seen))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go"), filepath.Join(tempDir, "helpers.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	files, err := filepath.Glob(filepath.Join(tempDir, "*.rs"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no Rust files written: %v", err)
+	}
+	var written string
+	for _, name := range files {
+		rs, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatalf("read %s: %v", name, err)
+		}
+		written += string(rs)
+	}
+	if !strings.Contains(written, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct AnonymousStruct1 {") {
+		t.Fatalf("the struct should get the key's equality and order wherever it is written:\n%s", written)
 	}
 }

@@ -5136,6 +5136,10 @@ run_xfail_test() {
     run_test "tests/unnamed_struct_map_key"
 }
 
+@test "unnamed_struct_map_key_across_files" {
+    run_test "tests/unnamed_struct_map_key_across_files"
+}
+
 @test "unnamed_struct_map_key_goroutines" {
     run_test "tests/unnamed_struct_map_key_goroutines"
 }

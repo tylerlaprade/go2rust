@@ -1050,6 +1050,19 @@ func anonymousStructAliasIsCompared(typeName string) bool {
 
 // anonymousStructIsCompared reports whether the anonymous struct written as
 // structType is one that the file compares.
+// anonymousStructIsPackageMapKey reports whether the anonymous struct
+// written as structType keys a map anywhere in the package: a file that
+// writes it, such as one returning struct{ x, y int }, gives it the equality
+// and order a key needs even when the map is in another file.
+func anonymousStructIsPackageMapKey(structType *ast.StructType) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || structType == nil {
+		return false
+	}
+	st, ok := types.Unalias(typeInfo.GetType(structType)).(*types.Struct)
+	return ok && currentMapKeyStructTypes()[mapKeyStructFieldsKey(st)]
+}
+
 func anonymousStructIsCompared(structType *ast.StructType) bool {
 	if len(comparedAnonymousStructs) == 0 {
 		return false
@@ -4739,7 +4752,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		*first = false
 		// A compared anonymous struct gets equality as a named one does.
 		comparedName := ""
-		if anonymousStructIsCompared(structType) || anonymousStructAliasIsCompared(typeName) || comparableStructTypes[typeName] {
+		if anonymousStructIsCompared(structType) || anonymousStructAliasIsCompared(typeName) || comparableStructTypes[typeName] || anonymousStructIsPackageMapKey(structType) {
 			comparedName = typeName
 			comparableStructTypes[typeName] = true
 		}
