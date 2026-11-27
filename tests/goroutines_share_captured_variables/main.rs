@@ -1114,7 +1114,7 @@ impl std::fmt::Debug for GoMutex {
 // A readers-writer lock: any number of readers, or one writer. A clone is
 // the same lock, as a *sync.RWMutex is. As in Go, a writer waiting for the
 // lock holds off readers that come after it, and the readers that were
-// waiting when a writer unlocks are let in before the next writer.
+// waiting when a writer unlocks are admitted before the next writer.
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex {
     inner: std::sync::Arc<(std::sync::Mutex<GoRWMutexState>, std::sync::Condvar)>,
