@@ -978,7 +978,21 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 }
 
 func structNeedsOrd(structName string) bool {
-	return structName != "" && currentMapKeyStructTypes()[structName]
+	if structName == "" {
+		return false
+	}
+	keys := currentMapKeyStructTypes()
+	if keys[structName] {
+		return true
+	}
+	// An anonymous struct written for a struct type declared in a function
+	// is a map key when that type is (#325).
+	if node, ok := anonymousStructs[structName]; ok {
+		if st, ok := types.Unalias(anonymousStructGoTypes[node]).(*types.Struct); ok {
+			return keys[mapKeyStructFieldsKey(st)]
+		}
+	}
+	return false
 }
 
 func currentMapKeyStructTypes() map[string]bool {

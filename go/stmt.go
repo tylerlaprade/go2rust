@@ -3233,6 +3233,46 @@ func funcLitParamNames(funcLit *ast.FuncLit) []string {
 	return names
 }
 
+// isFunctionLocalStructTypeName reports whether ident names a struct type
+// defined inside a function. It is written as an alias of the anonymous
+// struct of its fields, which, unlike a Go type alias, has no wrapper of its
+// own: a value of it is wrapped as a value of any struct is (#325).
+func isFunctionLocalStructTypeName(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident].(*types.TypeName)
+	if !ok {
+		obj, ok = typeInfo.info.Defs[ident].(*types.TypeName)
+	}
+	if !ok || obj.IsAlias() || obj.Pkg() == nil || obj.Parent() == obj.Pkg().Scope() {
+		return false
+	}
+	_, isStruct := obj.Type().Underlying().(*types.Struct)
+	return isStruct
+}
+
+// funcLiteralParamTypeExpr gives the type expression of the literal's i-th
+// parameter, or nil.
+func funcLiteralParamTypeExpr(funcLit *ast.FuncLit, i int) ast.Expr {
+	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
+		return nil
+	}
+	n := 0
+	for _, field := range funcLit.Type.Params.List {
+		names := len(field.Names)
+		if names == 0 {
+			names = 1
+		}
+		if i < n+names {
+			return field.Type
+		}
+		n += names
+	}
+	return nil
+}
+
 func pushFuncLitParamVarScope(funcLit *ast.FuncLit) func() {
 	vt := GetVarTable()
 	if vt == nil || funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
@@ -17710,7 +17750,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("let ")
 				out.WriteString(captureVar)
 				out.WriteString(" = ")
-				writeFunctionSignatureCallArgument(out, arg, funcLiteralParamType(funcLit, i))
+				if ident, ok := funcLiteralParamTypeExpr(funcLit, i).(*ast.Ident); ok && isFunctionLocalStructTypeName(ident) {
+					// A struct type declared in the function is a bare
+					// parameter of the literal, as in a call of the literal
+					// that is not a go statement (#325): the goroutine gets
+					// a copy of the value, taken out of the fresh cell the
+					// copy is written in.
+					out.WriteString("{ let __go_arg_cell = ")
+					writeFunctionSignatureCallArgument(out, arg, funcLiteralParamType(funcLit, i))
+					out.WriteString("; let __go_arg_value = __go_arg_cell")
+					WriteBorrowMethod(out, true)
+					out.WriteString(".take().unwrap(); __go_arg_value }")
+				} else {
+					writeFunctionSignatureCallArgument(out, arg, funcLiteralParamType(funcLit, i))
+				}
 				out.WriteString("; ")
 			}
 		}

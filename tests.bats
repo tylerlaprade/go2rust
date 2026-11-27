@@ -2408,6 +2408,14 @@ run_xfail_test() {
     run_test "tests/local_shadows_package_constant"
 }
 
+@test "local_struct_map_key" {
+    run_test "tests/local_struct_map_key"
+}
+
+@test "local_struct_map_key_goroutines" {
+    run_test "tests/local_struct_map_key_goroutines"
+}
+
 @test "local_sync_mutex_forms" {
     run_test "tests/local_sync_mutex_forms"
 }
