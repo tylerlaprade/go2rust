@@ -1034,7 +1034,7 @@ impl Inventory {
 
 fn main() {
     go_install_panic_exit();
-    let mut inv = Rc::new(RefCell::new(Some(Inventory { items: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])))), tags: Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<String>>>>>::from([(1i64, Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))))])))), mu: Default::default(), counts: Rc::new(RefCell::new(Some(counts::default()))), inner: Rc::new(RefCell::new(Some(AnonymousStruct1::default()))) })));
+    let mut inv = Rc::new(RefCell::new(Some(Inventory { items: Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([])))), tags: Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<Vec<String>>>>>::from([(1i64, Rc::new(RefCell::new(Some(vec!["a".to_string(), "b".to_string()]))))])))), ..Default::default() })));
     { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("z".to_string(), Rc::new(RefCell::new(Some(26i64))))])))); (*(*inv.borrow_mut().as_mut().unwrap()).counts.borrow_mut().as_mut().unwrap()).by_name = new_val; };
     { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<bool>>>>::from([("ok".to_string(), Rc::new(RefCell::new(Some(true))))])))); (*(*inv.borrow().as_ref().unwrap()).inner.borrow_mut().as_mut().unwrap()).m = new_val; };
     (*inv.borrow_mut().as_mut().unwrap()).add(Rc::new(RefCell::new(Some("apple".to_string()))), Rc::new(RefCell::new(Some(2))));

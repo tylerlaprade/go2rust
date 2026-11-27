@@ -1268,7 +1268,7 @@ fn main() {
     });
     started.recv().unwrap_or_default();
 
-    let mut inv = Arc::new(Mutex::new(Some(Inventory { items: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), tags: Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<String>>>>>::from([(1i64, Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()]))))])))), mu: Default::default(), counts: Arc::new(Mutex::new(Some(counts::default()))), inner: Arc::new(Mutex::new(Some(AnonymousStruct1::default()))) })));
+    let mut inv = Arc::new(Mutex::new(Some(Inventory { items: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), tags: Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<Vec<String>>>>>::from([(1i64, Arc::new(Mutex::new(Some(vec!["a".to_string(), "b".to_string()]))))])))), ..Default::default() })));
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("z".to_string(), Arc::new(Mutex::new(Some(26i64))))])))); (*(*inv.lock().unwrap().as_mut().unwrap()).counts.lock().unwrap().as_mut().unwrap()).by_name = new_val; };
     { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<bool>>>>::from([("ok".to_string(), Arc::new(Mutex::new(Some(true))))])))); (*(*inv.lock().unwrap().as_ref().unwrap()).inner.lock().unwrap().as_mut().unwrap()).m = new_val; };
     { let __recv = inv.clone(); let __recv_ptr: *mut Inventory = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Inventory }; let __result = unsafe { &mut *__recv_ptr }.add(Arc::new(Mutex::new(Some("apple".to_string()))), Arc::new(Mutex::new(Some(2)))); __result };
