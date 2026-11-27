@@ -3586,6 +3586,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		resetPackageMethodReceiverMutability()
 		registerPackageMethodReceiverMutability(typeInfo.pkg.Path(), []*ast.File{file})
 		registerInterfaceMethodMutableReceivers([]*types.Package{typeInfo.pkg})
+		registerPackageTypeDefinitionTypeExprs([]*ast.File{file}, typeInfo)
 	}
 	session := NewTranspileSession(typeInfo, packageMapping)
 	packageState := NewPackageState()

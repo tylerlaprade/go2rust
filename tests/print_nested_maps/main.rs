@@ -950,7 +950,7 @@ fn main() {
 
         // A defined map type is a newtype with its own Display, both as a slice
         // element and as a map value.
-    let mut defined = Rc::new(RefCell::new(Some(vec![Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2i64)))), ("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))))), Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new()))))])));
+    let mut defined = Rc::new(RefCell::new(Some(vec![Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2i64)))), ("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))))), Counts(Rc::new(RefCell::new(None)))])));
     println!("{}", format!("{}", format_slice(&defined)));
     let mut byCounts = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Counts>>>>::from([("y".to_string(), Rc::new(RefCell::new(Some(Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("z".to_string(), Rc::new(RefCell::new(Some(9i64))))])))))))))]))));
     println!("{}", format!("{}", format_map(&byCounts)));

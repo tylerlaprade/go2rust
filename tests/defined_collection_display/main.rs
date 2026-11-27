@@ -974,11 +974,11 @@ impl Display for Pairs {
 
 /// MoreLists stores a Lists and prints through its Display.
 #[derive(Debug, Clone, Default)]
-pub struct MoreLists(pub Rc<RefCell<Option<Lists>>>);
+pub struct MoreLists(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i64>>>>>>>>);
 
 impl Display for MoreLists {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.borrow().as_ref().unwrap())
+        write!(f, "{}", format_map_nil(&self.0, "[]"))
     }
 }
 
@@ -1130,7 +1130,7 @@ fn main() {
     println!("{} {} {}", format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*lists.borrow().as_ref().unwrap()).clone()]))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*pairs.borrow().as_ref().unwrap()).clone()]))))), format!("{}", format_slice(&Rc::new(RefCell::new(Some(vec![(*places.borrow().as_ref().unwrap()).clone()]))))));
     println!("{}", format!("{}", Holder { l: lists.clone(), p: places.clone(), ..Default::default() }));
     println!("{} {}", format!("{}", format_map(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Lists>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some((*lists.borrow().as_ref().unwrap()).clone()))))])))))), format!("{}", format_map(&Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Places>>>>::from([("y".to_string(), Rc::new(RefCell::new(Some((*places.borrow().as_ref().unwrap()).clone()))))])))))));
-    print!("{} {}\n", format_slice(&Rc::new(RefCell::new(Some(vec![(*lists.borrow().as_ref().unwrap()).clone(), Lists(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::new()))))])))), { let __named_map_holder = lists.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) });
+    print!("{} {}\n", format_slice(&Rc::new(RefCell::new(Some(vec![(*lists.borrow().as_ref().unwrap()).clone(), Lists(Rc::new(RefCell::new(None)))])))), { let __named_map_holder = lists.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) });
 
         // A map literal shares the map a variable holds, as Go's copy of the
         // map header does.

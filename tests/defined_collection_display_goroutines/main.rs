@@ -1199,11 +1199,11 @@ impl Display for Pairs {
 
 /// MoreLists stores a Lists and prints through its Display.
 #[derive(Debug, Clone, Default)]
-pub struct MoreLists(pub Arc<Mutex<Option<Lists>>>);
+pub struct MoreLists(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<i64>>>>>>>>);
 
 impl Display for MoreLists {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0.lock().unwrap().as_ref().unwrap())
+        write!(f, "{}", format_map_nil(&self.0, "[]"))
     }
 }
 
@@ -1367,7 +1367,7 @@ fn main() {
     println!("{} {} {}", format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*pairs.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))), format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*places.lock().unwrap().as_ref().unwrap()).clone(); __v })]))))));
     println!("{}", format!("{}", Holder { l: lists.clone(), p: places.clone(), ..Default::default() }));
     println!("{} {}", format!("{}", format_map(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Lists>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v }.clone()))))])))))), format!("{}", format_map(&Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Places>>>>::from([("y".to_string(), Arc::new(Mutex::new(Some({ let __v = (*places.lock().unwrap().as_ref().unwrap()).clone(); __v }.clone()))))])))))));
-    print!("{} {}\n", format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v }), Lists(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::new()))))]))))), format!("{}", { let __named_map_holder = lists.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }));
+    print!("{} {}\n", format!("{}", format_slice(&Arc::new(Mutex::new(Some(vec![({ let __v = (*lists.lock().unwrap().as_ref().unwrap()).clone(); __v }), Lists(Arc::new(Mutex::new(None)))]))))), format!("{}", { let __named_map_holder = lists.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }));
 
         // A map literal shares the map a variable holds, as Go's copy of the
         // map header does.

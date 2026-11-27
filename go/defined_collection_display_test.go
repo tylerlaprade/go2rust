@@ -35,10 +35,10 @@ func main() {
 			t.Fatalf("missing %q:\n%s", want, rust)
 		}
 	}
-	// MoreLists stores a Lists, not the map's handle, and prints through
-	// the Display of the Lists it holds.
-	if !strings.Contains(rust, "impl Display for MoreLists {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", self.0.borrow().as_ref().unwrap())") {
-		t.Fatalf("MoreLists should print through the Lists it holds:\n%s", rust)
+	// MoreLists has the underlying type of Lists, so it stores the map's
+	// handle, as Lists does (#313), and prints the map as Lists does.
+	if !strings.Contains(rust, "impl Display for MoreLists {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", format_map_nil(&self.0, \"[]\"))") {
+		t.Fatalf("MoreLists should print its map as Lists does:\n%s", rust)
 	}
 }
 

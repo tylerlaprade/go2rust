@@ -1,0 +1,11 @@
+[package]
+name = "defined_type_of_defined_collection_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "defined_type_of_defined_collection_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

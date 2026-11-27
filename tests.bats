@@ -1340,6 +1340,14 @@ run_xfail_test() {
     run_test "tests/defined_collection_types_local_and_elided_goroutines"
 }
 
+@test "defined_type_of_defined_collection" {
+    run_test "tests/defined_type_of_defined_collection"
+}
+
+@test "defined_type_of_defined_collection_goroutines" {
+    run_test "tests/defined_type_of_defined_collection_goroutines"
+}
+
 @test "deref_assign_through_selector" {
     run_test "tests/deref_assign_through_selector"
 }

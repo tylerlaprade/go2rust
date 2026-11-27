@@ -4059,7 +4059,9 @@ func main() {}
 	}
 }
 
-func TestCrossFileNamedMapZeroValueImportsBTreeMap(t *testing.T) {
+// The zero value of a named map declared in another file is the named nil
+// map, and the use site imports BTreeMap whenever it names it.
+func TestCrossFileNamedMapZeroValueIsTheNamedNilMap(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -4092,8 +4094,8 @@ func main() {}
 
 	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
 	wantInitializers := []string{
-		"Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))",
-		"Some(crate::defs::objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new())))))",
+		"Some(objset(Rc::new(RefCell::new(None))))",
+		"Some(crate::defs::objset(Rc::new(RefCell::new(None))))",
 	}
 	foundInitializer := false
 	for _, want := range wantInitializers {
@@ -4105,8 +4107,8 @@ func main() {}
 	if !foundInitializer {
 		t.Fatalf("cross-file named map zero value should construct the named map wrapper, got:\n%s", useRS)
 	}
-	if !strings.Contains(useRS, "use std::collections::BTreeMap;") {
-		t.Fatalf("cross-file named map zero value should import BTreeMap at the use site, got:\n%s", useRS)
+	if strings.Contains(useRS, "BTreeMap::") && !strings.Contains(useRS, "use std::collections::BTreeMap;") {
+		t.Fatalf("a use site naming BTreeMap should import it, got:\n%s", useRS)
 	}
 }
 
