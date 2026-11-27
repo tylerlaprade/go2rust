@@ -1222,6 +1222,9 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 	if writeGoErrorInterfaceAnyBox(out, expr) {
 		return
 	}
+	if writeFmtStringerAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}

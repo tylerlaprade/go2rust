@@ -1316,6 +1316,14 @@ run_xfail_test() {
     run_test "tests/defined_byte_slice_conversions_goroutines"
 }
 
+@test "defined_collection_display" {
+    run_test "tests/defined_collection_display"
+}
+
+@test "defined_collection_display_goroutines" {
+    run_test "tests/defined_collection_display_goroutines"
+}
+
 @test "defined_collection_types_local_and_elided" {
     run_test "tests/defined_collection_types_local_and_elided"
 }
@@ -1650,6 +1658,14 @@ run_xfail_test() {
 
 @test "fmt_sscan_operands" {
     run_test "tests/fmt_sscan_operands"
+}
+
+@test "fmt_stringer_any_round_trip" {
+    run_test "tests/fmt_stringer_any_round_trip"
+}
+
+@test "fmt_stringer_any_round_trip_goroutines" {
+    run_test "tests/fmt_stringer_any_round_trip_goroutines"
 }
 
 @test "fmt_stringer_imported_types" {
@@ -3478,6 +3494,14 @@ run_xfail_test() {
 
 @test "print_map_fields_goroutines" {
     run_test "tests/print_map_fields_goroutines"
+}
+
+@test "print_nested_maps" {
+    run_test "tests/print_nested_maps"
+}
+
+@test "print_nested_maps_goroutines" {
+    run_test "tests/print_nested_maps_goroutines"
 }
 
 @test "print_nested_slice" {

@@ -143,3 +143,37 @@ func main() {
 		}
 	}
 }
+
+// A fmt.Stringer put into an interface{} is boxed as the value it holds, so
+// an assertion to that value's type finds it; a nil one is a nil interface
+// (DEV-155).
+func TestFmtStringerBoxesItsValueIntoAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type C struct{ v int }
+
+func (c C) String() string { return "c" }
+
+func main() {
+	var s fmt.Stringer = C{1}
+	var y any = s
+	list := []any{s}
+	c, ok := y.(C)
+	fmt.Println(c, ok, len(list), any(s) != nil)
+}
+`)
+	for _, want := range []string{
+		"pub fn __go_into_any(&self) -> Box<dyn std::any::Any>",
+		"let __into_any: Rc<dyn Fn() -> Box<dyn std::any::Any>> = Rc::new(move || Box::new((*boxed).clone()) as Box<dyn std::any::Any>);",
+		"match (*s.borrow()).as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => Box::new(GoNilAny) as Box<dyn Any> }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "Box::new((*s.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>") {
+		t.Fatalf("a fmt.Stringer should not be boxed as the fmt_Stringer itself:\n%s", rust)
+	}
+}

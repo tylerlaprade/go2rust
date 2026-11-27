@@ -28,6 +28,11 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 			// Display calls String (DEV-234).
 			return anyFormatArm{expr: `format!("{}", v)`, text: true}, true
 		}
+		if anyFormatTypeIsLocalNamedCollection(t) && !isConcreteGoErrorValue(t) && namedCollectionHasGeneratedDisplay(t) {
+			// A named slice, array or map prints through the Display of
+			// its newtype, as the typed print path does.
+			return anyFormatArm{expr: `format!("{}", v)`}, true
+		}
 	case *types.Pointer:
 		if anyFormatTypeIsLocalNamedCollection(t.Elem()) && typeHasGoStringMethod(t.Elem()) {
 			// A pointer to a named slice, array or map with a

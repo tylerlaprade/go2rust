@@ -20,9 +20,11 @@ const fmtStringerStubName = "fmt_Stringer"
 func writeFmtStringerStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
 	holder, fromBound, pointer, textFn := "Rc<dyn std::any::Any>", "T: std::fmt::Display + 'static", "Rc", "Rc<dyn Fn() -> String>"
 	cell, read := "Rc<RefCell<Option<T>>>", ".borrow()"
+	boxed, boxFn := "Box<dyn std::any::Any>", "Rc<dyn Fn() -> Box<dyn std::any::Any>>"
 	if NeedsConcurrentWrapper() {
 		holder, fromBound, pointer, textFn = "Arc<dyn std::any::Any + Send + Sync>", "T: std::fmt::Display + Send + Sync + 'static", "Arc", "Arc<dyn Fn() -> String + Send + Sync>"
 		cell, read = "Arc<Mutex<Option<T>>>", ".lock().unwrap()"
+		boxed, boxFn = "Box<dyn std::any::Any + Send + Sync>", "Arc<dyn Fn() -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>"
 	}
 	stringType := wrappedExternalStubType("String")
 	if method, ok := methods["string"]; ok && len(method.ReturnTypes) == 1 {
@@ -34,22 +36,36 @@ pub struct fmt_Stringer {
     pub __go_value: %[1]s,
     /// The text of the value's String method.
     pub __go_text: Option<%[4]s>,
+    /// Boxes the value for an interface{}, as its own type.
+    pub __go_box: Option<%[11]s>,
 }
 
 impl fmt_Stringer {
     pub fn __go_from<T: 'static%[7]s>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: %[3]s::new(value), __go_text: None }
+        Self { __go_id: __go_next_external_interface_id(), __go_value: %[3]s::new(value), __go_text: None, __go_box: None }
     }
     /// A value whose type has a String method, which its Display impl calls.
-    pub fn __go_from_display<%[2]s>(value: T) -> Self {
+    pub fn __go_from_display<%[2]s + Clone>(value: T) -> Self {
         let shared = %[3]s::new(value);
         let text = shared.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(%[3]s::new(move || text.to_string())) }
+        let boxed = shared.clone();
+        let __into_any: %[11]s = %[3]s::new(move || Box::new((*boxed).clone()) as %[10]s);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(%[3]s::new(move || text.to_string())), __go_box: Some(__into_any) }
     }
     /// A pointer whose element type has a String method.
     pub fn __go_from_display_cell<%[2]s>(cell: %[5]s) -> Self {
         let text = cell.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: %[3]s::new(cell), __go_text: Some(%[3]s::new(move || text%[6]s.as_ref().map(|__v| __v.to_string()).unwrap_or_default())) }
+        let boxed = cell.clone();
+        let __into_any: %[11]s = %[3]s::new(move || Box::new(boxed.clone()) as %[10]s);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: %[3]s::new(cell), __go_text: Some(%[3]s::new(move || text%[6]s.as_ref().map(|__v| __v.to_string()).unwrap_or_default())), __go_box: Some(__into_any) }
+    }
+    /// The value as an interface{} holds it: the value of its own type, so
+    /// an assertion to that type finds it.
+    pub fn __go_into_any(&self) -> %[10]s {
+        match &self.__go_box {
+            Some(boxed) => boxed(),
+            None => Box::new(self.clone()) as %[10]s,
+        }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -67,7 +83,7 @@ impl fmt_Stringer {
 
 impl Default for fmt_Stringer {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: %[3]s::new(()), __go_text: None }
+        Self { __go_id: 0, __go_value: %[3]s::new(()), __go_text: None, __go_box: None }
     }
 }
 
@@ -105,7 +121,7 @@ impl Ord for fmt_Stringer {
         self.__go_id.cmp(&other.__go_id)
     }
 }
-`, holder, fromBound, pointer, textFn, cell, read, concurrentAnyBound(), stringType, wrappedExternalStubExpr("String", "self.__go_string()"))
+`, holder, fromBound, pointer, textFn, cell, read, concurrentAnyBound(), stringType, wrappedExternalStubExpr("String", "self.__go_string()"), boxed, boxFn)
 }
 
 func concurrentAnyBound() string {
@@ -437,4 +453,41 @@ func fmtStringerCandidateIsTranslated(typ types.Type) bool {
 		return false
 	}
 	return !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path())
+}
+
+// writeFmtStringerAnyBox boxes a fmt.Stringer value for an interface{} as
+// the value it holds, so an assertion to the value's own type finds it; a
+// box of the fmt_Stringer itself matched only fmt.Stringer (DEV-155).
+func writeFmtStringerAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil || !isFmtStringerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	// The box holds one of the types with a String method, which
+	// go_any_clone must be able to copy.
+	typ := typeInfo.GetType(expr)
+	if iface, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
+		for _, candidate := range fmtStringerCandidates(iface, typ) {
+			RegisterAnyCloneType(candidate.typ)
+		}
+	}
+	// A nil fmt.Stringer variable is a nil interface{}.
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && !isVarBare(ident.Name) {
+		if _, isRange := rangeLoopVars[ident.Name]; !isRange {
+			out.WriteString("match (*")
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(").as_ref() { Some(__stringer) => __stringer.__go_into_any(), None => ")
+			writeNilAnyBox(out)
+			out.WriteString(" }")
+			return true
+		}
+	}
+	out.WriteString("(")
+	writeAnyBoxInnerValue(out, expr)
+	out.WriteString(").__go_into_any()")
+	return true
 }

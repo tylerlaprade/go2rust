@@ -9726,6 +9726,9 @@ func writeInterfaceBoxedValueRaw(out *strings.Builder, expr ast.Expr) {
 	if writeGoErrorInterfaceAnyBox(out, expr) {
 		return
 	}
+	if writeFmtStringerAnyBox(out, expr) {
+		return
+	}
 	if call, ok := expr.(*ast.CallExpr); ok && writeTypedNilPointerAnyBox(out, call) {
 		return
 	}
@@ -12986,10 +12989,44 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
 		// map[K]T{k: v} for a struct variable v stores Go's copy of v.
 		writeExpressionWithGoCopy(out, value, copyCall)
+	} else if mapLiteralValueIsDefinedCollectionVariable(value, valueType) {
+		// map[string]M{k: m} for a variable m of a defined map or slice
+		// type: the newtype holds the collection's handle, which the copy
+		// shares, as Go's copy of the header does.
+		TranspileExpression(out, value)
+		out.WriteString(".clone()")
 	} else {
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+// mapLiteralValueIsDefinedCollectionVariable reports whether value is a
+// variable or field of a defined map or slice type, whose Rust value is read
+// out of its cell and must be cloned for the map to hold one of its own.
+func mapLiteralValueIsDefinedCollectionVariable(value ast.Expr, valueType types.Type) bool {
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return false
+	}
+	if valueType == nil {
+		return false
+	}
+	if _, isNamed := valueType.(*types.Named); !isNamed {
+		return false
+	}
+	switch valueType.Underlying().(type) {
+	case *types.Map, *types.Slice:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(value)
+	return actual != nil && types.Identical(actual, valueType)
 }
 
 // mapLiteralValueGoCopyCall returns the call that makes Go's copy of value, a
@@ -16663,6 +16700,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 					continue
 				}
+				// A slice holds its maps bare, and a bare map cannot be nil:
+				// a nil element is an empty map, as the zero element of
+				// make([]map[K]V, n) is.
+				if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" && elemType != nil {
+					if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap && !isInterfaceSlice {
+						out.WriteString(zeroValueForTypesType(elemType))
+						continue
+					}
+				}
 				if isInterfaceSlice {
 					if wrapInterfaceElements {
 						if elemType == nil {
@@ -16684,6 +16730,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if isEmptyInterfaceType(elemType) {
 						if ident, ok := unwrapParens(elt).(*ast.Ident); (ok && ident.Name == "nil") || isEmptyInterfaceValueExpr(elt) {
 							writeBareAnyBox(out, elt)
+							continue
+						}
+						// A fmt.Stringer goes in as the value it holds.
+						if writeFmtStringerAnyBox(out, elt) {
 							continue
 						}
 					}
@@ -19235,6 +19285,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		WriteWrapperPrefix(out)
+		if writeFmtStringerAnyBox(out, arg) {
+			WriteWrapperSuffix(out)
+			return
+		}
 		out.WriteString("Box::new(")
 		if typeInfo != nil {
 			RegisterAnyCloneType(typeInfo.GetType(arg))

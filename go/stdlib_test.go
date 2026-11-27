@@ -1892,6 +1892,60 @@ func main() {
 	}
 }
 
+// A map of maps of slices or structs, and a slice of maps, print as fmt
+// prints them, through a cell for each inner map; the inner maps have no
+// Display of their own.
+func TestPrintNestedMapsOfSlicesAndStructs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type P struct{ X int }
+
+func main() {
+	a := map[string]map[string][]int{}
+	b := map[string]map[string]P{}
+	c := []map[string]int{{"x": 1}, nil}
+	fmt.Println(a, b, c)
+}
+`)
+	for _, want := range []string{
+		`format_map_nil(__v, "[]")`,
+		`go_display_value(__k), format_map(__v)`,
+		`__maps.iter().map(|__m| format_map(&Rc::new(RefCell::new(Some(__m.clone())))))`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "None, ") {
+		t.Fatalf("a nil map in a slice literal should be an empty map:\n%s", rust)
+	}
+}
+
+// A defined map type is a newtype with its own Display; its handle is inside
+// it, so slices and maps of it print through that Display.
+func TestPrintDefinedMapElementsUseTheirDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Counts map[string]int
+
+func main() {
+	xs := []Counts{{"a": 1}}
+	m := map[string]Counts{"y": {"z": 9}}
+	fmt.Println(xs, m)
+}
+`)
+	if strings.Contains(rust, "__maps.iter()") || strings.Contains(rust, "format_map(__v)") {
+		t.Fatalf("defined map elements should print through their Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Display for Counts") {
+		t.Fatalf("missing the defined map's Display:\n%s", rust)
+	}
+}
+
 // A rune from ranging over a string is a Rust char, which prints as the
 // character; Println prints a rune as its number.
 func TestPrintlnOfRangeRunePrintsItsNumber(t *testing.T) {

@@ -6574,6 +6574,20 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("        write!(f, \"{}\", format_map(&self.0))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
+			} else if writeDisplayValue, ok := typeDefinitionCompositeMapDisplay(typeSpec); ok {
+				TrackImport("Display")
+				TrackImport("Formatter")
+				TrackImport("Ord")
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", ")
+				writeDisplayValue(out)
+				out.WriteString(")\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
 			} else if typeDefinitionScalarUnderlyingDisplayable(typeSpec) {
 				// Track necessary imports
 				TrackImport("Display")
@@ -6734,7 +6748,11 @@ func namedTypeHasGeneratedDisplay(named *types.Named) bool {
 		_, ok := sequenceDisplayFormatter(underlying.Elem())
 		return ok
 	case *types.Map:
-		return mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem())
+		if mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem()) {
+			return true
+		}
+		_, ok := compositeMapDisplay(underlying)
+		return ok
 	default:
 		return false
 	}
@@ -6924,6 +6942,100 @@ func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 		return false
 	}
 	return mapKeyTypeDisplayable(mapType.Key()) && mapValueTypeDisplayable(mapType.Elem())
+}
+
+// typeDefinitionCompositeMapDisplay returns the writer of what the Display
+// of a defined map type prints when its values are slices, arrays or structs
+// of the program, as fmt does for the map itself: map[k:[1 2]], with a nil
+// slice as [], or map[k:{1 2}]. The map's handle is the newtype's field.
+func typeDefinitionCompositeMapDisplay(typeSpec *ast.TypeSpec) (func(*strings.Builder), bool) {
+	if typeSpec == nil || typeSpec.Name == nil || typeSpec.TypeParams != nil {
+		return nil, false
+	}
+	// "type Other Lists" stores a Lists, whose own Display it prints
+	// through; only a declaration of a map type stores the map's handle.
+	if _, named := typeDefinitionUnderlyingNamedType(typeSpec); named {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return nil, false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return nil, false
+	}
+	mapType, ok := types.Unalias(named.Underlying()).(*types.Map)
+	if !ok {
+		return nil, false
+	}
+	return compositeMapDisplay(mapType)
+}
+
+func compositeMapDisplay(mapType *types.Map) (func(*strings.Builder), bool) {
+	if !mapKeyTypeDisplayable(mapType.Key()) || typeHasGoStringMethod(mapType.Elem()) {
+		return nil, false
+	}
+	if formatter, ok := mapArrayValueFormatter(mapType); ok {
+		return func(out *strings.Builder) {
+			writeMapOfArraysDisplay(out, formatter, func() { out.WriteString("self.0") })
+		}, true
+	}
+	elemDisplayable := func(typ types.Type) bool {
+		if basic, ok := types.Unalias(typ).(*types.Basic); ok {
+			return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+		}
+		return pointerElementHasGeneratedStructDisplay(typ)
+	}
+	if slice, ok := types.Unalias(mapType.Elem()).(*types.Slice); ok && elemDisplayable(slice.Elem()) {
+		return func(out *strings.Builder) {
+			NeedFormatMap()
+			out.WriteString("format_map_nil(&self.0, \"[]\")")
+		}, true
+	}
+	if pointerElementHasGeneratedStructDisplay(mapType.Elem()) {
+		return func(out *strings.Builder) {
+			NeedFormatMap()
+			out.WriteString("format_map(&self.0)")
+		}, true
+	}
+	return nil, false
+}
+
+// namedCollectionHasGeneratedDisplay reports whether the newtype of named, a
+// slice, array or map type the package declares, gets a Display that prints
+// it as fmt's %v does.
+func namedCollectionHasGeneratedDisplay(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Parent() != named.Obj().Pkg().Scope() {
+		return false
+	}
+	if named.TypeParams() != nil && named.TypeParams().Len() > 0 {
+		return false
+	}
+	switch under := types.Unalias(named.Underlying()).(type) {
+	case *types.Map:
+		if mapKeyTypeDisplayable(under.Key()) && mapValueTypeDisplayable(under.Elem()) {
+			return true
+		}
+		_, ok := compositeMapDisplay(under)
+		return ok
+	case *types.Slice:
+		_, ok := sequenceDisplayFormatter(under.Elem())
+		return ok
+	case *types.Array:
+		if row, ok := types.Unalias(under.Elem()).(*types.Array); ok && arrayCellIsPrintedBasic(row.Elem()) {
+			if _, deeper := types.Unalias(row.Elem()).(*types.Array); !deeper {
+				return true
+			}
+		}
+		_, ok := sequenceDisplayFormatter(under.Elem())
+		return ok
+	}
+	return false
 }
 
 func mapKeyTypeDisplayable(typ types.Type) bool {
