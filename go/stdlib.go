@@ -1483,6 +1483,14 @@ func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Typ
 		return false
 	}
 	out.WriteString(printValueOrNilStart)
+	if isReceiveExpr(arg) {
+		// A channel holds its errors bare: <-errc is the error itself,
+		// with no cell to lock.
+		out.WriteString("(")
+		TranspileExpression(out, arg)
+		out.WriteString(").as_ref() { Some(__value) => format!(\"{}\", __value), None => \"<nil>\".to_string() }; __text }")
+		return true
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 	} else {

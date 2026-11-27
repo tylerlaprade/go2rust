@@ -1436,6 +1436,14 @@ run_xfail_test() {
     run_test "tests/error_assertion_concrete_goroutines"
 }
 
+@test "error_channel_values" {
+    run_test "tests/error_channel_values"
+}
+
+@test "error_channel_values_goroutines" {
+    run_test "tests/error_channel_values_goroutines"
+}
+
 @test "error_copy_and_identity" {
     run_test "tests/error_copy_and_identity"
 }
