@@ -1,0 +1,5 @@
+boom
+<nil>|x
+<nil> true
+got: wrapped: inner
+<nil> false

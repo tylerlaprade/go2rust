@@ -1967,3 +1967,29 @@ func main() {
 		t.Fatalf("%%c of a range rune should print the character:\n%s", rust)
 	}
 }
+
+// A channel holds its errors bare, so printing a receive prints the error
+// it gives without locking a cell, and nil goes on the channel as None.
+func TestPrintReceivedErrorAndSendNilError(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+func main() {
+	errc := make(chan error, 2)
+	errc <- errors.New("boom")
+	errc <- nil
+	fmt.Println(<-errc)
+	fmt.Println(<-errc)
+}
+`)
+	if !strings.Contains(rust, "errc.send(None);") {
+		t.Fatalf("nil should go on the channel as None:\n%s", rust)
+	}
+	if strings.Contains(rust, "unwrap_or_default().borrow()") || !strings.Contains(rust, ".unwrap_or_default()).as_ref() { Some(__value) => format!(\"{}\", __value), None => \"<nil>\".to_string() }") {
+		t.Fatalf("a received error should print without a cell:\n%s", rust)
+	}
+}
