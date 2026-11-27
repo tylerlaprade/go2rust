@@ -10751,3 +10751,25 @@ func main() {
 		t.Fatalf("the assignment should write through the pointer last holds:\n%s", rust)
 	}
 }
+
+// A pointer field sent on a channel is sent as the pointer's handle, not
+// as the struct it points to.
+func TestChannelSendOfPointerFieldSendsTheHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{ next *Node }
+
+func main() {
+	n := &Node{next: &Node{}}
+	ch := make(chan *Node, 1)
+	ch <- n.next
+	<-ch
+}
+`)
+	if !strings.Contains(rust, ".next.clone(); __sent }") {
+		t.Fatalf("the send should clone the pointer field's handle:\n%s", rust)
+	}
+	if strings.Contains(rust, ".next.lock().unwrap().as_ref().unwrap().clone(); __sent }") {
+		t.Fatalf("the send should not read the pointee:\n%s", rust)
+	}
+}

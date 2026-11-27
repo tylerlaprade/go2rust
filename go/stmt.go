@@ -11758,6 +11758,15 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 		// variable would already have unwrapped. The value is read in a let
 		// of its own, so the lock on the struct the field is read out of is
 		// released before a send that waits.
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if _, isPointer := types.Unalias(typeInfo.GetType(expr)).(*types.Pointer); isPointer {
+				// A pointer field is the pointer's handle, which is sent.
+				out.WriteString("{ let __sent = ")
+				TranspileExpressionContext(out, expr, LValue)
+				out.WriteString(".clone(); __sent }")
+				return
+			}
+		}
 		if isCopyType {
 			out.WriteString("{ let __sent = (*")
 			TranspileExpressionContext(out, expr, LValue)
