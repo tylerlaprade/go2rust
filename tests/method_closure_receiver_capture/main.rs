@@ -969,7 +969,7 @@ impl pkgReader {
 pub fn schedule(pr: Rc<RefCell<Option<pkgReader>>>, named: Rc<RefCell<Option<named>>>, rhs: Rc<RefCell<Option<named>>>) {
     let mut pk = pr.clone();
     let named_closure_clone = named.clone(); let pk_closure_clone = pk.clone(); let rhs_closure_clone = rhs.clone(); { let __method_args = (named_closure_clone.clone(), Rc::new(RefCell::new(Some({ let named_closure_clone_closure_clone = named_closure_clone.clone(); let pk_closure_clone_closure_clone = pk_closure_clone.clone(); Rc::new(move || {
-        { let __map_handle = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).later_fors.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(named_closure_clone_closure_clone.clone())); };
+        { let __map_handle = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).later_fors.clone(); let __delete_key = &GoLocalPtrKey::new(named_closure_clone_closure_clone.clone()); let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
         {
         let (mut i, mut ok) = { let __map_holder = (*pk_closure_clone_closure_clone.borrow().as_ref().unwrap()).later_fors.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(rhs_closure_clone.clone()))) { /* MAP_COMMA_OK */ Some(v) => (Rc::new(RefCell::new(Some(v.borrow().as_ref().unwrap().clone()))), true), None => (Rc::new(RefCell::new(Some(0))), false) } };;
         if ok {

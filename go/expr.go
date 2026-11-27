@@ -19161,10 +19161,16 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeNamedMapNilConversion(out, call) {
 		return
 	}
+	if writeNamedMapTypeConversion(out, call) {
+		return
+	}
 	if writeNamedSliceTypeConversion(out, call) {
 		return
 	}
 	if writeUnnamedSliceTypeConversionFromNamedSlice(out, call) {
+		return
+	}
+	if writeUnnamedMapTypeConversionFromNamedMap(out, call) {
 		return
 	}
 	if writeTypedNilConversion(out, call) {
@@ -19899,6 +19905,65 @@ func writeNamedMapNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	return true
 }
 
+// writeNamedMapTypeConversion writes Lists(o), for a map type Lists defined
+// in this package and o a map of another type with the same underlying type,
+// as a Lists holding o's own map handle: the two share the map, as they do
+// in Go.
+func writeNamedMapTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	targetNamed, _, ok := namedMapTypeFromType(typeInfo.GetType(call))
+	if !ok || targetNamed.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	sourceType := typeInfo.GetType(call.Args[0])
+	if sourceType == nil {
+		out.WriteString("unimplemented!(\"type info required for named map conversion\")")
+		return true
+	}
+	if _, ok := types.Unalias(sourceType).Underlying().(*types.Map); !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	if !writeNamedMapInnerHandleClone(out, call.Args[0]) {
+		writePlainMapHandleForNamedMapConversion(out, call.Args[0], typeInfo)
+	}
+	out.WriteString(")")
+	return true
+}
+
+// writePlainMapHandleForNamedMapConversion writes the handle of the map expr
+// of an unnamed map type, shared with expr.
+func writePlainMapHandleForNamedMapConversion(out *strings.Builder, expr ast.Expr, typeInfo *TypeInfo) {
+	expr = unwrapParens(expr)
+	if _, ok := pointerToMapDerefTarget(expr); ok {
+		// M(*p) for a *map[K]V: the map p points at.
+		writeMapHandleCloneForOp(out, expr)
+		return
+	}
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+	if index, ok := expr.(*ast.IndexExpr); ok && isExpressionResultBare(index) && !indexExpressionResultKeepsHandle(index, typeInfo) {
+		// An array or slice of maps holds them bare (#318): the map
+		// goes into a cell of its own.
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, expr)
+		WriteWrapperSuffix(out)
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
 func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	if call == nil || len(call.Args) != 1 {
 		return false
@@ -19990,6 +20055,34 @@ func writeUnnamedSliceTypeConversionFromNamedSlice(out *strings.Builder, call *a
 	}
 	writeNamedSliceInnerHandleClone(out, call.Args[0])
 	return true
+}
+
+// writeUnnamedMapTypeConversionFromNamedMap writes map[K]V(o), for o of a
+// defined map type, as o's own map handle, which the result shares with o.
+func writeUnnamedMapTypeConversionFromNamedMap(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	targetType := typeInfo.GetType(call)
+	if targetType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(targetType).(*types.Map); !ok {
+		return false
+	}
+	sourceType := typeInfo.GetType(call.Args[0])
+	if sourceType == nil {
+		out.WriteString("unimplemented!(\"type info required for unnamed map conversion\")")
+		return true
+	}
+	if _, _, ok := namedMapTypeFromType(sourceType); !ok {
+		return false
+	}
+	return writeNamedMapInnerHandleClone(out, call.Args[0])
 }
 
 func writePlainSliceHandleForNamedSliceConversion(out *strings.Builder, expr ast.Expr) {

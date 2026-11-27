@@ -1183,7 +1183,7 @@ fn main() {
 
         // A defined map type is a newtype with its own Display, both as a slice
         // element and as a map value.
-    let mut defined = Arc::new(Mutex::new(Some(vec![Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64)))), ("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))), Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::new()))))])));
+    let mut defined = Arc::new(Mutex::new(Some(vec![Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64)))), ("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))), Counts(Arc::new(Mutex::new(None)))])));
     println!("{}", format!("{}", format_slice(&defined)));
     let mut byCounts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counts>>>>::from([("y".to_string(), Arc::new(Mutex::new(Some(Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("z".to_string(), Arc::new(Mutex::new(Some(9i64))))])))))))))]))));
     println!("{}", format!("{}", format_map(&byCounts)));

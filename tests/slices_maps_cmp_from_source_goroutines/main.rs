@@ -3694,7 +3694,7 @@ pub fn __maps__delete_func__map_string_int__string__int(m: Arc<Mutex<Option<BTre
                 v.clone()
             )
         } {
-        { let __map_handle = m.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&k); };
+        { let __map_handle = m.clone(); let __delete_key = &k; let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     }
     }
 }

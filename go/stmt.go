@@ -5292,6 +5292,12 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 	if ident, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
 		return false
 	}
+	// A variable of a map type defined in this package holds the newtype in
+	// a cell of its own, not the bare map handle: the value goes into that
+	// cell, as for a defined slice type.
+	if named, _, ok := namedMapTypeFromType(typeInfo.GetType(lhs)); ok && named.Obj().Pkg() == typeInfo.pkg {
+		return false
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ let new_val = ")
 		WriteWrappedNone(out)

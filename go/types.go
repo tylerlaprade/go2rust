@@ -1473,18 +1473,13 @@ func zeroValueForTypesType(typ types.Type) string {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return "Default::default()"
 		}
-		if mapType, isMap := types.Unalias(named.Underlying()).(*types.Map); isMap {
-			TrackImport("BTreeMap")
+		if _, isMap := types.Unalias(named.Underlying()).(*types.Map); isMap {
+			// The zero value of a defined map type is a nil map, as Go's
+			// m == nil says: len and reads see no entries, and a write panics.
 			var out strings.Builder
 			out.WriteString(goTypesNamedTypeToRust(named))
 			out.WriteString("(")
-			WriteWrapperPrefix(&out)
-			out.WriteString("BTreeMap::<")
-			out.WriteString(goTypesMapKeyToRust(mapType.Key()))
-			out.WriteString(", ")
-			out.WriteString(goTypesMapValueToRust(mapType.Elem()))
-			out.WriteString(">::new()")
-			WriteWrapperSuffix(&out)
+			WriteWrappedNone(&out)
 			out.WriteString(")")
 			return out.String()
 		}
