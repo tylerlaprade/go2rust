@@ -143,7 +143,9 @@ func main() {
 `)
 	for _, want := range []string{
 		`format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v`,
-		`format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref()))`,
+		"let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) };",
+		"let __value_copy = { let __value_guard = __value.borrow(); __value_guard.as_ref().map(|__value| go_any_try_clone(__value.as_ref())) };",
+		`format!("{}:{}", format_slice_values(&__key[..]), __value_text)`,
 		"let entries = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };",
 		"let copied = { let v_guard = v.borrow(); v_guard.as_ref().map(|val| go_any_try_clone(val.as_ref())) };",
 		"__slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>",
@@ -156,5 +158,35 @@ func main() {
 	impl = impl[:strings.Index(impl, "\n}\n")]
 	if strings.Contains(impl, "format_any_map") {
 		t.Fatalf("a map of a type parameter's type should keep its plain form:\n%s", impl)
+	}
+}
+
+// An array-key map of interface{} values is copied out of its cell before
+// its values print, so a value's String method may read the map. With
+// goroutines the cell is a mutex, which would otherwise deadlock
+// (array_key_map_value_string_reads_map).
+func TestArrayKeyMapReleasesItsLockBeforeFormattingValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+var m = map[[1]int]any{}
+
+type size struct{}
+
+func (size) String() string { return fmt.Sprint(len(m)) }
+
+func main() {
+	m[[1]int{1}] = size{}
+	fmt.Println(m)
+}
+`)
+	entries := strings.Index(rust, "let __map_entries = { let __map_guard = __map_holder.borrow();")
+	if entries == -1 {
+		t.Fatalf("the map's entries should be copied out of its cell:\n%s", rust)
+	}
+	format := strings.Index(rust[entries:], "format_any_nested(")
+	if format == -1 || !strings.Contains(rust[entries:entries+format], "match __map_entries") {
+		t.Fatalf("the values should print after the map's cell is released:\n%s", rust)
 	}
 }

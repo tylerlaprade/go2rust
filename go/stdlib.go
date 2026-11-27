@@ -2797,20 +2797,34 @@ func writeMapWithArrayKeysDisplayOf(out *strings.Builder, writeHandle func(), an
 	NeedFormatMap()
 	NeedFormatSlice()
 	TrackImport("Display")
-	valueFormat := "go_display_value(__value)"
 	if anyValues {
 		NeedFormatAnyNested()
-		valueFormat = "format_any_nested(__value.as_ref())"
+		// Each value is copied out of its entry before it prints.
+		NeedAnyClone()
 	} else {
 		NeedGoDisplayValue()
 	}
+	// The entries are copied out and the map's lock released first, so a
+	// value's String method that reads the map does not wait on it.
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
+	out.WriteString(".clone(); let __map_entries = { let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__key, __value)| { let __value_guard = __value")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; format!(\"{}:{}\", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| " + valueFormat + ").unwrap_or_else(|| \"<nil>\".to_string())) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	out.WriteString("; __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map_entries) => format!(\"map[{}]\", __map_entries.iter().map(|(__key, __value)| { ")
+	if anyValues {
+		// The value is copied out too, so its String method may read its
+		// own entry; one with no copy prints in place.
+		out.WriteString("let __value_copy = { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().map(|__value| go_any_try_clone(__value.as_ref())) }; let __value_text = match __value_copy { Some(Some(__value)) => format_any_nested(__value.as_ref()), Some(None) => { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| \"<nil>\".to_string()) } None => \"<nil>\".to_string() }; ")
+	} else {
+		out.WriteString("let __value_copy = { let __value_guard = __value")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __value_guard.as_ref().cloned() }; let __value_text = __value_copy.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| \"<nil>\".to_string()); ")
+	}
+	out.WriteString("format!(\"{}:{}\", format_slice_values(&__key[..]), __value_text) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreBasicMaps reports whether mapType is a map whose values are

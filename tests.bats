@@ -640,6 +640,10 @@ run_xfail_test() {
     run_test "tests/append_string_to_bytes"
 }
 
+@test "array_key_map_value_string_reads_map" {
+    run_test "tests/array_key_map_value_string_reads_map"
+}
+
 @test "array_map_keys" {
     run_test "tests/array_map_keys"
 }
