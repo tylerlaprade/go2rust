@@ -1242,6 +1242,10 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if writeGoSliceElementHeaderFromVariable(out, rhs, expected) {
 		return
 	}
+	// s[i] = m for a []map: the element is m's handle (#318).
+	if writeMapHandleElementValue(out, rhs, expected) {
+		return
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
 		out.WriteString(zeroValueForTypesType(expected))
 		return
@@ -2868,6 +2872,11 @@ func registerZeroValueLocalMap(name *ast.Ident, typeExpr ast.Expr, hasInitialize
 func writeMapMutationUnwrap(out *strings.Builder, mapExpr ast.Expr) {
 	ident, isIdent := unwrapParens(mapExpr).(*ast.Ident)
 	if isIdent && !isPackageGlobalIdent(ident) && localZeroMapVars[ident.Name] {
+		out.WriteString(".as_mut().unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
+		return
+	}
+	// An element of a []map can be a nil map (#318).
+	if index, ok := unwrapParens(mapExpr).(*ast.IndexExpr); ok && mapElementIndexExpression(index) {
 		out.WriteString(".as_mut().unwrap_or_else(|| panic!(\"assignment to entry in nil map\"))")
 		return
 	}
@@ -7339,7 +7348,7 @@ func isAssignmentSelfWrappingExpression(expr ast.Expr) bool {
 	case *ast.CallExpr:
 		return isBuiltinCallNamed(e, "make") && !isMakeChannelCall(e)
 	case *ast.IndexExpr:
-		return mapIndexExpressionKeepsHandle(e)
+		return mapIndexExpressionKeepsHandle(e) || mapElementIndexExpression(e)
 	default:
 		return false
 	}
@@ -7359,6 +7368,17 @@ func mapIndexExpressionKeepsHandle(expr ast.Expr) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsMap(indexExpr.X) && mapValueTypeKeepsHandle(typeInfo.GetType(indexExpr))
+}
+
+// mapElementIndexExpression reports whether expr reads an element of an
+// array or slice of an unnamed map type, which is the map's handle (#318).
+func mapElementIndexExpression(expr *ast.IndexExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(expr.X) {
+		return false
+	}
+	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
+	return ok && isUnnamedMapType(elemType)
 }
 
 func isWrappedInterfaceSliceIndex(expr ast.Expr) bool {
@@ -15244,6 +15264,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Untyped string constants default to owned Go strings in local variables.
 											} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 												// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
+											} else if index, ok := rhs.(*ast.IndexExpr); ok && mapElementIndexExpression(index) {
+												// m := s[i] of a []map: the variable is the element's
+												// map handle, which it shares (#318).
+												TranspileExpression(out, rhs)
 											} else {
 												// Wrap new variables
 												WriteWrapperPrefix(out)
@@ -16318,7 +16342,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						valueType = "&" + goTypesTypeToRust(elemType)
 					}
 				} else if _, ok := elemType.Underlying().(*types.Map); ok {
-					valueType = "&" + goTypesTypeToRust(elemType)
+					// An element of an unnamed map type is the map's handle
+					// (#318).
+					valueType = "&" + goTypesCollectionElemTypeToRust(elemType)
 				} else if _, ok := elemType.Underlying().(*types.Struct); ok {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if intf, ok := elemType.Underlying().(*types.Interface); ok {

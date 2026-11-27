@@ -4404,6 +4404,14 @@ run_xfail_test() {
     run_test "tests/slices_maps_cmp_from_source_goroutines"
 }
 
+@test "slices_of_maps_share" {
+    run_test "tests/slices_of_maps_share"
+}
+
+@test "slices_of_maps_share_goroutines" {
+    run_test "tests/slices_of_maps_share_goroutines"
+}
+
 @test "slices_sort_func" {
     run_test "tests/slices_sort_func"
 }

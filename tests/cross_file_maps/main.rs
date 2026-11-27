@@ -55,7 +55,7 @@ fn main() {
     print!("User count: {}\n", { let __v = (*count.borrow().as_ref().unwrap()).clone(); __v });
 
         // Access slice of maps - another complex case
-    let mut firstRecord = Rc::new(RefCell::new(Some((*Records.borrow().as_ref().unwrap())[(0) as usize].clone())));
+    let mut firstRecord = (*Records.borrow().as_ref().unwrap())[(0) as usize].clone();
     {
         let (mut name, mut ok) = ({
         if let Some(__v) = (*firstRecord.borrow().as_ref().unwrap()).get(&"name".to_string()) {

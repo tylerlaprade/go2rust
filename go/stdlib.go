@@ -3143,7 +3143,7 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 // no Display of its own, so each one is printed through a cell of its own.
 func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsSlice(arg) {
+	if typeInfo == nil || !(typeInfo.IsSlice(arg) || typeInfo.IsArray(arg)) {
 		return false
 	}
 	nilText, ok := bareMapInSlicePrints(elemType)
@@ -3180,6 +3180,21 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 	return true
 }
 
+// writeSliceOfMapsDisplay writes the fmt form of the slice or array of maps
+// whose handle writeHandle writes, as a struct field prints it: each element,
+// the map's handle (#318), through format_map.
+func writeSliceOfMapsDisplay(out *strings.Builder, writeHandle func(), nilText string) {
+	NeedFormatMap()
+	TrackImport("Display")
+	TrackImport("Ord")
+	out.WriteString("{ let __maps = (*")
+	writeHandle()
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone().unwrap_or_default(); format!(\"[{}]\", __maps.iter().map(|__m| ")
+	writeBareMapInSliceFormat(out, nilText)
+	out.WriteString(").collect::<Vec<_>>().join(\" \")) }")
+}
+
 // bareMapInSlicePrints reports whether a map of type elemType held bare in a
 // slice prints through format_map: an unnamed map of numbers, strings, bools,
 // slices of those, or structs of the program. The text is what a nil value
@@ -3207,21 +3222,15 @@ func bareMapInSlicePrints(elemType types.Type) (string, bool) {
 	return "", false
 }
 
-// writeBareMapInSliceFormat writes the format of __m, a map held bare in a
-// slice, through a cell of its own: a bare map has no Display.
+// writeBareMapInSliceFormat writes the format of __m, a map held in a slice,
+// which is the map's handle, as format_map takes it.
 func writeBareMapInSliceFormat(out *strings.Builder, nilText string) {
+	// __m is the element, the map's handle (#318); a nil one prints map[].
 	if nilText != "" {
-		out.WriteString("format_map_nil(&")
-	} else {
-		out.WriteString("format_map(&")
+		out.WriteString("format_map_nil(__m, \"" + nilText + "\")")
+		return
 	}
-	WriteWrapperOptionPrefix(out)
-	out.WriteString("Some(__m.clone())")
-	WriteWrapperOptionSuffix(out)
-	if nilText != "" {
-		out.WriteString(", \"" + nilText + "\"")
-	}
-	out.WriteString(")")
+	out.WriteString("format_map(__m)")
 }
 
 // mapValuesAreSlicesOfMaps reports whether mapType is a map whose values are
@@ -6334,6 +6343,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if isGoErrorType(elemType) && writeGoErrorHandleValue(out, expr) {
 					return
 				}
+				// append(s, m) to a []map: the element shares m's handle.
+				if writeMapHandleElementValue(out, expr, elemType) {
+					return
+				}
 				if writeNilStdlibInterfaceBareValue(out, expr, elemType) {
 					return
 				}
@@ -7050,6 +7063,13 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						elementType = zeroValueForTypesType(sliceType.Elem())
 						elementRustType = goTypesCollectionElemTypeToRust(sliceType.Elem())
+						if _, isMap := types.Unalias(sliceType.Elem()).(*types.Map); isMap {
+							// An element of map type is a handle (#318), and
+							// a new one is a nil map.
+							var none strings.Builder
+							WriteWrappedNone(&none)
+							elementType = none.String()
+						}
 					}
 				}
 			}
@@ -9130,6 +9150,11 @@ func makeElementsNeedOwnValues(sliceTypeExpr ast.Expr) bool {
 	sliceType, ok := types.Unalias(typeInfo.GetType(sliceTypeExpr)).Underlying().(*types.Slice)
 	if !ok {
 		return false
+	}
+	// Each element of map type is a handle of its own (#318): a clone would
+	// share one cell among them.
+	if _, isMap := types.Unalias(sliceType.Elem()).(*types.Map); isMap {
+		return true
 	}
 	return typeNeedsGoValueClone(sliceType.Elem())
 }

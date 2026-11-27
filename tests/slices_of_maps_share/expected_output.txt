@@ -1,0 +1,9 @@
+[map[w:0 x:1] map[z:3] map[k:6]] 1
+[map[] map[] map[]] true 0
+map[a:1 b:2] 2
+[map[a:1 b:2 seen:0] map[i:1 seen:1] map[i:2 seen:2]]
+2 1 [map[a:1 b:2 seen:0] map[copied:1 i:1 seen:1]]
+[map[f:false t:true] map[]] [map[f:false t:true] map[]] true
+[map[name:a] map[extra:y name:x]] 2 {[map[name:a] map[extra:y name:x]]}
+map[g:[map[v:1 w:2] map[]]] 2 true
+recovered: assignment to entry in nil map

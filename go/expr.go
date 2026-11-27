@@ -3120,7 +3120,7 @@ func writeTypeParamSliceCompositeLiteral(out *strings.Builder, lit *ast.Composit
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(collectionElementZeroValue(elemType))
 			continue
 		}
 		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
@@ -5606,7 +5606,7 @@ func writeNamedSliceCompositeLiteral(out *strings.Builder, e *ast.CompositeLit, 
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+			out.WriteString(collectionElementZeroValue(sliceType.Elem()))
 		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
 			TranspileExpression(out, elt)
 		}
@@ -9079,7 +9079,7 @@ func writeBareFixedArrayCompositeLiteral(out *strings.Builder, expr ast.Expr, ex
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(collectionElementZeroValue(elemType))
 			continue
 		}
 		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
@@ -9183,7 +9183,7 @@ func writeBareSliceCompositeLiteral(out *strings.Builder, expr ast.Expr, expecte
 			out.WriteString(", ")
 		}
 		if elt == nil {
-			out.WriteString(zeroValueForTypesType(elemType))
+			out.WriteString(collectionElementZeroValue(elemType))
 		} else if !writeArraySliceLiteralElementValue(out, elt, elemType) {
 			TranspileExpression(out, elt)
 		}
@@ -9349,10 +9349,63 @@ func sliceLiteralNeedsExplicitElemType(elemType types.Type) bool {
 	return elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType))
 }
 
+// collectionElementZeroValue writes the zero value of an element of type
+// elemType in an array or slice: a nil map's handle for an unnamed map type
+// (#318), and the type's zero value otherwise.
+func collectionElementZeroValue(elemType types.Type) string {
+	if isUnnamedMapType(elemType) {
+		var none strings.Builder
+		writeTypedWrappedNone(&none, goTypesTypeToRust(elemType))
+		return none.String()
+	}
+	return zeroValueForTypesType(elemType)
+}
+
+// isUnnamedMapType reports whether typ is an unnamed map type, whose values
+// as elements of an array or slice are the maps' handles (#318).
+func isUnnamedMapType(typ types.Type) bool {
+	_, ok := types.Unalias(typ).(*types.Map)
+	return typ != nil && ok
+}
+
+// writeMapHandleElementValue writes an element of an array or slice of an
+// unnamed map type, which is the map's handle (#318): nil is a nil map, a
+// literal is its map's handle, and any other map value gives its handle,
+// which the element then shares.
+func writeMapHandleElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(elemType).(*types.Map); !ok {
+		return false
+	}
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && ident.Name == "nil" {
+		writeTypedWrappedNone(out, goTypesTypeToRust(elemType))
+		return true
+	}
+	if lit, ok := inner.(*ast.CompositeLit); ok {
+		if lit.Type == nil {
+			// An elided literal is the bare map; its element is a handle.
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, lit)
+			WriteWrapperSuffix(out)
+		} else {
+			TranspileExpression(out, lit)
+		}
+		return true
+	}
+	writeMapHandleCloneForOp(out, expr)
+	return true
+}
+
 func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
 	typeInfo := GetTypeInfo()
 	if isGoErrorType(elemType) {
 		return writeGoErrorHandleValue(out, expr)
+	}
+	if writeMapHandleElementValue(out, expr, elemType) {
+		return true
 	}
 	if writeChannelHandleCopy(out, expr, elemType) {
 		return true
@@ -10628,9 +10681,9 @@ func anyBoxedCollectionExprIsBare(expr ast.Expr, typ types.Type) bool {
 		}
 		switch c := types.Unalias(container).Underlying().(type) {
 		case *types.Slice:
-			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+			return arraySliceElementExpectedStoresBareCollection(c.Elem()) && !isUnnamedMapType(c.Elem())
 		case *types.Array:
-			return arraySliceElementExpectedStoresBareCollection(c.Elem())
+			return arraySliceElementExpectedStoresBareCollection(c.Elem()) && !isUnnamedMapType(c.Elem())
 		}
 	case *ast.TypeAssertExpr:
 		// "x.([]int)" read for its handle is the handle the interface value
@@ -13082,6 +13135,8 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		writeInterfaceBoxedValue(out, value)
 	} else if valueType != nil && writeConstExpressionForExpectedNamedInteger(out, value, valueType) {
 		// The map cell holds the defined integer type.
+	} else if valueType != nil && writeRangeIndexForExpectedType(out, value, valueType) {
+		// map[string]int{"i": i} for a range index: the index is a usize.
 	} else if ident, ok := value.(*ast.Ident); ok && writeOwnedRangeValue(out, ident) {
 		// range value cloned above
 	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
@@ -16606,13 +16661,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							if i > 0 {
 								out.WriteString(", ")
 							}
-							// A slice holds its maps bare, and a bare map
-							// cannot be nil: a nil element is an empty map,
-							// as in an explicit []map[K]V literal.
+							// A nil element of map type is a nil map: the
+							// map's handle (#318) or a defined map type's.
 							elemType := typ.Underlying().(*types.Slice).Elem()
 							if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" {
 								if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap {
-									out.WriteString(zeroValueForTypesType(elemType))
+									out.WriteString(collectionElementZeroValue(elemType))
 									continue
 								}
 							}
@@ -16836,18 +16890,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if elt == nil {
 					if elemType != nil {
-						out.WriteString(zeroValueForTypesType(elemType))
+						out.WriteString(collectionElementZeroValue(elemType))
 					} else {
 						out.WriteString(zeroValueForGoType(arrayType.Elt))
 					}
 					continue
 				}
-				// A slice holds its maps bare, and a bare map cannot be nil:
-				// a nil element is an empty map, as the zero element of
-				// make([]map[K]V, n) is.
+				// A nil element of map type is a nil map, as the zero
+				// element of make([]map[K]V, n) is.
 				if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" && elemType != nil {
 					if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap && !isInterfaceSlice {
-						out.WriteString(zeroValueForTypesType(elemType))
+						out.WriteString(collectionElementZeroValue(elemType))
 						continue
 					}
 				}

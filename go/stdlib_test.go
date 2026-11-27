@@ -1912,7 +1912,8 @@ func main() {
 	for _, want := range []string{
 		`format_map_nil(__v, "[]")`,
 		`go_display_value(__k), format_map(__v)`,
-		`__maps.iter().map(|__m| format_map(&Rc::new(RefCell::new(Some(__m.clone())))))`,
+		// An element of a slice of maps is the map's handle (#318).
+		`__maps.iter().map(|__m| format_map(__m))`,
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)
@@ -2029,7 +2030,7 @@ func main() {
 	fmt.Println(m)
 }
 `)
-	want := `format!("{}:[{}]", go_display_value(__k), __maps.iter().map(|__m| format_map(&`
+	want := `format!("{}:[{}]", go_display_value(__k), __maps.iter().map(|__m| format_map(__m)`
 	if !strings.Contains(rust, want) {
 		t.Fatalf("missing %q:\n%s", want, rust)
 	}

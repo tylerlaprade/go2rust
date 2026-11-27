@@ -98,6 +98,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		anySlice    bool
 		hasTrait    bool
 		mapOpaque   bool
+		// sliceOfMaps says a slice or array field holds unnamed maps, which
+		// print through format_map (#318), and mapNilText is what a nil
+		// value inside one of them prints as.
+		sliceOfMaps bool
+		mapNilText  string
 		// mapArrayFormatter prints the array values of a map[K][N]T
 		// field, which have no Display; empty for any other field.
 		mapArrayFormatter         string
@@ -134,6 +139,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		_, isChannel := field.Type.(*ast.ChanType)
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
+		sliceOfMaps, mapNilText := false, ""
+		if typeInfo := GetTypeInfo(); isSlice && typeInfo != nil {
+			switch seq := types.Unalias(typeInfo.GetType(field.Type)).(type) {
+			case *types.Slice:
+				if isUnnamedMapType(seq.Elem()) {
+					mapNilText, sliceOfMaps = bareMapInSlicePrints(seq.Elem())
+				}
+			case *types.Array:
+				if isUnnamedMapType(seq.Elem()) {
+					mapNilText, sliceOfMaps = bareMapInSlicePrints(seq.Elem())
+				}
+			}
+		}
 		mapArrayFormatter := ""
 		if typeInfo := GetTypeInfo(); isMap && typeInfo != nil {
 			mapArrayFormatter, _ = mapArrayValueFormatter(typeInfo.GetType(field.Type))
@@ -171,6 +189,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					hasTrait:                  hasTrait,
 					mapOpaque:                 mapOpaque,
 					mapArrayFormatter:         mapArrayFormatter,
+					sliceOfMaps:               sliceOfMaps,
+					mapNilText:                mapNilText,
 					nestedSlice:               nestedSlice,
 					nestedSliceWrapped:        nestedSliceWrapped,
 					nestedPointerSlice:        nestedPointerSlice,
@@ -206,6 +226,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				hasTrait:                  hasTrait,
 				mapOpaque:                 mapOpaque,
 				mapArrayFormatter:         mapArrayFormatter,
+				sliceOfMaps:               sliceOfMaps,
+				mapNilText:                mapNilText,
 				nestedSlice:               nestedSlice,
 				nestedSliceWrapped:        nestedSliceWrapped,
 				nestedPointerSlice:        nestedPointerSlice,
@@ -320,6 +342,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
 			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"{:p}\", __v as *const _), None => \"<nil>\".to_string() } }")
+		} else if f.sliceOfMaps {
+			writeSliceOfMapsDisplay(out, func() {
+				out.WriteString("self.")
+				out.WriteString(ToSnakeCase(f.name))
+			}, f.mapNilText)
 		} else if f.isSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice(&self.")
