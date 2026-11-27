@@ -1247,6 +1247,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -3201,8 +3211,8 @@ impl std::fmt::Display for SquarePtr {
 
 impl Shape for SquarePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Square = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Square };
+        let __recv = unsafe { &*__recv_ptr };
         Square::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -3265,8 +3275,8 @@ impl std::fmt::Display for CirclePtr {
 
 impl Shape for CirclePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Circle = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Circle };
+        let __recv = unsafe { &*__recv_ptr };
         Circle::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -3759,7 +3769,7 @@ pub fn __go2rust_gosyntax0_23(v: Arc<Mutex<Option<Record>>>) -> Arc<Mutex<Option
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Any:".to_string(), (*__go2rust_gosyntax0_36(go_any_handle_copy(&(*v.lock().unwrap().as_ref().unwrap()).any)).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Err:".to_string(), (*__go2rust_gosyntax0_39({ let __err_source = { let __field = (*v.lock().unwrap().as_ref().unwrap()).err.clone(); __field }; let __err_copy = (*__err_source.lock().unwrap()).clone(); Arc::new(Mutex::new(__err_copy)) }).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Shape:".to_string(), (*__go2rust_gosyntax0_40({ let __field = (*v.lock().unwrap().as_ref().unwrap()).shape.clone(); __field }).lock().unwrap().as_ref().unwrap()))); };
-    { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", OnDone:".to_string(), (*__go2rust_gosyntax0_41(Arc::new(Mutex::new(GoFuncValue::go_func_value(&((*v.lock().unwrap().as_ref().unwrap()).on_done))))).lock().unwrap().as_ref().unwrap()))); };
+    { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", OnDone:".to_string(), (*__go2rust_gosyntax0_41(Arc::new(Mutex::new((*(*v.lock().unwrap().as_ref().unwrap()).on_done.lock().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", Events:".to_string(), (*__go2rust_gosyntax0_42({ let __field = (*v.lock().unwrap().as_ref().unwrap()).events.clone(); __field }).lock().unwrap().as_ref().unwrap()))); };
     { (*s.lock().unwrap().as_mut().unwrap()).push_str(&format!("{}{}", ", hidden:".to_string(), (*__go2rust_gosyntax0_3(Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).hidden.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); };
     return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "}".to_string()))));

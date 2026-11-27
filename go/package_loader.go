@@ -61,7 +61,10 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // SearchInts and the like panicked, and Reverse and IsSorted had no body.
 // container/heap is Go's heap over the program's own sort.Interface; its
 // stub's Push, Pop and Fix panicked. math/cmplx is Go's complex functions
-// over math; its stub's Abs and Sqrt panicked.
+// over math; its stub's Abs and Sqrt panicked. context is Go's contexts over
+// time's timers and the native sync and sync/atomic: a canceled parent
+// cancels its children, and Err gives context.Canceled and
+// context.DeadlineExceeded themselves, which errors.Is matches.
 var defaultSourceStdlibPackages = map[string]bool{
 	"cmp":                   true,
 	"container/list":        true,
@@ -89,6 +92,7 @@ var defaultSourceStdlibPackages = map[string]bool{
 	"math/cmplx":            true,
 	"regexp":                true,
 	"regexp/syntax":         true,
+	"context":               true,
 }
 
 // NewPackageLoader creates a new package loader

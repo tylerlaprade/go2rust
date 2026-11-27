@@ -1023,7 +1023,7 @@ fn main() {
     let mut t: Transform = Arc::new(Mutex::new(Some(Arc::new(move |s: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }, "!".to_string()))));
     }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    for f in vec![Arc::new(Mutex::new(GoFuncValue::go_func_value(&(t)))), Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_lower(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))].iter().cloned() {
+    for f in vec![Arc::new(Mutex::new((*t.lock().unwrap()).clone())), Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_lower(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>)))].iter().cloned() {
         println!("{}", format!("{}", (*{
             let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
             (__f)(

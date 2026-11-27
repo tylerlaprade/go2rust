@@ -1056,6 +1056,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1255,8 +1265,8 @@ impl std::fmt::Display for sqPtr {
 
 impl shape for sqPtr {
     fn area(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const sq = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sq };
+        let __recv = unsafe { &*__recv_ptr };
         sq::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn shape + Send + Sync> {
@@ -1535,7 +1545,7 @@ fn main() {
             let __select_ok = __select_recv.is_some();
             let __go_recv_value_17 = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut __go_recv_value_17 = Arc::new(Mutex::new(__go_recv_value_17));
-            { let new_val = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__go_recv_value_17)))); (*h.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
+            { let new_val = Arc::new(Mutex::new((*__go_recv_value_17.lock().unwrap()).clone())); (*h.lock().unwrap().as_mut().unwrap()).r#fn = new_val; };
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -1543,11 +1553,11 @@ fn main() {
     }
     println!("{}", format!("{}", (*{ let __f_holder = (*h.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap().as_ref().unwrap())));
     fc.close();
-    let mut f = Arc::new(Mutex::new(GoFuncValue::go_func_value(&((*h.lock().unwrap().as_ref().unwrap()).r#fn))));
+    let mut f = Arc::new(Mutex::new((*(*h.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap()).clone()));
     let mut f = Arc::new(Mutex::new(GoFuncValue::go_func_value(&f)));
     for __iface_value in fc.clone() {
         let mut __go_recv_value_18 = Arc::new(Mutex::new(__iface_value));
-        { let __func_value = GoFuncValue::go_func_value(&(__go_recv_value_18)); *f.lock().unwrap() = __func_value; };
+        { let __func_value = (*__go_recv_value_18.lock().unwrap()).clone(); *f.lock().unwrap() = __func_value; };
     }
     println!("{}", format!("{}", (*{
         let __f: Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();

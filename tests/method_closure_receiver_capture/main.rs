@@ -962,7 +962,7 @@ impl pkgReader {
         { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<GoLocalPtrKey<named>, Rc<RefCell<Option<i64>>>>::new()))); self.later_fors = new_val; };
     }
         { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Rc::new(RefCell::new(Some(({ let __len_target = { let __field = self.later_fns.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i64))); (*self.later_fors.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later_fns.clone(); let __append_value = Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#fn)))); let mut __appended: Vec<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.later_fns.borrow_mut() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later_fns.clone(); let __append_value = Rc::new(RefCell::new((*r#fn.borrow()).clone())); let mut __appended: Vec<Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.later_fns.borrow_mut() = __slice_header; };
     }
 }
 

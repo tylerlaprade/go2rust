@@ -1538,14 +1538,14 @@ fn main() {
     let mut dbl = Rc::new(RefCell::new(Some(Rc::new(move |x: Rc<RefCell<Option<i64>>>| -> i64 {
         (*x.borrow().as_ref().unwrap()) * 2
     }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)));
-    println!("{} {}", format!("{}", { let __f_holder = apply(Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(GoFuncValue::go_func_value(&(inc)))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(dbl)))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(inc))))])))); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(5)))) }), format!("{}", { let __f_holder = apply(Rc::new(RefCell::new(Some(vec![])))); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(7)))) }));
+    println!("{} {}", format!("{}", { let __f_holder = apply(Rc::new(RefCell::new(Some(vec![{ let __arg_value = Rc::new(RefCell::new((*inc.borrow()).clone())); __arg_value }, { let __arg_value = Rc::new(RefCell::new((*dbl.borrow()).clone())); __arg_value }, { let __arg_value = Rc::new(RefCell::new((*inc.borrow()).clone())); __arg_value }])))); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(5)))) }), format!("{}", { let __f_holder = apply(Rc::new(RefCell::new(Some(vec![])))); let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = __f_holder.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(7)))) }));
     let mut fact: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>> = Rc::new(RefCell::new(None));
-    let fact_closure_clone = fact.clone(); { let __func_lit_target = fact_closure_clone.clone(); let new_val = Rc::new(move |n: Rc<RefCell<Option<i64>>>| -> i64 {
+    let fact_closure_clone = fact.clone(); { let __func_lit_target = fact_closure_clone.clone(); let new_val = { let fact_closure_clone_closure_clone = fact_closure_clone.clone(); Rc::new(move |n: Rc<RefCell<Option<i64>>>| -> i64 {
         if (*n.borrow().as_ref().unwrap()) <= 1 {
         return 1;
     }
-        return (*n.borrow().as_ref().unwrap()) * { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fact_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value })))) };
-    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>; *__func_lit_target.borrow_mut() = Some(new_val); };
+        return (*n.borrow().as_ref().unwrap()) * { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fact_closure_clone_closure_clone.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) - 1; __arg_value })))) };
+    }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> }; *__func_lit_target.borrow_mut() = Some(new_val); };
     println!("{}", format!("{}", { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64> = fact.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(10)))) }));
     let mut s = Rc::new(RefCell::new(Some("h\u{e9}llo, \u{4e16}\u{754c}".to_string())));
     let (mut bytes, mut runes) = (Rc::new(RefCell::new(Some(0i64))), Rc::new(RefCell::new(Some(0i64))));

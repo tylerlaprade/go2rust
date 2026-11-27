@@ -3212,7 +3212,7 @@ func Same(l label.Label, key label.Key) bool {
 	}
 }
 
-func TestFunctionTypeAliasUsesKnownStdlibContextHelper(t *testing.T) {
+func TestFunctionTypeAliasUsesTranslatedContextInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -3235,11 +3235,11 @@ func Use(exporter Exporter) {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "GoContext") {
-		t.Fatalf("function type alias should use the context helper type, got:\n%s", mainRS)
+	if !strings.Contains(mainRS, "Fn(&(dyn context::r#mod::Context + Send + Sync))") {
+		t.Fatalf("function type alias should take the translated context interface by reference, got:\n%s", mainRS)
 	}
-	if strings.Contains(mainRS, "context_Context") {
-		t.Fatalf("function type alias should not mix context.Context stubs with GoContext helpers, got:\n%s", mainRS)
+	if strings.Contains(mainRS, "GoContext") || strings.Contains(mainRS, "context_Context") {
+		t.Fatalf("function type alias should not use the old context bridge or stub types, got:\n%s", mainRS)
 	}
 }
 

@@ -1809,8 +1809,8 @@ impl std::fmt::Display for SquarePtr {
 
 impl Shape for SquarePtr {
     fn grow(&mut self) {
-        let mut __recv_guard = self.0.borrow_mut();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut Square = { let mut __recv_guard = self.0.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut Square };
+        let __recv = unsafe { &mut *__recv_ptr };
         Square::grow(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape> {

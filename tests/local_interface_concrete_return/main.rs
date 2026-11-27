@@ -866,8 +866,8 @@ impl std::fmt::Display for counterPtr {
 
 impl Reader for counterPtr {
     fn read(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const counter = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const counter };
+        let __recv = unsafe { &*__recv_ptr };
         counter::read(__recv)
     }
     fn __go_clone_box_reader(&self) -> Box<dyn Reader> {
@@ -926,8 +926,8 @@ impl std::fmt::Display for numberPtr {
 
 impl Valuer for numberPtr {
     fn value(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const number = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const number };
+        let __recv = unsafe { &*__recv_ptr };
         number::value(__recv)
     }
     fn __go_clone_box_valuer(&self) -> Box<dyn Valuer> {

@@ -1209,8 +1209,8 @@ impl std::fmt::Display for intValPtr {
 
 impl Value for intValPtr {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const intVal = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const intVal };
+        let __recv = unsafe { &*__recv_ptr };
         intVal::kind(__recv)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {
@@ -1265,8 +1265,8 @@ impl std::fmt::Display for complexValPtr {
 
 impl Value for complexValPtr {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const complexVal = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const complexVal };
+        let __recv = unsafe { &*__recv_ptr };
         complexVal::kind(__recv)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {

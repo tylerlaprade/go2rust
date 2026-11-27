@@ -949,8 +949,8 @@ impl std::fmt::Display for TPtr {
 
 impl A for TPtr {
     fn p_a(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const T = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const T };
+        let __recv = unsafe { &*__recv_ptr };
         T::p_a(__recv)
     }
     fn __go_clone_box_a(&self) -> Box<dyn A> {
@@ -993,8 +993,8 @@ impl B for T {
 
 impl B for TPtr {
     fn p_b(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const T = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const T };
+        let __recv = unsafe { &*__recv_ptr };
         T::p_b(__recv)
     }
     fn __go_clone_box_b(&self) -> Box<dyn B> {

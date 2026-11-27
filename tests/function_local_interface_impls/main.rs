@@ -360,8 +360,8 @@ impl std::fmt::Display for animalPtr {
 
 impl namer for animalPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const animal = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const animal };
+        let __recv = unsafe { &*__recv_ptr };
         animal::name(__recv)
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer + Send + Sync> {
@@ -428,8 +428,8 @@ impl std::fmt::Display for dogPtr {
 
 impl namer for dogPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const dog = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const dog };
+        let __recv = unsafe { &*__recv_ptr };
         dog::name(__recv)
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer + Send + Sync> {
@@ -475,13 +475,13 @@ impl speaker for dog {
 
 impl speaker for dogPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const dog = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const dog };
+        let __recv = unsafe { &*__recv_ptr };
         dog::name(__recv)
     }
     fn sound(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const dog = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const dog };
+        let __recv = unsafe { &*__recv_ptr };
         dog::sound(__recv)
     }
     fn __go_clone_box_speaker(&self) -> Box<dyn speaker + Send + Sync> {
@@ -548,8 +548,8 @@ impl std::fmt::Display for catPtr {
 
 impl namer for catPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const cat = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const cat };
+        let __recv = unsafe { &*__recv_ptr };
         cat::name(__recv)
     }
     fn __go_clone_box_namer(&self) -> Box<dyn namer + Send + Sync> {
@@ -595,13 +595,13 @@ impl speaker for cat {
 
 impl speaker for catPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const cat = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const cat };
+        let __recv = unsafe { &*__recv_ptr };
         cat::name(__recv)
     }
     fn sound(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const cat = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const cat };
+        let __recv = unsafe { &*__recv_ptr };
         cat::sound(__recv)
     }
     fn __go_clone_box_speaker(&self) -> Box<dyn speaker + Send + Sync> {
@@ -660,8 +660,8 @@ impl std::fmt::Display for counterPtr {
 
 impl incer for counterPtr {
     fn inc(&mut self) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut counter = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut counter };
+        let __recv = unsafe { &mut *__recv_ptr };
         counter::inc(__recv)
     }
     fn __go_clone_box_incer(&self) -> Box<dyn incer + Send + Sync> {

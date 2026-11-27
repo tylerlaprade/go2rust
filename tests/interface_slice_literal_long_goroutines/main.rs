@@ -959,6 +959,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1193,8 +1203,8 @@ impl std::fmt::Display for RectPtr {
 
 impl Shape for RectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rect = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rect };
+        let __recv = unsafe { &*__recv_ptr };
         Rect::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -1257,8 +1267,8 @@ impl std::fmt::Display for TriPtr {
 
 impl Shape for TriPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Tri = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Tri };
+        let __recv = unsafe { &*__recv_ptr };
         Tri::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {
@@ -1321,8 +1331,8 @@ impl std::fmt::Display for SquarePtr {
 
 impl Shape for SquarePtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Square = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Square };
+        let __recv = unsafe { &*__recv_ptr };
         Square::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn Shape + Send + Sync> {

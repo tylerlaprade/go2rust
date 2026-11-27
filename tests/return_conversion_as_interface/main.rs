@@ -819,8 +819,8 @@ impl std::fmt::Display for boolValPtr {
 
 impl Value for boolValPtr {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const boolVal = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const boolVal };
+        let __recv = unsafe { &*__recv_ptr };
         boolVal::kind(__recv)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {

@@ -839,7 +839,7 @@ impl std::fmt::Display for queue {
 
 impl queue {
     pub fn add(&mut self, r#fn: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
-        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#fn)))); let mut __appended: Vec<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.later.lock().unwrap() = __slice_header; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.later.clone(); let __append_value = Arc::new(Mutex::new((*r#fn.lock().unwrap()).clone())); let mut __appended: Vec<Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.later.lock().unwrap() = __slice_header; };
     }
 }
 

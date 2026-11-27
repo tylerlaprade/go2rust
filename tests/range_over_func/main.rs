@@ -904,13 +904,13 @@ impl Tree {
         if false {
         return true;
     }
-        __go_nil_recv_tree_all({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#yield))))) && { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) } && __go_nil_recv_tree_all({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#yield)))))
+        __go_nil_recv_tree_all({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new((*r#yield.borrow()).clone()))) && { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) } && __go_nil_recv_tree_all({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new((*r#yield.borrow()).clone())))
     }
 
     pub fn walk(&self) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>>) -> ()>>>> {
         let mut t_closure_clone = (*self).clone(); return Rc::new(RefCell::new(Some(Rc::new(move |r#yield: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>>| {
         let mut t_closure_clone = t_closure_clone.clone();
-        t_closure_clone.all(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#yield)))));
+        t_closure_clone.all(Rc::new(RefCell::new((*r#yield.borrow()).clone())));
     }) as Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>>) -> ()>)));
     }
 }
@@ -1038,5 +1038,5 @@ pub fn __go_nil_recv_tree_all(t: Rc<RefCell<Option<Tree>>>, r#yield: Rc<RefCell<
     if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return true;
     }
-    __go_nil_recv_tree_all({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#yield))))) && { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) } && __go_nil_recv_tree_all({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(GoFuncValue::go_func_value(&(r#yield)))))
+    __go_nil_recv_tree_all({ let __field = (*t.borrow().as_ref().unwrap()).left.clone(); __field }, Rc::new(RefCell::new((*r#yield.borrow()).clone()))) && { let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool> = r#yield.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __selector_holder = (*t.borrow().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))) } && __go_nil_recv_tree_all({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new((*r#yield.borrow()).clone())))
 }

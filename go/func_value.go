@@ -140,6 +140,16 @@ func writeFuncValueOption(out *strings.Builder, expr ast.Expr) {
 		out.WriteString("None")
 		return
 	}
+	if funcValueExprIsStorage(expr) {
+		// A variable's or field's cell holds the Option itself, read
+		// here without GoFuncValue: its impls cannot name a func type
+		// whose parameter is a reference, as func(context.Context) is.
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone()")
+		return
+	}
 	out.WriteString("GoFuncValue::go_func_value(&(")
 	switch e := expr.(type) {
 	case *ast.Ident, *ast.SelectorExpr:

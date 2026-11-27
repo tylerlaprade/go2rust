@@ -1893,6 +1893,10 @@ func generateExternalStubsForPackage(stubs map[string]bool, interfaceTypes map[s
 			writeAtomicBoolStub(&out)
 			continue
 		}
+		if name == "atomic_Value" {
+			writeAtomicValueStub(&out)
+			continue
+		}
 		if name == "sync_Map" {
 			writeSyncMapStub(&out)
 			continue
@@ -2164,6 +2168,137 @@ impl Ord for io_Writer {
     }
 }
 `)
+}
+
+// PERMANENT: not scaffold — sync/atomic is in the hand-written tier, and a
+// Value holds the interface value last stored in it behind a lock.
+//
+// The value is kept as the interface value's cell, as the caller passes it:
+// Load gives that cell, since this crate cannot copy a value of a type it does
+// not know. A Store of nil panics, as does a Store of a value of another
+// dynamic type than the first, with Go's messages. CompareAndSwap swaps when
+// old is the value stored, the same cell, or both are nil.
+func writeAtomicValueStub(out *strings.Builder) {
+	handle := "std::rc::Rc<std::cell::RefCell<Option<Box<dyn std::any::Any>>>>"
+	slot := "std::rc::Rc<std::cell::RefCell<Option<" + handle + ">>>"
+	newHandle := "std::rc::Rc::new(std::cell::RefCell::new(None))"
+	newSlot := "std::rc::Rc::new(std::cell::RefCell::new(None))"
+	read, write := ".borrow()", ".borrow_mut()"
+	ptrEq := "std::rc::Rc::ptr_eq"
+	anyBound, anyObject := "std::any::Any", "dyn std::any::Any"
+	newHandleOf := "std::rc::Rc::new(std::cell::RefCell::new(Some(value)))"
+	if NeedsConcurrentWrapper() {
+		anyBound, anyObject = "std::any::Any + Send + Sync", "dyn std::any::Any + Send + Sync"
+		newHandleOf = "std::sync::Arc::new(std::sync::Mutex::new(Some(value)))"
+		handle = "std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::any::Any + Send + Sync>>>>"
+		slot = "std::sync::Arc<std::sync::Mutex<Option<" + handle + ">>>"
+		newHandle = "std::sync::Arc::new(std::sync::Mutex::new(None))"
+		newSlot = "std::sync::Arc::new(std::sync::Mutex::new(None))"
+		read, write = ".lock().unwrap()", ".lock().unwrap()"
+		ptrEq = "std::sync::Arc::ptr_eq"
+	}
+	out.WriteString(strings.NewReplacer(
+		"ANY_BOUND", anyBound,
+		"ANY_OBJECT", anyObject,
+		"NEW_HANDLE_OF(value)", newHandleOf,
+		"HANDLE", handle,
+		"SLOT", slot,
+		"NEW_HANDLE", newHandle,
+		"NEW_SLOT", newSlot,
+		".READ", read,
+		".WRITE", write,
+		"PTR_EQ", ptrEq,
+	).Replace(`#[derive(Clone)]
+pub struct atomic_Value {
+    __go_slot: SLOT,
+}
+
+impl Default for atomic_Value {
+    fn default() -> Self {
+        Self { __go_slot: NEW_SLOT }
+    }
+}
+
+impl std::fmt::Display for atomic_Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<atomic_Value>")
+    }
+}
+
+impl atomic_Value {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    // The interface value of an argument: the cell an interface variable
+    // passes, or a new one around a value passed as it is, such as a
+    // channel.
+    fn __go_handle<T0: ANY_BOUND>(arg0: T0) -> HANDLE {
+        let any: Box<ANY_OBJECT> = Box::new(arg0);
+        let any = match any.downcast::<HANDLE>() {
+            Ok(handle) => return *handle,
+            Err(any) => any,
+        };
+        // An interface value passed as its box.
+        match any.downcast::<Box<ANY_OBJECT>>() {
+            Ok(boxed) => { let value = *boxed; NEW_HANDLE_OF(value) }
+            Err(value) => NEW_HANDLE_OF(value),
+        }
+    }
+
+    // The type check Store and Swap make: nil is not stored, and every
+    // value has the dynamic type of the first.
+    fn __go_check(&self, handle: &HANDLE) {
+        let new_type = match handle.READ.as_ref() {
+            Some(value) => (**value).type_id(),
+            None => panic!("sync/atomic: store of nil value into Value"),
+        };
+        if let Some(stored) = self.__go_slot.READ.as_ref() {
+            if let Some(value) = stored.READ.as_ref() {
+                if (**value).type_id() != new_type {
+                    panic!("sync/atomic: store of inconsistently typed value into Value");
+                }
+            }
+        }
+    }
+
+    pub fn load(&self) -> HANDLE {
+        match self.__go_slot.READ.as_ref() {
+            Some(stored) => stored.clone(),
+            None => NEW_HANDLE,
+        }
+    }
+
+    pub fn store<T0: ANY_BOUND>(&self, arg0: T0) {
+        let handle = Self::__go_handle(arg0);
+        self.__go_check(&handle);
+        *self.__go_slot.WRITE = Some(handle);
+    }
+
+    pub fn swap<T0: ANY_BOUND>(&self, arg0: T0) -> HANDLE {
+        let handle = Self::__go_handle(arg0);
+        self.__go_check(&handle);
+        let old = self.__go_slot.WRITE.replace(handle);
+        old.unwrap_or_else(|| NEW_HANDLE)
+    }
+
+    pub fn compare_and_swap<T0: ANY_BOUND, T1: ANY_BOUND>(&self, old: T0, new: T1) -> bool {
+        let old = Self::__go_handle(old);
+        let new = Self::__go_handle(new);
+        self.__go_check(&new);
+        let mut slot = self.__go_slot.WRITE;
+        let matches = match slot.as_ref() {
+            Some(stored) => PTR_EQ(stored, &old) || (stored.READ.is_none() && old.READ.is_none()),
+            None => old.READ.is_none(),
+        };
+        if matches {
+            *slot = Some(new);
+        }
+        matches
+    }
+}
+
+`))
 }
 
 // PERMANENT: not scaffold — Rust std::sync::atomic is the long-term implementation;

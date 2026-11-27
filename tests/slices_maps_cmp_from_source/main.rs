@@ -2410,7 +2410,7 @@ pub fn __slices__equal_func__slice_int__slice_string__int__string(s1: Rc<RefCell
 }
 
 pub fn __slices__sort_stable_func__slice__item___item(x: Rc<RefCell<Option<Vec<Item>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> i64>>>>) {
-    __slices_stable_cmp_func___item(x.clone(), Rc::new(RefCell::new(Some({ let __arg_value = ({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+    __slices_stable_cmp_func___item(x.clone(), Rc::new(RefCell::new(Some({ let __arg_value = ({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64; __arg_value }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
 }
 
 pub fn __cmp__compare__int(x: Rc<RefCell<Option<i64>>>, y: Rc<RefCell<Option<i64>>>) -> i64 {
@@ -2532,7 +2532,7 @@ pub fn __slices__max_func__slice__item___item(x: Rc<RefCell<Option<Vec<Item>>>>,
 }
 
 pub fn __slices__delete_func__slice__item___item(s: Rc<RefCell<Option<Vec<Item>>>>, del: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Item>>>) -> bool>>>>) -> Rc<RefCell<Option<Vec<Item>>>> {
-    let mut i = __slices__index_func__slice__item___item(s.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(del)))));
+    let mut i = __slices__index_func__slice__item___item(s.clone(), Rc::new(RefCell::new((*del.borrow()).clone())));
     if i == -1 {
         return s.clone();
     }
@@ -2575,12 +2575,12 @@ pub fn __slices__contains__slice__item___item(s: Rc<RefCell<Option<Vec<Item>>>>,
 
 pub fn __slices__sort_func__slice_ptr__task__ptr__task(x: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>, Rc<RefCell<Option<Task>>>) -> i64>>>>) {
     let mut n = Rc::new(RefCell::new(Some(({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
-    __slices_pdqsort_cmp_func__ptr__task(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+    __slices_pdqsort_cmp_func__ptr__task(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
 }
 
 pub fn __slices__sort_func__slice_int__int(x: Rc<RefCell<Option<Vec<i64>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>>>>) {
     let mut n = Rc::new(RefCell::new(Some(({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64)));
-    __slices_pdqsort_cmp_func__int(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+    __slices_pdqsort_cmp_func__int(x.clone(), Rc::new(RefCell::new(Some(0))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = math_bits::len(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()) as u64; __arg_value })))); __arg_value }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
 }
 
 pub fn __slices__index_func__slice_ptr__task__ptr__task(s: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, f: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>) -> bool>>>>) -> i64 {
@@ -2602,7 +2602,7 @@ pub fn __slices__index_func__slice__item___item(s: Rc<RefCell<Option<Vec<Item>>>
 }
 
 pub fn __slices__contains_func__slice_ptr__task__ptr__task(s: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, f: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>) -> bool>>>>) -> bool {
-    __slices__index_func__slice_ptr__task__ptr__task(s.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(f))))) >= 0
+    __slices__index_func__slice_ptr__task__ptr__task(s.clone(), Rc::new(RefCell::new((*f.borrow()).clone()))) >= 0
 }
 
 pub fn __slices__sort__slice__celsius___celsius(x: Rc<RefCell<Option<Vec<Celsius>>>>) {
@@ -2747,14 +2747,14 @@ pub fn __slices__reverse__slice_int__int(s: Rc<RefCell<Option<Vec<i64>>>>) {
 }
 
 pub fn __slices__sorted__string(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-    let mut s = __slices__collect__string(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(seq)))));
+    let mut s = __slices__collect__string(Rc::new(RefCell::new((*seq.borrow()).clone())));
     let mut s = { let __slice_header = GoSliceHeader::go_slice_header(&s); Rc::new(RefCell::new(__slice_header)) };
     __slices__sort__slice_string__string(s.clone());
     return s.clone();
 }
 
 pub fn __slices__sorted__int(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>>) -> ()>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
-    let mut s = __slices__collect__int(Rc::new(RefCell::new(GoFuncValue::go_func_value(&(seq)))));
+    let mut s = __slices__collect__int(Rc::new(RefCell::new((*seq.borrow()).clone())));
     let mut s = { let __slice_header = GoSliceHeader::go_slice_header(&s); Rc::new(RefCell::new(__slice_header)) };
     __slices__sort__slice_int__int(s.clone());
     return s.clone();
@@ -2782,7 +2782,7 @@ pub fn __maps__values__map_string_int__string__int(m: Rc<RefCell<Option<BTreeMap
 
 pub fn __maps__collect__int__string(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) -> Rc<RefCell<Option<BTreeMap<i64, Rc<RefCell<Option<String>>>>>>> {
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<i64, Rc<RefCell<Option<String>>>>::new())));
-    __maps__insert__map_int_string__int__string(m.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(seq)))));
+    __maps__insert__map_int_string__int__string(m.clone(), Rc::new(RefCell::new((*seq.borrow()).clone())));
     return m.clone();
 }
 
@@ -2887,11 +2887,11 @@ pub fn __maps__equal__map_string_int__map_string_int__string__int(m1: Rc<RefCell
 }
 
 pub fn __slices__collect__string(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> bool>>>>) -> ()>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
-    __slices__append_seq__slice_string__string(Rc::new(RefCell::new(None::<Vec<String>>)), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(seq)))))
+    __slices__append_seq__slice_string__string(Rc::new(RefCell::new(None::<Vec<String>>)), Rc::new(RefCell::new((*seq.borrow()).clone())))
 }
 
 pub fn __slices__collect__int(seq: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> bool>>>>) -> ()>>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
-    __slices__append_seq__slice_int__int(Rc::new(RefCell::new(None::<Vec<i64>>)), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(seq)))))
+    __slices__append_seq__slice_int__int(Rc::new(RefCell::new(None::<Vec<i64>>)), Rc::new(RefCell::new((*seq.borrow()).clone())))
 }
 
 pub fn __slices_overlaps__int(a: Rc<RefCell<Option<Vec<i64>>>>, b: Rc<RefCell<Option<Vec<i64>>>>) -> bool {
@@ -2929,11 +2929,11 @@ pub fn __slices_stable_cmp_func___item(data: Rc<RefCell<Option<Vec<Item>>>>, n: 
     let mut blockSize = Rc::new(RefCell::new(Some(20i64)));
     let (mut a, mut b) = (Rc::new(RefCell::new(Some(0i64))), { let __owned = blockSize.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) });
     while (*b.borrow().as_ref().unwrap()) <= (*n.borrow().as_ref().unwrap()) {
-        __slices_insertion_sort_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_insertion_sort_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = b.borrow().as_ref().unwrap().clone(); *a.borrow_mut() = Some(new_val); };
         { let __rhs = (*blockSize.borrow().as_ref().unwrap()); let mut guard = b.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-    __slices_insertion_sort_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+    __slices_insertion_sort_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
     while (*blockSize.borrow().as_ref().unwrap()) < (*n.borrow().as_ref().unwrap()) {
         {
             let __tmp_0 = 0;
@@ -2942,14 +2942,14 @@ pub fn __slices_stable_cmp_func___item(data: Rc<RefCell<Option<Vec<Item>>>>, n: 
             *b.borrow_mut() = Some(__tmp_1);
         };
         while (*b.borrow().as_ref().unwrap()) <= (*n.borrow().as_ref().unwrap()) {
-        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + (*blockSize.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + (*blockSize.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = b.borrow().as_ref().unwrap().clone(); *a.borrow_mut() = Some(new_val); };
         { let __rhs = 2 * (*blockSize.borrow().as_ref().unwrap()); let mut guard = b.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         {
         let mut m = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*blockSize.borrow().as_ref().unwrap()))));;
         if (*m.borrow().as_ref().unwrap()) < (*n.borrow().as_ref().unwrap()) {
-            __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));;
+            __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));;
         }
     }
         { let __rhs = 2; let mut guard = blockSize.borrow_mut(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
@@ -2979,44 +2979,44 @@ pub fn __slices_pdqsort_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<RefCe
     loop {
         let mut length = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
         if (*length.borrow().as_ref().unwrap()) <= 12 {
-        __slices_insertion_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_insertion_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         return;
     }
         if (*limit.borrow().as_ref().unwrap()) == 0 {
-        __slices_heap_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_heap_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         return;
     }
         if !(*wasBalanced.borrow().as_ref().unwrap()) {
-        __slices_break_patterns_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_break_patterns_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = limit.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         if (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_DECREASING_HINT as i64)))) {
-        __slices_reverse_range_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_reverse_range_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = ((*b.borrow().as_ref().unwrap()) - 1) - (pivot - (*a.borrow().as_ref().unwrap())); pivot = new_val; };
         { let new_val = __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))); *hint.borrow_mut() = Some(new_val); };
     }
         if (*wasBalanced.borrow().as_ref().unwrap()) && (*wasPartitioned.borrow().as_ref().unwrap()) && (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))) {
-        if __slices_partial_insertion_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))) {
+        if __slices_partial_insertion_sort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone()))) {
         return;
     }
     }
         if (*a.borrow().as_ref().unwrap()) > 0 && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<Task>>>, Rc<RefCell<Option<Task>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)((*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap()) - 1) as usize].clone(), (*data.borrow().as_ref().unwrap())[(pivot) as usize].clone()) } < 0) {
-        let mut mid = __slices_partition_equal_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let mut mid = __slices_partition_equal_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid; *a.borrow_mut() = Some(new_val); };
         continue
     }
-        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = alreadyPartitioned; *wasPartitioned.borrow_mut() = Some(new_val); };
         let (mut leftLen, mut rightLen) = (Rc::new(RefCell::new(Some(mid - (*a.borrow().as_ref().unwrap())))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - mid))));
         let mut balanceThreshold = Rc::new(RefCell::new(Some((*length.borrow().as_ref().unwrap()) / 8)));
         if (*leftLen.borrow().as_ref().unwrap()) < (*rightLen.borrow().as_ref().unwrap()) {
         { let new_val = (*leftLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_pdqsort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid + 1; *a.borrow_mut() = Some(new_val); };
     } else {
         { let new_val = (*rightLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_pdqsort_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid; *b.borrow_mut() = Some(new_val); };
     }
     }
@@ -3029,44 +3029,44 @@ pub fn __slices_pdqsort_cmp_func__int(data: Rc<RefCell<Option<Vec<i64>>>>, mut a
     loop {
         let mut length = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
         if (*length.borrow().as_ref().unwrap()) <= 12 {
-        __slices_insertion_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_insertion_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         return;
     }
         if (*limit.borrow().as_ref().unwrap()) == 0 {
-        __slices_heap_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_heap_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         return;
     }
         if !(*wasBalanced.borrow().as_ref().unwrap()) {
-        __slices_break_patterns_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_break_patterns_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = limit.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let (mut pivot, mut hint) = __slices_choose_pivot_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         if (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_DECREASING_HINT as i64)))) {
-        __slices_reverse_range_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_reverse_range_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = ((*b.borrow().as_ref().unwrap()) - 1) - (pivot - (*a.borrow().as_ref().unwrap())); pivot = new_val; };
         { let new_val = __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))); *hint.borrow_mut() = Some(new_val); };
     }
         if (*wasBalanced.borrow().as_ref().unwrap()) && (*wasPartitioned.borrow().as_ref().unwrap()) && (*hint.borrow().as_ref().unwrap()) == __slices_sortedHint(Rc::new(RefCell::new(Some(__SLICES_INCREASING_HINT as i64)))) {
-        if __slices_partial_insertion_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))) {
+        if __slices_partial_insertion_sort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone()))) {
         return;
     }
     }
         if (*a.borrow().as_ref().unwrap()) > 0 && !({ let __f: Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64> = cmp.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some({ let __arg_value = (*data.borrow().as_ref().unwrap())[((*a.borrow().as_ref().unwrap()) - 1) as usize].clone(); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*data.borrow().as_ref().unwrap())[(pivot) as usize].clone(); __arg_value })))) } < 0) {
-        let mut mid = __slices_partition_equal_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let mut mid = __slices_partition_equal_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid; *a.borrow_mut() = Some(new_val); };
         continue
     }
-        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        let (mut mid, mut alreadyPartitioned) = __slices_partition_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(pivot))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = alreadyPartitioned; *wasPartitioned.borrow_mut() = Some(new_val); };
         let (mut leftLen, mut rightLen) = (Rc::new(RefCell::new(Some(mid - (*a.borrow().as_ref().unwrap())))), Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - mid))));
         let mut balanceThreshold = Rc::new(RefCell::new(Some((*length.borrow().as_ref().unwrap()) / 8)));
         if (*leftLen.borrow().as_ref().unwrap()) < (*rightLen.borrow().as_ref().unwrap()) {
         { let new_val = (*leftLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_pdqsort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some(mid))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid + 1; *a.borrow_mut() = Some(new_val); };
     } else {
         { let new_val = (*rightLen.borrow().as_ref().unwrap()) >= (*balanceThreshold.borrow().as_ref().unwrap()); *wasBalanced.borrow_mut() = Some(new_val); };
-        __slices_pdqsort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_pdqsort_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some(mid + 1))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let new_val = mid; *b.borrow_mut() = Some(new_val); };
     }
     }
@@ -3453,13 +3453,13 @@ pub fn __slices_sym_merge_cmp_func___item(data: Rc<RefCell<Option<Vec<Item>>>>, 
     }
     let mut end = Rc::new(RefCell::new(Some((*n.borrow().as_ref().unwrap()) - (*start.borrow().as_ref().unwrap()))));
     if (*start.borrow().as_ref().unwrap()) < (*m.borrow().as_ref().unwrap()) && (*m.borrow().as_ref().unwrap()) < (*end.borrow().as_ref().unwrap()) {
-        __slices_rotate_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = start.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_rotate_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = start.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
     }
     if (*a.borrow().as_ref().unwrap()) < (*start.borrow().as_ref().unwrap()) && (*start.borrow().as_ref().unwrap()) < (*mid.borrow().as_ref().unwrap()) {
-        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = start.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = mid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = start.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = mid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
     }
     if (*mid.borrow().as_ref().unwrap()) < (*end.borrow().as_ref().unwrap()) && (*end.borrow().as_ref().unwrap()) < (*b.borrow().as_ref().unwrap()) {
-        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = mid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sym_merge_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = mid.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
     }
 }
 
@@ -3469,7 +3469,7 @@ pub fn __slices_heap_sort_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<Ref
     let mut hi = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
     let mut i = Rc::new(RefCell::new(Some(((*hi.borrow().as_ref().unwrap()) - 1) / 2)));
     while (*i.borrow().as_ref().unwrap()) >= 0 {
-        __slices_sift_down_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sift_down_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     let mut i = Rc::new(RefCell::new(Some((*hi.borrow().as_ref().unwrap()) - 1)));
@@ -3484,7 +3484,7 @@ pub fn __slices_heap_sort_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<Ref
             (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
             (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
         };
-        __slices_sift_down_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sift_down_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
 }
@@ -3495,7 +3495,7 @@ pub fn __slices_heap_sort_cmp_func__int(data: Rc<RefCell<Option<Vec<i64>>>>, a: 
     let mut hi = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*a.borrow().as_ref().unwrap()))));
     let mut i = Rc::new(RefCell::new(Some(((*hi.borrow().as_ref().unwrap()) - 1) / 2)));
     while (*i.borrow().as_ref().unwrap()) >= 0 {
-        __slices_sift_down_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sift_down_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = hi.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     let mut i = Rc::new(RefCell::new(Some((*hi.borrow().as_ref().unwrap()) - 1)));
@@ -3510,7 +3510,7 @@ pub fn __slices_heap_sort_cmp_func__int(data: Rc<RefCell<Option<Vec<i64>>>>, a: 
             (*__go_lhs_sequence_0.borrow_mut().as_mut().unwrap())[__go_lhs_index_0] = __tmp_0;
             (*__go_lhs_sequence_1.borrow_mut().as_mut().unwrap())[__go_lhs_index_1] = __tmp_1;
         };
-        __slices_sift_down_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_sift_down_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = lo.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = first.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
 }
@@ -3578,11 +3578,11 @@ const maxSwaps: i64 = 4 * 3;
     let mut swaps: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));let mut i = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 1)));let mut j = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 2)));let mut k = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 3)));
     if (*l.borrow().as_ref().unwrap()) >= 8 {
         if (*l.borrow().as_ref().unwrap()) >= 50 {
-        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *i.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *k.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *i.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *k.borrow_mut() = Some(new_val); };
     }
-        { let new_val = __slices_median_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *j.borrow_mut() = Some(new_val); };
     }
     { let _switch_val = (*swaps.borrow().as_ref().unwrap());
     if _switch_val == (0) {
@@ -3606,11 +3606,11 @@ const maxSwaps: i64 = 4 * 3;
     let mut swaps: Rc<RefCell<Option<i64>>> = Rc::new(RefCell::new(Some(0)));let mut i = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 1)));let mut j = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 2)));let mut k = Rc::new(RefCell::new(Some((*a.borrow().as_ref().unwrap()) + (*l.borrow().as_ref().unwrap()) / 4 * 3)));
     if (*l.borrow().as_ref().unwrap()) >= 8 {
         if (*l.borrow().as_ref().unwrap()) >= 50 {
-        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *i.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
-        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *k.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *i.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_adjacent_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *k.borrow_mut() = Some(new_val); };
     }
-        { let new_val = __slices_median_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *j.borrow_mut() = Some(new_val); };
+        { let new_val = __slices_median_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *j.borrow_mut() = Some(new_val); };
     }
     { let _switch_val = (*swaps.borrow().as_ref().unwrap());
     if _switch_val == (0) {
@@ -5292,14 +5292,14 @@ pub fn __slices_rotate_cmp_func___item(data: Rc<RefCell<Option<Vec<Item>>>>, a: 
     let mut j = Rc::new(RefCell::new(Some((*b.borrow().as_ref().unwrap()) - (*m.borrow().as_ref().unwrap()))));
     while (*i.borrow().as_ref().unwrap()) != (*j.borrow().as_ref().unwrap()) {
         if (*i.borrow().as_ref().unwrap()) > (*j.borrow().as_ref().unwrap()) {
-        __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = j.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let __rhs = (*j.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     } else {
-        __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) + (*j.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+        __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) + (*j.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
         { let __rhs = (*i.borrow().as_ref().unwrap()); let mut guard = j.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
     }
-    __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))));
+    __slices_swap_range_cmp_func___item(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*m.borrow().as_ref().unwrap()) - (*i.borrow().as_ref().unwrap()); __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new((*cmp.borrow()).clone())));
 }
 
 pub fn __slices_sift_down_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, lo: Rc<RefCell<Option<i64>>>, hi: Rc<RefCell<Option<i64>>>, first: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>, Rc<RefCell<Option<Task>>>) -> i64>>>>) {
@@ -5361,24 +5361,24 @@ pub fn __slices_next_power_of_two(length: Rc<RefCell<Option<i64>>>) -> u64 {
 }
 
 pub fn __slices_median_adjacent_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, a: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>, Rc<RefCell<Option<Task>>>) -> i64>>>>) -> i64 {
-    __slices_median_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))))
+    __slices_median_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone())))
 }
 
 pub fn __slices_median_adjacent_cmp_func__int(data: Rc<RefCell<Option<Vec<i64>>>>, a: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>>>>) -> i64 {
-    __slices_median_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp)))))
+    __slices_median_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) - 1; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_value = (*a.borrow().as_ref().unwrap()) + 1; __arg_value }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone())))
 }
 
 pub fn __slices_median_cmp_func__ptr__task(data: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Task>>>>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut c: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Task>>>, Rc<RefCell<Option<Task>>>) -> i64>>>>) -> i64 {
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__ptr__task(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
     return (*b.borrow().as_ref().unwrap());
 }
 
 pub fn __slices_median_cmp_func__int(data: Rc<RefCell<Option<Vec<i64>>>>, mut a: Rc<RefCell<Option<i64>>>, mut b: Rc<RefCell<Option<i64>>>, mut c: Rc<RefCell<Option<i64>>>, swaps: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>, Rc<RefCell<Option<i64>>>) -> i64>>>>) -> i64 {
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
-    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new(GoFuncValue::go_func_value(&(cmp))))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *b.borrow_mut() = Some(__tmp_0); *c.borrow_mut() = Some(__tmp_1); };
+    { let (__tmp_0, __tmp_1) = __slices_order2_cmp_func__int(data.clone(), Rc::new(RefCell::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), Rc::new(RefCell::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), swaps.clone(), Rc::new(RefCell::new((*cmp.borrow()).clone()))); *a.borrow_mut() = Some(__tmp_0); *b.borrow_mut() = Some(__tmp_1); };
     return (*b.borrow().as_ref().unwrap());
 }
 

@@ -978,6 +978,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1050,7 +1060,7 @@ pub fn hello() -> Arc<Mutex<Option<String>>> {
 }
 
 pub fn producer(out: GoChannel<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>, f: Arc<Mutex<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>>) {
-    out.send({ let __func_cell = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(f)))); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
+    out.send({ let __func_cell = Arc::new(Mutex::new((*f.lock().unwrap()).clone())); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
 }
 
 pub fn consume(r#in: GoChannel<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>) -> i64 {
@@ -1067,7 +1077,7 @@ fn main() {
     let mut greet = Arc::new(Mutex::new(Some(Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("variable".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>)));
-    ch.send({ let __func_cell = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(greet)))); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
+    ch.send({ let __func_cell = Arc::new(Mutex::new((*greet.lock().unwrap()).clone())); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
     { let new_val = Arc::new(move || -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some("changed".to_string())))
     }) as Arc<dyn Fn() -> Arc<Mutex<Option<String>>> + Send + Sync>; *greet.lock().unwrap() = Some(new_val); };

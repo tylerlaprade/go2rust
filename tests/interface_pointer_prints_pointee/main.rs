@@ -810,8 +810,8 @@ impl Named for File {
 
 impl Named for FilePtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const File = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const File };
+        let __recv = unsafe { &*__recv_ptr };
         File::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -854,8 +854,8 @@ impl Sized for File {
 
 impl Sized for FilePtr {
     fn size(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const File = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const File };
+        let __recv = unsafe { &*__recv_ptr };
         File::size(__recv)
     }
     fn __go_clone_box_sized(&self) -> Box<dyn Sized + Send + Sync> {
@@ -948,8 +948,8 @@ impl Named for Dir {
 
 impl Named for DirPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Dir = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Dir };
+        let __recv = unsafe { &*__recv_ptr };
         Dir::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -992,8 +992,8 @@ impl Sized for Dir {
 
 impl Sized for DirPtr {
     fn size(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Dir = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Dir };
+        let __recv = unsafe { &*__recv_ptr };
         Dir::size(__recv)
     }
     fn __go_clone_box_sized(&self) -> Box<dyn Sized + Send + Sync> {
@@ -1059,8 +1059,8 @@ impl std::fmt::Display for ProblemPtr {
 
 impl Named for ProblemPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Problem = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Problem };
+        let __recv = unsafe { &*__recv_ptr };
         Problem::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
@@ -1119,8 +1119,8 @@ impl std::fmt::Display for CounterPtr {
 
 impl Named for CounterPtr {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Counter = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Counter };
+        let __recv = unsafe { &*__recv_ptr };
         Counter::name(__recv)
     }
     fn __go_clone_box_named(&self) -> Box<dyn Named + Send + Sync> {
