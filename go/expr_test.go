@@ -10373,6 +10373,8 @@ func run() {
 func TestSelectorChainReadsEachPointerInItsOwnBlock(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
+import "fmt"
+
 type Node struct {
 	val    int
 	parent *Node
@@ -10383,11 +10385,22 @@ func main() {
 	root := &Node{val: 1}
 	kid := &Node{val: 2, parent: root}
 	root.left = kid
+	fmt.Println(kid.parent.left.val)
 	kid.parent.left.parent = nil
-	_ = kid.parent.left.val
 }
 `)
-	if !strings.Contains(rust, "{ let __base = (*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.clone(); __base }") {
-		t.Fatalf("each pointer in the chain should be read in a block of its own:\n%s", rust)
+	chain := "{ let __base = (*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.clone(); __base }"
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "println!") && strings.Contains(line, ".val.borrow()") && !strings.Contains(line, chain) {
+			t.Fatalf("the read should read each pointer in a block of its own:\n%s", line)
+		}
+	}
+	if !strings.Contains(rust, chain) {
+		t.Fatalf("the read should read each pointer in a block of its own:\n%s", rust)
+	}
+	// The write borrows kid mutably through left only after the block that
+	// read parent out of kid has ended.
+	if !strings.Contains(rust, "(*(*{ let __base = (*kid.borrow().as_ref().unwrap()).parent.clone(); __base }.borrow().as_ref().unwrap()).left.borrow_mut().as_mut().unwrap()).parent = new_val") {
+		t.Fatalf("the write should read parent in a block of its own:\n%s", rust)
 	}
 }
