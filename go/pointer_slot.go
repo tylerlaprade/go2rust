@@ -258,6 +258,8 @@ const (
 	slotActionNil
 	// new(*T).
 	slotActionNew
+	// &M{...} of a map literal.
+	slotActionAddrLit
 	// A node a parent action rewrites.
 	slotActionSkip
 )
@@ -707,6 +709,13 @@ func (r *pointerSlotRewriter) analyzeSlotSource(e ast.Expr, slot *pointerSlot) {
 		case *ast.StarExpr:
 			// &*pp panics when pp is nil, which pp itself does not.
 			r.fail("&*pp")
+		case *ast.CompositeLit:
+			// &map[K]V{...} points at a new variable holding the map.
+			if _, ok := r.typeExpr(slot.held); !ok {
+				r.fail("the map %s cannot be named", slot.held)
+				return
+			}
+			r.actions[e] = pointerSlotAction{kind: slotActionAddrLit, slot: slot}
 		default:
 			r.fail("& of %T", x)
 		}
@@ -1113,6 +1122,20 @@ func (r *pointerSlotRewriter) rewriteNode(n ast.Node, action pointerSlotAction) 
 		lit := r.slotLiteral(slot, func() ast.Expr { return ast.NewIdent(p) }, func() ast.Expr { return ast.NewIdent(p) })
 		body := []ast.Stmt{
 			&ast.DeclStmt{Decl: &ast.GenDecl{Tok: token.VAR, Specs: []ast.Spec{&ast.ValueSpec{Names: []*ast.Ident{ast.NewIdent(p)}, Type: heldType}}}},
+			&ast.ReturnStmt{Results: []ast.Expr{lit}},
+		}
+		return &ast.CallExpr{Fun: &ast.FuncLit{
+			Type: &ast.FuncType{Params: &ast.FieldList{}, Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent(slot.name)}}}},
+			Body: &ast.BlockStmt{List: body},
+		}}
+	case slotActionAddrLit:
+		// &M{...} is the slot of a new variable the literal starts in.
+		p := r.tempName("p")
+		heldType, _ := r.typeExpr(slot.held)
+		value := ast.Unparen(n.(*ast.UnaryExpr).X)
+		lit := r.slotLiteral(slot, func() ast.Expr { return ast.NewIdent(p) }, func() ast.Expr { return ast.NewIdent(p) })
+		body := []ast.Stmt{
+			&ast.DeclStmt{Decl: &ast.GenDecl{Tok: token.VAR, Specs: []ast.Spec{&ast.ValueSpec{Names: []*ast.Ident{ast.NewIdent(p)}, Type: heldType, Values: []ast.Expr{value}}}}},
 			&ast.ReturnStmt{Results: []ast.Expr{lit}},
 		}
 		return &ast.CallExpr{Fun: &ast.FuncLit{
