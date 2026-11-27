@@ -5132,6 +5132,14 @@ run_xfail_test() {
     run_test "tests/unicode_utf8_from_source"
 }
 
+@test "unnamed_struct_map_key" {
+    run_test "tests/unnamed_struct_map_key"
+}
+
+@test "unnamed_struct_map_key_goroutines" {
+    run_test "tests/unnamed_struct_map_key_goroutines"
+}
+
 @test "unsafe_float_bits" {
     run_test "tests/unsafe_float_bits"
 }

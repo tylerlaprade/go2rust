@@ -411,6 +411,12 @@ func (analysis *transpileFileAnalysis) inspectMapType(mapType *ast.MapType, type
 	markMapKeyStructType(analysis.comparableStructTypes, mapKeyTypeFromMapType(typeInfo, mapType), typeInfo)
 	markMapKeyStructType(analysis.mapKeyStructTypes, mapKeyTypeFromMapType(mapKeyTypeInfo, mapType), mapKeyTypeInfo)
 	markLocalInterfaceMapKeyType(analysis.localInterfaceMapKeyTypes, mapKeyTypeFromMapType(typeInfo, mapType))
+	// A map compares its keys: an unnamed struct key needs equality (#326).
+	if key := mapKeyTypeFromMapType(typeInfo, mapType); key != nil {
+		if _, unnamed := types.Unalias(key).(*types.Struct); unnamed {
+			analysis.markComparedAnonymousStruct(key, typeInfo)
+		}
+	}
 }
 
 func (analysis *transpileFileAnalysis) inspectCallExpr(call *ast.CallExpr, typeInfo *TypeInfo) {
@@ -1127,6 +1133,19 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 	if typ == nil {
 		return
 	}
+	// An unnamed struct type, as in map[struct{ x, y int }]bool, is written
+	// as the anonymous struct of its fields (#326).
+	if st, ok := types.Unalias(typ).(*types.Struct); ok {
+		result[mapKeyStructFieldsKey(st)] = true
+		// A package-level alias of the type is written as a struct of its
+		// own name.
+		if typeInfo != nil {
+			if name := packageStructAliasGoName(typeInfo.pkg, st); name != "" {
+				result[name] = true
+			}
+		}
+		return
+	}
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil {
 		return
@@ -1143,6 +1162,65 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 			result[mapKeyStructFieldsKey(st)] = true
 		}
 	}
+}
+
+// registerMapKeyAnonymousStructs names the unnamed struct types that key a
+// map in file, as in map[struct{ x, y int }]bool, before the file is
+// written: the map's type is written from go/types, which finds a struct
+// type only once it has a name (#326).
+func registerMapKeyAnonymousStructs(file *ast.File) {
+	if file == nil {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	ast.Inspect(file, func(node ast.Node) bool {
+		if mapType, ok := node.(*ast.MapType); ok {
+			if st, ok := unwrapParens(mapType.Key).(*ast.StructType); ok {
+				// A package-level alias of the same struct type, such as
+				// type pos = struct{ x, y int }, already names it.
+				if typeInfo != nil {
+					if keyType, ok := types.Unalias(typeInfo.GetType(st)).(*types.Struct); ok && packageStructAliasName(keyType) != "" {
+						return true
+					}
+				}
+				generateAnonymousStructType(st)
+			}
+		}
+		return true
+	})
+}
+
+// packageStructAliasName is the Rust name of a package-level alias of the
+// unnamed struct type st, such as pos for type pos = struct{ x, y int },
+// which is written as a struct of that name, or "" when there is none.
+func packageStructAliasName(st *types.Struct) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return ""
+	}
+	if name := packageStructAliasGoName(typeInfo.pkg, st); name != "" {
+		return RustTypeNameForUse(name)
+	}
+	return ""
+}
+
+// packageStructAliasGoName is the Go name of a package-level alias in pkg of
+// the unnamed struct type st, or "" when there is none.
+func packageStructAliasGoName(pkg *types.Package, st *types.Struct) string {
+	if pkg == nil || st == nil {
+		return ""
+	}
+	scope := pkg.Scope()
+	for _, name := range scope.Names() {
+		typeName, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok || !typeName.IsAlias() {
+			continue
+		}
+		if aliased, ok := types.Unalias(typeName.Type()).(*types.Struct); ok && types.Identical(aliased, st) {
+			return name
+		}
+	}
+	return ""
 }
 
 // mapKeyStructFieldsKey is the key a struct of these fields, used as a map
@@ -3783,6 +3861,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Transpile the body
 	var body strings.Builder
 	fileAnalysis := analyzeTranspileFile(file, typeInfo)
+	registerMapKeyAnonymousStructs(file)
 	packageGlobalNames = make(map[string]bool)
 	if currentContext != nil && currentContext.Package != nil {
 		if currentContext.Package.PackageGlobalGoPtrElemRust == nil {
