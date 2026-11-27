@@ -177,18 +177,18 @@ fn main() {
     ::container_ring::__go_init_all();
 
     let mut l = container_list::new();
-    let mut e4 = (*l.borrow_mut().as_mut().unwrap()).push_back(Rc::new(RefCell::new(Some(Box::new(4i64) as Box<dyn Any>))));
-    let mut e1 = (*l.borrow_mut().as_mut().unwrap()).push_front(Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>))));
-    (*l.borrow_mut().as_mut().unwrap()).insert_before(Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>))), e4.clone());
-    (*l.borrow_mut().as_mut().unwrap()).insert_after(Rc::new(RefCell::new(Some(Box::new(2i64) as Box<dyn Any>))), e1.clone());
+    let mut e4 = { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back(Rc::new(RefCell::new(Some(Box::new(4i64) as Box<dyn Any>)))); __result };
+    let mut e1 = { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_front(Rc::new(RefCell::new(Some(Box::new(1i64) as Box<dyn Any>)))); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.insert_before(Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>))), e4.clone()); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.insert_after(Rc::new(RefCell::new(Some(Box::new(2i64) as Box<dyn Any>))), e1.clone()); __result };
     print_list(l.clone());
     (*l.borrow().as_ref().unwrap()).move_to_back(e1.clone());
     (*l.borrow().as_ref().unwrap()).move_before(e4.clone(), (*l.borrow().as_ref().unwrap()).front());
     print_list(l.clone());
     (*l.borrow_mut().as_mut().unwrap()).remove(e4.clone());
     let mut other = container_list::new();
-    (*other.borrow_mut().as_mut().unwrap()).push_back(Rc::new(RefCell::new(Some(Box::new(9i64) as Box<dyn Any>))));
-    (*l.borrow_mut().as_mut().unwrap()).push_back_list(other.clone());
+    { let __recv = other.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back(Rc::new(RefCell::new(Some(Box::new(9i64) as Box<dyn Any>)))); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back_list(other.clone()); __result };
     print_list(l.clone());
     let mut e = (*l.borrow().as_ref().unwrap()).back();
     while { let __nil_result = (*e.borrow()).is_some(); __nil_result } {
@@ -200,7 +200,7 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(0i64)));
     while (*i.borrow().as_ref().unwrap()) < container_ring::__go_nil_recv_ring_len(r.clone()) {
         { let new_val = Box::new({ let __bin_i = (*i.borrow().as_ref().unwrap()).clone(); __bin_i * __bin_i }) as Box<dyn Any>; *(*r.borrow().as_ref().unwrap()).value.borrow_mut() = Some(new_val); };
-        { let new_val = (*r.borrow_mut().as_mut().unwrap()).next().clone(); r = new_val; };
+        { let new_val = { let __recv = r.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.next(); __result }.clone(); r = new_val; };
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     container_ring::__go_nil_recv_ring_r_do(r.clone(), Rc::new(RefCell::new(Some(Rc::new(move |v: Rc<RefCell<Option<Box<dyn Any>>>>| {

@@ -132,7 +132,7 @@ fn main() {
     { let __channel = (*timer1.lock().unwrap().as_ref().unwrap()).c.clone(); __channel }.recv().unwrap_or_default();
     println!("{}", format!("{}", "Timer 1 fired".to_string()));
     let mut timer2 = time::new_timer(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((500 as i64 * time::MILLISECOND) as i64))))))));
-    let mut stop2 = { let __recv = timer2.clone(); let __recv_ptr: *const time::sleep::Timer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const time::sleep::Timer }; let __result = unsafe { &*__recv_ptr }.stop(); __result };
+    let mut stop2 = { let __recv = timer2.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.stop(); __result };
     if stop2 {
         println!("{}", format!("{}", "Timer 2 stopped".to_string()));
     }

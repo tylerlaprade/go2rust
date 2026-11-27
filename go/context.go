@@ -934,6 +934,19 @@ func NeedGoWriteBack() {
 	}
 }
 
+// NeedReceiverHandles marks that a method takes the handle it was called
+// on from a hint its call site records (receiver_handle.go).
+func NeedReceiverHandles() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsReceiverHandles = true
+		TrackImport("Any")
+		trackWrapperImports()
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsReceiverHandles = true
+	})
+}
+
 // NeedGoPointerError marks that an error assertion must keep a concrete
 // pointer handle live instead of snapshotting its current pointee.
 func NeedGoPointerError() {

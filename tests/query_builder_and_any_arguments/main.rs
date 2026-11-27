@@ -390,6 +390,16 @@ impl std::fmt::Display for upperWriter {
 
 impl Query {
     pub fn r#where(&mut self, cond: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> Arc<Mutex<Option<Query>>> {
+        if let Some(mut q) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*q.lock().unwrap().as_ref().unwrap()).wheres.clone(); let __append_value = ({ let __v = (*cond.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *(*q.lock().unwrap().as_ref().unwrap()).wheres.lock().unwrap() = __slice_header; };
+        if { let __nil_target = (*q.lock().unwrap().as_ref().unwrap()).params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([])))); (*q.lock().unwrap().as_mut().unwrap()).params = new_val; };
+    }
+        { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_len = __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); std::mem::drop(__range_guard); let __range_values = 0..__range_len; for (i, a) in __range_values.map(|__range_index| { let __range_guard = __range_holder.lock().unwrap(); go_any_clone(__range_guard.as_ref().unwrap()[__range_index].as_ref()) }).enumerate() {
+        { let __map_key = { let __map_key_holder = Arc::new(Mutex::new(Some(format!("p{}", { let __tmp_x = (({ let __len = ({ let __len_target = { let __field = (*q.lock().unwrap().as_ref().unwrap()).params.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = (i as i64); __tmp_x + __tmp_y })))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some(go_any_clone(a.as_ref())))); (*(*q.lock().unwrap().as_ref().unwrap()).params.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    } }
+        return q.clone();
+        } else {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.wheres.clone(); let __append_value = ({ let __v = (*cond.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.wheres.lock().unwrap() = __slice_header; };
         if { let __nil_target = self.params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([])))); self.params = new_val; };
@@ -398,16 +408,27 @@ impl Query {
         { let __map_key = { let __map_key_holder = Arc::new(Mutex::new(Some(format!("p{}", { let __tmp_x = (({ let __len = ({ let __len_target = { let __field = self.params.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len }) as i64); let __tmp_y = (i as i64); __tmp_x + __tmp_y })))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some(go_any_clone(a.as_ref())))); (*self.params.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     } }
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn order_by(&mut self, col: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Query>>> {
+        if let Some(mut q) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let new_val = col.lock().unwrap().as_ref().unwrap().clone(); *(*q.lock().unwrap().as_ref().unwrap()).order.lock().unwrap() = Some(new_val); };
+        return q.clone();
+        } else {
         { let new_val = col.lock().unwrap().as_ref().unwrap().clone(); *self.order.lock().unwrap() = Some(new_val); };
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn limit(&mut self, n: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Query>>> {
+        if let Some(mut q) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *(*q.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap() = Some(new_val); };
+        return q.clone();
+        } else {
         { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *self.limit.lock().unwrap() = Some(new_val); };
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -545,37 +566,7 @@ fn main() {
     ::unicode::__go_init_all();
     ::unicode_utf8::__go_init_all();
 
-    let mut q = {
-        let __recv = {
-            let __recv = {
-                let __recv = {
-                    let __recv = from(Arc::new(Mutex::new(Some("users".to_string()))));
-                    let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r#where(
-                        Arc::new(Mutex::new(Some("age > ?".to_string()))),
-                        Arc::new(Mutex::new(Some(vec![
-                            Box::new(18i64) as Box<dyn Any + Send + Sync>,
-                        ]))),
-                    );
-                    __result
-                };
-                let __result = (*__recv.lock().unwrap().as_mut().unwrap()).r#where(
-                    Arc::new(Mutex::new(Some("name LIKE ?".to_string()))),
-                    Arc::new(Mutex::new(Some(vec![
-                        Box::new("a%".to_string()) as Box<dyn Any + Send + Sync>,
-                    ]))),
-                );
-                __result
-            };
-            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).order_by(
-                Arc::new(Mutex::new(Some("name".to_string()))),
-            );
-            __result
-        };
-        let __result = (*__recv.lock().unwrap().as_mut().unwrap()).limit(
-            Arc::new(Mutex::new(Some(10))),
-        );
-        __result
-    };
+    let mut q = { let __recv = { let __recv = { let __recv = { let __recv = from(Arc::new(Mutex::new(Some("users".to_string())))); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.r#where(Arc::new(Mutex::new(Some("age > ?".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(18i64) as Box<dyn Any + Send + Sync>])))); __result }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.r#where(Arc::new(Mutex::new(Some("name LIKE ?".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new("a%".to_string()) as Box<dyn Any + Send + Sync>])))); __result }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.order_by(Arc::new(Mutex::new(Some("name".to_string())))); __result }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.limit(Arc::new(Mutex::new(Some(10)))); __result };
     println!("{}", format!("{}", { let __text = match q.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let mut keys = Arc::new(Mutex::new(Some(Vec::<String>::with_capacity(0))));
     for (k, _) in { let __range_holder = (*q.lock().unwrap().as_ref().unwrap()).params.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {

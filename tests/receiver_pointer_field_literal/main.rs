@@ -737,6 +737,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Node {
     pub name: Rc<RefCell<Option<String>>>,
@@ -793,7 +839,11 @@ impl std::fmt::Display for Link {
 
 impl Node {
     pub fn link(&self) -> Rc<RefCell<Option<Link>>> {
+        if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return Rc::new(RefCell::new(Some(Link { owner: n.clone(), ..Default::default() })));
+        } else {
         Rc::new(RefCell::new(Some(Link { owner: Rc::new(RefCell::new(Some(self.clone()))), ..Default::default() })))
+        }
     }
 }
 
@@ -806,5 +856,5 @@ impl Link {
 fn main() {
     go_install_panic_exit();
     let mut node = Rc::new(RefCell::new(Some(Node { name: Rc::new(RefCell::new(Some("root".to_string()))), ..Default::default() })));
-    println!("{}", format!("{}", (*{ let __recv = (*node.borrow().as_ref().unwrap()).link(); let __result = (*__recv.borrow().as_ref().unwrap()).owner_name(); __result }.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = { let __recv = node.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.link(); __result }; let __result = (*__recv.borrow().as_ref().unwrap()).owner_name(); __result }.borrow().as_ref().unwrap())));
 }

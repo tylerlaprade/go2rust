@@ -84,6 +84,9 @@ func main() {
 	(*a).N++
 	(*a).Tags = append((*a).Tags, "t")
 	fmt.Println(a.N, (*a).Get(), a.Tags, (*a).Self() == a)
+	// (*a).Self() is a itself: replacing the pointee through it changes a.
+	*(*a).Self() = P{N: a.N + 1, Tags: a.Tags}
+	fmt.Println(a.N)
 
 	var one [1]P
 	one[0].N = 1

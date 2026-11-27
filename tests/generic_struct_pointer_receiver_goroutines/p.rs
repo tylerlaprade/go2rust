@@ -13,6 +13,12 @@ use crate::{
     format_slice_wrapped,
     go_any_clone,
     go_any_try_clone,
+    go_hint_receiver,
+    go_hint_receiver_mut,
+    go_receiver_ptr,
+    go_receiver_ptr_mut,
+    go_set_receiver_handle,
+    go_take_receiver_handle,
 };
 
 use std::fmt::{Display, Formatter};
