@@ -854,7 +854,7 @@ impl tracker {
 }
 
 pub fn make_bump(t: Arc<Mutex<Option<tracker>>>) -> Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Arc<dyn Fn() -> () + Send + Sync> })))
+    Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { let __recv_ptr: *mut tracker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut tracker }; unsafe { &mut *__recv_ptr }.bump() }) as Arc<dyn Fn() -> () + Send + Sync> })))
 }
 
 fn main() {
@@ -869,7 +869,7 @@ fn main() {
         )
     };
     let mut second: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    { let new_val = Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).bump() }) as Arc<dyn Fn() -> () + Send + Sync> }))); second = new_val; };
+    { let new_val = Arc::new(Mutex::new(Some({ let __recv = t.clone(); Arc::new(move || { let __recv_ptr: *mut tracker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut tracker }; unsafe { &mut *__recv_ptr }.bump() }) as Arc<dyn Fn() -> () + Send + Sync> }))); second = new_val; };
     {
         let __f: Arc<dyn Fn() -> () + Send + Sync> = second.lock().unwrap().as_ref().unwrap().clone();
         (__f)(

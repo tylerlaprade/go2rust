@@ -855,10 +855,12 @@ func (pl *PackageLoader) TranspileAll() error {
 		if pkg != nil {
 			registerPackageMethodReceiverMutability(pkg.PkgPath, pkg.Syntax)
 			if pkg.TypesInfo != nil && pkg.Types != nil {
-				registerPackageMethodReceiverOriginalReceiver(pkg.PkgPath, pkg.Syntax, &TypeInfo{
+				pkgTypeInfo := &TypeInfo{
 					info: pkg.TypesInfo,
 					pkg:  pkg.Types,
-				})
+				}
+				registerPackageMethodReceiverOriginalReceiver(pkg.PkgPath, pkg.Syntax, pkgTypeInfo)
+				collectReceiverHandleMethods(pkg.Syntax, pkgTypeInfo)
 			}
 			if pkg.Types != nil {
 				allPackageTypes = append(allPackageTypes, pkg.Types)

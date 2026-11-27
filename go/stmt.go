@@ -4917,10 +4917,13 @@ func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		return true
 	}
 	if assignmentRHSReturnsWrappedValue(rhs) {
+		// The receiver copy shares the new pointee's field cells; taking
+		// the pointee out of its cell would empty it, so a walk such as
+		// `for n.next != nil { n = n.next }` emptied the list (DEV-165).
 		TranspileExpression(out, rhs)
-		out.WriteString("; let __moved_val = { let mut __guard = new_val")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take().unwrap() }; ")
+		out.WriteString("; let __moved_val = { let __guard = new_val")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __guard.as_ref().unwrap().clone() }; ")
 		out.WriteString(currentReceiverRustAlias)
 		out.WriteString(" = __moved_val; }")
 		return true
@@ -11754,16 +11757,31 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	}
 
 	if _, ok := expr.(*ast.SelectorExpr); ok {
+		// The field's cell, which a read of a field through a pointer
+		// variable would already have unwrapped. The value is read in a let
+		// of its own, so the lock on the struct the field is read out of is
+		// released before a send that waits.
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if _, isPointer := types.Unalias(typeInfo.GetType(expr)).(*types.Pointer); isPointer {
+				// A pointer field is the pointer's handle, which is sent.
+				out.WriteString("{ let __sent = ")
+				TranspileExpressionContext(out, expr, LValue)
+				out.WriteString(".clone(); __sent }")
+				return
+			}
+		}
 		if isCopyType {
-			out.WriteString("(*")
-			TranspileExpression(out, expr)
+			out.WriteString("{ let __sent = (*")
+			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(".as_ref().unwrap()); __sent }")
 		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
-			TranspileExpression(out, expr)
+			out.WriteString("{ let __sent = ")
+			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(copyCall)
+			out.WriteString("; __sent }")
 		} else {
 			out.WriteString(goValueCopyNeedsTypeInfo)
 		}
@@ -14319,7 +14337,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; ")
-									if _, isIdent := unwrapParens(star.X).(*ast.Ident); !isIdent {
+									if globalIdent, ok := packageGlobalPointerIdent(star.X); ok {
+										// A package pointer variable is a cell holding
+										// the pointer: write through the handle it holds.
+										out.WriteString("*")
+										writePackageGlobalPointerHandleClone(out, globalIdent)
+									} else if _, isIdent := unwrapParens(star.X).(*ast.Ident); !isIdent {
 										// The pointer is read first, in a let of its own,
 										// so the locks its selector chain takes are let
 										// go before the pointee is: `*team.Lead.Dept = v`

@@ -1273,7 +1273,7 @@ impl LRU {
             return;;
         }
     }
-        let mut el = (*self.ll.lock().unwrap().as_mut().unwrap()).push_front(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(entry { key: Arc::new(Mutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>))));
+        let mut el = { let __recv = self.ll.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_front(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(entry { key: Arc::new(Mutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>)))); __result };
         { let __map_key = ({ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = el.clone(); (*self.items.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if {
             let __tmp_x = (*self.ll.lock().unwrap().as_ref().unwrap()).len();

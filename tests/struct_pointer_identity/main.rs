@@ -923,6 +923,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -1666,7 +1712,11 @@ impl Counter {
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<Counter>>> {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return c.clone();
+        } else {
         Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn later(&mut self) -> Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>> {
@@ -1714,7 +1764,11 @@ impl Counter {
     }
 
     pub fn remember(&self, other: Rc<RefCell<Option<Counter>>>) {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let new_val = c.clone(); (*other.borrow_mut().as_mut().unwrap()).last = new_val; };
+        } else {
         { let new_val = Rc::new(RefCell::new(Some(self.clone()))); (*other.borrow_mut().as_mut().unwrap()).last = new_val; };
+        }
     }
 }
 
@@ -1793,7 +1847,7 @@ fn main() {
     (*c.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", "method".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
-    { let __recv = (*c.borrow().as_ref().unwrap()).self_(); let __result = (*__recv.borrow_mut().as_mut().unwrap()).inc(); __result };
+    { let __recv = { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result }; let __result = (*__recv.borrow_mut().as_mut().unwrap()).inc(); __result };
     println!("{} {}", format!("{}", "returned receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     let mut later = (*c.borrow_mut().as_mut().unwrap()).later();
@@ -1804,14 +1858,14 @@ fn main() {
     (*c.borrow_mut().as_mut().unwrap()).deferred();
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
-    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Rc::new(move || { (*__recv.borrow_mut().as_mut().unwrap()).inc() }) as Rc<dyn Fn() -> ()> }; __arg_value }))));
+    apply(Rc::new(RefCell::new(Some({ let __arg_value = { let __recv = c.clone(); Rc::new(move || { let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut Counter }; unsafe { &mut *__recv_ptr }.inc() }) as Rc<dyn Fn() -> ()> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     add_to(c.clone());
     println!("{} {}", format!("{}", "pointer parameter".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     let mut other = Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(0))), last: Default::default() })));
-    (*c.borrow().as_ref().unwrap()).remember(other.clone());
+    { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.remember(other.clone()); __result };
     (*(*other.borrow().as_ref().unwrap()).last.borrow_mut().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", "stored receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 

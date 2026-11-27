@@ -1284,6 +1284,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsAnyPointerFormatter = dst.needsAnyPointerFormatter || src.needsAnyPointerFormatter
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
+	dst.needsReceiverHandles = dst.needsReceiverHandles || src.needsReceiverHandles
 	if len(src.anyCloneTypes) > 0 {
 		if dst.anyCloneTypes == nil {
 			dst.anyCloneTypes = make(map[string]bool)

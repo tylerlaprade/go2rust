@@ -854,6 +854,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -1752,7 +1798,11 @@ impl P {
     }
 
     pub fn self_(&self) -> Arc<Mutex<Option<P>>> {
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return p.clone();
+        } else {
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 }
 
@@ -1901,12 +1951,16 @@ fn main() {
     { let __target = ((*a.lock().unwrap().as_mut().unwrap())).n.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ((*a.lock().unwrap().as_mut().unwrap())).tags.clone(); let __append_value = "t".to_string(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *((*a.lock().unwrap().as_mut().unwrap())).tags.lock().unwrap() = __slice_header; };
     { let __go_print_arg_1 = ({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }).get(); let __go_print_arg_2 = Arc::new(Mutex::new(Some({
-    let __left = ({ let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }).self_();
+    let __left = { let __recv = a.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result };
     let __right = a.clone();
     let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
     let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.n) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.n) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
     __eq
 }))); let __go_print_value = println!("{} {} {} {}", format!("{}", (*{ let __field = (*a.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", __go_print_arg_1), format!("{}", format_slice_values(&(*{ let __field = (*a.lock().unwrap().as_ref().unwrap()).tags.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())), format!("{}", { let __v = (*__go_print_arg_2.lock().unwrap().as_ref().unwrap()).clone(); __v })); __go_print_value };
+
+        // (*a).Self() is a itself: replacing the pointee through it changes a.
+    { let new_val = P { n: Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*a.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y }))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&((*a.lock().unwrap().as_ref().unwrap()).tags)); Arc::new(Mutex::new(__slice_header)) }, ..Default::default() }; let __deref_target = { let __recv = a.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result }.clone(); *__deref_target.lock().unwrap() = Some(new_val); };
+    println!("{}", format!("{}", (*{ let __field = (*a.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     let mut one: Arc<Mutex<Option<[P; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
     { let new_val = 1; *{ let __seq = { let __seq_holder = one.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.n.lock().unwrap() = Some(new_val); };

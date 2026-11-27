@@ -132,7 +132,11 @@ impl<T: Any + 'static> C<T> {
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<C<T>>>> {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return c.clone();
+        } else {
         Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 }
 
@@ -184,7 +188,7 @@ fn main() {
     { let __f: Rc<dyn Fn() -> ()> = k.borrow().as_ref().unwrap().clone(); (__f)() };
     println!("{} {}", format!("{}", "array of structs through a closure".to_string()), format!("{}", (*(*(*c.borrow().as_ref().unwrap()).items.borrow().as_ref().unwrap())[(1) as usize].clone().x.borrow().as_ref().unwrap())));
 
-    let mut d = (*c.borrow().as_ref().unwrap()).self_();
+    let mut d = { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result };
     { let new_val = 50; *(*d.borrow().as_ref().unwrap()).n.borrow_mut() = Some(new_val); };
     { let new_val = 60; *(*(*d.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     println!("{} {} {}", format!("{}", "returned receiver".to_string()), format!("{}", (*(*c.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*(*(*c.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));

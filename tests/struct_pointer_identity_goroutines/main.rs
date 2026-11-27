@@ -953,6 +953,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -1879,7 +1925,11 @@ impl Counter {
     }
 
     pub fn self_(&self) -> Arc<Mutex<Option<Counter>>> {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return c.clone();
+        } else {
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn later(&mut self) -> Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>> {
@@ -1927,7 +1977,11 @@ impl Counter {
     }
 
     pub fn remember(&self, other: Arc<Mutex<Option<Counter>>>) {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let new_val = c.clone(); (*other.lock().unwrap().as_mut().unwrap()).last = new_val; };
+        } else {
         { let new_val = Arc::new(Mutex::new(Some(self.clone()))); (*other.lock().unwrap().as_mut().unwrap()).last = new_val; };
+        }
     }
 }
 
@@ -2025,7 +2079,7 @@ fn main() {
     println!("{} {}", format!("{}", "method".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     {
-        let __recv = { let __recv = c.clone(); let __recv_ptr: *const Counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Counter }; let __result = unsafe { &*__recv_ptr }.self_(); __result };
+        let __recv = { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result };
         let __result = (*__recv.lock().unwrap().as_mut().unwrap()).inc();
         __result
     };
@@ -2044,14 +2098,14 @@ fn main() {
     { let __recv = c.clone(); let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; let __result = unsafe { &mut *__recv_ptr }.deferred(); __result };
     println!("{} {}", format!("{}", "defer over receiver".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
-    apply(Arc::new(Mutex::new(Some({ let __arg_value = { let __recv = c.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).inc() }) as Arc<dyn Fn() -> () + Send + Sync> }; __arg_value }))));
+    apply(Arc::new(Mutex::new(Some({ let __arg_value = { let __recv = c.clone(); Arc::new(move || { let __recv_ptr: *mut Counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Counter }; unsafe { &mut *__recv_ptr }.inc() }) as Arc<dyn Fn() -> () + Send + Sync> }; __arg_value }))));
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     add_to(c.clone());
     println!("{} {}", format!("{}", "pointer parameter".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
     let mut other = Arc::new(Mutex::new(Some(Counter { n: Arc::new(Mutex::new(Some(0))), last: Default::default() })));
-    { let __recv = c.clone(); let __recv_ptr: *const Counter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Counter }; let __result = unsafe { &*__recv_ptr }.remember(other.clone()); __result };
+    { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.remember(other.clone()); __result };
     (*(*other.lock().unwrap().as_ref().unwrap()).last.lock().unwrap().as_mut().unwrap()).inc();
     println!("{} {}", format!("{}", "stored receiver".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())));
 
