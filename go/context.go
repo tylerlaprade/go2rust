@@ -1394,13 +1394,6 @@ func NeedUrl() {
 	}
 }
 
-// NeedRegexp marks that we need regexp helpers
-func NeedRegexp() {
-	if helpers := activeHelperTracker(); helpers != nil {
-		helpers.needsRegexp = true
-	}
-}
-
 // NeedJsonEscape marks that we need JSON string escaping helpers
 func NeedJsonEscape() {
 	if helpers := activeHelperTracker(); helpers != nil {

@@ -8085,31 +8085,62 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	if helperQualifier == "" {
 		NeedSliceElemPtr()
 	}
+	// &p.Inst[p.Start]: the slice's handle comes out of p's cell, and so
+	// does the index. Read in one call's arguments, the first read's guard
+	// is still alive at the second, which with a Mutex waits on itself.
+	// For such an index the handle is read in a statement of its own, and
+	// then the index, in Go's left-to-right order.
+	separateIndex := !sliceElemPtrIndexIsPlain(indexExpr.Index)
+	writeHandle := func(handle *strings.Builder) {
+		if writeRangeSliceElemPtrSequenceHandle(handle, indexExpr.X) {
+			// Range values for slice elements are bare references; wrap a temporary handle.
+		} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+			writeNamedSliceInnerHandleClone(handle, indexExpr.X)
+		} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
+			// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no
+			// cell of its own. A new cell around a copy of it shares its
+			// backing, so the element pointer writes into grid.
+			WriteWrapperPrefix(handle)
+			TranspileExpressionContext(handle, indexExpr.X, LValue)
+			handle.WriteString(".clone()")
+			WriteWrapperSuffix(handle)
+		} else {
+			TranspileExpressionContext(handle, indexExpr.X, LValue)
+			handle.WriteString(".clone()")
+		}
+	}
+	constructor := "GoSliceElemPtr::new("
 	if helperQualifier != "" {
-		out.WriteString(helperQualifier)
-		out.WriteString("::")
+		constructor = helperQualifier + "::" + constructor
 	}
-	out.WriteString("GoSliceElemPtr::new(")
-	if writeRangeSliceElemPtrSequenceHandle(out, indexExpr.X) {
-		// Range values for slice elements are bare references; wrap a temporary handle.
-	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
-		writeNamedSliceInnerHandleClone(out, indexExpr.X)
-	} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
-		// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no cell
-		// of its own. A new cell around a copy of it shares its backing,
-		// so the element pointer writes into grid.
-		WriteWrapperPrefix(out)
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-		out.WriteString(".clone()")
-		WriteWrapperSuffix(out)
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-		out.WriteString(".clone()")
+	if separateIndex {
+		out.WriteString("{ let __elem_slice = ")
+		writeHandle(out)
+		out.WriteString("; let __elem_index = ")
+		writeExpressionAsUsize(out, indexExpr.Index)
+		out.WriteString("; ")
+		out.WriteString(constructor)
+		out.WriteString("__elem_slice, __elem_index) }")
+		return true
 	}
+	out.WriteString(constructor)
+	writeHandle(out)
 	out.WriteString(", ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
 	return true
+}
+
+// sliceElemPtrIndexIsPlain reports whether an element pointer's index reads
+// no cell another operand of the call may hold: a constant or a local.
+func sliceElemPtrIndexIsPlain(index ast.Expr) bool {
+	switch e := unwrapParens(index).(type) {
+	case *ast.BasicLit:
+		return true
+	case *ast.Ident:
+		return !isPackageGlobalIdent(e)
+	}
+	return isConstantExpression(index)
 }
 
 // indexesSliceOrArray reports whether e indexes a slice or an array, whose

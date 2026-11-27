@@ -8136,3 +8136,19 @@ type dependency interface {
 		t.Errorf("object.go holds no map; got %q", got)
 	}
 }
+
+// Outside a Go module go list resolves no package ".", so the program's
+// files themselves name its package; inside one the directory does.
+func TestPackageLoadPatternsOutsideAModuleNameTheFiles(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "main.go")
+	writeTestFile(t, file, "package main\n\nfunc main() {}\n")
+	pg := NewProjectGenerator([]string{file})
+	if got := pg.packageLoadPatterns(); len(got) != 1 || got[0] != "main.go" {
+		t.Fatalf("outside a module the patterns should be the files, got %v", got)
+	}
+	writeTestFile(t, filepath.Join(dir, "go.mod"), "module probe\n\ngo 1.22\n")
+	if got := pg.packageLoadPatterns(); len(got) != 1 || got[0] != "." {
+		t.Fatalf("inside a module the pattern should be the directory, got %v", got)
+	}
+}
