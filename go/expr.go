@@ -24607,6 +24607,55 @@ func promotedMethodCallInfo(sel *ast.SelectorExpr) ([]string, *types.Func, bool)
 	return fields, fn, true
 }
 
+// isForwardedRWMutexMethodCall reports whether sel calls a sync.RWMutex
+// method that a struct of the package has by embedding one, directly or
+// through embedded structs of the package, so the struct has the forwarder
+// and the __go_rw_mutex accessor (collectExternalPromotedMethods).
+func isForwardedRWMutexMethodCall(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.pkg == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal || len(selection.Index()) < 2 {
+		return false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok || !isEmbeddedRWMutexMethod(fn) {
+		return false
+	}
+	typ := selection.Recv()
+	path := selection.Index()
+	for _, index := range path[:len(path)-1] {
+		if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+			typ = ptr.Elem()
+		}
+		named, ok := types.Unalias(typ).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+			return false
+		}
+		st, ok := named.Underlying().(*types.Struct)
+		if !ok || index >= st.NumFields() {
+			return false
+		}
+		typ = st.Field(index).Type()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "RWMutex"
+}
+
+// writeForwardedRWMutexReceiver writes the receiver of r.Lock() and the other
+// sync.RWMutex methods a struct in the cell r has by embedding one: the
+// mutex, taken out of the struct in a block of its own, so the call waits
+// for the lock holding none of the cells on the way. Holding r's cell while
+// Lock waited kept the goroutine that held the lock from reaching r.Unlock().
+func writeForwardedRWMutexReceiver(out *strings.Builder, cell string) {
+	out.WriteString("{ let __sync_value = (*")
+	out.WriteString(cell)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())." + rwMutexAccessorName + "(); __sync_value }.")
+}
+
 // isEmbeddedRWMutexMethod reports whether fn is a method of sync.RWMutex
 // that a struct embedding one gets a forwarder for.
 func isEmbeddedRWMutexMethod(fn *types.Func) bool {
@@ -25232,6 +25281,8 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(receiverName)
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).clone(); __sync_value }.")
+				} else if needsUnwrap && isForwardedRWMutexMethodCall(sel) {
+					writeForwardedRWMutexReceiver(out, receiverName)
 				} else if needsUnwrap {
 					// Wrapped type - need to unwrap
 					// Use mutable borrow only for pointer receiver methods
@@ -25313,6 +25364,10 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".")
 				out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
 				out.WriteString(".")
+			} else if isForwardedRWMutexMethodCall(sel) && !typeInfoIsPointerExpr(fieldSel) {
+				var field strings.Builder
+				TranspileExpressionContext(&field, fieldSel, LValue)
+				writeForwardedRWMutexReceiver(out, field.String())
 			} else {
 				// Method call on a field (e.g., s.Counter.Value())
 				// The field is wrapped in Rc<RefCell<Option<T>>>, so unwrap it.

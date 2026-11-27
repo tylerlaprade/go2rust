@@ -4,3 +4,4 @@ reg 8
 5
 both 16
 outer 7
+shared 4

@@ -957,8 +957,14 @@ impl Shallow {
 
 fn main() {
     go_install_panic_exit();
+    ::internal_bisect::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_stringslite::__go_init_all();
     ::math_bits::__go_init_all();
     ::sort::__go_init_all();
+    ::time::__go_init_all();
 
     let mut t = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() })));
     let mut wg = WaitGroup::new();
@@ -1013,22 +1019,22 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     }
     wg.wait();
     { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.write(Arc::new(Mutex::new(Some("b".to_string()))), Arc::new(Mutex::new(Some(2)))); __result };
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
     { let __map_key = "c".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*(*t.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.r_lock(); __result };
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     let mut keys = Arc::new(Mutex::new(Some(Vec::<String>::new())));
     for (k, _) in { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).m.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *keys.lock().unwrap() = __slice_header; };
     }
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.r_unlock(); __result };
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
     sort::strings(keys.clone());
     println!("{} {} {}", format!("{}", format_slice(&keys)), format!("{}", { let __recv = t.clone(); let __recv_ptr: *const Table = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Table }; let __result = unsafe { &*__recv_ptr }.read(Arc::new(Mutex::new(Some("b".to_string())))); __result }), format!("{}", { let __recv = t.clone(); let __recv_ptr: *const Table = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Table }; let __result = unsafe { &*__recv_ptr }.read(Arc::new(Mutex::new(Some("z".to_string())))); __result }));
     let mut r = Arc::new(Mutex::new(Some(Registry { table: t.clone(), name: Arc::new(Mutex::new(Some("reg".to_string()))), ..Default::default() })));
     (*r.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some("d".to_string()))), Arc::new(Mutex::new(Some(4))));
-    (*r.lock().unwrap().as_mut().unwrap()).r_lock();
+    { let __sync_value = (*r.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     println!("{} {}", format!("{}", (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*r.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
-    (*r.lock().unwrap().as_mut().unwrap()).r_unlock();
+    { let __sync_value = (*r.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
     let mut r2 = Arc::new(Mutex::new(Some(Registry { table: t.clone(), name: Arc::new(Mutex::new(Some("reg2".to_string()))), ..Default::default() })));
     let mut wg2 = WaitGroup::new();
     let mut i = Arc::new(Mutex::new(Some(0i64)));
@@ -1047,9 +1053,9 @@ let wg2_defer_captured = wg2_thread.clone(); __defer_stack.push(Box::new(move ||
             if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x % __tmp_y }; let __tmp_y = 1; __tmp_x == __tmp_y } {
         { let new_val = r2_thread.lock().unwrap().as_ref().unwrap().__go_value_clone(); *reg.lock().unwrap() = Some(new_val); };
     };
-            (*reg.lock().unwrap().as_mut().unwrap()).lock();;
+            { let __sync_value = (*reg.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();;
             { let __map_key = { let __map_key_holder = Arc::new(Mutex::new(Some(format!("s{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v })))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))); (*(*(*reg.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
-            (*reg.lock().unwrap().as_mut().unwrap()).unlock();;
+            { let __sync_value = (*reg.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();;
             while let Some(f) = __defer_stack.pop() {
                 f();
             }
@@ -1093,13 +1099,13 @@ let wg2_defer_captured = wg2_thread.clone(); __defer_stack.push(Box::new(move ||
         go_register_embedded_owner(__embedded_key, __owner.clone());
         __owner
     };
-    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
-    { let __recv = t.clone(); let __recv_ptr: *mut Table = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Table }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };
-    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };
-    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_lock(); __result };
+    { let __sync_value = (*both.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*t.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    { let __sync_value = (*both.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    { let __sync_value = (*both.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     println!("{} {}", format!("{}", "both".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*both.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
-    { let __recv = both.clone(); let __recv_ptr: *mut Both = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Both }; let __result = unsafe { &mut *__recv_ptr }.r_unlock(); __result };
+    { let __sync_value = (*both.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
     let mut o = Arc::new(Mutex::new(Some(Outer {
         middle: {
             let __owner = Arc::new(Mutex::new(Some(Middle {
@@ -1114,13 +1120,81 @@ let wg2_defer_captured = wg2_thread.clone(); __defer_stack.push(Box::new(move ||
         shallow: Arc::new(Mutex::new(Some(Shallow { n: Arc::new(Mutex::new(Some(7))), ..Default::default() }))).clone(),
         ..Default::default()
     })));
-    (*o.lock().unwrap().as_mut().unwrap()).lock();
+    { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
     (*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_mut().unwrap()).unlock();
     (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).lock();
     (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).unlock();
-    (*o.lock().unwrap().as_mut().unwrap()).r_lock();
+    { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     println!("{} {}", format!("{}", "outer".to_string()), format!("{}", (*(*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
-    (*o.lock().unwrap().as_mut().unwrap()).r_unlock();
+    { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
+    let mut shared = Arc::new(Mutex::new(Some(Registry {
+        table: Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), ..Default::default() }))).clone(),
+        name: Arc::new(Mutex::new(Some("shared".to_string()))),
+        ..Default::default()
+    })));
+    { let __sync_value = (*shared.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    let mut waiting = GoChannel::<bool>::new();
+    let mut wg3 = WaitGroup::new();
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
+        wg3.add(1);
+        let shared_thread = shared.clone(); let waiting_thread = waiting.clone(); let wg3_thread = wg3.clone(); let __go_arg_0 = Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); std::thread::spawn(move || {
+    if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+        let mut __closure = move |i: Arc<Mutex<Option<i64>>>| {
+            let __go_previous_panic_hook = go_silence_panic_hook();
+let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+let wg3_defer_captured = wg3_thread.clone(); __defer_stack.push(Box::new(move || {
+        wg3_defer_captured.done();
+    }));;
+            waiting_thread.send(true);;
+            { let __sync_value = (*shared_thread.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();;
+            { let __map_key = { let __map_key_holder = Arc::new(Mutex::new(Some(format!("{}{}", format!("{}", "k".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }))))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); std::mem::drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()).clone()))); (*(*(*shared_thread.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+            { let __sync_value = (*shared_thread.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();;
+            { let __sync_value = (*shared_thread.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();;
+            let _ = ({ let __len = ({ let __len_target = { let __field = (*(*shared_thread.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len });;
+            { let __sync_value = (*shared_thread.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();;
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            }));
+            match __go_panic_result {
+                Ok(__go_value) => {
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    __go_value
+                }
+                Err(__go_panic_payload) => {
+                    go_store_panic_payload(__go_panic_payload);
+                    while let Some(f) = __defer_stack.pop() {
+                        if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                            go_store_panic_payload(__go_defer_panic);
+                        }
+                    }
+                    go_restore_panic_hook(__go_previous_panic_hook);
+                    go_resume_unrecovered_panic();
+                    ()
+                }
+            }
+
+        };
+        __closure(__go_arg_0);
+    })) {
+        let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };
+        eprintln!("panic: {}", __go_panic_text);
+        std::process::exit(2);
+    }
+    });
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    let mut i = Arc::new(Mutex::new(Some(0i64)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x < __tmp_y } {
+        waiting.recv().unwrap_or_default();
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+    time::sleep(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((20 as i64 * time::MILLISECOND) as i64))))))));
+    { let __sync_value = (*shared.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    wg3.wait();
+    println!("{} {}", format!("{}", (*{ let __field = (*shared.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*shared.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
 }
 
 impl GoValueClone for Table {

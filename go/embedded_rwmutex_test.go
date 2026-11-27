@@ -131,3 +131,73 @@ func main() {
 		t.Fatalf("Outer's mutex should not come through Middle:\n%s", outer)
 	}
 }
+
+// r.Lock() on a struct variable whose type embeds sync.RWMutex takes the
+// mutex out of r's cell in a block of its own and then waits on it, so a
+// goroutine waiting for the lock holds nothing the owner needs to reach
+// r.Unlock() through the same variable.
+func TestForwardedRWMutexCallOnAVariableReleasesItsCell(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Table struct {
+	sync.RWMutex
+	m map[string]int
+}
+
+type Registry struct {
+	*Table
+}
+
+func main() {
+	r := Registry{Table: &Table{m: map[string]int{}}}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		r.Lock()
+		r.m["a"] = 1
+		r.Unlock()
+	}()
+	wg.Wait()
+}
+`)
+	for _, want := range []string{
+		".__go_rw_mutex(); __sync_value }.lock()",
+		".__go_rw_mutex(); __sync_value }.unlock()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, ".as_mut().unwrap()).lock()") || strings.Contains(rust, ".as_ref().unwrap()).lock()") {
+		t.Fatalf("Lock is called holding the variable's cell:\n%s", rust)
+	}
+}
+
+// When go/types cannot say which embedded field a sync.RWMutex method is
+// promoted through, its forwarder fails loudly instead of locking whichever
+// mutex comes first.
+func TestRWMutexForwarderWithoutSelectionIsUnimplemented(t *testing.T) {
+	methods := rwMutexForwardersForSelection([]externalPromotedMethod{
+		{RustMethodName: "lock", ThroughRWMutexAccessor: true},
+		{RustMethodName: rwMutexAccessorName, RWMutexAccessor: true},
+	}, false)
+	var out strings.Builder
+	for _, method := range methods {
+		generateExternalPromotedMethod(&out, method)
+	}
+	rust := out.String()
+	for _, want := range []string{
+		"pub fn lock(&self) {\n        unimplemented!(\"type info required for promoting sync.RWMutex methods\")",
+		"pub fn __go_rw_mutex(&self) -> GoRWMutex {\n        unimplemented!(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if kept := rwMutexForwardersForSelection([]externalPromotedMethod{{RustMethodName: "lock"}}, true); kept[0].Unimplemented != "" {
+		t.Fatalf("a known selection should keep its forwarder: %+v", kept[0])
+	}
+}

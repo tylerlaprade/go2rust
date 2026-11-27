@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 )
 
 // A struct that embeds sync.RWMutex locks through its promoted methods, from
@@ -134,4 +135,32 @@ func main() {
 	o.RLock()
 	fmt.Println("outer", o.n)
 	o.RUnlock()
+
+	// Goroutines lock a Registry variable they share while main holds the
+	// lock. Each waits for the mutex holding nothing main needs to reach
+	// shared.Unlock() through the same variable.
+	shared := Registry{Table: &Table{m: map[string]int{}}, name: "shared"}
+	shared.Lock()
+	waiting := make(chan bool)
+	var wg3 sync.WaitGroup
+	for i := 0; i < 4; i++ {
+		wg3.Add(1)
+		go func(i int) {
+			defer wg3.Done()
+			waiting <- true
+			shared.Lock()
+			shared.m[fmt.Sprint("k", i)] = i
+			shared.Unlock()
+			shared.RLock()
+			_ = len(shared.m)
+			shared.RUnlock()
+		}(i)
+	}
+	for i := 0; i < 4; i++ {
+		<-waiting
+	}
+	time.Sleep(20 * time.Millisecond)
+	shared.Unlock()
+	wg3.Wait()
+	fmt.Println(shared.name, len(shared.m))
 }

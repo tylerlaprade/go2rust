@@ -2658,6 +2658,17 @@ func promotedMethodParamBindings(params *ast.FieldList) []promotedMethodParamBin
 }
 
 func generateExternalPromotedMethod(out *strings.Builder, method externalPromotedMethod) {
+	if method.Unimplemented != "" {
+		if method.RWMutexAccessor {
+			NeedGoRWMutex()
+			out.WriteString("    pub fn " + rwMutexAccessorName + "(&self) -> GoRWMutex {\n")
+		} else {
+			out.WriteString("    pub fn " + method.RustMethodName + "(&self) {\n")
+		}
+		out.WriteString("        unimplemented!(\"" + method.Unimplemented + "\")\n")
+		out.WriteString("    }\n")
+		return
+	}
 	if method.RWMutexAccessor {
 		NeedGoRWMutex()
 		out.WriteString("    pub fn " + rwMutexAccessorName + "(&self) -> GoRWMutex {\n")
