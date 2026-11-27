@@ -423,6 +423,11 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 		if len(field.Names) > 0 {
 			continue
 		}
+		if methods, ok := embeddedRWMutexPromotedMethods(field, existingRustNames); ok {
+			promoted = append(promoted, methods...)
+			continue
+		}
+		promoted = append(promoted, embeddedStructRWMutexPromotedMethods(field, existingRustNames)...)
 		named, ok := externalEmbeddedNamed(field.Type)
 		local := false
 		if !ok {
@@ -5361,4 +5366,93 @@ func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, i
 	default:
 		out.WriteString(rustType)
 	}
+}
+
+// embeddedRWMutexPromotedMethods returns the forwarders of an embedded
+// sync.RWMutex's methods. The field is the bare GoRWMutex, so each one calls
+// the helper's own method on it: t.RLock() on a struct embedding one is
+// t.r_w_mutex.r_lock().
+func embeddedRWMutexPromotedMethods(field *ast.Field, existingRustNames map[string]bool) ([]externalPromotedMethod, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(field.Type)).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "sync" || named.Obj().Name() != "RWMutex" {
+		return nil, false
+	}
+	var promoted []externalPromotedMethod
+	methodSet := types.NewMethodSet(types.NewPointer(named))
+	for i := 0; i < methodSet.Len(); i++ {
+		fn, ok := methodSet.At(i).Obj().(*types.Func)
+		if !ok || !isEmbeddedRWMutexMethod(fn) {
+			continue
+		}
+		rustMethodName := ToSnakeCase(fn.Name())
+		if existingRustNames[rustMethodName] {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		existingRustNames[rustMethodName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			MethodName:        fn.Name(),
+			RustMethodName:    rustMethodName,
+			Func:              fn,
+			Signature:         sig,
+			RawEmbeddedField:  true,
+		})
+	}
+	return promoted, true
+}
+
+// embeddedStructRWMutexPromotedMethods returns forwarders, through an
+// embedded struct of the package, of the sync.RWMutex methods that struct
+// has by embedding one itself: with Registry embedding *Table and Table
+// embedding sync.RWMutex, r.RLock() is Table's forwarder called on r's
+// Table.
+func embeddedStructRWMutexPromotedMethods(field *ast.Field, existingRustNames map[string]bool) []externalPromotedMethod {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || field == nil {
+		return nil
+	}
+	typ := typeInfo.GetType(field.Type)
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return nil
+	}
+	if _, isStruct := named.Underlying().(*types.Struct); !isStruct {
+		return nil
+	}
+	var promoted []externalPromotedMethod
+	methodSet := types.NewMethodSet(types.NewPointer(named))
+	for i := 0; i < methodSet.Len(); i++ {
+		fn, ok := methodSet.At(i).Obj().(*types.Func)
+		if !ok || !isEmbeddedRWMutexMethod(fn) {
+			continue
+		}
+		rustMethodName := ToSnakeCase(fn.Name())
+		if existingRustNames[rustMethodName] {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		existingRustNames[rustMethodName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			MethodName:        fn.Name(),
+			RustMethodName:    rustMethodName,
+			Func:              fn,
+			Signature:         sig,
+		})
+	}
+	return promoted
 }

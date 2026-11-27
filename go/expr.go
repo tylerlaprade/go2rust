@@ -24545,8 +24545,43 @@ func promotedMethodCallInfo(sel *ast.SelectorExpr) ([]string, *types.Func, bool)
 	if !ok {
 		return nil, nil, false
 	}
+	// An embedded sync.RWMutex is held bare, not in a cell; its methods are
+	// called through the forwarders the struct embedding it gets for them
+	// (embeddedRWMutexPromotedMethods): on the receiver itself, or on the
+	// struct along the path that embeds the mutex.
+	if isEmbeddedRWMutexMethod(fn) {
+		if len(fields) == 1 {
+			return nil, nil, false
+		}
+		return fields[:len(fields)-1], fn, true
+	}
 	return fields, fn, true
 }
+
+// isEmbeddedRWMutexMethod reports whether fn is a method of sync.RWMutex
+// that a struct embedding one gets a forwarder for.
+func isEmbeddedRWMutexMethod(fn *types.Func) bool {
+	if fn == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false
+	}
+	recv := sig.Recv().Type()
+	if ptr, ok := types.Unalias(recv).(*types.Pointer); ok {
+		recv = ptr.Elem()
+	}
+	named, ok := types.Unalias(recv).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg().Path() != "sync" || named.Obj().Name() != "RWMutex" {
+		return false
+	}
+	_, forwarded := rwMutexForwardedMethods[fn.Name()]
+	return forwarded
+}
+
+// rwMutexForwardedMethods are the sync.RWMutex methods GoRWMutex has.
+var rwMutexForwardedMethods = map[string]bool{"Lock": true, "Unlock": true, "RLock": true, "RUnlock": true}
 
 func writeElemPtrPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
 	recvIdent, ok := sel.X.(*ast.Ident)
