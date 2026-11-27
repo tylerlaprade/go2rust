@@ -1134,9 +1134,22 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() != typeInfo.pkg {
 		return
 	}
-	if _, ok := named.Underlying().(*types.Struct); ok {
+	if st, ok := named.Underlying().(*types.Struct); ok {
 		result[named.Obj().Name()] = true
+		// A struct type declared in a function is written as the anonymous
+		// struct of its fields (#325): record those fields too, which
+		// structNeedsOrd looks the anonymous struct up by.
+		if pkg := named.Obj().Pkg(); pkg != nil && named.Obj().Parent() != pkg.Scope() {
+			result[mapKeyStructFieldsKey(st)] = true
+		}
 	}
+}
+
+// mapKeyStructFieldsKey is the key a struct of these fields, used as a map
+// key, is recorded under in mapKeyStructTypes when it has no name of its
+// own in the Rust it is written as.
+func mapKeyStructFieldsKey(st *types.Struct) string {
+	return "struct-fields:" + types.TypeString(st, nil)
 }
 
 func markComparableInterfaceImplementorStructs(typeDecls []struct {
@@ -4654,6 +4667,9 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		if comparedName != "" {
 			generateStructPartialEq(body, typeName, structType, rustTypeGenerics{})
 		}
+		// A struct type declared in a function and used as a map key needs
+		// the Ord a BTreeMap key does (#325).
+		generateStructOrd(body, typeName, structType, rustTypeGenerics{})
 		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
 		writeAnonymousStructPromotedMethods(body, typeName)
 		body.WriteString("\n")
