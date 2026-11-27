@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -188,5 +189,76 @@ func main() {
 	format := strings.Index(rust[entries:], "format_any_nested(")
 	if format == -1 || !strings.Contains(rust[entries:entries+format], "match __map_entries") {
 		t.Fatalf("the values should print after the map's cell is released:\n%s", rust)
+	}
+}
+
+// Every map printer copies the map's entries out before it formats a key or
+// a value, so a String method that reads the map does not wait on the lock
+// printing holds (map_printers_release_the_lock_goroutines).
+func TestMapPrintersCopyEntriesBeforeFormatting(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type item struct{ n int }
+
+func (i item) String() string { return fmt.Sprint(i.n) }
+
+type holder struct{ M map[string][]item }
+
+func main() {
+	nested := map[string]map[string]int{"k": {"x": 1}}
+	fmt.Println(holder{M: map[string][]item{"a": {{1}}}}, nested)
+}
+`)
+	for _, want := range []string{
+		"let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };",
+		"let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!(\"map[{}]\"",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "let guard = map.borrow();\n    if let Some(ref m) = *guard {") {
+		t.Fatalf("format_map_nil should not format while it holds the map:\n%s", rust)
+	}
+}
+
+// A package that prints an interface{} value gets format_any_nested when
+// the []any case another package registered calls it
+// (any_slice_printed_by_another_package).
+func TestMergedAnySliceCaseBringsNestedFormatter(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), "module example.com/anyslicepkg\n\ngo 1.22\n")
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Get() any {
+	xs := []any{1, "a"}
+	var v any = xs
+	return v
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"fmt"
+
+	"example.com/anyslicepkg/dep"
+)
+
+func main() {
+	fmt.Println(dep.Get())
+}
+`)
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "format_any_nested(__e.as_ref())") && !strings.Contains(mainRS, "fn format_any_nested(") {
+		t.Fatalf("the []any case calls format_any_nested, which should be defined:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "fn format_any_nested(") {
+		t.Fatalf("main prints the []any through the merged case and needs format_any_nested:\n%s", mainRS)
 	}
 }

@@ -365,6 +365,11 @@ func (ht *HelperTracker) GenerateHelpers() string {
 			ht.needsFormatMap = ht.needsFormatMap || arm.needsFormatMap
 			ht.needsFormatSlice = ht.needsFormatSlice || arm.needsFormatSlice
 			needsFormatAnyPointer = needsFormatAnyPointer || arm.needsFormatPointer
+			// An arm another package registered, such as the []any one,
+			// can print its elements through format_any_nested.
+			if strings.Contains(arm.expr, "format_any_nested(") {
+				ht.needsFormatAnyNested = true
+			}
 		}
 	}
 	if needsFormatAnyPointer {

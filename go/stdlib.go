@@ -2849,6 +2849,17 @@ func mapValuesAreBasicMaps(mapType types.Type) bool {
 	return ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
+// writeMapEntriesCopyMatch writes, after the map's handle, the copy of its
+// entries in key order and the opening of a match on it whose Some arm
+// names the copy __map: a printer iterates the copy after the map's lock is
+// released, so a key's or value's String method that reads the map does not
+// wait on the lock printing would hold.
+func writeMapEntriesCopyMatch(out *strings.Builder) {
+	out.WriteString(".clone(); let __map_entries = { let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => ")
+}
+
 // writeMapOfMapsDisplay prints a map whose values are maps as fmt does,
 // map[a:map[b:2]], in key order. Each value is the cell of an inner map,
 // which format_map takes; the inner map has no Display of its own. An inner
@@ -2864,9 +2875,8 @@ func writeMapOfMapsDisplay(out *strings.Builder, writeHandle func(), innerSlices
 	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), " + innerFormat + ")).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), " + innerFormat + ")).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreMapsOfSlicesOrStructs reports whether mapType is a map whose
@@ -2922,9 +2932,8 @@ func writeMapOfArraysDisplayWithKeys(out *strings.Builder, formatter string, wri
 	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", " + keyFormat + ", ")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", " + keyFormat + ", ")
 	out.WriteString(formatter)
 	out.WriteString("(&__v")
 	WriteBorrowMethod(out, false)
@@ -3356,9 +3365,8 @@ func writeMapOfSlicesOfMapsDisplay(out *strings.Builder, writeHandle func(), nil
 	TrackImport("Ord")
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
-	out.WriteString(".clone(); let __map_guard = __map_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| { let __maps = (*__v")
+	writeMapEntriesCopyMatch(out)
+	out.WriteString("format!(\"map[{}]\", __map.iter().map(|(__k, __v)| { let __maps = (*__v")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").clone().unwrap_or_default(); format!(\"{}:[{}]\", go_display_value(__k), __maps.iter().map(|__m| ")
 	writeBareMapInSliceFormat(out, nilText)
@@ -8040,13 +8048,12 @@ fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K
 where
     V: Display,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
                 if let Some(ref val) = *v_guard {
@@ -8079,13 +8086,12 @@ fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<
 where
     V: Display,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();
                 if let Some(ref val) = *v_guard {

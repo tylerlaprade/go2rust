@@ -552,6 +552,10 @@ run_xfail_test() {
     run_test "tests/any_slice_index_nil_bounds"
 }
 
+@test "any_slice_printed_by_another_package" {
+    run_test "tests/any_slice_printed_by_another_package"
+}
+
 @test "any_slice_range_late_read" {
     run_test "tests/any_slice_range_late_read"
 }
@@ -2590,6 +2594,10 @@ run_xfail_test() {
 
 @test "map_pointer_value_literal_assignment" {
     run_test "tests/map_pointer_value_literal_assignment"
+}
+
+@test "map_printers_release_the_lock_goroutines" {
+    run_test "tests/map_printers_release_the_lock_goroutines"
 }
 
 @test "map_range_key_comma_ok" {
