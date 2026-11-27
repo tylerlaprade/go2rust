@@ -671,6 +671,35 @@ impl std::fmt::Display for Team {
 }
 
 
+#[derive(Debug, Clone, Default)]
+pub struct List {
+    pub head: Arc<Mutex<Option<i64>>>,
+    pub m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>,
+    pub ch: GoChannel<i64>,
+}
+
+impl List {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.head.clone();
+        let __go_clone_1_0 = self.m.clone();
+        let __go_clone_2_0 = self.ch.clone();
+        Self {
+            head: __go_clone_0_0,
+            m: __go_clone_1_0,
+            ch: __go_clone_2_0,
+        }
+    }
+}
+
+impl std::fmt::Display for List {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.head.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        let __go_fmt_1 = format!("{}", format_map(&self.m));
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 pub(crate) static lastVisited: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Node>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static registry_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<Mutex<Option<Dept>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
@@ -976,6 +1005,30 @@ impl Registrar for DeptPtr {
     }
 }
 
+impl List {
+    pub fn reset(&self, v: Arc<Mutex<Option<i64>>>) {
+        if let Some(mut l) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        set_head(l.clone(), v.clone());
+        } else {
+        set_head(Arc::new(Mutex::new(Some(self.clone()))), v.clone());
+        }
+    }
+
+    pub fn init(&self) {
+        if let Some(mut l) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        fill(l.clone());
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<List>>>| {
+        { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*(*x.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> () + Send + Sync>))); let __f: Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(l.clone()) };
+        } else {
+        fill(Arc::new(Mutex::new(Some(self.clone()))));
+        { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move |x: Arc<Mutex<Option<List>>>| {
+        { let __map_key = "b".to_string(); let __map_value = Arc::new(Mutex::new(Some(2))); (*(*x.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    }) as Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> () + Send + Sync>))); let __f: Arc<dyn Fn(Arc<Mutex<Option<List>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some(self.clone())))) };
+        }
+    }
+}
+
 impl Team {
     pub fn hire(&mut self, e: Arc<Mutex<Option<Employee>>>) {
         // Forward to embedded type's method
@@ -1234,6 +1287,21 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }));
+    let mut holder = Arc::new(Mutex::new(Some(List { head: Default::default(), m: Default::default(), ch: Default::default() })));
+    { let __recv = holder.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.reset(Arc::new(Mutex::new(Some(5)))); __result };
+    println!("{} {}", format!("{}", { let __nil_target = (*holder.lock().unwrap().as_ref().unwrap()).head.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result }), format!("{}", { let __v = (*(*holder.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    { let __recv = holder.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.init(); __result };
+    { let __channel = (*holder.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.send(3);
+    println!("{} {}", format!("{}", ({ let __len = ({ let __len_target = { let __field = (*holder.lock().unwrap().as_ref().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })), format!("{}", { let __channel = (*holder.lock().unwrap().as_ref().unwrap()).ch.clone(); __channel }.recv().unwrap_or_default()));
+}
+
+pub fn set_head(l: Arc<Mutex<Option<List>>>, p: Arc<Mutex<Option<i64>>>) {
+    { let new_val = p.clone(); (*l.lock().unwrap().as_mut().unwrap()).head = new_val; };
+}
+
+pub fn fill(l: Arc<Mutex<Option<List>>>) {
+    { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*l.lock().unwrap().as_mut().unwrap()).m = new_val; };
+    (*l.lock().unwrap().as_mut().unwrap()).ch = GoChannel::<i64>::new_buffered(1 as usize);
 }
 
 pub(crate) fn __go_init_all() {
@@ -1280,6 +1348,13 @@ impl GoValueClone for Employee {
 
 
 impl GoValueClone for Team {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for List {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

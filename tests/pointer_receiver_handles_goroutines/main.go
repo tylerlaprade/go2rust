@@ -178,4 +178,34 @@ func main() {
 	byKey := map[string]*Node{"GoPtr": {name: "k"}}
 	byKey["GoPtr"].Visit(func() { fmt.Println(byKey["GoPtr"].tags["seen"]) })
 	fmt.Println(lastVisited == byKey["GoPtr"])
+
+	// A method that passes its receiver on hands over the caller's
+	// pointer, so pointer, map and channel fields set through it stick
+	// (DEV-216).
+	holder := &List{}
+	holder.reset(5)
+	fmt.Println(holder.head != nil, *holder.head)
+	holder.init()
+	holder.ch <- 3
+	fmt.Println(len(holder.m), <-holder.ch)
+}
+
+type List struct {
+	head *int
+	m    map[string]int
+	ch   chan int
+}
+
+func setHead(l *List, p *int) { l.head = p }
+
+func (l *List) reset(v int) { setHead(l, &v) }
+
+func fill(l *List) {
+	l.m = map[string]int{"a": 1}
+	l.ch = make(chan int, 1)
+}
+
+func (l *List) init() {
+	fill(l)
+	func(x *List) { x.m["b"] = 2 }(l)
 }
