@@ -2449,14 +2449,17 @@ func (s *span) fault() {
 	if !strings.Contains(rust, "pub fn insert(s: GoPtr<span>)") {
 		t.Fatalf("callee receiving a slice element pointer should use a GoPtr parameter:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut s_closure_clone = (*self).clone();") {
-		t.Fatalf("function literal should clone the receiver before moving into the closure:\n%s", rust)
+	// The receiver escapes into insert, so the method binds it to the
+	// handle it was called on and the closure captures that handle
+	// (DEV-165).
+	if !strings.Contains(rust, "let s_closure_clone = s.clone();") {
+		t.Fatalf("function literal should clone the receiver's handle before moving into the closure:\n%s", rust)
 	}
-	if strings.Contains(rust, "Some(self.clone())") {
+	if strings.Contains(rust, "GoPtr::local(Rc::new(RefCell::new(Some(self.clone()))))") {
 		t.Fatalf("GoPtr current receiver argument inside closure should not capture self directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Some(s_closure_clone.clone())") {
-		t.Fatalf("GoPtr current receiver argument inside closure should use the captured receiver clone:\n%s", rust)
+	if !strings.Contains(rust, "insert(GoPtr::local(s_closure_clone.clone()))") {
+		t.Fatalf("GoPtr current receiver argument inside closure should use the captured receiver handle:\n%s", rust)
 	}
 }
 

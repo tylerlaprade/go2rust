@@ -133,7 +133,11 @@ impl<T: Any + Send + Sync + 'static> C<T> {
     }
 
     pub fn self_(&self) -> Arc<Mutex<Option<C<T>>>> {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return c.clone();
+        } else {
         Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 }
 
@@ -218,7 +222,7 @@ fn main() {
     };
     println!("{} {}", format!("{}", "array of structs through a closure".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = (*c.lock().unwrap().as_ref().unwrap()).items.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.x.lock().unwrap().as_ref().unwrap())));
 
-    let mut d = { let __recv = c.clone(); let __recv_ptr: *const C<i64> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const C<i64> }; let __result = unsafe { &*__recv_ptr }.self_(); __result };
+    let mut d = { let __recv = c.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result };
     { let new_val = 50; *(*d.lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
     { let new_val = 60; *(*(*d.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "returned receiver".to_string()), format!("{}", (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*(*(*c.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap())));

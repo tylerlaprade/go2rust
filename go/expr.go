@@ -17801,6 +17801,23 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	} else if goPtrReceiver {
 		out.WriteString(" { { let __recv_value = __recv.borrow(); (*__recv_value.as_ref().unwrap()).")
 		receiverCallSuffix = " }"
+	} else if methodTakesReceiverHandle(methodFn) {
+		// The method takes the handle it is called on; the call holds no
+		// borrow of it, which the method's own use would conflict with.
+		out.WriteString(" { ")
+		writeReceiverHandleHintedPointer(out, "__recv", true)
+		out.WriteString("unsafe { &mut *__recv_ptr }.")
+	} else if recvType, ok := methodValueReceiverPointeeRustType(sel); ok {
+		// The call holds no borrow of the receiver while the method runs,
+		// as a direct call holds none: the method may run code that reads
+		// the receiver, a callback it is passed, say.
+		out.WriteString(" { let __recv_ptr: *mut ")
+		out.WriteString(recvType)
+		out.WriteString(" = { let mut __recv_guard = __recv")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __recv_guard.as_mut().unwrap() as *mut ")
+		out.WriteString(recvType)
+		out.WriteString(" }; unsafe { &mut *__recv_ptr }.")
 	} else {
 		out.WriteString(" { (*__recv")
 		WriteBorrowMethod(out, true)
@@ -17877,7 +17894,12 @@ func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, 
 				out.WriteString("; __recv_guard.as_ref().unwrap() as *const ")
 			}
 			out.WriteString(recvType)
-			out.WriteString(" }; let __result = unsafe { ")
+			out.WriteString(" }; ")
+			if methodExpressionTakesReceiverHandle(sel) {
+				NeedReceiverHandles()
+				out.WriteString("go_set_receiver_handle(&__recv, __recv_ptr as *const () as usize); ")
+			}
+			out.WriteString("let __result = unsafe { ")
 			if needsMut {
 				out.WriteString("&mut *__recv_ptr")
 			} else {
@@ -17968,6 +17990,13 @@ func writeMultilineMethodExpressionValueBox(out *strings.Builder, sel *ast.Selec
 		out.WriteString("\n")
 		out.WriteString(indent)
 		out.WriteString("        };\n")
+		if methodExpressionTakesReceiverHandle(sel) {
+			// The method takes the handle it is called on
+			// (receiver_handle.go).
+			NeedReceiverHandles()
+			out.WriteString(indent)
+			out.WriteString("        go_set_receiver_handle(&__recv, __recv_ptr as *const () as usize);\n")
+		}
 		out.WriteString(indent)
 		out.WriteString("        let __result = unsafe { ")
 		if needsMut {
@@ -18033,12 +18062,24 @@ func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorEx
 	needsMut := methodCallNeedsMutableReceiver(sel)
 	// The result is bound before the block ends: a borrow of __recv in the
 	// block's last expression would outlive __recv (E0597).
-	out.WriteString("{ let __recv = __arg0.clone(); let __result = (*__recv")
-	WriteBorrowMethod(out, needsMut)
-	if needsMut {
-		out.WriteString(".as_mut().unwrap()).")
+	if methodExpressionTakesReceiverHandle(sel) {
+		// The method takes the handle it is called on, and the call holds
+		// no borrow of it (receiver_handle.go).
+		out.WriteString("{ let __recv = __arg0.clone(); ")
+		writeReceiverHandleHintedPointer(out, "__recv", needsMut)
+		if needsMut {
+			out.WriteString("let __result = unsafe { &mut *__recv_ptr }.")
+		} else {
+			out.WriteString("let __result = unsafe { &*__recv_ptr }.")
+		}
 	} else {
-		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString("{ let __recv = __arg0.clone(); let __result = (*__recv")
+		WriteBorrowMethod(out, needsMut)
+		if needsMut {
+			out.WriteString(".as_mut().unwrap()).")
+		} else {
+			out.WriteString(".as_ref().unwrap()).")
+		}
 	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
@@ -21740,6 +21781,16 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				WriteWrapperSuffix(out)
 				return
 			}
+			// The receiver of a method that took its handle is the struct in
+			// that handle's cell, the address self has (receiver_handle.go).
+			if isCurrentReceiverHandleVar(ident) {
+				out.WriteString("{ let __self_guard = ")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __self_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }")
+				WriteWrapperSuffix(out)
+				return
+			}
 			if isGoPtrVar(ident.Name) {
 				out.WriteString(RustIdentForUse(ident))
 				out.WriteString(".addr()")
@@ -25022,6 +25073,14 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		if writeNilPointerReceiverMethodCall(out, sel, call) {
 			return
 		}
+		// After the nil-receiver helpers, which take the receiver's handle
+		// as a parameter already.
+		if writeReceiverHandleMethodCall(out, sel, call) {
+			return
+		}
+		if writeSyncFieldMethodCall(out, sel, call) {
+			return
+		}
 		if writeCurrentReceiverPromotedMethodCall(out, sel, call) {
 			return
 		}
@@ -25430,43 +25489,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".")
 		}
 
-		// Bare sync helpers have Rust-native method signatures; generated Go
-		// methods still take wrapped Go parameters even when the receiver is bare.
-		bareArgumentMethodCall := methodCallUsesBareArguments(sel)
-		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
-
-		out.WriteString(rustMethodSelectorName(sel))
-		multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
-		methodArgIndent := ""
-		out.WriteString("(")
-		if multilineMethodArgs {
-			methodArgIndent = currentLineIndent(out)
-			out.WriteString("\n")
-		}
-		if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
-			for i, arg := range call.Args {
-				if multilineMethodArgs {
-					out.WriteString(methodArgIndent)
-					out.WriteString("    ")
-				} else if i > 0 {
-					out.WriteString(", ")
-				}
-				if externalStdlibStubMethodCall {
-					writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
-				} else if bareArgumentMethodCall {
-					writeBareMethodCallArgument(out, sel, arg, i)
-				} else {
-					writeRegularMethodCallArgument(out, sel, call, arg, i)
-				}
-				if multilineMethodArgs {
-					out.WriteString(",\n")
-				}
-			}
-		}
-		if multilineMethodArgs {
-			out.WriteString(methodArgIndent)
-		}
-		out.WriteString(")")
+		writeMethodCallSelectorAndArguments(out, sel, call, forceMultilineMethodArgs)
 		if closeReceiverBlock {
 			out.WriteString(receiverBlockSuffix)
 		}
@@ -26150,6 +26173,48 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(functionArgIndent)
 	}
 	closeFunctionCall()
+}
+
+// writeMethodCallSelectorAndArguments writes the method name of a method
+// call and its parenthesized arguments, after the receiver.
+func writeMethodCallSelectorAndArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, forceMultilineMethodArgs bool) {
+	// Bare sync helpers have Rust-native method signatures; generated Go
+	// methods still take wrapped Go parameters even when the receiver is bare.
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+
+	out.WriteString(rustMethodSelectorName(sel))
+	multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
+	methodArgIndent := ""
+	out.WriteString("(")
+	if multilineMethodArgs {
+		methodArgIndent = currentLineIndent(out)
+		out.WriteString("\n")
+	}
+	if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
+		for i, arg := range call.Args {
+			if multilineMethodArgs {
+				out.WriteString(methodArgIndent)
+				out.WriteString("    ")
+			} else if i > 0 {
+				out.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(out, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(out, sel, call, arg, i)
+			}
+			if multilineMethodArgs {
+				out.WriteString(",\n")
+			}
+		}
+	}
+	if multilineMethodArgs {
+		out.WriteString(methodArgIndent)
+	}
+	out.WriteString(")")
 }
 
 func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call *ast.CallExpr) bool {
@@ -27900,4 +27965,29 @@ func writeEmptyInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 	WriteBorrowMethod(out, false)
 	out.WriteString(").as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }")
 	return true
+}
+
+// methodValueReceiverPointeeRustType returns the Rust type of the struct a
+// pointer method value is bound to, for a raw pointer to it.
+func methodValueReceiverPointeeRustType(sel *ast.SelectorExpr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || sel == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(sel.X)
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || typeMentionsTypeParam(named) {
+		return "", false
+	}
+	if _, isStruct := named.Underlying().(*types.Struct); !isStruct {
+		return "", false
+	}
+	rustType := goTypesTypeToRust(named)
+	if rustType == "" {
+		return "", false
+	}
+	return rustType, true
 }

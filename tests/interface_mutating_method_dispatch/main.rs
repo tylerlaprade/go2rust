@@ -737,6 +737,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 pub trait Node: std::fmt::Display + Any {
     fn __go_clone_box_node(&self) -> Box<dyn Node>;
     fn __go_as_any(&self) -> &dyn Any;
@@ -905,11 +951,19 @@ impl collector {
     /// Interface method that transitively requires a mutable receiver because it
     /// calls the &mut-self method add.
     pub fn visit(&mut self, n: Rc<RefCell<Option<Box<dyn Node>>>>) -> Rc<RefCell<Option<Box<dyn Visitor>>>> {
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        { let __recv = c.clone(); let __recv_ptr = go_receiver_ptr_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.add(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()).count(); __arg_value })))); __result };
+        if (*(*c.borrow().as_ref().unwrap()).total.borrow().as_ref().unwrap()) > 100 as i64 {
+        return Rc::new(RefCell::new(None));
+    }
+        return Rc::new(RefCell::new(Some(Box::new(collectorPtr(c.clone())) as Box<dyn Visitor>)));
+        } else {
         self.add(Rc::new(RefCell::new(Some({ let __arg_value = (*n.borrow().as_ref().unwrap()).count(); __arg_value }))));
         if (*self.total.borrow().as_ref().unwrap()) > 100 {
         return Rc::new(RefCell::new(None));
     }
         Rc::new(RefCell::new(Some(Box::new(collectorPtr(Rc::new(RefCell::new(Some(self.clone()))))) as Box<dyn Visitor>)))
+        }
     }
 }
 
@@ -944,8 +998,8 @@ impl std::fmt::Display for collectorPtr {
 
 impl Visitor for collectorPtr {
     fn visit(&mut self, n: Rc<RefCell<Option<Box<dyn Node>>>>) -> Rc<RefCell<Option<Box<dyn Visitor>>>> {
-        let mut __recv_guard = self.0.borrow_mut();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr = go_hint_receiver_mut(&self.0);
+        let __recv = unsafe { &mut *__recv_ptr };
         collector::visit(__recv, n)
     }
     fn __go_clone_box_visitor(&self) -> Box<dyn Visitor> {

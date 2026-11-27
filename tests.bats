@@ -512,6 +512,14 @@ run_xfail_test() {
     run_test "tests/any_literal_constants_goroutines"
 }
 
+@test "any_map_of_slices" {
+    run_test "tests/any_map_of_slices"
+}
+
+@test "any_map_of_slices_goroutines" {
+    run_test "tests/any_map_of_slices_goroutines"
+}
+
 @test "any_named_return_zero" {
     run_test "tests/any_named_return_zero"
 }
@@ -3406,6 +3414,14 @@ run_xfail_test() {
 
 @test "pointer_receiver_deref_assignment" {
     run_test "tests/pointer_receiver_deref_assignment"
+}
+
+@test "pointer_receiver_handles" {
+    run_test "tests/pointer_receiver_handles"
+}
+
+@test "pointer_receiver_handles_goroutines" {
+    run_test "tests/pointer_receiver_handles_goroutines"
 }
 
 @test "pointer_receiver_nil_compare" {

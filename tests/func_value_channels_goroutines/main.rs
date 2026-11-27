@@ -1150,7 +1150,7 @@ fn main() {
 
     let mut c = Arc::new(Mutex::new(Some(counter { n: Arc::new(Mutex::new(Some(0))) })));
     let mut jobs = GoChannel::<Option<Arc<dyn Fn() -> i64 + Send + Sync>>>::new_buffered(3 as usize);
-    jobs.send({ let __func_cell = Arc::new(Mutex::new(Some({ let __recv = c.clone(); Arc::new(move || -> i64 { (*__recv.lock().unwrap().as_mut().unwrap()).inc() }) as Arc<dyn Fn() -> i64 + Send + Sync> }))); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
+    jobs.send({ let __func_cell = Arc::new(Mutex::new(Some({ let __recv = c.clone(); Arc::new(move || -> i64 { let __recv_ptr: *mut counter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut counter }; unsafe { &mut *__recv_ptr }.inc() }) as Arc<dyn Fn() -> i64 + Send + Sync> }))); let __func_value = __func_cell.lock().unwrap().take(); __func_value });
     producer(jobs.clone(), Arc::new(Mutex::new(Some(Arc::new(move || -> i64 {
         100
     }) as Arc<dyn Fn() -> i64 + Send + Sync>))));

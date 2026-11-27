@@ -152,10 +152,17 @@ impl std::fmt::Display for Scope {
 
 impl Scope {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        if let Some(mut s) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", Arc::as_ptr(&s))))));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("name={}}}", (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())))));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
+        } else {
         let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
         (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", self)))));
         (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("name={}}}", (*self.name.lock().unwrap().as_ref().unwrap()))))));
         return (*buf.lock().unwrap().as_ref().unwrap()).string();
+        }
     }
 }
 
@@ -170,7 +177,7 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut s = Arc::new(Mutex::new(Some(Scope { name: Arc::new(Mutex::new(Some("outer".to_string()))), ..Default::default() })));
-    let mut out = { let __recv = s.clone(); let __recv_ptr: *const Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Scope }; let __result = unsafe { &*__recv_ptr }.string(); __result };
+    let mut out = { let __recv = s.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.string(); __result };
     if !strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("scope ".to_string())))) || !strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = out.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(" {name=outer}".to_string())))) {
         println!("{} {}", format!("{}", "FAIL:".to_string()), format!("{}", { let __v = (*out.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         return;

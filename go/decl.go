@@ -3935,13 +3935,13 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 	out.WriteString(wrapperName)
 	out.WriteString(" {\n")
 	for _, method := range explicitInterfaceMethods(ifaceType) {
-		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName, ifaceName)
+		writePointerLocalInterfaceForwardMethodFromTypes(out, method, typeName, rustTypeName, ifaceName)
 	}
 	writePointerLocalInterfaceSupportImpl(out, typeName, ifaceName, wrapperName, ifaceType)
 	out.WriteString("}")
 }
 
-func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {
+func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, goTypeName, receiverType, ifaceName string) {
 	if method == nil {
 		return
 	}
@@ -3976,20 +3976,36 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 	out.WriteString(")")
 	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
-	out.WriteString("        let ")
-	if mutableReceiver {
-		out.WriteString("mut ")
-	}
-	out.WriteString("__recv_guard = self.0")
-	WriteBorrowMethod(out, mutableReceiver)
-	out.WriteString(";\n")
-	out.WriteString("        let __recv = __recv_guard.")
-	if mutableReceiver {
-		out.WriteString("as_mut")
+	if pointerTypeMethodTakesReceiverHandle(goTypeName, method.Name()) {
+		// The method takes the handle it is called on; the call holds no
+		// borrow of it, which the method's own use would conflict with.
+		var hinted strings.Builder
+		writeReceiverHandleHintedPointer(&hinted, "self.0", mutableReceiver)
+		out.WriteString("        ")
+		out.WriteString(strings.TrimRight(hinted.String(), " "))
+		out.WriteString("\n        let __recv = unsafe { ")
+		if mutableReceiver {
+			out.WriteString("&mut *__recv_ptr")
+		} else {
+			out.WriteString("&*__recv_ptr")
+		}
+		out.WriteString(" };\n")
 	} else {
-		out.WriteString("as_ref")
+		out.WriteString("        let ")
+		if mutableReceiver {
+			out.WriteString("mut ")
+		}
+		out.WriteString("__recv_guard = self.0")
+		WriteBorrowMethod(out, mutableReceiver)
+		out.WriteString(";\n")
+		out.WriteString("        let __recv = __recv_guard.")
+		if mutableReceiver {
+			out.WriteString("as_mut")
+		} else {
+			out.WriteString("as_ref")
+		}
+		out.WriteString("().unwrap();\n")
 	}
-	out.WriteString("().unwrap();\n")
 	out.WriteString("        ")
 	out.WriteString(receiverType)
 	out.WriteString("::")
@@ -10179,6 +10195,14 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	currentReceiverRustAliasIsPointerHandle = false
 	currentReceiverRustAliasIsGoPtr = false
 	currentReceiverRustAliasGoPtrInfo = goPtrResultInfo{}
+	// A method that takes its receiver's handle names the receiver as a
+	// local pointer variable bound to that handle (receiver_handle.go).
+	takesReceiverHandle := methodDeclTakesReceiverHandle(fn)
+	if takesReceiverHandle {
+		if _, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
+			takesReceiverHandle = false
+		}
+	}
 	if methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn) {
 		currentReceiverRustAlias = "__self"
 		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
@@ -10380,71 +10404,85 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		return
 	}
 	writeAssignedInterfaceParamShadows(out, fn, "        ")
-	if currentReceiverRustAlias != "" {
-		out.WriteString("        let mut ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = ")
-		if currentReceiverRustAliasIsGoPtr {
-			out.WriteString("GoPtr::local(")
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-			out.WriteString(")")
-		} else if currentReceiverRustAliasIsPointerHandle {
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-		} else if currentReceiverIsStructValue() {
-			// A value receiver is the method's own copy of the struct.
-			out.WriteString("self" + goStructValueCopyCall)
-		} else {
-			out.WriteString("self.clone()")
-		}
-		out.WriteString(";\n")
-	}
-
-	recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
-	bodyIndent := "        "
-	if recoverCatch {
-		bodyIndent = beginPanicRecoverCatch(out, "        ")
-	}
-
-	var prevStmt ast.Stmt
-	var lastPos token.Pos = fn.Body.Lbrace
-	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString(bodyIndent)
-			out.WriteString("unreachable!()\n")
-		}
-	} else {
-		for i, stmt := range fn.Body.List {
-			out.WriteString(bodyIndent)
-			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+	writeSelfAlias := func() {
+		if currentReceiverRustAlias != "" {
+			out.WriteString("        let mut ")
+			out.WriteString(currentReceiverRustAlias)
+			out.WriteString(" = ")
+			if currentReceiverRustAliasIsGoPtr {
+				out.WriteString("GoPtr::local(")
+				WriteWrapperOptionPrefix(out)
+				out.WriteString("Some(self.clone())")
+				WriteWrapperOptionSuffix(out)
+				out.WriteString(")")
+			} else if currentReceiverRustAliasIsPointerHandle {
+				WriteWrapperOptionPrefix(out)
+				out.WriteString("Some(self.clone())")
+				WriteWrapperOptionSuffix(out)
+			} else if currentReceiverIsStructValue() {
+				// A value receiver is the method's own copy of the struct.
+				out.WriteString("self" + goStructValueCopyCall)
 			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				out.WriteString("self.clone()")
 			}
+			out.WriteString(";\n")
+		}
+
+	}
+	emitBody := func() {
+		recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
+		bodyIndent := "        "
+		if recoverCatch {
+			bodyIndent = beginPanicRecoverCatch(out, "        ")
+		}
+
+		var prevStmt ast.Stmt
+		var lastPos token.Pos = fn.Body.Lbrace
+		if functionHasGoto(fn) {
+			prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+			if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
+				out.WriteString(bodyIndent)
+				out.WriteString("unreachable!()\n")
+			}
+		} else {
+			for i, stmt := range fn.Body.List {
+				out.WriteString(bodyIndent)
+				if i == len(fn.Body.List)-1 {
+					TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				} else {
+					TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				}
+				out.WriteString("\n")
+				prevStmt = stmt
+			}
+		}
+
+		lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
+		if currentFunctionHasDefer && !lastTerminates {
 			out.WriteString("\n")
-			prevStmt = stmt
+			out.WriteString(bodyIndent)
+			out.WriteString("// Execute deferred functions\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("    f();\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("}\n")
+		}
+
+		if recoverCatch {
+			finishPanicRecoverCatch(out, fn, "        ")
 		}
 	}
-
-	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
-	if currentFunctionHasDefer && !lastTerminates {
-		out.WriteString("\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("// Execute deferred functions\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("}\n")
-	}
-
-	if recoverCatch {
-		finishPanicRecoverCatch(out, fn, "        ")
+	if takesReceiverHandle {
+		// The method runs on the handle it was called on when the call
+		// handed it one (receiver_handle.go), with its receiver a local
+		// pointer bound to the handle; a call that could not runs the body
+		// on self, as every pointer method does.
+		writeReceiverHandleMethodBranches(out, fn, writeSelfAlias, emitBody)
+	} else {
+		writeSelfAlias()
+		emitBody()
 	}
 
 	out.WriteString("    }\n")

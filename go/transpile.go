@@ -2022,20 +2022,37 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 		}
 		receiverBorrowMutable := mutableReceiver || externalLocalInterfacePointeeMethodRequiresMutableReceiver(impl, methodName)
 		out.WriteString("        {\n")
-		out.WriteString("            let ")
-		if receiverBorrowMutable {
-			out.WriteString("mut ")
-		}
-		out.WriteString("__recv_guard = self.0")
-		WriteBorrowMethod(out, receiverBorrowMutable)
-		out.WriteString(";\n")
-		out.WriteString("            let __recv = __recv_guard.")
-		if receiverBorrowMutable {
-			out.WriteString("as_mut")
+		if importedPointerTypeMethodTakesReceiverHandle(impl.sourcePkgPath, impl.sourceTypeName, methodName) {
+			// The method takes the handle it is called on; the call holds
+			// no borrow of it, which the method's own use would conflict
+			// with.
+			var hinted strings.Builder
+			writeReceiverHandleHintedPointer(&hinted, "self.0", receiverBorrowMutable)
+			out.WriteString("            ")
+			out.WriteString(strings.TrimRight(hinted.String(), " "))
+			out.WriteString("\n            let __recv = unsafe { ")
+			if receiverBorrowMutable {
+				out.WriteString("&mut *__recv_ptr")
+			} else {
+				out.WriteString("&*__recv_ptr")
+			}
+			out.WriteString(" };\n")
 		} else {
-			out.WriteString("as_ref")
+			out.WriteString("            let ")
+			if receiverBorrowMutable {
+				out.WriteString("mut ")
+			}
+			out.WriteString("__recv_guard = self.0")
+			WriteBorrowMethod(out, receiverBorrowMutable)
+			out.WriteString(";\n")
+			out.WriteString("            let __recv = __recv_guard.")
+			if receiverBorrowMutable {
+				out.WriteString("as_mut")
+			} else {
+				out.WriteString("as_ref")
+			}
+			out.WriteString("().unwrap();\n")
 		}
-		out.WriteString("().unwrap();\n")
 		out.WriteString("            ")
 		out.WriteString(impl.sourcePointeeRustType)
 		out.WriteString("::")
@@ -2561,7 +2578,21 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTyp
 		out.WriteString("    }\n")
 		return
 	}
-	if mutableReceiver {
+	if methodDeclTakesReceiverHandle(method) {
+		// The embedded field's cell is the handle the method takes; the call
+		// holds no borrow of it, which the method's own use would conflict
+		// with.
+		var hinted strings.Builder
+		writeReceiverHandleHintedPointer(&hinted, "embedded", mutableReceiver)
+		out.WriteString("        ")
+		out.WriteString(strings.TrimRight(hinted.String(), " "))
+		out.WriteString("\n")
+		if mutableReceiver {
+			out.WriteString("        let embedded_ref = unsafe { &mut *__recv_ptr };\n")
+		} else {
+			out.WriteString("        let embedded_ref = unsafe { &*__recv_ptr };\n")
+		}
+	} else if mutableReceiver {
 		out.WriteString("        let mut guard = embedded")
 		WriteBorrowMethod(out, true)
 		out.WriteString(";\n")
