@@ -1089,7 +1089,7 @@ fn main() {
             let __select_ok = __select_recv.is_some();
             let read = match __select_recv { Some(__v) => __v, None => Default::default() };
             let mut read = Arc::new(Mutex::new(Some(read)));
-            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*{ let __field = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); __field }.lock().unwrap().as_ref().unwrap()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
+            { let __channel = (*read.lock().unwrap().as_ref().unwrap()).resp.clone(); __channel }.send({ let __map = { let __map_holder = state.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __selector_holder = (*read.lock().unwrap().as_ref().unwrap()).key.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) });
             break;
         }
         if let Some(__select_recv) = __go_select_channel_1.try_recv_select() {

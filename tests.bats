@@ -1572,6 +1572,14 @@ run_xfail_test() {
     run_test "tests/exec_look_path_success_goroutines"
 }
 
+@test "expression_parser" {
+    run_test "tests/expression_parser"
+}
+
+@test "expression_parser_goroutines" {
+    run_test "tests/expression_parser_goroutines"
+}
+
 @test "external_atomic_int32_add" {
     run_test "tests/external_atomic_int32_add"
 }

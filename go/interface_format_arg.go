@@ -101,7 +101,7 @@ func registerLocalInterfaceImplementerFormatCases(iface *types.Interface) {
 			continue
 		}
 		wrapper := pointerLocalInterfaceWrapperNameForUse(name, "")
-		registerAnyFormatArm(wrapper, anyFormatArm{expr: `format!("{}", v)`, text: typeHasGoStringMethod(pointer) || isConcreteGoErrorValue(pointer)})
+		registerAnyFormatArm(wrapper, localInterfacePointerFormatArm(pointer))
 		registerGoTypeNameForRustType(wrapper, goName)
 	}
 }
@@ -115,4 +115,20 @@ func registerAnyFormatArm(rustType string, arm anyFormatArm) {
 		}
 		helpers.anyFormatArms[rustType] = arm
 	}
+}
+
+// localInterfacePointerFormatArm is the format_any case of a pointer held in
+// one of the program's interfaces. A pointer whose type has a String or
+// Error method prints through it, so the case formats the pointee, whose
+// Display calls the method; a nil pointer prints as <nil>. Any other
+// pointer prints through the wrapper's Display, as the pointer does.
+func localInterfacePointerFormatArm(pointer types.Type) anyFormatArm {
+	if !typeHasGoStringMethod(pointer) && !isConcreteGoErrorValue(pointer) {
+		return anyFormatArm{expr: `format!("{}", v)`}
+	}
+	var expr strings.Builder
+	expr.WriteString("{ let __guard = v.0")
+	WriteBorrowMethod(&expr, false)
+	expr.WriteString(`; match __guard.as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() } }`)
+	return anyFormatArm{expr: expr.String(), text: true}
 }

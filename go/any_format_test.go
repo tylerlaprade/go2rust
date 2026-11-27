@@ -214,3 +214,63 @@ func main() {
 		t.Fatalf("a boxed map[string][]int has no formatting case:\n%s", rust)
 	}
 }
+
+// A receiver's field used as a map key, ops[b.Op] inside a method of b, is
+// looked up by the field's value, not by its cell.
+func TestReceiverFieldMapKeyIsTheFieldValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Bin struct {
+	Op   byte
+	L, R float64
+}
+
+var ops = map[byte]func(a, b float64) float64{
+	'+': func(a, b float64) float64 { return a + b },
+}
+
+func (b *Bin) Eval() float64 {
+	return ops[b.Op](b.L, b.R)
+}
+
+func main() {
+	b := &Bin{Op: '+', L: 1, R: 2}
+	fmt.Println(b.Eval())
+}
+`)
+	if strings.Contains(rust, ".get(&self.op.clone())") || strings.Contains(rust, ".get(&self.op)") {
+		t.Fatalf("the map is looked up by the field's cell:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".get(&{ let __selector_holder = self.op.clone();") {
+		t.Fatalf("the map key should be the field's value:\n%s", rust)
+	}
+}
+
+// A pointer with a String method held in one of the program's interfaces
+// prints through String when the print goes through format_any.
+func TestStringerPointerInProgramInterfacePrintsThroughString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Node interface {
+	Eval() float64
+}
+
+type Num struct{ V float64 }
+
+func (n *Num) Eval() float64  { return n.V }
+func (n *Num) String() string { return fmt.Sprint(n.V) }
+
+func main() {
+	var n Node = &Num{V: 2}
+	fmt.Printf("%s => %g\n", n, 1.5)
+}
+`)
+	want := `Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string()`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("missing the pointee format arm %q:\n%s", want, rust)
+	}
+}
