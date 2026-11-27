@@ -1892,21 +1892,14 @@ func main() {
 	}
 }
 
-<<<<<<< HEAD
 // A map of maps of slices or structs, and a slice of maps, print as fmt
 // prints them, through a cell for each inner map; the inner maps have no
 // Display of their own.
 func TestPrintNestedMapsOfSlicesAndStructs(t *testing.T) {
-=======
-// A rune from ranging over a string is a Rust char, which prints as the
-// character; Println prints a rune as its number.
-func TestPrintlnOfRangeRunePrintsItsNumber(t *testing.T) {
->>>>>>> origin/master
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
 
-<<<<<<< HEAD
 type P struct{ X int }
 
 func main() {
@@ -1927,7 +1920,16 @@ func main() {
 	}
 	if strings.Contains(rust, "None, ") {
 		t.Fatalf("a nil map in a slice literal should be an empty map:\n%s", rust)
-=======
+	}
+}
+
+// A rune from ranging over a string is a Rust char, which prints as the
+// character; Println prints a rune as its number.
+func TestPrintlnOfRangeRunePrintsItsNumber(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
 func main() {
 	for _, r := range "é" {
 		fmt.Println(r, string(r))
@@ -1940,6 +1942,5 @@ func main() {
 	}
 	if strings.Contains(rust, `print!("{}\n", format!("{}", (r as i32)))`) {
 		t.Fatalf("%%c of a range rune should print the character:\n%s", rust)
->>>>>>> origin/master
 	}
 }
