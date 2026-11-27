@@ -2612,6 +2612,14 @@ run_xfail_test() {
     run_test "tests/maps_basic"
 }
 
+@test "maps_of_interface_values" {
+    run_test "tests/maps_of_interface_values"
+}
+
+@test "maps_of_interface_values_goroutines" {
+    run_test "tests/maps_of_interface_values_goroutines"
+}
+
 @test "maps_operations" {
     run_test "tests/maps_operations"
 }

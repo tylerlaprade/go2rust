@@ -6,6 +6,7 @@ macro_rules! vec {
 }
 use std::any::Any;
 use std::cell::{RefCell};
+use std::cmp::Ord;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::rc::{Rc};
@@ -681,6 +682,41 @@ impl std::io::Write for GoSlice<u8> {
     }
 }
 
+fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
+where
+    V: Display,
+{
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
+    let guard = map.borrow();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.borrow();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
+                } else {
+                    format!("{}:{}", go_display_value(k), __nil_text)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
 
 fn format_any(value: &dyn Any) -> String {
     if let Some(v) = value.downcast_ref::<i32>() {
@@ -870,7 +906,7 @@ impl holder {
 
 impl std::fmt::Display for holder {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", "<map>");
+        let __go_fmt_0 = format!("{}", format_map_nil(&self.table, "[]"));
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }

@@ -922,6 +922,78 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 }
 
 // Helper function to unwrap arguments for print statements
+// writeMapDisplayForType writes the fmt form of the map whose handle
+// writeHandle writes, for a map of type mapType: maps of arrays, of maps, of
+// slices or of interface{} values, maps with array keys and the rest print
+// as fmt prints them, whether printed directly or as a struct field.
+func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandle func()) {
+	if formatter, ok := mapArrayValueFormatter(mapType); ok {
+		writeMapOfArraysDisplay(out, formatter, writeHandle)
+		return
+	}
+	if mapValuesAreBasicMaps(mapType) {
+		writeMapOfMapsDisplay(out, writeHandle, false)
+		return
+	}
+	if innerSlices, ok := mapValuesAreMapsOfSlicesOrStructs(mapType); ok {
+		writeMapOfMapsDisplay(out, writeHandle, innerSlices)
+		return
+	}
+	if mapKeysAreBasicArrays(mapType) {
+		writeMapWithArrayKeysDisplay(out, writeHandle)
+		return
+	}
+	if nilText, ok := mapValuesAreSlicesOfMaps(mapType); ok {
+		writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
+		return
+	}
+	if mapValuesAreEmptyInterfaces(mapType) {
+		// map[string]any: each value prints as format_any prints it.
+		NeedFormatAnyMap()
+		out.WriteString("format_any_map(&")
+		writeHandle()
+		out.WriteString(")")
+		return
+	}
+	NeedFormatMap()
+	TrackImport("Display")
+	TrackImport("Ord")
+	if mapValuesAreSlices(mapType) {
+		// A nil slice value prints as [].
+		out.WriteString("format_map_nil(&")
+		writeHandle()
+		out.WriteString(", \"[]\")")
+		return
+	}
+	out.WriteString("format_map(&")
+	writeHandle()
+	out.WriteString(")")
+}
+
+// mapDisplayHasOwnForm reports whether writeMapDisplayForType prints a map
+// of type mapType with a form of its own, rather than with format_map, which
+// needs keys and values that implement Display.
+func mapDisplayHasOwnForm(mapType types.Type) bool {
+	if _, ok := mapArrayValueFormatter(mapType); ok {
+		return true
+	}
+	if _, ok := mapValuesAreMapsOfSlicesOrStructs(mapType); ok {
+		return true
+	}
+	if mapValuesAreBasicMaps(mapType) || mapKeysAreBasicArrays(mapType) || mapValuesAreEmptyInterfaces(mapType) {
+		return true
+	}
+	if _, ok := mapValuesAreSlicesOfMaps(mapType); ok {
+		return true
+	}
+	if m, ok := types.Unalias(mapType).Underlying().(*types.Map); ok {
+		if slice, ok := types.Unalias(m.Elem()).Underlying().(*types.Slice); ok {
+			return anyFormatElemImplementsDisplay(slice.Elem())
+		}
+	}
+	return false
+}
+
 func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	if writeComplexPrintArg(out, arg) {
 		return
@@ -1067,39 +1139,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					TranspileExpression(out, arg)
 				}
 			}
-			if formatter, ok := mapArrayValueFormatter(argType); ok {
-				writeMapOfArraysDisplay(out, formatter, writeHandle)
-				return
-			}
-			if mapValuesAreBasicMaps(argType) {
-				writeMapOfMapsDisplay(out, writeHandle, false)
-				return
-			}
-			if innerSlices, ok := mapValuesAreMapsOfSlicesOrStructs(argType); ok {
-				writeMapOfMapsDisplay(out, writeHandle, innerSlices)
-				return
-			}
-			if mapKeysAreBasicArrays(argType) {
-				writeMapWithArrayKeysDisplay(out, writeHandle)
-				return
-			}
-			if nilText, ok := mapValuesAreSlicesOfMaps(argType); ok {
-				writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
-				return
-			}
-			NeedFormatMap()
-			TrackImport("Display")
-			TrackImport("Ord")
-			if mapValuesAreSlices(argType) {
-				// A nil slice value prints as [].
-				out.WriteString("format_map_nil(&")
-				writeHandle()
-				out.WriteString(", \"[]\")")
-				return
-			}
-			out.WriteString("format_map(&")
-			writeHandle()
-			out.WriteString(")")
+			writeMapDisplayForType(out, argType, writeHandle)
 			return
 		} else if typeInfo.IsSlice(arg) || typeInfo.IsArray(arg) {
 			if writeNamedSlicePrintArg(out, arg, argType) {
@@ -2691,6 +2731,16 @@ func mapValuesAreSlices(mapType types.Type) bool {
 	}
 	_, isSlice := types.Unalias(m.Elem()).Underlying().(*types.Slice)
 	return isSlice
+}
+
+// mapValuesAreEmptyInterfaces reports whether mapType is a map of
+// interface{} values, map[string]any say.
+func mapValuesAreEmptyInterfaces(mapType types.Type) bool {
+	if mapType == nil {
+		return false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	return ok && isEmptyInterfaceType(m.Elem())
 }
 
 // mapKeysAreBasicArrays reports whether mapType is a map whose keys are

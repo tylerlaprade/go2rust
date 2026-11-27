@@ -352,7 +352,7 @@ impl Default for Cache__int__slice_string {
 
 impl std::fmt::Display for Cache__int__slice_string {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", "<map>");
+        let __go_fmt_0 = format!("{}", format_map_nil(&self.data, "[]"));
         let __go_fmt_1 = format!("{}", format_slice(&self.order));
         let __go_fmt_2 = format!("{}", (*self.limit.lock().unwrap().as_ref().unwrap()));
         write!(f, "{{{} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2)

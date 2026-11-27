@@ -149,6 +149,7 @@ type HelperTracker struct {
 	needsFormatNestedPointerSliceWrapped bool
 	needsFormatAny                       bool
 	needsFormatAnySlice                  bool
+	needsFormatAnyMap                    bool
 	needsFormatAnyNested                 bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
@@ -396,12 +397,16 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	if ht.needsFormatAny {
 		// format_any_slice prints its elements as nested values, and only a
 		// pointer case makes that differ from format_any.
-		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && ht.needsFormatAnySlice)
+		needsNestedEntry := ht.needsFormatAnyNested || (needsFormatAnyPointer && (ht.needsFormatAnySlice || ht.needsFormatAnyMap))
 		generateAnyFormatter(&result, anyFormatArms, needsFormatAnyPointer, needsNestedEntry, programAnyRuntimeOpsEnabled())
 	}
 
 	if ht.needsFormatAnySlice {
 		generateAnySliceFormatter(&result, needsFormatAnyPointer)
+	}
+
+	if ht.needsFormatAnyMap {
+		generateAnyMapFormatter(&result, needsFormatAnyPointer)
 	}
 
 	if ht.needsAnyEq {
@@ -624,6 +629,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatSlice ||
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
+		ht.needsFormatAnyMap ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
 		ht.needsAnyHandleCopy ||
@@ -774,6 +780,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatAnySlice {
 		add("format_any_slice", "format_any_variadic")
+	}
+	if ht.needsFormatAnyMap {
+		add("format_any_map")
 	}
 	if ht.needsFormatAnyNested {
 		add("format_any_nested")
@@ -1334,6 +1343,12 @@ func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
 
 func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
 	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
+		if rustType == "Vec<"+traitObject+">" {
+			// A boxed []any: its elements have no Clone, so each is copied
+			// as an interface value.
+			out.WriteString("    if let Some(v) = value.downcast_ref::<" + rustType + ">() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<" + rustType + ">()) as " + traitObject + "); }\n")
+			continue
+		}
 		trackImportsForAnyPayloadType(rustType)
 		out.WriteString("    if let Some(v) = value.downcast_ref::<")
 		out.WriteString(rustType)
@@ -2803,6 +2818,52 @@ fn format_any_slice(slice: ` + sliceType + `) -> String {
 
 fn format_any_variadic(slice: ` + sliceType + `) -> String {
     format_any_slice_values(slice` + topLevelArg + `)
+}
+`)
+}
+
+// generateAnyMapFormatter emits format_any_map, which prints a
+// map[K]interface{} as fmt does: its keys in order, and each value as a value
+// inside a collection, which matters only when nestedElements says
+// format_any_nested prints it differently from format_any.
+func generateAnyMapFormatter(out *strings.Builder, nestedElements bool) {
+	TrackImport("Any")
+	TrackImport("BTreeMap")
+	TrackImport("Display")
+	TrackImport("Ord")
+	mapType := "&Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<Box<dyn Any>>>>>>>>"
+	guard, valueGuard := "map.borrow()", "v.borrow()"
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		mapType = "&Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>>>"
+		guard, valueGuard = "map.lock().unwrap()", "v.lock().unwrap()"
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+	}
+	formatValue := "format_any"
+	if nestedElements {
+		formatValue = "format_any_nested"
+	}
+	out.WriteString(`
+fn format_any_map<K: Display + Ord + Clone>(map: ` + mapType + `) -> String {
+    let guard = ` + guard + `;
+    if let Some(ref m) = *guard {
+        let formatted: Vec<String> = m
+            .iter()
+            .map(|(k, v)| {
+                let v_guard = ` + valueGuard + `;
+                match v_guard.as_ref() {
+                    Some(val) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                    None => format!("{}:<nil>", go_display_value(k)),
+                }
+            })
+            .collect();
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
 }
 `)
 }

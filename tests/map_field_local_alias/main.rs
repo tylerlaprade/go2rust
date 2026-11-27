@@ -269,7 +269,7 @@ impl Store {
 impl std::fmt::Display for Store {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", format_map(&self.data));
-        let __go_fmt_1 = format!("{}", "<map>");
+        let __go_fmt_1 = format!("{}", format_map_nil(&self.tags, "[]"));
         write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
     }
 }

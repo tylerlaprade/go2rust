@@ -10839,6 +10839,7 @@ func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	NeedAnyClone()
+	RegisterAnySliceOfAnyPayload()
 	out.WriteString("Box::new(")
 	writeAnySliceCloneValue(out, expr)
 	out.WriteString(") as ")
@@ -12928,7 +12929,9 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		WriteWrappedNone(out)
 		return
 	}
-	if isNilableWrappedMapValueType(valueType) && isTypedAssignmentSelfWrappingExpression(value) {
+	// A value that wraps itself goes in as it is, unless the map holds
+	// interfaces: map[string]any{"b": []int{1, 2}} boxes the slice below.
+	if isNilableWrappedMapValueType(valueType) && !types.IsInterface(valueType) && isTypedAssignmentSelfWrappingExpression(value) {
 		TranspileExpression(out, value)
 		return
 	}
@@ -16755,6 +16758,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 						// A fmt.Stringer goes in as the value it holds.
 						if writeFmtStringerAnyBox(out, elt) {
+							continue
+						}
+						// A []any goes in as the owned copy of its elements
+						// it is boxed as everywhere else.
+						if writeAnySliceCloneValueBox(out, elt) {
 							continue
 						}
 					}

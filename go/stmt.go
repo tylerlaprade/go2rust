@@ -5856,6 +5856,17 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 		WriteWrappedNone(out)
 		return
 	}
+	// m[k] = v for a map of interface{} values boxes v, as a map literal
+	// does; an interface{} value is cloned as the handle it already is.
+	if isEmptyInterfaceType(valueType) {
+		if writeEmptyInterfaceHandleClone(out, expr) {
+			return
+		}
+		WriteWrapperPrefix(out)
+		writeInterfaceBoxedValue(out, expr)
+		WriteWrapperSuffix(out)
+		return
+	}
 	if isPointerMapValueType(valueType) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 			writePointerHandleExpression(out, expr)

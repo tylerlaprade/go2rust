@@ -995,7 +995,7 @@ impl std::fmt::Display for Inventory {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __go_fmt_0 = format!("{}", (*self.counts.borrow().as_ref().unwrap()));
         let __go_fmt_1 = format!("{}", format_map(&self.items));
-        let __go_fmt_2 = format!("{}", "<map>");
+        let __go_fmt_2 = format!("{}", format_map_nil(&self.tags, "[]"));
         let __go_fmt_3 = format!("{}", (*self.inner.borrow().as_ref().unwrap()));
         write!(f, "{{{} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3)
     }

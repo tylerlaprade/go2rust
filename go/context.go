@@ -1083,6 +1083,32 @@ func RegisterAnyCloneType(typ types.Type) {
 	}
 }
 
+// RegisterAnySliceOfAnyPayload records that the program boxes a []any into
+// an empty interface, as the owned Vec of its boxed elements that
+// writeAnySliceCloneValueBox writes. format_any prints it as fmt prints the
+// slice, each element as a value inside it, and go_any_try_clone copies it
+// element by element, since a Box<dyn Any> has no Clone.
+func RegisterAnySliceOfAnyPayload() {
+	helpers := activeHelperTracker()
+	if helpers == nil {
+		return
+	}
+	NeedFormatAnyNested()
+	rustType := "Vec<" + rustAnyTraitObject() + ">"
+	if helpers.anyCloneTypes == nil {
+		helpers.anyCloneTypes = make(map[string]bool)
+	}
+	helpers.anyCloneTypes[rustType] = true
+	if helpers.anyFormatArms == nil {
+		helpers.anyFormatArms = make(map[string]anyFormatArm)
+	}
+	helpers.anyFormatArms[rustType] = anyFormatArm{expr: `format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`}
+	if helpers.anyTypeNames == nil {
+		helpers.anyTypeNames = make(map[string]string)
+	}
+	helpers.anyTypeNames[rustType] = "[]interface {}"
+}
+
 // RegisterOpaqueErrorAnyPayload records that the program boxes an error
 // handle into an empty interface, which is how an error travels when its
 // dynamic type cannot be named (see writeOpaqueGoErrorAnyBox). The handle is
@@ -1232,6 +1258,16 @@ func NeedGoByteSequence() {
 func NeedGoInteger() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoInteger = true
+	}
+}
+
+// NeedFormatAnyMap marks that we need the format_any_map helper, and the
+// go_display_value its keys print through.
+func NeedFormatAnyMap() {
+	NeedFormatAny()
+	NeedFormatMap()
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatAnyMap = true
 	}
 }
 
