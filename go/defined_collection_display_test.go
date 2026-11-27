@@ -95,3 +95,25 @@ func main() {
 		}
 	}
 }
+
+// A defined map of pointers to the program's structs gets a Display, so a
+// struct holding one prints, the way the typed print path prints the map.
+func TestDefinedMapOfStructPointersGetsADisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Item struct{ Qty int }
+
+type Inventory map[string]*Item
+
+type Holder struct{ inv Inventory }
+
+func main() {
+	fmt.Println(Holder{inv: Inventory{"a": {1}}})
+}
+`)
+	if !strings.Contains(rust, "impl Display for Inventory {\n    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n        write!(f, \"{}\", format_map(&self.0))") {
+		t.Fatalf("Inventory should print through format_map:\n%s", rust)
+	}
+}
