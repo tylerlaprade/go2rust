@@ -1,0 +1,14 @@
+started
+map[a:[] b:[1 2]] map[k:[3 4]] map[p:{1 2}]
+[map[a:[] b:[1 2]]] [map[k:[3 4]]] [map[p:{1 2}]]
+{map[a:[] b:[1 2]] map[p:{1 2}]}
+map[x:map[a:[] b:[1 2]]] map[y:map[p:{1 2}]]
+[map[a:[] b:[1 2]] map[]] 2
+2 map[c:map[a:1 b:2]]
+map[i:[6]]
+map[a:1 b:2]
+[6]
+[7 8]
+map[a:[] b:[1 2]]
+map[p:{1 2}]
+map[k:[3 4]]

@@ -12986,10 +12986,44 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 	} else if copyCall, ok := mapLiteralValueGoCopyCall(value); ok {
 		// map[K]T{k: v} for a struct variable v stores Go's copy of v.
 		writeExpressionWithGoCopy(out, value, copyCall)
+	} else if mapLiteralValueIsDefinedCollectionVariable(value, valueType) {
+		// map[string]M{k: m} for a variable m of a defined map or slice
+		// type: the newtype holds the collection's handle, which the copy
+		// shares, as Go's copy of the header does.
+		TranspileExpression(out, value)
+		out.WriteString(".clone()")
 	} else {
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+// mapLiteralValueIsDefinedCollectionVariable reports whether value is a
+// variable or field of a defined map or slice type, whose Rust value is read
+// out of its cell and must be cloned for the map to hold one of its own.
+func mapLiteralValueIsDefinedCollectionVariable(value ast.Expr, valueType types.Type) bool {
+	switch unwrapParens(value).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return false
+	}
+	if valueType == nil {
+		return false
+	}
+	if _, isNamed := valueType.(*types.Named); !isNamed {
+		return false
+	}
+	switch valueType.Underlying().(type) {
+	case *types.Map, *types.Slice:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(value)
+	return actual != nil && types.Identical(actual, valueType)
 }
 
 // mapLiteralValueGoCopyCall returns the call that makes Go's copy of value, a
