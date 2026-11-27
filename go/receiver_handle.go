@@ -447,11 +447,9 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 		if isSliceElemPtrVar(e.Name) || isGoPtrIdent(e) || isArrayElemPtrVar(e.Name) {
 			return false
 		}
-		name := RustIdentForUse(e)
-		if renamed, exists := captureRenameForIdent(e); exists {
-			name = RustLocalIdent(renamed)
-		}
-		out.WriteString(name)
+		// A local that shadows the receiver, `x := *x` in a method on
+		// x, is renamed in a closure like any other captured local.
+		out.WriteString(rustIdentForUseWithCapture(e))
 		out.WriteString(".clone()")
 		return true
 	case *ast.SelectorExpr:

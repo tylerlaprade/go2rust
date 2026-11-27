@@ -121,6 +121,48 @@ func main() {
 	}
 }
 
+// A local that shadows the receiver, `x := *x`, is a captured local in a
+// closure: a call on it there names the closure's copy of its handle, so the
+// closure stays Fn.
+func TestReceiverHandleShadowingLocalInClosureUsesCaptureName(t *testing.T) {
+	src := `package main
+
+type T struct{ n int }
+
+type Set struct{ items []int }
+
+func (s *Set) each(f func(int) bool) bool {
+	for _, v := range s.items {
+		if !f(v) {
+			return false
+		}
+	}
+	return true
+}
+
+var seen []*T
+
+func (x *T) fits(a, b *Set) bool {
+	seen = append(seen, x)
+	if a != nil && b != nil {
+		x := *x // don't clobber the caller's T
+		return a.each(func(i int) bool {
+			x.n = i
+			return b.each(func(j int) bool { return x.fits(nil, nil) && x.n+j > 0 })
+		})
+	}
+	return x.n >= 0
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	if !strings.Contains(rust, "let __recv = x_closure_clone_closure_clone.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv)") {
+		t.Fatalf("the inner closure should call through its copy of x's handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __recv = x.clone();") {
+		t.Fatalf("the inner closure should not name the shadowing x itself:\n%s", rust)
+	}
+}
+
 func transpileReceiverHandleSource(t *testing.T, src string) string {
 	t.Helper()
 	fset := token.NewFileSet()
