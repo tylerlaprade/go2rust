@@ -90,6 +90,11 @@ func anyFormatArmForType(typ types.Type) (anyFormatArm, bool) {
 		if anyFormatKeyIsOrderedBasic(t.Key()) && anyFormatElemImplementsDisplay(t.Elem()) {
 			return anyFormatArm{expr: "format_map(v)", needsFormatMap: true}, true
 		}
+		// map[string][]int: each slice prints through its Display, and a
+		// nil one as [], as the typed print path prints it.
+		if slice, ok := types.Unalias(t.Elem()).(*types.Slice); ok && anyFormatKeyIsOrderedBasic(t.Key()) && anyFormatElemImplementsDisplay(slice.Elem()) {
+			return anyFormatArm{expr: `format_map_nil(v, "[]")`, needsFormatMap: true}, true
+		}
 	}
 	return anyFormatArm{}, false
 }

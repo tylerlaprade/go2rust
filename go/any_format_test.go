@@ -196,3 +196,21 @@ func main() {
 		t.Fatalf("a boxed map[bool]int has no formatting case:\n%s", rust)
 	}
 }
+
+// A map of slices held in an interface gets a formatting case that prints
+// each slice, and a nil one as [].
+func TestBoxedMapOfSlicesHasAFormattingCase(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func show(v interface{}) { fmt.Println(v) }
+
+func main() {
+	show(map[string][]int{"a": nil})
+}
+`)
+	if !strings.Contains(rust, "value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i64>>>>>>>>>() {\n        format_map_nil(v, \"[]\")") {
+		t.Fatalf("a boxed map[string][]int has no formatting case:\n%s", rust)
+	}
+}
