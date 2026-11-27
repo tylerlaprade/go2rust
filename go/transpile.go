@@ -1020,7 +1020,14 @@ func (analysis *transpileFileAnalysis) markComparedAnonymousStruct(typ types.Typ
 	}
 	analysis.comparedAnonymousStructs = append(analysis.comparedAnonymousStructs, structType)
 	for i := 0; i < structType.NumFields(); i++ {
-		named, ok := types.Unalias(structType.Field(i).Type()).(*types.Named)
+		fieldType := types.Unalias(structType.Field(i).Type())
+		// An unnamed struct field, as in struct{ p struct{ x int } }, is
+		// compared with the struct it is in.
+		if _, nested := fieldType.(*types.Struct); nested {
+			analysis.markComparedAnonymousStruct(fieldType, typeInfo)
+			continue
+		}
+		named, ok := fieldType.(*types.Named)
 		if !ok {
 			continue
 		}
@@ -1144,6 +1151,7 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 				result[name] = true
 			}
 		}
+		markNestedMapKeyStructFields(result, st, typeInfo)
 		return
 	}
 	named, ok := types.Unalias(typ).(*types.Named)
@@ -1161,6 +1169,18 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 		if pkg := named.Obj().Pkg(); pkg != nil && named.Obj().Parent() != pkg.Scope() {
 			result[mapKeyStructFieldsKey(st)] = true
 		}
+		markNestedMapKeyStructFields(result, st, typeInfo)
+	}
+}
+
+// markNestedMapKeyStructFields marks the unnamed struct fields of the map key
+// struct st, as p in map[struct{ p struct{ x int } }]bool: the key's Ord
+// needs Ord on each of them.
+func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, typeInfo *TypeInfo) {
+	for i := 0; i < st.NumFields(); i++ {
+		if nested, ok := types.Unalias(st.Field(i).Type()).(*types.Struct); ok {
+			markMapKeyStructType(result, nested, typeInfo)
+		}
 	}
 }
 
@@ -1173,7 +1193,7 @@ func registerMapKeyAnonymousStructs(file *ast.File) {
 		return
 	}
 	typeInfo := GetTypeInfo()
-	ast.Inspect(file, func(node ast.Node) bool {
+	visit := func(node ast.Node) bool {
 		if mapType, ok := node.(*ast.MapType); ok {
 			if st, ok := unwrapParens(mapType.Key).(*ast.StructType); ok {
 				// A package-level alias of the same struct type, such as
@@ -1187,7 +1207,26 @@ func registerMapKeyAnonymousStructs(file *ast.File) {
 			}
 		}
 		return true
-	})
+	}
+	// A declaration the emission pass prunes writes no map, so its map keys
+	// need no struct; one of them could name a type that is never written.
+	for _, decl := range file.Decls {
+		switch decl := decl.(type) {
+		case *ast.FuncDecl:
+			if !isPrunedSourceDecl(decl.Name) {
+				ast.Inspect(decl, visit)
+			}
+		case *ast.GenDecl:
+			for _, spec := range decl.Specs {
+				if typeSpec, ok := spec.(*ast.TypeSpec); ok && isPrunedSourceDecl(typeSpec.Name) {
+					continue
+				}
+				ast.Inspect(spec, visit)
+			}
+		default:
+			ast.Inspect(decl, visit)
+		}
+	}
 }
 
 // packageStructAliasName is the Rust name of a package-level alias of the

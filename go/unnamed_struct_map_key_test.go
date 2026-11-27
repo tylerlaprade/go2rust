@@ -49,3 +49,33 @@ func main() {
 		t.Fatalf("a map key's struct type should have a name:\n%s", mainRS)
 	}
 }
+
+// An unnamed struct field of an unnamed struct map key gets the equality and
+// order the key's own derives need.
+func TestUnnamedStructMapKeyFieldOfUnnamedStructIsOrdered(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+func main() {
+	m := map[struct{ p struct{ x int } }]bool{}
+	m[struct{ p struct{ x int } }{}] = true
+	fmt.Println(len(m))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	ordered := strings.Count(mainRS, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct AnonymousStruct")
+	if ordered != 2 {
+		t.Fatalf("the key struct and its unnamed struct field should both be ordered (got %d):\n%s", ordered, mainRS)
+	}
+}

@@ -5140,6 +5140,10 @@ run_xfail_test() {
     run_test "tests/unnamed_struct_map_key_goroutines"
 }
 
+@test "unnamed_struct_map_key_nested" {
+    run_test "tests/unnamed_struct_map_key_nested"
+}
+
 @test "unsafe_float_bits" {
     run_test "tests/unsafe_float_bits"
 }
