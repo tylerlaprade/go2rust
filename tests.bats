@@ -4204,6 +4204,14 @@ run_xfail_test() {
     run_test "tests/slice_element_pointer_identity_goroutines"
 }
 
+@test "slice_element_pointer_methods" {
+    run_test "tests/slice_element_pointer_methods"
+}
+
+@test "slice_element_pointer_methods_goroutines" {
+    run_test "tests/slice_element_pointer_methods_goroutines"
+}
+
 @test "slice_expr_call_argument" {
     run_test "tests/slice_expr_call_argument"
 }
