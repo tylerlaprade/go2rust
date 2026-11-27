@@ -10873,6 +10873,12 @@ func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
+	if goSliceModeEnabled() {
+		// The interface holds a copy of the slice's header, which shares
+		// its elements, as in Go.
+		out.WriteString("; __slice_guard.as_ref().cloned().unwrap_or_default() }")
+		return
+	}
 	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 

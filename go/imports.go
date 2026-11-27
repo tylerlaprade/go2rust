@@ -2861,9 +2861,11 @@ func generateAnyMapFormatter(out *strings.Builder, nestedElements bool) {
 	}
 	out.WriteString(`
 fn format_any_map<K: Display + Ord + Clone>(map: ` + mapType + `) -> String {
-    let guard = ` + guard + `;
-    if let Some(ref m) = *guard {
-        let formatted: Vec<String> = m
+    // The entries are taken out first, so a value's String method that
+    // reads this map does not wait on the lock printing it holds.
+    let entries = { let guard = ` + guard + `; guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };
+    if let Some(entries) = entries {
+        let formatted: Vec<String> = entries
             .iter()
             .map(|(k, v)| {
                 let v_guard = ` + valueGuard + `;

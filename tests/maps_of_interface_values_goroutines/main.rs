@@ -821,10 +821,30 @@ fn format_any_nested(value: &(dyn Any + Send + Sync)) -> String {
     format_any(value)
 }
 
+fn format_any_slice_values(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        formatted.join(" ")
+    } else {
+        String::new()
+    }
+}
+
+fn format_any_slice(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice))
+}
+
+fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> String {
+    format_any_slice_values(slice)
+}
+
 fn format_any_map<K: Display + Ord + Clone>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>>>) -> String {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let formatted: Vec<String> = m
+    // The entries are taken out first, so a value's String method that
+    // reads this map does not wait on the lock printing it holds.
+    let entries = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };
+    if let Some(entries) = entries {
+        let formatted: Vec<String> = entries
             .iter()
             .map(|(k, v)| {
                 let v_guard = v.lock().unwrap();
@@ -1447,6 +1467,38 @@ impl std::fmt::Display for Record {
 }
 
 
+/// Grid prints maps with array keys whose values are arrays or interface{}
+/// values.
+#[derive(Clone, Default)]
+pub struct Grid {
+    pub cells: Arc<Mutex<Option<BTreeMap<[i64; 2], Arc<Mutex<Option<[i64; 2]>>>>>>>,
+    pub tags: Arc<Mutex<Option<BTreeMap<[i64; 2], Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>>>>,
+}
+
+impl Grid {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.cells.clone();
+        let __go_clone_1_0 = self.tags.clone();
+        Self {
+            cells: __go_clone_0_0,
+            tags: __go_clone_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Grid {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_plus = f.alternate();
+        let __go_fmt_0 = format!("{}", { let __map_holder = self.cells.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __map_holder = self.tags.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.lock().unwrap(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
+        if __go_plus {
+            return write!(f, "{{Cells:{} Tags:{}}}", __go_fmt_0, __go_fmt_1);
+        }
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
     {
     let _ts_subject = v.clone();
@@ -1492,7 +1544,7 @@ pub fn describe(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<
 
 fn main() {
     go_install_panic_exit();
-    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>)))), ("a".to_string(), Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>)))), ("c".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>)))), ("d".to_string(), Arc::new(Mutex::new(Some(Box::new(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }) as Box<dyn Any + Send + Sync>)))), ("e".to_string(), Arc::new(Mutex::new(Some(Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any + Send + Sync>)))), ("f".to_string(), Arc::new(Mutex::new(None)))]))));
+    let mut m = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any + Send + Sync>)))), ("a".to_string(), Arc::new(Mutex::new(Some(Box::new(true) as Box<dyn Any + Send + Sync>)))), ("c".to_string(), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("k".to_string(), Arc::new(Mutex::new(Some(1i64))))])))).clone()) as Box<dyn Any + Send + Sync>)))), ("d".to_string(), Arc::new(Mutex::new(Some(Box::new(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }) as Box<dyn Any + Send + Sync>)))), ("e".to_string(), Arc::new(Mutex::new(Some(Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any + Send + Sync>, Box::new(2i64) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>)))), ("f".to_string(), Arc::new(Mutex::new(None)))]))));
     println!("{} {}", format!("{}", format_any_map(&m)), format!("{}", ({ let __len = (*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __map_key = "g".to_string(); let __map_value = Arc::new(Mutex::new(Some(Box::new(2.5) as Box<dyn Any + Send + Sync>))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "h".to_string(); let __map_value = Arc::new(Mutex::new(Some(Box::new("text".to_string()) as Box<dyn Any + Send + Sync>))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
@@ -1506,9 +1558,9 @@ fn main() {
         let wg_defer_captured = wg_closure_clone.clone(); __defer_stack.push(Box::new(move || {
         wg_defer_captured.done();
     }));
-        let __mutex_guard_source_1111 = mu_closure_clone.clone(); let __mutex_guard_1111 = __mutex_guard_source_1111.guard();
+        let __mutex_guard_source_1266 = mu_closure_clone.clone(); let __mutex_guard_1266 = __mutex_guard_source_1266.guard();
         { let __map_key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = go_any_handle_copy(&v); (*m_closure_clone.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-        std::mem::drop(__mutex_guard_1111);
+        std::mem::drop(__mutex_guard_1266);
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1575,7 +1627,7 @@ let mut xs = { let __slice_header = GoSliceHeader::go_slice_header(&xs); Arc::ne
     }
     print!("{}\n{} {}\n", format!("{}", format_any_map(&m)), format!("{}", ({ let __len = (*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __type_name = match ({ let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"e".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).lock().unwrap().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" }; __type_name }));
 
-    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new(3i64) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any + Send + Sync>)));
+    let mut x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("two".to_string()) as Box<dyn Any + Send + Sync>, Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new(3i64) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>)));
     let mut y = go_any_handle_copy(&x);
     println!("{} {}", format!("{}", { let __text = match x.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match y.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }));
 
@@ -1631,4 +1683,27 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
     wg.wait();
     println!("{}", format!("{}", { let __v = (*r.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
     print!("{:#}\n", { let __v = (*r.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v });
+
+        // A copy of an interface holding a []any, and a []any held in a []any,
+        // share the slice's elements.
+    let mut a: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new({ let __slice_holder = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>, Box::new("x".to_string()) as Box<dyn Any + Send + Sync>]))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>)));
+    let mut b = go_any_handle_copy(&a);
+    let mut bs = Arc::new(Mutex::new(Some(({
+        let val = b.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Vec<Box<dyn Any + Send + Sync>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]any")).clone()
+        } else {
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "[]any")
+        }
+    }))));
+    let mut bs = { let __slice_header = GoSliceHeader::go_slice_header(&bs); Arc::new(Mutex::new(__slice_header)) };
+    { let __idx = (0) as usize; let __rhs = Box::new(2i64) as Box<dyn Any + Send + Sync>; (*bs.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    let mut inner = Arc::new(Mutex::new(Some(vec![Box::new(1i64) as Box<dyn Any + Send + Sync>])));
+    let mut outer = Arc::new(Mutex::new(Some(vec![Box::new({ let __slice_holder = inner.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any + Send + Sync>])));
+    { let __idx = (0) as usize; let __rhs = Box::new(3i64) as Box<dyn Any + Send + Sync>; (*inner.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", { let __text = match a.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", { let __text = match b.lock().unwrap().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }; __text }), format!("{}", format_any_slice(&outer)));
+
+    let mut g = Arc::new(Mutex::new(Some(Grid { cells: Arc::new(Mutex::new(Some(BTreeMap::<[i64; 2], Arc<Mutex<Option<[i64; 2]>>>>::from([([1i64, 2i64], Arc::new(Mutex::new(Some([3i64, 4i64]))))])))), tags: Arc::new(Mutex::new(Some(BTreeMap::<[i64; 2], Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>>::from([([1i64, 2i64], Arc::new(Mutex::new(Some(Box::new(7i64) as Box<dyn Any + Send + Sync>))))])))), ..Default::default() })));
+    println!("{} {} {}", format!("{}", { let __v = (*g.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __map_holder = (*g.lock().unwrap().as_ref().unwrap()).cells.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v.lock().unwrap().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", { let __map_holder = (*g.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.lock().unwrap(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 }

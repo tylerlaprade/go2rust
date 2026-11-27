@@ -13,3 +13,5 @@ map[a:true b:[1 2] c:map[k:1] d:{3 4} e:[x 2] f:<nil> g:2.5 h:text i:[p q] j:7]
 map[] 0 true
 {1 map[n:2 s:x t:true] map[n:[] x:[1 2]] map[o:map[i:1]] map[[1 2]:p]}
 {ID:1 Fields:map[n:2 s:x t:true] Lists:map[n:[] x:[1 2]] Nested:map[o:map[i:1]] Pairs:map[[1 2]:p]}
+[2 x] [2 x] [[3]]
+{map[[1 2]:[3 4]] map[[1 2]:7]} map[[1 2]:[3 4]] map[[1 2]:7]

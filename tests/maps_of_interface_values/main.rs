@@ -820,10 +820,30 @@ fn format_any_nested(value: &dyn Any) -> String {
     format_any(value)
 }
 
+fn format_any_slice_values(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.iter().map(|v| format_any(v.as_ref())).collect();
+        formatted.join(" ")
+    } else {
+        String::new()
+    }
+}
+
+fn format_any_slice(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format!("[{}]", format_any_slice_values(slice))
+}
+
+fn format_any_variadic(slice: &Rc<RefCell<Option<Vec<Box<dyn Any>>>>>) -> String {
+    format_any_slice_values(slice)
+}
+
 fn format_any_map<K: Display + Ord + Clone>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<Box<dyn Any>>>>>>>>) -> String {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let formatted: Vec<String> = m
+    // The entries are taken out first, so a value's String method that
+    // reads this map does not wait on the lock printing it holds.
+    let entries = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };
+    if let Some(entries) = entries {
+        let formatted: Vec<String> = entries
             .iter()
             .map(|(k, v)| {
                 let v_guard = v.borrow();
@@ -1148,6 +1168,38 @@ impl std::fmt::Display for Record {
 }
 
 
+/// Grid prints maps with array keys whose values are arrays or interface{}
+/// values.
+#[derive(Clone, Default)]
+pub struct Grid {
+    pub cells: Rc<RefCell<Option<BTreeMap<[i64; 2], Rc<RefCell<Option<[i64; 2]>>>>>>>,
+    pub tags: Rc<RefCell<Option<BTreeMap<[i64; 2], Rc<RefCell<Option<Box<dyn Any>>>>>>>>,
+}
+
+impl Grid {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.cells.clone();
+        let __go_clone_1_0 = self.tags.clone();
+        Self {
+            cells: __go_clone_0_0,
+            tags: __go_clone_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Grid {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_plus = f.alternate();
+        let __go_fmt_0 = format!("{}", { let __map_holder = self.cells.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
+        let __go_fmt_1 = format!("{}", { let __map_holder = self.tags.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.borrow(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } });
+        if __go_plus {
+            return write!(f, "{{Cells:{} Tags:{}}}", __go_fmt_0, __go_fmt_1);
+        }
+        write!(f, "{{{} {}}}", __go_fmt_0, __go_fmt_1)
+    }
+}
+
+
 pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<String>>> {
     {
     let _ts_subject = v.clone();
@@ -1193,7 +1245,7 @@ pub fn describe(v: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Strin
 
 fn main() {
     go_install_panic_exit();
-    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>)))), ("a".to_string(), Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>)))), ("c".to_string(), Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>)))), ("d".to_string(), Rc::new(RefCell::new(Some(Box::new(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }) as Box<dyn Any>)))), ("e".to_string(), Rc::new(RefCell::new(Some(Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any>)))), ("f".to_string(), Rc::new(RefCell::new(None)))]))));
+    let mut m = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Box<dyn Any>>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(vec![1i64, 2i64]))).clone()) as Box<dyn Any>)))), ("a".to_string(), Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>)))), ("c".to_string(), Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("k".to_string(), Rc::new(RefCell::new(Some(1i64))))])))).clone()) as Box<dyn Any>)))), ("d".to_string(), Rc::new(RefCell::new(Some(Box::new(Point { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }) as Box<dyn Any>)))), ("e".to_string(), Rc::new(RefCell::new(Some(Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new("x".to_string()) as Box<dyn Any>, Box::new(2i64) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>)))), ("f".to_string(), Rc::new(RefCell::new(None)))]))));
     println!("{} {}", format!("{}", format_any_map(&m)), format!("{}", ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
     { let __map_key = "g".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::new(2.5) as Box<dyn Any>))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "h".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::new("text".to_string()) as Box<dyn Any>))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
@@ -1229,7 +1281,7 @@ let mut xs = { let __slice_header = GoSliceHeader::go_slice_header(&xs); Rc::new
     }
     print!("{}\n{} {}\n", format_any_map(&m), ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }), match ({ let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"e".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }).borrow().as_ref() { Some(__any_value) => __go_type_name(&**__any_value), None => "<nil>" });
 
-    let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new(3i64) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }) as Box<dyn Any>)));
+    let mut x: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("two".to_string()) as Box<dyn Any>, Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new(3i64) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>)));
     let mut y = go_any_handle_copy(&x);
     println!("{} {}", format!("{}", match x.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match y.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
 
@@ -1240,4 +1292,27 @@ let mut xs = { let __slice_header = GoSliceHeader::go_slice_header(&xs); Rc::new
     { let __map_key = "t".to_string(); let __map_value = Rc::new(RefCell::new(Some(Box::new(true) as Box<dyn Any>))); (*(*r.borrow().as_ref().unwrap()).fields.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{}", format!("{}", (*r.borrow().as_ref().unwrap())));
     print!("{:#}\n", (*r.borrow().as_ref().unwrap()));
+
+        // A copy of an interface holding a []any, and a []any held in a []any,
+        // share the slice's elements.
+    let mut a: Rc<RefCell<Option<Box<dyn Any>>>> = Rc::new(RefCell::new(Some(Box::new({ let __slice_holder = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>]))).clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>)));
+    let mut b = go_any_handle_copy(&a);
+    let mut bs = Rc::new(RefCell::new(Some(({
+        let val = b.clone();
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            any_val.downcast_ref::<Vec<Box<dyn Any>>>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "[]any")).clone()
+        } else {
+            panic!("interface conversion: {} is nil, not {}", "interface {}", "[]any")
+        }
+    }))));
+    let mut bs = { let __slice_header = GoSliceHeader::go_slice_header(&bs); Rc::new(RefCell::new(__slice_header)) };
+    { let __idx = (0) as usize; let __rhs = Box::new(2i64) as Box<dyn Any>; (*bs.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    let mut inner = Rc::new(RefCell::new(Some(vec![Box::new(1i64) as Box<dyn Any>])));
+    let mut outer = Rc::new(RefCell::new(Some(vec![Box::new({ let __slice_holder = inner.clone(); let __slice_guard = __slice_holder.borrow(); __slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>])));
+    { let __idx = (0) as usize; let __rhs = Box::new(3i64) as Box<dyn Any>; (*inner.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
+    println!("{} {} {}", format!("{}", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match b.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", format_any_slice(&outer)));
+
+    let mut g = Rc::new(RefCell::new(Some(Grid { cells: Rc::new(RefCell::new(Some(BTreeMap::<[i64; 2], Rc<RefCell<Option<[i64; 2]>>>>::from([([1i64, 2i64], Rc::new(RefCell::new(Some([3i64, 4i64]))))])))), tags: Rc::new(RefCell::new(Some(BTreeMap::<[i64; 2], Rc<RefCell<Option<Box<dyn Any>>>>>::from([([1i64, 2i64], Rc::new(RefCell::new(Some(Box::new(7i64) as Box<dyn Any>))))])))), ..Default::default() })));
+    println!("{} {} {}", format!("{}", (*g.borrow().as_ref().unwrap())), format!("{}", { let __map_holder = (*g.borrow().as_ref().unwrap()).cells.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__k, __v)| format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v.borrow().as_ref().unwrap()[..]))).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }), format!("{}", { let __map_holder = (*g.borrow().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.borrow(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref())).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 }

@@ -1102,11 +1102,15 @@ func RegisterAnySliceOfAnyPayload() {
 	if helpers.anyFormatArms == nil {
 		helpers.anyFormatArms = make(map[string]anyFormatArm)
 	}
-	helpers.anyFormatArms[rustType] = anyFormatArm{expr: `format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`}
+	arm := anyFormatArm{expr: `format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`}
+	helpers.anyFormatArms[rustType] = arm
 	if helpers.anyTypeNames == nil {
 		helpers.anyTypeNames = make(map[string]string)
 	}
 	helpers.anyTypeNames[rustType] = "[]interface {}"
+	// Another package of the program may be the one that prints or copies
+	// the slice.
+	recordProgramAnyCase(rustType, arm, true, "[]interface {}")
 }
 
 // RegisterOpaqueErrorAnyPayload records that the program boxes an error

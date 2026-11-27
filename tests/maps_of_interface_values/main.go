@@ -33,6 +33,13 @@ func describe(v any) string {
 	}
 }
 
+// Grid prints maps with array keys whose values are arrays or interface{}
+// values.
+type Grid struct {
+	Cells map[[2]int][2]int
+	Tags  map[[2]int]any
+}
+
 func main() {
 	m := map[string]any{"b": []int{1, 2}, "a": true, "c": map[string]int{"k": 1}, "d": Point{3, 4}, "e": []any{"x", 2}, "f": nil}
 	fmt.Println(m, len(m))
@@ -66,4 +73,18 @@ func main() {
 	r.Fields["t"] = true
 	fmt.Println(r)
 	fmt.Printf("%+v\n", r)
+
+	// A copy of an interface holding a []any, and a []any held in a []any,
+	// share the slice's elements.
+	var a any = []any{1, "x"}
+	b := a
+	bs := b.([]any)
+	bs[0] = 2
+	inner := []any{1}
+	outer := []any{inner}
+	inner[0] = 3
+	fmt.Println(a, b, outer)
+
+	g := Grid{Cells: map[[2]int][2]int{{1, 2}: {3, 4}}, Tags: map[[2]int]any{{1, 2}: 7}}
+	fmt.Println(g, g.Cells, g.Tags)
 }

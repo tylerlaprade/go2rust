@@ -928,7 +928,7 @@ func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
 // as fmt prints them, whether printed directly or as a struct field.
 func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandle func()) {
 	if formatter, ok := mapArrayValueFormatter(mapType); ok {
-		writeMapOfArraysDisplay(out, formatter, writeHandle)
+		writeMapOfArraysDisplayWithKeys(out, formatter, writeHandle, mapKeysAreBasicArrays(mapType))
 		return
 	}
 	if mapValuesAreBasicMaps(mapType) {
@@ -940,7 +940,7 @@ func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandl
 		return
 	}
 	if mapKeysAreBasicArrays(mapType) {
-		writeMapWithArrayKeysDisplay(out, writeHandle)
+		writeMapWithArrayKeysDisplayOf(out, writeHandle, mapValuesAreEmptyInterfaces(mapType))
 		return
 	}
 	if nilText, ok := mapValuesAreSlicesOfMaps(mapType); ok {
@@ -974,6 +974,19 @@ func writeMapDisplayForType(out *strings.Builder, mapType types.Type, writeHandl
 // of type mapType with a form of its own, rather than with format_map, which
 // needs keys and values that implement Display.
 func mapDisplayHasOwnForm(mapType types.Type) bool {
+	// A map of a type parameter's type has no Display of its own to print
+	// it with, and a map with array keys prints values that are Display or
+	// interface{} values.
+	if typeContainsTypeParam(mapType) {
+		return false
+	}
+	if mapKeysAreBasicArrays(mapType) {
+		if _, ok := mapArrayValueFormatter(mapType); !ok && !mapValuesAreEmptyInterfaces(mapType) {
+			if m, ok := types.Unalias(mapType).Underlying().(*types.Map); !ok || !mapValueTypeDisplayable(m.Elem()) {
+				return false
+			}
+		}
+	}
 	if _, ok := mapArrayValueFormatter(mapType); ok {
 		return true
 	}
@@ -2774,17 +2787,30 @@ func mapKeysAreBasicArrays(mapType types.Type) bool {
 // prints as its elements, in key order, which is the order fmt sorts array
 // keys in.
 func writeMapWithArrayKeysDisplay(out *strings.Builder, writeHandle func()) {
-	NeedGoDisplayValue()
+	writeMapWithArrayKeysDisplayOf(out, writeHandle, false)
+}
+
+// writeMapWithArrayKeysDisplayOf is writeMapWithArrayKeysDisplay for a map
+// whose values are interface{} values when anyValues: each value prints as
+// fmt prints the value it holds.
+func writeMapWithArrayKeysDisplayOf(out *strings.Builder, writeHandle func(), anyValues bool) {
 	NeedFormatMap()
 	NeedFormatSlice()
 	TrackImport("Display")
+	valueFormat := "go_display_value(__value)"
+	if anyValues {
+		NeedFormatAnyNested()
+		valueFormat = "format_any_nested(__value.as_ref())"
+	} else {
+		NeedGoDisplayValue()
+	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
 	out.WriteString(".clone(); let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__key, __value)| { let __value_guard = __value")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; format!(\"{}:{}\", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| \"<nil>\".to_string())) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
+	out.WriteString("; format!(\"{}:{}\", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| " + valueFormat + ").unwrap_or_else(|| \"<nil>\".to_string())) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 // mapValuesAreBasicMaps reports whether mapType is a map whose values are
@@ -2863,17 +2889,28 @@ func mapValuesAreMapsOfSlicesOrStructs(mapType types.Type) (bool, bool) {
 // map[k:[1 2] ...] in key order, through formatter for each value.
 // writeHandle writes the map's handle.
 func writeMapOfArraysDisplay(out *strings.Builder, formatter string, writeHandle func()) {
-	NeedGoDisplayValue()
+	writeMapOfArraysDisplayWithKeys(out, formatter, writeHandle, false)
+}
+
+// writeMapOfArraysDisplayWithKeys is writeMapOfArraysDisplay for a map whose
+// keys are arrays too when arrayKeys: each key prints as its elements.
+func writeMapOfArraysDisplayWithKeys(out *strings.Builder, formatter string, writeHandle func(), arrayKeys bool) {
 	NeedFormatSlice()
 	if formatter == "format_nested_slice_values" {
 		NeedFormatNestedSlice()
 	}
 	TrackImport("Display")
+	keyFormat := "go_display_value(__k)"
+	if arrayKeys {
+		keyFormat = "format_slice_values(&__k[..])"
+	} else {
+		NeedGoDisplayValue()
+	}
 	out.WriteString("{ let __map_holder = ")
 	writeHandle()
 	out.WriteString(".clone(); let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", go_display_value(__k), ")
+	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| format!(\"{}:{}\", " + keyFormat + ", ")
 	out.WriteString(formatter)
 	out.WriteString("(&__v")
 	WriteBorrowMethod(out, false)

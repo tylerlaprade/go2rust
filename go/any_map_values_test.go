@@ -112,3 +112,48 @@ func main() {
 		t.Fatalf("a defined []any should be boxed as its own type:\n%s", rust)
 	}
 }
+
+// A struct's Display is generated whether or not it is printed, so each map
+// field form must build: array keys print as their elements with array or
+// interface{} values, a map of a type parameter's type keeps its plain form,
+// format_any_map takes the entries out before printing them, and a []any
+// held in a []any shares its elements.
+func TestMapFieldFormsBuildForArrayKeysAndTypeParams(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Pair[K comparable] struct {
+	m map[K]any
+}
+
+type Grid struct {
+	cells map[[2]int][2]int
+	tags  map[[2]int]any
+}
+
+func main() {
+	s := []any{1}
+	xs := []any{s}
+	g := Grid{}
+	p := Pair[string]{}
+	m := map[string]any{"a": 1}
+	fmt.Println(xs, g, len(p.m), m)
+}
+`)
+	for _, want := range []string{
+		`format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v`,
+		`format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref()))`,
+		"let entries = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };",
+		"__slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	impl := rust[strings.Index(rust, "for Pair<K>"):]
+	impl = impl[:strings.Index(impl, "\n}\n")]
+	if strings.Contains(impl, "format_any_map") {
+		t.Fatalf("a map of a type parameter's type should keep its plain form:\n%s", impl)
+	}
+}
