@@ -809,11 +809,37 @@ impl<T> GoGlobal<T> {
     }
 }
 
+pub(crate) struct GoGlobalMap<T> {
+    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,
+}
+unsafe impl<T> Sync for GoGlobalMap<T> {}
+impl<T> GoGlobalMap<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.handle().as_ptr() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.handle().as_ptr() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        self.handle().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {
+        unsafe { *self.value.get() = Some(handle) }
+    }
+}
+
 pub(crate) static globalCounter: GoGlobal<i64> = GoGlobal::new();
 
 pub(crate) static initialized: GoGlobal<bool> = GoGlobal::new();
 
-pub(crate) static configData: GoGlobal<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub(crate) static configData: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobalMap::new();
 
 pub(crate) static computedValue: GoGlobal<i64> = GoGlobal::new();
 
@@ -843,7 +869,7 @@ fn __go_init_1() {
     { let __rhs = 5; let mut guard = globalCounter.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         // Initialize map
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *configData.borrow_mut() = new_val; };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::new()))).clone(); configData.set(new_val); };
     { let __map_key = "version".to_string(); let __map_value = Rc::new(RefCell::new(Some("1.0".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     { let __map_key = "author".to_string(); let __map_value = Rc::new(RefCell::new(Some("go2rust".to_string()))); (*configData.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }

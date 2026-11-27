@@ -3208,6 +3208,14 @@ run_xfail_test() {
     run_test "tests/package_global_map_incremental"
 }
 
+@test "package_global_map_sharing" {
+    run_test "tests/package_global_map_sharing"
+}
+
+@test "package_global_map_sharing_goroutines" {
+    run_test "tests/package_global_map_sharing_goroutines"
+}
+
 @test "package_global_map_snapshot" {
     run_test "tests/package_global_map_snapshot"
 }

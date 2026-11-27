@@ -1,0 +1,7 @@
+[w x y] 3
+2 w
+[m n] [a b]
+true 2 2
+[z] [m n]
+4 3
+[w y z] [w y z]
