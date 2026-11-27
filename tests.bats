@@ -2536,6 +2536,14 @@ run_xfail_test() {
     run_test "tests/map_nil_assignment"
 }
 
+@test "map_of_slices_of_maps" {
+    run_test "tests/map_of_slices_of_maps"
+}
+
+@test "map_of_slices_of_maps_goroutines" {
+    run_test "tests/map_of_slices_of_maps_goroutines"
+}
+
 @test "map_pointer_key_comma_ok" {
     run_test "tests/map_pointer_key_comma_ok"
 }
