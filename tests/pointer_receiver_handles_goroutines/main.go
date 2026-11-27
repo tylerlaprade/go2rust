@@ -117,6 +117,14 @@ func main() {
 	visit := (*Node).Visit
 	visit(list, func() { fmt.Println(list.tags["seen"]) })
 	fmt.Println(lastVisited == list)
+	nodes := []*Node{{name: "p"}, {name: "q"}}
+	for _, nd := range nodes {
+		nd.Visit(func() { fmt.Println(nd.name, nd.tags["seen"]) })
+	}
+	for i := range nodes {
+		nodes[i].Visit(func() { fmt.Println(nodes[i].tags["seen"]) })
+	}
+	fmt.Println(lastVisited == nodes[1])
 
 	var head Node
 	head.Link("x").Link("y")

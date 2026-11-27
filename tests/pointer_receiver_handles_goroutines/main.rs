@@ -1110,6 +1110,27 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }));
+    let mut nodes = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("p".to_string()))), ..Default::default() }))), Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("q".to_string()))), ..Default::default() })))])));
+    { let __range_holder = nodes.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for nd in __range_values.iter() {
+        let nd_closure_clone = nd.clone(); { let __method_args = (
+    Arc::new(Mutex::new(Some({ let nd_closure_clone_closure_clone = nd_closure_clone.clone(); Arc::new(move || {
+        println!("{} {}", format!("{}", (*{ let __field = (*nd_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", { let __map = { let __map_holder = (*nd_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> }))),); { let __recv = nd_closure_clone.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.visit(__method_args.0); __result } };
+    } }
+    for i in 0..(({ let __range_holder = nodes.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        let i_closure_clone = i.clone(); let nodes_closure_clone = nodes.clone(); { let __recv = { let __seq = { let __seq_holder = nodes_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(i_closure_clone) as usize].clone() }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.visit(
+    Arc::new(Mutex::new(Some({ let i_closure_clone_closure_clone = i_closure_clone.clone(); let nodes_closure_clone_closure_clone = nodes_closure_clone.clone(); Arc::new(move || {
+        println!("{}", format!("{}", { let __map = { let __map_holder = (*{ let __seq = { let __seq_holder = nodes_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(i_closure_clone_closure_clone) as usize].clone() }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> }))),
+); __result };
+    }
+    println!("{}", format!("{}", {
+        let __left = (*lastVisited.lock().unwrap().as_ref().unwrap()).clone();
+        let __right = { let __seq = { let __seq_holder = nodes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
+        __eq
+    }));
     let mut head: Arc<Mutex<Option<Node>>> = Arc::new(Mutex::new(Some(Default::default())));
     { let __recv = { let __recv = head.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(Arc::new(Mutex::new(Some("x".to_string())))); __result }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(Arc::new(Mutex::new(Some("y".to_string())))); __result };
     println!("{}", format!("{}", (*(*(*head.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));

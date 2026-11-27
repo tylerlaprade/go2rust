@@ -1,6 +1,11 @@
 c 1 true b
 1
 true
+p 1
+q 1
+1
+1
+true
 y
 [x y] 2
 true

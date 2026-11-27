@@ -430,13 +430,19 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 				return true
 			}
 		}
-		if isPackageGlobalIdent(e) || isLocalConstantIdent(e) || isVarBare(e.Name) {
+		// A range variable over a []*T holds the pointer's handle itself;
+		// one over a []T holds the element, which has no handle.
+		rangePointer := false
+		if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar && !identShadowsRangeVar(e) {
+			if !isPointer || !isWrappedRangeVarType(varType) {
+				return false
+			}
+			rangePointer = true
+		}
+		if isPackageGlobalIdent(e) || isLocalConstantIdent(e) || (!rangePointer && isVarBare(e.Name)) {
 			return false
 		}
 		if isSliceElemPtrVar(e.Name) || isGoPtrIdent(e) || isArrayElemPtrVar(e.Name) {
-			return false
-		}
-		if _, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
 			return false
 		}
 		name := RustIdentForUse(e)
@@ -461,6 +467,25 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpressionContext(out, e, LValue)
 		out.WriteString(".clone()")
 		return true
+	case *ast.IndexExpr:
+		// nodes[i] of a []*T, or m[k] of a map[K]*T, is the pointer's
+		// handle.
+		if !isPointer {
+			return false
+		}
+		if root := methodReceiverRootIdent(e); root == nil || isPackageGlobalIdent(root) {
+			return false
+		}
+		if typeInfo.IsSlice(e.X) || typeInfo.IsArray(e.X) || typeInfo.IsMap(e.X) {
+			var element strings.Builder
+			TranspileExpression(&element, e)
+			if strings.Contains(element.String(), "GoPtr") || strings.Contains(element.String(), "GoSliceElemPtr") {
+				return false
+			}
+			out.WriteString(element.String())
+			return true
+		}
+		return false
 	case *ast.CallExpr:
 		if !isPointer {
 			return false
