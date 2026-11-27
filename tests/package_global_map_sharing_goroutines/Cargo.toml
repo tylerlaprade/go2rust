@@ -1,0 +1,25 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/math_bits",
+    "vendor/sort",
+]
+
+[package]
+name = "package_global_map_sharing_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_map_sharing_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+math_bits = { path = "vendor/math_bits" }
+sort = { path = "vendor/sort" }

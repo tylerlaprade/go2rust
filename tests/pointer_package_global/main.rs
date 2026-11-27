@@ -797,11 +797,37 @@ impl<T> GoGlobal<T> {
     }
 }
 
+pub(crate) struct GoGlobalMap<T> {
+    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,
+}
+unsafe impl<T> Sync for GoGlobalMap<T> {}
+impl<T> GoGlobalMap<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.handle().as_ptr() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.handle().as_ptr() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        self.handle().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {
+        unsafe { *self.value.get() = Some(handle) }
+    }
+}
+
 pub(crate) static _C: GoGlobal<Rc<RefCell<Option<RangeTable>>>> = GoGlobal::new();
 
 pub static C: GoGlobal<Rc<RefCell<Option<RangeTable>>>> = GoGlobal::new();
 
-pub static Tables: GoGlobal<BTreeMap<String, Rc<RefCell<Option<RangeTable>>>>> = GoGlobal::new();
+pub static Tables: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<RangeTable>>>>> = GoGlobalMap::new();
 
 
 fn __go_init_globals() {

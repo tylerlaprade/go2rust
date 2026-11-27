@@ -1269,7 +1269,44 @@ impl std::fmt::Display for parser {
 }
 
 
-pub(crate) static ops_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<u8, Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<f64>>>) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) + Send + Sync>>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) struct GoGlobalMapSync<T> {
+    slot: std::sync::Mutex<std::sync::Arc<std::sync::Mutex<Option<T>>>>,
+}
+// A lock of the map, which keeps the map's handle while it is held.
+pub(crate) struct GoGlobalMapGuard<T: 'static> {
+    guard: std::sync::MutexGuard<'static, Option<T>>,
+    _handle: std::sync::Arc<std::sync::Mutex<Option<T>>>,
+}
+impl<T: 'static> std::ops::Deref for GoGlobalMapGuard<T> {
+    type Target = Option<T>;
+    fn deref(&self) -> &Option<T> { &self.guard }
+}
+impl<T: 'static> std::ops::DerefMut for GoGlobalMapGuard<T> {
+    fn deref_mut(&mut self) -> &mut Option<T> { &mut self.guard }
+}
+impl<T: 'static> GoGlobalMapSync<T> {
+    pub(crate) fn new() -> Self {
+        Self { slot: std::sync::Mutex::new(std::sync::Arc::new(std::sync::Mutex::new(None))) }
+    }
+    pub(crate) fn clone(&self) -> std::sync::Arc<std::sync::Mutex<Option<T>>> {
+        self.slot.lock().unwrap().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&self, handle: std::sync::Arc<std::sync::Mutex<Option<T>>>) {
+        *self.slot.lock().unwrap() = handle;
+    }
+    pub(crate) fn lock(&self) -> std::sync::LockResult<GoGlobalMapGuard<T>> {
+        let handle = self.clone();
+        // The guard keeps the handle, and is dropped before it.
+        let mutex: &'static std::sync::Mutex<Option<T>> = unsafe { &*std::sync::Arc::as_ptr(&handle) };
+        match mutex.lock() {
+            Ok(guard) => Ok(GoGlobalMapGuard { guard, _handle: handle }),
+            Err(poisoned) => Err(std::sync::PoisonError::new(GoGlobalMapGuard { guard: poisoned.into_inner(), _handle: handle })),
+        }
+    }
+}
+
+pub(crate) static ops_1: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<u8, Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<f64>>>, Arc<Mutex<Option<f64>>>) -> (f64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) + Send + Sync>>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
 
 fn __go_init_globals() {

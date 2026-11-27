@@ -797,6 +797,13 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 	if len(globals) == 0 {
 		return
 	}
+	if NeedsConcurrentWrapper() && packageGlobalsHaveMapHandle(globals) {
+		vis := "pub(crate) "
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Name() != "main" {
+			vis = "pub "
+		}
+		writeGoGlobalMapSyncType(out, vis)
+	}
 	if !NeedsConcurrentWrapper() {
 		// Another crate reads the exported globals of a translated package
 		// through these methods, so a package's GoGlobal is public; a
@@ -823,12 +830,22 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 		out.WriteString("        std::rc::Rc::new(std::cell::RefCell::new(self.borrow().clone()))\n")
 		out.WriteString("    }\n")
 		out.WriteString("}\n\n")
+		if packageGlobalsHaveMapHandle(globals) {
+			writeGoGlobalMapType(out, vis)
+		}
 	}
 	for i, global := range globals {
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		if NeedsConcurrentWrapper() {
+		if NeedsConcurrentWrapper() && packageGlobalIsMapHandle(global) {
+			out.WriteString(packageGlobalVisibility(global.name))
+			out.WriteString(" static ")
+			out.WriteString(rustPackageGlobalName(global.name))
+			out.WriteString(": std::sync::LazyLock<GoGlobalMapSync<")
+			out.WriteString(global.rustType)
+			out.WriteString(">> = std::sync::LazyLock::new(GoGlobalMapSync::new);\n")
+		} else if NeedsConcurrentWrapper() {
 			out.WriteString(packageGlobalVisibility(global.name))
 			out.WriteString(" static ")
 			out.WriteString(rustPackageGlobalName(global.name))
@@ -839,13 +856,134 @@ func TranspilePackageGlobals(out *strings.Builder, globalVars []*ast.GenDecl) {
 			out.WriteString(packageGlobalVisibility(global.name))
 			out.WriteString(" static ")
 			out.WriteString(rustPackageGlobalName(global.name))
-			out.WriteString(": GoGlobal<")
+			globalType := "GoGlobal"
+			if packageGlobalIsMapHandle(global) {
+				globalType = "GoGlobalMap"
+			}
+			out.WriteString(": ")
+			out.WriteString(globalType)
+			out.WriteString("<")
 			out.WriteString(global.rustType)
-			out.WriteString("> = GoGlobal::new();\n")
+			out.WriteString("> = ")
+			out.WriteString(globalType)
+			out.WriteString("::new();\n")
 		}
 	}
 	out.WriteString("\n\n")
 	transpilePackageGlobalInit(out, globals)
+}
+
+// packageGlobalIsMapHandle reports whether global, a package-level variable
+// of an unnamed map type, is kept as the map's handle (#328): a copy of the
+// variable, an argument made from it and a pointer to it share its map, as
+// a local map variable's do.
+func packageGlobalIsMapHandle(global packageGlobal) bool {
+	if global.typ == nil || global.goPtrStorage {
+		return false
+	}
+	_, ok := types.Unalias(global.typ).(*types.Map)
+	return ok
+}
+
+func packageGlobalsHaveMapHandle(globals []packageGlobal) bool {
+	for _, global := range globals {
+		if packageGlobalIsMapHandle(global) {
+			return true
+		}
+	}
+	return false
+}
+
+// writeGoGlobalMapType writes GoGlobalMap, the storage of a package-level
+// map variable. It reads and writes the map as GoGlobal does, and its clone
+// is the map's handle, which the copies of the variable share.
+func writeGoGlobalMapType(out *strings.Builder, vis string) {
+	out.WriteString(vis + "struct GoGlobalMap<T> {\n")
+	out.WriteString("    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,\n")
+	out.WriteString("}\n")
+	out.WriteString("unsafe impl<T> Sync for GoGlobalMap<T> {}\n")
+	out.WriteString("impl<T> GoGlobalMap<T> {\n")
+	out.WriteString("    " + vis + "const fn new() -> Self {\n")
+	out.WriteString("        Self { value: std::cell::UnsafeCell::new(None) }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {\n")
+	out.WriteString("        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    " + vis + "fn borrow(&'static self) -> &'static Option<T> {\n")
+	out.WriteString("        unsafe { &*self.handle().as_ptr() }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    " + vis + "fn borrow_mut(&'static self) -> &'static mut Option<T> {\n")
+	out.WriteString("        unsafe { &mut *self.handle().as_ptr() }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    " + vis + "fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {\n")
+	out.WriteString("        self.handle().clone()\n")
+	out.WriteString("    }\n")
+	out.WriteString("    // Assigning a map to the variable makes it that map's handle.\n")
+	out.WriteString("    " + vis + "fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {\n")
+	out.WriteString("        unsafe { *self.value.get() = Some(handle) }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+}
+
+// writeGoGlobalMapSyncType writes GoGlobalMapSync, the storage of a
+// package-level map variable in a program with goroutines: the handle of the
+// map the variable holds, which lock and clone reach as a global's Arc is
+// reached, and which set replaces.
+func writeGoGlobalMapSyncType(out *strings.Builder, vis string) {
+	out.WriteString(vis + "struct GoGlobalMapSync<T> {\n")
+	out.WriteString("    slot: std::sync::Mutex<std::sync::Arc<std::sync::Mutex<Option<T>>>>,\n")
+	out.WriteString("}\n")
+	out.WriteString("// A lock of the map, which keeps the map's handle while it is held.\n")
+	out.WriteString(vis + "struct GoGlobalMapGuard<T: 'static> {\n")
+	out.WriteString("    guard: std::sync::MutexGuard<'static, Option<T>>,\n")
+	out.WriteString("    _handle: std::sync::Arc<std::sync::Mutex<Option<T>>>,\n")
+	out.WriteString("}\n")
+	out.WriteString("impl<T: 'static> std::ops::Deref for GoGlobalMapGuard<T> {\n")
+	out.WriteString("    type Target = Option<T>;\n")
+	out.WriteString("    fn deref(&self) -> &Option<T> { &self.guard }\n")
+	out.WriteString("}\n")
+	out.WriteString("impl<T: 'static> std::ops::DerefMut for GoGlobalMapGuard<T> {\n")
+	out.WriteString("    fn deref_mut(&mut self) -> &mut Option<T> { &mut self.guard }\n")
+	out.WriteString("}\n")
+	out.WriteString("impl<T: 'static> GoGlobalMapSync<T> {\n")
+	out.WriteString("    " + vis + "fn new() -> Self {\n")
+	out.WriteString("        Self { slot: std::sync::Mutex::new(std::sync::Arc::new(std::sync::Mutex::new(None))) }\n")
+	out.WriteString("    }\n")
+	out.WriteString("    " + vis + "fn clone(&self) -> std::sync::Arc<std::sync::Mutex<Option<T>>> {\n")
+	out.WriteString("        self.slot.lock().unwrap().clone()\n")
+	out.WriteString("    }\n")
+	out.WriteString("    // Assigning a map to the variable makes it that map's handle.\n")
+	out.WriteString("    " + vis + "fn set(&self, handle: std::sync::Arc<std::sync::Mutex<Option<T>>>) {\n")
+	out.WriteString("        *self.slot.lock().unwrap() = handle;\n")
+	out.WriteString("    }\n")
+	out.WriteString("    " + vis + "fn lock(&self) -> std::sync::LockResult<GoGlobalMapGuard<T>> {\n")
+	out.WriteString("        let handle = self.clone();\n")
+	out.WriteString("        // The guard keeps the handle, and is dropped before it.\n")
+	out.WriteString("        let mutex: &'static std::sync::Mutex<Option<T>> = unsafe { &*std::sync::Arc::as_ptr(&handle) };\n")
+	out.WriteString("        match mutex.lock() {\n")
+	out.WriteString("            Ok(guard) => Ok(GoGlobalMapGuard { guard, _handle: handle }),\n")
+	out.WriteString("            Err(poisoned) => Err(std::sync::PoisonError::new(GoGlobalMapGuard { guard: poisoned.into_inner(), _handle: handle })),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n\n")
+}
+
+// packageGlobalIdentIsMapHandle reports whether ident is a package-level
+// variable kept in a GoGlobalMap or a GoGlobalMapSync.
+func packageGlobalIdentIsMapHandle(ident *ast.Ident) bool {
+	if ident == nil || !isPackageGlobalIdent(ident) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+	if !ok || obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+		return false
+	}
+	_, isMap := types.Unalias(obj.Type()).(*types.Map)
+	return isMap
 }
 
 func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {

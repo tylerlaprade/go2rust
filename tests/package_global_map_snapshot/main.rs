@@ -756,7 +756,33 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static current_1: GoGlobal<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobal::new();
+pub(crate) struct GoGlobalMap<T> {
+    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,
+}
+unsafe impl<T> Sync for GoGlobalMap<T> {}
+impl<T> GoGlobalMap<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.handle().as_ptr() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.handle().as_ptr() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        self.handle().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {
+        unsafe { *self.value.get() = Some(handle) }
+    }
+}
+
+pub(crate) static current_1: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<String>>>>> = GoGlobalMap::new();
 
 
 fn __go_init_globals() {
@@ -772,8 +798,8 @@ fn __go_init_globals() {
 fn main() {
     go_install_panic_exit();
     __go_init_all();
-    let mut old = Rc::new(RefCell::new(Some((*current_1.borrow().as_ref().unwrap()).clone())));
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("new".to_string()))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *current_1.borrow_mut() = new_val; };
+    let mut old = current_1.clone();
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<String>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some("new".to_string()))))])))).clone(); current_1.set(new_val); };
     { let __map_key = "b".to_string(); let __map_value = Rc::new(RefCell::new(Some("saved".to_string()))); (*old.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{}", format!("{}", { let __map_holder = current_1.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
     println!("{} {}", format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"a".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", { let __map_holder = old.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&"b".to_string())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }));
