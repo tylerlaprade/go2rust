@@ -864,11 +864,17 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
     is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Arc<Mutex<Option<Vec<u8>>>>)
 }
 
+// A nil interface value: the nil literal, or a nil interface value boxed as
+// the program boxes one.
+fn go_format_is_nil(value: &(dyn Any + Send + Sync)) -> bool {
+    value.is::<GoFormatNil>()
+}
+
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
-    if value.is::<GoFormatNil>() {
+    if go_format_is_nil(value) {
         return "<nil>".to_string();
     }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
@@ -965,7 +971,7 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // for a scalar, and for each byte of a []byte.
         // A nil interface value prints <nil> for %v and %T, and fmt reports
         // any other verb.
-        if arg.is::<GoFormatNil>() {
+        if go_format_is_nil(arg.as_ref()) {
             if matches!(verb, 'v' | 'T') {
                 out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
             } else {

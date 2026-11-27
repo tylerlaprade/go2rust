@@ -31,6 +31,9 @@ func main() {
 	errc <- nil
 	fmt.Printf(format, <-errc)
 	fmt.Print(fmt.Sprintf(format, <-errc))
+	errc <- nil
+	plus := "%+v|%s|\n"
+	fmt.Printf(plus, <-errc, nil)
 	close(errc)
 	e, ok := <-errc
 	fmt.Println(e, ok)

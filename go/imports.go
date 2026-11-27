@@ -532,7 +532,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoSprintf {
-		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms)
+		generateGoSprintf(&result, ht.needsGoSprintfSpread, anyFormatArms, ht.needsGoNilAny)
 	}
 
 	if ht.needsGoFmtScan {

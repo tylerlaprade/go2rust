@@ -1232,7 +1232,7 @@ struct GoFormatNil;
 
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil, GoNilAny};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -1769,11 +1769,17 @@ fn go_format_is_basic(value: &(dyn Any + Send + Sync)) -> bool {
     is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, Arc<Mutex<Option<Vec<u8>>>>)
 }
 
+// A nil interface value: the nil literal, or a nil interface value boxed as
+// the program boxes one.
+fn go_format_is_nil(value: &(dyn Any + Send + Sync)) -> bool {
+    value.is::<GoFormatNil>() || value.is::<GoNilAny>()
+}
+
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &(dyn Any + Send + Sync)) -> String {
-    if value.is::<GoFormatNil>() {
+    if go_format_is_nil(value) {
         return "<nil>".to_string();
     }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
@@ -1870,7 +1876,7 @@ pub(super) fn go_sprintf(format: &str, args: &[Box<dyn Any + Send + Sync>], wrap
         // for a scalar, and for each byte of a []byte.
         // A nil interface value prints <nil> for %v and %T, and fmt reports
         // any other verb.
-        if arg.is::<GoFormatNil>() {
+        if go_format_is_nil(arg.as_ref()) {
             if matches!(verb, 'v' | 'T') {
                 out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
             } else {
@@ -1972,6 +1978,9 @@ fn main() {
     errc.send(None);
     print!("{}", go_sprintf(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = { let __err_guard = errc.recv().unwrap_or_default(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }; __go_format_arg }], false));
     print!("{}", format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", go_sprintf(&(*format.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = { let __err_guard = errc.recv().unwrap_or_default(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }; __go_format_arg }], false))))).lock().unwrap().as_ref().unwrap())));
+    errc.send(None);
+    let mut plus = Arc::new(Mutex::new(Some("%+v|%s|\n".to_string())));
+    print!("{}", go_sprintf(&(*plus.lock().unwrap().as_ref().unwrap()).clone(), &[{ let __go_format_arg = { let __err_guard = errc.recv().unwrap_or_default(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any + Send + Sync>, Some(__err) => Box::new(Arc::new(Mutex::new(Some(__err.clone())))) as Box<dyn Any + Send + Sync> } }; __go_format_arg }, Box::new(GoFormatNil) as Box<dyn Any + Send + Sync>], false));
     errc.close();
     let (mut e, mut ok) = match errc.recv() { Some(v) => (Arc::new(Mutex::new(v)), Arc::new(Mutex::new(Some(true)))), None => (Arc::new(Mutex::new(None::<Arc<dyn StdError + Send + Sync>>)), Arc::new(Mutex::new(Some(false)))) };
     println!("{} {}", format!("{}", { let __text = match e.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }), format!("{}", { let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v }));

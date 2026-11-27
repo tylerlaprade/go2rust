@@ -4,4 +4,5 @@ boom
 got: wrapped: inner
 dynamic late
 dynamic <nil>
+<nil>|%!s(<nil>)|
 <nil> false
