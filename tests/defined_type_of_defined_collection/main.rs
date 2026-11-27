@@ -1046,7 +1046,7 @@ impl AnonymousStruct1 {
 
 impl std::fmt::Display for AnonymousStruct1 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __go_fmt_0 = format!("{}", "<map>");
+        let __go_fmt_0 = format!("{}", format_map_nil(&self.v, "[]"));
         write!(f, "{{{}}}", __go_fmt_0)
     }
 }
