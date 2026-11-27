@@ -521,3 +521,27 @@ func TestFormatVerbsInOrder(t *testing.T) {
 		t.Fatal("a * width should not be read")
 	}
 }
+
+// A nil interface value boxed as GoNilAny, as a received nil error is, prints
+// as fmt prints nil in a format known only at run time.
+func TestRuntimeFormatTakesGoNilAnyForNil(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	errc := make(chan error, 1)
+	errc <- nil
+	format := "%+v\n"
+	fmt.Printf(format, <-errc)
+}
+`)
+	for _, want := range []string{
+		"value.is::<GoFormatNil>() || value.is::<GoNilAny>()",
+		"if go_format_is_nil(arg.as_ref()) {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}

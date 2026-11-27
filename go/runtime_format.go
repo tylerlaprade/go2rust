@@ -348,8 +348,9 @@ func writeRuntimeFormatCall(out *strings.Builder, format ast.Expr, args []ast.Ex
 // go_sprintf_spread, which takes the arguments as the []interface{} they
 // arrived in. anyFormatArms are the types the program puts in an interface
 // value; the ones with a String or an Error method are listed in
-// go_format_is_text.
-func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[string]anyFormatArm) {
+// go_format_is_text. nilAny says the program boxes a nil interface value as
+// GoNilAny, which go_sprintf takes for nil as it takes GoFormatNil.
+func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[string]anyFormatArm, nilAny bool) {
 	TrackImport("Any")
 	anyValue, anyBox := "dyn Any", "Box<dyn Any>"
 	sliceType, guard := "Rc<RefCell<Option<Vec<Box<dyn Any>>>>>", "args.borrow()"
@@ -366,7 +367,11 @@ func generateGoSprintf(out *strings.Builder, spread bool, anyFormatArms map[stri
 	if NeedsConcurrentWrapper() {
 		handleOpen = "Arc<Mutex<Option<"
 	}
-	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard, "GO_HANDLE_OPEN", handleOpen, "GO_HANDLE_CLOSE", handleClose)
+	nilAnyImport, nilAnyCheck := "", ""
+	if nilAny {
+		nilAnyImport, nilAnyCheck = ", GoNilAny", " || value.is::<GoNilAny>()"
+	}
+	replace := strings.NewReplacer("GO_ANY_VALUE", anyValue, "GO_ANY_BOX", anyBox, "GO_BYTES_HANDLE", bytesHandle, "GO_BYTES_GUARD", bytesGuard, "GO_HANDLE_OPEN", handleOpen, "GO_HANDLE_CLOSE", handleClose, "GO_NIL_ANY_IMPORT", nilAnyImport, "GO_NIL_ANY_CHECK", nilAnyCheck)
 	textTypes := make([]string, 0, len(anyFormatArms))
 	var namedBasicTypes []string
 	var fieldTypes []string
@@ -446,15 +451,15 @@ fn go_format_elements(__value: &` + anyValue + `) -> Option<Vec<` + anyBox + `>>
 #[allow(dead_code)]
 ` + visibility + `struct GoFormatNil;
 `)
-	out.WriteString(`
+	out.WriteString(replace.Replace(`
 #[allow(unused_imports)]
 mod __go_runtime_format {
-    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNil};
+    use super::{format_any, __go_type_name, go_format_is_text, go_format_named_basic_value, go_format_fields_value, go_format_elements, GoFormatNilGO_NIL_ANY_IMPORT};
     use std::any::Any;
     use std::cell::RefCell;
     use std::rc::Rc;
     use std::sync::{Arc, Mutex};
-`)
+`))
 	if goSliceModeEnabled() {
 		out.WriteString("    #[allow(unused_imports)]\n    use super::{GoSlice, Vec};\n")
 	}
@@ -1009,11 +1014,17 @@ fn go_format_is_basic(value: &GO_ANY_VALUE) -> bool {
     is_one_of!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, String, &str, GO_BYTES_HANDLE)
 }
 
+// A nil interface value: the nil literal, or a nil interface value boxed as
+// the program boxes one.
+fn go_format_is_nil(value: &GO_ANY_VALUE) -> bool {
+    value.is::<GoFormatNil>()GO_NIL_ANY_CHECK
+}
+
 // An argument as fmt names it when it does not fit the format: type=value.
 // The value is written as %v writes it, with the width, the precision and
 // the flags of the verb that did not fit.
 fn go_format_typed_value(spec: &GoFormatSpec, value: &GO_ANY_VALUE) -> String {
-    if value.is::<GoFormatNil>() {
+    if go_format_is_nil(value) {
         return "<nil>".to_string();
     }
     let text = go_format_argument(spec, go_format_plain_verb(value), value).unwrap_or_default();
@@ -1110,7 +1121,7 @@ fn go_sprintf(format: &str, args: &[GO_ANY_BOX], wraps: bool) -> String {
         // for a scalar, and for each byte of a []byte.
         // A nil interface value prints <nil> for %v and %T, and fmt reports
         // any other verb.
-        if arg.is::<GoFormatNil>() {
+        if go_format_is_nil(arg.as_ref()) {
             if matches!(verb, 'v' | 'T') {
                 out.push_str(&go_format_pad(&spec, "<nil>".to_string(), 0, true));
             } else {
