@@ -294,10 +294,18 @@ func methodDeclTakesReceiverHandle(fn *ast.FuncDecl) bool {
 // writes that copy back into self when it returns, panics included.
 func writeReceiverHandleMethodPrologue(out *strings.Builder, indent string, name string, mutable bool) {
 	NeedReceiverHandles()
+	// The prologue's own names, kept apart from a receiver that has one of
+	// them.
+	copyName, ptrName, writeBackName := "__self_copy", "__self_ptr", "__self_write_back"
+	for name == copyName || name == ptrName || name == writeBackName {
+		copyName, ptrName, writeBackName = copyName+"_", ptrName+"_", writeBackName+"_"
+	}
 	out.WriteString(indent)
 	out.WriteString("let (mut ")
 	out.WriteString(name)
-	out.WriteString(", __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {\n")
+	out.WriteString(", ")
+	out.WriteString(copyName)
+	out.WriteString(") = match go_take_receiver_handle::<Self>(self as *const Self as usize) {\n")
 	out.WriteString(indent)
 	out.WriteString("    Some(__handle) => (__handle, None),\n")
 	out.WriteString(indent)
@@ -319,9 +327,9 @@ func writeReceiverHandleMethodPrologue(out *strings.Builder, indent string, name
 	}
 	NeedGoWriteBack()
 	out.WriteString(indent)
-	out.WriteString("let __self_ptr = self as *mut Self;\n")
+	out.WriteString("let " + ptrName + " = self as *mut Self;\n")
 	out.WriteString(indent)
-	out.WriteString("let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy")
+	out.WriteString("let " + writeBackName + " = GoWriteBack(move || if let Some(__copy) = &" + copyName + " { unsafe { *" + ptrName + " = __copy")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap().clone(); } });\n")
 }
@@ -465,6 +473,9 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 		}
 		// A pointer into a slice element or another cell is a GoPtr.
 		if _, ok := goPtrResultInfoForCall(e, 0); ok {
+			return false
+		}
+		if _, ok := sliceElemPtrReturnInfoForCall(e); ok {
 			return false
 		}
 		TranspileExpression(out, e)

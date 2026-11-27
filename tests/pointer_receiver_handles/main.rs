@@ -205,49 +205,6 @@ impl<F: FnMut()> Drop for GoWriteBack<F> {
     }
 }
 
-thread_local! {
-    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
-}
-
-fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
-    __GO_RECEIVER_HANDLES.with(|__handles| {
-        let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
-            __handles.remove(0);
-        }
-        __handles.push((address, Box::new(handle.clone())));
-    });
-}
-
-fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
-    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
-    go_set_receiver_handle(handle, __ptr as *const () as usize);
-    __ptr
-}
-
-fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
-    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
-    go_set_receiver_handle(handle, __ptr as *const () as usize);
-    __ptr
-}
-
-fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
-    handle.lock().unwrap().as_mut().unwrap() as *mut T
-}
-
-fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
-    handle.lock().unwrap().as_ref().unwrap() as *const T
-}
-
-fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
-    __GO_RECEIVER_HANDLES.with(|__handles| {
-        let mut __handles = __handles.borrow_mut();
-        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
-    })
-}
-
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -855,6 +812,11 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }));
+    let mut registered = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Dept>, Arc<Mutex<Option<i64>>>>::from([]))));
+    { let __range_holder = registry_1.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for d in __range_values.iter() {
+        { let __map_holder = registered.clone(); let __key = GoLocalPtrKey::new(d.clone()); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+    } }
+    println!("{} {}", format!("{}", ({ let __len = (*registered.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map = { let __map_holder = registered.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(eng.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     let mut team = {
         let __owner = Arc::new(Mutex::new(Some(Team { dept: Arc::new(Mutex::new(Some(Dept { name: Arc::new(Mutex::new(Some("ops".to_string()))), ..Default::default() }))), ..Default::default() })));
         let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().dept.clone() };

@@ -942,6 +942,9 @@ func NeedReceiverHandles() {
 		TrackImport("Any")
 		trackWrapperImports()
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsReceiverHandles = true
+	})
 }
 
 // NeedGoPointerError marks that an error assertion must keep a concrete

@@ -269,6 +269,9 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoAnyTypeMetadata = false
 	helperCopy.needsGoAnyRuntimeOps = false
 	helperCopy.needsEmbeddedOwnerRegistry = false
+	// One store of receiver hints serves every crate: a call in one crate
+	// hands the handle to a method of another.
+	helperCopy.needsReceiverHandles = false
 	helperCopy.needsGoAnyPtrKey = false
 	helperCopy.omitGoSlice = true
 	return &helperCopy
@@ -324,6 +327,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsEmbeddedOwnerRegistry {
 		helperCopy.needsEmbeddedOwnerRegistry = true
+	}
+	if ht.needsReceiverHandles {
+		helperCopy.needsReceiverHandles = true
 	}
 	if ht.needsGoRWMutex {
 		helperCopy.needsGoRWMutex = true

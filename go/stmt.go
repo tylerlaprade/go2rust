@@ -11752,17 +11752,21 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 
 	if _, ok := expr.(*ast.SelectorExpr); ok {
 		// The field's cell, which a read of a field through a pointer
-		// variable would already have unwrapped.
+		// variable would already have unwrapped. The value is read in a let
+		// of its own, so the lock on the struct the field is read out of is
+		// released before a send that waits.
 		if isCopyType {
-			out.WriteString("(*")
+			out.WriteString("{ let __sent = (*")
 			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap())")
+			out.WriteString(".as_ref().unwrap()); __sent }")
 		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
+			out.WriteString("{ let __sent = ")
 			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(copyCall)
+			out.WriteString("; __sent }")
 		} else {
 			out.WriteString(goValueCopyNeedsTypeInfo)
 		}

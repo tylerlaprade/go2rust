@@ -1151,7 +1151,7 @@ let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(||
 let r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
         { let __recv = r_defer_captured.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.after(); __result };
     }));;
-        done_thread.send((*r_thread.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap().clone());;
+        done_thread.send({ let __sent = (*r_thread.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap().clone(); __sent });;
         while let Some(f) = __defer_stack.pop() {
             f();
         }

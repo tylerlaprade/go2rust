@@ -116,6 +116,13 @@ func main() {
 	register := eng.Register
 	register()
 	fmt.Println(len(registry), registry[0] == eng, registry[1] == eng)
+	// A map keyed by the pointer tells the registered pointers from
+	// copies of the struct.
+	registered := map[*Dept]int{}
+	for _, d := range registry {
+		registered[d]++
+	}
+	fmt.Println(len(registered), registered[eng])
 
 	team := &Team{Dept: Dept{Name: "ops"}}
 	team.Hire(&Employee{Name: "dan"})

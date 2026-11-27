@@ -217,49 +217,6 @@ impl<F: FnMut()> Drop for GoWriteBack<F> {
     }
 }
 
-thread_local! {
-    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
-}
-
-fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
-    __GO_RECEIVER_HANDLES.with(|__handles| {
-        let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
-            __handles.remove(0);
-        }
-        __handles.push((address, Box::new(handle.clone())));
-    });
-}
-
-fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
-    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
-    go_set_receiver_handle(handle, __ptr as *const () as usize);
-    __ptr
-}
-
-fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
-    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
-    go_set_receiver_handle(handle, __ptr as *const () as usize);
-    __ptr
-}
-
-fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
-    handle.lock().unwrap().as_mut().unwrap() as *mut T
-}
-
-fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
-    handle.lock().unwrap().as_ref().unwrap() as *const T
-}
-
-fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
-    __GO_RECEIVER_HANDLES.with(|__handles| {
-        let mut __handles = __handles.borrow_mut();
-        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
-    })
-}
-
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
