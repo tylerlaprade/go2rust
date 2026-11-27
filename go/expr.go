@@ -17759,12 +17759,29 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	goPtrReceiver := !rawReceiver && methodValueReceiverIsGoPtr(sel.X)
 	goPtrReceiverNeedsMut := goPtrReceiver && methodCallNeedsMutableReceiver(sel)
 	receiverCallSuffix := ""
+	forwardedMutex := isForwardedRWMutexMethodCall(sel)
 	out.WriteString("{ let ")
-	if rawReceiver {
+	if rawReceiver && !forwardedMutex {
 		out.WriteString("mut ")
 	}
 	out.WriteString("__recv = ")
 	writePointerHandleExpression(out, sel.X)
+	if forwardedMutex {
+		// Go follows the embedded fields to the mutex when the method value
+		// is made, so the value keeps that mutex when one of those fields is
+		// reassigned afterwards: the closure holds the mutex, not the struct.
+		out.WriteString("; let __recv = ")
+		switch {
+		case rawReceiver:
+			out.WriteString("__recv." + rwMutexAccessorName + "()")
+		case goPtrReceiver:
+			writeForwardedRWMutexAccessor(out, "__recv", ".borrow()")
+		default:
+			var borrow strings.Builder
+			WriteBorrowMethod(&borrow, false)
+			writeForwardedRWMutexAccessor(out, "__recv", borrow.String())
+		}
+	}
 	out.WriteString("; " + funcValueConstructor() + "move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -17791,7 +17808,9 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 		}
 	}
 
-	if rawReceiver {
+	if forwardedMutex {
+		out.WriteString(" { __recv.")
+	} else if rawReceiver {
 		// The closure is Fn: it calls the method on a copy of the
 		// receiver, which shares the receiver's field cells.
 		out.WriteString(" { let mut __recv = __recv.clone(); __recv.")
@@ -24650,10 +24669,20 @@ func isForwardedRWMutexMethodCall(sel *ast.SelectorExpr) bool {
 // for the lock holding none of the cells on the way. Holding r's cell while
 // Lock waited kept the goroutine that held the lock from reaching r.Unlock().
 func writeForwardedRWMutexReceiver(out *strings.Builder, cell string) {
+	var borrow strings.Builder
+	WriteBorrowMethod(&borrow, false)
+	writeForwardedRWMutexAccessor(out, cell, borrow.String())
+	out.WriteString(".")
+}
+
+// writeForwardedRWMutexAccessor writes the sync.RWMutex that the struct in
+// cell has by embedding one, borrowed with borrow and let go of before the
+// block ends.
+func writeForwardedRWMutexAccessor(out *strings.Builder, cell string, borrow string) {
 	out.WriteString("{ let __sync_value = (*")
 	out.WriteString(cell)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())." + rwMutexAccessorName + "(); __sync_value }.")
+	out.WriteString(borrow)
+	out.WriteString(".as_ref().unwrap())." + rwMutexAccessorName + "(); __sync_value }")
 }
 
 // isEmbeddedRWMutexMethod reports whether fn is a method of sync.RWMutex

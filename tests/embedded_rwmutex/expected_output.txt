@@ -3,3 +3,5 @@ reg 4
 5
 both 4
 outer 7
+picky 0
+method value 1

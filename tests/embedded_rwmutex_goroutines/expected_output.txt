@@ -6,3 +6,5 @@ both 16
 outer 7
 shared 4
 reader before writer
+picky 0
+method value 1

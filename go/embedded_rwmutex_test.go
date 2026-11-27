@@ -227,13 +227,74 @@ type Outer struct {
 	sync.RWMutex
 }
 
+func (o *Outer) Hold() {
+	o.Lock()
+	o.RWMutex.Unlock()
+}
+
 func main() {
 	o := Outer{Deep: &Deep{Custom: &Custom{}}}
 	o.Lock()
 	o.Unlock()
+	o.Hold()
 }
 `)
 	if !strings.Contains(rust, "pub fn __go_rw_mutex(&self) -> GoRWMutex {\n        self.r_w_mutex.clone()") {
 		t.Fatalf("Outer should reach its own mutex through __go_rw_mutex:\n%s", rust)
+	}
+	outer := rustImplOf(rust, "Outer")
+	if !strings.Contains(outer, "pub fn lock(&self) {\n        let embedded_ref = &self.r_w_mutex;\n        embedded_ref.lock()") {
+		t.Fatalf("Outer.Lock should forward to Outer's own mutex, which Go selects over Custom.Lock:\n%s", outer)
+	}
+	if strings.Count(outer, "pub fn lock(") != 1 {
+		t.Fatalf("Outer should have one lock forwarder:\n%s", outer)
+	}
+}
+
+// rustImplOf returns the inherent impl blocks of typeName in rust.
+func rustImplOf(rust, typeName string) string {
+	var blocks []string
+	header := "impl " + typeName + " {"
+	for rest := rust; ; {
+		start := strings.Index(rest, header)
+		if start < 0 {
+			break
+		}
+		rest = rest[start:]
+		end := strings.Index(rest, "\n}\n")
+		if end < 0 {
+			blocks = append(blocks, rest)
+			break
+		}
+		blocks = append(blocks, rest[:end])
+		rest = rest[end:]
+	}
+	return strings.Join(blocks, "\n}\n")
+}
+
+func TestRWMutexMethodValueKeepsTheMutexItWasMadeFrom(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Table struct {
+	sync.RWMutex
+}
+
+type Registry struct {
+	*Table
+}
+
+func main() {
+	held := &Table{}
+	reg := &Registry{Table: held}
+	held.Lock()
+	unlock := reg.Unlock
+	reg.Table = &Table{}
+	unlock()
+}
+`)
+	if !strings.Contains(rust, "let __recv = { let __sync_value = (*__recv") || !strings.Contains(rust, "__go_rw_mutex(); __sync_value }; Rc::new(move || { __recv.unlock() })") {
+		t.Fatalf("reg.Unlock should take the mutex when the method value is made:\n%s", rust)
 	}
 }

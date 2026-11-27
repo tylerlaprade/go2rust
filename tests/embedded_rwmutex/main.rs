@@ -667,6 +667,99 @@ impl std::fmt::Display for Outer {
 }
 
 
+/// Picky's own mutex is one level below it and Custom's Lock two, so Go
+/// promotes Picky.Lock from the mutex, though *Deeper comes first.
+#[derive(Debug, Clone)]
+pub struct Custom {
+    pub calls: Arc<Mutex<Option<i64>>>,
+}
+
+impl Custom {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = { let __guard = self.calls.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        Self {
+            calls: __go_clone_0_0,
+        }
+    }
+}
+
+
+impl Default for Custom {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(Some(0)));
+        Self {
+            calls: __go_default_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Custom {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", (*self.calls.lock().unwrap().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct Deeper {
+    pub custom: Arc<Mutex<Option<Custom>>>,
+}
+
+impl Deeper {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.custom.clone();
+        Self {
+            custom: __go_clone_0_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Deeper {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.custom.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct Picky {
+    pub deeper: Arc<Mutex<Option<Deeper>>>,
+    pub r_w_mutex: GoRWMutex,
+}
+
+impl Picky {
+    pub fn __go_value_clone(&self) -> Self {
+        let __go_clone_0_0 = self.deeper.clone();
+        let __go_clone_1_0 = self.r_w_mutex.clone();
+        Self {
+            deeper: __go_clone_0_0,
+            r_w_mutex: __go_clone_1_0,
+        }
+    }
+}
+
+
+impl Default for Picky {
+    fn default() -> Self {
+        let __go_default_0_0 = Arc::new(Mutex::new(None));
+        let __go_default_1_0 = GoRWMutex::new();
+        Self {
+            deeper: __go_default_0_0,
+            r_w_mutex: __go_default_1_0,
+        }
+    }
+}
+
+impl std::fmt::Display for Picky {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __go_fmt_0 = format!("{}", { let __guard = self.deeper.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
+        write!(f, "{{{}}}", __go_fmt_0)
+    }
+}
+
+
 impl Table {
     pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
@@ -783,6 +876,48 @@ impl Registry {
     }
 }
 
+impl Custom {
+    pub fn lock(&mut self) {
+        { let __target = self.calls.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+
+    pub fn unlock(&mut self) {
+        { let __target = self.calls.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+    }
+}
+
+impl Picky {
+    /// Hold locks Picky's own mutex from a method of Picky.
+    pub fn hold(&self) {
+        self.lock();
+        self.r_w_mutex.unlock();
+    }
+
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        self.r_w_mutex.clone()
+    }
+
+    pub fn lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.lock()
+    }
+
+    pub fn r_lock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_lock()
+    }
+
+    pub fn r_unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.r_unlock()
+    }
+
+    pub fn unlock(&self) {
+        let embedded_ref = &self.r_w_mutex;
+        embedded_ref.unlock()
+    }
+}
+
 impl Both {
     pub fn read(&self, k: Arc<Mutex<Option<String>>>) -> i64 {
         // Forward to embedded type's method
@@ -847,6 +982,24 @@ impl Deep {
 
     pub fn unlock(&self) {
         let embedded_ref = &self.r_w_mutex;
+        embedded_ref.unlock()
+    }
+}
+
+impl Deeper {
+    pub fn lock(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.custom.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.lock()
+    }
+
+    pub fn unlock(&mut self) {
+        // Forward to embedded type's method
+        let embedded = self.custom.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
         embedded_ref.unlock()
     }
 }
@@ -985,6 +1138,49 @@ fn main() {
     { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     println!("{} {}", format!("{}", "outer".to_string()), format!("{}", (*(*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
     { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
+    let mut p = {
+        let __owner = Arc::new(Mutex::new(Some(Picky {
+            deeper: {
+                let __owner = Arc::new(Mutex::new(Some(Deeper {
+                    custom: Arc::new(Mutex::new(Some(Custom { calls: Arc::new(Mutex::new(Some(0))) }))).clone(),
+                    ..Default::default()
+                })));
+                let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().custom.clone() };
+                let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+                go_register_embedded_owner(__embedded_key, __owner.clone());
+                __owner
+            }.clone(),
+            ..Default::default()
+        })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().deeper.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
+    { let __recv = p.clone(); let __recv_ptr: *const Picky = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Picky }; let __result = unsafe { &*__recv_ptr }.hold(); __result };
+    { let __sync_value = (*p.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*p.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    println!("{} {}", format!("{}", "picky".to_string()), format!("{}", (*(*(*p.lock().unwrap().as_ref().unwrap()).deeper.lock().unwrap().as_ref().unwrap().custom.lock().unwrap().as_ref().unwrap()).calls.lock().unwrap().as_ref().unwrap())));
+    let mut held = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), ..Default::default() })));
+    let mut reg = {
+        let __owner = Arc::new(Mutex::new(Some(Registry { table: held.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().table.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
+    { let __sync_value = (*held.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    let mut unlock = Arc::new(Mutex::new(Some({ let __recv = reg.clone(); let __recv = { let __sync_value = (*__recv.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }; Arc::new(move || { __recv.unlock() }) as Arc<dyn Fn() -> () + Send + Sync> })));
+    { let new_val = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("x".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() }))).clone(); (*reg.lock().unwrap().as_mut().unwrap()).table = new_val; };
+    {
+        let __f: Arc<dyn Fn() -> () + Send + Sync> = unlock.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+
+        )
+    };
+    { let __sync_value = (*held.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*held.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    println!("{} {}", format!("{}", "method value".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*reg.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
 }
 
 impl GoValueClone for Table {
@@ -1030,6 +1226,27 @@ impl GoValueClone for Shallow {
 
 
 impl GoValueClone for Outer {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Custom {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Deeper {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Picky {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

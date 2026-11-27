@@ -2436,6 +2436,67 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 	}
 }
 
+// goSelectedPromotedMethods replaces the first-embed-wins pick of each
+// promoted method with the one Go selects, when go/types can say: the
+// shallowest, through the embedded field it is reached by. A name Go
+// selects a field for, a method of another package for (a sync.RWMutex
+// method, which collectExternalPromotedMethods forwards), or nothing for (two
+// equally shallow) gets no forwarder of a package method. Without type info
+// the first-embed-wins pick stands.
+func goSelectedPromotedMethods(structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, promoted map[string]struct {
+	embeddedType string
+	method       *ast.FuncDecl
+}) map[string]struct {
+	embeddedType string
+	method       *ast.FuncDecl
+} {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || structDef == nil || structDef.ASTType == nil || len(promoted) == 0 {
+		return promoted
+	}
+	st, ok := types.Unalias(typeInfo.GetType(structDef.ASTType)).(*types.Struct)
+	if !ok {
+		return promoted
+	}
+	embeddedFieldNames := make(map[int]string)
+	fieldIndex := 0
+	for _, field := range structDef.ASTType.Fields.List {
+		if len(field.Names) > 0 {
+			fieldIndex += len(field.Names)
+			continue
+		}
+		embeddedFieldNames[fieldIndex] = getEmbeddedFieldName(field.Type)
+		fieldIndex++
+	}
+	declsByPos := make(map[token.Pos]*ast.FuncDecl)
+	for _, decls := range packageMethods {
+		for _, decl := range decls {
+			declsByPos[decl.Name.Pos()] = decl
+		}
+	}
+	selected := make(map[string]struct {
+		embeddedType string
+		method       *ast.FuncDecl
+	}, len(promoted))
+	for name := range promoted {
+		obj, index, _ := types.LookupFieldOrMethod(st, true, typeInfo.pkg, name)
+		fn, ok := obj.(*types.Func)
+		if !ok || len(index) < 2 {
+			continue
+		}
+		decl := declsByPos[fn.Origin().Pos()]
+		embeddedType, ok := embeddedFieldNames[index[0]]
+		if decl == nil || !ok {
+			continue
+		}
+		selected[name] = struct {
+			embeddedType string
+			method       *ast.FuncDecl
+		}{embeddedType: embeddedType, method: decl}
+	}
+	return selected
+}
+
 func writePromotedMethodForwarders(out *strings.Builder, structDefName string, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
 	if structDef == nil || methodCount == nil {
 		return
@@ -2452,6 +2513,7 @@ func writePromotedMethodForwarders(out *strings.Builder, structDefName string, s
 		method       *ast.FuncDecl
 	})
 	collectPromotedMethods(structDef, packageMethods, promotedMethods)
+	promotedMethods = goSelectedPromotedMethods(structDef, packageMethods, promotedMethods)
 
 	var promotedMethodNames []string
 	for methodName := range promotedMethods {

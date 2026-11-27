@@ -66,6 +66,28 @@ type Outer struct {
 	*Shallow
 }
 
+// Picky's own mutex is one level below it and Custom's Lock two, so Go
+// promotes Picky.Lock from the mutex, though *Deeper comes first.
+type Custom struct{ calls int }
+
+func (c *Custom) Lock()   { c.calls++ }
+func (c *Custom) Unlock() { c.calls-- }
+
+type Deeper struct {
+	*Custom
+}
+
+type Picky struct {
+	*Deeper
+	sync.RWMutex
+}
+
+// Hold locks Picky's own mutex from a method of Picky.
+func (p *Picky) Hold() {
+	p.Lock()
+	p.RWMutex.Unlock()
+}
+
 func main() {
 	t := &Table{m: map[string]int{"a": 1}}
 	var wg sync.WaitGroup
@@ -192,4 +214,22 @@ func main() {
 	<-readerDone
 	<-writerDone
 	fmt.Println("reader before writer")
+
+	p := &Picky{Deeper: &Deeper{Custom: &Custom{}}}
+	p.Hold()
+	p.Lock()
+	p.Unlock()
+	fmt.Println("picky", p.calls)
+
+	// A method value keeps the mutex it was made from when a field on the
+	// way to it is reassigned.
+	held := &Table{m: map[string]int{}}
+	reg := &Registry{Table: held}
+	held.Lock()
+	unlock := reg.Unlock
+	reg.Table = &Table{m: map[string]int{"x": 1}}
+	unlock()
+	held.Lock() // free again: unlock let go of held's mutex
+	held.Unlock()
+	fmt.Println("method value", len(reg.m))
 }
