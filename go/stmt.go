@@ -14323,7 +14323,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 									out.WriteString("; ")
 									out.WriteString("*")
-									TranspileExpressionContext(out, star.X, LValue)
+									if globalIdent, ok := packageGlobalPointerIdent(star.X); ok {
+										// A package pointer variable is a cell holding
+										// the pointer: write through the handle it holds.
+										writePackageGlobalPointerHandleClone(out, globalIdent)
+									} else {
+										TranspileExpressionContext(out, star.X, LValue)
+									}
 									WriteBorrowMethod(out, true)
 									if isGoErrorType(expected) {
 										out.WriteString(" = new_val; }")

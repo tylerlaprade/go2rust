@@ -20,5 +20,10 @@ dan true
 1
 1
 true
+z
+r 1
+s 1
+r swapped
+ops2
 true 5
 2 3

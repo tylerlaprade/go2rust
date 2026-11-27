@@ -10732,3 +10732,22 @@ func main() {
 		t.Errorf("a map field must not be copied into the variable:\n%s", rust)
 	}
 }
+
+// A package pointer variable is a cell holding the pointer, so `*last = v`
+// writes through the handle the cell holds, not into the cell itself.
+func TestDerefAssignmentThroughPackagePointerWritesThePointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{ name string }
+
+var last *Node
+
+func main() {
+	last = &Node{name: "a"}
+	*last = Node{name: "z"}
+}
+`)
+	if !strings.Contains(rust, "*(*last.borrow().as_ref().unwrap()).clone().borrow_mut() = Some(new_val);") {
+		t.Fatalf("the assignment should write through the pointer last holds:\n%s", rust)
+	}
+}

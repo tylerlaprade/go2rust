@@ -179,6 +179,22 @@ func main() {
 	byKey["GoPtr"].Visit(func() { fmt.Println(byKey["GoPtr"].tags["seen"]) })
 	fmt.Println(lastVisited == byKey["GoPtr"])
 
+	// The pointer a method keeps is the caller's own: replacing the whole
+	// pointee through it shows through the caller's pointer, which a
+	// handle to a copy sharing the field cells would not.
+	visit(list, func() {})
+	*lastVisited = Node{name: "z"}
+	fmt.Println(list.name)
+	fresh := []*Node{{name: "r"}, {name: "s"}}
+	for i := range fresh {
+		fresh[i].Visit(func() { fmt.Println(fresh[i].name, fresh[i].tags["seen"]) })
+	}
+	*lastVisited = Node{name: "swapped"}
+	fmt.Println(fresh[0].name, fresh[1].name)
+	leadDept := team.Lead.Dept
+	*leadDept = Dept{Name: "ops2"}
+	fmt.Println(team.Name)
+
 	// A method that passes its receiver on hands over the caller's
 	// pointer, so pointer, map and channel fields set through it stick
 	// (DEV-216).

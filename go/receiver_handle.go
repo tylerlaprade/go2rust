@@ -467,6 +467,12 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 		TranspileExpressionContext(out, e, LValue)
 		out.WriteString(".clone()")
 		return true
+	case *ast.StarExpr:
+		// (*p).M() calls M on p itself: the address of *p is p.
+		if _, xIsPointer := types.Unalias(typeInfo.GetType(e.X)).(*types.Pointer); xIsPointer {
+			return writeReceiverHandleOperand(out, e.X)
+		}
+		return false
 	case *ast.IndexExpr:
 		// nodes[i] of a []*T, or m[k] of a map[K]*T, is the pointer's
 		// handle.
@@ -634,6 +640,9 @@ func indexContainerHoldsPointerHandles(e *ast.IndexExpr) bool {
 		if _, ok := sliceElemPtrSliceCandidateForExpr(x); ok {
 			return false
 		}
+		if _, ok := goPtrArrayLocalInfoForIndexExpr(e); ok {
+			return false
+		}
 		info := lookupVarInfo(x.Name)
 		if info == nil || info.PointerKind != PointerDefault {
 			return false
@@ -641,6 +650,9 @@ func indexContainerHoldsPointerHandles(e *ast.IndexExpr) bool {
 		return !rustTypeHoldsNonHandlePointers(info.RustType)
 	case *ast.SelectorExpr:
 		if _, ok := sliceElemPtrSliceFieldInfoForIndexExpr(e); ok {
+			return false
+		}
+		if _, ok := goPtrArrayFieldInfoForIndexExpr(e); ok {
 			return false
 		}
 		selection := GetTypeInfo().info.Selections[x]

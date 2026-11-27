@@ -163,6 +163,42 @@ func (x *T) fits(a, b *Set) bool {
 	}
 }
 
+// (*p).M() calls M on p itself, so it hands over p's handle; an element of
+// an array of pointers into a slice is a GoPtr, which has no handle to give.
+func TestReceiverHandleDerefAndGoPtrArrayOperands(t *testing.T) {
+	src := `package main
+
+type T struct{ n int }
+
+var keep []*T
+
+func (t *T) Self() *T {
+	keep = append(keep, t)
+	return t
+}
+
+type H struct{ slots [2]*T }
+
+func main() {
+	items := []T{{1}, {2}}
+	a := &T{}
+	(*a).Self()
+	var h H
+	h.slots[0] = &items[0]
+	h.slots[0].Self()
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	if !strings.Contains(rust, "let __recv = a.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_()") {
+		t.Fatalf("(*a).Self() should hand over a's handle:\n%s", rust)
+	}
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "slots") && strings.Contains(line, ".self_()") && strings.Contains(line, "go_hint_receiver") {
+			t.Fatalf("a GoPtr array element should get no hint:\n%s", line)
+		}
+	}
+}
+
 func transpileReceiverHandleSource(t *testing.T, src string) string {
 	t.Helper()
 	fset := token.NewFileSet()
