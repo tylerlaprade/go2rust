@@ -13608,17 +13608,28 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 			return
 		}
 		var key strings.Builder
-		if !writeMapKeyForExpectedType(&key, index, keyType) && !writeOwnedMapKeyExpression(&key, index) {
+		if !writeMapKeyForExpectedType(&key, index, keyType) && !writeOwnedMapKeyExpression(&key, index) && !writeFieldMapKeyValue(&key, index) {
 			TranspileExpression(&key, index)
 		}
 		writeBorrowedMapKey(out, key.String())
 	} else {
 		var key strings.Builder
-		if !writeOwnedMapKeyExpression(&key, index) {
+		if !writeOwnedMapKeyExpression(&key, index) && !writeFieldMapKeyValue(&key, index) {
 			TranspileExpression(&key, index)
 		}
 		writeBorrowedMapKey(out, key.String())
 	}
+}
+
+// writeFieldMapKeyValue writes a struct field of a copy type used as a map
+// key as the field's value. A field is a cell, so writing it bare, as in
+// ops[b.Op] inside a method of b, would look the map up by the cell.
+func writeFieldMapKeyValue(out *strings.Builder, index ast.Expr) bool {
+	sel, ok := unwrapParens(index).(*ast.SelectorExpr)
+	if !ok || !isStructFieldSelection(sel) || !isCopyTypeExpression(sel) {
+		return false
+	}
+	return writeOwnedExpressionValue(out, sel)
 }
 
 // writeBorrowedMapKey writes &key for a map lookup. `&` binds tighter than
