@@ -5228,6 +5228,14 @@ func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Iden
 	if typeInfo == nil || !typeInfo.IsMap(ident) {
 		return false
 	}
+	// A copy of a package-level map variable shares its map (#328): the
+	// variable's storage is the map's handle, as GoGlobalMap and the
+	// goroutine program's Arc are.
+	if _, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Map); ok {
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		out.WriteString(".clone()")
+		return true
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString("(*")
 	out.WriteString(rustPackageGlobalName(ident.Name))
@@ -5478,6 +5486,25 @@ func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, 
 	lhsIsSlice := typeInfo.IsSlice(lhs)
 	if !lhsIsMap && !lhsIsSlice {
 		return false
+	}
+	// A package-level map variable takes the handle of the map assigned to
+	// it, so the map it held stays with its other copies (#328).
+	if packageGlobalIdentIsMapHandle(lhsIdent) {
+		out.WriteString("{ let new_val = ")
+		if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::new(")
+			out.WriteString(GetInnerWrapperType())
+			out.WriteString("::new(None))")
+			trackWrapperImports()
+		} else {
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+		}
+		out.WriteString("; ")
+		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+		out.WriteString(".set(new_val); }")
+		return true
 	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ let new_val = None; *")
@@ -7873,6 +7900,16 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 			out.WriteString(tmpName)
 		}
 		out.WriteString(";")
+		return
+	}
+	// A package-level map variable takes the handle of the map the call
+	// returned (#328).
+	if ident, ok := lhs.(*ast.Ident); ok && !tmpBareScalar && packageGlobalIdentIsMapHandle(ident) && !isNamedMapExpression(lhs) {
+		out.WriteString(" ")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
 		return
 	}
 	if tmpBareScalar {
@@ -10772,9 +10809,13 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	if typeInfo == nil || !typeInfo.IsMap(lhs) {
 		return false
 	}
+	globalTarget := ""
 	switch target := unwrapParens(lhs).(type) {
 	case *ast.Ident:
-		if isPackageGlobalIdent(target) || isVarBare(target.Name) {
+		// A package-level map variable takes the temp's handle (#328).
+		if packageGlobalIdentIsMapHandle(target) {
+			globalTarget = rustPackageGlobalName(target.Name)
+		} else if isPackageGlobalIdent(target) || isVarBare(target.Name) {
 			return false
 		}
 		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
@@ -10789,6 +10830,14 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	}
 	if isNamedMapExpression(lhs) || isNamedMapExpression(rhs) {
 		return false
+	}
+	if globalTarget != "" {
+		out.WriteString(" ")
+		out.WriteString(globalTarget)
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return true
 	}
 	// For nil, writeParallelAssignmentTempValueForTarget gave the temp a
 	// nil map of its own.

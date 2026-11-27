@@ -795,9 +795,35 @@ impl<T> GoGlobal<T> {
     }
 }
 
-pub(crate) static handlers: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>> = GoGlobal::new();
+pub(crate) struct GoGlobalMap<T> {
+    value: std::cell::UnsafeCell<Option<std::rc::Rc<std::cell::RefCell<Option<T>>>>>,
+}
+unsafe impl<T> Sync for GoGlobalMap<T> {}
+impl<T> GoGlobalMap<T> {
+    pub(crate) const fn new() -> Self {
+        Self { value: std::cell::UnsafeCell::new(None) }
+    }
+    fn handle(&'static self) -> &'static std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        unsafe { (*self.value.get()).get_or_insert_with(|| std::rc::Rc::new(std::cell::RefCell::new(None))) }
+    }
+    pub(crate) fn borrow(&'static self) -> &'static Option<T> {
+        unsafe { &*self.handle().as_ptr() }
+    }
+    pub(crate) fn borrow_mut(&'static self) -> &'static mut Option<T> {
+        unsafe { &mut *self.handle().as_ptr() }
+    }
+    pub(crate) fn clone(&'static self) -> std::rc::Rc<std::cell::RefCell<Option<T>>> {
+        self.handle().clone()
+    }
+    // Assigning a map to the variable makes it that map's handle.
+    pub(crate) fn set(&'static self, handle: std::rc::Rc<std::cell::RefCell<Option<T>>>) {
+        unsafe { *self.value.get() = Some(handle) }
+    }
+}
 
-pub(crate) static ptrHandlers: GoGlobal<BTreeMap<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>>>>>> = GoGlobal::new();
+pub(crate) static handlers: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>> = GoGlobalMap::new();
+
+pub(crate) static ptrHandlers: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>>>>>> = GoGlobalMap::new();
 
 
 fn __go_init_globals() {
@@ -819,8 +845,8 @@ pub fn read(p: Rc<RefCell<Option<item>>>) -> i64 {
 }
 
 fn __go_init_0() {
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>::from([("inc".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { inc(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)))), ("twice".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { twice(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *handlers.borrow_mut() = new_val; };
-    { let new_val = { let __collection_holder = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>>>>>::from([("read".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<item>>>| -> i64 { read(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>))))])))).clone(); let __collection_guard = __collection_holder.borrow(); (*__collection_guard).clone() }; *ptrHandlers.borrow_mut() = new_val; };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>>>>>::from([("inc".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { inc(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>)))), ("twice".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { twice(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>))))])))).clone(); handlers.set(new_val); };
+    { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>>>>>::from([("read".to_string(), Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<item>>>| -> i64 { read(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<item>>>) -> i64>))))])))).clone(); ptrHandlers.set(new_val); };
 }
 
 fn main() {

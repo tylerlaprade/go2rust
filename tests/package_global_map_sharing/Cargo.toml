@@ -1,0 +1,11 @@
+[package]
+name = "package_global_map_sharing"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "package_global_map_sharing"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
