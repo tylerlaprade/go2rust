@@ -1199,7 +1199,7 @@ fn main() {
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
-    }), format!("{}", (*(*(*__cell_last_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
+    }), format!("{}", (*(*{ let __base = (*__cell_last_1.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
     let mut __rf_done_10: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
     maps(Arc::new(Mutex::new(Some(Arc::new(move |__rf_param_10_0: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>| -> bool {
         let mut mm = __rf_param_10_0.clone();

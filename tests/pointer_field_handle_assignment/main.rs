@@ -778,7 +778,7 @@ fn main() {
     { let new_val = first.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };
     { let new_val = second.clone(); (*r#box.borrow_mut().as_mut().unwrap()).child = new_val; };
 
-    println!("{}", format!("{}", (*(*(*r#box.borrow().as_ref().unwrap()).child.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*{ let __base = (*r#box.borrow().as_ref().unwrap()).child.clone(); __base }.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }
 
 #[derive(Debug, Clone, Default)]

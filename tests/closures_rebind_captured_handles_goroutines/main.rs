@@ -1399,7 +1399,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<i64, Arc<Mutex<Option<bool>>>>::from([])))); (*__cell_seen_2_thread.lock().unwrap().as_mut().unwrap()).v = new_val; };
     };
             { let __map_key = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __map_value = Arc::new(Mutex::new(Some(true))); (*(*__cell_seen_2_thread.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
-            if { let __nil_target = (*__cell_best_1_thread.lock().unwrap().as_ref().unwrap()).v.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*(*__cell_best_1_thread.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+            if { let __nil_target = (*__cell_best_1_thread.lock().unwrap().as_ref().unwrap()).v.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*{ let __base = (*__cell_best_1_thread.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Node { v: Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), next: { let __field = (*__cell_best_1_thread.lock().unwrap().as_ref().unwrap()).v.clone(); __field }, ..Default::default() }))).clone(); (*__cell_best_1_thread.lock().unwrap().as_mut().unwrap()).v = new_val; };
     };
             while let Some(f) = __defer_stack.pop() {
@@ -1435,7 +1435,7 @@ let wg_defer_captured = wg_thread.clone(); __defer_stack.push(Box::new(move || {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     wg.wait();
-    println!("{} {}", format!("{}", (*(*(*__cell_best_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*__cell_seen_2.lock().unwrap().as_ref().unwrap()).v.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    println!("{} {}", format!("{}", (*(*{ let __base = (*__cell_best_1.lock().unwrap().as_ref().unwrap()).v.clone(); __base }.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap())), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*__cell_seen_2.lock().unwrap().as_ref().unwrap()).v.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
 
     let mut result: GoChannel<String> = <GoChannel<String>>::default();
     let mut __cell_result_3 = Arc::new(Mutex::new(Some(AnonymousStruct3 { v: result.clone() })));

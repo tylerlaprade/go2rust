@@ -802,5 +802,5 @@ fn main() {
     let mut h = Rc::new(RefCell::new(Some(holder { ptr: Default::default() })));
     let mut value = Rc::new(RefCell::new(Some(item { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     (*h.borrow_mut().as_mut().unwrap()).store(value.clone());
-    println!("{}", format!("{}", (*(*(*h.borrow().as_ref().unwrap()).ptr.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*(*{ let __base = (*h.borrow().as_ref().unwrap()).ptr.clone(); __base }.borrow().as_ref().unwrap()).value.borrow().as_ref().unwrap())));
 }

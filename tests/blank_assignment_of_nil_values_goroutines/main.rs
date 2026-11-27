@@ -1185,7 +1185,7 @@ fn main() {
         next: Arc::new(Mutex::new(Some(Result_ { err: Default::default(), next: Default::default(), tags: Default::default() }))).clone(),
         ..Default::default()
     })));
-    let _ = &(*(*inner.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).err;
+    let _ = &(*{ let __base = (*inner.lock().unwrap().as_ref().unwrap()).next.clone(); __base }.lock().unwrap().as_ref().unwrap()).err;
 
     { let __rhs_holder = Arc::new(Mutex::new(Some(Arc::<dyn StdError + Send + Sync>::from(Box::<dyn StdError + Send + Sync>::from("kept".to_string()))))).clone(); let new_val = (*__rhs_holder.lock().unwrap()).clone(); *lastErr.lock().unwrap() = new_val; };
     let _ = &lastErr;

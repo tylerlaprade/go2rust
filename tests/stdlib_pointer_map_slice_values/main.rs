@@ -228,7 +228,7 @@ impl writer {
     pub fn export_path(&self, pkg: Arc<Mutex<Option<types_Package>>>) -> Arc<Mutex<Option<String>>> {
         if {
             let __left = pkg.clone();
-            let __right = (*self.p.lock().unwrap().as_ref().unwrap()).localpkg.clone();
+            let __right = (*{ let __base = self.p.clone(); __base }.lock().unwrap().as_ref().unwrap()).localpkg.clone();
             let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
             let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
             __eq
