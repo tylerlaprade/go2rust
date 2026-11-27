@@ -7,7 +7,8 @@ import (
 
 // A struct embedding sync.RWMutex gets forwarders of its methods that call
 // the bare GoRWMutex, and a struct embedding that struct forwards them
-// through it.
+// through a clone of the mutex taken without holding the embedded struct's
+// guard, so a forwarder that waits for the lock holds no other lock.
 func TestEmbeddedRWMutexMethodsAreForwarded(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -37,7 +38,8 @@ func main() {
 `)
 	for _, want := range []string{
 		"pub fn r_lock(&self) {\n        let embedded_ref = &self.r_w_mutex;\n        embedded_ref.r_lock()",
-		"pub fn lock(&self) {\n        let embedded = self.table.clone();",
+		"pub fn __go_rw_mutex(&self) -> GoRWMutex {\n        let embedded = self.table.clone();",
+		"pub fn lock(&self) {\n        self.__go_rw_mutex().lock()",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)

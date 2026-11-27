@@ -38,6 +38,13 @@ type externalPromotedMethod struct {
 	MutableReceiver    bool
 	RawEmbeddedField   bool
 	GoPtrEmbeddedField bool
+	// RWMutexAccessor marks __go_rw_mutex, which gives a clone of the
+	// embedded sync.RWMutex, the same lock, with no guard held.
+	RWMutexAccessor bool
+	// ThroughRWMutexAccessor marks a forwarder of a sync.RWMutex method
+	// that reaches the mutex through __go_rw_mutex, so it waits for the
+	// lock holding no guard of the struct the mutex is embedded in.
+	ThroughRWMutexAccessor bool
 }
 
 type externalPackageStub struct {
@@ -5406,8 +5413,19 @@ func embeddedRWMutexPromotedMethods(field *ast.Field, existingRustNames map[stri
 			RawEmbeddedField:  true,
 		})
 	}
+	if !existingRustNames[rwMutexAccessorName] {
+		existingRustNames[rwMutexAccessorName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			RustMethodName:    rwMutexAccessorName,
+			RawEmbeddedField:  true,
+			RWMutexAccessor:   true,
+		})
+	}
 	return promoted, true
 }
+
+const rwMutexAccessorName = "__go_rw_mutex"
 
 // embeddedStructRWMutexPromotedMethods returns forwarders, through an
 // embedded struct of the package, of the sync.RWMutex methods that struct
@@ -5447,11 +5465,20 @@ func embeddedStructRWMutexPromotedMethods(field *ast.Field, existingRustNames ma
 		}
 		existingRustNames[rustMethodName] = true
 		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName:      ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			MethodName:             fn.Name(),
+			RustMethodName:         rustMethodName,
+			Func:                   fn,
+			Signature:              sig,
+			ThroughRWMutexAccessor: true,
+		})
+	}
+	if len(promoted) > 0 && !existingRustNames[rwMutexAccessorName] {
+		existingRustNames[rwMutexAccessorName] = true
+		promoted = append(promoted, externalPromotedMethod{
 			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
-			MethodName:        fn.Name(),
-			RustMethodName:    rustMethodName,
-			Func:              fn,
-			Signature:         sig,
+			RustMethodName:    rwMutexAccessorName,
+			RWMutexAccessor:   true,
 		})
 	}
 	return promoted

@@ -524,6 +524,10 @@ impl Table {
         self.unlock();
     }
 
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
+        self.r_w_mutex.clone()
+    }
+
     pub fn lock(&self) {
         let embedded_ref = &self.r_w_mutex;
         embedded_ref.lock()
@@ -562,32 +566,26 @@ impl Registry {
         embedded_ref.write(k, v)
     }
 
-    pub fn lock(&self) {
+    pub fn __go_rw_mutex(&self) -> GoRWMutex {
         let embedded = self.table.clone();
         let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.lock()
+        guard.as_ref().unwrap().__go_rw_mutex()
+    }
+
+    pub fn lock(&self) {
+        self.__go_rw_mutex().lock()
     }
 
     pub fn r_lock(&self) {
-        let embedded = self.table.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.r_lock()
+        self.__go_rw_mutex().r_lock()
     }
 
     pub fn r_unlock(&self) {
-        let embedded = self.table.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.r_unlock()
+        self.__go_rw_mutex().r_unlock()
     }
 
     pub fn unlock(&self) {
-        let embedded = self.table.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.unlock()
+        self.__go_rw_mutex().unlock()
     }
 }
 

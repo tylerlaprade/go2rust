@@ -60,4 +60,24 @@ func main() {
 	r.RLock()
 	fmt.Println(r.name, len(r.m))
 	r.RUnlock()
+
+	// Two Registry values share one Table: a goroutine waiting for the
+	// mutex through one holds nothing the owner needs to unlock it.
+	r2 := Registry{Table: t, name: "reg2"}
+	var wg2 sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg2.Add(1)
+		go func(i int) {
+			defer wg2.Done()
+			reg := r
+			if i%2 == 1 {
+				reg = r2
+			}
+			reg.Lock()
+			reg.m[fmt.Sprintf("s%d", i)] = i
+			reg.Unlock()
+		}(i)
+	}
+	wg2.Wait()
+	fmt.Println(len(t.m))
 }

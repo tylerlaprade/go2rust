@@ -2627,6 +2627,29 @@ func promotedMethodParamBindings(params *ast.FieldList) []promotedMethodParamBin
 }
 
 func generateExternalPromotedMethod(out *strings.Builder, method externalPromotedMethod) {
+	if method.RWMutexAccessor {
+		NeedGoRWMutex()
+		out.WriteString("    pub fn " + rwMutexAccessorName + "(&self) -> GoRWMutex {\n")
+		if method.RawEmbeddedField {
+			out.WriteString("        self." + method.EmbeddedFieldName + ".clone()\n")
+		} else {
+			// The guard of the embedded struct ends with the block; the
+			// clone is the same lock.
+			out.WriteString("        let embedded = self." + method.EmbeddedFieldName + ".clone();\n")
+			out.WriteString("        let guard = embedded")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("        guard.as_ref().unwrap()." + rwMutexAccessorName + "()\n")
+		}
+		out.WriteString("    }\n")
+		return
+	}
+	if method.ThroughRWMutexAccessor {
+		out.WriteString("    pub fn " + method.RustMethodName + "(&self) {\n")
+		out.WriteString("        self." + rwMutexAccessorName + "()." + method.RustMethodName + "()\n")
+		out.WriteString("    }\n")
+		return
+	}
 	sig := method.Signature
 	if sig == nil {
 		return
