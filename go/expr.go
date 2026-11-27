@@ -17076,6 +17076,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				}
 			}
+			// A struct with a struct-typed field has a Default of its own,
+			// which gives every field its zero value: an int 0, an array its
+			// zeros, a struct field its own zero. Listing the omitted fields
+			// with Default::default() gave each other field the zero of its
+			// cell, None, as if it were nil.
+			if hasStructFields {
+				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil && structNeedsCustomDefault(sd.ASTType) {
+					hasStructFields = false
+				}
+			}
 			if hasStructFields {
 				// Explicitly initialize struct-typed fields with Some(T::default())
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {

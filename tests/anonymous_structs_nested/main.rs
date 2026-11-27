@@ -1200,7 +1200,7 @@ impl std::fmt::Display for AnonymousStruct5 {
 fn main() {
     go_install_panic_exit();
         // Test named struct with anonymous struct field
-    let mut config = Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("production".to_string()))), database: Rc::new(RefCell::new(Some(AnonymousStruct1::default()))), cache: Rc::new(RefCell::new(Some(AnonymousStruct3::default()))) })));
+    let mut config = Rc::new(RefCell::new(Some(Config { name: Rc::new(RefCell::new(Some("production".to_string()))), ..Default::default() })));
     { let new_val = "db.example.com".to_string(); *(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).host.borrow_mut() = Some(new_val); };
     { let new_val = 5432; *(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).port.borrow_mut() = Some(new_val); };
     { let new_val = "admin".to_string(); *(*(*(*config.borrow().as_ref().unwrap()).database.borrow().as_ref().unwrap()).credentials.borrow().as_ref().unwrap()).user.borrow_mut() = Some(new_val); };
