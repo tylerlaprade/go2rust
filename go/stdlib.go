@@ -2766,6 +2766,7 @@ func mapKeysAreBasicArrays(mapType types.Type) bool {
 // prints as its elements, in key order, which is the order fmt sorts array
 // keys in.
 func writeMapWithArrayKeysDisplay(out *strings.Builder, writeHandle func()) {
+	NeedGoDisplayValue()
 	NeedFormatMap()
 	NeedFormatSlice()
 	TrackImport("Display")
@@ -2805,6 +2806,7 @@ func mapValuesAreBasicMaps(mapType types.Type) bool {
 // which format_map takes; the inner map has no Display of its own. An inner
 // map of slices prints a nil slice as [].
 func writeMapOfMapsDisplay(out *strings.Builder, writeHandle func(), innerSlices bool) {
+	NeedGoDisplayValue()
 	NeedFormatMap()
 	TrackImport("Display")
 	TrackImport("Ord")
@@ -2853,6 +2855,7 @@ func mapValuesAreMapsOfSlicesOrStructs(mapType types.Type) (bool, bool) {
 // map[k:[1 2] ...] in key order, through formatter for each value.
 // writeHandle writes the map's handle.
 func writeMapOfArraysDisplay(out *strings.Builder, formatter string, writeHandle func()) {
+	NeedGoDisplayValue()
 	NeedFormatSlice()
 	if formatter == "format_nested_slice_values" {
 		NeedFormatNestedSlice()
@@ -3288,6 +3291,7 @@ func mapValuesAreSlicesOfMaps(mapType types.Type) (string, bool) {
 // as fmt does, map[a:[map[x:1] map[]]], in key order. Each value is the cell
 // of a slice that holds its maps bare; a nil slice prints as [].
 func writeMapOfSlicesOfMapsDisplay(out *strings.Builder, writeHandle func(), nilText string) {
+	NeedGoDisplayValue()
 	NeedFormatMap()
 	TrackImport("Display")
 	TrackImport("Ord")

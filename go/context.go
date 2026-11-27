@@ -1370,6 +1370,14 @@ func NeedGoFloatString() {
 	}
 }
 
+// NeedGoDisplayValue records that the code being written calls
+// go_display_value, so a module other than the crate root imports it.
+func NeedGoDisplayValue() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoDisplayValue = true
+	}
+}
+
 func NeedGoTypeName() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTypeName = true

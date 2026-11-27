@@ -182,6 +182,7 @@ type HelperTracker struct {
 	needsGoAtomicPointer       bool
 	needsGoTypeName            bool
 	needsGoFloatString         bool
+	needsGoDisplayValue        bool
 	needsGoComplexDisplay      bool // the program has complex numbers
 	needsGoErrorChain          bool
 	needsGoSprintf             bool
@@ -528,7 +529,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoTypeNameHelper(&result, anyTypeNames, programAnyRuntimeOpsEnabled())
 	}
 
-	if ht.needsGoFloatString || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
+	if ht.needsGoFloatString || ht.needsGoDisplayValue || ht.needsFormatAny || ht.needsFormatSlice || ht.needsFormatMap {
 		generateGoFloatStringHelper(&result, ht.needsGoComplexDisplay)
 	}
 
@@ -657,6 +658,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsGoAtomicPointer ||
 		ht.needsGoTypeName ||
 		ht.needsGoFloatString ||
+		ht.needsGoDisplayValue ||
 		ht.needsGoErrorChain ||
 		ht.needsBase64 ||
 		ht.needsSha256 ||
@@ -869,6 +871,10 @@ func (ht *HelperTracker) ImportNames() []string {
 	// module only names go_float_string when it prints a float directly.
 	if ht.needsGoFloatString {
 		add("go_float_string")
+	}
+	// Code that prints a map's keys inline calls go_display_value itself.
+	if ht.needsGoDisplayValue {
+		add("go_display_value")
 	}
 	if ht.needsGoErrorChain {
 		add("GoWrapError", "go_error_wrap", "go_errors_join", "go_error_chain", "go_errors_unwrap", "go_errors_is")
