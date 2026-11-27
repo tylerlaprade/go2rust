@@ -19911,6 +19911,11 @@ func writeNamedMapTypeConversion(out *strings.Builder, call *ast.CallExpr) bool 
 // of an unnamed map type, shared with expr.
 func writePlainMapHandleForNamedMapConversion(out *strings.Builder, expr ast.Expr, typeInfo *TypeInfo) {
 	expr = unwrapParens(expr)
+	if _, ok := pointerToMapDerefTarget(expr); ok {
+		// M(*p) for a *map[K]V: the map p points at.
+		writeMapHandleCloneForOp(out, expr)
+		return
+	}
 	switch expr.(type) {
 	case *ast.Ident, *ast.SelectorExpr:
 		TranspileExpressionContext(out, expr, LValue)

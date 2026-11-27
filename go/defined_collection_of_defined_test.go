@@ -90,3 +90,29 @@ func main() {
 		}
 	}
 }
+
+// delete on a nil map does nothing, and M(*p) for a *map[K]V shares the map
+// p points at.
+func TestDeleteFromANilMapAndConvertingThroughAPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type M map[string]int
+
+func conv(p *map[string]int) M { return M(*p) }
+
+func main() {
+	var m M
+	delete(m, "missing")
+	raw := map[string]int{}
+	fmt.Println(len(conv(&raw)), len(m))
+}
+`)
+	if !strings.Contains(rust, `if let Some(__map) = __map_guard.as_mut() { __map.remove(&"missing".to_string()); }`) {
+		t.Fatalf("delete should do nothing to a nil map:\n%s", rust)
+	}
+	if !strings.Contains(rust, "M(p.clone())") {
+		t.Fatalf("M(*p) should share the map p points at:\n%s", rust)
+	}
+}

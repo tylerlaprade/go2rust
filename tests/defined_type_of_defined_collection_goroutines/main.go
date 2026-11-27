@@ -39,6 +39,9 @@ func sum(m More) int {
 
 func mk() Other { return Other{"k": {7}} }
 
+// fromPtr converts the map p points at, which it shares.
+func fromPtr(p *map[string][]int) Lists { return Lists(*p) }
+
 func main() {
 	var o Other
 	fmt.Println(len(o), o == nil, o["missing"] == nil, o)
@@ -63,6 +66,7 @@ func main() {
 	fmt.Println(len(o), len(t))
 
 	var l2 Lists
+	delete(l2, "missing") // nothing to delete in a nil map
 	fmt.Println(l2 == nil, l2.Count())
 	l2 = Lists{}
 	fmt.Println(l2 == nil)
@@ -73,6 +77,8 @@ func main() {
 	back := map[string][]int(o)
 	back["w"] = []int{8}
 	fmt.Println(len(raw), len(o), Lists(mk()).Count(), Lists(mk()))
+	fromPtr(&raw)["r"] = []int{9}
+	fmt.Println(len(raw), raw["r"])
 
 	var m More
 	fmt.Println(len(m), m == nil)
