@@ -14334,12 +14334,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; ")
-									out.WriteString("*")
 									if globalIdent, ok := packageGlobalPointerIdent(star.X); ok {
 										// A package pointer variable is a cell holding
 										// the pointer: write through the handle it holds.
+										out.WriteString("*")
 										writePackageGlobalPointerHandleClone(out, globalIdent)
+									} else if _, isIdent := unwrapParens(star.X).(*ast.Ident); !isIdent {
+										// The pointer is read first, in a let of its own,
+										// so the locks its selector chain takes are let
+										// go before the pointee is: `*team.Lead.Dept = v`
+										// with Lead.Dept pointing at team's own Dept
+										// otherwise locks that Dept twice.
+										out.WriteString("let __deref_target = ")
+										TranspileExpressionContext(out, star.X, LValue)
+										out.WriteString(".clone(); *__deref_target")
 									} else {
+										out.WriteString("*")
 										TranspileExpressionContext(out, star.X, LValue)
 									}
 									WriteBorrowMethod(out, true)

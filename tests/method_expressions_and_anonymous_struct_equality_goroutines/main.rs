@@ -510,7 +510,7 @@ fn main() {
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync> }))),
         ..Default::default()
     })));
-    { let new_val = 20; *{ let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<i64>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.lock().unwrap() = Some(new_val); };
+    { let new_val = 20; let __deref_target = { let __f_holder = (*pp.lock().unwrap().as_ref().unwrap()).get.clone(); let __f: Arc<dyn Fn() -> Arc<Mutex<Option<i64>>> + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() }.clone(); *__deref_target.lock().unwrap() = Some(new_val); };
     println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __tmp_x = { let __v = (*(*__cell_ptr_1.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 20; __tmp_x == __tmp_y }));
 }
 
