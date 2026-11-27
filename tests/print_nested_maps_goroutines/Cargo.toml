@@ -1,0 +1,11 @@
+[package]
+name = "print_nested_maps_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "print_nested_maps_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

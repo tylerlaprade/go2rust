@@ -16663,6 +16663,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 					continue
 				}
+				// A slice holds its maps bare, and a bare map cannot be nil:
+				// a nil element is an empty map, as the zero element of
+				// make([]map[K]V, n) is.
+				if ident, ok := unwrapParens(elt).(*ast.Ident); ok && ident.Name == "nil" && elemType != nil {
+					if _, isMap := types.Unalias(elemType).Underlying().(*types.Map); isMap && !isInterfaceSlice {
+						out.WriteString(zeroValueForTypesType(elemType))
+						continue
+					}
+				}
 				if isInterfaceSlice {
 					if wrapInterfaceElements {
 						if elemType == nil {
