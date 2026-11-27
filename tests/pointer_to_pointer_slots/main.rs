@@ -1234,7 +1234,7 @@ fn main() {
     }
     { let __slice_header = None; *vals.borrow_mut() = __slice_header; };
     inorder({ let __field = (*t.borrow().as_ref().unwrap()).root.clone(); __field }, vals.clone());
-    println!("{} {}", format!("{}", format_slice(&vals)), format!("{}", (*(*(*t.borrow().as_ref().unwrap()).root.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", format_slice(&vals)), format!("{}", (*(*{ let __base = (*t.borrow().as_ref().unwrap()).root.clone(); __base }.borrow().as_ref().unwrap()).val.borrow().as_ref().unwrap())));
 
     let mut l = Rc::new(RefCell::new(Some(List { head: Default::default() })));
     let mut i = Rc::new(RefCell::new(Some(1i64)));
