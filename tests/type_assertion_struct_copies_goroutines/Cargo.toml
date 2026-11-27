@@ -1,0 +1,11 @@
+[package]
+name = "type_assertion_struct_copies_goroutines"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "type_assertion_struct_copies_goroutines"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

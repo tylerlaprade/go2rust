@@ -728,7 +728,7 @@ fn main() {
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<dog>()).is_some() {
-        let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<dog>()).unwrap().clone())));
+        let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<dog>()).unwrap().__go_value_clone())));
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = names.clone(); let __append_value = format!("{}{}", "dog:".to_string(), (*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).breed.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *names.lock().unwrap() = __slice_header; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<catPtr>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<catPtr>()).unwrap().0.clone();

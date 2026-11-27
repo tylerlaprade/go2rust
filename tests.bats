@@ -4924,6 +4924,14 @@ run_xfail_test() {
     run_test "tests/type_assertion_simple"
 }
 
+@test "type_assertion_struct_copies" {
+    run_test "tests/type_assertion_struct_copies"
+}
+
+@test "type_assertion_struct_copies_goroutines" {
+    run_test "tests/type_assertion_struct_copies_goroutines"
+}
+
 @test "type_assertions" {
     run_test "tests/type_assertions"
 }

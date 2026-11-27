@@ -1102,7 +1102,7 @@ fn main() {
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Missing>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+                (Rc::new(RefCell::new(Some(typed_val.__go_value_clone()))), true)
             } else {
                 (Rc::new(RefCell::new(Some(Default::default()))), false)
             }
