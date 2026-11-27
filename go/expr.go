@@ -17312,6 +17312,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if e.Type != nil {
+			defer enterTypeAssertionCopy(e.Type)()
 			if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 				writeStaticallyKnownInterfaceAssertionValue(out, e, ifaceName)
 				return
@@ -17383,7 +17384,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				case "float64":
 					rustType = "f64"
 				default:
-					rustType = ident.Name
+					// A type named Vec or Box is Vec_ or Box_ in Rust.
+					rustType = RustTypeNameForUse(ident.Name)
 				}
 			} else if star, ok := e.Type.(*ast.StarExpr); ok {
 				assertionReturnsPointer = true
@@ -22303,7 +22305,7 @@ func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool
 	if targetIsError {
 		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
-		out.WriteString("typed_val.clone()")
+		out.WriteString(assertedValueCopy())
 	}
 }
 
@@ -22452,12 +22454,16 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 		out.WriteString(" }")
 		return
 	}
+	if !currentTypeAssertionCopyKnown {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
 	out.WriteString(rustType)
 	out.WriteString(">()")
 	writeTypeAssertionFailedUnwrap(out)
-	out.WriteString(".clone()")
+	out.WriteString(currentTypeAssertionCopyCall)
 }
 
 // typeAssertionFailure is what the one-value form "x.(T)" being written
@@ -23415,6 +23421,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	if e.Type == nil {
 		return
 	}
+	defer enterTypeAssertionCopy(e.Type)()
 
 	if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 		writeStaticallyKnownInterfaceAssertionCommaOk(out, e, ifaceName)
@@ -23609,7 +23616,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString(">() {\n")
 			out.WriteString("                    (")
 			WriteWrapperPrefix(out)
-			out.WriteString("typed_val.clone()")
+			out.WriteString(assertedValueCopy())
 			WriteWrapperSuffix(out)
 			out.WriteString(", ")
 			out.WriteString("true")
@@ -23675,7 +23682,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		if targetIsError {
 			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
-			out.WriteString("typed_val.clone()")
+			out.WriteString(assertedValueCopy())
 		}
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
@@ -23729,7 +23736,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		if targetIsError {
 			out.WriteString(rustErrorFromText("typed_val.clone()"))
 		} else {
-			out.WriteString("typed_val.clone()")
+			out.WriteString(assertedValueCopy())
 		}
 		WriteWrapperSuffix(out)
 		out.WriteString(", ")
@@ -23817,7 +23824,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	if targetIsError {
 		out.WriteString(rustErrorFromText("typed_val.clone()"))
 	} else {
-		out.WriteString("typed_val.clone()")
+		out.WriteString(assertedValueCopy())
 	}
 	WriteWrapperSuffix(out)
 	out.WriteString(", ")

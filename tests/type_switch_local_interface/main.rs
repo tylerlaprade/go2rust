@@ -955,10 +955,10 @@ pub fn describe(n: Rc<RefCell<Option<Box<dyn namer>>>>) -> Rc<RefCell<Option<Str
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<alpha>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<alpha>()).unwrap().clone())));
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<alpha>()).unwrap().__go_value_clone())));
         return (*v.borrow().as_ref().unwrap()).extra();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<beta>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<beta>()).unwrap().clone())));
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<beta>()).unwrap().__go_value_clone())));
         return (*v.borrow().as_ref().unwrap()).name();;
     }
     }

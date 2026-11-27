@@ -1274,7 +1274,7 @@ pub fn classify(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<S
         std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("*Point {}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Point>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().clone())));
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return Rc::new(RefCell::new(Some(format!("Point {}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<IntList>()).is_some() {
@@ -1431,7 +1431,7 @@ fn main() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<Rc<RefCell<Option<Point>>>>()).unwrap().clone();
         println!("{} {}", format!("{}", "element: *Point".to_string()), format!("{}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Point>()).is_some() {
-        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().clone())));
+        let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().__go_value_clone())));
         println!("{} {}", format!("{}", "element: Point".to_string()), format!("{}", (*(*v.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<IntList>()).is_some() {
         let v = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<IntList>()).unwrap().clone())));
@@ -1553,7 +1553,7 @@ let mut got = { let __slice_header = GoSliceHeader::go_slice_header(&got); Rc::n
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<Point>() {
-                (Rc::new(RefCell::new(Some(typed_val.clone()))), true)
+                (Rc::new(RefCell::new(Some(typed_val.__go_value_clone()))), true)
             } else {
                 (Rc::new(RefCell::new(Some(Default::default()))), false)
             }

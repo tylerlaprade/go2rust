@@ -745,7 +745,7 @@ pub fn first_half() {
         std::mem::drop(_ts_guard);
         println!("{} {}", format!("{}", "bool".to_string()), format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<point>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<point>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<point>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         println!("{} {} {}", format!("{}", "point".to_string()), format!("{}", (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field }.lock().unwrap().as_ref().unwrap())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>()).is_some() {
