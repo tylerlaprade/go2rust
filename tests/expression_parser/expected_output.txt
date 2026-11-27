@@ -1,0 +1,9 @@
+(1 + (2 * 3)) => 7
+((1 + 2) * 3) => 9
+((x * x) + (y * y)) => 25
+(10 / (y - 4)) => error: division by zero
+(2 * z) => error: undefined: z
+--- (1 + 2 parse error: expected ) at 6
+(7 / 2) => 3.5
+2.5
+2.5 2.5
