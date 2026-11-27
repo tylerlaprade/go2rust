@@ -3208,11 +3208,26 @@ impl std::fmt::Debug for GoMutex {
 func generateGoRWMutexHelper(out *strings.Builder) {
 	code := `
 // A readers-writer lock: any number of readers, or one writer. A clone is
-// the same lock, as a *sync.RWMutex is.
+// the same lock, as a *sync.RWMutex is. As in Go, a writer waiting for the
+// lock holds off readers that come after it, and the readers that were
+// waiting when a writer unlocks are admitted before the next writer.
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex {
-    // (a writer holds it, how many readers hold it), and the waiters.
-    inner: std::sync::Arc<(std::sync::Mutex<(bool, usize)>, std::sync::Condvar)>,
+    inner: std::sync::Arc<(std::sync::Mutex<GoRWMutexState>, std::sync::Condvar)>,
+}
+
+#[derive(Debug, Default)]
+pub struct GoRWMutexState {
+    writer: bool,
+    readers: usize,
+    waiting_writers: usize,
+    // A reader that has to wait takes a ticket. A writer's unlock admits
+    // every ticket issued so far, and the next writer waits until the
+    // admitted readers have taken the lock.
+    waiting_readers: usize,
+    next_ticket: u64,
+    admit_below: u64,
+    admitted_waiting: usize,
 }
 
 impl GoRWMutex {
@@ -3223,39 +3238,54 @@ impl GoRWMutex {
     pub fn lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        while held.0 || held.1 > 0 {
+        held.waiting_writers += 1;
+        while held.writer || held.readers > 0 || held.admitted_waiting > 0 {
             held = ready.wait(held).unwrap();
         }
-        held.0 = true;
+        held.waiting_writers -= 1;
+        held.writer = true;
     }
 
     pub fn unlock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        if !held.0 {
+        if !held.writer {
             panic!("sync: Unlock of unlocked RWMutex");
         }
-        held.0 = false;
+        held.writer = false;
+        held.admit_below = held.next_ticket;
+        held.admitted_waiting = held.waiting_readers;
         ready.notify_all();
     }
 
     pub fn r_lock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        while held.0 {
+        if !held.writer && held.waiting_writers == 0 {
+            held.readers += 1;
+            return;
+        }
+        let ticket = held.next_ticket;
+        held.next_ticket += 1;
+        held.waiting_readers += 1;
+        while held.writer || (held.waiting_writers > 0 && ticket >= held.admit_below) {
             held = ready.wait(held).unwrap();
         }
-        held.1 += 1;
+        held.waiting_readers -= 1;
+        if ticket < held.admit_below {
+            held.admitted_waiting -= 1;
+        }
+        held.readers += 1;
     }
 
     pub fn r_unlock(&self) {
         let (state, ready) = &*self.inner;
         let mut held = state.lock().unwrap();
-        if held.1 == 0 {
+        if held.readers == 0 {
             panic!("sync: RUnlock of unlocked RWMutex");
         }
-        held.1 -= 1;
-        if held.1 == 0 {
+        held.readers -= 1;
+        if held.readers == 0 {
             ready.notify_all();
         }
     }

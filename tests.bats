@@ -1388,6 +1388,14 @@ run_xfail_test() {
     run_test "tests/embedded_method_promotion"
 }
 
+@test "embedded_rwmutex" {
+    run_test "tests/embedded_rwmutex"
+}
+
+@test "embedded_rwmutex_goroutines" {
+    run_test "tests/embedded_rwmutex_goroutines"
+}
+
 @test "embedded_structs" {
     run_test "tests/embedded_structs"
 }

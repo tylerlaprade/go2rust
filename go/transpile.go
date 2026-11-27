@@ -2436,6 +2436,71 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 	}
 }
 
+// goSelectedPromotedMethods replaces the first-embed-wins pick of each
+// promoted method with the one Go selects, when go/types can say: the
+// shallowest, through the embedded field it is reached by. A name Go
+// selects a field for, a method of another package for (a sync.RWMutex
+// method, which collectExternalPromotedMethods forwards), or nothing for (two
+// equally shallow) gets no forwarder of a package method. known is false
+// when go/types could not say: the first-embed-wins picks are returned, and
+// their forwarders must not run, as the pick may not be Go's.
+func goSelectedPromotedMethods(structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, promoted map[string]struct {
+	embeddedType string
+	method       *ast.FuncDecl
+}) (selectedMethods map[string]struct {
+	embeddedType string
+	method       *ast.FuncDecl
+}, known bool) {
+	if len(promoted) == 0 {
+		return promoted, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || structDef == nil || structDef.ASTType == nil {
+		return promoted, false
+	}
+	st, ok := types.Unalias(typeInfo.GetType(structDef.ASTType)).(*types.Struct)
+	if !ok {
+		return promoted, false
+	}
+	embeddedFieldNames := make(map[int]string)
+	fieldIndex := 0
+	for _, field := range structDef.ASTType.Fields.List {
+		if len(field.Names) > 0 {
+			fieldIndex += len(field.Names)
+			continue
+		}
+		embeddedFieldNames[fieldIndex] = getEmbeddedFieldName(field.Type)
+		fieldIndex++
+	}
+	declsByPos := make(map[token.Pos]*ast.FuncDecl)
+	for _, decls := range packageMethods {
+		for _, decl := range decls {
+			declsByPos[decl.Name.Pos()] = decl
+		}
+	}
+	selected := make(map[string]struct {
+		embeddedType string
+		method       *ast.FuncDecl
+	}, len(promoted))
+	for name := range promoted {
+		obj, index, _ := types.LookupFieldOrMethod(st, true, typeInfo.pkg, name)
+		fn, ok := obj.(*types.Func)
+		if !ok || len(index) < 2 {
+			continue
+		}
+		decl := declsByPos[fn.Origin().Pos()]
+		embeddedType, ok := embeddedFieldNames[index[0]]
+		if decl == nil || !ok {
+			continue
+		}
+		selected[name] = struct {
+			embeddedType string
+			method       *ast.FuncDecl
+		}{embeddedType: embeddedType, method: decl}
+	}
+	return selected, true
+}
+
 func writePromotedMethodForwarders(out *strings.Builder, structDefName string, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
 	if structDef == nil || methodCount == nil {
 		return
@@ -2452,6 +2517,11 @@ func writePromotedMethodForwarders(out *strings.Builder, structDefName string, s
 		method       *ast.FuncDecl
 	})
 	collectPromotedMethods(structDef, packageMethods, promotedMethods)
+	promotedMethods, selectionKnown := goSelectedPromotedMethods(structDef, packageMethods, promotedMethods)
+	unimplemented := ""
+	if !selectionKnown {
+		unimplemented = "type info required for selecting a promoted method"
+	}
 
 	var promotedMethodNames []string
 	for methodName := range promotedMethods {
@@ -2468,7 +2538,7 @@ func writePromotedMethodForwarders(out *strings.Builder, structDefName string, s
 		if *methodCount > 0 {
 			out.WriteString("\n")
 		}
-		generatePromotedMethod(out, methodInfo.method, structDefName, methodInfo.embeddedType)
+		generatePromotedMethodWithReason(out, methodInfo.method, structDefName, methodInfo.embeddedType, unimplemented)
 		existingMethodNames[methodName] = true
 		existingRustMethodNames[methodRustName] = true
 		*methodCount = *methodCount + 1
@@ -2512,6 +2582,12 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTypeName string, embeddedTypeName string) {
+	generatePromotedMethodWithReason(out, method, ownerTypeName, embeddedTypeName, "")
+}
+
+// generatePromotedMethodWithReason is generatePromotedMethod, with an
+// unimplemented! body giving unimplemented as its reason when that is set.
+func generatePromotedMethodWithReason(out *strings.Builder, method *ast.FuncDecl, ownerTypeName string, embeddedTypeName string, unimplemented string) {
 	mutableReceiver := methodRequiresMutableReceiver(method)
 	params := promotedMethodParamBindings(method.Type.Params)
 	goPtrResultInfos := goPtrResultInfosForFunc(method)
@@ -2563,6 +2639,13 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTyp
 	}
 
 	out.WriteString(" {\n")
+	if unimplemented != "" {
+		out.WriteString("        unimplemented!(")
+		out.WriteString("\"" + unimplemented + "\"")
+		out.WriteString(")\n")
+		out.WriteString("    }\n")
+		return
+	}
 	out.WriteString("        // Forward to embedded type's method\n")
 	out.WriteString("        let embedded = self.")
 	out.WriteString(ToSnakeCase(embeddedTypeName))
@@ -2658,6 +2741,40 @@ func promotedMethodParamBindings(params *ast.FieldList) []promotedMethodParamBin
 }
 
 func generateExternalPromotedMethod(out *strings.Builder, method externalPromotedMethod) {
+	if method.Unimplemented != "" {
+		if method.RWMutexAccessor {
+			NeedGoRWMutex()
+			out.WriteString("    pub fn " + rwMutexAccessorName + "(&self) -> GoRWMutex {\n")
+		} else {
+			out.WriteString("    pub fn " + method.RustMethodName + "(&self) {\n")
+		}
+		out.WriteString("        unimplemented!(\"" + method.Unimplemented + "\")\n")
+		out.WriteString("    }\n")
+		return
+	}
+	if method.RWMutexAccessor {
+		NeedGoRWMutex()
+		out.WriteString("    pub fn " + rwMutexAccessorName + "(&self) -> GoRWMutex {\n")
+		if method.RawEmbeddedField {
+			out.WriteString("        self." + method.EmbeddedFieldName + ".clone()\n")
+		} else {
+			// The guard of the embedded struct ends with the block; the
+			// clone is the same lock.
+			out.WriteString("        let embedded = self." + method.EmbeddedFieldName + ".clone();\n")
+			out.WriteString("        let guard = embedded")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("        guard.as_ref().unwrap()." + rwMutexAccessorName + "()\n")
+		}
+		out.WriteString("    }\n")
+		return
+	}
+	if method.ThroughRWMutexAccessor {
+		out.WriteString("    pub fn " + method.RustMethodName + "(&self) {\n")
+		out.WriteString("        self." + rwMutexAccessorName + "()." + method.RustMethodName + "()\n")
+		out.WriteString("    }\n")
+		return
+	}
 	sig := method.Signature
 	if sig == nil {
 		return
