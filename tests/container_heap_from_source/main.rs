@@ -830,7 +830,7 @@ impl PQ {
         let val = x.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Item>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Item")).clone()
+            any_val.downcast_ref::<Item>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Item")).__go_value_clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Item")
         }
@@ -961,7 +961,7 @@ pub fn dijkstra(g: Arc<Mutex<Option<BTreeMap<i64, Arc<Mutex<Option<Vec<Edge>>>>>
         let val = container_heap::pop(Arc::new(Mutex::new(Some(Box::new(PQPtr(pq.clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>)))).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<Item>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Item")).clone()
+            any_val.downcast_ref::<Item>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.Item")).__go_value_clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.Item")
         }

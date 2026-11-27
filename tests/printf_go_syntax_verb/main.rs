@@ -3456,11 +3456,11 @@ pub fn __go2rust_gosyntax0_1(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) 
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Point>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return __go2rust_gosyntax0_2(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Square>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return __go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Circle>>>>()).is_some() {
@@ -3999,11 +3999,11 @@ pub fn __go2rust_gosyntax0_36(v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>)
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Point>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Point>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return __go2rust_gosyntax0_2(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Square>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return __go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Arc<Mutex<Option<Circle>>>>()).is_some() {
@@ -4092,7 +4092,7 @@ pub fn __go2rust_gosyntax0_40(v: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Square>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().__go_value_clone())));
         return __go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<CirclePtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<CirclePtr>()).unwrap().0.clone();
@@ -4185,7 +4185,7 @@ pub fn __go2rust_gosyntax0_48(v: Arc<Mutex<Option<Box<dyn Shape + Send + Sync>>>
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Square>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().clone())));
+        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Square>()).unwrap().__go_value_clone())));
         return __go2rust_gosyntax0_4(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<CirclePtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<CirclePtr>()).unwrap().0.clone();

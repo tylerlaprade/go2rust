@@ -18090,11 +18090,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(handleType)
 							out.WriteString(">()).unwrap().clone()")
 						} else {
-							WriteWrapperPrefix(out)
-							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-							out.WriteString(rustType)
-							out.WriteString(">()).unwrap().clone()")
-							WriteWrapperSuffix(out)
+							// The case variable is a copy of the value the
+							// interface holds, a struct's with fields of
+							// its own (type_assertion_copy.go).
+							if caseType := typeInfo.GetType(caseClause.List[0]); caseType == nil {
+								out.WriteString(goValueCopyNeedsTypeInfo)
+							} else {
+								WriteWrapperPrefix(out)
+								out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+								out.WriteString(rustType)
+								out.WriteString(">()).unwrap()")
+								out.WriteString(goValueCopyCallForType(caseType))
+								WriteWrapperSuffix(out)
+							}
 						}
 						out.WriteString(";\n")
 					}

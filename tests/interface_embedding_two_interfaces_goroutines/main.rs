@@ -675,7 +675,7 @@ fn main() {
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<Rect>()).is_some() {
-        let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Rect>()).unwrap().clone())));
+        let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Rect>()).unwrap().__go_value_clone())));
         println!("{} {} {}", format!("{}", "rect".to_string()), { let __text = go_float_string(((*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).w.clone(); __field }.lock().unwrap().as_ref().unwrap())) as f64, false); __text }, { let __text = go_float_string(((*{ let __field = (*v.lock().unwrap().as_ref().unwrap()).h.clone(); __field }.lock().unwrap().as_ref().unwrap())) as f64, false); __text });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<SquarePtr>()).is_some() {
         let v = _ts_val.and_then(|__v| __v.downcast_ref::<SquarePtr>()).unwrap().0.clone();
@@ -688,7 +688,7 @@ fn main() {
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = Shape::__go_as_any(any_val.as_ref()).downcast_ref::<Rect>() {
-            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            (Arc::new(Mutex::new(Some(typed_val.__go_value_clone()))), true)
             } else {
                 (Arc::new(Mutex::new(Some(Default::default()))), false)
             }

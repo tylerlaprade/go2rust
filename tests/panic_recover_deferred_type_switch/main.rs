@@ -1153,7 +1153,7 @@ pub fn handle(err: Arc<Mutex<Option<String>>>) {
         std::mem::drop(_ts_guard);
         { let new_val = "nil".to_string(); *err.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).is_some() {
-        let p = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).unwrap().clone())));
+        let p = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<bailout>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         { let new_val = (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).msg.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(); *err.lock().unwrap() = Some(new_val); };;
     } else {

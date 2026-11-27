@@ -1929,7 +1929,7 @@ fn main() {
         let val = iface.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<P>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.P")).clone()
+            any_val.downcast_ref::<P>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.P")).__go_value_clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.P")
         }

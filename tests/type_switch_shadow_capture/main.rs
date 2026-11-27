@@ -984,7 +984,7 @@ fn main() {
         __any
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<node>()).is_some() {
-        let T = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<node>()).unwrap().clone())));
+        let T = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<node>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         return (*T.borrow().as_ref().unwrap()).value();;
     } else {
