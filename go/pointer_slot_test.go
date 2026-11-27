@@ -191,6 +191,37 @@ func main() {
 	}
 }
 
+// &map[K]V{...} and &M{...} are slots of a new variable the literal starts
+// in, so *p = nil leaves p itself non-nil.
+func TestPointerSlotsCoverMapLiteralAddresses(t *testing.T) {
+	out, ok := rewritePointerSlotsSource(t, `package main
+
+import "fmt"
+
+type M map[string]int
+
+func main() {
+	p := &map[string]int{"a": 1}
+	*p = nil
+	q := &M{"b": 2}
+	fmt.Println(p == nil, *p == nil, len(*q))
+}
+`)
+	if !ok {
+		t.Fatal("the rewrite kept the file")
+	}
+	for _, want := range []string{
+		`var __slot_p1 map[string]int = map[string]int{"a": 1}`,
+		`var __slot_p3 M = M{"b": 2}`,
+		"p.set(nil)",
+		"p.get == nil",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
 func TestPointerSlotsKeepTheIndexTypeAndAvoidSourceNames(t *testing.T) {
 	out, ok := rewritePointerSlotsSource(t, `package main
 

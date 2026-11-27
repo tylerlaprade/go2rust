@@ -5228,6 +5228,14 @@ func writePackageGlobalMapWrappedValueCopy(out *strings.Builder, ident *ast.Iden
 	if typeInfo == nil || !typeInfo.IsMap(ident) {
 		return false
 	}
+	// A copy of a package-level map variable shares its map (#328): the
+	// variable's storage is the map's handle, as GoGlobalMap and the
+	// goroutine program's Arc are.
+	if _, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Map); ok {
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		out.WriteString(".clone()")
+		return true
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString("(*")
 	out.WriteString(rustPackageGlobalName(ident.Name))
@@ -5479,6 +5487,25 @@ func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, 
 	if !lhsIsMap && !lhsIsSlice {
 		return false
 	}
+	// A package-level map variable takes the handle of the map assigned to
+	// it, so the map it held stays with its other copies (#328).
+	if packageGlobalIdentIsMapHandle(lhsIdent) {
+		out.WriteString("{ let new_val = ")
+		if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::new(")
+			out.WriteString(GetInnerWrapperType())
+			out.WriteString("::new(None))")
+			trackWrapperImports()
+		} else {
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+		}
+		out.WriteString("; ")
+		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+		out.WriteString(".set(new_val); }")
+		return true
+	}
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ let new_val = None; *")
 		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
@@ -5604,6 +5631,42 @@ func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.S
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__guard).clone() }; *")
 	TranspileExpressionContext(out, star.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __cloned_val; }")
+	return true
+}
+
+// writePointerDerefMapHandleAssignment writes *p = m for p a *map[K]V. A
+// pointer to a map is the map's handle (#321), so the handle takes the map
+// m holds; nil makes it a nil map.
+func writePointerDerefMapHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
+	target, ok := pointerToUnnamedMapDerefTarget(star)
+	if !ok {
+		return false
+	}
+	// A package global's slot holds the pointer: the map is reached through
+	// the handle read out of it.
+	writeTarget := func() { TranspileExpressionContext(out, target, LValue) }
+	out.WriteString("{ ")
+	if mapPointerIsPackageGlobal(target) {
+		out.WriteString("let __map_target = ")
+		writeMapPointerHandle(out, target)
+		out.WriteString("; ")
+		writeTarget = func() { out.WriteString("__map_target") }
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("*")
+		writeTarget()
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None; }")
+		return true
+	}
+	out.WriteString("let new_val = ")
+	writeMapHandleCloneForOp(out, rhs)
+	out.WriteString("; let __cloned_val = { let __guard = new_val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__guard).clone() }; *")
+	writeTarget()
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = __cloned_val; }")
 	return true
@@ -7826,6 +7889,16 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 			out.WriteString(tmpName)
 		}
 		out.WriteString(";")
+		return
+	}
+	// A package-level map variable takes the handle of the map the call
+	// returned (#328).
+	if ident, ok := lhs.(*ast.Ident); ok && !tmpBareScalar && packageGlobalIdentIsMapHandle(ident) && !isNamedMapExpression(lhs) {
+		out.WriteString(" ")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
 		return
 	}
 	if tmpBareScalar {
@@ -10725,9 +10798,13 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	if typeInfo == nil || !typeInfo.IsMap(lhs) {
 		return false
 	}
+	globalTarget := ""
 	switch target := unwrapParens(lhs).(type) {
 	case *ast.Ident:
-		if isPackageGlobalIdent(target) || isVarBare(target.Name) {
+		// A package-level map variable takes the temp's handle (#328).
+		if packageGlobalIdentIsMapHandle(target) {
+			globalTarget = rustPackageGlobalName(target.Name)
+		} else if isPackageGlobalIdent(target) || isVarBare(target.Name) {
 			return false
 		}
 		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
@@ -10742,6 +10819,14 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	}
 	if isNamedMapExpression(lhs) || isNamedMapExpression(rhs) {
 		return false
+	}
+	if globalTarget != "" {
+		out.WriteString(" ")
+		out.WriteString(globalTarget)
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return true
 	}
 	// For nil, writeParallelAssignmentTempValueForTarget gave the temp a
 	// nil map of its own.
@@ -14365,6 +14450,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Dereference assignment through a generated GoPtr field mutates the selected pointee.
 								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
+								} else if writePointerDerefMapHandleAssignment(out, star, s.Rhs[0]) {
+									// Pointer-to-map assignment writes the RHS map into the map handle the pointer is.
 								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-pointer assignment writes through the pointer handle stored in the slot.
 								} else if writeFunctionPointerDerefCallAssignment(out, star, s.Rhs[0]) {

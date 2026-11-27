@@ -55,7 +55,7 @@ var helperBindingNames = map[string]bool{
 	"mantissa": true, "many": true, "map": true, "map_key": true,
 	"marker": true, "matched": true, "matches": true, "message": true,
 	"metadata": true, "method": true, "minus": true, "minute": true,
-	"mod_index": true, "mode": true, "month": true, "mp": true, "msg": true,
+	"mod_index": true, "mode": true, "month": true, "mp": true, "msg": true, "mutex": true,
 	"n": true, "name": true, "nanos": true, "narrow": true, "native": true,
 	"negative": true, "nested": true, "new": true, "new_val": true,
 	"newlines": true, "next": true, "next_byte": true, "nextc": true,

@@ -3216,6 +3216,14 @@ run_xfail_test() {
     run_test "tests/package_global_map_incremental"
 }
 
+@test "package_global_map_sharing" {
+    run_test "tests/package_global_map_sharing"
+}
+
+@test "package_global_map_sharing_goroutines" {
+    run_test "tests/package_global_map_sharing_goroutines"
+}
+
 @test "package_global_map_snapshot" {
     run_test "tests/package_global_map_snapshot"
 }
@@ -3502,6 +3510,14 @@ run_xfail_test() {
 
 @test "pointer_to_array_literals_goroutines" {
     run_test "tests/pointer_to_array_literals_goroutines"
+}
+
+@test "pointer_to_map" {
+    run_test "tests/pointer_to_map"
+}
+
+@test "pointer_to_map_goroutines" {
+    run_test "tests/pointer_to_map_goroutines"
 }
 
 @test "pointer_to_pointer_receiver_field" {
