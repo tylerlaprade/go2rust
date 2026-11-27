@@ -17821,7 +17821,12 @@ func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, 
 				out.WriteString("; __recv_guard.as_ref().unwrap() as *const ")
 			}
 			out.WriteString(recvType)
-			out.WriteString(" }; let __result = unsafe { ")
+			out.WriteString(" }; ")
+			if methodExpressionTakesReceiverHandle(sel) {
+				NeedReceiverHandles()
+				out.WriteString("go_set_receiver_handle(&__recv, __recv_ptr as *const () as usize); ")
+			}
+			out.WriteString("let __result = unsafe { ")
 			if needsMut {
 				out.WriteString("&mut *__recv_ptr")
 			} else {
@@ -17912,6 +17917,13 @@ func writeMultilineMethodExpressionValueBox(out *strings.Builder, sel *ast.Selec
 		out.WriteString("\n")
 		out.WriteString(indent)
 		out.WriteString("        };\n")
+		if methodExpressionTakesReceiverHandle(sel) {
+			// The method takes the handle it is called on
+			// (receiver_handle.go).
+			NeedReceiverHandles()
+			out.WriteString(indent)
+			out.WriteString("        go_set_receiver_handle(&__recv, __recv_ptr as *const () as usize);\n")
+		}
 		out.WriteString(indent)
 		out.WriteString("        let __result = unsafe { ")
 		if needsMut {
@@ -17977,12 +17989,24 @@ func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorEx
 	needsMut := methodCallNeedsMutableReceiver(sel)
 	// The result is bound before the block ends: a borrow of __recv in the
 	// block's last expression would outlive __recv (E0597).
-	out.WriteString("{ let __recv = __arg0.clone(); let __result = (*__recv")
-	WriteBorrowMethod(out, needsMut)
-	if needsMut {
-		out.WriteString(".as_mut().unwrap()).")
+	if methodExpressionTakesReceiverHandle(sel) {
+		// The method takes the handle it is called on, and the call holds
+		// no borrow of it (receiver_handle.go).
+		out.WriteString("{ let __recv = __arg0.clone(); ")
+		writeReceiverHandleHintedPointer(out, "__recv", needsMut)
+		if needsMut {
+			out.WriteString("let __result = unsafe { &mut *__recv_ptr }.")
+		} else {
+			out.WriteString("let __result = unsafe { &*__recv_ptr }.")
+		}
 	} else {
-		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString("{ let __recv = __arg0.clone(); let __result = (*__recv")
+		WriteBorrowMethod(out, needsMut)
+		if needsMut {
+			out.WriteString(".as_mut().unwrap()).")
+		} else {
+			out.WriteString(".as_ref().unwrap()).")
+		}
 	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")

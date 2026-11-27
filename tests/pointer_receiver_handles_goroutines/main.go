@@ -43,6 +43,16 @@ func (n *Node) Link(name string) *Node {
 	return n
 }
 
+var lastVisited *Node
+
+// Visit sets a field and then runs f, which reads it through the caller's
+// pointer.
+func (n *Node) Visit(f func()) {
+	n.tags = map[string]int{"seen": 1}
+	f()
+	lastVisited = n
+}
+
 type Builder struct {
 	parts map[string]int
 	next  *Builder
@@ -103,6 +113,10 @@ func main() {
 	list := &Node{name: "a", next: &Node{name: "b", next: &Node{name: "c"}}}
 	last := list.Last()
 	fmt.Println(last.name, list.next.next.tags["last"], last == list.next.next, list.next.name)
+
+	visit := (*Node).Visit
+	visit(list, func() { fmt.Println(list.tags["seen"]) })
+	fmt.Println(lastVisited == list)
 
 	var head Node
 	head.Link("x").Link("y")

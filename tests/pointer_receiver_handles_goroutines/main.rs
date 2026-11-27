@@ -679,10 +679,13 @@ impl std::fmt::Display for Team {
 }
 
 
+pub(crate) static lastVisited: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Node>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
 pub(crate) static registry_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<Mutex<Option<Dept>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
+    *lastVisited.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *registry_1.lock().unwrap() = Some(Vec::nil());
 }
 
@@ -824,6 +827,28 @@ impl Node {
         let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
         { let new_val = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); (*n.lock().unwrap().as_mut().unwrap()).next = new_val; };
         return n.clone();
+    }
+
+    /// Visit sets a field and then runs f, which reads it through the caller's
+    /// pointer.
+    pub fn visit(&mut self, f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
+        let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
+            Some(__handle) => (__handle, None),
+            None => {
+                let __copy = Arc::new(Mutex::new(Some(self.clone())));
+                (__copy.clone(), Some(__copy))
+            }
+        };
+        let __self_ptr = self as *mut Self;
+        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("seen".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*n.lock().unwrap().as_mut().unwrap()).tags = new_val; };
+        {
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
+
+            )
+        };
+        { let new_val = n.clone(); *lastVisited.lock().unwrap() = Some(new_val); };
     }
 }
 
@@ -1054,6 +1079,37 @@ fn main() {
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq
     }), format!("{}", (*(*(*list.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));
+    let mut visit = Arc::new(Mutex::new(Some(Arc::new(move |
+        __arg0: Arc<Mutex<Option<Node>>>,
+        __arg1: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>
+    | {
+        {
+            let __recv = __arg0.clone();
+            let __recv_ptr: *mut Node = {
+                let mut __recv_guard = __recv.lock().unwrap();
+                __recv_guard.as_mut().unwrap() as *mut Node
+            };
+            go_set_receiver_handle(&__recv, __recv_ptr as *const () as usize);
+            let __result = unsafe { &mut *__recv_ptr }.visit(__arg1);
+            __result
+        }
+    }) as Arc<dyn Fn(Arc<Mutex<Option<Node>>>, Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync>)));
+    let list_closure_clone = list.clone(); {
+        let __f: Arc<dyn Fn(Arc<Mutex<Option<Node>>>, Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) -> () + Send + Sync> = visit.lock().unwrap().as_ref().unwrap().clone();
+        (__f)(
+            list_closure_clone.clone(),
+            Arc::new(Mutex::new(Some({ let list_closure_clone_closure_clone = list_closure_clone.clone(); Arc::new(move || {
+        println!("{}", format!("{}", { let __map = { let __map_holder = (*list_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> })))
+        )
+    };
+    println!("{}", format!("{}", {
+        let __left = (*lastVisited.lock().unwrap().as_ref().unwrap()).clone();
+        let __right = list.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
+        __eq
+    }));
     let mut head: Arc<Mutex<Option<Node>>> = Arc::new(Mutex::new(Some(Default::default())));
     { let __recv = { let __recv = head.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(Arc::new(Mutex::new(Some("x".to_string())))); __result }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(Arc::new(Mutex::new(Some("y".to_string())))); __result };
     println!("{}", format!("{}", (*(*(*head.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()));

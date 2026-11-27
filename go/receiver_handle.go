@@ -582,3 +582,18 @@ func pointerTypeMethodTakesReceiverHandleIn(pkg *types.Package, typeName, method
 	fn, ok := found.(*types.Func)
 	return ok && len(index) == 1 && methodTakesReceiverHandle(fn)
 }
+
+// methodExpressionTakesReceiverHandle reports whether the method of the
+// method expression sel, (*T).M, takes the handle it is called on.
+func methodExpressionTakesReceiverHandle(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.MethodExpr || len(selection.Index()) != 1 {
+		return false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	return ok && methodTakesReceiverHandle(fn)
+}
