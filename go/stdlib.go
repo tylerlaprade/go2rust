@@ -585,8 +585,39 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	out.WriteString("format!(\"{}\", ")
-	transpilePrintArg(out, arg)
+	if !writeRangeRunePrintArg(out, arg) {
+		transpilePrintArg(out, arg)
+	}
 	out.WriteString(")")
+}
+
+// writeRangeRunePrintArg writes the rune r of for i, r := range s, held as
+// a Rust char, as the number Go prints for it: fmt.Println(r) prints 233
+// for 'é', not é.
+func writeRangeRunePrintArg(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil || typeHasGoStringMethod(typ) {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int32 {
+		return false
+	}
+	out.WriteString("(")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(" as i32)")
+	return true
 }
 
 // writeLocalInterfaceTypeNameFormatArg writes %T of a value of one of the

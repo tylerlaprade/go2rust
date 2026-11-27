@@ -1891,3 +1891,25 @@ func main() {
 		t.Errorf("%%v of the slice should still print the slice:\n%s", rust)
 	}
 }
+
+// A rune from ranging over a string is a Rust char, which prints as the
+// character; Println prints a rune as its number.
+func TestPrintlnOfRangeRunePrintsItsNumber(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	for _, r := range "é" {
+		fmt.Println(r, string(r))
+		fmt.Printf("%c\n", r)
+	}
+}
+`)
+	if !strings.Contains(rust, `format!("{}", (r as i32))`) {
+		t.Fatalf("Println of a range rune should print its number:\n%s", rust)
+	}
+	if strings.Contains(rust, `print!("{}\n", format!("{}", (r as i32)))`) {
+		t.Fatalf("%%c of a range rune should print the character:\n%s", rust)
+	}
+}

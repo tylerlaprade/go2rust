@@ -3788,6 +3788,10 @@ run_xfail_test() {
     run_test "tests/range_rune_arithmetic_goroutines"
 }
 
+@test "range_rune_print" {
+    run_test "tests/range_rune_print"
+}
+
 @test "range_selector_string_values" {
     run_test "tests/range_selector_string_values"
 }
