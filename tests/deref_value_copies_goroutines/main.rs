@@ -861,7 +861,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -892,8 +892,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -1795,14 +1798,11 @@ impl P {
     }
 
     pub fn self_(&self) -> Arc<Mutex<Option<P>>> {
-        let (mut p, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return p.clone();
+        } else {
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 }
 

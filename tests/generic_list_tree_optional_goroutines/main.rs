@@ -264,14 +264,6 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
-struct GoWriteBack<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for GoWriteBack<F> {
-    fn drop(&mut self) {
-        (self.0)()
-    }
-}
-
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1416,15 +1408,7 @@ impl List__string {
 
 impl Tree__int {
     pub fn insert(&mut self, v: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Tree__int>>> {
-        let (mut t, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut t) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some(Tree__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1434,6 +1418,17 @@ impl Tree__int {
         { let new_val = __go_nil_recv_tree__int_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).right = new_val; };
     }
         return t.clone();
+        } else {
+        if false {
+        return Arc::new(Mutex::new(Some(Tree__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    }
+        if { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        { let new_val = __go_nil_recv_tree__int_insert({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
+    } else {
+        { let new_val = __go_nil_recv_tree__int_insert({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
+    }
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn walk(&self, visit: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> () + Send + Sync>>>>) {
@@ -1453,15 +1448,7 @@ impl Tree__int {
 
 impl Tree__string {
     pub fn insert(&mut self, v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Tree__string>>> {
-        let (mut t, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut t) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1471,6 +1458,17 @@ impl Tree__string {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.lock().unwrap().as_mut().unwrap()).right = new_val; };
     }
         return t.clone();
+        } else {
+        if false {
+        return Arc::new(Mutex::new(Some(Tree__string { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    }
+        if { let __tmp_x = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __tmp_y = (*self.val.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
+        { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
+    } else {
+        { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
+    }
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn walk(&self, visit: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> () + Send + Sync>>>>) {

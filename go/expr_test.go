@@ -1537,7 +1537,7 @@ func (p *Pool) add() {
 	}
 	// The receiver escapes, so the method binds it to the handle it was
 	// called on and appends that handle (DEV-165).
-	if !strings.Contains(rust, "let (mut p, __self_copy) = match go_take_receiver_handle::<Self>(") ||
+	if !strings.Contains(rust, "if let Some(mut p) = go_take_receiver_handle::<Self>(") ||
 		!strings.Contains(rust, "let __append_value = p.clone();") {
 		t.Fatalf("current pointer receiver appended to pointer slice should push the receiver's handle:\n%s", rust)
 	}
@@ -4178,7 +4178,7 @@ func (m *Map) Use(t *table) int {
 	}
 	// The receiver escapes, so the method binds it to the handle it was
 	// called on and passes that handle (DEV-165).
-	if !strings.Contains(rust, "let (mut m, __self_copy) = match go_take_receiver_handle::<Self>(") ||
+	if !strings.Contains(rust, "if let Some(mut m) = go_take_receiver_handle::<Self>(") ||
 		!strings.Contains(rust, ".put(m.clone())") {
 		t.Fatalf("pointer receiver passed as pointer argument should pass the receiver's handle:\n%s", rust)
 	}

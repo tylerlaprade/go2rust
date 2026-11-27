@@ -10091,7 +10091,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			takesReceiverHandle = false
 		}
 	}
-	if !takesReceiverHandle && (methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn)) {
+	if methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn) {
 		currentReceiverRustAlias = "__self"
 		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
 		if info, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
@@ -10119,7 +10119,6 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	out.WriteString("(")
 
 	// Receiver
-	receiverMutable := false
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
 		// Store the receiver name for self translation
@@ -10128,11 +10127,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		}
 
 		if forceSharedReceiver {
-			receiverMutable = traitReceiverMutable
-		} else {
-			receiverMutable = methodRequiresMutableReceiver(fn)
-		}
-		if receiverMutable {
+			if traitReceiverMutable {
+				out.WriteString("&mut self")
+			} else {
+				out.WriteString("&self")
+			}
+		} else if methodRequiresMutableReceiver(fn) {
 			out.WriteString("&mut self")
 		} else {
 			out.WriteString("&self")
@@ -10274,25 +10274,6 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			}
 		}
 		registerArrayElemPtrNamedReturnVars(fn)
-		if takesReceiverHandle {
-			// The receiver is a let of the body, which drops before the
-			// temporaries of a tail expression.
-			recv := fn.Recv.List[0]
-			vt.Register(recv.Names[0].Name, &VarInfo{
-				WrapLevel: WrapFull,
-				RustType:  goTypeToRustBase(recv.Type),
-				Source:    SourceLocal,
-			})
-		}
-	}
-	receiverHandleName := ""
-	if takesReceiverHandle {
-		receiverHandleName = RustIdentForUse(fn.Recv.List[0].Names[0])
-		prevReceiverHandleObject := currentReceiverHandleObject
-		currentReceiverHandleObject = currentReceiverObject
-		defer func() { currentReceiverHandleObject = prevReceiverHandleObject }()
-		currentReceiver = ""
-		currentReceiverObject = nil
 	}
 
 	if writeRuntimeLinkedFunctionBody(out, fn, "        ") {
@@ -10311,73 +10292,85 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		return
 	}
 	writeAssignedInterfaceParamShadows(out, fn, "        ")
-	if takesReceiverHandle {
-		writeReceiverHandleMethodPrologue(out, "        ", receiverHandleName, receiverMutable)
-	} else if currentReceiverRustAlias != "" {
-		out.WriteString("        let mut ")
-		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = ")
-		if currentReceiverRustAliasIsGoPtr {
-			out.WriteString("GoPtr::local(")
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-			out.WriteString(")")
-		} else if currentReceiverRustAliasIsPointerHandle {
-			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
-			WriteWrapperOptionSuffix(out)
-		} else if currentReceiverIsStructValue() {
-			// A value receiver is the method's own copy of the struct.
-			out.WriteString("self" + goStructValueCopyCall)
-		} else {
-			out.WriteString("self.clone()")
-		}
-		out.WriteString(";\n")
-	}
-
-	recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
-	bodyIndent := "        "
-	if recoverCatch {
-		bodyIndent = beginPanicRecoverCatch(out, "        ")
-	}
-
-	var prevStmt ast.Stmt
-	var lastPos token.Pos = fn.Body.Lbrace
-	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
-		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString(bodyIndent)
-			out.WriteString("unreachable!()\n")
-		}
-	} else {
-		for i, stmt := range fn.Body.List {
-			out.WriteString(bodyIndent)
-			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+	writeSelfAlias := func() {
+		if currentReceiverRustAlias != "" {
+			out.WriteString("        let mut ")
+			out.WriteString(currentReceiverRustAlias)
+			out.WriteString(" = ")
+			if currentReceiverRustAliasIsGoPtr {
+				out.WriteString("GoPtr::local(")
+				WriteWrapperOptionPrefix(out)
+				out.WriteString("Some(self.clone())")
+				WriteWrapperOptionSuffix(out)
+				out.WriteString(")")
+			} else if currentReceiverRustAliasIsPointerHandle {
+				WriteWrapperOptionPrefix(out)
+				out.WriteString("Some(self.clone())")
+				WriteWrapperOptionSuffix(out)
+			} else if currentReceiverIsStructValue() {
+				// A value receiver is the method's own copy of the struct.
+				out.WriteString("self" + goStructValueCopyCall)
 			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				out.WriteString("self.clone()")
 			}
+			out.WriteString(";\n")
+		}
+
+	}
+	emitBody := func() {
+		recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
+		bodyIndent := "        "
+		if recoverCatch {
+			bodyIndent = beginPanicRecoverCatch(out, "        ")
+		}
+
+		var prevStmt ast.Stmt
+		var lastPos token.Pos = fn.Body.Lbrace
+		if functionHasGoto(fn) {
+			prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+			if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
+				out.WriteString(bodyIndent)
+				out.WriteString("unreachable!()\n")
+			}
+		} else {
+			for i, stmt := range fn.Body.List {
+				out.WriteString(bodyIndent)
+				if i == len(fn.Body.List)-1 {
+					TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				} else {
+					TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
+				}
+				out.WriteString("\n")
+				prevStmt = stmt
+			}
+		}
+
+		lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
+		if currentFunctionHasDefer && !lastTerminates {
 			out.WriteString("\n")
-			prevStmt = stmt
+			out.WriteString(bodyIndent)
+			out.WriteString("// Execute deferred functions\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("    f();\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("}\n")
+		}
+
+		if recoverCatch {
+			finishPanicRecoverCatch(out, fn, "        ")
 		}
 	}
-
-	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
-	if currentFunctionHasDefer && !lastTerminates {
-		out.WriteString("\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("// Execute deferred functions\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("    f();\n")
-		out.WriteString(bodyIndent)
-		out.WriteString("}\n")
-	}
-
-	if recoverCatch {
-		finishPanicRecoverCatch(out, fn, "        ")
+	if takesReceiverHandle {
+		// The method runs on the handle it was called on when the call
+		// handed it one (receiver_handle.go), with its receiver a local
+		// pointer bound to the handle; a call that could not runs the body
+		// on self, as every pointer method does.
+		writeReceiverHandleMethodBranches(out, fn, writeSelfAlias, emitBody)
+	} else {
+		writeSelfAlias()
+		emitBody()
 	}
 
 	out.WriteString("    }\n")

@@ -152,17 +152,17 @@ impl std::fmt::Display for Scope {
 
 impl Scope {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let (mut s, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut s) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
         (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", Arc::as_ptr(&s))))));
         (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("name={}}}", (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())))));
         return (*buf.lock().unwrap().as_ref().unwrap()).string();
+        } else {
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", self)))));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("name={}}}", (*self.name.lock().unwrap().as_ref().unwrap()))))));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
+        }
     }
 }
 

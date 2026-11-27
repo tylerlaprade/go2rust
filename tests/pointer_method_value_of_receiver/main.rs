@@ -744,7 +744,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -775,8 +775,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -824,14 +827,11 @@ impl lexer {
     }
 
     pub fn scan(&self) -> i64 {
-        let (mut l, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut l) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return { let __recv = l.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.scan_with(Rc::new(RefCell::new(Some({ let __recv = l.clone(); Rc::new(move || -> i64 { (*__recv.borrow_mut().as_mut().unwrap()).next() }) as Rc<dyn Fn() -> i64> })))); __result };
+        } else {
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move || -> i64 { let mut __recv = __recv.clone(); __recv.next() }) as Rc<dyn Fn() -> i64> }))); self.scan_with(__method_arg0) }
+        }
     }
 }
 

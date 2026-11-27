@@ -1457,8 +1457,10 @@ impl<F: FnMut()> Drop for GoWriteBack<F> {
 // generateReceiverHandleHints writes the hints by which a call hands a
 // pointer method the handle it was called on: the caller records the handle
 // with the address of the struct in its cell, and the method takes the one
-// recorded for its own address. A hint no method takes is dropped once
-// sixteen newer ones are recorded.
+// recorded for its own address. Hints recorded after the one a method takes
+// belong to calls in its arguments, which have returned, so the method drops
+// them. The store holds at most 4096 hints, the oldest going first, which only
+// a chain of that many pending calls reaches.
 func generateReceiverHandleHints(out *strings.Builder) {
 	visibility := ""
 	if generatingPublicHelpers {
@@ -1480,7 +1482,7 @@ thread_local! {
 %[1]sfn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -1511,8 +1513,11 @@ thread_local! {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<%[2]s>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<%[2]s>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<%[2]s>().ok().map(|__handle| *__handle)
     })
 }
 `, visibility, handle, borrowMut, borrow)

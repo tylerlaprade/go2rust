@@ -59,8 +59,9 @@ func (t T) byValue() T      { return t }
 	}
 }
 
-// The method binds its receiver to the hinted handle, and a call on a
-// pointer variable hints the handle and holds no borrow of it.
+// The method binds its receiver to the hinted handle, or runs on self
+// without one, and a call on a pointer variable hints the handle and holds
+// no borrow of it.
 func TestReceiverHandleMethodBindsTheHintedHandle(t *testing.T) {
 	src := `package main
 
@@ -84,14 +85,39 @@ func main() {
 `
 	rust := transpileReceiverHandleSource(t, src)
 	for _, want := range []string{
-		"let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {",
-		"let __self_write_back = GoWriteBack(",
+		"if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {",
+		"} else {",
 		"let __recv = p.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(",
 		"fn go_take_receiver_handle<T: 'static>(address: usize)",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)
 		}
+	}
+}
+
+// An element of a map of pointers is the pointer's handle, whatever its key
+// says: the choice reads the container's metadata, not the generated text.
+func TestReceiverHandleMapElementGetsAHint(t *testing.T) {
+	src := `package main
+
+type T struct{ next *T }
+
+var seen []*T
+
+func (t *T) Visit() {
+	t.next = &T{}
+	seen = append(seen, t)
+}
+
+func main() {
+	byName := map[string]*T{"GoPtr": {}}
+	byName["GoPtr"].Visit()
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	if !strings.Contains(rust, "go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.visit()") {
+		t.Fatalf("the map element call should record a hint:\n%s", rust)
 	}
 }
 

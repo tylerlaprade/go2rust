@@ -132,14 +132,11 @@ impl<T: Any + 'static> C<T> {
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<C<T>>>> {
-        let (mut c, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return c.clone();
+        } else {
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 }
 

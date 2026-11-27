@@ -21,9 +21,8 @@ import (
 // handle, and the address of the struct in its cell, just before the call,
 // and the method takes the hint whose address is its own. The method's body
 // then works through that handle. A call site that cannot name the handle
-// (a slice element, say) records nothing, and the method works on a copy
-// that shares the field cells and writes the copy back into self when it
-// returns, as it did before.
+// (a slice element, say) records nothing, and the method's body runs on
+// self, as it did before.
 
 // currentReceiverHandleObject is the receiver of the method being written
 // when that method took its handle and names its receiver as a local.
@@ -288,50 +287,53 @@ func methodDeclTakesReceiverHandle(fn *ast.FuncDecl) bool {
 	return methodTakesReceiverHandle(methodFuncForDecl(fn, GetTypeInfo()))
 }
 
-// writeReceiverHandleMethodPrologue binds name, the receiver as a local
-// pointer variable: the handle of the call's hint, or a new handle to a copy
-// of self that shares its field cells. A method that writes its receiver
-// writes that copy back into self when it returns, panics included.
-func writeReceiverHandleMethodPrologue(out *strings.Builder, indent string, name string, mutable bool) {
+// writeReceiverHandleMethodBranches writes the body of a method that takes
+// the handle it was called on twice. When the call handed it its handle, it
+// runs with its receiver a local pointer bound to that handle, so it reads,
+// writes and hands out the caller's struct. When the call could not (a call
+// on a slice element, say), it runs on self, as every pointer method does.
+func writeReceiverHandleMethodBranches(out *strings.Builder, fn *ast.FuncDecl, writeSelfAlias func(), emitBody func()) {
 	NeedReceiverHandles()
-	// The prologue's own names, kept apart from a receiver that has one of
-	// them.
-	copyName, ptrName, writeBackName := "__self_copy", "__self_ptr", "__self_write_back"
-	for name == copyName || name == ptrName || name == writeBackName {
-		copyName, ptrName, writeBackName = copyName+"_", ptrName+"_", writeBackName+"_"
-	}
-	out.WriteString(indent)
-	out.WriteString("let (mut ")
+	recv := fn.Recv.List[0]
+	recvIdent := recv.Names[0]
+	name := RustIdentForUse(recvIdent)
+
+	savedReceiver, savedObject := currentReceiver, currentReceiverObject
+	savedAlias, savedAliasIsPointerHandle := currentReceiverRustAlias, currentReceiverRustAliasIsPointerHandle
+	savedAliasIsGoPtr, savedAliasGoPtrInfo := currentReceiverRustAliasIsGoPtr, currentReceiverRustAliasGoPtrInfo
+	prevHandleObject := currentReceiverHandleObject
+
+	out.WriteString("        if let Some(mut ")
 	out.WriteString(name)
-	out.WriteString(", ")
-	out.WriteString(copyName)
-	out.WriteString(") = match go_take_receiver_handle::<Self>(self as *const Self as usize) {\n")
-	out.WriteString(indent)
-	out.WriteString("    Some(__handle) => (__handle, None),\n")
-	out.WriteString(indent)
-	out.WriteString("    None => {\n")
-	out.WriteString(indent)
-	out.WriteString("        let __copy = ")
-	WriteWrapperOptionPrefix(out)
-	out.WriteString("Some(self.clone())")
-	WriteWrapperOptionSuffix(out)
-	out.WriteString(";\n")
-	out.WriteString(indent)
-	out.WriteString("        (__copy.clone(), Some(__copy))\n")
-	out.WriteString(indent)
-	out.WriteString("    }\n")
-	out.WriteString(indent)
-	out.WriteString("};\n")
-	if !mutable {
-		return
+	out.WriteString(") = go_take_receiver_handle::<Self>(self as *const Self as usize) {\n")
+	currentReceiverHandleObject = savedObject
+	currentReceiver, currentReceiverObject = "", nil
+	currentReceiverRustAlias, currentReceiverRustAliasIsPointerHandle = "", false
+	currentReceiverRustAliasIsGoPtr, currentReceiverRustAliasGoPtrInfo = false, goPtrResultInfo{}
+	vt := GetVarTable()
+	if vt != nil {
+		vt.PushScope()
+		// The receiver is a let of the body, which drops before the
+		// temporaries of a tail expression.
+		vt.Register(recvIdent.Name, &VarInfo{
+			WrapLevel: WrapFull,
+			RustType:  goTypeToRustBase(recv.Type),
+			Source:    SourceLocal,
+		})
 	}
-	NeedGoWriteBack()
-	out.WriteString(indent)
-	out.WriteString("let " + ptrName + " = self as *mut Self;\n")
-	out.WriteString(indent)
-	out.WriteString("let " + writeBackName + " = GoWriteBack(move || if let Some(__copy) = &" + copyName + " { unsafe { *" + ptrName + " = __copy")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap().clone(); } });\n")
+	emitBody()
+	if vt != nil {
+		vt.PopScope()
+	}
+	currentReceiverHandleObject = prevHandleObject
+	currentReceiver, currentReceiverObject = savedReceiver, savedObject
+	currentReceiverRustAlias, currentReceiverRustAliasIsPointerHandle = savedAlias, savedAliasIsPointerHandle
+	currentReceiverRustAliasIsGoPtr, currentReceiverRustAliasGoPtrInfo = savedAliasIsGoPtr, savedAliasGoPtrInfo
+
+	out.WriteString("        } else {\n")
+	writeSelfAlias()
+	emitBody()
+	out.WriteString("        }\n")
 }
 
 // writeReceiverHandleMethodCall writes a call of a method that takes its
@@ -476,16 +478,14 @@ func writeReceiverHandleOperand(out *strings.Builder, expr ast.Expr) bool {
 		if root := methodReceiverRootIdent(e); root == nil || isPackageGlobalIdent(root) {
 			return false
 		}
-		if typeInfo.IsSlice(e.X) || typeInfo.IsArray(e.X) || typeInfo.IsMap(e.X) {
-			var element strings.Builder
-			TranspileExpression(&element, e)
-			if strings.Contains(element.String(), "GoPtr") || strings.Contains(element.String(), "GoSliceElemPtr") {
-				return false
-			}
-			out.WriteString(element.String())
-			return true
+		if !typeInfo.IsSlice(e.X) && !typeInfo.IsArray(e.X) && !typeInfo.IsMap(e.X) {
+			return false
 		}
-		return false
+		if !indexContainerHoldsPointerHandles(e) {
+			return false
+		}
+		TranspileExpression(out, e)
+		return true
 	case *ast.CallExpr:
 		if !isPointer {
 			return false
@@ -621,4 +621,36 @@ func methodExpressionTakesReceiverHandle(sel *ast.SelectorExpr) bool {
 	}
 	fn, ok := selection.Obj().(*types.Func)
 	return ok && methodTakesReceiverHandle(fn)
+}
+
+// indexContainerHoldsPointerHandles reports whether the container of an index
+// expression stores its *T elements as the default pointer handle. Containers
+// tracked as holding GoPtr or slice-element pointers yield values that are not
+// handles, so their elements cannot be hinted as receivers.
+func indexContainerHoldsPointerHandles(e *ast.IndexExpr) bool {
+	switch x := unwrapParens(e.X).(type) {
+	case *ast.Ident:
+		if isPackageGlobalIdent(x) {
+			return false
+		}
+		if _, ok := sliceElemPtrSliceCandidateForExpr(x); ok {
+			return false
+		}
+		info := lookupVarInfo(x.Name)
+		if info == nil || info.PointerKind != PointerDefault {
+			return false
+		}
+		return !rustTypeHoldsNonHandlePointers(info.RustType)
+	case *ast.SelectorExpr:
+		if _, ok := sliceElemPtrSliceFieldInfoForIndexExpr(e); ok {
+			return false
+		}
+		selection := GetTypeInfo().info.Selections[x]
+		return selection != nil && selection.Kind() == types.FieldVal
+	}
+	return false
+}
+
+func rustTypeHoldsNonHandlePointers(rustType string) bool {
+	return strings.Contains(rustType, "GoPtr<") || strings.Contains(rustType, "GoSliceElemPtr<")
 }

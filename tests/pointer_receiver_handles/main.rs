@@ -197,14 +197,6 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
-struct GoWriteBack<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for GoWriteBack<F> {
-    fn drop(&mut self) {
-        (self.0)()
-    }
-}
-
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -504,49 +496,37 @@ fn __go_init_globals() {
 impl Node {
     /// Last walks the list from n and tags the node it ends on.
     pub fn last(&mut self) -> Arc<Mutex<Option<Node>>> {
-        let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         while { let __nil_target = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); n = new_val; };
     }
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("last".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*n.lock().unwrap().as_mut().unwrap()).tags = new_val; };
         return n.clone();
+        } else {
+        let mut __self = self.clone();
+        while { let __nil_target = __self.next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+        { let new_val = __self.next.clone(); let __moved_val = { let __guard = new_val.lock().unwrap(); __guard.as_ref().unwrap().clone() }; __self = __moved_val; };
+    }
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("last".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); __self.tags = new_val; };
+        Arc::new(Mutex::new(Some(__self.clone())))
+        }
     }
 
     /// Link appends a node after n and returns n, for chaining.
     pub fn link(&mut self, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Node>>> {
-        let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); (*n.lock().unwrap().as_mut().unwrap()).next = new_val; };
         return n.clone();
+        } else {
+        { let new_val = Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); self.next = new_val; };
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     /// Visit sets a field and then runs f, which reads it through the caller's
     /// pointer.
     pub fn visit(&mut self, f: Arc<Mutex<Option<Arc<dyn Fn() -> () + Send + Sync>>>>) {
-        let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut n) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("seen".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); (*n.lock().unwrap().as_mut().unwrap()).tags = new_val; };
         {
             let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
@@ -555,25 +535,34 @@ impl Node {
             )
         };
         { let new_val = n.clone(); *lastVisited.lock().unwrap() = Some(new_val); };
+        } else {
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("seen".to_string(), Arc::new(Mutex::new(Some(1i64))))])))); self.tags = new_val; };
+        {
+            let __f: Arc<dyn Fn() -> () + Send + Sync> = f.lock().unwrap().as_ref().unwrap().clone();
+            (__f)(
+
+            )
+        };
+        { let new_val = Arc::new(Mutex::new(Some(self.clone()))); *lastVisited.lock().unwrap() = Some(new_val); };
+        }
     }
 }
 
 impl Builder {
     pub fn add(&mut self, k: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Builder>>> {
-        let (mut b, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut b) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         if { let __nil_target = (*b.lock().unwrap().as_ref().unwrap()).parts.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))); (*b.lock().unwrap().as_mut().unwrap()).parts = new_val; };
     }
         { let __map_holder = (*b.lock().unwrap().as_ref().unwrap()).parts.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
         return b.clone();
+        } else {
+        if { let __nil_target = self.parts.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))); self.parts = new_val; };
+    }
+        { let __map_holder = self.parts.clone(); let __key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let mut __map_guard = __map_holder.lock().unwrap(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Arc::new(Mutex::new(Some(0)))); let mut __value = __entry.lock().unwrap(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn chain(&mut self) -> Arc<Mutex<Option<Builder>>> {
@@ -584,42 +573,31 @@ impl Builder {
 
 impl Dept {
     pub fn hire(&mut self, e: Arc<Mutex<Option<Employee>>>) {
-        let (mut d, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut d) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = d.clone(); (*e.lock().unwrap().as_mut().unwrap()).dept = new_val; };
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*d.lock().unwrap().as_ref().unwrap()).staff.clone(); let __append_value = e.clone(); let mut __appended: Vec<Arc<Mutex<Option<Employee>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *(*d.lock().unwrap().as_ref().unwrap()).staff.lock().unwrap() = __slice_header; };
+        } else {
+        { let new_val = Arc::new(Mutex::new(Some(self.clone()))); (*e.lock().unwrap().as_mut().unwrap()).dept = new_val; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.staff.clone(); let __append_value = e.clone(); let mut __appended: Vec<Arc<Mutex<Option<Employee>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *self.staff.lock().unwrap() = __slice_header; };
+        }
     }
 
     pub fn promote(&mut self) -> Arc<Mutex<Option<Dept>>> {
-        let (mut d, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.lock().unwrap().as_ref().unwrap().clone(); } });
+        if let Some(mut d) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = { let __seq = { let __seq_holder = (*d.lock().unwrap().as_ref().unwrap()).staff.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); (*d.lock().unwrap().as_mut().unwrap()).lead = new_val; };
         return d.clone();
+        } else {
+        { let new_val = { let __seq = { let __seq_holder = self.staff.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); self.lead = new_val; };
+        Arc::new(Mutex::new(Some(self.clone())))
+        }
     }
 
     pub fn register(&self) {
-        let (mut d, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Arc::new(Mutex::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut d) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = { let __collection_holder = { let __append_target = registry_1.clone(); let __append_value = d.clone(); let mut __appended: Vec<Arc<Mutex<Option<Dept>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *registry_1.lock().unwrap() = new_val; };
+        } else {
+        { let new_val = { let __collection_holder = { let __append_target = registry_1.clone(); let __append_value = Arc::new(Mutex::new(Some(self.clone()))); let mut __appended: Vec<Arc<Mutex<Option<Dept>>>> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *registry_1.lock().unwrap() = new_val; };
+        }
     }
 }
 
@@ -905,6 +883,27 @@ fn main() {
     println!("{} {}", format!("{}", (*(*(*{ let __recv = team.clone(); let __recv_ptr: *mut Team = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Team }; let __result = unsafe { &mut *__recv_ptr }.promote(); __result }.lock().unwrap().as_ref().unwrap()).lead.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", {
         let __left = (*(*(*team.lock().unwrap().as_mut().unwrap()).dept.lock().unwrap().as_mut().unwrap()).lead.lock().unwrap().as_ref().unwrap()).dept.clone();
         let __right = (*team.lock().unwrap().as_ref().unwrap()).dept.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
+        __eq
+    }));
+    let mut values = Arc::new(Mutex::new(Some(vec![Node { name: Arc::new(Mutex::new(Some("v".to_string()))), ..Default::default() }])));
+    let values_closure_clone = values.clone(); { let __elem_slice = values_closure_clone.clone(); let __elem_index = (0) as usize; let mut __elem_view = (*__elem_slice.lock().unwrap()).clone().unwrap_or_default(); let __result = __elem_view[__elem_index].visit(Arc::new(Mutex::new(Some({ let values_closure_clone_closure_clone = values_closure_clone.clone(); Arc::new(move || {
+        println!("{}", format!("{}", { let __map = { let __map_holder = { let __seq = { let __seq_holder = values_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> })))); __result };
+    let mut fixed: Arc<Mutex<Option<[Node; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
+    let fixed_closure_clone = fixed.clone(); { let __elem_array = fixed_closure_clone.clone(); let __elem_index = (0) as usize; let __elem_ptr = { let mut __elem_guard = __elem_array.lock().unwrap(); std::ptr::addr_of_mut!(__elem_guard.as_mut().unwrap()[__elem_index]) }; let __result = unsafe { &mut *__elem_ptr }.visit(Arc::new(Mutex::new(Some({ let fixed_closure_clone_closure_clone = fixed_closure_clone.clone(); Arc::new(move || {
+        println!("{}", format!("{}", { let __map = { let __map_holder = { let __seq = { let __seq_holder = fixed_closure_clone_closure_clone.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); std::mem::drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> })))); __result };
+    let mut byKey = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Node>>>>::from([("GoPtr".to_string(), Arc::new(Mutex::new(Some(Node { name: Arc::new(Mutex::new(Some("k".to_string()))), ..Default::default() }))).clone())]))));
+    let byKey_closure_clone = byKey.clone(); { let __recv = { let __map = { let __map_holder = byKey_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"GoPtr".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }; let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.visit(
+    Arc::new(Mutex::new(Some({ let byKey_closure_clone_closure_clone = byKey_closure_clone.clone(); Arc::new(move || {
+        println!("{}", format!("{}", { let __map = { let __map_holder = (*{ let __map = { let __map_holder = byKey_closure_clone_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"GoPtr".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tags.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"seen".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
+    }) as Arc<dyn Fn() -> () + Send + Sync> }))),
+); __result };
+    println!("{}", format!("{}", {
+        let __left = (*lastVisited.lock().unwrap().as_ref().unwrap()).clone();
+        let __right = { let __map = { let __map_holder = byKey.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"GoPtr".to_string())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
         let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
         let __eq = __both_nil || Arc::ptr_eq(&__left, &__right) || { let __left_id = __left.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); let __right_id = __right.lock().unwrap().as_ref().map(|__v| Arc::as_ptr(&__v.name) as *const () as usize); __left_id.is_some() && __left_id == __right_id };
         __eq

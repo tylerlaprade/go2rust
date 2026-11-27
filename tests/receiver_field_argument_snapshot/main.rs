@@ -737,14 +737,6 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
-struct GoWriteBack<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for GoWriteBack<F> {
-    fn drop(&mut self) {
-        (self.0)()
-    }
-}
-
 thread_local! {
     static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
 }
@@ -752,7 +744,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -783,8 +775,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -1240,17 +1235,13 @@ impl Parser {
     }
 
     pub fn parse(&mut self) {
-        let (mut p, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.borrow().as_ref().unwrap().clone(); } });
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *(*p.borrow().as_ref().unwrap()).tok.borrow_mut() = Some(new_val); };
         { let __method_args = (Rc::new(RefCell::new(Some({ let __selector_holder = (*p.borrow().as_ref().unwrap()).tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))), Rc::new(RefCell::new(Some({ let __recv = p.clone(); Rc::new(move |__arg0: Rc<RefCell<Option<Token>>>| { (*__recv.borrow_mut().as_mut().unwrap()).r#use(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<Token>>>) -> ()> }))),); { let __recv = p.clone(); let __recv_ptr = go_receiver_ptr_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.parse_gen(__method_args.0, __method_args.1); __result } };
+        } else {
+        { let new_val = Token(Rc::new(RefCell::new(Some(VAR as i64)))); *self.tok.borrow_mut() = Some(new_val); };
+        { let __method_arg0 = Rc::new(RefCell::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }))); let __method_arg1 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move |__arg0: Rc<RefCell<Option<Token>>>| { let mut __recv = __recv.clone(); __recv.r#use(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<Token>>>) -> ()> }))); self.parse_gen(__method_arg0, __method_arg1) };
+        }
     }
 }
 

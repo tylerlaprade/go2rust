@@ -4896,11 +4896,17 @@ func (x *node) reset() int {
 	// The receiver is a local bound to the handle the method was called
 	// on, and the assignment rebinds that local to the new pointer; moving
 	// the pointee into a receiver copy took it out of its cell (DEV-165).
-	if !strings.Contains(rust, "let (mut x, __self_copy) = match go_take_receiver_handle::<Self>(") {
+	if !strings.Contains(rust, "if let Some(mut x) = go_take_receiver_handle::<Self>(") {
 		t.Fatalf("pointer receiver reassignment should bind the receiver to a local handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "x = new_val") || strings.Contains(rust, "__moved_val") {
+	if !strings.Contains(rust, "x = new_val") {
 		t.Fatalf("pointer receiver reassignment should rebind the local handle:\n%s", rust)
+	}
+	// Called with no handle, the method runs on a receiver copy, which the
+	// assignment points at the new pointee's field cells without taking the
+	// pointee out of its cell.
+	if strings.Contains(rust, "__guard.take()") || !strings.Contains(rust, "__guard.as_ref().unwrap().clone() }; __self = __moved_val") {
+		t.Fatalf("pointer receiver reassignment without a handle should share the new pointee:\n%s", rust)
 	}
 }
 

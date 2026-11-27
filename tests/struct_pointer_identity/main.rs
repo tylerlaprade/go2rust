@@ -930,7 +930,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -961,8 +961,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -1709,14 +1712,11 @@ impl Counter {
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<Counter>>> {
-        let (mut c, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return c.clone();
+        } else {
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn later(&mut self) -> Rc<RefCell<Option<Rc<dyn Fn() -> ()>>>> {
@@ -1764,14 +1764,11 @@ impl Counter {
     }
 
     pub fn remember(&self, other: Rc<RefCell<Option<Counter>>>) {
-        let (mut c, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut c) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = c.clone(); (*other.borrow_mut().as_mut().unwrap()).last = new_val; };
+        } else {
+        { let new_val = Rc::new(RefCell::new(Some(self.clone()))); (*other.borrow_mut().as_mut().unwrap()).last = new_val; };
+        }
     }
 }
 

@@ -208,14 +208,6 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
-struct GoWriteBack<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for GoWriteBack<F> {
-    fn drop(&mut self) {
-        (self.0)()
-    }
-}
-
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1346,15 +1338,7 @@ impl List__string {
 
 impl Tree__int {
     pub fn insert(&mut self, v: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Tree__int>>> {
-        let (mut t, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.borrow().as_ref().unwrap().clone(); } });
+        if let Some(mut t) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(Some(Tree__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1364,6 +1348,17 @@ impl Tree__int {
         { let new_val = __go_nil_recv_tree__int_insert({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.borrow_mut().as_mut().unwrap()).right = new_val; };
     }
         return t.clone();
+        } else {
+        if false {
+        return Rc::new(RefCell::new(Some(Tree__int { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    }
+        if (*v.borrow().as_ref().unwrap()) < (*self.val.borrow().as_ref().unwrap()) {
+        { let new_val = __go_nil_recv_tree__int_insert({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
+    } else {
+        { let new_val = __go_nil_recv_tree__int_insert({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
+    }
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn walk(&self, visit: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> ()>>>>) {
@@ -1378,15 +1373,7 @@ impl Tree__int {
 
 impl Tree__string {
     pub fn insert(&mut self, v: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<Tree__string>>> {
-        let (mut t, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.borrow().as_ref().unwrap().clone(); } });
+        if let Some(mut t) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         if { let __nil_result = (*t.borrow()).is_none(); __nil_result } {
         return Rc::new(RefCell::new(Some(Tree__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
@@ -1396,6 +1383,17 @@ impl Tree__string {
         { let new_val = __go_nil_recv_tree__string_insert({ let __field = (*t.borrow().as_ref().unwrap()).right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); (*t.borrow_mut().as_mut().unwrap()).right = new_val; };
     }
         return t.clone();
+        } else {
+        if false {
+        return Rc::new(RefCell::new(Some(Tree__string { val: Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    }
+        if (*v.borrow().as_ref().unwrap()).clone() < (*self.val.borrow().as_ref().unwrap()).clone() {
+        { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.left.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.left = new_val; };
+    } else {
+        { let new_val = __go_nil_recv_tree__string_insert({ let __field = self.right.clone(); __field }, Rc::new(RefCell::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); self.right = new_val; };
+    }
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn walk(&self, visit: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>) -> ()>>>>) {

@@ -744,7 +744,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -775,8 +775,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -814,14 +817,11 @@ impl std::fmt::Display for Box_ {
 
 impl Box_ {
     pub fn inner(&self) -> Rc<RefCell<Option<Box_>>> {
-        let (mut b, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut b) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return b.clone();
+        } else {
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i64 {

@@ -778,14 +778,6 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
-struct GoWriteBack<F: FnMut()>(F);
-
-impl<F: FnMut()> Drop for GoWriteBack<F> {
-    fn drop(&mut self) {
-        (self.0)()
-    }
-}
-
 thread_local! {
     static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
 }
@@ -793,7 +785,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -824,8 +816,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -927,28 +922,21 @@ impl std::fmt::Display for Node {
 
 impl Node {
     pub fn add(&mut self, c: Rc<RefCell<Option<Node>>>) {
-        let (mut p, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
-        let __self_ptr = self as *mut Self;
-        let __self_write_back = GoWriteBack(move || if let Some(__copy) = &__self_copy { unsafe { *__self_ptr = __copy.borrow().as_ref().unwrap().clone(); } });
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         { let new_val = p.clone(); (*c.borrow_mut().as_mut().unwrap()).parent = new_val; };
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = (*p.borrow().as_ref().unwrap()).kids.clone(); let __append_value = c.clone(); let mut __appended: Vec<Rc<RefCell<Option<Node>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *(*p.borrow().as_ref().unwrap()).kids.borrow_mut() = __slice_header; };
+        } else {
+        { let new_val = Rc::new(RefCell::new(Some(self.clone()))); (*c.borrow_mut().as_mut().unwrap()).parent = new_val; };
+        { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = self.kids.clone(); let __append_value = c.clone(); let mut __appended: Vec<Rc<RefCell<Option<Node>>>> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *self.kids.borrow_mut() = __slice_header; };
+        }
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<Node>>> {
-        let (mut p, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         return p.clone();
+        } else {
+        Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 }
 

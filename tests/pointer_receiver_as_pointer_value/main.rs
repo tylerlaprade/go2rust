@@ -744,7 +744,7 @@ thread_local! {
 fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
-        if __handles.len() >= 16 {
+        if __handles.len() >= 4096 {
             __handles.remove(0);
         }
         __handles.push((address, Box::new(handle.clone())));
@@ -775,8 +775,11 @@ fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std
     __GO_RECEIVER_HANDLES.with(|__handles| {
         let mut __handles = __handles.borrow_mut();
         let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
-        let (_, __handle) = __handles.remove(__at);
-        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
     })
 }
 
@@ -820,13 +823,7 @@ impl std::fmt::Display for node {
 
 impl node {
     pub fn walk(&self) -> i64 {
-        let (mut x, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
-            Some(__handle) => (__handle, None),
-            None => {
-                let __copy = Rc::new(RefCell::new(Some(self.clone())));
-                (__copy.clone(), Some(__copy))
-            }
-        };
+        if let Some(mut x) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
         let mut y = x.clone();
         let mut sum = Rc::new(RefCell::new(Some(0i64)));
         while { let __nil_result = (*y.borrow()).is_some(); __nil_result } {
@@ -834,6 +831,15 @@ impl node {
         { let new_val = (*y.borrow().as_ref().unwrap()).next.clone(); y = new_val; };
     }
         return (*sum.borrow().as_ref().unwrap());
+        } else {
+        let mut y = Rc::new(RefCell::new(Some(self.clone())));
+        let mut sum = Rc::new(RefCell::new(Some(0i64)));
+        while { let __nil_result = (*y.borrow()).is_some(); __nil_result } {
+        { let __rhs = (*(*y.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap()); let mut guard = sum.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let new_val = (*y.borrow().as_ref().unwrap()).next.clone(); y = new_val; };
+    }
+        return (*sum.borrow().as_ref().unwrap());
+        }
     }
 }
 

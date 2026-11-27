@@ -149,4 +149,14 @@ func main() {
 	team := &Team{Dept: Dept{Name: "ops"}}
 	team.Hire(&Employee{Name: "dan"})
 	fmt.Println(team.Promote().Lead.Name, team.Lead.Dept == &team.Dept)
+
+	// Element receivers of value slices, arrays and pointer maps; the map key
+	// names a runtime type to show that the choice reads no generated text.
+	values := []Node{{name: "v"}}
+	values[0].Visit(func() { fmt.Println(values[0].tags["seen"]) })
+	var fixed [1]Node
+	fixed[0].Visit(func() { fmt.Println(fixed[0].tags["seen"]) })
+	byKey := map[string]*Node{"GoPtr": {name: "k"}}
+	byKey["GoPtr"].Visit(func() { fmt.Println(byKey["GoPtr"].tags["seen"]) })
+	fmt.Println(lastVisited == byKey["GoPtr"])
 }

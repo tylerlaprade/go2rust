@@ -4914,10 +4914,13 @@ func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		return true
 	}
 	if assignmentRHSReturnsWrappedValue(rhs) {
+		// The receiver copy shares the new pointee's field cells; taking
+		// the pointee out of its cell would empty it, so a walk such as
+		// `for n.next != nil { n = n.next }` emptied the list (DEV-165).
 		TranspileExpression(out, rhs)
-		out.WriteString("; let __moved_val = { let mut __guard = new_val")
-		WriteBorrowMethod(out, true)
-		out.WriteString("; __guard.take().unwrap() }; ")
+		out.WriteString("; let __moved_val = { let __guard = new_val")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __guard.as_ref().unwrap().clone() }; ")
 		out.WriteString(currentReceiverRustAlias)
 		out.WriteString(" = __moved_val; }")
 		return true
