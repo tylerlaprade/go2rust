@@ -89,6 +89,7 @@ func NewTypeInfoWithImporter(path string, files []*ast.File, fset *token.FileSet
 	}
 	typeInfo.methodMutableReceiverMap = collectMethodReceiverMutability(files, typeInfo)
 	typeInfo.methodOriginalReceiverMap = collectMethodReceiverOriginalReceiver(files, typeInfo)
+	collectReceiverHandleMethods(files, typeInfo)
 
 	if len(checkErrors) > 0 {
 		return typeInfo, fmt.Errorf("type check for %s produced %d error(s): %w", label, len(checkErrors), errors.Join(checkErrors...))

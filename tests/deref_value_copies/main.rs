@@ -801,6 +801,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<i64>() { return "int" }
     if val.is::<i32>() { return "int32" }
@@ -1523,7 +1569,11 @@ impl P {
     }
 
     pub fn self_(&self) -> Rc<RefCell<Option<P>>> {
+        if let Some(mut p) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return p.clone();
+        } else {
         Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 }
 
@@ -1654,7 +1704,11 @@ fn main() {
     ({ let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }).inc();
     { let __target = ((*a.borrow_mut().as_mut().unwrap())).n.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = ((*a.borrow_mut().as_mut().unwrap())).tags.clone(); let __append_value = "t".to_string(); let mut __appended: Vec<String> = (*__append_target.borrow()).clone().unwrap_or_default(); __appended.push(__append_value); Rc::new(RefCell::new(Some(__appended))) })); *((*a.borrow_mut().as_mut().unwrap())).tags.borrow_mut() = __slice_header; };
-    { let __go_print_arg_1 = ({ let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }).get(); let __go_print_arg_2 = Rc::new(RefCell::new(Some({ let __left = ({ let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }).self_(); let __right = a.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right) || { let __left_id = __left.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); let __right_id = __right.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); __left_id.is_some() && __left_id == __right_id }; __eq }))); let __go_print_value = println!("{} {} {} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", __go_print_arg_1), format!("{}", format_slice_values(&(*(*a.borrow().as_ref().unwrap()).tags.borrow().as_ref().unwrap()).clone())), format!("{}", { let __v = (*__go_print_arg_2.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
+    { let __go_print_arg_1 = ({ let __v = (*a.borrow().as_ref().unwrap()).clone(); __v }).get(); let __go_print_arg_2 = Rc::new(RefCell::new(Some({ let __left = { let __recv = a.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result }; let __right = a.clone(); let __both_nil = (*__left.borrow()).is_none() && (*__right.borrow()).is_none(); let __eq = __both_nil || Rc::ptr_eq(&__left, &__right) || { let __left_id = __left.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); let __right_id = __right.borrow().as_ref().map(|__v| Rc::as_ptr(&__v.n) as *const () as usize); __left_id.is_some() && __left_id == __right_id }; __eq }))); let __go_print_value = println!("{} {} {} {}", format!("{}", (*(*a.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", __go_print_arg_1), format!("{}", format_slice_values(&(*(*a.borrow().as_ref().unwrap()).tags.borrow().as_ref().unwrap()).clone())), format!("{}", { let __v = (*__go_print_arg_2.borrow().as_ref().unwrap()).clone(); __v })); __go_print_value };
+
+        // (*a).Self() is a itself: replacing the pointee through it changes a.
+    { let new_val = P { n: Rc::new(RefCell::new(Some((*(*a.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap()) + 1 as i64))), tags: { let __slice_header = GoSliceHeader::go_slice_header(&((*a.borrow().as_ref().unwrap()).tags)); Rc::new(RefCell::new(__slice_header)) }, ..Default::default() }; let __deref_target = { let __recv = a.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.self_(); __result }.clone(); *__deref_target.borrow_mut() = Some(new_val); };
+    println!("{}", format!("{}", (*(*a.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
 
     let mut one: Rc<RefCell<Option<[P; 1]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 1, _>(|_| Default::default()))));
     { let new_val = 1; *(*one.borrow().as_ref().unwrap())[(0) as usize].clone().n.borrow_mut() = Some(new_val); };

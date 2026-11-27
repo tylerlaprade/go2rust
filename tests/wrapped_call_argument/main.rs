@@ -737,6 +737,52 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 4096 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        // A hint is recorded just before its call's arguments run, so the
+        // hints after this one belong to calls among those arguments, which
+        // have all returned: any still here were never taken.
+        let __handle = __handles.drain(__at..).next()?;
+        __handle.1.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct Box_ {
     pub value: Rc<RefCell<Option<i64>>>,
@@ -771,7 +817,11 @@ impl std::fmt::Display for Box_ {
 
 impl Box_ {
     pub fn inner(&self) -> Rc<RefCell<Option<Box_>>> {
+        if let Some(mut b) = go_take_receiver_handle::<Self>(self as *const Self as usize) {
+        return b.clone();
+        } else {
         Rc::new(RefCell::new(Some(self.clone())))
+        }
     }
 
     pub fn r#use(&self, other: Rc<RefCell<Option<Box_>>>) -> i64 {
@@ -783,5 +833,5 @@ fn main() {
     go_install_panic_exit();
     let mut r#box = Rc::new(RefCell::new(Some(Box_ { value: Rc::new(RefCell::new(Some(7))), ..Default::default() })));
     let mut holder = Rc::new(RefCell::new(Some(Box_ { value: Rc::new(RefCell::new(Some(0))) })));
-    println!("{}", format!("{}", (*holder.borrow().as_ref().unwrap()).r#use((*r#box.borrow().as_ref().unwrap()).inner())));
+    println!("{}", format!("{}", (*holder.borrow().as_ref().unwrap()).r#use({ let __recv = r#box.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.inner(); __result })));
 }

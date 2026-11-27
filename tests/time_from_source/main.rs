@@ -799,7 +799,7 @@ fn main() {
     }
     }
     let mut timer = time::new_timer(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some(time::HOUR as i64))))))));
-    println!("{} {}", format!("{}", { let __recv = timer.clone(); let __recv_ptr: *const time::sleep::Timer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const time::sleep::Timer }; let __result = unsafe { &*__recv_ptr }.stop(); __result }), format!("{}", { let __recv = timer.clone(); let __recv_ptr: *const time::sleep::Timer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const time::sleep::Timer }; let __result = unsafe { &*__recv_ptr }.stop(); __result }));
+    println!("{} {}", format!("{}", { let __recv = timer.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.stop(); __result }), format!("{}", { let __recv = timer.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.stop(); __result }));
     let mut ticker: GoPtr<time::tick::Ticker> = {
         let __go_ptr = time::new_ticker(Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((2 as i64 * time::MILLISECOND) as i64)))))))).clone();
         match __go_ptr {

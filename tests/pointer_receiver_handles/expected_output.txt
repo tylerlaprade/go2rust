@@ -1,0 +1,29 @@
+c 1 true b
+1
+true
+p 1
+q 1
+1
+1
+true
+y
+[x y] 2
+true
+[ann bob cat] 1
+ann true
+2 true true
+1 2
+dan true
+1
+1
+1
+true
+z
+r 1
+s 1
+r swapped
+ops2
+bound 1
+plain 1
+true 5
+2 3

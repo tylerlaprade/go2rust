@@ -231,7 +231,7 @@ fn main() {
     let mut pattern = Arc::new(Mutex::new(Some("\\d+".to_string())));
     let mut re = regexp::must_compile(Arc::new(Mutex::new(Some({ let __arg_holder = pattern.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut text = Arc::new(Mutex::new(Some("I have 42 apples and 7 oranges".to_string())));
-    let mut matches = { let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.find_all_string(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(-1)))); __result };
+    let mut matches = { let __recv = re.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.find_all_string(Arc::new(Mutex::new(Some({ let __arg_holder = text.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(-1)))); __result };
     let mut matches = { let __slice_header = GoSliceHeader::go_slice_header(&matches); Arc::new(Mutex::new(__slice_header)) };
     println!("{} {}", format!("{}", "Numbers found:".to_string()), format!("{}", format_slice(&matches)));
 }

@@ -1535,9 +1535,11 @@ func (p *Pool) add() {
 	if strings.Contains(rust, "let __append_value = self.clone();") {
 		t.Fatalf("current pointer receiver appended to pointer slice should not push the bare receiver value:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __append_value = Rc::new(RefCell::new(Some(self.clone())));") &&
-		!strings.Contains(rust, "let __append_value = Arc::new(Mutex::new(Some(self.clone())));") {
-		t.Fatalf("current pointer receiver appended to pointer slice should wrap self in a pointer handle:\n%s", rust)
+	// The receiver escapes, so the method binds it to the handle it was
+	// called on and appends that handle (DEV-165).
+	if !strings.Contains(rust, "if let Some(mut p) = go_take_receiver_handle::<Self>(") ||
+		!strings.Contains(rust, "let __append_value = p.clone();") {
+		t.Fatalf("current pointer receiver appended to pointer slice should push the receiver's handle:\n%s", rust)
 	}
 }
 
@@ -4174,9 +4176,11 @@ func (m *Map) Use(t *table) int {
 	if strings.Contains(rust, ".put(self.clone())") {
 		t.Fatalf("pointer receiver passed as pointer argument should not pass the bare receiver value:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".put(Rc::new(RefCell::new(Some(self.clone()))))") &&
-		!strings.Contains(rust, ".put(Arc::new(Mutex::new(Some(self.clone()))))") {
-		t.Fatalf("pointer receiver passed as pointer argument should be wrapped as a pointer handle:\n%s", rust)
+	// The receiver escapes, so the method binds it to the handle it was
+	// called on and passes that handle (DEV-165).
+	if !strings.Contains(rust, "if let Some(mut m) = go_take_receiver_handle::<Self>(") ||
+		!strings.Contains(rust, ".put(m.clone())") {
+		t.Fatalf("pointer receiver passed as pointer argument should pass the receiver's handle:\n%s", rust)
 	}
 }
 
@@ -7666,8 +7670,10 @@ func (p *Package) Parser() *Parser {
 		strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some(self.lookup_package.clone())))") {
 		t.Fatalf("method value field should not be lowered as a selector field clone:\n%s", rust)
 	}
-	if !strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move |") &&
-		!strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Arc::new(move |") {
+	// The method value keeps the receiver, so the method binds it to the
+	// handle it was called on and the closure holds that handle (DEV-165).
+	if !strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some({ let __recv = p.clone(); Rc::new(move |") &&
+		!strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some({ let __recv = p.clone(); Arc::new(move |") {
 		t.Fatalf("method value field should lower to a boxed receiver closure:\n%s", rust)
 	}
 }

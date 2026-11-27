@@ -466,7 +466,7 @@ fn main() {
         )
     }.lock().unwrap().as_ref().unwrap())));
     let mut p = Arc::new(Mutex::new(Some(Vec_ { x: Arc::new(Mutex::new(Some(3.0))), y: Arc::new(Mutex::new(Some(4.0))), ..Default::default() })));
-    let mut norm = Arc::new(Mutex::new(Some({ let __recv = p.clone(); Arc::new(move || { (*__recv.lock().unwrap().as_mut().unwrap()).normalize() }) as Arc<dyn Fn() -> () + Send + Sync> })));
+    let mut norm = Arc::new(Mutex::new(Some({ let __recv = p.clone(); Arc::new(move || { let __recv_ptr: *mut Vec_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Vec_ }; unsafe { &mut *__recv_ptr }.normalize() }) as Arc<dyn Fn() -> () + Send + Sync> })));
     {
         let __f: Arc<dyn Fn() -> () + Send + Sync> = norm.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
