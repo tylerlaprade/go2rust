@@ -6,10 +6,46 @@ macro_rules! vec {
 }
 use go2rust_stdlib_stubs::*;
 use std::any::Any;
+use std::cmp::Ord;
 use std::collections::BTreeMap;
-use std::fmt::{Display};
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
+fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
+where
+    V: Display,
+{
+    format_map_nil(map, "<nil>")
+}
+
+// format_map_nil prints a value the map holds no value for as __nil_text:
+// [] for a nil slice, as Go prints one.
+fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
+where
+    V: Display,
+{
+    let guard = map.lock().unwrap();
+    if let Some(ref m) = *guard {
+        let mut items: Vec<_> = m.iter().collect();
+        items.sort_by_key(|(k, _)| (*k).clone());
+
+        let formatted: Vec<String> = items
+            .into_iter()
+            .map(|(k, v)| {
+                let v_guard = v.lock().unwrap();
+                if let Some(ref val) = *v_guard {
+                    format!("{}:{}", go_display_value(k), go_display_value(val))
+                } else {
+                    format!("{}:{}", go_display_value(k), __nil_text)
+                }
+            })
+            .collect();
+
+        format!("map[{}]", formatted.join(" "))
+    } else {
+        "map[]".to_string()
+    }
+}
 fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
 where
     C: AsRef<[T]>,
@@ -215,6 +251,12 @@ fn go_display_value<T: Display>(__value: &T) -> String {
 
 #[derive(Debug, Clone, Default)]
 pub struct Tally(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<i64>>>>>>>>);
+
+impl Display for Tally {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_map_nil(&self.0, "[]"))
+    }
+}
 
 
 impl Tally {

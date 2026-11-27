@@ -820,6 +820,8 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         v.to_string()
     } else if let Some(v) = value.downcast_ref::<GoNilAny>() {
         "<nil>".to_string()
+    } else if let Some(v) = value.downcast_ref::<IntList>() {
+        format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Point>() {
         format!("{}", v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<bool>>>>>>>>() {
@@ -834,6 +836,8 @@ fn format_any_at(value: &dyn Any, nested: bool) -> String {
         format_slice(v)
     } else if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() {
         format_slice(v)
+    } else if let Some(v) = value.downcast_ref::<Registry>() {
+        format!("{}", v)
     } else {
         panic!("go2rust: cannot print this value held in an interface: its type has no formatting case yet")
     }
