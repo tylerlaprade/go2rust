@@ -1196,12 +1196,18 @@ func registerMapKeyAnonymousStructs(file *ast.File) {
 	visit := func(node ast.Node) bool {
 		if mapType, ok := node.(*ast.MapType); ok {
 			if st, ok := unwrapParens(mapType.Key).(*ast.StructType); ok {
+				// Only a key go/types knows as a struct type is named.
+				if typeInfo == nil {
+					return true
+				}
+				keyType, ok := types.Unalias(typeInfo.GetType(st)).(*types.Struct)
+				if !ok {
+					return true
+				}
 				// A package-level alias of the same struct type, such as
 				// type pos = struct{ x, y int }, already names it.
-				if typeInfo != nil {
-					if keyType, ok := types.Unalias(typeInfo.GetType(st)).(*types.Struct); ok && packageStructAliasName(keyType) != "" {
-						return true
-					}
+				if packageStructAliasName(keyType) != "" {
+					return true
 				}
 				generateAnonymousStructType(st)
 			}
