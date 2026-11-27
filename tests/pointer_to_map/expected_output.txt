@@ -1,0 +1,8 @@
+1
+2 2 1 [a b]
+1 1 [y]
+map[z:9] 1
+true 0
+map[go:2 rust:1] [go rust]
+2 2 [1]
+map[z:[9]] map[z:[9]]

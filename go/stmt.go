@@ -5609,6 +5609,42 @@ func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.S
 	return true
 }
 
+// writePointerDerefMapHandleAssignment writes *p = m for p a *map[K]V. A
+// pointer to a map is the map's handle (#321), so the handle takes the map
+// m holds; nil makes it a nil map.
+func writePointerDerefMapHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
+	target, ok := pointerToUnnamedMapDerefTarget(star)
+	if !ok {
+		return false
+	}
+	// A package global's slot holds the pointer: the map is reached through
+	// the handle read out of it.
+	writeTarget := func() { TranspileExpressionContext(out, target, LValue) }
+	out.WriteString("{ ")
+	if mapPointerIsPackageGlobal(target) {
+		out.WriteString("let __map_target = ")
+		writeMapPointerHandle(out, target)
+		out.WriteString("; ")
+		writeTarget = func() { out.WriteString("__map_target") }
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("*")
+		writeTarget()
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None; }")
+		return true
+	}
+	out.WriteString("let new_val = ")
+	writeMapHandleCloneForOp(out, rhs)
+	out.WriteString("; let __cloned_val = { let __guard = new_val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__guard).clone() }; *")
+	writeTarget()
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __cloned_val; }")
+	return true
+}
+
 func writePlainSliceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if !isPlainSliceExpression(expr) {
 		return false
@@ -14365,6 +14401,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Dereference assignment through a generated GoPtr field mutates the selected pointee.
 								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
+								} else if writePointerDerefMapHandleAssignment(out, star, s.Rhs[0]) {
+									// Pointer-to-map assignment writes the RHS map into the map handle the pointer is.
 								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-pointer assignment writes through the pointer handle stored in the slot.
 								} else if writeFunctionPointerDerefCallAssignment(out, star, s.Rhs[0]) {
