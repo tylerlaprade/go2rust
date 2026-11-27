@@ -599,7 +599,7 @@ func writeRangeRunePrintArg(out *strings.Builder, arg ast.Expr) bool {
 	if !ok {
 		return false
 	}
-	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" {
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar || varType != "char" || identShadowsRangeVar(ident) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
