@@ -966,11 +966,14 @@ pub(crate) static cache: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<String>>
 
 pub(crate) static counts: GoGlobalMap<BTreeMap<String, Rc<RefCell<Option<i64>>>>> = GoGlobalMap::new();
 
+pub(crate) static loaded: GoGlobal<i64> = GoGlobal::new();
+
 
 fn __go_init_globals() {
     *routes.borrow_mut() = Some(BTreeMap::new());
     *cache.borrow_mut() = Some(BTreeMap::new());
     *counts.borrow_mut() = Some(BTreeMap::new());
+    *loaded.borrow_mut() = Some(0);
     {
         let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new();
         *routes.borrow_mut() = Some(__go_map);
@@ -990,6 +993,10 @@ pub fn register(name: Rc<RefCell<Option<String>>>, n: Rc<RefCell<Option<i64>>>) 
 
 pub fn add(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>, k: Rc<RefCell<Option<String>>>) {
     { let __map_key = (*k.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some(({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+}
+
+pub fn load() -> (Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>, i64) {
+    (Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("l".to_string(), Rc::new(RefCell::new(Some(9i64))))])))), 2)
 }
 
 pub fn keys(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> Rc<RefCell<Option<Vec<String>>>> {
@@ -1057,6 +1064,28 @@ fn main() {
 
     { let __map_handle = routes.clone(); let __delete_key = &"x".to_string(); let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     println!("{} {}", format!("{}", format_slice(&keys(routes.clone()))), format!("{}", format_slice(&keys({ let __field = (*s.borrow().as_ref().unwrap()).routes.clone(); __field }))));
+
+    let mut before = counts.clone();
+    {
+        let __tmp_0 = Rc::new(RefCell::new(None));
+        let __tmp_1 = 0;
+        counts.set(__tmp_0);
+        *loaded.borrow_mut() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", format_slice(&keys(before.clone()))), format!("{}", { let __nil_result = (*counts.borrow()).is_none(); __nil_result }), format!("{}", { let __v = (*loaded.borrow().as_ref().unwrap()).clone(); __v }));
+    {
+        let __tmp_0 = local.clone();
+        let __tmp_1 = 1;
+        counts.set(__tmp_0);
+        *loaded.borrow_mut() = Some(__tmp_1);
+    };
+    { let __map_key = "o".to_string(); let __map_value = Rc::new(RefCell::new(Some(3))); (*local.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    println!("{} {}", format!("{}", format_slice(&keys(counts.clone()))), format!("{}", { let __v = (*loaded.borrow().as_ref().unwrap()).clone(); __v }));
+    { let (__tmp_0, __tmp_1) = load(); counts.set(__tmp_0); *loaded.borrow_mut() = Some(__tmp_1); };
+    { let __map_key = "p".to_string(); let __map_value = Rc::new(RefCell::new(Some(4))); (*counts.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __go_print_arg_1 = keys(counts.clone());
+let mut __go_print_arg_1 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_1); Rc::new(RefCell::new(__slice_header)) }; let __go_print_arg_2 = keys(local.clone());
+let mut __go_print_arg_2 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_2); Rc::new(RefCell::new(__slice_header)) }; let __go_print_value = println!("{} {} {}", format!("{}", format_slice(&__go_print_arg_1)), format!("{}", { let __v = (*loaded.borrow().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&__go_print_arg_2))); __go_print_value };
 }
 
 pub(crate) fn __go_init_all() {

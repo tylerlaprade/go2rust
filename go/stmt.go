@@ -7855,6 +7855,16 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 		out.WriteString(";")
 		return
 	}
+	// A package-level map variable takes the handle of the map the call
+	// returned (#328).
+	if ident, ok := lhs.(*ast.Ident); ok && !tmpBareScalar && packageGlobalIdentIsMapHandle(ident) && !isNamedMapExpression(lhs) {
+		out.WriteString(" ")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return
+	}
 	if tmpBareScalar {
 		out.WriteString(" *")
 		writeTempAssignmentTargetRef(out, lhs)
@@ -10752,9 +10762,13 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	if typeInfo == nil || !typeInfo.IsMap(lhs) {
 		return false
 	}
+	globalTarget := ""
 	switch target := unwrapParens(lhs).(type) {
 	case *ast.Ident:
-		if isPackageGlobalIdent(target) || isVarBare(target.Name) {
+		// A package-level map variable takes the temp's handle (#328).
+		if packageGlobalIdentIsMapHandle(target) {
+			globalTarget = rustPackageGlobalName(target.Name)
+		} else if isPackageGlobalIdent(target) || isVarBare(target.Name) {
 			return false
 		}
 		if isCurrentReceiverIdent(target) && currentReceiverRustAlias != "" {
@@ -10769,6 +10783,14 @@ func writeParallelMapHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, 
 	}
 	if isNamedMapExpression(lhs) || isNamedMapExpression(rhs) {
 		return false
+	}
+	if globalTarget != "" {
+		out.WriteString(" ")
+		out.WriteString(globalTarget)
+		out.WriteString(".set(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return true
 	}
 	// For nil, writeParallelAssignmentTempValueForTarget gave the temp a
 	// nil map of its own.

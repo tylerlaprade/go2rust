@@ -11,7 +11,11 @@ import "fmt"
 
 var registry = map[string]int{"a": 1}
 
+var count int
+
 func add(m map[string]int, k string) { m[k] = len(m) }
+
+func load() (map[string]int, int) { return map[string]int{}, 1 }
 
 func main() {
 	go func() {}()
@@ -19,6 +23,8 @@ func main() {
 	add(registry, "c")
 	registry = map[string]int{}
 	registry = nil
+	registry, count = nil, 0
+	registry, count = load()
 	fmt.Println(len(r))
 }
 `
@@ -34,6 +40,8 @@ func TestPackageGlobalMapIsTheMapHandle(t *testing.T) {
 		"let mut r = registry_1.clone();",
 		"add(registry_1.clone(), ",
 		"{ let new_val = Rc::new(RefCell::new(None)); registry_1.set(new_val); }",
+		"registry_1.set(__tmp_0);",
+		"let (__tmp_0, __tmp_1) = load(); registry_1.set(__tmp_0);",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)

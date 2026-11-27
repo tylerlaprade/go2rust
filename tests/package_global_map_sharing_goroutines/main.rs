@@ -341,11 +341,14 @@ pub(crate) static cache: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<String, Ar
 
 pub(crate) static counts: std::sync::LazyLock<GoGlobalMapSync<BTreeMap<String, Arc<Mutex<Option<i64>>>>>> = std::sync::LazyLock::new(GoGlobalMapSync::new);
 
+pub(crate) static loaded: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<i64>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
 
 fn __go_init_globals() {
     *routes.lock().unwrap() = Some(BTreeMap::new());
     *cache.lock().unwrap() = Some(BTreeMap::new());
     *counts.lock().unwrap() = Some(BTreeMap::new());
+    *loaded.lock().unwrap() = Some(0);
     {
         let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<i64>>>>::new();
         *routes.lock().unwrap() = Some(__go_map);
@@ -365,6 +368,13 @@ pub fn register(name: Arc<Mutex<Option<String>>>, n: Arc<Mutex<Option<i64>>>) {
 
 pub fn add(m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>, k: Arc<Mutex<Option<String>>>) {
     { let __map_key = ({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __map_value = Arc::new(Mutex::new(Some(({ let __len = (*m.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+}
+
+pub fn load() -> (Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>, i64) {
+    (
+        Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("l".to_string(), Arc::new(Mutex::new(Some(9i64))))])))),
+        2
+    )
 }
 
 pub fn keys(m: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>) -> Arc<Mutex<Option<Vec<String>>>> {
@@ -431,6 +441,27 @@ fn main() {
     println!("{} {}", format!("{}", ({ let __len = (*routes.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map = { let __map_holder = routes.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&"z".to_string())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }));
     { let __map_handle = routes.clone(); let __delete_key = &"x".to_string(); let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     println!("{} {}", format!("{}", format_slice(&keys(routes.clone()))), format!("{}", format_slice(&keys({ let __field = (*s.lock().unwrap().as_ref().unwrap()).routes.clone(); __field }))));
+    let mut before = counts.clone();
+    {
+        let __tmp_0 = Arc::new(Mutex::new(None));
+        let __tmp_1 = 0;
+        counts.set(__tmp_0);
+        *loaded.lock().unwrap() = Some(__tmp_1);
+    };
+    println!("{} {} {}", format!("{}", format_slice(&keys(before.clone()))), format!("{}", { let __nil_result = (*counts.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    {
+        let __tmp_0 = local.clone();
+        let __tmp_1 = 1;
+        counts.set(__tmp_0);
+        *loaded.lock().unwrap() = Some(__tmp_1);
+    };
+    { let __map_key = "o".to_string(); let __map_value = Arc::new(Mutex::new(Some(3))); (*local.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    println!("{} {}", format!("{}", format_slice(&keys(counts.clone()))), format!("{}", { let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    { let (__tmp_0, __tmp_1) = load(); counts.set(__tmp_0); *loaded.lock().unwrap() = Some(__tmp_1); };
+    { let __map_key = "p".to_string(); let __map_value = Arc::new(Mutex::new(Some(4))); (*counts.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __go_print_arg_1 = keys(counts.clone());
+let mut __go_print_arg_1 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_1); Arc::new(Mutex::new(__slice_header)) }; let __go_print_arg_2 = keys(local.clone());
+let mut __go_print_arg_2 = { let __slice_header = GoSliceHeader::go_slice_header(&__go_print_arg_2); Arc::new(Mutex::new(__slice_header)) }; let __go_print_value = println!("{} {} {}", format!("{}", format_slice(&__go_print_arg_1)), format!("{}", { let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", format_slice(&__go_print_arg_2))); __go_print_value };
 }
 
 pub(crate) fn __go_init_all() {

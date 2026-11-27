@@ -19,6 +19,10 @@ func register(name string, n int) { routes[name] = n }
 
 func add(m map[string]int, k string) { m[k] = len(m) }
 
+func load() (map[string]int, int) { return map[string]int{"l": 9}, 2 }
+
+var loaded int
+
 func keys(m map[string]int) []string {
 	out := []string{}
 	for k := range m {
@@ -65,4 +69,14 @@ func main() {
 
 	delete(routes, "x")
 	fmt.Println(keys(routes), keys(s.routes))
+
+	before := counts
+	counts, loaded = nil, 0
+	fmt.Println(keys(before), counts == nil, loaded)
+	counts, loaded = local, 1
+	local["o"] = 3
+	fmt.Println(keys(counts), loaded)
+	counts, loaded = load()
+	counts["p"] = 4
+	fmt.Println(keys(counts), loaded, keys(local))
 }
