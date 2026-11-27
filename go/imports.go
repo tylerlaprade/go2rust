@@ -2868,9 +2868,18 @@ fn format_any_map<K: Display + Ord + Clone>(map: ` + mapType + `) -> String {
         let formatted: Vec<String> = entries
             .iter()
             .map(|(k, v)| {
-                let v_guard = ` + valueGuard + `;
-                match v_guard.as_ref() {
-                    Some(val) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                // The value is copied out too, so its String method may
+                // read its own entry; one with no copy prints in place.
+                let copied = { let v_guard = ` + valueGuard + `; v_guard.as_ref().map(|val| go_any_try_clone(val.as_ref())) };
+                match copied {
+                    Some(Some(val)) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                    Some(None) => {
+                        let v_guard = ` + valueGuard + `;
+                        match v_guard.as_ref() {
+                            Some(val) => format!("{}:{}", go_display_value(k), ` + formatValue + `(val.as_ref())),
+                            None => format!("{}:<nil>", go_display_value(k)),
+                        }
+                    }
                     None => format!("{}:<nil>", go_display_value(k)),
                 }
             })

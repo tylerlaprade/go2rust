@@ -1270,6 +1270,8 @@ func NeedGoInteger() {
 func NeedFormatAnyMap() {
 	NeedFormatAny()
 	NeedFormatMap()
+	// format_any_map copies each value out of its entry before printing it.
+	NeedAnyClone()
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsFormatAnyMap = true
 	}

@@ -145,6 +145,7 @@ func main() {
 		`format!("{}:{}", format_slice_values(&__k[..]), format_slice_values(&__v`,
 		`format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| format_any_nested(__value.as_ref()))`,
 		"let entries = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<std::vec::Vec<_>>()) };",
+		"let copied = { let v_guard = v.borrow(); v_guard.as_ref().map(|val| go_any_try_clone(val.as_ref())) };",
 		"__slice_guard.as_ref().cloned().unwrap_or_default() }) as Box<dyn Any>",
 	} {
 		if !strings.Contains(rust, want) {
