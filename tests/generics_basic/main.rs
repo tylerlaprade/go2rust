@@ -284,7 +284,7 @@ impl List__int {
         { let new_val = self.head.clone(); self.tail = new_val; };
     } else {
         { let new_val = Arc::new(Mutex::new(Some(element__int { val: Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); (*self.tail.lock().unwrap().as_mut().unwrap()).next = new_val; };
-        { let new_val = (*self.tail.lock().unwrap().as_ref().unwrap()).next.clone(); self.tail = new_val; };
+        { let new_val = (*{ let __base = self.tail.clone(); __base }.lock().unwrap().as_ref().unwrap()).next.clone(); self.tail = new_val; };
     }
     }
 }

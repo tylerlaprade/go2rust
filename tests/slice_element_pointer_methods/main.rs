@@ -1029,7 +1029,7 @@ fn main() {
     let mut items = Rc::new(RefCell::new(Some(vec![Counter { ..Default::default() }, Counter { ..Default::default() }])));
     { let __elem_slice = items.clone(); let __elem_index = (1) as usize; let mut __elem_view = (*__elem_slice.borrow()).clone().unwrap_or_default(); let __result = __elem_view[__elem_index].hit(Rc::new(RefCell::new(Some("a".to_string())))); __result };
     { let __elem_slice = items.clone(); let __elem_index = (1) as usize; let mut __elem_view = (*__elem_slice.borrow()).clone().unwrap_or_default(); let __result = __elem_view[__elem_index].hit(Rc::new(RefCell::new(Some("b".to_string())))); __result };
-    println!("{} {} {}", format!("{}", (*items.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*(*(*items.borrow().as_ref().unwrap())[(1) as usize].clone().last.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*items.borrow().as_ref().unwrap())[(0) as usize].clone()));
+    println!("{} {} {}", format!("{}", (*items.borrow().as_ref().unwrap())[(1) as usize].clone()), format!("{}", (*(*{ let __base = (*items.borrow().as_ref().unwrap())[(1) as usize].clone().last.clone(); __base }.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())), format!("{}", (*items.borrow().as_ref().unwrap())[(0) as usize].clone()));
 
     let mut arr: Rc<RefCell<Option<[Counter; 2]>>> = Rc::new(RefCell::new(Some(std::array::from_fn::<_, 2, _>(|_| Default::default()))));
     { let __elem_array = arr.clone(); let __elem_index = (0) as usize; let __elem_ptr = { let mut __elem_guard = __elem_array.borrow_mut(); std::ptr::addr_of_mut!(__elem_guard.as_mut().unwrap()[__elem_index]) }; let __result = unsafe { &mut *__elem_ptr }.hit(Rc::new(RefCell::new(Some("x".to_string())))); __result };

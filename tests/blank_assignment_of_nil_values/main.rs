@@ -967,7 +967,7 @@ fn main() {
     let _ = &(*p.borrow().as_ref().unwrap()).next;
     (*p.borrow().as_ref().unwrap()).check_pointer();
     let mut inner = Rc::new(RefCell::new(Some(Result_ { next: Rc::new(RefCell::new(Some(Result_ { err: Default::default(), next: Default::default(), tags: Default::default() }))).clone(), ..Default::default() })));
-    let _ = &(*(*inner.borrow().as_ref().unwrap()).next.borrow().as_ref().unwrap()).err;
+    let _ = &(*{ let __base = (*inner.borrow().as_ref().unwrap()).next.clone(); __base }.borrow().as_ref().unwrap()).err;
 
     { let __rhs_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("kept".to_string()))))).clone(); let new_val = (*__rhs_holder.borrow()).clone(); *lastErr.borrow_mut() = new_val; };
     let _ = &lastErr;

@@ -1390,7 +1390,7 @@ fn main() {
         ..Default::default()
     })));
     let mut n2 = { let __owned = n1.lock().unwrap().as_ref().unwrap().__go_value_clone(); Arc::new(Mutex::new(Some(__owned))) };
-    { let new_val = 3; *(*(*n2.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
+    { let new_val = 3; *(*{ let __base = (*n2.lock().unwrap().as_ref().unwrap()).p.clone(); __base }.lock().unwrap().as_ref().unwrap()).x.lock().unwrap() = Some(new_val); };
     println!("{} {} {}", format!("{}", "pointer field shared".to_string()), format!("{}", { let __v = (*(*n1.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*(*n2.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
     { let new_val = Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(8))), y: Arc::new(Mutex::new(Some(8))), ..Default::default() }))).clone(); (*n2.lock().unwrap().as_mut().unwrap()).p = new_val; };
     println!("{} {} {}", format!("{}", "pointer field replaced".to_string()), format!("{}", { let __v = (*(*n1.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }), format!("{}", { let __v = (*(*n2.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()).__go_value_clone(); __v }));
