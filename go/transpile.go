@@ -2441,22 +2441,26 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 // shallowest, through the embedded field it is reached by. A name Go
 // selects a field for, a method of another package for (a sync.RWMutex
 // method, which collectExternalPromotedMethods forwards), or nothing for (two
-// equally shallow) gets no forwarder of a package method. Without type info
-// the first-embed-wins pick stands.
+// equally shallow) gets no forwarder of a package method. known is false
+// when go/types could not say: the first-embed-wins picks are returned, and
+// their forwarders must not run, as the pick may not be Go's.
 func goSelectedPromotedMethods(structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, promoted map[string]struct {
 	embeddedType string
 	method       *ast.FuncDecl
-}) map[string]struct {
+}) (selectedMethods map[string]struct {
 	embeddedType string
 	method       *ast.FuncDecl
-} {
+}, known bool) {
+	if len(promoted) == 0 {
+		return promoted, true
+	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || structDef == nil || structDef.ASTType == nil || len(promoted) == 0 {
-		return promoted
+	if typeInfo == nil || typeInfo.pkg == nil || structDef == nil || structDef.ASTType == nil {
+		return promoted, false
 	}
 	st, ok := types.Unalias(typeInfo.GetType(structDef.ASTType)).(*types.Struct)
 	if !ok {
-		return promoted
+		return promoted, false
 	}
 	embeddedFieldNames := make(map[int]string)
 	fieldIndex := 0
@@ -2494,7 +2498,7 @@ func goSelectedPromotedMethods(structDef *StructDef, packageMethods map[string][
 			method       *ast.FuncDecl
 		}{embeddedType: embeddedType, method: decl}
 	}
-	return selected
+	return selected, true
 }
 
 func writePromotedMethodForwarders(out *strings.Builder, structDefName string, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
@@ -2513,7 +2517,11 @@ func writePromotedMethodForwarders(out *strings.Builder, structDefName string, s
 		method       *ast.FuncDecl
 	})
 	collectPromotedMethods(structDef, packageMethods, promotedMethods)
-	promotedMethods = goSelectedPromotedMethods(structDef, packageMethods, promotedMethods)
+	promotedMethods, selectionKnown := goSelectedPromotedMethods(structDef, packageMethods, promotedMethods)
+	unimplemented := ""
+	if !selectionKnown {
+		unimplemented = "type info required for selecting a promoted method"
+	}
 
 	var promotedMethodNames []string
 	for methodName := range promotedMethods {
@@ -2530,7 +2538,7 @@ func writePromotedMethodForwarders(out *strings.Builder, structDefName string, s
 		if *methodCount > 0 {
 			out.WriteString("\n")
 		}
-		generatePromotedMethod(out, methodInfo.method, structDefName, methodInfo.embeddedType)
+		generatePromotedMethodWithReason(out, methodInfo.method, structDefName, methodInfo.embeddedType, unimplemented)
 		existingMethodNames[methodName] = true
 		existingRustMethodNames[methodRustName] = true
 		*methodCount = *methodCount + 1
@@ -2574,6 +2582,12 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTypeName string, embeddedTypeName string) {
+	generatePromotedMethodWithReason(out, method, ownerTypeName, embeddedTypeName, "")
+}
+
+// generatePromotedMethodWithReason is generatePromotedMethod, with an
+// unimplemented! body giving unimplemented as its reason when that is set.
+func generatePromotedMethodWithReason(out *strings.Builder, method *ast.FuncDecl, ownerTypeName string, embeddedTypeName string, unimplemented string) {
 	mutableReceiver := methodRequiresMutableReceiver(method)
 	params := promotedMethodParamBindings(method.Type.Params)
 	goPtrResultInfos := goPtrResultInfosForFunc(method)
@@ -2625,6 +2639,13 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTyp
 	}
 
 	out.WriteString(" {\n")
+	if unimplemented != "" {
+		out.WriteString("        unimplemented!(")
+		out.WriteString("\"" + unimplemented + "\"")
+		out.WriteString(")\n")
+		out.WriteString("    }\n")
+		return
+	}
 	out.WriteString("        // Forward to embedded type's method\n")
 	out.WriteString("        let embedded = self.")
 	out.WriteString(ToSnakeCase(embeddedTypeName))

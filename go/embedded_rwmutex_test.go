@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/ast"
 	"strings"
 	"testing"
 )
@@ -296,5 +297,97 @@ func main() {
 `)
 	if !strings.Contains(rust, "let __recv = { let __sync_value = (*__recv") || !strings.Contains(rust, "__go_rw_mutex(); __sync_value }; Rc::new(move || { __recv.unlock() })") {
 		t.Fatalf("reg.Unlock should take the mutex when the method value is made:\n%s", rust)
+	}
+}
+
+// o.Deep.Lock() through pointer fields takes the mutex out in a block of its
+// own, so the call waits holding none of the guards on the way.
+func TestForwardedRWMutexCallThroughPointerFieldsReleasesTheirGuards(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Deep struct {
+	sync.RWMutex
+}
+
+type Middle struct {
+	*Deep
+}
+
+type Outer struct {
+	*Middle
+}
+
+func main() {
+	o := Outer{Middle: &Middle{Deep: &Deep{}}}
+	o.Deep.Lock()
+	o.Deep.Unlock()
+}
+`)
+	if !strings.Contains(rust, ".deep.borrow().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();") {
+		t.Fatalf("o.Deep.Lock() should take the mutex out before waiting:\n%s", rust)
+	}
+}
+
+// defer r.Unlock() takes the mutex when the defer runs, as Go follows the
+// embedded fields then.
+func TestDeferredRWMutexUnlockTakesTheMutexWhenDeferred(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type Table struct {
+	sync.RWMutex
+}
+
+type Registry struct {
+	*Table
+}
+
+func (r *Registry) Swap() {
+	r.Lock()
+	defer r.Unlock()
+	r.Table = &Table{}
+}
+
+func main() {
+	reg := &Registry{Table: &Table{}}
+	reg.Swap()
+}
+`)
+	if !strings.Contains(rust, "let __defer_mutex = { let __recv = ") || !strings.Contains(rust, "__defer_mutex.unlock();\n    }));") {
+		t.Fatalf("defer r.Unlock() should capture the mutex when deferred:\n%s", rust)
+	}
+}
+
+// Without type info for the owner struct, the forwarders of its promoted
+// methods do not guess which one Go selects.
+func TestPromotedMethodsWithoutTypeInfoAreUnimplemented(t *testing.T) {
+	oldContext := currentContext
+	currentContext = nil
+	SetTypeInfo(nil)
+	defer func() { currentContext = oldContext }()
+	method := &ast.FuncDecl{
+		Name: ast.NewIdent("Hello"),
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("b")},
+			Type:  &ast.StarExpr{X: ast.NewIdent("Base")},
+		}}},
+		Type: &ast.FuncType{Params: &ast.FieldList{}},
+		Body: &ast.BlockStmt{},
+	}
+	structDef := &StructDef{
+		EmbeddedTypes: []string{"Base"},
+		ASTType: &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
+			{Type: ast.NewIdent("Base")},
+		}}},
+	}
+	var out strings.Builder
+	count := 0
+	writePromotedMethodForwarders(&out, "Outer", structDef, map[string][]*ast.FuncDecl{"Base": {method}}, nil, nil, &count)
+	got := out.String()
+	if !strings.Contains(got, "pub fn hello(") || !strings.Contains(got, `unimplemented!("type info required for selecting a promoted method")`) {
+		t.Fatalf("the forwarder should be unimplemented without type info:\n%s", got)
 	}
 }

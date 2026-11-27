@@ -17771,16 +17771,7 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 		// is made, so the value keeps that mutex when one of those fields is
 		// reassigned afterwards: the closure holds the mutex, not the struct.
 		out.WriteString("; let __recv = ")
-		switch {
-		case rawReceiver:
-			out.WriteString("__recv." + rwMutexAccessorName + "()")
-		case goPtrReceiver:
-			writeForwardedRWMutexAccessor(out, "__recv", ".borrow()")
-		default:
-			var borrow strings.Builder
-			WriteBorrowMethod(&borrow, false)
-			writeForwardedRWMutexAccessor(out, "__recv", borrow.String())
-		}
+		writeForwardedRWMutexFromHandle(out, sel.X, "__recv")
 	}
 	out.WriteString("; " + funcValueConstructor() + "move |")
 	params := sig.Params()
@@ -24675,6 +24666,35 @@ func writeForwardedRWMutexReceiver(out *strings.Builder, cell string) {
 	out.WriteString(".")
 }
 
+// writeForwardedRWMutexOf writes, as a block, the sync.RWMutex that recv has
+// by embedding one, as Go selects it now: for a method value or a deferred
+// call, which follow the embedded fields when they are made, not when they
+// run.
+func writeForwardedRWMutexOf(out *strings.Builder, recv ast.Expr) {
+	out.WriteString("{ let __recv = ")
+	writePointerHandleExpression(out, recv)
+	out.WriteString("; ")
+	writeForwardedRWMutexFromHandle(out, recv, "__recv")
+	out.WriteString(" }")
+}
+
+// writeForwardedRWMutexFromHandle writes the sync.RWMutex of recv, written
+// by writePointerHandleExpression and bound to handle.
+func writeForwardedRWMutexFromHandle(out *strings.Builder, recv ast.Expr, handle string) {
+	if ident, ok := unwrapParens(recv).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		// The method's own receiver is the bare struct.
+		out.WriteString(handle + "." + rwMutexAccessorName + "()")
+		return
+	}
+	if methodValueReceiverIsGoPtr(recv) {
+		writeForwardedRWMutexAccessor(out, handle, ".borrow()")
+		return
+	}
+	var borrow strings.Builder
+	WriteBorrowMethod(&borrow, false)
+	writeForwardedRWMutexAccessor(out, handle, borrow.String())
+}
+
 // writeForwardedRWMutexAccessor writes the sync.RWMutex that the struct in
 // cell has by embedding one, borrowed with borrow and let go of before the
 // block ends.
@@ -25393,7 +25413,10 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(".")
 				out.WriteString(ToSnakeCase(fieldSel.Sel.Name))
 				out.WriteString(".")
-			} else if isForwardedRWMutexMethodCall(sel) && !typeInfoIsPointerExpr(fieldSel) {
+			} else if isForwardedRWMutexMethodCall(sel) {
+				// A pointer field holds its pointee's handle, as a struct
+				// field holds its cell: either way the mutex is taken out
+				// before the call waits, holding no guard on the way.
 				var field strings.Builder
 				TranspileExpressionContext(&field, fieldSel, LValue)
 				writeForwardedRWMutexReceiver(out, field.String())

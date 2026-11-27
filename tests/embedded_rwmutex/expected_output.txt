@@ -3,5 +3,7 @@ reg 4
 5
 both 4
 outer 7
+picky locked 0
 picky 0
 method value 1
+deferred unlock 1

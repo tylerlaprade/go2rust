@@ -32,6 +32,15 @@ type Registry struct {
 	name string
 }
 
+// Swap replaces r's Table while holding the old one's lock: the deferred
+// Unlock unlocks the Table that was locked, as Go follows r.Table to the
+// mutex when the defer runs.
+func (r *Registry) Swap() {
+	r.Lock()
+	defer r.Unlock()
+	r.Table = &Table{m: map[string]int{"swapped": 1}}
+}
+
 // Bump locks through Table's mutex from a method of Registry.
 func (r *Registry) Bump(k string) {
 	r.Lock()
@@ -189,35 +198,62 @@ func main() {
 	fmt.Println(shared.name, len(shared.m))
 
 	// A reader that waits behind a writer gets the lock before the next
-	// writer does, as in Go, so a writer that waits for that reader inside
-	// its critical section finishes.
+	// writer does, as in Go. The order is best effort: the sleeps give the
+	// reader, then the writer, time to start waiting. A goroutine that starts
+	// late changes the order printed, and never leaves the program waiting.
 	var mu sync.RWMutex
 	mu.Lock()
-	readerIn := make(chan bool, 1)
-	readerDone := make(chan bool)
+	order := make(chan string, 2)
+	finished := make(chan bool)
 	go func() {
 		mu.RLock()
-		readerIn <- true
+		order <- "reader"
 		mu.RUnlock()
-		readerDone <- true
+		finished <- true
 	}()
 	time.Sleep(20 * time.Millisecond)
-	writerDone := make(chan bool)
 	go func() {
 		mu.Lock()
-		<-readerIn
+		order <- "writer"
 		mu.Unlock()
-		writerDone <- true
+		finished <- true
 	}()
 	time.Sleep(20 * time.Millisecond)
 	mu.Unlock()
-	<-readerDone
-	<-writerDone
-	fmt.Println("reader before writer")
+	<-finished
+	<-finished
+	first := <-order
+	second := <-order
+	fmt.Println(first, "before", second)
+
+	// Goroutines lock a mutex reached through pointer fields while main
+	// holds it, and main unlocks it through the same fields: each waits
+	// holding none of the structs on the way. Contention is best effort, as
+	// above.
+	deep := Outer{Middle: &Middle{Deep: &Deep{}}, Shallow: &Shallow{}}
+	deep.Deep.Lock()
+	started := make(chan bool)
+	var wg4 sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		wg4.Add(1)
+		go func() {
+			defer wg4.Done()
+			started <- true
+			deep.Deep.Lock()
+			deep.Deep.Unlock()
+		}()
+	}
+	<-started
+	<-started
+	time.Sleep(20 * time.Millisecond)
+	deep.Deep.Unlock()
+	wg4.Wait()
+	fmt.Println("deep shared")
 
 	p := &Picky{Deeper: &Deeper{Custom: &Custom{}}}
 	p.Hold()
 	p.Lock()
+	fmt.Println("picky locked", p.calls) // Custom.Lock did not run
 	p.Unlock()
 	fmt.Println("picky", p.calls)
 
@@ -232,4 +268,13 @@ func main() {
 	held.Lock() // free again: unlock let go of held's mutex
 	held.Unlock()
 	fmt.Println("method value", len(reg.m))
+
+	before := &Table{m: map[string]int{}}
+	swapped := &Registry{Table: before}
+	swapped.Swap()
+	before.Lock() // free again: the deferred Unlock let go of it
+	before.Unlock()
+	swapped.Lock()
+	swapped.Unlock()
+	fmt.Println("deferred unlock", len(swapped.m))
 }

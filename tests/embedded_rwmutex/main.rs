@@ -767,8 +767,8 @@ impl Table {
         let __go_previous_panic_hook = go_silence_panic_hook();
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             self.r_lock();
-            let mut t_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        t_defer_captured.r_unlock();
+            let __defer_mutex = { let __recv = self.clone(); __recv.__go_rw_mutex() }; __defer_stack.push(Box::new(move || {
+        __defer_mutex.r_unlock();
     }));
             {
         let __return_value = { let __map = { let __map_holder = self.m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) };
@@ -830,6 +830,44 @@ impl Table {
 }
 
 impl Registry {
+    /// Swap replaces r's Table while holding the old one's lock: the deferred
+    /// Unlock unlocks the Table that was locked, as Go follows r.Table to the
+    /// mutex when the defer runs.
+    pub fn swap(&mut self) {
+        let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
+
+        let __go_previous_panic_hook = go_silence_panic_hook();
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.lock();
+            let __defer_mutex = { let __recv = self.clone(); __recv.__go_rw_mutex() }; __defer_stack.push(Box::new(move || {
+        __defer_mutex.unlock();
+    }));
+            { let new_val = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("swapped".to_string(), Arc::new(Mutex::new(Some(1i64))))])))), ..Default::default() }))).clone(); self.table = new_val; };
+
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        match __go_panic_result {
+            Ok(__go_value) => {
+                go_restore_panic_hook(__go_previous_panic_hook);
+                __go_value
+            }
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    if let Err(__go_defer_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                        go_store_panic_payload(__go_defer_panic);
+                    }
+                }
+                go_restore_panic_hook(__go_previous_panic_hook);
+                go_resume_unrecovered_panic();
+                ()
+            }
+        }
+    }
+
     /// Bump locks through Table's mutex from a method of Registry.
     pub fn bump(&mut self, k: Arc<Mutex<Option<String>>>) {
         self.lock();
@@ -1132,9 +1170,9 @@ fn main() {
         ..Default::default()
     })));
     { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
-    (*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_mut().unwrap()).unlock();
-    (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).lock();
-    (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_mut().unwrap()).unlock();
+    { let __sync_value = (*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    { let __sync_value = (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*(*(*o.lock().unwrap().as_mut().unwrap()).middle.lock().unwrap().as_mut().unwrap()).deep.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
     { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_lock();
     println!("{} {}", format!("{}", "outer".to_string()), format!("{}", (*(*(*o.lock().unwrap().as_ref().unwrap()).shallow.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())));
     { let __sync_value = (*o.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.r_unlock();
@@ -1159,6 +1197,7 @@ fn main() {
     };
     { let __recv = p.clone(); let __recv_ptr: *const Picky = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Picky }; let __result = unsafe { &*__recv_ptr }.hold(); __result };
     { let __sync_value = (*p.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    println!("{} {}", format!("{}", "picky locked".to_string()), format!("{}", (*(*(*p.lock().unwrap().as_ref().unwrap()).deeper.lock().unwrap().as_ref().unwrap().custom.lock().unwrap().as_ref().unwrap()).calls.lock().unwrap().as_ref().unwrap())));
     { let __sync_value = (*p.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
     println!("{} {}", format!("{}", "picky".to_string()), format!("{}", (*(*(*p.lock().unwrap().as_ref().unwrap()).deeper.lock().unwrap().as_ref().unwrap().custom.lock().unwrap().as_ref().unwrap()).calls.lock().unwrap().as_ref().unwrap())));
     let mut held = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), ..Default::default() })));
@@ -1181,6 +1220,20 @@ fn main() {
     { let __sync_value = (*held.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
     { let __sync_value = (*held.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
     println!("{} {}", format!("{}", "method value".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*reg.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
+    let mut before = Arc::new(Mutex::new(Some(Table { m: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([])))), ..Default::default() })));
+    let mut swapped = {
+        let __owner = Arc::new(Mutex::new(Some(Registry { table: before.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().table.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
+    { let __recv = swapped.clone(); let __recv_ptr: *mut Registry = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Registry }; let __result = unsafe { &mut *__recv_ptr }.swap(); __result };
+    { let __sync_value = (*before.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*before.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    { let __sync_value = (*swapped.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.lock();
+    { let __sync_value = (*swapped.lock().unwrap().as_ref().unwrap()).__go_rw_mutex(); __sync_value }.unlock();
+    println!("{} {}", format!("{}", "deferred unlock".to_string()), format!("{}", ({ let __len = ({ let __len_target = { let __field = (*(*swapped.lock().unwrap().as_mut().unwrap()).table.lock().unwrap().as_mut().unwrap()).m.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }); __len })));
 }
 
 impl GoValueClone for Table {

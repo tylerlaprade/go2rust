@@ -31,6 +31,15 @@ type Registry struct {
 	name string
 }
 
+// Swap replaces r's Table while holding the old one's lock: the deferred
+// Unlock unlocks the Table that was locked, as Go follows r.Table to the
+// mutex when the defer runs.
+func (r *Registry) Swap() {
+	r.Lock()
+	defer r.Unlock()
+	r.Table = &Table{m: map[string]int{"swapped": 1}}
+}
+
 // Bump locks through Table's mutex from a method of Registry.
 func (r *Registry) Bump(k string) {
 	r.Lock()
@@ -130,6 +139,7 @@ func main() {
 	p := &Picky{Deeper: &Deeper{Custom: &Custom{}}}
 	p.Hold()
 	p.Lock()
+	fmt.Println("picky locked", p.calls) // Custom.Lock did not run
 	p.Unlock()
 	fmt.Println("picky", p.calls)
 
@@ -144,4 +154,13 @@ func main() {
 	held.Lock() // free again: unlock let go of held's mutex
 	held.Unlock()
 	fmt.Println("method value", len(reg.m))
+
+	before := &Table{m: map[string]int{}}
+	swapped := &Registry{Table: before}
+	swapped.Swap()
+	before.Lock() // free again: the deferred Unlock let go of it
+	before.Unlock()
+	swapped.Lock()
+	swapped.Unlock()
+	fmt.Println("deferred unlock", len(swapped.m))
 }

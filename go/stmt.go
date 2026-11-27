@@ -17454,6 +17454,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("// mu.Unlock() handled by RAII guard")
 			break
 		}
+		// defer r.Unlock() through an embedded sync.RWMutex: Go follows the
+		// embedded fields to the mutex when the defer runs, so the deferred
+		// call unlocks that mutex even if one of those fields is reassigned
+		// before the function returns.
+		if sel, ok := s.Call.Fun.(*ast.SelectorExpr); ok && len(s.Call.Args) == 0 && isForwardedRWMutexMethodCall(sel) {
+			out.WriteString("let __defer_mutex = ")
+			writeForwardedRWMutexOf(out, sel.X)
+			out.WriteString("; __defer_stack.push(Box::new(move || {\n")
+			out.WriteString("        __defer_mutex.")
+			out.WriteString(rustMethodSelectorName(sel))
+			out.WriteString("();\n")
+			out.WriteString("    }));")
+			break
+		}
 
 		// Check if the defer contains a closure that captures variables
 		captured := findCapturedInCall(s.Call)
