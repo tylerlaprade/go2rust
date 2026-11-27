@@ -724,6 +724,47 @@ where
         "map[]".to_string()
     }
 }
+fn format_slice<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+fn format_slice_wrapped<T, C>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.lock().unwrap();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
 
 fn go_install_panic_exit() {
     // Go lets a program call main again; the hook goes in once, so a
@@ -1093,6 +1134,17 @@ impl std::fmt::Display for Point {
 }
 
 
+/// Counts is a defined map type.
+#[derive(Debug, Clone, Default)]
+pub struct Counts(pub Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<i64>>>>>>>);
+
+impl Display for Counts {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_map(&self.0))
+    }
+}
+
+
 fn main() {
     go_install_panic_exit();
     let mut started = GoChannel::<String>::new_buffered(1 as usize);
@@ -1128,4 +1180,11 @@ fn main() {
     { let __idx = (1) as usize; let __rhs = (*Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("y".to_string(), Arc::new(Mutex::new(Some(2i64))))])))).lock().unwrap().as_ref().unwrap()).clone(); (*rows.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     let mut lists = Arc::new(Mutex::new(Some(vec![BTreeMap::<String, Arc<Mutex<Option<Vec<i64>>>>>::from([("a".to_string(), Arc::new(Mutex::new(Some(vec![1i64])))), ("b".to_string(), Arc::new(Mutex::new(None)))])])));
     println!("{} {} {}", format!("{}", { let __maps = (*rows.lock().unwrap()).clone().unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map(&Arc::new(Mutex::new(Some(__m.clone()))))).collect::<Vec<_>>().join(" ")) }), format!("{}", { let __seq = { let __seq_holder = rows.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.len()), format!("{}", { let __maps = (*lists.lock().unwrap()).clone().unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map_nil(&Arc::new(Mutex::new(Some(__m.clone()))), "[]")).collect::<Vec<_>>().join(" ")) }));
+
+        // A defined map type is a newtype with its own Display, both as a slice
+        // element and as a map value.
+    let mut defined = Arc::new(Mutex::new(Some(vec![Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("b".to_string(), Arc::new(Mutex::new(Some(2i64)))), ("a".to_string(), Arc::new(Mutex::new(Some(1i64))))]))))), Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::new()))))])));
+    println!("{}", format!("{}", format_slice(&defined)));
+    let mut byCounts = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Counts>>>>::from([("y".to_string(), Arc::new(Mutex::new(Some(Counts(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<i64>>>>::from([("z".to_string(), Arc::new(Mutex::new(Some(9i64))))])))))))))]))));
+    println!("{}", format!("{}", format_map(&byCounts)));
 }

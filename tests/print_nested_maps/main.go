@@ -31,4 +31,14 @@ func main() {
 	rows[1] = map[string]int{"y": 2}
 	lists := []map[string][]int{{"a": {1}, "b": nil}}
 	fmt.Println(rows, len(rows[2]), lists)
+
+	// A defined map type is a newtype with its own Display, both as a slice
+	// element and as a map value.
+	defined := []Counts{{"b": 2, "a": 1}, nil}
+	fmt.Println(defined)
+	byCounts := map[string]Counts{"y": {"z": 9}}
+	fmt.Println(byCounts)
 }
+
+// Counts is a defined map type.
+type Counts map[string]int

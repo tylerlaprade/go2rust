@@ -2737,7 +2737,8 @@ func mapValuesAreBasicMaps(mapType types.Type) bool {
 	if named, ok := types.Unalias(m.Elem()).(*types.Named); ok && typeHasGoStringMethod(named) {
 		return false
 	}
-	inner, ok := m.Elem().Underlying().(*types.Map)
+	// A defined map value is a newtype that prints through its own Display.
+	inner, ok := types.Unalias(m.Elem()).(*types.Map)
 	if !ok {
 		return false
 	}
@@ -2776,7 +2777,9 @@ func mapValuesAreMapsOfSlicesOrStructs(mapType types.Type) (bool, bool) {
 	if !ok || typeHasGoStringMethod(m.Elem()) {
 		return false, false
 	}
-	inner, ok := types.Unalias(m.Elem()).Underlying().(*types.Map)
+	// The inner maps must be bare maps; a defined map value is a newtype
+	// whose handle is inside it.
+	inner, ok := types.Unalias(m.Elem()).(*types.Map)
 	if !ok || typeHasGoStringMethod(inner.Elem()) {
 		return false, false
 	}
@@ -3134,7 +3137,9 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 	if typeInfo == nil || !typeInfo.IsSlice(arg) {
 		return false
 	}
-	m, ok := types.Unalias(elemType).Underlying().(*types.Map)
+	// A defined map element, type M map[string]int, is a newtype with a
+	// Display of its own, which the slice formatter already uses.
+	m, ok := types.Unalias(elemType).(*types.Map)
 	if !ok || typeHasGoStringMethod(m.Elem()) {
 		return false
 	}

@@ -724,6 +724,47 @@ where
         "map[]".to_string()
     }
 }
+fn format_slice<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| go_display_value(v)).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+
+fn format_slice_values<T>(slice: &[T]) -> String
+where
+    T: Display,
+{
+    let formatted: Vec<String> = slice.iter().map(|v| go_display_value(v)).collect();
+    format!("[{}]", formatted.join(" "))
+}
+
+fn format_slice_wrapped<T, C>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s.as_ref().iter().map(|v| {
+            let inner = v.borrow();
+            match inner.as_ref() {
+                Some(value) => format!("&{}", value),
+                None => "<nil>".to_string(),
+            }
+        }).collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
 
 fn go_install_panic_exit() {
     // Go lets a program call main again; the hook goes in once, so a
@@ -871,6 +912,17 @@ impl std::fmt::Display for Point {
 }
 
 
+/// Counts is a defined map type.
+#[derive(Debug, Clone, Default)]
+pub struct Counts(pub Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>);
+
+impl Display for Counts {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_map(&self.0))
+    }
+}
+
+
 fn main() {
     go_install_panic_exit();
     let mut groups = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<Vec<i64>>>>>>>>>::from([]))));
@@ -895,4 +947,11 @@ fn main() {
     { let __idx = (1) as usize; let __rhs = (*Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("y".to_string(), Rc::new(RefCell::new(Some(2i64))))])))).borrow().as_ref().unwrap()).clone(); (*rows.borrow_mut().as_mut().unwrap())[__idx] = __rhs; };
     let mut lists = Rc::new(RefCell::new(Some(vec![BTreeMap::<String, Rc<RefCell<Option<Vec<i64>>>>>::from([("a".to_string(), Rc::new(RefCell::new(Some(vec![1i64])))), ("b".to_string(), Rc::new(RefCell::new(None)))])])));
     println!("{} {} {}", format!("{}", { let __maps = (*rows.borrow()).clone().unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map(&Rc::new(RefCell::new(Some(__m.clone()))))).collect::<Vec<_>>().join(" ")) }), format!("{}", (*rows.borrow().as_ref().unwrap())[(2) as usize].clone().len()), format!("{}", { let __maps = (*lists.borrow()).clone().unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map_nil(&Rc::new(RefCell::new(Some(__m.clone()))), "[]")).collect::<Vec<_>>().join(" ")) }));
+
+        // A defined map type is a newtype with its own Display, both as a slice
+        // element and as a map value.
+    let mut defined = Rc::new(RefCell::new(Some(vec![Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("b".to_string(), Rc::new(RefCell::new(Some(2i64)))), ("a".to_string(), Rc::new(RefCell::new(Some(1i64))))]))))), Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::new()))))])));
+    println!("{}", format!("{}", format_slice(&defined)));
+    let mut byCounts = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<Counts>>>>::from([("y".to_string(), Rc::new(RefCell::new(Some(Counts(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("z".to_string(), Rc::new(RefCell::new(Some(9i64))))])))))))))]))));
+    println!("{}", format!("{}", format_map(&byCounts)));
 }
