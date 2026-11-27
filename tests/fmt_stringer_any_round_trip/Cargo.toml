@@ -1,0 +1,11 @@
+[package]
+name = "fmt_stringer_any_round_trip"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "fmt_stringer_any_round_trip"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

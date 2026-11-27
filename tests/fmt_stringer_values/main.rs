@@ -1075,22 +1075,36 @@ pub struct fmt_Stringer {
     pub __go_value: Rc<dyn std::any::Any>,
     /// The text of the value's String method.
     pub __go_text: Option<Rc<dyn Fn() -> String>>,
+    /// Boxes the value for an interface{}, as its own type.
+    pub __go_box: Option<Rc<dyn Fn() -> Box<dyn std::any::Any>>>,
 }
 
 impl fmt_Stringer {
     pub fn __go_from<T: 'static>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value), __go_text: None }
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value), __go_text: None, __go_box: None }
     }
     /// A value whose type has a String method, which its Display impl calls.
-    pub fn __go_from_display<T: std::fmt::Display + 'static>(value: T) -> Self {
+    pub fn __go_from_display<T: std::fmt::Display + 'static + Clone>(value: T) -> Self {
         let shared = Rc::new(value);
         let text = shared.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(Rc::new(move || text.to_string())) }
+        let boxed = shared.clone();
+        let __into_any: Rc<dyn Fn() -> Box<dyn std::any::Any>> = Rc::new(move || Box::new((*boxed).clone()) as Box<dyn std::any::Any>);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(Rc::new(move || text.to_string())), __go_box: Some(__into_any) }
     }
     /// A pointer whose element type has a String method.
     pub fn __go_from_display_cell<T: std::fmt::Display + 'static>(cell: Rc<RefCell<Option<T>>>) -> Self {
         let text = cell.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(cell), __go_text: Some(Rc::new(move || text.borrow().as_ref().map(|__v| __v.to_string()).unwrap_or_default())) }
+        let boxed = cell.clone();
+        let __into_any: Rc<dyn Fn() -> Box<dyn std::any::Any>> = Rc::new(move || Box::new(boxed.clone()) as Box<dyn std::any::Any>);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(cell), __go_text: Some(Rc::new(move || text.borrow().as_ref().map(|__v| __v.to_string()).unwrap_or_default())), __go_box: Some(__into_any) }
+    }
+    /// The value as an interface{} holds it: the value of its own type, so
+    /// an assertion to that type finds it.
+    pub fn __go_into_any(&self) -> Box<dyn std::any::Any> {
+        match &self.__go_box {
+            Some(boxed) => boxed(),
+            None => Box::new(self.clone()) as Box<dyn std::any::Any>,
+        }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -1108,7 +1122,7 @@ impl fmt_Stringer {
 
 impl Default for fmt_Stringer {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Rc::new(()), __go_text: None }
+        Self { __go_id: 0, __go_value: Rc::new(()), __go_text: None, __go_box: None }
     }
 }
 

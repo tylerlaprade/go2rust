@@ -1,0 +1,10 @@
+5C true
+true true
+show 5C true
+5C true
+true
+5C main.Celsius *main.Counter
+counter 1
+count 1 true
+true
+true
