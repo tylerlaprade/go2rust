@@ -10849,7 +10849,9 @@ func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	// A value of a defined slice type is boxed as that type, as its own
+	// value, not as a []any.
+	slice, ok := types.Unalias(typ).(*types.Slice)
 	if !ok || !isEmptyInterfaceType(slice.Elem()) {
 		return false
 	}

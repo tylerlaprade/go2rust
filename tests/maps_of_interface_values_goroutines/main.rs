@@ -867,7 +867,7 @@ fn go_any_try_clone(value: &(dyn Any + Send + Sync)) -> Option<Box<dyn Any + Sen
     if let Some(v) = value.downcast_ref::<Arc<Mutex<Option<Vec<i64>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<GoNilAny>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     if let Some(v) = value.downcast_ref::<Point>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
-    if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any + Send + Sync>>>() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<Box<dyn Any + Send + Sync>>>()) as Box<dyn Any + Send + Sync>); }
+    if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any + Send + Sync>>>() { return Some(Box::new(v.clone()) as Box<dyn Any + Send + Sync>); }
     None
 }
 

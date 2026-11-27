@@ -30,8 +30,8 @@ func main() {
 	}
 }
 
-// A []any held in an interface prints and copies element by element, and a
-// []any inside a []any literal is boxed the same way.
+// A []any held in an interface prints element by element and copies as a
+// slice header, and a []any inside a []any literal is boxed the same way.
 func TestBoxedSliceOfInterfacesPrintsAndCopies(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -44,7 +44,7 @@ func main() {
 }
 `)
 	for _, want := range []string{
-		`value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<Box<dyn Any>>>()) as Box<dyn Any>); }`,
+		`value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }`,
 		`format!("[{}]", v.iter().map(|__e| format_any_nested(__e.as_ref())).collect::<Vec<_>>().join(" "))`,
 	} {
 		if !strings.Contains(rust, want) {
@@ -83,5 +83,32 @@ func main() {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q:\n%s", want, rust)
 		}
+	}
+}
+
+// A copy of an interface holding a []any copies the slice's header, which
+// shares its elements as in Go, and a value of a defined []any type is boxed
+// as that type rather than copied out as a []any.
+func TestBoxedAnySliceCopySharesElementsAndDefinedSliceKeepsItsType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Items []any
+
+func main() {
+	var a any = []any{1, "x"}
+	b := a
+	s := Items([]any{1})
+	values := []any{s, []any{3}}
+	m := map[string]any{"items": s}
+	fmt.Println(a, b, len(values), len(m))
+}
+`)
+	if !strings.Contains(rust, "if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }") {
+		t.Fatalf("copying a boxed []any should copy its header:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __slice_holder = s.clone();") {
+		t.Fatalf("a defined []any should be boxed as its own type:\n%s", rust)
 	}
 }

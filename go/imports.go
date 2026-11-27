@@ -1350,8 +1350,15 @@ func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
 func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
 	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
 		if rustType == "Vec<"+traitObject+">" {
-			// A boxed []any: its elements have no Clone, so each is copied
-			// as an interface value.
+			if goSliceModeEnabled() {
+				// A boxed []any: a copy of the interface copies the slice's
+				// header, which shares its elements, as in Go. GoSlice's
+				// Clone needs no Clone of the elements.
+				out.WriteString("    if let Some(v) = value.downcast_ref::<" + rustType + ">() { return Some(Box::new(v.clone()) as " + traitObject + "); }\n")
+				continue
+			}
+			// A std Vec of interface values has no Clone, so each element
+			// is copied as an interface value.
 			out.WriteString("    if let Some(v) = value.downcast_ref::<" + rustType + ">() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<" + rustType + ">()) as " + traitObject + "); }\n")
 			continue
 		}

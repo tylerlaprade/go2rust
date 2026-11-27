@@ -866,7 +866,7 @@ fn go_any_try_clone(value: &dyn Any) -> Option<Box<dyn Any>> {
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<String>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     if let Some(v) = value.downcast_ref::<Rc<RefCell<Option<Vec<i64>>>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
-    if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<Box<dyn Any>>>()) as Box<dyn Any>); }
+    if let Some(v) = value.downcast_ref::<Vec<Box<dyn Any>>>() { return Some(Box::new(v.clone()) as Box<dyn Any>); }
     None
 }
 
