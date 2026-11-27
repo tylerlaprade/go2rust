@@ -845,7 +845,7 @@ fn main() {
         { let __target = (*p.lock().unwrap().as_ref().unwrap()).price.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     println!("{}", format!("{}", format_slice(&items)));
-    { let __map_handle = byTitle.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&"a".to_string()); };
+    { let __map_handle = byTitle.clone(); let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(&"a".to_string()); } };
     let mut keys = Arc::new(Mutex::new(Some(Vec::<String>::new())));
     for (k, _) in { let __range_holder = byTitle.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         { let __slice_header = GoSliceHeader::go_slice_header(&({ let __append_target = keys.clone(); let __append_value = k.clone(); let mut __appended: Vec<String> = (*__append_target.lock().unwrap()).clone().unwrap_or_default(); __appended.push(__append_value); Arc::new(Mutex::new(Some(__appended))) })); *keys.lock().unwrap() = __slice_header; };

@@ -807,7 +807,7 @@ impl Cache__int__slice_string {
             let __max = __source_cap;
             __seq.reslice3_zeroed(__low, __high, __max)
         }))); self.order = new_val; };
-        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&{ let __v = (*oldest.lock().unwrap().as_ref().unwrap()).clone(); __v }); };
+        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(&{ let __v = (*oldest.lock().unwrap().as_ref().unwrap()).clone(); __v }); } };
     }
     }
 
@@ -851,7 +851,7 @@ impl Cache__string__User {
             let __max = __source_cap;
             __seq.reslice3_zeroed(__low, __high, __max)
         }))); self.order = new_val; };
-        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&({ let __v = (*oldest.lock().unwrap().as_ref().unwrap()).clone(); __v })); };
+        { let __map_handle = self.data.clone(); let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(&({ let __v = (*oldest.lock().unwrap().as_ref().unwrap()).clone(); __v })); } };
     }
     }
 
