@@ -1993,3 +1993,25 @@ func main() {
 		t.Fatalf("a received error should print without a cell:\n%s", rust)
 	}
 }
+
+// A received error printed through a format string that is not a constant
+// is boxed from the bare value the channel holds.
+func TestReceivedErrorWithRuntimeFormat(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"errors"
+	"fmt"
+)
+
+func main() {
+	errc := make(chan error, 1)
+	errc <- errors.New("boom")
+	format := "got %v\n"
+	fmt.Printf(format, <-errc)
+}
+`)
+	if !strings.Contains(rust, "{ let __err_guard = errc.recv().unwrap_or_default(); match __err_guard.as_ref()") {
+		t.Fatalf("the received error should be bound directly, with no cell to borrow:\n%s", rust)
+	}
+}

@@ -10067,11 +10067,19 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 		writeGoErrorInterfaceAnyBoxMultiline(out, expr, candidates)
 		return true
 	}
-	out.WriteString("{ let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone(); let __err_guard = __err_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString("; match __err_guard.as_ref() { None => ")
+	if isReceiveExpr(expr) {
+		// A channel holds its errors bare: the received Option is the
+		// error itself, with no cell to borrow.
+		out.WriteString("{ let __err_guard = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; match __err_guard.as_ref() { None => ")
+	} else {
+		out.WriteString("{ let __err_holder = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone(); let __err_guard = __err_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; match __err_guard.as_ref() { None => ")
+	}
 	writeNilAnyBox(out)
 	out.WriteString(", Some(__err) => ")
 	if len(candidates) == 0 {
@@ -10122,13 +10130,20 @@ func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, c
 	indent := currentLineIndent(out)
 	out.WriteString("{\n")
 	out.WriteString(indent)
-	out.WriteString("    let __err_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone();\n")
-	out.WriteString(indent)
-	out.WriteString("    let __err_guard = __err_holder")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
+	if isReceiveExpr(expr) {
+		// A received error is bare, as above.
+		out.WriteString("    let __err_guard = ")
+		TranspileExpression(out, expr)
+		out.WriteString(";\n")
+	} else {
+		out.WriteString("    let __err_holder = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone();\n")
+		out.WriteString(indent)
+		out.WriteString("    let __err_guard = __err_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+	}
 	out.WriteString(indent)
 	out.WriteString("    match __err_guard.as_ref() {\n")
 	out.WriteString(indent)

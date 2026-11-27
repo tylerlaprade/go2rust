@@ -31,6 +31,11 @@ func main() {
 	fmt.Println(err, err == nil)
 	errc <- fmt.Errorf("wrapped: %w", errors.New("inner"))
 	fmt.Println("got:", <-errc)
+	format := "dynamic %v\n"
+	errc <- errors.New("late")
+	errc <- nil
+	fmt.Printf(format, <-errc)
+	fmt.Print(fmt.Sprintf(format, <-errc))
 	close(errc)
 	e, ok := <-errc
 	fmt.Println(e, ok)
