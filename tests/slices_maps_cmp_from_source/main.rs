@@ -2806,7 +2806,7 @@ pub fn __maps__copy__map_string_int__map_string_int__string__int(dst: Rc<RefCell
 pub fn __maps__delete_func__map_string_int__string__int(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>, del: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> bool>>>>) {
     for (k, v) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
         if { let __f: Rc<dyn Fn(Rc<RefCell<Option<String>>>, Rc<RefCell<Option<i64>>>) -> bool> = del.borrow().as_ref().unwrap().clone(); (__f)(Rc::new(RefCell::new(Some(k.clone()))), v.clone()) } {
-        { let __map_handle = m.clone(); let mut __map_guard = __map_handle.borrow_mut(); __map_guard.as_mut().unwrap().remove(&k); };
+        { let __map_handle = m.clone(); let __delete_key = &k; let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     }
     }
 }

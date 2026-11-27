@@ -38,6 +38,17 @@ type externalPromotedMethod struct {
 	MutableReceiver    bool
 	RawEmbeddedField   bool
 	GoPtrEmbeddedField bool
+	// RWMutexAccessor marks __go_rw_mutex, which gives a clone of the
+	// embedded sync.RWMutex, the same lock, with no guard held.
+	RWMutexAccessor bool
+	// ThroughRWMutexAccessor marks a forwarder of a sync.RWMutex method
+	// that reaches the mutex through __go_rw_mutex, so it waits for the
+	// lock holding no guard of the struct the mutex is embedded in.
+	ThroughRWMutexAccessor bool
+	// Unimplemented, when set, is the message of the unimplemented! body a
+	// sync.RWMutex forwarder or accessor gets when go/types could not say
+	// which embedded field the method is promoted through.
+	Unimplemented string
 }
 
 type externalPackageStub struct {
@@ -419,10 +430,32 @@ func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, 
 	}
 
 	var promoted []externalPromotedMethod
+	// sync.RWMutex methods are forwarded only through the embedded field Go
+	// selects them through: the shallowest one, whatever the field order.
+	// Directly embedded ones are written first, then the rest in field order.
+	embeddedFieldIndex := make(map[*ast.Field]int)
+	fieldIndex := 0
+	for _, field := range structDef.ASTType.Fields.List {
+		if len(field.Names) > 0 {
+			fieldIndex += len(field.Names)
+			continue
+		}
+		embeddedFieldIndex[field] = fieldIndex
+		fieldIndex++
+		selected, known := promotedThroughField(structDef.ASTType, embeddedFieldIndex[field])
+		if methods, ok := embeddedRWMutexPromotedMethods(field, selected, existingRustNames); ok {
+			promoted = append(promoted, rwMutexForwardersForSelection(methods, known)...)
+		}
+	}
 	for _, field := range structDef.ASTType.Fields.List {
 		if len(field.Names) > 0 {
 			continue
 		}
+		if isSyncRWMutexField(field) {
+			continue
+		}
+		selected, known := promotedThroughField(structDef.ASTType, embeddedFieldIndex[field])
+		promoted = append(promoted, rwMutexForwardersForSelection(embeddedStructRWMutexPromotedMethods(field, selected, existingRustNames), known)...)
 		named, ok := externalEmbeddedNamed(field.Type)
 		local := false
 		if !ok {
@@ -5363,4 +5396,167 @@ func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, i
 	default:
 		out.WriteString(rustType)
 	}
+}
+
+// embeddedRWMutexPromotedMethods returns the forwarders of an embedded
+// sync.RWMutex's methods. The field is the bare GoRWMutex, so each one calls
+// the helper's own method on it: t.RLock() on a struct embedding one is
+// t.r_w_mutex.r_lock().
+func embeddedRWMutexPromotedMethods(field *ast.Field, selected func(string) bool, existingRustNames map[string]bool) ([]externalPromotedMethod, bool) {
+	if !isSyncRWMutexField(field) {
+		return nil, false
+	}
+	named := types.Unalias(GetTypeInfo().GetType(field.Type)).(*types.Named)
+	var promoted []externalPromotedMethod
+	// The accessor is written whenever Go selects the mutex through this
+	// field, even when every method name is already taken, as by forwarders
+	// of methods of the same names promoted from deeper in the struct: the
+	// calls on a struct variable reach the mutex through it.
+	mutexSelected := false
+	methodSet := types.NewMethodSet(types.NewPointer(named))
+	for i := 0; i < methodSet.Len(); i++ {
+		fn, ok := methodSet.At(i).Obj().(*types.Func)
+		if !ok || !isEmbeddedRWMutexMethod(fn) || !selected(fn.Name()) {
+			continue
+		}
+		mutexSelected = true
+		rustMethodName := ToSnakeCase(fn.Name())
+		if existingRustNames[rustMethodName] {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		existingRustNames[rustMethodName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			MethodName:        fn.Name(),
+			RustMethodName:    rustMethodName,
+			Func:              fn,
+			Signature:         sig,
+			RawEmbeddedField:  true,
+		})
+	}
+	if mutexSelected && !existingRustNames[rwMutexAccessorName] {
+		existingRustNames[rwMutexAccessorName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			RustMethodName:    rwMutexAccessorName,
+			RawEmbeddedField:  true,
+			RWMutexAccessor:   true,
+		})
+	}
+	return promoted, true
+}
+
+const rwMutexAccessorName = "__go_rw_mutex"
+
+// promotedThroughField returns a check of whether Go selects a method name
+// on the struct through its field at fieldIndex. With Outer{ *A; *B }, A
+// embedding a struct that embeds sync.RWMutex and B embedding one directly,
+// Outer.Lock is B's: the shallower one wins. The second result is false when
+// go/types has no type for the struct, and the check then takes every name
+// as selected.
+func promotedThroughField(structType *ast.StructType, fieldIndex int) (func(string) bool, bool) {
+	all := func(string) bool { return true }
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || structType == nil {
+		return all, false
+	}
+	st, ok := types.Unalias(typeInfo.GetType(structType)).(*types.Struct)
+	if !ok {
+		return all, false
+	}
+	return func(name string) bool {
+		obj, index, _ := types.LookupFieldOrMethod(st, true, typeInfo.pkg, name)
+		_, isFunc := obj.(*types.Func)
+		return isFunc && len(index) > 1 && index[0] == fieldIndex
+	}, true
+}
+
+// rwMutexForwardersForSelection returns the sync.RWMutex forwarders as they
+// are when go/types said which field each is promoted through, and with an
+// unimplemented! body when it could not, so a wrong mutex is never locked.
+func rwMutexForwardersForSelection(methods []externalPromotedMethod, known bool) []externalPromotedMethod {
+	if known {
+		return methods
+	}
+	for i := range methods {
+		methods[i].Unimplemented = "type info required for promoting sync.RWMutex methods"
+	}
+	return methods
+}
+
+// embeddedStructRWMutexPromotedMethods returns forwarders, through an
+// embedded struct of the package, of the sync.RWMutex methods that struct
+// has by embedding one itself: with Registry embedding *Table and Table
+// embedding sync.RWMutex, r.RLock() is Table's forwarder called on r's
+// Table.
+func embeddedStructRWMutexPromotedMethods(field *ast.Field, selected func(string) bool, existingRustNames map[string]bool) []externalPromotedMethod {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || field == nil {
+		return nil
+	}
+	typ := typeInfo.GetType(field.Type)
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+		return nil
+	}
+	if _, isStruct := named.Underlying().(*types.Struct); !isStruct {
+		return nil
+	}
+	var promoted []externalPromotedMethod
+	// The accessor is written whenever Go selects the mutex through this
+	// field, even when every method name is already taken, as by forwarders
+	// of methods of the same names promoted from deeper in the struct: the
+	// calls on a struct variable reach the mutex through it.
+	mutexSelected := false
+	methodSet := types.NewMethodSet(types.NewPointer(named))
+	for i := 0; i < methodSet.Len(); i++ {
+		fn, ok := methodSet.At(i).Obj().(*types.Func)
+		if !ok || !isEmbeddedRWMutexMethod(fn) || !selected(fn.Name()) {
+			continue
+		}
+		mutexSelected = true
+		rustMethodName := ToSnakeCase(fn.Name())
+		if existingRustNames[rustMethodName] {
+			continue
+		}
+		sig, ok := fn.Type().(*types.Signature)
+		if !ok {
+			continue
+		}
+		existingRustNames[rustMethodName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName:      ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			MethodName:             fn.Name(),
+			RustMethodName:         rustMethodName,
+			Func:                   fn,
+			Signature:              sig,
+			ThroughRWMutexAccessor: true,
+		})
+	}
+	if mutexSelected && !existingRustNames[rwMutexAccessorName] {
+		existingRustNames[rwMutexAccessorName] = true
+		promoted = append(promoted, externalPromotedMethod{
+			EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
+			RustMethodName:    rwMutexAccessorName,
+			RWMutexAccessor:   true,
+		})
+	}
+	return promoted
+}
+
+// isSyncRWMutexField reports whether field embeds a sync.RWMutex value.
+func isSyncRWMutexField(field *ast.Field) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || field == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(field.Type)).(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "RWMutex"
 }

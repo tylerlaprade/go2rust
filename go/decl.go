@@ -4177,6 +4177,7 @@ func registerFunctionSignaturesFromFile(file *ast.File) {
 }
 
 func registerPackageTypeFactsFromFiles(files []*ast.File) {
+	registerPackageTypeDefinitionTypeExprs(files, GetTypeInfo())
 	for _, file := range files {
 		registerPackageTypeFactsFromFile(file)
 	}
@@ -4270,6 +4271,35 @@ func registerPackageStructDefsFromFiles(files []*ast.File) {
 	}
 }
 
+// packageTypeDefinitionTypeExprs holds the type each package-level type
+// definition is declared with, `map[string][]int` for `type Lists
+// map[string][]int`, so a definition of a definition (`type Other Lists`) can
+// store what the first one stores.
+var packageTypeDefinitionTypeExprs = map[*types.TypeName]ast.Expr{}
+
+func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInfo) {
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Assign != 0 || typeSpec.TypeParams != nil {
+					continue
+				}
+				if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
+					packageTypeDefinitionTypeExprs[obj] = typeSpec.Type
+				}
+			}
+		}
+	}
+}
+
 func registerPackageTypeFactsFromFile(file *ast.File) {
 	for _, decl := range file.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
@@ -4328,8 +4358,9 @@ func registerTypeDefinitionForTypeExpr(name string, expr ast.Expr) {
 // that is itself a newtype (declared in this package or translated from
 // source, as time.Duration is), B stores the basic value, as `type B int64`
 // does: Go gives B the underlying type of A and none of its methods, and B's
-// conversions read and write its cell as that basic type. For any other type
-// it is expr.
+// conversions read and write its cell as that basic type. Where A is a map or
+// slice type of this package, B stores what A stores, A's map or slice, for
+// the same reason. For any other type it is expr.
 func typeDefinitionStoredTypeExpr(expr ast.Expr) ast.Expr {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || expr == nil {
@@ -4342,6 +4373,17 @@ func typeDefinitionStoredTypeExpr(expr ast.Expr) ast.Expr {
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.TypeArgs().Len() > 0 {
 		return expr
+	}
+	switch named.Underlying().(type) {
+	case *types.Map, *types.Slice:
+		if named.Obj().Pkg() != typeInfo.pkg {
+			return expr
+		}
+		declared, ok := packageTypeDefinitionTypeExprs[named.Obj()]
+		if !ok || declared == expr {
+			return expr
+		}
+		return typeDefinitionStoredTypeExpr(declared)
 	}
 	basic, ok := named.Underlying().(*types.Basic)
 	if !ok || basic.Kind() == types.UnsafePointer || basic.Info()&types.IsUntyped != 0 {

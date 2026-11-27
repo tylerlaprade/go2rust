@@ -1,0 +1,15 @@
+[a b c w0 w1 w2 w3] 2 0
+reg 8
+16
+5
+both 16
+outer 7
+shared 4
+waiting reader before the next writer: true
+deep shared
+picky locked 0
+picky 0
+method value 1
+deferred unlock 1
+go unlock
+call and index receivers

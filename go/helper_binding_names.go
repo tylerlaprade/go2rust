@@ -85,7 +85,7 @@ var helperBindingNames = map[string]bool{
 	"stored": true, "string_verb": true, "suffix": true, "syntax": true,
 	"t": true, "table": true, "target": true, "target_code": true,
 	"targets": true, "temp1": true, "temp2": true, "text": true,
-	"text_ref": true, "thread_channel": true, "thread_stopped": true,
+	"text_ref": true, "thread_channel": true, "thread_stopped": true, "ticket": true,
 	"timeout_cancelled": true, "timeout_done": true, "timeout_err": true,
 	"timer": true, "tok": true, "trailing_space": true, "true": true,
 	"truncated": true, "tx": true, "typ": true, "type": true, "typed_val": true,

@@ -902,7 +902,7 @@ impl std::fmt::Display for holder {
 
 
 pub fn remove(h: Arc<Mutex<Option<holder>>>, key: Arc<Mutex<Option<i64>>>) {
-    { let __map_handle = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&{ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }); };
+    { let __map_handle = (*h.lock().unwrap().as_ref().unwrap()).table.clone(); let __delete_key = &{ let __v = (*key.lock().unwrap().as_ref().unwrap()).clone(); __v }; let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
 }
 
 fn main() {
