@@ -3166,12 +3166,54 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString(".0.clone()")
 			return true
 		}
+		// *p for p a *Lists: p is the cell of the newtype.
+		if typeInfoIsPointerExpr(star.X) {
+			out.WriteString("{ let __named_map = (*")
+			writeMapPointerHandle(out, star.X)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).0.clone(); __named_map }")
+			return true
+		}
 	}
 	out.WriteString("{ let __named_map = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).0.clone(); __named_map }")
 	return true
+}
+
+// writeMapPointerHandle writes the handle the pointer ptr to a map holds: the
+// cell of a defined map's newtype, or an unnamed map's handle. A package
+// global's slot holds the pointer, so its handle is read out of the slot.
+func writeMapPointerHandle(out *strings.Builder, ptr ast.Expr) {
+	if ident, ok := packageGlobalPointerIdent(unwrapParens(ptr)); ok {
+		writePackageGlobalPointerHandleClone(out, ident)
+		return
+	}
+	if writeSourceMappedPackageGlobalPointerHandleClone(out, unwrapParens(ptr)) {
+		return
+	}
+	TranspileExpressionContext(out, ptr, LValue)
+}
+
+// mapPointerIsPackageGlobal reports whether ptr is a package global, whose
+// slot holds the pointer rather than being its handle.
+func mapPointerIsPackageGlobal(ptr ast.Expr) bool {
+	if _, ok := packageGlobalPointerIdent(unwrapParens(ptr)); ok {
+		return true
+	}
+	_, _, ok := sourceMappedPackageGlobalPointerSelector(unwrapParens(ptr))
+	return ok
+}
+
+// writeNamedMapCell writes the cell of the defined map expr, the newtype's
+// cell a pointer to it holds for *p.
+func writeNamedMapCell(out *strings.Builder, expr ast.Expr) {
+	if star, ok := unwrapParens(expr).(*ast.StarExpr); ok && typeInfoIsPointerExpr(star.X) {
+		writeMapPointerHandle(out, star.X)
+		return
+	}
+	TranspileExpressionContext(out, expr, LValue)
 }
 
 // writeNilTolerantNamedMapInnerHandleClone emits the inner map handle for a
@@ -3186,7 +3228,7 @@ func writeNilTolerantNamedMapInnerHandleClone(out *strings.Builder, expr ast.Exp
 		return writeNamedMapInnerHandleClone(out, expr)
 	}
 	out.WriteString("{ let __named_map_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
+	writeNamedMapCell(out, expr)
 	out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
@@ -3208,7 +3250,7 @@ func writeMapHandleForOp(out *strings.Builder, expr ast.Expr) {
 		return
 	}
 	if target, ok := pointerToMapDerefTarget(expr); ok {
-		TranspileExpressionContext(out, target, LValue)
+		writeMapPointerHandle(out, target)
 		return
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
@@ -3250,10 +3292,42 @@ func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
 	return star.X, true
 }
 
+// pointerToUnnamedMapDerefTarget is pointerToMapDerefTarget for a pointer to
+// an unnamed map type, which is the map's handle. A pointer to a defined map
+// type is the cell of the newtype.
+func pointerToUnnamedMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
+	target, ok := pointerToMapDerefTarget(expr)
+	if !ok {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(GetTypeInfo().GetType(target)).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	if _, ok := types.Unalias(ptr.Elem()).(*types.Map); !ok {
+		return nil, false
+	}
+	return target, true
+}
+
 func writePointerToMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	target, ok := pointerToMapDerefTarget(expr)
 	if !ok {
 		return false
+	}
+	if _, _, named := namedMapTypeForExpr(expr); !named && mapPointerIsPackageGlobal(target) {
+		// *p == nil asks whether the map p points at is nil.
+		out.WriteString("{ let __map_holder = ")
+		writeMapPointerHandle(out, target)
+		out.WriteString("; let __nil_result = __map_holder")
+		WriteBorrowMethod(out, false)
+		if op == token.EQL {
+			out.WriteString(".is_none()")
+		} else {
+			out.WriteString(".is_some()")
+		}
+		out.WriteString("; __nil_result }")
+		return true
 	}
 	writeWrappedHandleNilComparison(out, target, op)
 	return true
@@ -3277,7 +3351,7 @@ func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
 	}
 	if !isExpressionResultBare(expr) && !isCurrentReceiverNamedCollectionExpr(expr) {
 		out.WriteString("{ let __named_map_holder = ")
-		TranspileExpressionContext(out, expr, LValue)
+		writeNamedMapCell(out, expr)
 		out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
 		WriteBorrowMethod(out, false)
 		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
@@ -11208,6 +11282,15 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 		return
 	}
 
+	// A field of map type holds the map's handle, and *p for p a pointer to
+	// a map is that handle: the field shares the map p points at.
+	if _, ok := pointerToUnnamedMapDerefTarget(value); ok && expectedFieldType != nil {
+		if _, isMap := types.Unalias(expectedFieldType).(*types.Map); isMap {
+			writeMapHandleCloneForOp(out, value)
+			return
+		}
+	}
+
 	if writeUnknownExpectedSelectorHandleFieldValue(out, value, fieldExpr, expectedFieldType) {
 		return
 	}
@@ -14081,6 +14164,17 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 // unnamedArrayLiteral reports whether lit is a literal of an unnamed array
 // type, [N]T{...}, which translates to its handle. A defined array type's
 // literal is its newtype, which a pointer wraps.
+// unnamedMapLiteral reports whether lit is a literal of an unnamed map type,
+// map[string]int{...}.
+func unnamedMapLiteral(lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lit == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(lit)).(*types.Map)
+	return ok
+}
+
 func unnamedArrayLiteral(lit *ast.CompositeLit) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -15425,9 +15519,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				if unnamedArrayLiteral(compositeLit) {
+				if unnamedArrayLiteral(compositeLit) || unnamedMapLiteral(compositeLit) {
 					// A pointer to an array is the array's handle, as p := &arr
-					// shares arr's: the new array's handle is the pointer.
+					// shares arr's: the new array's handle is the pointer. A
+					// pointer to a map is the map's handle the same way, as
+					// &m is and a *map[K]V parameter takes (#321).
 					TranspileExpression(out, compositeLit)
 				} else if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
 					// For struct literals, wrap the whole thing
@@ -15567,6 +15663,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			break
 		}
 		if ctx != RValue && writeGoPtrSlotDerefRead(out, e) {
+			break
+		}
+		// A pointer to a map is the map's handle, as &m is and a *map[K]V
+		// parameter takes (#321): *p is that handle, a copy of it when read
+		// as a value.
+		if target, ok := pointerToUnnamedMapDerefTarget(e); ok {
+			writeMapPointerHandle(out, target)
+			if ctx == RValue {
+				out.WriteString(".clone()")
+			}
 			break
 		}
 		// Dereference pointer - unwrap the wrapper to get T
