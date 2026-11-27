@@ -1660,6 +1660,14 @@ run_xfail_test() {
     run_test "tests/fmt_sscan_operands"
 }
 
+@test "fmt_stringer_any_round_trip" {
+    run_test "tests/fmt_stringer_any_round_trip"
+}
+
+@test "fmt_stringer_any_round_trip_goroutines" {
+    run_test "tests/fmt_stringer_any_round_trip_goroutines"
+}
+
 @test "fmt_stringer_imported_types" {
     run_test "tests/fmt_stringer_imported_types"
 }

@@ -9726,6 +9726,9 @@ func writeInterfaceBoxedValueRaw(out *strings.Builder, expr ast.Expr) {
 	if writeGoErrorInterfaceAnyBox(out, expr) {
 		return
 	}
+	if writeFmtStringerAnyBox(out, expr) {
+		return
+	}
 	if call, ok := expr.(*ast.CallExpr); ok && writeTypedNilPointerAnyBox(out, call) {
 		return
 	}
@@ -16729,6 +16732,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							writeBareAnyBox(out, elt)
 							continue
 						}
+						// A fmt.Stringer goes in as the value it holds.
+						if writeFmtStringerAnyBox(out, elt) {
+							continue
+						}
 					}
 					out.WriteString("Box::new(")
 					elementKeepsAnyHandle := false
@@ -19248,6 +19255,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			}
 		}
 		WriteWrapperPrefix(out)
+		if writeFmtStringerAnyBox(out, arg) {
+			WriteWrapperSuffix(out)
+			return
+		}
 		out.WriteString("Box::new(")
 		if typeInfo != nil {
 			RegisterAnyCloneType(typeInfo.GetType(arg))

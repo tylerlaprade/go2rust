@@ -283,17 +283,26 @@ against the `// TEMPORARY:` comments of that one file.
   - `writeFmtStringerConversion`, from `writeLocalConcreteStdlibInterfaceConversion` in `go/expr.go`;
   - `writeTypeSwitchFmtStringerCaseCondition` and `writeTypeSwitchFmtStringerCaseBinding`, from `writeTypeSwitchLocalInterfaceCaseCondition` and `writeTypeSwitchInterfaceCaseBinding` in `go/stmt.go`;
   - `fmtStringerAssertionTarget`, `writeFmtStringerAssertionValue` and `writeFmtStringerAssertionCommaOk`, from `TranspileExpressionContext` and `TranspileTypeAssertionCommaOk` in `go/expr.go`, with the exceptions in `methodReceiverExpressionNeedsUnwrap` and `staticallyKnownAnyInterfaceAssertionSource`;
-  - `writeFmtStringerTypeName`, for `%T`, from `writeTypeNameFormatArg` in `go/stdlib.go`.
+  - `writeFmtStringerTypeName`, for `%T`, from `writeTypeNameFormatArg` in `go/stdlib.go`;
+  - `writeFmtStringerAnyBox`, which boxes a `fmt.Stringer` into an
+    `interface{}` as the value it holds (the stub's `__go_box`, called by
+    `__go_into_any`), from `writeInterfaceBoxedValueRaw`, the `any(x)`
+    conversion and the `[]any` literal writer in `go/expr.go`, and from
+    `writeBareAnyBox` in `go/stmt.go`.
 - Go symbol: `fmt.Stringer` as a variable or parameter type, a `[]fmt.Stringer`,
-  `case fmt.Stringer` and `x.(fmt.Stringer)`.
+  `case fmt.Stringer`, `x.(fmt.Stringer)`, and a `fmt.Stringer` put into an
+  `interface{}`.
 - Transpiler gap: `fmt` is bridged (fmt-runtime-format), so `fmt.Stringer` is
   a stub type rather than a translated interface, and the stub's `String`
   had no body. A value converted to it now carries a closure over its
   Display impl, which calls the value's own String method (DEV-152).
-- Fixture: `tests/fmt_stringer_values/` and
-  `tests/fmt_stringer_values_goroutines/`.
-- Not covered: a `fmt.Stringer` put back into an `interface{}` boxes the
-  `fmt_Stringer`, so asserting the concrete type there fails (DEV-155).
+  Put back into an `interface{}`, it is boxed as the value it holds, so an
+  assertion to that value's type finds it, and a nil one is a nil
+  `interface{}` (DEV-155).
+- Fixture: `tests/fmt_stringer_values/`,
+  `tests/fmt_stringer_values_goroutines/`,
+  `tests/fmt_stringer_any_round_trip/` and
+  `tests/fmt_stringer_any_round_trip_goroutines/`.
 - Removal trigger: `fmt` is translated from source, or the stdlib boundary
   puts `fmt` in the hand-written tier; then `fmt.Stringer` is an ordinary
   interface of that package and these writers are deleted.

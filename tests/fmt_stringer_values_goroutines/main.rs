@@ -1163,22 +1163,36 @@ pub struct fmt_Stringer {
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
     /// The text of the value's String method.
     pub __go_text: Option<Arc<dyn Fn() -> String + Send + Sync>>,
+    /// Boxes the value for an interface{}, as its own type.
+    pub __go_box: Option<Arc<dyn Fn() -> Box<dyn std::any::Any + Send + Sync> + Send + Sync>>,
 }
 
 impl fmt_Stringer {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_text: None }
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_text: None, __go_box: None }
     }
     /// A value whose type has a String method, which its Display impl calls.
-    pub fn __go_from_display<T: std::fmt::Display + Send + Sync + 'static>(value: T) -> Self {
+    pub fn __go_from_display<T: std::fmt::Display + Send + Sync + 'static + Clone>(value: T) -> Self {
         let shared = Arc::new(value);
         let text = shared.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(Arc::new(move || text.to_string())) }
+        let boxed = shared.clone();
+        let __into_any: Arc<dyn Fn() -> Box<dyn std::any::Any + Send + Sync> + Send + Sync> = Arc::new(move || Box::new((*boxed).clone()) as Box<dyn std::any::Any + Send + Sync>);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: shared, __go_text: Some(Arc::new(move || text.to_string())), __go_box: Some(__into_any) }
     }
     /// A pointer whose element type has a String method.
     pub fn __go_from_display_cell<T: std::fmt::Display + Send + Sync + 'static>(cell: Arc<Mutex<Option<T>>>) -> Self {
         let text = cell.clone();
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(cell), __go_text: Some(Arc::new(move || text.lock().unwrap().as_ref().map(|__v| __v.to_string()).unwrap_or_default())) }
+        let boxed = cell.clone();
+        let __into_any: Arc<dyn Fn() -> Box<dyn std::any::Any + Send + Sync> + Send + Sync> = Arc::new(move || Box::new(boxed.clone()) as Box<dyn std::any::Any + Send + Sync>);
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(cell), __go_text: Some(Arc::new(move || text.lock().unwrap().as_ref().map(|__v| __v.to_string()).unwrap_or_default())), __go_box: Some(__into_any) }
+    }
+    /// The value as an interface{} holds it: the value of its own type, so
+    /// an assertion to that type finds it.
+    pub fn __go_into_any(&self) -> Box<dyn std::any::Any + Send + Sync> {
+        match &self.__go_box {
+            Some(boxed) => boxed(),
+            None => Box::new(self.clone()) as Box<dyn std::any::Any + Send + Sync>,
+        }
     }
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
@@ -1196,7 +1210,7 @@ impl fmt_Stringer {
 
 impl Default for fmt_Stringer {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()), __go_text: None }
+        Self { __go_id: 0, __go_value: Arc::new(()), __go_text: None, __go_box: None }
     }
 }
 
