@@ -24,7 +24,7 @@ var helperBindingNames = map[string]bool{
 	"channel": true, "char": true, "chars": true, "child": true, "chunk": true,
 	"clean_path": true, "cleaned": true, "clone_value": true, "closed": true,
 	"cmd_env": true, "code": true, "command": true, "component": true,
-	"const": true, "context": true, "copy": true, "count": true, "ctx": true,
+	"const": true, "context": true, "copied": true, "copy": true, "count": true, "ctx": true,
 	"current": true, "cvar": true, "cw": true, "d": true, "data": true,
 	"day": true, "days": true, "delta": true, "depth": true, "digit": true,
 	"digits": true, "dir": true, "dirfd": true, "disk": true, "doe": true,
