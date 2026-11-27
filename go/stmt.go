@@ -12855,6 +12855,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// The channel holds its slices and maps bare, and a bare one
 			// cannot be nil: an empty one is sent.
 			out.WriteString("Default::default()")
+		} else if ident, ok := s.Value.(*ast.Ident); ok && ident.Name == "nil" && channelElemIsGoError(s.Chan) {
+			// A channel holds its errors bare: nil is the error None.
+			out.WriteString("None")
 		} else if writeInterfaceChannelSendValue(out, s.Chan, s.Value) {
 		} else if writeFuncChannelSendValue(out, s.Chan, s.Value) {
 		} else if writeChannelHandleCopy(out, s.Value, nil) {
@@ -19221,4 +19224,14 @@ func localNamedCollectionTypeNeedsNewtype(typeSpec *ast.TypeSpec) bool {
 		return false
 	}
 	return !typeMentionsTypeParam(underlying)
+}
+
+// channelElemIsGoError reports whether ch is a channel of error.
+func channelElemIsGoError(ch ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	chanType, ok := types.Unalias(typeInfo.GetType(ch)).Underlying().(*types.Chan)
+	return ok && isGoErrorType(chanType.Elem())
 }

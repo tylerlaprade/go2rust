@@ -1,0 +1,11 @@
+[package]
+name = "error_channel_values"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_channel_values"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false
