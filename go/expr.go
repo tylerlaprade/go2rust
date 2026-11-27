@@ -17733,6 +17733,12 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	} else if goPtrReceiver {
 		out.WriteString(" { { let __recv_value = __recv.borrow(); (*__recv_value.as_ref().unwrap()).")
 		receiverCallSuffix = " }"
+	} else if methodTakesReceiverHandle(methodFn) {
+		// The method takes the handle it is called on; the call holds no
+		// borrow of it, which the method's own use would conflict with.
+		out.WriteString(" { ")
+		writeReceiverHandleHintedPointer(out, "__recv", true)
+		out.WriteString("unsafe { &mut *__recv_ptr }.")
 	} else {
 		out.WriteString(" { (*__recv")
 		WriteBorrowMethod(out, true)
@@ -24910,6 +24916,14 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		if writeNilPointerReceiverMethodCall(out, sel, call) {
 			return
 		}
+		// After the nil-receiver helpers, which take the receiver's handle
+		// as a parameter already.
+		if writeReceiverHandleMethodCall(out, sel, call) {
+			return
+		}
+		if writeSyncFieldMethodCall(out, sel, call) {
+			return
+		}
 		if writeCurrentReceiverPromotedMethodCall(out, sel, call) {
 			return
 		}
@@ -25315,43 +25329,7 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".")
 		}
 
-		// Bare sync helpers have Rust-native method signatures; generated Go
-		// methods still take wrapped Go parameters even when the receiver is bare.
-		bareArgumentMethodCall := methodCallUsesBareArguments(sel)
-		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
-
-		out.WriteString(rustMethodSelectorName(sel))
-		multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
-		methodArgIndent := ""
-		out.WriteString("(")
-		if multilineMethodArgs {
-			methodArgIndent = currentLineIndent(out)
-			out.WriteString("\n")
-		}
-		if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
-			for i, arg := range call.Args {
-				if multilineMethodArgs {
-					out.WriteString(methodArgIndent)
-					out.WriteString("    ")
-				} else if i > 0 {
-					out.WriteString(", ")
-				}
-				if externalStdlibStubMethodCall {
-					writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
-				} else if bareArgumentMethodCall {
-					writeBareMethodCallArgument(out, sel, arg, i)
-				} else {
-					writeRegularMethodCallArgument(out, sel, call, arg, i)
-				}
-				if multilineMethodArgs {
-					out.WriteString(",\n")
-				}
-			}
-		}
-		if multilineMethodArgs {
-			out.WriteString(methodArgIndent)
-		}
-		out.WriteString(")")
+		writeMethodCallSelectorAndArguments(out, sel, call, forceMultilineMethodArgs)
 		if closeReceiverBlock {
 			out.WriteString(receiverBlockSuffix)
 		}
@@ -26035,6 +26013,48 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(functionArgIndent)
 	}
 	closeFunctionCall()
+}
+
+// writeMethodCallSelectorAndArguments writes the method name of a method
+// call and its parenthesized arguments, after the receiver.
+func writeMethodCallSelectorAndArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, forceMultilineMethodArgs bool) {
+	// Bare sync helpers have Rust-native method signatures; generated Go
+	// methods still take wrapped Go parameters even when the receiver is bare.
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+
+	out.WriteString(rustMethodSelectorName(sel))
+	multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
+	methodArgIndent := ""
+	out.WriteString("(")
+	if multilineMethodArgs {
+		methodArgIndent = currentLineIndent(out)
+		out.WriteString("\n")
+	}
+	if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
+		for i, arg := range call.Args {
+			if multilineMethodArgs {
+				out.WriteString(methodArgIndent)
+				out.WriteString("    ")
+			} else if i > 0 {
+				out.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubMethodCallArgument(out, sel, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(out, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(out, sel, call, arg, i)
+			}
+			if multilineMethodArgs {
+				out.WriteString(",\n")
+			}
+		}
+	}
+	if multilineMethodArgs {
+		out.WriteString(methodArgIndent)
+	}
+	out.WriteString(")")
 }
 
 func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call *ast.CallExpr) bool {

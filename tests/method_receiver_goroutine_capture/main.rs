@@ -886,6 +886,49 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 struct GoChannel<T> {
     tx: std::sync::Arc<std::sync::Mutex<Option<std::sync::mpsc::SyncSender<T>>>>,
     rx: std::sync::Arc<std::sync::Mutex<std::sync::mpsc::Receiver<T>>>,
@@ -1093,15 +1136,22 @@ impl Runner {
     }
 
     pub fn run(&self, done: GoChannel<String>) {
-        let done_thread = done.clone(); let mut r_thread = self.clone(); std::thread::spawn(move || {
+        let (mut r, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
+            Some(__handle) => (__handle, None),
+            None => {
+                let __copy = Arc::new(Mutex::new(Some(self.clone())));
+                (__copy.clone(), Some(__copy))
+            }
+        };
+        let done_thread = done.clone(); let r_thread = r.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
         let mut __defer_stack: std::vec::Vec<Box<dyn FnOnce()>> = std::vec::Vec::new();
         let __go_previous_panic_hook = go_silence_panic_hook();
 let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-let mut r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
-        r_defer_captured.after();
+let r_defer_captured = r_thread.clone(); __defer_stack.push(Box::new(move || {
+        { let __recv = r_defer_captured.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.after(); __result };
     }));;
-        done_thread.send(r_thread.name.clone().lock().unwrap().as_ref().unwrap().clone());;
+        done_thread.send((*r_thread.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap().clone());;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
@@ -1137,6 +1187,6 @@ fn main() {
     go_install_panic_exit();
     let mut done = GoChannel::<String>::new();
     let mut r = Arc::new(Mutex::new(Some(Runner { name: Arc::new(Mutex::new(Some("ok".to_string()))), ..Default::default() })));
-    (*r.lock().unwrap().as_ref().unwrap()).run(done.clone());
+    { let __recv = r.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.run(done.clone()); __result };
     println!("{}", format!("{}", done.recv().unwrap_or_default()));
 }

@@ -166,6 +166,49 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -244,10 +287,10 @@ fn main() {
     });
     done.recv().unwrap_or_default();
     let mut l = container_list::new();
-    let mut e4 = { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.push_back(Arc::new(Mutex::new(Some(Box::new(4i64) as Box<dyn Any + Send + Sync>)))); __result };
-    let mut e1 = { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.push_front(Arc::new(Mutex::new(Some(Box::new(1i64) as Box<dyn Any + Send + Sync>)))); __result };
-    { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.insert_before(Arc::new(Mutex::new(Some(Box::new(3i64) as Box<dyn Any + Send + Sync>))), e4.clone()); __result };
-    { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.insert_after(Arc::new(Mutex::new(Some(Box::new(2i64) as Box<dyn Any + Send + Sync>))), e1.clone()); __result };
+    let mut e4 = { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back(Arc::new(Mutex::new(Some(Box::new(4i64) as Box<dyn Any + Send + Sync>)))); __result };
+    let mut e1 = { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_front(Arc::new(Mutex::new(Some(Box::new(1i64) as Box<dyn Any + Send + Sync>)))); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.insert_before(Arc::new(Mutex::new(Some(Box::new(3i64) as Box<dyn Any + Send + Sync>))), e4.clone()); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.insert_after(Arc::new(Mutex::new(Some(Box::new(2i64) as Box<dyn Any + Send + Sync>))), e1.clone()); __result };
     print_list(l.clone());
     { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.move_to_back(e1.clone()); __result };
     { let __method_args = (
@@ -256,8 +299,8 @@ fn main() {
     print_list(l.clone());
     { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.remove(e4.clone()); __result };
     let mut other = container_list::new();
-    { let __recv = other.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.push_back(Arc::new(Mutex::new(Some(Box::new(9i64) as Box<dyn Any + Send + Sync>)))); __result };
-    { let __recv = l.clone(); let __recv_ptr: *mut container_list::r#mod::List = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_list::r#mod::List }; let __result = unsafe { &mut *__recv_ptr }.push_back_list(other.clone()); __result };
+    { let __recv = other.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back(Arc::new(Mutex::new(Some(Box::new(9i64) as Box<dyn Any + Send + Sync>)))); __result };
+    { let __recv = l.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.push_back_list(other.clone()); __result };
     print_list(l.clone());
     let mut e = { let __recv = l.clone(); let __recv_ptr: *const container_list::r#mod::List = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const container_list::r#mod::List }; let __result = unsafe { &*__recv_ptr }.back(); __result };
     while { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
@@ -269,7 +312,7 @@ fn main() {
     let mut i = Arc::new(Mutex::new(Some(0i64)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = container_ring::__go_nil_recv_ring_len(r.clone()); __tmp_x < __tmp_y } {
         { let new_val = Box::new({ let __bin_i = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }); __bin_i * __bin_i }) as Box<dyn Any + Send + Sync>; *(*r.lock().unwrap().as_ref().unwrap()).value.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __recv = r.clone(); let __recv_ptr: *mut container_ring::r#mod::Ring = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut container_ring::r#mod::Ring }; let __result = unsafe { &mut *__recv_ptr }.next(); __result }.clone(); r = new_val; };
+        { let new_val = { let __recv = r.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.next(); __result }.clone(); r = new_val; };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     container_ring::__go_nil_recv_ring_r_do(r.clone(), Arc::new(Mutex::new(Some(Arc::new(move |v: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| {

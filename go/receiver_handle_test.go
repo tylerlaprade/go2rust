@@ -1,0 +1,110 @@
+package main
+
+import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"go/types"
+	"strings"
+	"testing"
+)
+
+// A pointer method takes the handle it was called on when its receiver
+// escapes, is reassigned, or is handed to such a method; one that only reads
+// and writes its receiver's fields does not (DEV-165).
+func TestReceiverHandleMethodsAreTheOnesWhoseReceiverEscapes(t *testing.T) {
+	src := `package main
+
+type T struct {
+	m    map[string]int
+	next *T
+	n    int
+}
+
+var all []*T
+
+func (t *T) fields()        { t.n++; t.m = nil; _ = *t; _ = t == nil }
+func (t *T) self() *T       { return t }
+func (t *T) keep()          { all = append(all, t) }
+func (t *T) walk()          { for t.next != nil { t = t.next } }
+func (t *T) later()         { defer t.fields() }
+func (t *T) value() func()  { return t.fields }
+func (t *T) viaSelf() *T    { t.n++; return t.self() }
+func (t *T) viaFields()     { t.fields() }
+func (t T) byValue() T      { return t }
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	named := typeInfo.pkg.Scope().Lookup("T").Type()
+	want := map[string]bool{
+		"fields": false, "self": true, "keep": true, "walk": true, "later": true,
+		"value": true, "viaSelf": true, "viaFields": false, "byValue": false,
+	}
+	for name, takes := range want {
+		obj, _, _ := types.LookupFieldOrMethod(types.NewPointer(named), true, typeInfo.pkg, name)
+		fn, ok := obj.(*types.Func)
+		if !ok {
+			t.Fatalf("no method %s", name)
+		}
+		if got := methodTakesReceiverHandle(fn); got != takes {
+			t.Errorf("%s takes its receiver's handle: got %v, want %v", name, got, takes)
+		}
+	}
+}
+
+// The method binds its receiver to the hinted handle, and a call on a
+// pointer variable hints the handle and holds no borrow of it.
+func TestReceiverHandleMethodBindsTheHintedHandle(t *testing.T) {
+	src := `package main
+
+import "fmt"
+
+type Node struct {
+	name string
+	next *Node
+}
+
+func (n *Node) Link(name string) *Node {
+	n.next = &Node{name: name}
+	return n
+}
+
+func main() {
+	p := &Node{name: "p"}
+	p.Link("a").Link("b")
+	fmt.Println(p.next.name)
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	for _, want := range []string{
+		"let (mut n, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {",
+		"let __self_write_back = GoWriteBack(",
+		"let __recv = p.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.link(",
+		"fn go_take_receiver_handle<T: 'static>(address: usize)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func transpileReceiverHandleSource(t *testing.T, src string) string {
+	t.Helper()
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, parser.ParseComments)
+	if err != nil {
+		t.Fatal(err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return transpileParsedRegression(t, file, fset, typeInfo)
+}

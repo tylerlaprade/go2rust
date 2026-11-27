@@ -119,6 +119,49 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 pub struct GoLocalPtrKey<T>(pub Arc<Mutex<Option<T>>>);
 
 impl<T> Clone for GoLocalPtrKey<T> {
@@ -197,6 +240,6 @@ fn main() {
     let mut info = Arc::new(Mutex::new(Some(go_types::api::Info { defs: Arc::new(Mutex::new(Some(BTreeMap::<go_types::GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<Box<dyn go_types::object::Object + Send + Sync>>>>>::from([])))), ..Default::default() })));
     let mut pkg = go_types::new_package(Arc::new(Mutex::new(Some("example.com/main".to_string()))), Arc::new(Mutex::new(Some("main".to_string()))));
     let mut checker = go_types::new_checker(Arc::new(Mutex::new(None)), fset.clone(), pkg.clone(), info.clone());
-    let mut err = { let __recv = checker.clone(); let __recv_ptr: *mut go_types::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_types::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.files(Arc::new(Mutex::new(Some(vec![file.clone()])))); __result };
+    let mut err = { let __recv = checker.clone(); let __recv_ptr = go_hint_receiver_mut(&__recv); let __result = unsafe { &mut *__recv_ptr }.files(Arc::new(Mutex::new(Some(vec![file.clone()])))); __result };
     { let __go_print_arg_1 = { let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }; let __go_print_value = println!("{} {} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", { let __v = (*__go_print_arg_1.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __nil_result = (*{ let __map = { let __map_holder = (*info.lock().unwrap().as_ref().unwrap()).defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&go_types::GoLocalPtrKey::new(name.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).is_some(); __nil_result })); __go_print_value };
 }

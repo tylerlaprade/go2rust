@@ -134,8 +134,12 @@ func hoistMethodCallArgs(text string, method string, arity int) (string, bool) {
 		return "", false
 	}
 	// Only a receiver that is locked, or borrowed for writing, conflicts
-	// with the arguments' reads.
-	if !strings.Contains(prefix, ".borrow_mut()") && !strings.Contains(prefix, ".lock()") {
+	// with the arguments' reads. A receiver reached through a raw pointer
+	// holds no borrow, but a borrow an argument takes lasts until the call
+	// returns, and the method, which took the receiver's handle, borrows it
+	// again (receiver_handle.go).
+	if !strings.Contains(prefix, ".borrow_mut()") && !strings.Contains(prefix, ".lock()") &&
+		!strings.Contains(prefix, "go_hint_receiver") && !strings.Contains(prefix, "go_receiver_ptr") {
 		return "", false
 	}
 	args := strings.TrimRight(text[open+1:close], " \t\n")

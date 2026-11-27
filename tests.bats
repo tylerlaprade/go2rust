@@ -3376,6 +3376,14 @@ run_xfail_test() {
     run_test "tests/pointer_receiver_deref_assignment"
 }
 
+@test "pointer_receiver_handles" {
+    run_test "tests/pointer_receiver_handles"
+}
+
+@test "pointer_receiver_handles_goroutines" {
+    run_test "tests/pointer_receiver_handles_goroutines"
+}
+
 @test "pointer_receiver_nil_compare" {
     run_test "tests/pointer_receiver_nil_compare"
 }

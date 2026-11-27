@@ -737,6 +737,49 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    let __ptr = handle.borrow_mut().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    let __ptr = handle.borrow().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *mut T {
+    handle.borrow_mut().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::rc::Rc<std::cell::RefCell<Option<T>>>) -> *const T {
+    handle.borrow().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::rc::Rc<std::cell::RefCell<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::rc::Rc<std::cell::RefCell<Option<T>>>>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<std::rc::Rc<std::cell::RefCell<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 #[derive(Debug, Clone)]
 pub struct lexer {
     pub pos: Rc<RefCell<Option<i64>>>,
@@ -781,14 +824,21 @@ impl lexer {
     }
 
     pub fn scan(&self) -> i64 {
-        { let __method_arg0 = Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Rc::new(move || -> i64 { let mut __recv = __recv.clone(); __recv.next() }) as Rc<dyn Fn() -> i64> }))); self.scan_with(__method_arg0) }
+        let (mut l, __self_copy) = match go_take_receiver_handle::<Self>(self as *const Self as usize) {
+            Some(__handle) => (__handle, None),
+            None => {
+                let __copy = Rc::new(RefCell::new(Some(self.clone())));
+                (__copy.clone(), Some(__copy))
+            }
+        };
+        return { let __recv = l.clone(); let __recv_ptr = go_receiver_ptr(&__recv); let __result = unsafe { &*__recv_ptr }.scan_with(Rc::new(RefCell::new(Some({ let __recv = l.clone(); Rc::new(move || -> i64 { (*__recv.borrow_mut().as_mut().unwrap()).next() }) as Rc<dyn Fn() -> i64> })))); __result };
     }
 }
 
 fn main() {
     go_install_panic_exit();
     let mut l = Rc::new(RefCell::new(Some(lexer { pos: Rc::new(RefCell::new(Some(0))) })));
-    let mut r = (*l.borrow().as_ref().unwrap()).scan();
+    let mut r = { let __recv = l.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.scan(); __result };
     {
             let __go_print_arg_0 = format!("{}", r);
             eprintln!("{}", __go_print_arg_0)

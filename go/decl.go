@@ -3935,13 +3935,13 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 	out.WriteString(wrapperName)
 	out.WriteString(" {\n")
 	for _, method := range explicitInterfaceMethods(ifaceType) {
-		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName, ifaceName)
+		writePointerLocalInterfaceForwardMethodFromTypes(out, method, typeName, rustTypeName, ifaceName)
 	}
 	writePointerLocalInterfaceSupportImpl(out, typeName, ifaceName, wrapperName, ifaceType)
 	out.WriteString("}")
 }
 
-func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {
+func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, goTypeName, receiverType, ifaceName string) {
 	if method == nil {
 		return
 	}
@@ -3976,20 +3976,36 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 	out.WriteString(")")
 	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
-	out.WriteString("        let ")
-	if mutableReceiver {
-		out.WriteString("mut ")
-	}
-	out.WriteString("__recv_guard = self.0")
-	WriteBorrowMethod(out, mutableReceiver)
-	out.WriteString(";\n")
-	out.WriteString("        let __recv = __recv_guard.")
-	if mutableReceiver {
-		out.WriteString("as_mut")
+	if pointerTypeMethodTakesReceiverHandle(goTypeName, method.Name()) {
+		// The method takes the handle it is called on; the call holds no
+		// borrow of it, which the method's own use would conflict with.
+		var hinted strings.Builder
+		writeReceiverHandleHintedPointer(&hinted, "self.0", mutableReceiver)
+		out.WriteString("        ")
+		out.WriteString(strings.TrimRight(hinted.String(), " "))
+		out.WriteString("\n        let __recv = unsafe { ")
+		if mutableReceiver {
+			out.WriteString("&mut *__recv_ptr")
+		} else {
+			out.WriteString("&*__recv_ptr")
+		}
+		out.WriteString(" };\n")
 	} else {
-		out.WriteString("as_ref")
+		out.WriteString("        let ")
+		if mutableReceiver {
+			out.WriteString("mut ")
+		}
+		out.WriteString("__recv_guard = self.0")
+		WriteBorrowMethod(out, mutableReceiver)
+		out.WriteString(";\n")
+		out.WriteString("        let __recv = __recv_guard.")
+		if mutableReceiver {
+			out.WriteString("as_mut")
+		} else {
+			out.WriteString("as_ref")
+		}
+		out.WriteString("().unwrap();\n")
 	}
-	out.WriteString("().unwrap();\n")
 	out.WriteString("        ")
 	out.WriteString(receiverType)
 	out.WriteString("::")
@@ -10067,7 +10083,15 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	currentReceiverRustAliasIsPointerHandle = false
 	currentReceiverRustAliasIsGoPtr = false
 	currentReceiverRustAliasGoPtrInfo = goPtrResultInfo{}
-	if methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn) {
+	// A method that takes its receiver's handle names the receiver as a
+	// local pointer variable bound to that handle (receiver_handle.go).
+	takesReceiverHandle := methodDeclTakesReceiverHandle(fn)
+	if takesReceiverHandle {
+		if _, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
+			takesReceiverHandle = false
+		}
+	}
+	if !takesReceiverHandle && (methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn)) {
 		currentReceiverRustAlias = "__self"
 		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
 		if info, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
@@ -10095,6 +10119,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	out.WriteString("(")
 
 	// Receiver
+	receiverMutable := false
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
 		// Store the receiver name for self translation
@@ -10103,12 +10128,11 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		}
 
 		if forceSharedReceiver {
-			if traitReceiverMutable {
-				out.WriteString("&mut self")
-			} else {
-				out.WriteString("&self")
-			}
-		} else if methodRequiresMutableReceiver(fn) {
+			receiverMutable = traitReceiverMutable
+		} else {
+			receiverMutable = methodRequiresMutableReceiver(fn)
+		}
+		if receiverMutable {
 			out.WriteString("&mut self")
 		} else {
 			out.WriteString("&self")
@@ -10250,6 +10274,25 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 			}
 		}
 		registerArrayElemPtrNamedReturnVars(fn)
+		if takesReceiverHandle {
+			// The receiver is a let of the body, which drops before the
+			// temporaries of a tail expression.
+			recv := fn.Recv.List[0]
+			vt.Register(recv.Names[0].Name, &VarInfo{
+				WrapLevel: WrapFull,
+				RustType:  goTypeToRustBase(recv.Type),
+				Source:    SourceLocal,
+			})
+		}
+	}
+	receiverHandleName := ""
+	if takesReceiverHandle {
+		receiverHandleName = RustIdentForUse(fn.Recv.List[0].Names[0])
+		prevReceiverHandleObject := currentReceiverHandleObject
+		currentReceiverHandleObject = currentReceiverObject
+		defer func() { currentReceiverHandleObject = prevReceiverHandleObject }()
+		currentReceiver = ""
+		currentReceiverObject = nil
 	}
 
 	if writeRuntimeLinkedFunctionBody(out, fn, "        ") {
@@ -10268,7 +10311,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		return
 	}
 	writeAssignedInterfaceParamShadows(out, fn, "        ")
-	if currentReceiverRustAlias != "" {
+	if takesReceiverHandle {
+		writeReceiverHandleMethodPrologue(out, "        ", receiverHandleName, receiverMutable)
+	} else if currentReceiverRustAlias != "" {
 		out.WriteString("        let mut ")
 		out.WriteString(currentReceiverRustAlias)
 		out.WriteString(" = ")

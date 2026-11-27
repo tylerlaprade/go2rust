@@ -183,6 +183,49 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
     __text
 }
 
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+fn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+fn go_hint_receiver_mut<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    let __ptr = handle.lock().unwrap().as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_hint_receiver<T: 'static>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    let __ptr = handle.lock().unwrap().as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+fn go_receiver_ptr_mut<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *mut T {
+    handle.lock().unwrap().as_mut().unwrap() as *mut T
+}
+
+fn go_receiver_ptr<T>(handle: &std::sync::Arc<std::sync::Mutex<Option<T>>>) -> *const T {
+    handle.lock().unwrap().as_ref().unwrap() as *const T
+}
+
+fn go_take_receiver_handle<T: 'static>(address: usize) -> Option<std::sync::Arc<std::sync::Mutex<Option<T>>>> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<std::sync::Arc<std::sync::Mutex<Option<T>>>>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<std::sync::Arc<std::sync::Mutex<Option<T>>>>().ok().map(|__handle| *__handle)
+    })
+}
+
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -252,36 +295,23 @@ fn main() {
     ::unicode_utf8::__go_init_all();
 
     let mut re = regexp::must_compile(Arc::new(Mutex::new(Some("(\\w+)@(\\w+)\\.com".to_string()))));
-    println!("{}", format!("{}", format_nested_slice(&{ let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.find_all_string_submatch(Arc::new(Mutex::new(Some("a@b.com, c@d.com".to_string()))), Arc::new(Mutex::new(Some(-1)))); __result })));
-    println!("{} {}", format!("{}", format_slice(&{ let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.find_string_index(Arc::new(Mutex::new(Some("x a@b.com".to_string())))); __result })), format!("{}", { let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.num_subexp(); __result }));
-    println!("{}", format!("{}", (*{ let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.replace_all_string_func(
+    println!("{}", format!("{}", format_nested_slice(&{ let __recv = re.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.find_all_string_submatch(Arc::new(Mutex::new(Some("a@b.com, c@d.com".to_string()))), Arc::new(Mutex::new(Some(-1)))); __result })));
+    println!("{} {}", format!("{}", format_slice(&{ let __recv = re.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.find_string_index(Arc::new(Mutex::new(Some("x a@b.com".to_string())))); __result })), format!("{}", { let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.num_subexp(); __result }));
+    println!("{}", format!("{}", (*{ let __recv = re.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.replace_all_string_func(
         Arc::new(Mutex::new(Some("a@b.com".to_string()))),
         Arc::new(Mutex::new(Some(Arc::new(move |__arg0: Arc<Mutex<Option<String>>>| -> Arc<Mutex<Option<String>>> { strings::to_upper(__arg0) }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> + Send + Sync>))),
     ); __result }.lock().unwrap().as_ref().unwrap())));
-    println!("{}", format!("{}", (*{ let __recv = re.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.replace_all_string(Arc::new(Mutex::new(Some("a@b.com".to_string()))), Arc::new(Mutex::new(Some("$2 at $1".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
+    println!("{}", format!("{}", (*{ let __recv = re.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.replace_all_string(Arc::new(Mutex::new(Some("a@b.com".to_string()))), Arc::new(Mutex::new(Some("$2 at $1".to_string())))); __result }.lock().unwrap().as_ref().unwrap())));
     let mut named = regexp::must_compile(Arc::new(Mutex::new(Some("(?P<year>\\d{4})-(?P<month>\\d{2})".to_string()))));
-    let mut m = { let __recv = named.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.find_string_submatch(Arc::new(Mutex::new(Some("on 2024-05".to_string())))); __result };
+    let mut m = { let __recv = named.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.find_string_submatch(Arc::new(Mutex::new(Some("on 2024-05".to_string())))); __result };
     let mut m = { let __slice_header = GoSliceHeader::go_slice_header(&m); Arc::new(Mutex::new(__slice_header)) };
     { let __range_holder = { let __recv = named.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.subexp_names(); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for (i, name) in __range_values.iter().enumerate() {
         if { let __tmp_x = (*name).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         println!("{} {}", format!("{}", name), format!("{}", { let __seq = { let __seq_holder = m.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }));
     }
     } }
-    println!("{}", format!("{}", format_slice(&{
-        let __recv = regexp::must_compile(Arc::new(Mutex::new(Some("\\s*,\\s*".to_string()))));
-        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).split(
-            Arc::new(Mutex::new(Some("a , b,c".to_string()))),
-            Arc::new(Mutex::new(Some(-1))),
-        );
-        __result
-    })));
-    println!("{} {}", format!("{}", (*regexp::quote_meta(Arc::new(Mutex::new(Some("1+1=2?".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", {
-        let __recv = regexp::must_compile(Arc::new(Mutex::new(Some("^a.c$".to_string()))));
-        let __result = (*__recv.lock().unwrap().as_ref().unwrap()).match_string(
-            Arc::new(Mutex::new(Some("abc".to_string()))),
-        );
-        __result
-    }));
+    println!("{}", format!("{}", format_slice(&{ let __recv = regexp::must_compile(Arc::new(Mutex::new(Some("\\s*,\\s*".to_string())))); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.split(Arc::new(Mutex::new(Some("a , b,c".to_string()))), Arc::new(Mutex::new(Some(-1)))); __result })));
+    println!("{} {}", format!("{}", (*regexp::quote_meta(Arc::new(Mutex::new(Some("1+1=2?".to_string())))).lock().unwrap().as_ref().unwrap())), format!("{}", { let __recv = regexp::must_compile(Arc::new(Mutex::new(Some("^a.c$".to_string())))); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.match_string(Arc::new(Mutex::new(Some("abc".to_string())))); __result }));
     let (_, mut err) = regexp::compile(Arc::new(Mutex::new(Some("a(b".to_string()))));
     println!("{}", format!("{}", { let __text = match err.lock().unwrap().as_ref() { Some(__value) => format!("{}", __value), None => "<nil>".to_string() }; __text }));
     let (mut ok, _) = regexp::match_string(Arc::new(Mutex::new(Some("^\\d+$".to_string()))), Arc::new(Mutex::new(Some("12345".to_string()))));
@@ -289,7 +319,7 @@ fn main() {
     let mut done = GoChannel::<bool>::new();
     let done_thread = done.clone(); let re_thread = re.clone(); std::thread::spawn(move || {
     if let Err(__go_goroutine_panic) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        println!("{}", format!("{}", { let __recv = re_thread.clone(); let __recv_ptr: *const regexp::r#mod::Regexp = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const regexp::r#mod::Regexp }; let __result = unsafe { &*__recv_ptr }.match_string(Arc::new(Mutex::new(Some("z@y.com".to_string())))); __result }));;
+        println!("{}", format!("{}", { let __recv = re_thread.clone(); let __recv_ptr = go_hint_receiver(&__recv); let __result = unsafe { &*__recv_ptr }.match_string(Arc::new(Mutex::new(Some("z@y.com".to_string())))); __result }));;
         done_thread.send(true);;;
     })) {
         let __go_panic_text = if let Some(__text) = __go_goroutine_panic.downcast_ref::<String>() { __text.clone() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<&'static str>() { __text.to_string() } else if let Some(__text) = __go_goroutine_panic.downcast_ref::<Box<dyn std::any::Any + Send + Sync>>().and_then(|__value| __value.downcast_ref::<String>()) { __text.clone() } else { String::from("goroutine panicked") };

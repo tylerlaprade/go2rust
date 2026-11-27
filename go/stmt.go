@@ -11751,13 +11751,15 @@ func transpileChannelValue(out *strings.Builder, expr ast.Expr) {
 	}
 
 	if _, ok := expr.(*ast.SelectorExpr); ok {
+		// The field's cell, which a read of a field through a pointer
+		// variable would already have unwrapped.
 		if isCopyType {
 			out.WriteString("(*")
-			TranspileExpression(out, expr)
+			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 		} else if copyCall, known := goValueCopyCallForExpr(expr); known {
-			TranspileExpression(out, expr)
+			TranspileExpressionContext(out, expr, LValue)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap()")
 			out.WriteString(copyCall)

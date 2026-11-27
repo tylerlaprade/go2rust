@@ -157,6 +157,7 @@ type HelperTracker struct {
 	needsPanicExit                       bool
 	needsGoPointerError                  bool
 	needsGoWriteBack                     bool
+	needsReceiverHandles                 bool
 	needsGoValueClone                    bool
 	needsGoTypeParamFieldClone           bool
 	needsGoComparable                    bool
@@ -442,6 +443,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generateGoWriteBack(&result)
 	}
 
+	if ht.needsReceiverHandles {
+		generateReceiverHandleHints(&result)
+	}
+
 	if ht.needsGoValueClone {
 		generateGoValueClone(&result)
 	}
@@ -620,6 +625,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsPanicExit ||
 		ht.needsGoPointerError ||
 		ht.needsGoWriteBack ||
+		ht.needsReceiverHandles ||
 		ht.needsGoValueClone ||
 		ht.needsGoTypeParamFieldClone ||
 		ht.needsGoComparable ||
@@ -786,6 +792,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsGoWriteBack {
 		add("GoWriteBack")
+	}
+	if ht.needsReceiverHandles {
+		add("go_set_receiver_handle", "go_take_receiver_handle", "go_hint_receiver", "go_hint_receiver_mut", "go_receiver_ptr", "go_receiver_ptr_mut")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1437,6 +1446,70 @@ impl<F: FnMut()> Drop for GoWriteBack<F> {
     }
 }
 `)
+}
+
+// generateReceiverHandleHints writes the hints by which a call hands a
+// pointer method the handle it was called on: the caller records the handle
+// with the address of the struct in its cell, and the method takes the one
+// recorded for its own address. A hint no method takes is dropped once
+// sixteen newer ones are recorded.
+func generateReceiverHandleHints(out *strings.Builder) {
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	// The paths are spelled out: a module of a translated sync package has
+	// a Mutex of its own.
+	handle := "std::rc::Rc<std::cell::RefCell<Option<T>>>"
+	borrowMut, borrow := ".borrow_mut()", ".borrow()"
+	if NeedsConcurrentWrapper() {
+		handle = "std::sync::Arc<std::sync::Mutex<Option<T>>>"
+		borrowMut, borrow = ".lock().unwrap()", ".lock().unwrap()"
+	}
+	fmt.Fprintf(out, `
+thread_local! {
+    static __GO_RECEIVER_HANDLES: std::cell::RefCell<std::vec::Vec<(usize, Box<dyn std::any::Any>)>> = std::cell::RefCell::new(std::vec::Vec::new());
+}
+
+%[1]sfn go_set_receiver_handle<H: Clone + 'static>(handle: &H, address: usize) {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        if __handles.len() >= 16 {
+            __handles.remove(0);
+        }
+        __handles.push((address, Box::new(handle.clone())));
+    });
+}
+
+%[1]sfn go_hint_receiver_mut<T: 'static>(handle: &%[2]s) -> *mut T {
+    let __ptr = handle%[3]s.as_mut().unwrap() as *mut T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+%[1]sfn go_hint_receiver<T: 'static>(handle: &%[2]s) -> *const T {
+    let __ptr = handle%[4]s.as_ref().unwrap() as *const T;
+    go_set_receiver_handle(handle, __ptr as *const () as usize);
+    __ptr
+}
+
+%[1]sfn go_receiver_ptr_mut<T>(handle: &%[2]s) -> *mut T {
+    handle%[3]s.as_mut().unwrap() as *mut T
+}
+
+%[1]sfn go_receiver_ptr<T>(handle: &%[2]s) -> *const T {
+    handle%[4]s.as_ref().unwrap() as *const T
+}
+
+%[1]sfn go_take_receiver_handle<T: 'static>(address: usize) -> Option<%[2]s> {
+    __GO_RECEIVER_HANDLES.with(|__handles| {
+        let mut __handles = __handles.borrow_mut();
+        let __at = __handles.iter().rposition(|(__address, __handle)| *__address == address && __handle.is::<%[2]s>())?;
+        let (_, __handle) = __handles.remove(__at);
+        __handle.downcast::<%[2]s>().ok().map(|__handle| *__handle)
+    })
+}
+`, visibility, handle, borrowMut, borrow)
 }
 
 func generateGoPointerError(out *strings.Builder) {

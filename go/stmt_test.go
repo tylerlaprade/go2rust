@@ -4866,13 +4866,14 @@ func (x *node) current() *node {
 	if strings.Contains(rust, "let new_val = self.clone(); out = new_val") {
 		t.Fatalf("pointer receiver assignment should not assign the bare receiver value to a pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = Rc::new(RefCell::new(Some(self.clone())))") &&
-		!strings.Contains(rust, "let new_val = Arc::new(Mutex::new(Some(self.clone())))") {
-		t.Fatalf("pointer receiver assignment should wrap the receiver clone as a pointer handle:\n%s", rust)
+	// The receiver escapes, so the method binds it to the handle it was
+	// called on and assigns that handle (DEV-165).
+	if !strings.Contains(rust, "let new_val = x.clone(); out = new_val") {
+		t.Fatalf("pointer receiver assignment should assign the receiver's handle:\n%s", rust)
 	}
 }
 
-func TestPointerReceiverReassignmentUsesLocalReceiverCopy(t *testing.T) {
+func TestPointerReceiverReassignmentRebindsLocalReceiverHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 type node struct {
@@ -4892,11 +4893,14 @@ func (x *node) reset() int {
 	if strings.Contains(rust, "self = new_val") {
 		t.Fatalf("pointer receiver reassignment should not assign a pointer handle to self:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut __self = self.clone();") {
-		t.Fatalf("pointer receiver reassignment should introduce a local receiver copy:\n%s", rust)
+	// The receiver is a local bound to the handle the method was called
+	// on, and the assignment rebinds that local to the new pointer; moving
+	// the pointee into a receiver copy took it out of its cell (DEV-165).
+	if !strings.Contains(rust, "let (mut x, __self_copy) = match go_take_receiver_handle::<Self>(") {
+		t.Fatalf("pointer receiver reassignment should bind the receiver to a local handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__self = __moved_val") {
-		t.Fatalf("pointer receiver reassignment should move the pointed value into the local receiver copy:\n%s", rust)
+	if !strings.Contains(rust, "x = new_val") || strings.Contains(rust, "__moved_val") {
+		t.Fatalf("pointer receiver reassignment should rebind the local handle:\n%s", rust)
 	}
 }
 
