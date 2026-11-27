@@ -1,0 +1,5 @@
+2 map[a:1 b:1] [a b] 2 0 map[] []
+1 map[x:1] [x] true
+1 map[r2:1] [r2] 1 map[c:1] [c] true
+1 map[g:1] [g] 0 map[] []
+2 100

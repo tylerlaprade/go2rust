@@ -8092,22 +8092,7 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	// then the index, in Go's left-to-right order.
 	separateIndex := !sliceElemPtrIndexIsPlain(indexExpr.Index)
 	writeHandle := func(handle *strings.Builder) {
-		if writeRangeSliceElemPtrSequenceHandle(handle, indexExpr.X) {
-			// Range values for slice elements are bare references; wrap a temporary handle.
-		} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
-			writeNamedSliceInnerHandleClone(handle, indexExpr.X)
-		} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
-			// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no
-			// cell of its own. A new cell around a copy of it shares its
-			// backing, so the element pointer writes into grid.
-			WriteWrapperPrefix(handle)
-			TranspileExpressionContext(handle, indexExpr.X, LValue)
-			handle.WriteString(".clone()")
-			WriteWrapperSuffix(handle)
-		} else {
-			TranspileExpressionContext(handle, indexExpr.X, LValue)
-			handle.WriteString(".clone()")
-		}
+		writeSliceCellHandle(handle, indexExpr.X)
 	}
 	constructor := "GoSliceElemPtr::new("
 	if helperQualifier != "" {
@@ -8129,6 +8114,27 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
 	return true
+}
+
+// writeSliceCellHandle writes a handle to the cell of the slice operand x of
+// an index expression, whose elements the handle shares.
+func writeSliceCellHandle(handle *strings.Builder, x ast.Expr) {
+	if writeRangeSliceElemPtrSequenceHandle(handle, x) {
+		// Range values for slice elements are bare references; wrap a temporary handle.
+	} else if _, _, ok := namedSliceTypeForExpr(x); ok {
+		writeNamedSliceInnerHandleClone(handle, x)
+	} else if inner, ok := unwrapParens(x).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
+		// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no
+		// cell of its own. A new cell around a copy of it shares its
+		// backing, so the element pointer writes into grid.
+		WriteWrapperPrefix(handle)
+		TranspileExpressionContext(handle, x, LValue)
+		handle.WriteString(".clone()")
+		WriteWrapperSuffix(handle)
+	} else {
+		TranspileExpressionContext(handle, x, LValue)
+		handle.WriteString(".clone()")
+	}
 }
 
 // sliceElemPtrIndexIsPlain reports whether an element pointer's index reads
@@ -24914,6 +24920,9 @@ func transpileCallInOrder(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		if writeElemPtrPromotedMethodCall(out, sel, call) {
+			return
+		}
+		if writeSliceElementMethodCall(out, sel, call) {
 			return
 		}
 
