@@ -1126,6 +1126,11 @@ fn main() {
         let v3 = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec_>()).unwrap().__go_value_clone())));
         std::mem::drop(_ts_guard);
         { let new_val = 50; *(*v3.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };;
+        println!("{} {}", format!("{}", "case".to_string()), format!("{}", (*v3.borrow().as_ref().unwrap())));;
+    } else {
+        let v3 = _ts_subject.clone();
+        std::mem::drop(_ts_guard);
+        println!("{}", format!("{}", "no case".to_string()));;
     }
     }
     println!("{} {} {}", format!("{}", match a.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*v1.borrow().as_ref().unwrap())), format!("{}", (*v2.borrow().as_ref().unwrap())));
@@ -1176,6 +1181,10 @@ fn main() {
     if _ts_val.and_then(|__v| __v.downcast_ref::<Vec_>()).is_some() {
         let r3 = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec_>()).unwrap().__go_value_clone())));
         { let new_val = 8; *(*r3.borrow().as_ref().unwrap()).y.borrow_mut() = Some(new_val); };;
+        println!("{} {}", format!("{}", "case".to_string()), format!("{}", (*r3.borrow().as_ref().unwrap())));;
+    } else {
+        let r3 = _ts_subject.clone();
+        println!("{}", format!("{}", "no case".to_string()));;
     }
     }
     { let __go_print_arg_1 = (*s.borrow().as_ref().unwrap()).area(); let __go_print_value = println!("{} {} {} {} {}", format!("{}", match s.borrow().as_ref() { Some(__iface) => __iface.as_ref().__go_print(false), None => "<nil>".to_string() }), format!("{}", (*r.borrow().as_ref().unwrap())), format!("{}", (*r2.borrow().as_ref().unwrap())), format!("{}", ok), format!("{}", __go_print_arg_1)); __go_print_value };
@@ -1195,8 +1204,7 @@ fn main() {
     println!("{} {}", format!("{}", match g.borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*gc.borrow().as_ref().unwrap())));
 
     let mut items = Rc::new(RefCell::new(Some(vec![Box::new(Vec_ { x: Rc::new(RefCell::new(Some(5))), y: Rc::new(RefCell::new(Some(5))), ..Default::default() }) as Box<dyn Any>, Box::new("x".to_string()) as Box<dyn Any>])));
-    {
-        let (mut iv, mut ok) = ({
+    let (mut iv, mut ok) = ({
         let __idx = (0) as usize;
         let __seq_holder = items.clone();
         let __seq_guard = __seq_holder.borrow();
@@ -1206,10 +1214,11 @@ fn main() {
         } else {
             (Rc::new(RefCell::new(Some(Default::default()))), false)
         }
-    });;
-        if ok {
-            { let new_val = 0; *(*iv.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };;
-        }
+    });
+    if !ok {
+        println!("{}", format!("{}", "assertion failed".to_string()));
+        return;
     }
-    println!("{} {}", format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }));
+    { let new_val = 0; *(*iv.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
+    println!("{} {} {}", format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (0) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", match (Rc::new(RefCell::new(Some({ let __idx = (1) as usize; let __seq_holder = items.clone(); let __seq_guard = __seq_holder.borrow(); go_any_clone(__seq_guard.as_ref().unwrap()[__idx].as_ref()) })))).borrow().as_ref() { Some(__any_value) => format_any(__any_value.as_ref()), None => "<nil>".to_string() }), format!("{}", (*iv.borrow().as_ref().unwrap())));
 }

@@ -14,22 +14,32 @@ import "go/ast"
 
 // currentTypeAssertionCopyCall is what follows the value the assertion
 // being written found: ".clone()", or the copy of its struct type.
-var currentTypeAssertionCopyCall = ".clone()"
+// currentTypeAssertionCopyKnown is false when the type checker gave no type
+// for the asserted type; the value is then written as
+// goValueCopyNeedsTypeInfo, not as a guess at its copy.
+var (
+	currentTypeAssertionCopyCall  = ".clone()"
+	currentTypeAssertionCopyKnown = true
+)
 
 // enterTypeAssertionCopy sets the copy for an assertion to the type of
 // target and returns a function that restores the enclosing assertion's.
 func enterTypeAssertionCopy(target ast.Expr) func() {
-	prev := currentTypeAssertionCopyCall
-	currentTypeAssertionCopyCall = ".clone()"
+	prevCall, prevKnown := currentTypeAssertionCopyCall, currentTypeAssertionCopyKnown
+	currentTypeAssertionCopyCall, currentTypeAssertionCopyKnown = ".clone()", false
 	if typeInfo := GetTypeInfo(); typeInfo != nil && target != nil {
 		if typ := typeInfo.GetType(target); typ != nil {
 			currentTypeAssertionCopyCall = goValueCopyCallForType(typ)
+			currentTypeAssertionCopyKnown = true
 		}
 	}
-	return func() { currentTypeAssertionCopyCall = prev }
+	return func() { currentTypeAssertionCopyCall, currentTypeAssertionCopyKnown = prevCall, prevKnown }
 }
 
 // assertedValueCopy is the copy of the found value typed_val.
 func assertedValueCopy() string {
+	if !currentTypeAssertionCopyKnown {
+		return goValueCopyNeedsTypeInfo
+	}
 	return "typed_val" + currentTypeAssertionCopyCall
 }

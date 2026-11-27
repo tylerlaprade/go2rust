@@ -27,6 +27,9 @@ func main() {
 	switch v3 := a.(type) {
 	case Vec:
 		v3.Y = 50
+		fmt.Println("case", v3)
+	default:
+		fmt.Println("no case")
 	}
 	fmt.Println(a, v1, v2)
 
@@ -38,6 +41,9 @@ func main() {
 	switch r3 := s.(type) {
 	case Vec:
 		r3.Y = 8
+		fmt.Println("case", r3)
+	default:
+		fmt.Println("no case")
 	}
 	fmt.Println(s, r, r2, ok, s.Area())
 
@@ -48,8 +54,11 @@ func main() {
 	fmt.Println(g, gc)
 
 	items := []interface{}{Vec{5, 5}, "x"}
-	if iv, ok := items[0].(Vec); ok {
-		iv.X = 0
+	iv, ok := items[0].(Vec)
+	if !ok {
+		fmt.Println("assertion failed")
+		return
 	}
-	fmt.Println(items[0], items[1])
+	iv.X = 0
+	fmt.Println(items[0], items[1], iv)
 }

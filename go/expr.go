@@ -22444,6 +22444,10 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 		out.WriteString(" }")
 		return
 	}
+	if !currentTypeAssertionCopyKnown {
+		out.WriteString(goValueCopyNeedsTypeInfo)
+		return
+	}
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
 	out.WriteString(rustType)
