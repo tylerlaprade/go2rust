@@ -4712,6 +4712,14 @@ run_xfail_test() {
     run_test "tests/struct_function_slice_field"
 }
 
+@test "struct_literal_omitted_fields" {
+    run_test "tests/struct_literal_omitted_fields"
+}
+
+@test "struct_literal_omitted_fields_goroutines" {
+    run_test "tests/struct_literal_omitted_fields_goroutines"
+}
+
 @test "struct_literal_selector_handle_fields" {
     run_test "tests/struct_literal_selector_handle_fields"
 }

@@ -3329,12 +3329,7 @@ fn main() {
         ratio: Arc::new(Mutex::new(Some(0.25))),
         any: Arc::new(Mutex::new(Some(Box::new(Point { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }) as Box<dyn Any + Send + Sync>))),
         hidden: Arc::new(Mutex::new(Some(9))),
-        point: Arc::new(Mutex::new(None)),
-        next: Default::default(),
-        err: Default::default(),
-        shape: Arc::new(Mutex::new(None)),
-        on_done: Default::default(),
-        events: Default::default(),
+        ..Default::default()
     })));
     print!("{}\n", (*__go2rust_gosyntax0_23(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).__go_value_clone() })))).lock().unwrap().as_ref().unwrap()));
     print!("{}\n", (*__go2rust_gosyntax0_43(Arc::new(Mutex::new(Some(Point { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() })))).lock().unwrap().as_ref().unwrap()));

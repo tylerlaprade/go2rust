@@ -1205,7 +1205,7 @@ fn main() {
 
         // Anonymous struct embedding
     println!("{}", format!("{}", "\n=== Anonymous struct embedding ===".to_string()));
-    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), company_info: Rc::new(RefCell::new(Some(CompanyInfo::default()))) })));
+    let mut company = Rc::new(RefCell::new(Some(Company { name: Rc::new(RefCell::new(Some("TechCorp".to_string()))), ..Default::default() })));
     { let new_val = 2010; *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).founded.borrow_mut() = Some(new_val); };
     { let new_val = "John Doe".to_string(); *(*(*company.borrow_mut().as_mut().unwrap()).company_info.borrow_mut().as_mut().unwrap()).c_e_o.borrow_mut() = Some(new_val); };
 
