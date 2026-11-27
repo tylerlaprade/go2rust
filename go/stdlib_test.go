@@ -1891,3 +1891,34 @@ func main() {
 		t.Errorf("%%v of the slice should still print the slice:\n%s", rust)
 	}
 }
+
+// A map of maps of slices or structs, and a slice of maps, print as fmt
+// prints them, through a cell for each inner map; the inner maps have no
+// Display of their own.
+func TestPrintNestedMapsOfSlicesAndStructs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type P struct{ X int }
+
+func main() {
+	a := map[string]map[string][]int{}
+	b := map[string]map[string]P{}
+	c := []map[string]int{{"x": 1}, nil}
+	fmt.Println(a, b, c)
+}
+`)
+	for _, want := range []string{
+		`format_map_nil(__v, "[]")`,
+		`go_display_value(__k), format_map(__v)`,
+		`__maps.iter().map(|__m| format_map(&Rc::new(RefCell::new(Some(__m.clone())))))`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "None, ") {
+		t.Fatalf("a nil map in a slice literal should be an empty map:\n%s", rust)
+	}
+}

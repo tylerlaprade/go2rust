@@ -3472,6 +3472,14 @@ run_xfail_test() {
     run_test "tests/print_map_fields_goroutines"
 }
 
+@test "print_nested_maps" {
+    run_test "tests/print_nested_maps"
+}
+
+@test "print_nested_maps_goroutines" {
+    run_test "tests/print_nested_maps_goroutines"
+}
+
 @test "print_nested_slice" {
     run_test "tests/print_nested_slice"
 }
