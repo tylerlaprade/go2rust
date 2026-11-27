@@ -717,7 +717,7 @@ fn main() {
         let __cell_p_6_closure_clone = __cell_p_6.clone(); let x_closure_clone = x.clone(); { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         { let new_val = x_closure_clone.clone().clone(); (*__cell_p_6_closure_clone.lock().unwrap().as_mut().unwrap()).v = new_val; };
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
-        { let new_val = 6; *(*__cell_p_6.lock().unwrap().as_ref().unwrap()).v.lock().unwrap() = Some(new_val); };
+        { let new_val = 6; let __deref_target = (*__cell_p_6.lock().unwrap().as_ref().unwrap()).v.clone(); *__deref_target.lock().unwrap() = Some(new_val); };
         println!("{} {}", format!("{}", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*(*__cell_p_6.lock().unwrap().as_ref().unwrap()).v.lock().unwrap().as_ref().unwrap()).clone(); __v }));
         let mut ch: GoChannel<i64> = <GoChannel<i64>>::default();
         let mut __cell_ch_7 = Arc::new(Mutex::new(Some(AnonymousStruct4 { v: ch.clone() })));
