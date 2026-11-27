@@ -8091,22 +8091,23 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	// For such an index the handle is read in a statement of its own, and
 	// then the index, in Go's left-to-right order.
 	separateIndex := !sliceElemPtrIndexIsPlain(indexExpr.Index)
-	var handle strings.Builder
-	if writeRangeSliceElemPtrSequenceHandle(&handle, indexExpr.X) {
-		// Range values for slice elements are bare references; wrap a temporary handle.
-	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
-		writeNamedSliceInnerHandleClone(&handle, indexExpr.X)
-	} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
-		// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no cell
-		// of its own. A new cell around a copy of it shares its backing,
-		// so the element pointer writes into grid.
-		WriteWrapperPrefix(&handle)
-		TranspileExpressionContext(&handle, indexExpr.X, LValue)
-		handle.WriteString(".clone()")
-		WriteWrapperSuffix(&handle)
-	} else {
-		TranspileExpressionContext(&handle, indexExpr.X, LValue)
-		handle.WriteString(".clone()")
+	writeHandle := func(handle *strings.Builder) {
+		if writeRangeSliceElemPtrSequenceHandle(handle, indexExpr.X) {
+			// Range values for slice elements are bare references; wrap a temporary handle.
+		} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+			writeNamedSliceInnerHandleClone(handle, indexExpr.X)
+		} else if inner, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr); ok && goSliceModeEnabled() && indexesSliceOrArray(inner) {
+			// &grid[i][j]: grid[i] is a GoSlice held bare in grid, with no
+			// cell of its own. A new cell around a copy of it shares its
+			// backing, so the element pointer writes into grid.
+			WriteWrapperPrefix(handle)
+			TranspileExpressionContext(handle, indexExpr.X, LValue)
+			handle.WriteString(".clone()")
+			WriteWrapperSuffix(handle)
+		} else {
+			TranspileExpressionContext(handle, indexExpr.X, LValue)
+			handle.WriteString(".clone()")
+		}
 	}
 	constructor := "GoSliceElemPtr::new("
 	if helperQualifier != "" {
@@ -8114,7 +8115,7 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 	}
 	if separateIndex {
 		out.WriteString("{ let __elem_slice = ")
-		out.WriteString(handle.String())
+		writeHandle(out)
 		out.WriteString("; let __elem_index = ")
 		writeExpressionAsUsize(out, indexExpr.Index)
 		out.WriteString("; ")
@@ -8123,7 +8124,7 @@ func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 		return true
 	}
 	out.WriteString(constructor)
-	out.WriteString(handle.String())
+	writeHandle(out)
 	out.WriteString(", ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
