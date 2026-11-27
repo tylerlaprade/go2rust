@@ -108,3 +108,34 @@ func transpileReceiverHandleSource(t *testing.T, src string) string {
 	}
 	return transpileParsedRegression(t, file, fset, typeInfo)
 }
+
+// unsafe.Pointer(t) in a method that took its handle is the address of the
+// struct in the handle's cell, the address self has in a method that did
+// not, so both methods give the same address for the same receiver.
+func TestReceiverHandleUnsafePointerIsThePointeeAddress(t *testing.T) {
+	src := `package main
+
+import "unsafe"
+
+type T struct{ n int }
+
+var keep []*T
+
+func (t *T) plain() uintptr { return uintptr(unsafe.Pointer(t)) }
+
+func (t *T) escaping() uintptr {
+	keep = append(keep, t)
+	return uintptr(unsafe.Pointer(t))
+}
+`
+	rust := transpileReceiverHandleSource(t, src)
+	if !strings.Contains(rust, "self as *const _ as usize") {
+		t.Fatalf("plain should take self's address:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __self_guard = t.borrow(); __self_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0)") {
+		t.Fatalf("escaping should take the address of the struct in its receiver's cell:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::as_ptr(&t)") {
+		t.Fatalf("escaping should not take the address of the receiver's cell:\n%s", rust)
+	}
+}

@@ -21674,6 +21674,16 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				WriteWrapperSuffix(out)
 				return
 			}
+			// The receiver of a method that took its handle is the struct in
+			// that handle's cell, the address self has (receiver_handle.go).
+			if isCurrentReceiverHandleVar(ident) {
+				out.WriteString("{ let __self_guard = ")
+				out.WriteString(RustIdentForUse(ident))
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __self_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }")
+				WriteWrapperSuffix(out)
+				return
+			}
 			if isGoPtrVar(ident.Name) {
 				out.WriteString(RustIdentForUse(ident))
 				out.WriteString(".addr()")
