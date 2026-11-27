@@ -1083,6 +1083,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				writeMapWithArrayKeysDisplay(out, writeHandle)
 				return
 			}
+			if nilText, ok := mapValuesAreSlicesOfMaps(argType); ok {
+				writeMapOfSlicesOfMapsDisplay(out, writeHandle, nilText)
+				return
+			}
 			NeedFormatMap()
 			TrackImport("Display")
 			TrackImport("Ord")
@@ -3130,36 +3134,12 @@ func writeFormatSliceCall(out *strings.Builder, arg ast.Expr, wrappedHelper stri
 // does: [map[a:1] map[]]. The slice holds its maps bare, and a bare map has
 // no Display of its own, so each one is printed through a cell of its own.
 func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types.Type) bool {
-	if elemType == nil || typeHasGoStringMethod(elemType) {
-		return false
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || !typeInfo.IsSlice(arg) {
 		return false
 	}
-	// A defined map element, type M map[string]int, is a newtype with a
-	// Display of its own, which the slice formatter already uses.
-	m, ok := types.Unalias(elemType).(*types.Map)
-	if !ok || typeHasGoStringMethod(m.Elem()) {
-		return false
-	}
-	nilText := ""
-	switch value := types.Unalias(m.Elem()).(type) {
-	case *types.Basic:
-		if value.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
-			return false
-		}
-	case *types.Slice:
-		basic, ok := types.Unalias(value.Elem()).(*types.Basic)
-		if !ok || basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) == 0 {
-			return false
-		}
-		nilText = "[]"
-	case *types.Named:
-		if _, isStruct := value.Underlying().(*types.Struct); !isStruct || !typeNeedsGoValueClone(value) {
-			return false
-		}
-	default:
+	nilText, ok := bareMapInSlicePrints(elemType)
+	if !ok {
 		return false
 	}
 	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
@@ -3187,6 +3167,41 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 		out.WriteString(").clone().unwrap_or_default()")
 	}
 	out.WriteString("; format!(\"[{}]\", __maps.iter().map(|__m| ")
+	writeBareMapInSliceFormat(out, nilText)
+	out.WriteString(").collect::<Vec<_>>().join(\" \")) }")
+	return true
+}
+
+// bareMapInSlicePrints reports whether a map of type elemType held bare in a
+// slice prints through format_map: an unnamed map of numbers, strings, bools,
+// slices of those, or structs of the program. The text is what a nil value
+// in the map prints as, [] for a slice, and empty when format_map is used.
+// A defined map element, type M map[string]int, is a newtype with a Display
+// of its own, which the slice formatter already uses.
+func bareMapInSlicePrints(elemType types.Type) (string, bool) {
+	if elemType == nil || typeHasGoStringMethod(elemType) {
+		return "", false
+	}
+	m, ok := types.Unalias(elemType).(*types.Map)
+	if !ok || typeHasGoStringMethod(m.Elem()) {
+		return "", false
+	}
+	switch value := types.Unalias(m.Elem()).(type) {
+	case *types.Basic:
+		return "", value.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+	case *types.Slice:
+		basic, ok := types.Unalias(value.Elem()).(*types.Basic)
+		return "[]", ok && basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+	case *types.Named:
+		_, isStruct := value.Underlying().(*types.Struct)
+		return "", isStruct && typeNeedsGoValueClone(value)
+	}
+	return "", false
+}
+
+// writeBareMapInSliceFormat writes the format of __m, a map held bare in a
+// slice, through a cell of its own: a bare map has no Display.
+func writeBareMapInSliceFormat(out *strings.Builder, nilText string) {
 	if nilText != "" {
 		out.WriteString("format_map_nil(&")
 	} else {
@@ -3198,8 +3213,43 @@ func writeSliceOfMapsPrintArg(out *strings.Builder, arg ast.Expr, elemType types
 	if nilText != "" {
 		out.WriteString(", \"" + nilText + "\"")
 	}
-	out.WriteString(")).collect::<Vec<_>>().join(\" \")) }")
-	return true
+	out.WriteString(")")
+}
+
+// mapValuesAreSlicesOfMaps reports whether mapType is a map whose values are
+// slices of maps that print through format_map, map[string][]map[string]int,
+// and the text a nil value of an inner map prints as.
+func mapValuesAreSlicesOfMaps(mapType types.Type) (string, bool) {
+	if mapType == nil {
+		return "", false
+	}
+	m, ok := types.Unalias(mapType).Underlying().(*types.Map)
+	if !ok || typeHasGoStringMethod(m.Elem()) {
+		return "", false
+	}
+	slice, ok := types.Unalias(m.Elem()).(*types.Slice)
+	if !ok {
+		return "", false
+	}
+	return bareMapInSlicePrints(slice.Elem())
+}
+
+// writeMapOfSlicesOfMapsDisplay prints a map whose values are slices of maps
+// as fmt does, map[a:[map[x:1] map[]]], in key order. Each value is the cell
+// of a slice that holds its maps bare; a nil slice prints as [].
+func writeMapOfSlicesOfMapsDisplay(out *strings.Builder, writeHandle func(), nilText string) {
+	NeedFormatMap()
+	TrackImport("Display")
+	TrackImport("Ord")
+	out.WriteString("{ let __map_holder = ")
+	writeHandle()
+	out.WriteString(".clone(); let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __map_guard.as_ref() { Some(__map) => format!(\"map[{}]\", __map.iter().map(|(__k, __v)| { let __maps = (*__v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").clone().unwrap_or_default(); format!(\"{}:[{}]\", go_display_value(__k), __maps.iter().map(|__m| ")
+	writeBareMapInSliceFormat(out, nilText)
+	out.WriteString(").collect::<Vec<_>>().join(\" \")) }).collect::<Vec<_>>().join(\" \")), None => \"map[]\".to_string() } }")
 }
 
 func writeCollectionFormatHandleIdent(out *strings.Builder, ident *ast.Ident) {

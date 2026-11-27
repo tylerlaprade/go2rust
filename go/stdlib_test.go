@@ -1967,3 +1967,25 @@ func main() {
 		t.Fatalf("%%c of a range rune should print the character:\n%s", rust)
 	}
 }
+
+// A map of slices of maps prints as fmt prints it, each inner map through a
+// cell of its own, and a nil map in an elided slice literal inside the map
+// literal is an empty map, as in an explicit []map literal.
+func TestPrintMapOfSlicesOfMaps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func main() {
+	m := map[string][]map[string]int{"a": {{"x": 1}, nil}}
+	fmt.Println(m)
+}
+`)
+	want := `format!("{}:[{}]", go_display_value(__k), __maps.iter().map(|__m| format_map(&`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("missing %q:\n%s", want, rust)
+	}
+	if strings.Contains(rust, ", None]") {
+		t.Fatalf("a nil map in the elided slice literal should be an empty map:\n%s", rust)
+	}
+}
