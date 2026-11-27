@@ -240,6 +240,8 @@ These are real transpiler gaps (wrapped-type arithmetic, generics handling, type
 
 ### Collaborating With the Continuous Loop
 
+- **Track new work in GitHub issues.** Linear's free plan is out of issues, so new bugs and follow-ups are GitHub issues (`gh api repos/tylerlaprade/go2rust/issues`). Existing Linear issues (DEV-…) stay in Linear. Before starting something, check open PRs and both trackers, and claim an issue with a comment.
+
 A continuous Codex loop may be committing to `master` in parallel with your session. Treat the working tree and `HEAD` as moving under you. These lessons were paid for in thrash; follow them.
 
 - **`HEAD` moves constantly. Re-check it.** The loop commits every few minutes. After any pause, re-read `git log --oneline` before reasoning about state, staging, or amending. An error-count "baseline" from earlier in your session is already stale.
@@ -248,6 +250,7 @@ A continuous Codex loop may be committing to `master` in parallel with your sess
 - **Division of labor converges naturally — capture the spec, let the other side implement.** Repeatedly this session the loop and a Claude session arrived at the same fix from opposite ends: one wrote the failing fixture or unit test (the spec), the other wrote the implementation. When you discover the loop is mid-implementation of a bug you were about to fix, commit the minimal failing fixture under `tests/XFAIL/` instead and let the loop's fix auto-promote it. Examples: `resolver` implementing `ast.Visitor`, source-stdlib imported-interface impls, interface-slice composite-literal element boxing.
 - **Selectively stage only your hunks.** `git add <your files>`; the `hk` pre-commit hook stashes unstaged loop WIP, runs gofmt + `go vet` on the index, commits, then restores. If your change is intermingled with loop WIP in one file, extract just your hunk (`git apply --cached <hunk-patch>`) — never `git commit <path>`, which sweeps the whole working-tree file including the loop's uncommitted work.
 - **Attribute error-count deltas with a clean before/after, not a raw one.** Because the loop moves `HEAD` mid-measurement, measure your change's real impact by stashing only your file, building `HEAD`, measuring, then restoring (`git stash push -- <file>` … build … `git stash pop`). A naive before/after spanning the loop's commits misattributes its work to yours and vice versa.
+- **Chain the stash with `&&`, or copy the file aside instead.** Every worktree of a clone shares one stash list. If `git stash push` fails (a pathspec typed from a subdirectory, say), a following `git stash pop` applies whatever stash is on top, someone else's included. `cp file /tmp/x && git show HEAD:path > file` … `cp /tmp/x file` cannot pick up another stash.
 - **Never commit a state that depends on the loop's uncommitted WIP.** If `./test.sh` promotes your XFAIL because the loop's uncommitted fix makes it pass, do not commit that promotion — at `HEAD` (without the loop's WIP) the fixture is red. Restore your committed location and let the loop commit its fix and promote together.
 
 ## Detailed Rules
