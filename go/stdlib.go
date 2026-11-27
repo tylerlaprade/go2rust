@@ -7263,12 +7263,13 @@ func transpileDelete(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".clone()")
 		}
-		// delete on a nil map does nothing, as in Go.
+		// delete on a nil map does nothing, as in Go, though the key is
+		// still evaluated, before the map is borrowed.
+		out.WriteString("; let __delete_key = ")
+		writeMapLookupKeyWithType(out, call.Args[1], keyType)
 		out.WriteString("; let mut __map_guard = __map_handle")
 		WriteBorrowMethod(out, true)
-		out.WriteString("; if let Some(__map) = __map_guard.as_mut() { __map.remove(")
-		writeMapLookupKeyWithType(out, call.Args[1], keyType)
-		out.WriteString("); } }")
+		out.WriteString("; if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } }")
 	}
 }
 

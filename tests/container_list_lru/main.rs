@@ -1282,7 +1282,7 @@ impl LRU {
         } {
         let mut last = (*self.ll.lock().unwrap().as_ref().unwrap()).back();
         (*self.ll.lock().unwrap().as_mut().unwrap()).remove(last.clone());
-        { let __map_handle = self.items.clone(); let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(&{ let __selector_holder = (*({
+        { let __map_handle = self.items.clone(); let __delete_key = &{ let __selector_holder = (*({
         let val = (*last.lock().unwrap().as_ref().unwrap()).value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -1290,7 +1290,7 @@ impl LRU {
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "*main.entry")
         }
-    }).lock().unwrap().as_ref().unwrap()).key.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }); } };
+    }).lock().unwrap().as_ref().unwrap()).key.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned }; let mut __map_guard = __map_handle.lock().unwrap(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     }
     }
 

@@ -57,7 +57,10 @@ func main() {
 
 	var l2 Lists
 	delete(l2, "missing") // nothing to delete in a nil map
-	fmt.Println(l2 == nil, l2.Count())
+	calls := 0
+	key := func() string { calls++; return "k" }
+	delete(l2, key()) // the key is still evaluated
+	fmt.Println(l2 == nil, l2.Count(), calls)
 	l2 = Lists{}
 	fmt.Println(l2 == nil)
 

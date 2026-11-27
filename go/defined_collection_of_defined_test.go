@@ -109,7 +109,7 @@ func main() {
 	fmt.Println(len(conv(&raw)), len(m))
 }
 `)
-	if !strings.Contains(rust, `if let Some(__map) = __map_guard.as_mut() { __map.remove(&"missing".to_string()); }`) {
+	if !strings.Contains(rust, `let __delete_key = &"missing".to_string(); let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); }`) {
 		t.Fatalf("delete should do nothing to a nil map:\n%s", rust)
 	}
 	if !strings.Contains(rust, "M(p.clone())") {

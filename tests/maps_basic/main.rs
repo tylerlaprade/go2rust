@@ -968,7 +968,7 @@ fn main() {
     if exists {
         println!("{} {}", format!("{}", "Alice's age:".to_string()), format!("{}", { let __v = (*age.borrow().as_ref().unwrap()).clone(); __v }));
     }
-    { let __map_handle = ages.clone(); let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(&"Bob".to_string()); } };
+    { let __map_handle = ages.clone(); let __delete_key = &"Bob".to_string(); let mut __map_guard = __map_handle.borrow_mut(); if let Some(__map) = __map_guard.as_mut() { __map.remove(__delete_key); } };
     println!("{} {}", format!("{}", "After deleting Bob:".to_string()), format!("{}", format_map(&ages)));
     println!("{}", format!("{}", "All colors:".to_string()));
     let mut keys: Rc<RefCell<Option<Vec<String>>>> = Rc::new(RefCell::new(None));
