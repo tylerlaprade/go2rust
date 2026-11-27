@@ -919,7 +919,7 @@ fn main() {
     go_install_panic_exit();
     let mut vs = Rc::new(RefCell::new(Some(vec![Vec_ { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(0))), ..Default::default() }, Vec_ { x: Rc::new(RefCell::new(Some(0))), y: Rc::new(RefCell::new(Some(1))), ..Default::default() }])));
     for i in 0..(({ let __range_holder = vs.clone(); let __range_guard = __range_holder.borrow(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*vs.borrow().as_ref().unwrap())[(i) as usize].clone().scale(Rc::new(RefCell::new(Some(3))));
+        { let __elem_slice = vs.clone(); let __elem_index = (i) as usize; let mut __elem_view = (*__elem_slice.borrow()).clone().unwrap_or_default(); let __result = __elem_view[__elem_index].scale(Rc::new(RefCell::new(Some(3)))); __result };
     }
 
         // The loop variable is a copy: scaling it leaves vs alone.
