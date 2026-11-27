@@ -12,6 +12,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    go_install_panic_exit();
     other();
     let (mut __go_mv_2_0, mut __go_mv_2_1) = divmod(Rc::new(RefCell::new(Some(9))), Rc::new(RefCell::new(Some(4))));
     println!("{} {}", format!("{}", __go_mv_2_0), format!("{}", __go_mv_2_1));

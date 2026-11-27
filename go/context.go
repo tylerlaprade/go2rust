@@ -917,6 +917,15 @@ func NeedPanicRecover() {
 	}
 }
 
+// NeedPanicExit marks that main installs the panic hook that ends the
+// program with Go's message and exit status.
+func NeedPanicExit() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsPanicExit = true
+		TrackImport("Any")
+	}
+}
+
 // NeedGoWriteBack marks that a call writes cell values back into the
 // elements it was handed pointers to, from a guard.
 func NeedGoWriteBack() {

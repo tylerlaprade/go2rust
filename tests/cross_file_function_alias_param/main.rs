@@ -14,6 +14,7 @@ use std::cell::{RefCell};
 use std::rc::{Rc};
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", apply(Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<i64>>>| -> i64 { double(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<i64>>>) -> i64>))), Rc::new(RefCell::new(Some(21))))));
 }
 

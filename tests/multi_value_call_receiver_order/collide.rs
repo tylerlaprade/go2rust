@@ -1,4 +1,16 @@
-use crate::{GoSlice, GoSliceAppendBoxed, GoSliceFromSlice, GoSliceHeader, Vec};
+use crate::{
+    GoSlice,
+    GoSliceAppendBoxed,
+    GoSliceFromSlice,
+    GoSliceHeader,
+    Vec,
+    go_recover,
+    go_restore_panic_hook,
+    go_resume_unrecovered_panic,
+    go_runtime_error_text,
+    go_silence_panic_hook,
+    go_store_panic_payload,
+};
 
 use crate::{divmod};
 

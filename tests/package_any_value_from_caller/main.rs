@@ -220,6 +220,62 @@ fn go_any_store(target: &Rc<RefCell<Option<Box<dyn Any>>>>, source: Rc<RefCell<O
     None
 }
 
+fn go_install_panic_exit() {
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
+    }
+    __text
+}
+
 struct GoPointerError<T> {
     handle: Rc<RefCell<Option<T>>>,
 }
@@ -419,6 +475,7 @@ impl StdError for pointerError {}
 /// A value put into an interface does not stay in the package that put it
 /// there. main creates these values; another package prints and copies them.
 fn main() {
+    go_install_panic_exit();
     ::example_com_anyfromcaller_logger::__go_init_all();
 
     example_com_anyfromcaller_logger::show(Rc::new(RefCell::new(Some({ let __arg_value = { let __err_holder = Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from("bad".to_string()))))).clone(); let __err_guard = __err_holder.borrow(); match __err_guard.as_ref() { None => Box::new(GoNilAny) as Box<dyn Any>, Some(__err) => if let Some(typed_val) = __err.downcast_ref::<callerError>() { { go_register_any_runtime_type::<callerError>("main.callerError", |__value| { let __typed = __value.downcast_ref::<callerError>().expect("registered interface formatter type mismatch"); format!("{}", __typed) }, |__value| { let __typed = __value.downcast_ref::<callerError>().expect("registered interface clone type mismatch"); Box::new(__typed.__go_value_clone()) as Box<dyn Any> }, Some(|__value| { let __typed = __value.downcast_ref::<callerError>().expect("registered interface error type mismatch"); Rc::new(__typed.__go_value_clone()) as Rc<dyn StdError> })); go_box_any_with_metadata(typed_val.clone(), "struct", true) } } else if let Some(typed_val) = __err.downcast_ref::<pointerError>() { { go_register_any_runtime_type::<Rc<RefCell<Option<pointerError>>>>("*main.pointerError", |__value| { let __typed = __value.downcast_ref::<Rc<RefCell<Option<pointerError>>>>().expect("registered interface formatter type mismatch"); match (*__typed.borrow()).as_ref() { Some(__pointee) => format!("{}", __pointee), None => "<nil>".to_string() } }, |__value| { let __typed = __value.downcast_ref::<Rc<RefCell<Option<pointerError>>>>().expect("registered interface clone type mismatch"); Box::new(__typed.clone()) as Box<dyn Any> }, Some(|__value| { let __typed = __value.downcast_ref::<Rc<RefCell<Option<pointerError>>>>().expect("registered interface error type mismatch"); Rc::new(GoPointerError::new(__typed.clone())) as Rc<dyn StdError> })); go_box_any_with_metadata(Rc::new(RefCell::new(Some(typed_val.clone()))), "pointer", true) } } else { Box::new(Rc::new(RefCell::new(Some(__err.clone())))) as Box<dyn Any> } } }; __arg_value }))));

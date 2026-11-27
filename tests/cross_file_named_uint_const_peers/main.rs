@@ -21,6 +21,7 @@ pub fn decode(ver: Rc<RefCell<Option<u32>>>, flags: Rc<RefCell<Option<u32>>>) ->
 }
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", decode(Rc::new(RefCell::new(Some(1 as u32))), Rc::new(RefCell::new(Some(1 as u32))))));
     println!("{}", format!("{}", decode(Rc::new(RefCell::new(Some(3 as u32))), Rc::new(RefCell::new(Some(1 as u32))))));
     println!("{}", format!("{}", decode(Rc::new(RefCell::new(Some(1 as u32))), Rc::new(RefCell::new(Some(0 as u32))))));

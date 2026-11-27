@@ -8,6 +8,8 @@ include!("__go2rust_helpers.rs");
 mod matches;
 use matches::*;
 
+
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", matches()));
 }

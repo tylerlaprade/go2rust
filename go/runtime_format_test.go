@@ -183,8 +183,8 @@ func main() {
 `)
 
 	for _, want := range []string{
-		`panic!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true))`,
-		`panic!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false))`,
+		`std::panic::panic_any(format!("{}", go_sprintf_spread(&(*format.borrow().as_ref().unwrap()).clone(), &args, true)))`,
+		`std::panic::panic_any(format!("{}", go_sprintf(&(*format.borrow().as_ref().unwrap()).clone(), &[Box::new({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any>], false)))`,
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in:\n%s", want, rust)

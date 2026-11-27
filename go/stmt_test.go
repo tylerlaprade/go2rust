@@ -1948,7 +1948,8 @@ func pick(v int) (res int) {
 	if strings.Contains(rust, "Unhandled statement type") {
 		t.Fatalf("empty statement should not emit a TODO:\n%s", rust)
 	}
-	if got := strings.Count(rust, "while let Some(f) = __defer_stack.pop()"); got != 2 {
+	// The panic path of the catch drains the defers too.
+	if got := strings.Count(rust, "while let Some(f) = __defer_stack.pop()") - strings.Count(rust, "catch_unwind(std::panic::AssertUnwindSafe(f))"); got != 2 {
 		t.Fatalf("terminating switch with trailing empty statement should not emit final defer drain, got %d drains:\n%s", got, rust)
 	}
 }

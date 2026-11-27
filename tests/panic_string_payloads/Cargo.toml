@@ -1,0 +1,11 @@
+[package]
+name = "panic_string_payloads"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_string_payloads"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

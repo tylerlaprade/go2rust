@@ -1,0 +1,7 @@
+recovered: attempt to divide by zero
+recovered: runtime error: integer divide by zero
+recovered: called `Option::unwrap()` on a `None` value
+recovered: attempt to divide by zero
+second main recovered: from the second main
+back in the first main
+panic: attempt to calculate the remainder with a divisor of zero

@@ -8215,7 +8215,10 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {
 		return
 	}
-	out.WriteString("panic!(")
+	// The value is raised as a String, never as a &'static str: Rust raises
+	// its own runtime errors, such as a division by zero, as a &'static str,
+	// so a Go string that reads like one keeps its text (DEV-194).
+	out.WriteString("std::panic::panic_any(format!(")
 	if len(call.Args) > 0 {
 		// Check if the argument is a string literal
 		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
@@ -8252,7 +8255,7 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	} else {
 		out.WriteString("\"explicit panic\"")
 	}
-	out.WriteString(")")
+	out.WriteString("))")
 }
 
 func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {

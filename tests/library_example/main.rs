@@ -21,6 +21,7 @@ macro_rules! print {
     }};
 }
 fn main() {
+    go_install_panic_exit();
         // Test math functions
     let mut sum = add(Rc::new(RefCell::new(Some(5))), Rc::new(RefCell::new(Some(3))));
     print!("5 + 3 = {}\n", sum);

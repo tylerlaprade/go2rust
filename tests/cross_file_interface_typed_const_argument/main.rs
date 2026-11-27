@@ -37,6 +37,7 @@ impl Writer {
 }
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i64))))) as Box<dyn Code>))))));
     println!("{}", format!("{}", (Writer {  }).code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i64))))) as Box<dyn Code>))))));
 }

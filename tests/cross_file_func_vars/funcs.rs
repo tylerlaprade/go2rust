@@ -121,6 +121,9 @@ pub(crate) fn __go_init_functions() {
 
 
 pub(crate) fn __go_init_all_funcs() {
-    self::__go_init_globals();
-    self::__go_init_0();
+    static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
+    __GO_INIT_ONCE.call_once(|| {
+        self::__go_init_globals();
+        self::__go_init_0();
+    });
 }

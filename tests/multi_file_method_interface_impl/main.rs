@@ -22,5 +22,6 @@ pub fn run(s: Rc<RefCell<Option<Box<dyn Stepper>>>>) -> i64 {
 }
 
 fn main() {
+    go_install_panic_exit();
     println!("{}", format!("{}", run(Rc::new(RefCell::new(Some(Box::new(crate::counter_step::CounterPtr(Rc::new(RefCell::new(Some(Counter { n: Rc::new(RefCell::new(Some(0))) }))).clone())) as Box<dyn Stepper>))))));
 }

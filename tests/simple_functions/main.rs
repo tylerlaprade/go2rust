@@ -8,7 +8,9 @@ include!("__go2rust_helpers.rs");
 mod lib_;
 use lib_::*;
 
+
 fn main() {
+    go_install_panic_exit();
     {
             let __go_print_arg_0 = format!("{}", (*get_hello().borrow().as_ref().unwrap()));
             eprintln!("{}", __go_print_arg_0)

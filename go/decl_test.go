@@ -4113,8 +4113,10 @@ func main() {
 	}
 }
 
-// A program that never calls recover() keeps its functions as they were.
-func TestNoCatchUnwindWithoutRecover(t *testing.T) {
+// A function with a defer runs its body under catch_unwind even when the
+// program never calls recover(): a panic that nothing recovers still runs
+// the deferred calls before the program ends (DEV-162).
+func TestDeferRunsUnderCatchWithoutRecover(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 import "fmt"
@@ -4124,7 +4126,47 @@ func main() {
 	fmt.Println("hi")
 }
 `)
-	if strings.Contains(rust, "catch_unwind") {
-		t.Fatalf("no catch_unwind without recover():\n%s", rust)
+	for _, want := range []string{
+		"let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {",
+		"go_resume_unrecovered_panic();",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+}
+
+// main installs the panic hook that ends the program with Go's message and
+// exit status before anything else runs (DEV-194).
+func TestMainInstallsPanicExitFirst(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func init() { fmt.Println("init") }
+
+func main() {
+	fmt.Println("hi")
+}
+`)
+	if !strings.Contains(rust, "fn main() {\n    go_install_panic_exit();\n") {
+		t.Fatalf("main should install the panic hook first:\n%s", rust)
+	}
+	for _, want := range []string{"fn go_install_panic_exit() {", "std::process::exit(2);", `eprintln!("panic: {}", __text);`} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("expected %q:\n%s", want, rust)
+		}
+	}
+}
+
+// Without the package's type information a function named main may belong
+// to any package, so it gets no panic hook.
+func TestMainWithoutPackageInfoInstallsNoPanicExit(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+func main() {}
+`, nil)
+	if strings.Contains(rust, "go_install_panic_exit") {
+		t.Fatalf("main without package info should not install the panic hook:\n%s", rust)
 	}
 }

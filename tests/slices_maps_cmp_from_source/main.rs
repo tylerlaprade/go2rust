@@ -121,6 +121,62 @@ macro_rules! impl_go_func_value {
 }
 impl_go_func_value!((), (A0), (A0, A1), (A0, A1, A2), (A0, A1, A2, A3), (A0, A1, A2, A3, A4), (A0, A1, A2, A3, A4, A5), (A0, A1, A2, A3, A4, A5, A6), (A0, A1, A2, A3, A4, A5, A6, A7), (A0, A1, A2, A3, A4, A5, A6, A7, A8), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10), (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11));
 
+fn go_install_panic_exit() {
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
+}
+
+fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
+    }
+    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
+
+fn go_runtime_error_text(__text: String) -> String {
+    if __text == "attempt to divide by zero" || __text == "attempt to calculate the remainder with a divisor of zero" {
+        return "runtime error: integer divide by zero".to_string();
+    }
+    if let Some(__rest) = __text.strip_prefix("index out of bounds: the len is ") {
+        if let Some((__len, __index)) = __rest.split_once(" but the index is ") {
+            return format!("runtime error: index out of range [{}] with length {}", __index, __len);
+        }
+    }
+    // A nil pointer's cell is empty, so reading through it unwraps None.
+    if __text == "called `Option::unwrap()` on a `None` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+
+fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
+    }
+    __text
+}
+
 fn go_float_string(__value: f64, __single: bool) -> String {
     // The names are prefixed: this helper is at the crate root, where a Go
     // package variable of the same name would be a static it cannot shadow.
@@ -1784,6 +1840,7 @@ pub fn lower(s: Rc<RefCell<Option<String>>>) -> Rc<RefCell<Option<String>>> {
 }
 
 fn main() {
+    go_install_panic_exit();
     ::cmp::__go_init_all();
     ::math_bits::__go_init_all();
 
@@ -2208,7 +2265,7 @@ pub fn __slices__concat__slice_int__int(slices: Rc<RefCell<Option<Vec<Vec<i64>>>
     { let __range_holder = slices.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); for s in __range_values.iter() {
         { let __rhs = s.len() as i64; let mut guard = size.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if (*size.borrow().as_ref().unwrap()) < 0 {
-        panic!("len out of range");
+        std::panic::panic_any(format!("len out of range"));
     }
     } }
     let mut newslice = __slices__grow__slice_int__int(Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -2221,13 +2278,13 @@ pub fn __slices__concat__slice_int__int(slices: Rc<RefCell<Option<Vec<Vec<i64>>>
 
 pub fn __slices__repeat__slice_string__string(x: Rc<RefCell<Option<Vec<String>>>>, count: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<String>>>> {
     if (*count.borrow().as_ref().unwrap()) < 0 {
-        panic!("cannot be negative");
+        std::panic::panic_any(format!("cannot be negative"));
     }
     const maxInt: u64 = !(0 as u64) >> 1;
 
     let (mut hi, mut lo) = math_bits::mul(Rc::new(RefCell::new(Some({ let __arg_value = ({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as u64; __arg_value }))), Rc::new(RefCell::new(Some({ let __arg_value = (*count.borrow().as_ref().unwrap()) as u64; __arg_value }))));
     if hi > 0 as u64 || lo > maxInt as u64 {
-        panic!("the result of (len(x) * count) overflows");
+        std::panic::panic_any(format!("the result of (len(x) * count) overflows"));
     }
     let mut newslice = Rc::new(RefCell::new(Some(vec!["".to_string(); (*Rc::new(RefCell::new(Some(lo as i64))).borrow().as_ref().unwrap()) as usize])));
     let mut n = {
@@ -2256,7 +2313,7 @@ pub fn __slices__repeat__slice_string__string(x: Rc<RefCell<Option<Vec<String>>>
 pub fn __slices__grow__slice_int__int(mut s: Rc<RefCell<Option<Vec<i64>>>>, mut n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Vec<i64>>>> {
     let mut s = Rc::new(RefCell::new((*s.borrow()).clone()));
     if (*n.borrow().as_ref().unwrap()) < 0 {
-        panic!("cannot be negative");
+        std::panic::panic_any(format!("cannot be negative"));
     }
     {
         { let __rhs = ((*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i64) - (({ let __len = (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64); let mut guard = n.borrow_mut(); *guard = Some(guard.as_ref().unwrap() - __rhs); };;
@@ -2274,7 +2331,7 @@ pub fn __slices__clip__slice_int__int(s: Rc<RefCell<Option<Vec<i64>>>>) -> Rc<Re
 pub fn __slices__chunk__slice_int__int(s: Rc<RefCell<Option<Vec<i64>>>>, n: Rc<RefCell<Option<i64>>>) -> Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Vec<i64>>>>) -> bool>>>>) -> ()>>>> {
     let mut s = Rc::new(RefCell::new((*s.borrow()).clone()));
     if (*n.borrow().as_ref().unwrap()) < 1 {
-        panic!("cannot be less than 1");
+        std::panic::panic_any(format!("cannot be less than 1"));
     }
     let n_closure_clone = n.clone(); let s_closure_clone = s.clone(); return Rc::new(RefCell::new(Some(Rc::new(move |r#yield: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Vec<i64>>>>) -> bool>>>>| {
         let mut i = Rc::new(RefCell::new(Some(0i64)));
@@ -2446,7 +2503,7 @@ pub fn __slices__binary_search_func__slice__item___item__int(x: Rc<RefCell<Optio
 
 pub fn __slices__min_func__slice__item___item(x: Rc<RefCell<Option<Vec<Item>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> i64>>>>) -> Rc<RefCell<Option<Item>>> {
     if (({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) < (1 as i64) {
-        panic!("slices.MinFunc: empty list");
+        std::panic::panic_any(format!("slices.MinFunc: empty list"));
     }
     let mut m = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone())));
     let mut i = Rc::new(RefCell::new(Some(1i64)));
@@ -2461,7 +2518,7 @@ pub fn __slices__min_func__slice__item___item(x: Rc<RefCell<Option<Vec<Item>>>>,
 
 pub fn __slices__max_func__slice__item___item(x: Rc<RefCell<Option<Vec<Item>>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> i64>>>>) -> Rc<RefCell<Option<Item>>> {
     if (({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) < (1 as i64) {
-        panic!("slices.MaxFunc: empty list");
+        std::panic::panic_any(format!("slices.MaxFunc: empty list"));
     }
     let mut m = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(0) as usize].clone().__go_value_clone())));
     let mut i = Rc::new(RefCell::new(Some(1i64)));
@@ -2575,7 +2632,7 @@ pub fn __slices__sort__slice_string__string(x: Rc<RefCell<Option<Vec<String>>>>)
 
 pub fn __slices__max__slice__celsius___celsius(x: Rc<RefCell<Option<Vec<Celsius>>>>) -> Rc<RefCell<Option<Celsius>>> {
     if (({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) < (1 as i64) {
-        panic!("slices.Max: empty list");
+        std::panic::panic_any(format!("slices.Max: empty list"));
     }
     let mut m = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(0) as usize].clone())));
     let mut i = Rc::new(RefCell::new(Some(1i64)));
@@ -2588,7 +2645,7 @@ pub fn __slices__max__slice__celsius___celsius(x: Rc<RefCell<Option<Vec<Celsius>
 
 pub fn __slices__min__slice__celsius___celsius(x: Rc<RefCell<Option<Vec<Celsius>>>>) -> Rc<RefCell<Option<Celsius>>> {
     if (({ let __len = (*x.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len }) as i64) < (1 as i64) {
-        panic!("slices.Min: empty list");
+        std::panic::panic_any(format!("slices.Min: empty list"));
     }
     let mut m = Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap())[(0) as usize].clone())));
     let mut i = Rc::new(RefCell::new(Some(1i64)));
@@ -2865,7 +2922,7 @@ pub fn __slices_start_idx__int(haystack: Rc<RefCell<Option<Vec<i64>>>>, needle: 
         return i as i64;
     }
     }
-    panic!("needle not found");
+    std::panic::panic_any(format!("needle not found"));
 }
 
 pub fn __slices_stable_cmp_func___item(data: Rc<RefCell<Option<Vec<Item>>>>, n: Rc<RefCell<Option<i64>>>, cmp: Rc<RefCell<Option<Rc<dyn Fn(Rc<RefCell<Option<Item>>>, Rc<RefCell<Option<Item>>>) -> i64>>>>) {

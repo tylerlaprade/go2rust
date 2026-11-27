@@ -21,6 +21,7 @@ macro_rules! print {
     }};
 }
 fn main() {
+    go_install_panic_exit();
     ::math::__go_init_all();
     ::math_bits::__go_init_all();
 

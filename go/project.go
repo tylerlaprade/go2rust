@@ -1429,16 +1429,30 @@ func packageInitAllFunctionLineIndex(rustCode string) int {
 	return -1
 }
 
+// mainBodyInsertAt returns where code that main runs first goes: after the
+// opening of main and after the panic hook's installation, which must stay
+// main's first statement. It returns -1 for a file without main.
+func mainBodyInsertAt(rustCode string) int {
+	const marker = "fn main() {"
+	insertAt := strings.Index(rustCode, marker)
+	if insertAt < 0 {
+		return -1
+	}
+	insertAt += len(marker)
+	if rest := rustCode[insertAt:]; strings.HasPrefix(rest, "\n    "+panicExitInstallCall) {
+		insertAt += len("\n    " + panicExitInstallCall)
+	}
+	return insertAt
+}
+
 func injectModuleInitCalls(rustCode string, initModules []generatedInitModule) string {
 	if len(initModules) == 0 {
 		return rustCode
 	}
-	const marker = "fn main() {"
-	insertAt := strings.Index(rustCode, marker)
+	insertAt := mainBodyInsertAt(rustCode)
 	if insertAt < 0 {
 		return rustCode
 	}
-	insertAt += len(marker)
 
 	var initCalls strings.Builder
 	initCalls.WriteString("\n")
@@ -1457,12 +1471,10 @@ func injectExternalPackageInitCalls(rustCode string, crateNames []string) string
 	if len(crateNames) == 0 {
 		return rustCode
 	}
-	const marker = "fn main() {"
-	insertAt := strings.Index(rustCode, marker)
+	insertAt := mainBodyInsertAt(rustCode)
 	if insertAt < 0 {
 		return rustCode
 	}
-	insertAt += len(marker)
 
 	var initCalls strings.Builder
 	initCalls.WriteString("\n")
@@ -1617,7 +1629,9 @@ func replaceOrAppendMainPackageInitAll(rustCode string, plan generatedPackageIni
 func renderMainPackageInitAll(plan generatedPackageInitPlan) string {
 	var out strings.Builder
 	out.WriteString("pub(crate) fn __go_init_all() {\n")
-	writePackageInitPlanCalls(&out, plan, "    ")
+	writePackageInitOnceStart(&out)
+	writePackageInitPlanCalls(&out, plan, "        ")
+	writePackageInitOnceEnd(&out)
 	out.WriteString("}\n")
 	return out.String()
 }
@@ -1651,12 +1665,10 @@ func ensureMainCallsPackageInitAll(rustCode string) string {
 	if strings.Contains(rustCode, "__go_init_all();") {
 		return rustCode
 	}
-	const marker = "fn main() {"
-	insertAt := strings.Index(rustCode, marker)
+	insertAt := mainBodyInsertAt(rustCode)
 	if insertAt < 0 {
 		return rustCode
 	}
-	insertAt += len(marker)
 	return rustCode[:insertAt] + "\n    __go_init_all();\n" + rustCode[insertAt:]
 }
 

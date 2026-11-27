@@ -19,6 +19,7 @@ macro_rules! print {
     }};
 }
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
 
         // Call function variable - transpiler needs to know ProcessData is a function
@@ -70,11 +71,14 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    funcs::__go_zero_globals();
-    funcs::__go_init_order_0();
-    funcs::__go_init_order_1();
-    funcs::__go_init_order_2();
-    funcs::__go_init_order_3();
-    funcs::__go_init_order_4();
-    funcs::__go_init_functions();
+    static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
+    __GO_INIT_ONCE.call_once(|| {
+        funcs::__go_zero_globals();
+        funcs::__go_init_order_0();
+        funcs::__go_init_order_1();
+        funcs::__go_init_order_2();
+        funcs::__go_init_order_3();
+        funcs::__go_init_order_4();
+        funcs::__go_init_functions();
+    });
 }

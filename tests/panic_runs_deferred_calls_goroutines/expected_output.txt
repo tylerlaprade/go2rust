@@ -1,0 +1,7 @@
+started
+start
+inner deferred
+middle deferred
+main deferred
+buffered until the deferred Flush
+panic: boom

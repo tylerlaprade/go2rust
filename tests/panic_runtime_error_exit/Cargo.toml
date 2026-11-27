@@ -1,0 +1,11 @@
+[package]
+name = "panic_runtime_error_exit"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "panic_runtime_error_exit"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

@@ -166,6 +166,13 @@ fixture_stdin() {
     fi
 }
 
+# strip_go_panic_trace drops what a program prints after a panic's message
+# that differs from run to run: Go's goroutine trace, from its first
+# "goroutine N [...]" line on, and the [signal ...] line of a fault.
+strip_go_panic_trace() {
+    printf '%s\n' "$1" | awk '/^goroutine [0-9]+ \[/ { exit } /^\[signal / { next } { print }'
+}
+
 run_transpile_and_compare() {
     local test_dir="$1"
     local go_output="$2"
@@ -284,9 +291,16 @@ run_transpile_and_compare() {
         rm -rf "$cargo_target_dir"
     fi
     
-    if [[ "$rust_exit_code" -ne 0 ]]; then
+    local expected_exit_status="${GO2RUST_TEST_EXIT_STATUS:-0}"
+    if [[ "$expected_exit_status" -ne 0 && "$rust_exit_code" -eq "$expected_exit_status" ]]; then
+        rust_output=$(strip_go_panic_trace "$rust_output")
+    elif [[ "$rust_exit_code" -ne "$expected_exit_status" ]]; then
         echo ""
-        echo "Rust execution failed:"
+        if [[ "$expected_exit_status" -ne 0 ]]; then
+            echo "Rust program exited with status $rust_exit_code, not $expected_exit_status:"
+        else
+            echo "Rust execution failed:"
+        fi
         indent_lines "$rust_output"
         if [[ "$remove_cargo_output_file" = true ]]; then
             rm -f "$cargo_output_file"
@@ -321,6 +335,7 @@ run_test() {
 
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f strip_go_panic_trace
     export -f fixture_stdin
     export -f compare_outputs
     export -f note_fixture_phase
@@ -361,6 +376,7 @@ run_xfail_test() {
     
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
+    export -f strip_go_panic_trace
     export -f fixture_stdin
     export -f compare_outputs
     export -f note_fixture_phase
@@ -1912,6 +1928,10 @@ run_xfail_test() {
     run_test "tests/goroutine_panic_recover"
 }
 
+@test "goroutine_panic_runs_deferred_calls" {
+    run_test "tests/goroutine_panic_runs_deferred_calls"
+}
+
 @test "goroutine_pointer_capture_alias" {
     run_test "tests/goroutine_pointer_capture_alias"
 }
@@ -3204,6 +3224,10 @@ run_xfail_test() {
     run_test "tests/package_variadic_import"
 }
 
+@test "panic_float_payloads_goroutines" {
+    run_test "tests/panic_float_payloads_goroutines"
+}
+
 @test "panic_fmt_errorf_dynamic" {
     run_test "tests/panic_fmt_errorf_dynamic"
 }
@@ -3214,6 +3238,26 @@ run_xfail_test() {
 
 @test "panic_recover_deferred_type_switch" {
     run_test "tests/panic_recover_deferred_type_switch"
+}
+
+@test "panic_runs_deferred_calls" {
+    run_test "tests/panic_runs_deferred_calls"
+}
+
+@test "panic_runs_deferred_calls_goroutines" {
+    run_test "tests/panic_runs_deferred_calls_goroutines"
+}
+
+@test "panic_runtime_error_exit" {
+    run_test "tests/panic_runtime_error_exit"
+}
+
+@test "panic_string_payloads" {
+    run_test "tests/panic_string_payloads"
+}
+
+@test "panic_string_payloads_goroutines" {
+    run_test "tests/panic_string_payloads_goroutines"
 }
 
 @test "panic_struct_literal_value" {

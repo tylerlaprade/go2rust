@@ -154,6 +154,7 @@ type HelperTracker struct {
 	needsAnyClone                        bool
 	needsAnyHandleCopy                   bool
 	needsPanicRecover                    bool
+	needsPanicExit                       bool
 	needsGoPointerError                  bool
 	needsGoWriteBack                     bool
 	needsGoValueClone                    bool
@@ -420,6 +421,19 @@ func (ht *HelperTracker) GenerateHelpers() string {
 		generatePanicRecoverHelper(&result)
 	}
 
+	if ht.needsPanicExit {
+		boxed := NeedsConcurrentWrapper() || ht.needsPanicRecover
+		generatePanicExitHelper(&result, boxed, boxed && ht.needsFormatAny && NeedsConcurrentWrapper())
+	}
+
+	if ht.needsPanicRecover || ht.needsPanicExit {
+		visibility := ""
+		if generatingPublicHelpers {
+			visibility = "pub "
+		}
+		writeGoRuntimeErrorText(&result, visibility)
+	}
+
 	if ht.needsGoPointerError {
 		generateGoPointerError(&result)
 	}
@@ -603,6 +617,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsAnyClone ||
 		ht.needsAnyHandleCopy ||
 		ht.needsPanicRecover ||
+		ht.needsPanicExit ||
 		ht.needsGoPointerError ||
 		ht.needsGoWriteBack ||
 		ht.needsGoValueClone ||
@@ -760,6 +775,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsAnyHandleCopy {
 		add("go_any_handle_copy", "go_any_store")
 	}
+	// Only main calls go_install_panic_exit, and main sees the helpers it
+	// includes without importing them, so the panic exit helpers are not
+	// imported into the other modules.
 	if ht.needsPanicRecover {
 		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload", "go_runtime_error_text", "go_silence_panic_hook", "go_restore_panic_hook")
 	}
@@ -1537,7 +1555,7 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     };
     let payload = match payload.downcast::<String>() {
         Ok(value) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text(*value)) as Box<dyn Any + Send + Sync>));
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(go_runtime_error_text_of_string(*value)) as Box<dyn Any + Send + Sync>));
             return;
         }
         Err(payload) => payload,
@@ -1573,7 +1591,6 @@ func generatePanicRecoverHelper(out *strings.Builder) {
     panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
 }
 `)
-	writeGoRuntimeErrorText(out, visibility)
 	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
@@ -1582,6 +1599,128 @@ func generatePanicRecoverHelper(out *strings.Builder) {
         std::panic::panic_any(payload);
     }
 }
+`)
+}
+
+// generatePanicExitHelper writes go_install_panic_exit, which main calls
+// before anything else. Its panic hook ends the program the way Go's
+// runtime does for a panic that nothing recovers: it prints "panic: " and
+// the value on stderr and exits with status 2 (DEV-194). A function with a
+// defer runs its body under catch_unwind, and go_silence_panic_hook wraps
+// this hook so that it runs only when no such catch is active on the
+// thread; by then every deferred call on the way has run (DEV-162). Each
+// crate of the program wraps the hook it finds, so main installs it first.
+//
+// A panic's value prints as Go prints it for the shapes the panic site
+// raises. Without goroutines or recover() a panic raises its text. With
+// them it can raise the Go value boxed as an interface value, or raise a
+// recovered payload again: a string, an error's Error() or a number print
+// as Go prints them, and when the program formats interface values the
+// other kinds print as format_any does.
+func generatePanicExitHelper(out *strings.Builder, withBoxedValues bool, withFormatAny bool) {
+	TrackImport("Any")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_install_panic_exit() {
+    // Go lets a program call main again; the hook goes in once, so a
+    // later call keeps the hook that go_silence_panic_hook wrapped around it.
+    static __GO_PANIC_EXIT: std::sync::Once = std::sync::Once::new();
+    __GO_PANIC_EXIT.call_once(|| {
+        std::panic::set_hook(Box::new(|__info| {
+            let __text = go_panic_payload_text(__info.payload());
+            {
+                use std::io::Write;
+                std::io::stdout().flush().ok();
+            }
+            eprintln!("panic: {}", __text);
+            std::process::exit(2);
+        }));
+    });
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_panic_payload_text(__payload: &dyn Any) -> String {
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return go_runtime_error_text(__text.to_string());
+    }
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return go_runtime_error_text_of_string(__text.clone());
+    }
+`)
+	if withBoxedValues {
+		out.WriteString(`    go_panic_value_text(__payload)
+}
+
+`)
+		out.WriteString(visibility)
+		out.WriteString(`fn go_panic_value_text(__payload: &dyn Any) -> String {
+    // A boxed payload holds the Go value itself, so its string is printed
+    // as it is.
+    if let Some(__text) = __payload.downcast_ref::<String>() {
+        return __text.clone();
+    }
+    if let Some(__text) = __payload.downcast_ref::<&'static str>() {
+        return __text.to_string();
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+        let __text = go_panic_value_text(&**__inner);
+`)
+		if withFormatAny {
+			out.WriteString(`        if __text == GO_UNPRINTABLE_PANIC_VALUE {
+            return format_any(&**__inner);
+        }
+`)
+		}
+		out.WriteString(`        return __text;
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any + Send>>() {
+        return go_panic_value_text(&**__inner);
+    }
+    if let Some(__inner) = __payload.downcast_ref::<Box<dyn Any>>() {
+        return go_panic_value_text(&**__inner);
+    }
+    if let Some(__err) = __payload.downcast_ref::<std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn std::error::Error + Send + Sync>>>>>() {
+        return __err.lock().unwrap().as_ref().map(|__err| __err.to_string()).unwrap_or_else(|| String::from("nil"));
+    }
+    macro_rules! go_panic_display_text {
+        ($($t:ty),*) => {
+            $(if let Some(__value) = __payload.downcast_ref::<$t>() {
+                return __value.to_string();
+            })*
+        };
+    }
+    go_panic_display_text!(i64, i32, i16, i8, u64, u32, u16, u8, usize, isize, bool, char);
+    // Go prints a float in a panic as +1.500000e+000; a float32 is widened
+    // to float64 first, as Go's print does.
+    let __float = __payload
+        .downcast_ref::<f64>()
+        .copied()
+        .or_else(|| __payload.downcast_ref::<f32>().map(|__value| *__value as f64));
+    if let Some(__value) = __float {
+        if __value.is_nan() {
+            return String::from("NaN");
+        }
+        if __value.is_infinite() {
+            return String::from(if __value > 0.0 { "+Inf" } else { "-Inf" });
+        }
+        let __text = format!("{:+.6e}", __value);
+        if let Some((__mantissa, __exponent)) = __text.split_once('e') {
+            let __exponent: i32 = __exponent.parse().unwrap_or(0);
+            return format!("{}e{}{:03}", __mantissa, if __exponent < 0 { '-' } else { '+' }, __exponent.abs());
+        }
+        return __text;
+    }
+`)
+	}
+	out.WriteString(`    String::from(GO_UNPRINTABLE_PANIC_VALUE)
+}
+
+const GO_UNPRINTABLE_PANIC_VALUE: &str = "(unprintable panic value)";
 `)
 }
 
@@ -1615,18 +1754,28 @@ thread_local! {
 `)
 	out.WriteString("\n")
 	out.WriteString(visibility)
-	out.WriteString(`fn go_store_panic_payload(__payload: Box<dyn Any + Send>) {
+	out.WriteString(`fn go_store_panic_payload(mut __payload: Box<dyn Any + Send>) {
+    // A payload raised again by go_resume_unrecovered_panic arrives boxed
+    // once more.
+    loop {
+        match __payload.downcast::<Box<dyn Any + Send>>() {
+            Ok(__inner) => __payload = *__inner,
+            Err(__outer) => {
+                __payload = __outer;
+                break;
+            }
+        }
+    }
     let __payload: Box<dyn Any + Send> = match __payload.downcast::<&'static str>() {
         Ok(__text) => Box::new(go_runtime_error_text(__text.to_string())),
         Err(__payload) => match __payload.downcast::<String>() {
-            Ok(__text) => Box::new(go_runtime_error_text(*__text)),
+            Ok(__text) => Box::new(go_runtime_error_text_of_string(*__text)),
             Err(__payload) => __payload,
         },
     };
     __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(__payload));
 }
 `)
-	writeGoRuntimeErrorText(out, visibility)
 	writePanicHookSilencer(out, visibility)
 	out.WriteString("\n")
 	out.WriteString(visibility)
@@ -1634,7 +1783,9 @@ thread_local! {
     if let Some(__payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
         match __payload.downcast::<String>() {
             Ok(__text) => std::panic::panic_any(*__text),
-            Err(__payload) => std::panic::resume_unwind(__payload),
+            // panic_any, not resume_unwind: the panic hook must see a panic
+            // that nothing recovers, to end the program as Go does.
+            Err(__payload) => std::panic::panic_any(__payload),
         }
     }
 }
@@ -1699,6 +1850,19 @@ func writeGoRuntimeErrorText(out *strings.Builder, visibility string) {
     // A nil pointer's cell is empty, so reading through it unwraps None.
     if __text == "called ` + "`Option::unwrap()`" + ` on a ` + "`None`" + ` value" || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
         return "runtime error: invalid memory address or nil pointer dereference".to_string();
+    }
+    __text
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_runtime_error_text_of_string(__text: String) -> String {
+    // panic(s) in Go raises a String, and so does a runtime error whose text
+    // Rust formats: an index out of range, or a nil pointer read through
+    // expect(). The constant runtime errors arrive as a &'static str, so a
+    // Go string that reads like one keeps its text.
+    if __text.starts_with("index out of bounds: ") || __text == "nil pointer dereference" || __text == "invalid memory address or nil pointer dereference" {
+        return go_runtime_error_text(__text);
     }
     __text
 }

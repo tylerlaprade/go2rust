@@ -19,6 +19,7 @@ macro_rules! print {
     }};
 }
 fn main() {
+    go_install_panic_exit();
         // Create a Person - transpiler needs to know Person struct fields
     let mut p = Rc::new(RefCell::new(Some(Person { name: Rc::new(RefCell::new(Some("Alice".to_string()))), age: Rc::new(RefCell::new(Some(30))), ..Default::default() })));
     print!("Person: {} is {} years old\n", (*(*p.borrow().as_ref().unwrap()).name.borrow().as_ref().unwrap()).clone(), (*(*p.borrow().as_ref().unwrap()).age.borrow().as_ref().unwrap()));

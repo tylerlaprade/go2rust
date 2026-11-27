@@ -19,6 +19,7 @@ macro_rules! print {
     }};
 }
 fn main() {
+    go_install_panic_exit();
     __go_init_all();
 
         // Access map - transpiler needs to know Users is a map, not a slice
@@ -83,9 +84,12 @@ fn main() {
 }
 
 pub(crate) fn __go_init_all() {
-    data::__go_zero_globals();
-    data::__go_init_order_0();
-    data::__go_init_order_1();
-    data::__go_init_order_2();
-    data::__go_init_order_3();
+    static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
+    __GO_INIT_ONCE.call_once(|| {
+        data::__go_zero_globals();
+        data::__go_init_order_0();
+        data::__go_init_order_1();
+        data::__go_init_order_2();
+        data::__go_init_order_3();
+    });
 }
