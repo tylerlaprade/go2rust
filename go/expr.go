@@ -15190,7 +15190,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					if ctx == RValue {
 						out.WriteString("(*")
 						out.WriteString("(*")
-						TranspileExpressionContext(out, e.X, LValue)
+						writeSelectorPointerBase(out, e.X)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
 						for _, embedded := range fieldInfo.EmbeddedPath {
@@ -15206,7 +15206,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						writeSelectorRValueClose(out, e)
 					} else {
 						out.WriteString("(*")
-						TranspileExpressionContext(out, e.X, LValue)
+						writeSelectorPointerBase(out, e.X)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
 						for _, embedded := range fieldInfo.EmbeddedPath {
@@ -15301,7 +15301,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if typeInfo != nil && typeInfo.IsPointer(e.X) {
 					if ctx == RValue {
 						out.WriteString("(*(*")
-						TranspileExpressionContext(out, e.X, LValue)
+						writeSelectorPointerBase(out, e.X)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
@@ -15310,7 +15310,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						writeSelectorRValueClose(out, e)
 					} else {
 						out.WriteString("(*")
-						TranspileExpressionContext(out, e.X, LValue)
+						writeSelectorPointerBase(out, e.X)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()).")
 						out.WriteString(fieldInfo.FieldName)
@@ -27941,6 +27941,23 @@ func writeEmptyInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 	WriteBorrowMethod(out, false)
 	out.WriteString(").as_ref().map_or(true, |__any| (**__any).is::<GoNilAny>()); __nil_result }")
 	return true
+}
+
+// writeSelectorPointerBase writes the handle of x, a pointer a selector
+// reads a field through, for the selector to borrow or lock. A pointer read
+// out of a field, kid.parent, is read in a block of its own, so the borrow
+// or lock its read takes ends before the pointee is borrowed: with
+// parent.left == kid, kid.parent.left.val would otherwise lock kid twice and
+// wait for itself, and kid.parent.left.parent = nil would borrow kid
+// mutably while it is borrowed.
+func writeSelectorPointerBase(out *strings.Builder, x ast.Expr) {
+	if sel, ok := unwrapParens(x).(*ast.SelectorExpr); ok && isStructFieldSelection(sel) {
+		out.WriteString("{ let __base = ")
+		TranspileExpressionContext(out, x, LValue)
+		out.WriteString(".clone(); __base }")
+		return
+	}
+	TranspileExpressionContext(out, x, LValue)
 }
 
 // methodValueReceiverPointeeRustType returns the Rust type of the struct a

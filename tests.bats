@@ -4136,6 +4136,14 @@ run_xfail_test() {
     run_test "tests/select_with_source_stdlib"
 }
 
+@test "selector_chain_back_pointers" {
+    run_test "tests/selector_chain_back_pointers"
+}
+
+@test "selector_chain_back_pointers_goroutines" {
+    run_test "tests/selector_chain_back_pointers_goroutines"
+}
+
 @test "selector_map_field_short_decl_range" {
     run_test "tests/selector_map_field_short_decl_range"
 }

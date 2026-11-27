@@ -812,7 +812,7 @@ fn main() {
     let mut r: Rc<RefCell<Option<Node>>> = (*head.borrow().as_ref().unwrap()).clone();
     { let new_val = 20; *(*p.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
     { let new_val = 10; *(*r.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
-    println!("{} {} {} {} {}", format!("{}", (*(*p.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*q.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*(*r.borrow().as_ref().unwrap()).next.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*(*n.borrow().as_ref().unwrap()).next.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*(*head.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())));
+    println!("{} {} {} {} {}", format!("{}", (*(*p.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*q.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*{ let __base = (*r.borrow().as_ref().unwrap()).next.clone(); __base }.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*{ let __base = (*n.borrow().as_ref().unwrap()).next.clone(); __base }.borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())), format!("{}", (*(*(*head.borrow().as_ref().unwrap()).borrow().as_ref().unwrap()).v.borrow().as_ref().unwrap())));
     let mut nodes = Rc::new(RefCell::new(Some(vec![p.clone(), r.clone()])));
     let mut first: Rc<RefCell<Option<Node>>> = (*nodes.borrow().as_ref().unwrap())[(0) as usize].clone().clone();
     { let new_val = 200; *(*first.borrow().as_ref().unwrap()).v.borrow_mut() = Some(new_val); };
