@@ -684,7 +684,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -693,18 +693,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Rc<RefCell<Option<BTreeMap<K, Rc<RefCell<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.borrow();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.borrow();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.borrow(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -919,5 +920,5 @@ fn main() {
     let mut grid = Rc::new(RefCell::new(Some(BTreeMap::<P, Rc<RefCell<Option<String>>>>::from([(P { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Rc::new(RefCell::new(Some("a".to_string()))))]))));
     { let __map_key = P { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() }; let __map_value = Rc::new(RefCell::new(Some("b".to_string()))); (*grid.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", { let __map_holder = grid.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&P { x: Rc::new(RefCell::new(Some(1))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", { let __map_holder = grid.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&P { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", format_map(&grid)));
-    println!("{}", format!("{}", { let __map_holder = arrKey.clone(); let __map_guard = __map_holder.borrow(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.borrow(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{}", format!("{}", { let __map_holder = arrKey.clone(); let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map_entries) => format!("map[{}]", __map_entries.iter().map(|(__key, __value)| { let __value_copy = { let __value_guard = __value.borrow(); __value_guard.as_ref().cloned() }; let __value_text = __value_copy.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| "<nil>".to_string()); format!("{}:{}", format_slice_values(&__key[..]), __value_text) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 }

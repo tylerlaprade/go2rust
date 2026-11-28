@@ -1,0 +1,11 @@
+[package]
+name = "any_slice_asserted_into_any_slice_literal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "any_slice_asserted_into_any_slice_literal"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

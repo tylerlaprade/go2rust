@@ -684,7 +684,7 @@ impl std::io::Write for GoSlice<u8> {
 
 fn format_map<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
     format_map_nil(map, "<nil>")
 }
@@ -693,18 +693,19 @@ where
 // [] for a nil slice, as Go prints one.
 fn format_map_nil<K: Display + Ord + Clone, V>(map: &Arc<Mutex<Option<BTreeMap<K, Arc<Mutex<Option<V>>>>>>>, __nil_text: &str) -> String
 where
-    V: Display,
+    V: Display + Clone,
 {
-    let guard = map.lock().unwrap();
-    if let Some(ref m) = *guard {
-        let mut items: Vec<_> = m.iter().collect();
-        items.sort_by_key(|(k, _)| (*k).clone());
-
+    // The entries are copied out first, in key order, so a value's String
+    // method that reads this map does not wait on the lock printing holds.
+    let items: Option<Vec<(K, Arc<Mutex<Option<V>>>)>> = { let guard = map.lock().unwrap(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };
+    if let Some(items) = items {
         let formatted: Vec<String> = items
-            .into_iter()
+            .iter()
             .map(|(k, v)| {
-                let v_guard = v.lock().unwrap();
-                if let Some(ref val) = *v_guard {
+                // The value is copied out too, so its String method may
+                // read its own entry.
+                let value = { let v_guard = v.lock().unwrap(); v_guard.clone() };
+                if let Some(ref val) = value {
                     format!("{}:{}", go_display_value(k), go_display_value(val))
                 } else {
                     format!("{}:{}", go_display_value(k), __nil_text)
@@ -1200,5 +1201,5 @@ fn main() {
     let mut grid = Arc::new(Mutex::new(Some(BTreeMap::<P, Arc<Mutex<Option<String>>>>::from([(P { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() }, Arc::new(Mutex::new(Some("a".to_string()))))]))));
     { let __map_key = P { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() }; let __map_value = Arc::new(Mutex::new(Some("b".to_string()))); (*grid.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", { let __map = { let __map_holder = grid.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&P { x: Arc::new(Mutex::new(Some(1))), y: Arc::new(Mutex::new(Some(2))), ..Default::default() })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", { let __map = { let __map_holder = grid.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); std::mem::drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&P { x: Arc::new(Mutex::new(Some(3))), y: Arc::new(Mutex::new(Some(4))), ..Default::default() })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) }), format!("{}", format_map(&grid)));
-    println!("{}", format!("{}", { let __map_holder = arrKey.clone(); let __map_guard = __map_holder.lock().unwrap(); match __map_guard.as_ref() { Some(__map) => format!("map[{}]", __map.iter().map(|(__key, __value)| { let __value_guard = __value.lock().unwrap(); format!("{}:{}", format_slice_values(&__key[..]), __value_guard.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| "<nil>".to_string())) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
+    println!("{}", format!("{}", { let __map_holder = arrKey.clone(); let __map_entries = { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__key, __value)| (__key.clone(), __value.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map_entries) => format!("map[{}]", __map_entries.iter().map(|(__key, __value)| { let __value_copy = { let __value_guard = __value.lock().unwrap(); __value_guard.as_ref().cloned() }; let __value_text = __value_copy.as_ref().map(|__value| go_display_value(__value)).unwrap_or_else(|| "<nil>".to_string()); format!("{}:{}", format_slice_values(&__key[..]), __value_text) }).collect::<Vec<_>>().join(" ")), None => "map[]".to_string() } }));
 }
