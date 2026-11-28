@@ -1021,11 +1021,34 @@ func currentMapKeyStructTypes() map[string]bool {
 
 func structNeedsCustomPartialEq(structName string, structType *ast.StructType) bool {
 	return structName != "" && structType != nil && comparableStructTypes[structName] &&
-		(NeedsConcurrentWrapper() || structHasTraitField(structType))
+		(NeedsConcurrentWrapper() || structHasTraitField(structType) || structHasPointerField(structType))
 }
 
 func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
-	return structName != "" && structType != nil && structNeedsOrd(structName) && NeedsConcurrentWrapper()
+	return structName != "" && structType != nil && structNeedsOrd(structName) &&
+		(NeedsConcurrentWrapper() || structHasPointerField(structType))
+}
+
+// structHasPointerField reports whether a field of structType is a pointer.
+// A derived PartialEq or Ord compares what the pointers point to; Go compares
+// the pointers, so two distinct pointers to equal values are different map
+// keys (#354).
+func structHasPointerField(structType *ast.StructType) bool {
+	for _, field := range structComparableFields(structType) {
+		if typ, ok := structComparableFieldType(field); ok && isPointerType(typ) {
+			return true
+		}
+	}
+	return false
+}
+
+// structComparableBorrow reads a field's cell for a comparison: a lock in a
+// program with goroutines, a borrow otherwise.
+func structComparableBorrow() string {
+	if NeedsConcurrentWrapper() {
+		return ".lock().unwrap()"
+	}
+	return ".borrow()"
 }
 
 type structComparableField struct {
@@ -1087,7 +1110,15 @@ func writeStructComparableFieldTypeInfoRequired(out *strings.Builder, operation 
 	out.WriteString(")")
 }
 
-func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
+// structComparableBareSyncPointerHelper names the runtime type of a
+// *sync.Mutex field that is written as a bare GoMutex, which compares by
+// its shared state. The field's declaration decides that, as isSyncParam
+// does for the field's type: a *M, where M aliases sync.Mutex, is written
+// as a pointer cell and compares as other pointers do.
+func structComparableBareSyncPointerHelper(field structComparableField, typ types.Type) (string, bool) {
+	if !isSyncParam(field.expr) {
+		return "", false
+	}
 	ptr, ok := types.Unalias(typ).(*types.Pointer)
 	if !ok {
 		return "", false
@@ -1105,7 +1136,7 @@ func structComparableBareSyncPointerHelper(typ types.Type) (string, bool) {
 }
 
 func writeStructComparablePointerFieldEq(out *strings.Builder, field structComparableField, typ types.Type) {
-	if helper, ok := structComparableBareSyncPointerHelper(typ); ok {
+	if helper, ok := structComparableBareSyncPointerHelper(field, typ); ok {
 		out.WriteString(helper)
 		out.WriteString("::go_ptr_eq(&self.")
 		out.WriteString(field.name)
@@ -1146,10 +1177,10 @@ func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComp
 	outerWrapper := GetOuterWrapperType()
 	out.WriteString("            let __left_some = self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString(structComparableBorrow() + ".is_some();\n")
 	out.WriteString("            let __right_some = other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().is_some();\n")
+	out.WriteString(structComparableBorrow() + ".is_some();\n")
 	out.WriteString("            let __ord = match (__left_some, __right_some) {\n")
 	out.WriteString("                (false, false) => std::cmp::Ordering::Equal,\n")
 	out.WriteString("                (false, true) => std::cmp::Ordering::Less,\n")
@@ -1165,6 +1196,23 @@ func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComp
 	out.WriteString(") as usize)),\n")
 	out.WriteString("            };\n")
 	out.WriteString("            match __ord {\n")
+	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+	out.WriteString("                __ord => return __ord,\n")
+	out.WriteString("            }\n")
+}
+
+// writeStructComparableBareMutexFieldOrd orders a *sync.Mutex field held as
+// a bare GoMutex the way GoMutex::go_ptr_eq tells two apart: nil first,
+// then by the address of the mutex's shared state.
+func writeStructComparableBareMutexFieldOrd(out *strings.Builder, field structComparableField) {
+	key := func(side string) string {
+		return "(!" + side + "." + field.name + ".is_nil, if " + side + "." + field.name + ".is_nil { 0 } else { std::sync::Arc::as_ptr(&" + side + "." + field.name + ".inner) as *const () as usize })"
+	}
+	out.WriteString("            match ")
+	out.WriteString(key("self"))
+	out.WriteString(".cmp(&")
+	out.WriteString(key("other"))
+	out.WriteString(") {\n")
 	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
 	out.WriteString("                __ord => return __ord,\n")
 	out.WriteString("            }\n")
@@ -1268,6 +1316,8 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	if isPointerType(typ) {
 		if structComparableFieldIsGeneratedGoPtr(structName, field) {
 			writeStructComparableGoPtrFieldOrd(out, field)
+		} else if _, ok := structComparableBareSyncPointerHelper(field, typ); ok {
+			writeStructComparableBareMutexFieldOrd(out, field)
 		} else {
 			writeStructComparablePointerFieldOrd(out, field)
 		}
@@ -1277,10 +1327,10 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
 		out.WriteString("            let __left = self.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
+		out.WriteString(structComparableBorrow() + ";\n")
 		out.WriteString("            let __right = other.")
 		out.WriteString(field.name)
-		out.WriteString(".lock().unwrap();\n")
+		out.WriteString(structComparableBorrow() + ";\n")
 		out.WriteString("            let __ord = match (__left.as_ref(), __right.as_ref()) {\n")
 		out.WriteString("                (None, None) => std::cmp::Ordering::Equal,\n")
 		out.WriteString("                (None, Some(_)) => std::cmp::Ordering::Less,\n")
@@ -1296,10 +1346,10 @@ func writeStructComparableFieldOrd(out *strings.Builder, structName string, fiel
 	}
 	out.WriteString("            let __left = { self.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString(structComparableBorrow() + ".as_ref().cloned() };\n")
 	out.WriteString("            let __right = { other.")
 	out.WriteString(field.name)
-	out.WriteString(".lock().unwrap().as_ref().cloned() };\n")
+	out.WriteString(structComparableBorrow() + ".as_ref().cloned() };\n")
 	if basic, ok := types.Unalias(typ).Underlying().(*types.Basic); ok && basic.Info()&types.IsFloat != 0 {
 		// A float has no total order; Go keys a map by == alone, so
 		// values that do not compare, NaN, order as equal.
@@ -1323,7 +1373,7 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
-	writeRustTraitImplHeader(out, generics, "PartialEq", rustStructName)
+	writeRustTraitImplHeader(out, rustTypeGenericsBounded(generics, "PartialEq + Clone"), "PartialEq", rustStructName)
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 
 	fields := structComparableFields(structType)
@@ -1378,22 +1428,27 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
+	eqGenerics := rustTypeGenericsBounded(generics, "PartialEq + Clone")
 	out.WriteString("\nimpl")
-	out.WriteString(generics.Decl)
+	out.WriteString(eqGenerics.Decl)
 	out.WriteString(" Eq for ")
 	out.WriteString(rustStructName)
-	out.WriteString(generics.Use)
+	out.WriteString(eqGenerics.Use)
+	out.WriteString(eqGenerics.Where)
 	out.WriteString(" {}\n")
 
+	// The comparator reads each type-parameter field as a copy, and
+	// compares the copies with cmp, as a derive would bound them.
+	ordGenerics := rustTypeGenericsBounded(generics, "Ord + Clone")
 	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
+	writeRustTraitImplHeader(out, ordGenerics, "PartialOrd", rustStructName)
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
 	out.WriteString("        Some(std::cmp::Ord::cmp(self, other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
 	out.WriteString("\n")
-	writeRustTraitImplHeader(out, generics, "Ord", rustStructName)
+	writeRustTraitImplHeader(out, ordGenerics, "Ord", rustStructName)
 	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
 
 	fields := structComparableFields(structType)
@@ -2410,6 +2465,27 @@ func collectGoTypeParamFieldCloneParams(typ types.Type, params map[string]bool, 
 	case *types.Array:
 		collectGoTypeParamFieldCloneParams(t.Elem(), params, visiting)
 	}
+}
+
+// rustTypeGenericsBounded adds bound to every type parameter of generics in
+// its where clause: a hand-written PartialEq or Ord compares the
+// parameters' fields with == or cmp on copies of them, which a derive would
+// have bounded (#354).
+func rustTypeGenericsBounded(generics rustTypeGenerics, bound string) rustTypeGenerics {
+	params := strings.TrimSuffix(strings.TrimPrefix(generics.Use, "<"), ">")
+	if params == "" {
+		return generics
+	}
+	clauses := []string{}
+	for _, param := range strings.Split(params, ", ") {
+		clauses = append(clauses, param+": "+bound)
+	}
+	if generics.Where == "" {
+		generics.Where = " where " + strings.Join(clauses, ", ")
+	} else {
+		generics.Where += ", " + strings.Join(clauses, ", ")
+	}
+	return generics
 }
 
 func rustStructDisplayGenerics(generics rustTypeGenerics, typeSpec *ast.TypeSpec, structType *ast.StructType) (rustTypeGenerics, bool) {

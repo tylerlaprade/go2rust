@@ -5000,6 +5000,14 @@ run_xfail_test() {
     run_test "tests/struct_named_integer_map_key"
 }
 
+@test "struct_pointer_field_equality" {
+    run_test "tests/struct_pointer_field_equality"
+}
+
+@test "struct_pointer_field_equality_goroutines" {
+    run_test "tests/struct_pointer_field_equality_goroutines"
+}
+
 @test "struct_pointer_identity" {
     run_test "tests/struct_pointer_identity"
 }
