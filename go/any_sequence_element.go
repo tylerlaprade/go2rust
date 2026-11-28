@@ -84,114 +84,73 @@ var stagedOperandBindings = map[ast.Expr]string{}
 
 // writeAnyElementOperandBindings binds __seq_holder, the handle of the
 // sequence an element of a []any is read from, and __idx, the element's
-// index, in the order Go gives their effects (#373). Go makes the calls of
-// an expression left to right, and reads and indexes variables after them,
-// as gc does:
+// index, in the order Go gives their effects (#373). Go makes the calls and
+// receives of an expression left to right, and reads and indexes variables
+// after them, as gc does. So each call or receive in the sequence's
+// expression is bound first, in order, then the index, then the holder,
+// which reads the bound results through stagedOperandBindings:
 //
 //   - rows[i][col()] binds the index first, so a col that replaces rows[i]
 //     is read;
-//   - rows[row()][col()] binds row() first, then col(), and only then reads
-//     rows[...] with row()'s result;
-//   - f()[col()] binds the holder first, since f's call must come before
-//     col's.
+//   - rows[row()+i][col()] binds row(), then col(), and only then reads i
+//     and rows[...];
+//   - m[key()][col()] looks the row up after col, so a col that replaces
+//     m[key()] is read;
+//   - f()[col()] binds f() before col().
 //
 // bind writes one binding in the caller's layout, holder and index write
 // the two values.
 func writeAnyElementOperandBindings(out *strings.Builder, index *ast.IndexExpr, bind func(name string, value func()), holder func(), idx func()) {
-	if !containsEffectfulOperation(index.X) {
-		bind("__idx", idx)
-		bind("__seq_holder", holder)
-		return
-	}
-	staged, ok := stageableSequenceIndexCalls(index.X)
-	if !ok {
-		bind("__seq_holder", holder)
-		bind("__idx", idx)
-		return
-	}
-	for i, operand := range staged {
+	staged := effectfulOperations(index.X)
+	for i, operation := range staged {
 		name := "__seq_operand_" + strconv.Itoa(i)
-		bind(name, func() { TranspileExpression(out, operand) })
-		stagedOperandBindings[operand] = name
+		bind(name, func() { TranspileExpression(out, operation) })
+		stagedOperandBindings[operation] = name
 	}
 	defer func() {
-		for _, operand := range staged {
-			delete(stagedOperandBindings, operand)
+		for _, operation := range staged {
+			delete(stagedOperandBindings, operation)
 		}
 	}()
 	bind("__idx", idx)
 	bind("__seq_holder", holder)
 }
 
-// stageableSequenceIndexCalls returns, outermost first, the index operands
-// of x = root[i1]...[in] that make a call or a receive, when root and every
-// other part of x make none: staging those operands leaves x a read of
-// variables. It reports false when another part of x makes one.
-func stageableSequenceIndexCalls(x ast.Expr) ([]ast.Expr, bool) {
-	var chain []ast.Expr
-	for {
-		index, ok := unwrapParens(x).(*ast.IndexExpr)
-		if !ok {
-			break
-		}
-		if typeInfo := GetTypeInfo(); typeInfo == nil || typeInfo.IsMap(index.X) {
-			return nil, false
-		}
-		chain = append(chain, index.Index)
-		x = index.X
-	}
-	if len(chain) == 0 || containsEffectfulOperation(x) {
-		return nil, false
-	}
-	var staged []ast.Expr
-	for i := len(chain) - 1; i >= 0; i-- {
-		if containsEffectfulOperation(chain[i]) {
-			staged = append(staged, chain[i])
-		}
-	}
-	return staged, true
-}
-
-// containsEffectfulOperation reports whether expr makes a function or
-// method call or a receive, the operations Go orders left to right. A
-// conversion such as int(i), and a builtin such as len, read their operands
-// but are not calls: a variable they read is read with the other variables,
-// after the calls (#373). The decision comes from go/types; without it,
-// every call counts.
-func containsEffectfulOperation(expr ast.Expr) bool {
+// effectfulOperations returns, in source order, the outermost function and
+// method calls and receives in expr: the operations Go orders left to
+// right. A conversion such as int(i), and a builtin such as len, read their
+// operands but are not calls: a variable they read is read with the other
+// variables, after the calls; a call inside one is still found. The decision
+// comes from go/types; without it, every call counts.
+func effectfulOperations(expr ast.Expr) []ast.Expr {
 	typeInfo := GetTypeInfo()
-	found := false
+	var operations []ast.Expr
 	ast.Inspect(expr, func(node ast.Node) bool {
-		if found {
-			return false
-		}
 		switch n := node.(type) {
 		case *ast.FuncLit:
 			return false
 		case *ast.UnaryExpr:
 			if n.Op == token.ARROW {
-				found = true
+				operations = append(operations, n)
 				return false
 			}
 		case *ast.CallExpr:
-			if typeInfo == nil || typeInfo.info == nil {
-				found = true
-				return false
-			}
-			if tv, ok := typeInfo.info.Types[n.Fun]; ok && tv.IsType() {
-				return true
-			}
-			if ident, ok := unwrapParens(n.Fun).(*ast.Ident); ok {
-				if builtin, ok := typeInfo.info.Uses[ident].(*types.Builtin); ok && pureBuiltins[builtin.Name()] {
+			if typeInfo != nil && typeInfo.info != nil {
+				if tv, ok := typeInfo.info.Types[n.Fun]; ok && tv.IsType() {
 					return true
 				}
+				if ident, ok := unwrapParens(n.Fun).(*ast.Ident); ok {
+					if builtin, ok := typeInfo.info.Uses[ident].(*types.Builtin); ok && pureBuiltins[builtin.Name()] {
+						return true
+					}
+				}
 			}
-			found = true
+			operations = append(operations, n)
 			return false
 		}
 		return true
 	})
-	return found
+	return operations
 }
 
 // pureBuiltins are the builtins whose call reads its operands and nothing

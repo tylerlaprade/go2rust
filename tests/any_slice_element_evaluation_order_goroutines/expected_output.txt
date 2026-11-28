@@ -38,3 +38,7 @@ map row [key col]
 conversion row [move]
 2
 received row [col]
+2
+call and variable row [row move]
+20
+replaced map row [key replace]

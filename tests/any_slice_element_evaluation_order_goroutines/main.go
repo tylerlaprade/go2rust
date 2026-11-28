@@ -56,6 +56,16 @@ func moveAt(i int) int {
 	return i
 }
 
+var byKey = map[int][]any{0: {1}}
+
+// replaceKey swaps in a new row for key 0 before it returns the column, as
+// Go looks the row up after both calls.
+func replaceKey(i int) int {
+	trace = append(trace, "replace")
+	byKey[0] = []any{20}
+	return i
+}
+
 func main() {
 	done := make(chan bool)
 	go func() { done <- true }()
@@ -143,4 +153,11 @@ func main() {
 	picks <- 1
 	fmt.Println(rows[<-picks][pick("col", 0)].(int))
 	flush("received row")
+
+	at = 0
+	fmt.Println(rows[pick("row", 0)+at][moveAt(0)].(int))
+	flush("call and variable row")
+
+	fmt.Println(byKey[pick("key", 0)][replaceKey(0)].(int))
+	flush("replaced map row")
 }
