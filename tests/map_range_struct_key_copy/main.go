@@ -52,4 +52,13 @@ func main() {
 		fmt.Println(key, __range_key)
 	}
 	fmt.Println(m)
+
+	// An outer variable named like the temporary, read in an inner loop.
+	b := map[K]int{{2, 2}: 0}
+	for __range_key := range m {
+		for k := range b {
+			k.x++
+			fmt.Println(__range_key.x, k.x)
+		}
+	}
 }

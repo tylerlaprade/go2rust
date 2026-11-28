@@ -16623,13 +16623,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				valueTempRegistered = true
 			}
 		}
-		// The temporary the iterator binds a rebound key to, a name the
-		// value variable does not have (for k, __range_key := range m).
+		// The temporary the iterator binds a rebound key to: a name nothing
+		// in the loop refers to, so it hides no variable the value or the
+		// body uses (for k, __range_key := range m, or an outer
+		// __range_key read in the body).
 		mapRangeKeyTemp := "__range_key"
-		if valueIdent, ok := s.Value.(*ast.Ident); ok {
-			for RustLocalIdent(valueIdent.Name) == mapRangeKeyTemp {
-				mapRangeKeyTemp += "_"
+		loopNames := map[string]bool{}
+		ast.Inspect(s, func(n ast.Node) bool {
+			if ident, ok := n.(*ast.Ident); ok {
+				loopNames[RustLocalIdent(ident.Name)] = true
+				loopNames[ident.Name] = true
 			}
+			return true
+		})
+		for loopNames[mapRangeKeyTemp] {
+			mapRangeKeyTemp += "_"
 		}
 		writeRangeKeyBinding := func() {
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)

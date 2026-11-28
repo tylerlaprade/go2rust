@@ -1055,4 +1055,15 @@ fn main() {
         println!("{} {}", format!("{}", key), format!("{}", (*__range_key.borrow_mut().as_mut().unwrap())));
     }
     println!("{}", format!("{}", format_map(&m)));
+
+        // An outer variable named like the temporary, read in an inner loop.
+    let mut b = Rc::new(RefCell::new(Some(BTreeMap::<K, Rc<RefCell<Option<i64>>>>::from([(K { x: Rc::new(RefCell::new(Some(2))), y: Rc::new(RefCell::new(Some(2))), ..Default::default() }, Rc::new(RefCell::new(Some(0i64))))]))));
+    for (__range_key_, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let __range_key = __range_key_.__go_value_clone();
+        for (__range_key_, _) in { let __range_holder = b.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let k = __range_key_.__go_value_clone();
+        { let __target = k.x.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        println!("{} {}", format!("{}", (*__range_key.x.borrow().as_ref().unwrap())), format!("{}", (*k.x.borrow().as_ref().unwrap())));
+    }
+    }
 }
