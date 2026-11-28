@@ -114,10 +114,31 @@ func anyFormatTypeIsLocalStruct(typ types.Type) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return false
+	}
+	// A struct of another package translated from source has the same
+	// Display, exported or not: a dependency can hand out a value of its
+	// unexported struct type, and the program box it (#358).
+	if pkg := named.Obj().Pkg(); pkg != typeInfo.pkg && !anyFormatPackageIsTranslated(pkg) {
 		return false
 	}
 	return named.Obj().Parent() == named.Obj().Pkg().Scope()
+}
+
+// anyFormatPackageIsTranslated reports whether pkg is a package of the
+// program that is translated from source, whose types get the Display impls
+// the program's own types get.
+func anyFormatPackageIsTranslated(pkg *types.Package) bool {
+	if pkg == nil || isStubBackedStdlibPackagePath(pkg.Path()) {
+		return false
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return false
+	}
+	_, ok := ctx.PackageMapping[pkg.Path()]
+	return ok
 }
 
 // anyFormatTypeIsLocalNamedBasic reports whether typ is a type the package
@@ -159,9 +180,11 @@ func anyFormatTypeIsLocalNamedBasic(typ types.Type) bool {
 	if typeInfo == nil || typeInfo.pkg == nil {
 		return false
 	}
-	// A package translated from source gives its exported types the same
-	// Display, as time does time.Duration.
-	if pkg := named.Obj().Pkg(); pkg != typeInfo.pkg && (!named.Obj().Exported() || isStubBackedStdlibPackagePath(pkg.Path())) {
+	// A package translated from source gives its types the same Display, as
+	// time does time.Duration, and an unexported one too: a dependency can
+	// hand out a value of its unexported type, as func New() tally does,
+	// and the program box it (#358).
+	if pkg := named.Obj().Pkg(); pkg != typeInfo.pkg && isStubBackedStdlibPackagePath(pkg.Path()) {
 		return false
 	}
 	return named.Obj().Parent() == named.Obj().Pkg().Scope()
@@ -172,7 +195,9 @@ func anyFormatElemImplementsDisplay(typ types.Type) bool {
 		return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0 &&
 			basic.Info()&types.IsUntyped == 0
 	}
-	return anyFormatTypeIsLocalStruct(typ)
+	// A defined basic type, type tally int, has a Display that prints as Go
+	// does, through its String method when it has one.
+	return anyFormatTypeIsLocalStruct(typ) || anyFormatTypeIsLocalNamedBasic(typ)
 }
 
 // anyFormatKeyIsOrderedBasic reports whether typ is a key type format_map can
