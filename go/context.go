@@ -20,6 +20,10 @@ type TranspileSession struct {
 	SliceElemPtrSliceFields     map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields            map[string]goPtrArrayFieldInfo
 	GeneratedGoPtrFields        map[string]bool
+	// HelperBindingTypeNames holds the program's type names that would be
+	// tuple structs sharing a name with a generated helper's binding, which
+	// RustTypeNameForUse writes under another name (#335).
+	HelperBindingTypeNames map[string]bool
 }
 
 // PackageState holds package-scoped registries that should be shared across files.
@@ -157,6 +161,7 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 		SliceElemPtrSliceFields:     make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:        make(map[string]bool),
+		HelperBindingTypeNames:      make(map[string]bool),
 	}
 }
 

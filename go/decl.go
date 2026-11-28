@@ -4313,6 +4313,27 @@ func registerPackageStructDefsFromFiles(files []*ast.File) {
 // store what the first one stores.
 var packageTypeDefinitionTypeExprs = map[*types.TypeName]ast.Expr{}
 
+// recordHelperBindingTypeName records a defined type that is written as a
+// tuple struct, anything but a struct or an interface, and is named like a
+// binding in a generated helper, as type count int against the WaitGroup
+// helper's let count: a let binding cannot shadow a tuple struct in scope, so
+// the type takes another Rust name (#335).
+func recordHelperBindingTypeName(obj types.Object) {
+	typeName, ok := obj.(*types.TypeName)
+	if !ok || !helperBindingNames[typeName.Name()] || currentContext == nil || currentContext.Session == nil {
+		return
+	}
+	named, ok := typeName.Type().(*types.Named)
+	if !ok {
+		return
+	}
+	switch named.Underlying().(type) {
+	case *types.Struct, *types.Interface:
+		return
+	}
+	currentContext.Session.HelperBindingTypeNames[typeName.Name()] = true
+}
+
 func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInfo) {
 	if typeInfo == nil || typeInfo.info == nil {
 		return
@@ -4325,7 +4346,11 @@ func registerPackageTypeDefinitionTypeExprs(files []*ast.File, typeInfo *TypeInf
 			}
 			for _, spec := range genDecl.Specs {
 				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok || typeSpec.Assign != 0 || typeSpec.TypeParams != nil {
+				if !ok || typeSpec.Assign != 0 {
+					continue
+				}
+				recordHelperBindingTypeName(typeInfo.info.Defs[typeSpec.Name])
+				if typeSpec.TypeParams != nil {
 					continue
 				}
 				if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {

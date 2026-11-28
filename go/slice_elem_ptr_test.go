@@ -1791,8 +1791,8 @@ func forceConcurrent(ch chan bool) {
 }
 `)
 
-	if !strings.Contains(rust, "pub fn controls(") || !strings.Contains(rust, " -> GoPtr<word>") {
-		t.Fatalf("method returning a GoPtr named scalar should return GoPtr<word>:\n%s", rust)
+	if !strings.Contains(rust, "pub fn controls(") || !strings.Contains(rust, " -> GoPtr<word_>") {
+		t.Fatalf("method returning a GoPtr named scalar should return GoPtr<word_>:\n%s", rust)
 	}
 	if strings.Contains(rust, ".controls().lock()") || strings.Contains(rust, ".controls().borrow()") {
 		t.Fatalf("named scalar value method on GoPtr call result should not borrow the returned handle as a wrapper:\n%s", rust)

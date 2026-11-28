@@ -317,6 +317,13 @@ func RustTypeNameForUse(s string) string {
 	case "Box", "Option", "Result", "String", "Vec":
 		return s + "_"
 	default:
+		// A tuple struct named like a binding in a generated helper, such as
+		// type count int, is one the helper's let count = ... cannot shadow
+		// (#335). Every use of the name goes through here, so it takes
+		// another name everywhere.
+		if currentContext != nil && currentContext.Session != nil && currentContext.Session.HelperBindingTypeNames[s] {
+			return s + "_"
+		}
 		return EscapeRustIdent(s)
 	}
 }
