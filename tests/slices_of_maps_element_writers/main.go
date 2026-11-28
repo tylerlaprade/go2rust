@@ -54,6 +54,14 @@ func main() {
 	fmt.Println(len(pair[1]), len(h.M))
 	fmt.Println(Tables{{"x": 1}, nil}, s)
 
+	// An element passed to a map parameter is the element's map.
+	args := []map[string]int{{}}
+	mark(args[0])
+	markFn := mark
+	markFn(args[0])
+	holder{}.put(args[0])
+	fmt.Println(args)
+
 	// A map read through a pointer to an element, and an element returned
 	// as a defined map type, share the element's map.
 	es := []map[string]int{{"x": 1}}
@@ -70,6 +78,10 @@ type Counts map[string]int
 type holder struct{ M map[string]int }
 
 type Tables [2]map[string]int
+
+func mark(m map[string]int) { m["x"] = 1 }
+
+func (holder) put(m map[string]int) { m["y"] = 2 }
 
 func firstCounts(s []map[string]int) Counts { return s[0] }
 

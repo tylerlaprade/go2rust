@@ -4325,8 +4325,21 @@ func writeAlreadyWrappedMapIndexCallArgument(out *strings.Builder, arg ast.Expr,
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsMap(index.X) {
+	if typeInfo == nil {
 		return false
+	}
+	if !typeInfo.IsMap(index.X) {
+		// take(s[0]) for a []map: the element is the map's handle (#318),
+		// which a map[K]V parameter takes as it is. A defined map
+		// parameter type is left to the conversion the call writes.
+		if !mapElementIndexExpression(index) {
+			return false
+		}
+		if actual := typeInfo.GetType(index); expected != nil && !types.Identical(types.Unalias(actual), types.Unalias(expected)) {
+			return false
+		}
+		TranspileExpression(out, arg)
+		return true
 	}
 	actual := typeInfo.GetType(index)
 	if actual == nil || !mapValueTypeKeepsHandle(actual) {

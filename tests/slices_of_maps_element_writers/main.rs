@@ -981,15 +981,21 @@ fn __go_init_globals() {
     *table_1.borrow_mut() = Some(BTreeMap::new());
     {
         let mut __go_map = BTreeMap::<String, Rc<RefCell<Option<Vec<Rc<RefCell<Option<Rc<dyn StdError>>>>>>>>>::new();
-        let __go_map_key_4951 = "row".to_string();
-        let mut __go_map_value_4951 = Vec::<Rc<RefCell<Option<Rc<dyn StdError>>>>>::new();
-        __go_map_value_4951.push(Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
-        __go_map_value_4951.push(Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("bad")))))));
-        __go_map.insert(__go_map_key_4951, Rc::new(RefCell::new(Some(__go_map_value_4951))));
+        let __go_map_key_5511 = "row".to_string();
+        let mut __go_map_value_5511 = Vec::<Rc<RefCell<Option<Rc<dyn StdError>>>>>::new();
+        __go_map_value_5511.push(Rc::new(RefCell::new(None::<Rc<dyn StdError>>)));
+        __go_map_value_5511.push(Rc::new(RefCell::new(Some(Rc::<dyn StdError>::from(Box::<dyn StdError>::from(format!("bad")))))));
+        __go_map.insert(__go_map_key_5511, Rc::new(RefCell::new(Some(__go_map_value_5511))));
         *table_1.borrow_mut() = Some(__go_map);
     }
 }
 
+
+impl holder {
+    pub fn put(&self, m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) {
+        { let __map_key = "y".to_string(); let __map_value = Rc::new(RefCell::new(Some(2))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    }
+}
 
 fn main() {
     go_install_panic_exit();
@@ -1042,6 +1048,13 @@ fn main() {
     println!("{} {}", format!("{}", ({ let __len = (*(*pair.borrow().as_ref().unwrap())[(1) as usize].clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", ({ let __len_target = { let __field = (*h.borrow().as_ref().unwrap()).m.clone(); __field }; let __len_guard = __len_target.borrow(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })));
     println!("{} {}", format!("{}", { let __maps = { let __named_inner = Some((Tables(Rc::new(RefCell::new(Some([Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1i64))))])))), Rc::new(RefCell::new(None::<BTreeMap<String, Rc<RefCell<Option<i64>>>>>))]))))).0.clone()); match __named_inner { Some(__inner) => { let __inner_guard = __inner.borrow(); __inner_guard.as_ref().map(|__v| __v.to_vec()).unwrap_or_default() }, None => Default::default() } }; format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }), format!("{}", { let __maps = { let __named_holder = s.clone(); let __named_inner = { let __named_guard = __named_holder.borrow(); __named_guard.as_ref().map(|__named| __named.0.clone()) }; match __named_inner { Some(__inner) => { let __inner_guard = __inner.borrow(); __inner_guard.as_ref().map(|__v| __v.to_vec()).unwrap_or_default() }, None => Default::default() } }; format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }));
 
+    let mut args = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([]))))])));
+    mark((*args.borrow().as_ref().unwrap())[(0) as usize].clone());
+    let mut markFn = Rc::new(RefCell::new(Some(Rc::new(move |__arg0: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>| { mark(__arg0) }) as Rc<dyn Fn(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()>)));
+    { let __f: Rc<dyn Fn(Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) -> ()> = markFn.borrow().as_ref().unwrap().clone(); (__f)((*args.borrow().as_ref().unwrap())[(0) as usize].clone()) };
+    holder { m: Default::default() }.put((*args.borrow().as_ref().unwrap())[(0) as usize].clone());
+    println!("{}", format!("{}", { let __maps = (*args.borrow()).as_ref().map(|__v| __v.to_vec()).unwrap_or_default(); format!("[{}]", __maps.iter().map(|__m| format_map(__m)).collect::<Vec<_>>().join(" ")) }));
+
     let mut es = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i64>>>>::from([("x".to_string(), Rc::new(RefCell::new(Some(1i64))))]))))])));
     let mut p = { let __f_holder = Rc::new(RefCell::new(Some(Rc::new(move |__slot_s1: Rc<RefCell<Option<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>>>>, __slot_i2: Rc<RefCell<Option<i64>>>| -> Rc<RefCell<Option<__ptrSlot_map_string_int>>> {
         let mut __slot_s1 = Rc::new(RefCell::new((*__slot_s1.borrow()).clone()));
@@ -1056,6 +1069,10 @@ fn main() {
     let mut c = first_counts(es.clone());
     { let __map_key = "z".to_string(); let __map_value = Rc::new(RefCell::new(Some(3))); (*{ let __named_map = (*c.borrow().as_ref().unwrap()).0.clone(); __named_map }.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", ({ let __len = (*viaPtr.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __named_map_holder = c.clone(); let __named_map_guard = __named_map_holder.borrow(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); std::mem::drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }), format!("{}", ({ let __len = (*(*es.borrow().as_ref().unwrap())[(0) as usize].clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })));
+}
+
+pub fn mark(m: Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>) {
+    { let __map_key = "x".to_string(); let __map_value = Rc::new(RefCell::new(Some(1))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 pub fn first_counts(s: Rc<RefCell<Option<Vec<Rc<RefCell<Option<BTreeMap<String, Rc<RefCell<Option<i64>>>>>>>>>>>) -> Rc<RefCell<Option<Counts>>> {
