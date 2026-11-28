@@ -213,6 +213,7 @@ func main() {
 `)
 	for _, want := range []string{
 		"let items: Option<Vec<(K, Rc<RefCell<Option<V>>>)>> = { let guard = map.borrow(); guard.as_ref().map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect()) };",
+		"let value = { let v_guard = v.borrow(); v_guard.clone() };",
 		"let __map_entries = { let __map_guard = __map_holder.borrow(); __map_guard.as_ref().map(|__map| __map.iter().map(|(__k, __v)| (__k.clone(), __v.clone())).collect::<Vec<_>>()) }; match __map_entries { Some(__map) => format!(\"map[{}]\"",
 	} {
 		if !strings.Contains(rust, want) {

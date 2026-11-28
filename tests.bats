@@ -2604,6 +2604,10 @@ run_xfail_test() {
     run_test "tests/map_pointer_value_literal_assignment"
 }
 
+@test "map_printer_value_string_reads_its_entry_goroutines" {
+    run_test "tests/map_printer_value_string_reads_its_entry_goroutines"
+}
+
 @test "map_printers_release_the_lock_goroutines" {
     run_test "tests/map_printers_release_the_lock_goroutines"
 }
