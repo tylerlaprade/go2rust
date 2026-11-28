@@ -3505,7 +3505,7 @@ func (p *Printer) Qualify(pkg *types.Package) string {
 	if !strings.Contains(rust, "pub qual: go_types::Qualifier,") {
 		t.Fatalf("source-mapped function type alias field should use the imported alias handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "qual: Rc::new(RefCell::new((*qual.borrow()).clone()))") {
+	if !strings.Contains(rust, "qual: Rc::new(RefCell::new({ let __func_value = (*qual.borrow()).clone(); __func_value }))") {
 		t.Fatalf("source-mapped function type alias field initializer should copy the func value into a cell of the imported alias type:\n%s", rust)
 	}
 }
@@ -8414,7 +8414,7 @@ func run(fn func() error) {
 	if !strings.Contains(rust, "|r#fn: Arc<Mutex<Option<Arc<dyn Fn") {
 		t.Fatalf("goroutine function literal parameter should accept the wrapped function handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new((*r#fn.lock().unwrap()).clone()));") || !strings.Contains(rust, "__closure(__go_arg_0)") {
+	if !strings.Contains(rust, "let __go_arg_0 = Arc::new(Mutex::new({ let __func_value = (*r#fn.lock().unwrap()).clone(); __func_value }));") || !strings.Contains(rust, "__closure(__go_arg_0)") {
 		t.Fatalf("goroutine function literal call should pass a copy of the escaped function value:\n%s", rust)
 	}
 }
