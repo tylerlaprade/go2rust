@@ -877,10 +877,10 @@ impl std::fmt::Display for AnonymousStruct4 {
 fn main() {
     go_install_panic_exit();
     let mut m = Rc::new(RefCell::new(Some(BTreeMap::<AnonymousStruct1, Rc<RefCell<Option<bool>>>>::from([]))));
-    let mut k = Rc::new(RefCell::new(Some(AnonymousStruct1 { p: Rc::new(RefCell::new(Some(AnonymousStruct2::default()))) })));
+    let mut k = Rc::new(RefCell::new(Some(AnonymousStruct1 { ..AnonymousStruct1::default() })));
     { let new_val = 2; *(*(*k.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
     { let __map_key = (*k.borrow().as_ref().unwrap()).__go_value_clone(); let __map_value = Rc::new(RefCell::new(Some(true))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    { let __map_key = AnonymousStruct1 { p: Rc::new(RefCell::new(Some(AnonymousStruct2::default()))) }; let __map_value = Rc::new(RefCell::new(Some(false))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = AnonymousStruct1 { ..AnonymousStruct1::default() }; let __map_value = Rc::new(RefCell::new(Some(false))); (*m.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
     println!("{} {} {}", format!("{}", ({ let __len = (*m.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0); __len })), format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*k.borrow().as_ref().unwrap()).__go_value_clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| false) }), format!("{}", (*(*(*k.borrow().as_ref().unwrap()).p.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap())));
     let mut seen = Rc::new(RefCell::new(Some(BTreeMap::<AnonymousStruct3, Rc<RefCell<Option<i64>>>>::from([]))));
     { let __map_holder = seen.clone(); let __key = AnonymousStruct3 { name: Rc::new(RefCell::new(Some("a".to_string()))), at: Rc::new(RefCell::new(Some(AnonymousStruct4 { line: Rc::new(RefCell::new(Some(1))), col: Rc::new(RefCell::new(Some(2))) }))) }; let mut __map_guard = __map_holder.borrow_mut(); let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(__key).or_insert_with(|| Rc::new(RefCell::new(Some(0)))); let mut __value = __entry.borrow_mut(); * __value = Some((*__value.as_ref().unwrap()).clone() + 1); }

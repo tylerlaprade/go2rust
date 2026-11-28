@@ -254,3 +254,22 @@ func TestMapKeyStructMarkingWalksSameNamedTypesSeparately(t *testing.T) {
 		t.Fatalf("the second Part's struct field should be marked: %v", result)
 	}
 }
+
+// An unnamed struct literal that leaves out fields builds the struct's
+// Default once, with the update syntax, instead of one Default per field.
+func TestUnnamedStructLiteralOmittedFieldsUseOneDefault(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func key() int {
+	m := map[struct{ x, y, z int }]int{}
+	m[struct{ x, y, z int }{x: 1}]++
+	return len(m)
+}
+`)
+	if !strings.Contains(rust, "..AnonymousStruct1::default() }") {
+		t.Fatalf("omitted fields should come from one Default:\n%s", rust)
+	}
+	if strings.Contains(rust, "AnonymousStruct1::default().y") {
+		t.Fatalf("omitted fields should not each build a Default:\n%s", rust)
+	}
+}
