@@ -5228,6 +5228,38 @@ run_xfail_test() {
     run_test "tests/unicode_utf8_from_source"
 }
 
+@test "unnamed_struct_map_key" {
+    run_test "tests/unnamed_struct_map_key"
+}
+
+@test "unnamed_struct_map_key_across_files" {
+    run_test "tests/unnamed_struct_map_key_across_files"
+}
+
+@test "unnamed_struct_map_key_alias_spelled_field" {
+    run_test "tests/unnamed_struct_map_key_alias_spelled_field"
+}
+
+@test "unnamed_struct_map_key_array_fields" {
+    run_test "tests/unnamed_struct_map_key_array_fields"
+}
+
+@test "unnamed_struct_map_key_goroutines" {
+    run_test "tests/unnamed_struct_map_key_goroutines"
+}
+
+@test "unnamed_struct_map_key_named_struct_field" {
+    run_test "tests/unnamed_struct_map_key_named_struct_field"
+}
+
+@test "unnamed_struct_map_key_nested" {
+    run_test "tests/unnamed_struct_map_key_nested"
+}
+
+@test "unnamed_struct_map_key_omitted_fields" {
+    run_test "tests/unnamed_struct_map_key_omitted_fields"
+}
+
 @test "unsafe_float_bits" {
     run_test "tests/unsafe_float_bits"
 }

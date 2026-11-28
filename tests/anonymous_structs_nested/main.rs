@@ -1229,7 +1229,7 @@ fn main() {
     { let new_val = Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<AnonymousStruct7>>>>::new()))); (*system.borrow_mut().as_mut().unwrap()).modules = new_val; };
 
         // Add a module with settings
-    let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), settings: Rc::new(RefCell::new(Some(AnonymousStruct8::default()))) })));
+    let mut authModule = Rc::new(RefCell::new(Some(AnonymousStruct7 { enabled: Rc::new(RefCell::new(Some(true))), ..AnonymousStruct7::default() })));
     { let new_val = Rc::new(RefCell::new(Some(vec![AnonymousStruct9 { key: Rc::new(RefCell::new(Some("timeout".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3600i64) as Box<dyn Any>))), ..Default::default() }, AnonymousStruct9 { key: Rc::new(RefCell::new(Some("max_attempts".to_string()))), value: Rc::new(RefCell::new(Some(Box::new(3i64) as Box<dyn Any>))), ..Default::default() }]))); (*(*authModule.borrow().as_ref().unwrap()).settings.borrow_mut().as_mut().unwrap()).options = new_val; };
     { let __map_key = "auth".to_string(); let __map_value = { let __owned = authModule.borrow().as_ref().unwrap().__go_value_clone(); Rc::new(RefCell::new(Some(__owned))) }; (*(*system.borrow().as_ref().unwrap()).modules.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
 
