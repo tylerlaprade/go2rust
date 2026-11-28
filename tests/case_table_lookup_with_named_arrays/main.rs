@@ -1403,21 +1403,21 @@ pub const UPPER_LOWER: i32 = MAX_RUNE + 1;
 
 
 #[derive(Debug, Clone)]
-pub struct d(pub Rc<RefCell<Option<[i32; 3]>>>);
+pub struct d_(pub Rc<RefCell<Option<[i32; 3]>>>);
 
-impl Default for d {
+impl Default for d_ {
     fn default() -> Self {
-        d(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))))
+        d_(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))))
     }
 }
 
-impl d {
+impl d_ {
     pub fn __go_value_clone(&self) -> Self {
-        d(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))
+        d_(Rc::new(RefCell::new(self.0.borrow().as_ref().map(|__go_array| __go_array.clone()))))
     }
 }
 
-impl PartialEq for d {
+impl PartialEq for d_ {
     fn eq(&self, other: &Self) -> bool {
         let __left = self.0.borrow().clone();
         let __right = other.0.borrow().clone();
@@ -1425,7 +1425,7 @@ impl PartialEq for d {
     }
 }
 
-impl Display for d {
+impl Display for d_ {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", format_slice(&self.0))
     }
@@ -1436,7 +1436,7 @@ impl Display for d {
 pub struct CaseRange {
     pub lo: Rc<RefCell<Option<u32>>>,
     pub hi: Rc<RefCell<Option<u32>>>,
-    pub delta: Rc<RefCell<Option<d>>>,
+    pub delta: Rc<RefCell<Option<d_>>>,
 }
 
 impl CaseRange {
@@ -1457,7 +1457,7 @@ impl Default for CaseRange {
     fn default() -> Self {
         let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
         let __go_default_1_0 = Rc::new(RefCell::new(Some(0)));
-        let __go_default_2_0 = Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))))))));
+        let __go_default_2_0 = Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0))))))));
         Self {
             lo: __go_default_0_0,
             hi: __go_default_1_0,
@@ -1505,12 +1505,12 @@ fn __go_init_globals() {
     *CaseRanges.borrow_mut() = Some(Vec::nil());
     {
         let mut __go_slice = Vec::<CaseRange>::with_capacity(6);
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0041 as u32))), hi: Rc::new(RefCell::new(Some(0x005A as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0061 as u32))), hi: Rc::new(RefCell::new(Some(0x007A as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00C0 as u32))), hi: Rc::new(RefCell::new(Some(0x00D6 as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00D8 as u32))), hi: Rc::new(RefCell::new(Some(0x00DE as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00E0 as u32))), hi: Rc::new(RefCell::new(Some(0x00F6 as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
-        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0100 as u32))), hi: Rc::new(RefCell::new(Some(0x012F as u32))), delta: Rc::new(RefCell::new(Some(d(Rc::new(RefCell::new(Some([UPPER_LOWER as i32, UPPER_LOWER as i32, UPPER_LOWER as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0041 as u32))), hi: Rc::new(RefCell::new(Some(0x005A as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0061 as u32))), hi: Rc::new(RefCell::new(Some(0x007A as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00C0 as u32))), hi: Rc::new(RefCell::new(Some(0x00D6 as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00D8 as u32))), hi: Rc::new(RefCell::new(Some(0x00DE as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([0 as i32, 32 as i32, 0 as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x00E0 as u32))), hi: Rc::new(RefCell::new(Some(0x00F6 as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([-32 as i32, 0 as i32, -32 as i32]))))))), ..Default::default() });
+        __go_slice.push(CaseRange { lo: Rc::new(RefCell::new(Some(0x0100 as u32))), hi: Rc::new(RefCell::new(Some(0x012F as u32))), delta: Rc::new(RefCell::new(Some(d_(Rc::new(RefCell::new(Some([UPPER_LOWER as i32, UPPER_LOWER as i32, UPPER_LOWER as i32]))))))), ..Default::default() });
         let __go_slice = Vec::from(__go_slice.into_boxed_slice().into_vec());
         *_CaseRanges.borrow_mut() = Some(__go_slice);
     }

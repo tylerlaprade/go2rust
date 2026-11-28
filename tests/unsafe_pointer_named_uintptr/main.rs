@@ -808,12 +808,12 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<f64>>() { return "[]float64" }
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
-    if val.is::<raw>() { return "main.raw" }
+    if val.is::<raw_>() { return "main.raw" }
     std::any::type_name_of_val(val)
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct raw(pub Arc<Mutex<Option<usize>>>);
+pub struct raw_(pub Arc<Mutex<Option<usize>>>);
 
 
 fn main() {
@@ -829,13 +829,13 @@ fn main() {
     });
 
     let mut zero: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(0)));
-    let mut p = Arc::new(Mutex::new(Some(raw(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(({ let __v = (*zero.lock().unwrap().as_ref().unwrap()); __v })))).lock().unwrap().as_ref().unwrap()))))))));
+    let mut p = Arc::new(Mutex::new(Some(raw_(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(({ let __v = (*zero.lock().unwrap().as_ref().unwrap()); __v })))).lock().unwrap().as_ref().unwrap()))))))));
     let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>)));
     println!("{}", format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some((*({
         let val = value.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            any_val.downcast_ref::<raw>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.raw")).clone()
+            any_val.downcast_ref::<raw_>().unwrap_or_else(|| panic!("interface conversion: {} is {}, not {}", "interface {}", __go_type_name(&**any_val), "main.raw")).clone()
         } else {
             panic!("interface conversion: {} is nil, not {}", "interface {}", "main.raw")
         }
