@@ -1038,4 +1038,21 @@ fn main() {
     }
     { let new_val = 100; *(*saved.borrow().as_ref().unwrap())[(0) as usize].clone().x.borrow_mut() = Some(new_val); };
     println!("{} {}", format!("{}", format_map(&m)), format!("{}", format_slice(&saved)));
+
+        // An existing variable takes the copy too.
+    let mut last: Rc<RefCell<Option<K>>> = Rc::new(RefCell::new(Some(Default::default())));
+    for (__range_last, _) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let __range_last = __range_last.__go_value_clone();
+        { let new_val = __range_last.clone(); *last.borrow_mut() = Some(new_val); };
+        { let new_val = 9; *(*last.borrow().as_ref().unwrap()).x.borrow_mut() = Some(new_val); };
+    }
+    println!("{} {}", format!("{}", { let __map_holder = m.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&K { x: Rc::new(RefCell::new(Some(3))), y: Rc::new(RefCell::new(Some(4))), ..Default::default() })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| 0) }), format!("{}", (*last.borrow().as_ref().unwrap())));
+
+        // A value named like the generated key temporary.
+    for (__range_key_, __range_key) in { let __range_holder = m.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); std::mem::drop(__range_guard); __range_map } {
+        let key = __range_key_.__go_value_clone();
+        { let new_val = 1; *key.x.borrow_mut() = Some(new_val); };
+        println!("{} {}", format!("{}", key), format!("{}", (*__range_key.borrow_mut().as_mut().unwrap())));
+    }
+    println!("{}", format!("{}", format_map(&m)));
 }

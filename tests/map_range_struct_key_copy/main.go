@@ -38,4 +38,18 @@ func main() {
 	}
 	saved[0].x = 100
 	fmt.Println(m, saved)
+
+	// An existing variable takes the copy too.
+	var last K
+	for last = range m {
+		last.x = 9
+	}
+	fmt.Println(m[K{3, 4}], last)
+
+	// A value named like the generated key temporary.
+	for key, __range_key := range m {
+		key.x = 1
+		fmt.Println(key, __range_key)
+	}
+	fmt.Println(m)
 }

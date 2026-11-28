@@ -16623,6 +16623,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				valueTempRegistered = true
 			}
 		}
+		// The temporary the iterator binds a rebound key to, a name the
+		// value variable does not have (for k, __range_key := range m).
+		mapRangeKeyTemp := "__range_key"
+		if valueIdent, ok := s.Value.(*ast.Ident); ok {
+			for RustLocalIdent(valueIdent.Name) == mapRangeKeyTemp {
+				mapRangeKeyTemp += "_"
+			}
+		}
 		writeRangeKeyBinding := func() {
 			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
 		}
@@ -16635,7 +16643,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				return
 			}
 			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding || mapKeyCopyCall != "") && keyName != "" && keyName != "_" {
-				out.WriteString("__range_key")
+				out.WriteString(mapRangeKeyTemp)
 				return
 			}
 			writeRangeKeyBinding()
@@ -16660,13 +16668,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			prelude.WriteString(RustLocalIdent(keyName))
 			prelude.WriteString(" = ")
 			if mapKeyNeedsValueBinding {
-				prelude.WriteString("__range_key.value()")
+				prelude.WriteString(mapRangeKeyTemp)
+				prelude.WriteString(".value()")
 			} else if mapKeyCopyCall != "" {
-				prelude.WriteString("__range_key")
+				prelude.WriteString(mapRangeKeyTemp)
 				prelude.WriteString(mapKeyCopyCall)
 			} else {
 				WriteWrapperPrefix(&prelude)
-				prelude.WriteString("__range_key.clone()")
+				prelude.WriteString(mapRangeKeyTemp)
+				prelude.WriteString(".clone()")
 				WriteWrapperSuffix(&prelude)
 			}
 			prelude.WriteString(";\n")
@@ -16692,6 +16702,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			rangePrelude += prelude.String()
 		}
 		if rangeAssignsExisting {
+			if isMap && mapKeyCopyCall != "" && keyBindingTemp != "" {
+				// for k = range m: the existing k takes Go's copy of the
+				// key, as k := does (#356).
+				rangePrelude += "        let " + keyBindingTemp + " = " + keyBindingTemp + mapKeyCopyCall + ";\n"
+			}
 			appendRangeAssignmentPrelude(s.Key, keyBindingTemp)
 			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
 		}
