@@ -350,12 +350,15 @@ against the `// TEMPORARY:` comments of that one file.
   formatting, gives `format_any` a case for a dependency's types, exported
   or not, and for a slice of a defined basic type (#358), and print a
   slice, an array or a map of `[]any` row by row with `format_any_slice`
-  (#343), where they did not build.
+  (#343), where they did not build, and give `format_any` a case for a
+  slice of `[]any` rows held in an interface (#374), where printing it
+  panicked.
 - Fixture: `tests/map_float_slice_values/`,
   `tests/map_float_slice_values_dependency/`,
   `tests/dependency_types_in_interfaces/`,
-  `tests/nested_any_slice_literals/`, `tests/fmt_println/` and
-  `tests/defined_collection_display/`.
+  `tests/nested_any_slice_literals/`, `tests/fmt_println/`,
+  `tests/defined_collection_display/` and
+  `tests/nested_any_slice_in_interface/`.
 - Removal trigger: `fmt` is translated from source, which needs `reflect`,
   and the whole print mapping retires together. Or the stdlib boundary puts
   `fmt` in the hand-written tier; then these printers move into that runtime
