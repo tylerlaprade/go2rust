@@ -685,8 +685,8 @@ impl std::fmt::Display for CirclePtr {
 
 impl Drawable for CirclePtr {
     fn draw(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Circle = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Circle };
+        let __recv = unsafe { &*__recv_ptr };
         Circle::draw(__recv)
     }
     fn __go_clone_box_drawable(&self) -> Box<dyn Drawable + Send + Sync> {
@@ -745,8 +745,8 @@ impl std::fmt::Display for RectanglePtr {
 
 impl Drawable for RectanglePtr {
     fn draw(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Rectangle = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Rectangle };
+        let __recv = unsafe { &*__recv_ptr };
         Rectangle::draw(__recv)
     }
     fn __go_clone_box_drawable(&self) -> Box<dyn Drawable + Send + Sync> {

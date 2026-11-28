@@ -1,0 +1,11 @@
+[package]
+name = "func_value_argument_reassigned_by_callee"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "func_value_argument_reassigned_by_callee"
+path = "main.rs"
+
+[profile.dev]
+overflow-checks = false

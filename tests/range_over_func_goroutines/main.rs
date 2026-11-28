@@ -1018,6 +1018,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1126,18 +1136,18 @@ impl Tree {
         if false {
         return true;
     }
-        __go_nil_recv_tree_all({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#yield))))) && {
+        __go_nil_recv_tree_all({ let __field = self.left.clone(); __field }, Arc::new(Mutex::new({ let __func_value = (*r#yield.lock().unwrap()).clone(); __func_value }))) && {
             let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> = r#yield.lock().unwrap().as_ref().unwrap().clone();
             (__f)(
                 Arc::new(Mutex::new(Some({ let __selector_holder = self.val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))
             )
-        } && __go_nil_recv_tree_all({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#yield)))))
+        } && __go_nil_recv_tree_all({ let __field = self.right.clone(); __field }, Arc::new(Mutex::new({ let __func_value = (*r#yield.lock().unwrap()).clone(); __func_value })))
     }
 
     pub fn walk(&self) -> Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut t_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Arc::new(move |r#yield: Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>| {
         let mut t_closure_clone = t_closure_clone.clone();
-        t_closure_clone.all(Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#yield)))));
+        t_closure_clone.all(Arc::new(Mutex::new({ let __func_value = (*r#yield.lock().unwrap()).clone(); __func_value })));
     }) as Arc<dyn Fn(Arc<Mutex<Option<Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>)));
     }
 }
@@ -1300,10 +1310,10 @@ pub fn __go_nil_recv_tree_all(t: Arc<Mutex<Option<Tree>>>, r#yield: Arc<Mutex<Op
     if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         return true;
     }
-    __go_nil_recv_tree_all({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }, Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#yield))))) && {
+    __go_nil_recv_tree_all({ let __field = (*t.lock().unwrap().as_ref().unwrap()).left.clone(); __field }, Arc::new(Mutex::new({ let __func_value = (*r#yield.lock().unwrap()).clone(); __func_value }))) && {
         let __f: Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync> = r#yield.lock().unwrap().as_ref().unwrap().clone();
         (__f)(
             Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); std::mem::drop(__selector_guard); __cloned })))
         )
-    } && __go_nil_recv_tree_all({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new(GoFuncValue::go_func_value(&(r#yield)))))
+    } && __go_nil_recv_tree_all({ let __field = (*t.lock().unwrap().as_ref().unwrap()).right.clone(); __field }, Arc::new(Mutex::new({ let __func_value = (*r#yield.lock().unwrap()).clone(); __func_value })))
 }

@@ -1098,8 +1098,8 @@ impl std::fmt::Display for customErrorPtr {
 
 impl failer for customErrorPtr {
     fn error(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const customError = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const customError };
+        let __recv = unsafe { &*__recv_ptr };
         customError::error(__recv)
     }
     fn __go_clone_box_failer(&self) -> Box<dyn failer> {

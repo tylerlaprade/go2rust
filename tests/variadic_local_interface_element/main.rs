@@ -852,8 +852,8 @@ impl std::fmt::Display for litPtr {
 
 impl Expr for litPtr {
     fn kind(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const lit = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const lit };
+        let __recv = unsafe { &*__recv_ptr };
         lit::kind(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {

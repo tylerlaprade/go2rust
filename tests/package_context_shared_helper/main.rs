@@ -120,12 +120,21 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
 
 fn main() {
     go_install_panic_exit();
+    ::context::__go_init_all();
     ::example_com_contextshared_core::__go_init_all();
     ::example_com_contextshared_event::__go_init_all();
+    ::internal_bisect::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_godebug::__go_init_all();
+    ::internal_godebugs::__go_init_all();
+    ::internal_stringslite::__go_init_all();
+    ::math_bits::__go_init_all();
+    ::time::__go_init_all();
 
-    let mut ctx = example_com_contextshared_event::set_exporter(Arc::new(Mutex::new(Some(Arc::new(move |ctx: Arc<Mutex<Option<GoContext>>>| -> Arc<Mutex<Option<GoContext>>> {
+    let mut ctx = example_com_contextshared_event::set_exporter(Arc::new(Mutex::new(Some(Arc::new(move |__go_ref_ctx: &(dyn context::r#mod::Context + Send + Sync)| -> Arc<Mutex<Option<Box<dyn context::r#mod::Context + Send + Sync>>>> {
+        let mut ctx = Arc::new(Mutex::new(Some(__go_ref_ctx.__go_clone_box_context())));
         return ctx.clone();
-    }) as Arc<dyn Fn(Arc<Mutex<Option<GoContext>>>) -> Arc<Mutex<Option<GoContext>>> + Send + Sync>))));
+    }) as Arc<dyn Fn(&(dyn context::r#mod::Context + Send + Sync)) -> Arc<Mutex<Option<Box<dyn context::r#mod::Context + Send + Sync>>>> + Send + Sync>))));
     let _ = &ctx;
     println!("{}", format!("{}", "compiled".to_string()));
 }

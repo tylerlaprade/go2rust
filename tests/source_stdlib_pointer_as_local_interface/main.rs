@@ -150,8 +150,8 @@ impl Clone for Box<dyn named + Send + Sync> {
 impl named for go_ast::r#mod::IdentPtr {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
         {
-            let __recv_guard = self.0.lock().unwrap();
-            let __recv = __recv_guard.as_ref().unwrap();
+            let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident };
+            let __recv = unsafe { &*__recv_ptr };
             go_ast::r#mod::Ident::string(__recv)
         }
     }
@@ -173,8 +173,8 @@ impl named for go_ast::r#mod::IdentPtr {
 impl positioner for go_ast::r#mod::BasicLitPtr {
     fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-            let __recv_guard = self.0.lock().unwrap();
-            let __recv = __recv_guard.as_ref().unwrap();
+            let __recv_ptr: *const go_ast::r#mod::BasicLit = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::BasicLit };
+            let __recv = unsafe { &*__recv_ptr };
             go_ast::r#mod::BasicLit::pos(__recv)
         }
     }
@@ -196,8 +196,8 @@ impl positioner for go_ast::r#mod::BasicLitPtr {
 impl positioner for go_ast::r#mod::IdentPtr {
     fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-            let __recv_guard = self.0.lock().unwrap();
-            let __recv = __recv_guard.as_ref().unwrap();
+            let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident };
+            let __recv = unsafe { &*__recv_ptr };
             go_ast::r#mod::Ident::pos(__recv)
         }
     }

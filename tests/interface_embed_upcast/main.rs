@@ -896,8 +896,8 @@ impl std::fmt::Display for IdentPtr {
 
 impl Expr for IdentPtr {
     fn expr_node(&self) {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Ident = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Ident };
+        let __recv = unsafe { &*__recv_ptr };
         Ident::expr_node(__recv)
     }
     fn __go_clone_box_expr(&self) -> Box<dyn Expr> {
@@ -933,8 +933,8 @@ impl Node for Ident {
 
 impl Node for IdentPtr {
     fn pos(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Ident = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Ident };
+        let __recv = unsafe { &*__recv_ptr };
         Ident::pos(__recv)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -996,8 +996,8 @@ impl std::fmt::Display for ExprStmtPtr {
 
 impl Node for ExprStmtPtr {
     fn pos(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const ExprStmt = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const ExprStmt };
+        let __recv = unsafe { &*__recv_ptr };
         ExprStmt::pos(__recv)
     }
     fn __go_clone_box_node(&self) -> Box<dyn Node> {
@@ -1037,8 +1037,8 @@ impl Stmt for ExprStmt {
 
 impl Stmt for ExprStmtPtr {
     fn stmt_node(&self) {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const ExprStmt = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const ExprStmt };
+        let __recv = unsafe { &*__recv_ptr };
         ExprStmt::stmt_node(__recv)
     }
     fn __go_clone_box_stmt(&self) -> Box<dyn Stmt> {

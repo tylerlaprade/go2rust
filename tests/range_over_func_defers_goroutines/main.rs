@@ -1153,6 +1153,16 @@ impl<T> std::fmt::Debug for GoChannel<T> {
     }
 }
 
+// Two channels are equal when they are the same channel, as == compares
+// them in Go, or both nil.
+impl<T> PartialEq for GoChannel<T> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.is_nil() && other.is_nil()) || std::sync::Arc::ptr_eq(&self.rx, &other.rx)
+    }
+}
+
+impl<T> Eq for GoChannel<T> {}
+
 impl<T> Iterator for GoChannel<T> {
     type Item = T;
     fn next(&mut self) -> Option<T> {
@@ -1297,14 +1307,14 @@ pub fn f() {
         let __rf_arg_1_1_1_closure_clone = __rf_arg_1_1_1.clone(); let mut __rf_call_1_1 = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{} {}", format!("{}", "deferred".to_string()), format!("{}", { let __v = (*__rf_arg_1_1_1_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_1_1)))); let mut __appended = (*__rf_defers_1_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_1_1.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_1_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
         let i_closure_clone = i.clone(); let mut __rf_call_1_2 = Arc::new(Mutex::new(Some(Arc::new(move || {
         let i_closure_clone_closure_clone = i_closure_clone.clone(); { let __f_holder = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{} {}", format!("{}", "closure at".to_string()), format!("{}", { let __v = (*i_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_1_2)))); let mut __appended = (*__rf_defers_1_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_1_2.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_1_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_1_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
@@ -1403,7 +1413,7 @@ pub fn g() -> i64 {
         println!("{} {} {}", format!("{}", "pair".to_string()), format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*n_closure_clone_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }) as Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> () + Send + Sync>))); let __f: Arc<dyn Fn(Arc<Mutex<Option<String>>>) -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)(Arc::new(Mutex::new(Some({ let __arg_holder = __rf_arg_2_1_0_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_2_1)))); let mut __appended = (*__rf_defers_2_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_2_1.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_2_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_done_3: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         let mut __rf_result_3_0: Arc<Mutex<Option<[i64; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn::<_, 1, _>(|_| 0))));
         let __rf_defers_2_closure_clone_closure_clone = __rf_defers_2_closure_clone.clone(); let k_closure_clone = k.clone(); seq3(Arc::new(Mutex::new(Some(Arc::new(move |__rf_param_3_0: Arc<Mutex<Option<i64>>>| -> bool {
@@ -1414,7 +1424,7 @@ pub fn g() -> i64 {
         let __rf_arg_2_2_1_closure_clone = __rf_arg_2_2_1.clone(); let __rf_arg_2_2_2_closure_clone = __rf_arg_2_2_2.clone(); let mut __rf_call_2_2 = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{} {} {}", format!("{}", "inner".to_string()), format!("{}", { let __v = (*__rf_arg_2_2_1_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", { let __v = (*__rf_arg_2_2_2_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }));
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_2_2)))); let mut __appended = (*__rf_defers_2_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_2_2.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_2_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_2_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
@@ -1555,13 +1565,13 @@ pub fn h() {
         let __rf_arg_4_1_0_0_closure_clone = __rf_arg_4_1_0_0.clone(); let __rf_arg_4_1_0_1_closure_clone = __rf_arg_4_1_0_1.clone(); let mut __rf_call_4_1 = Arc::new(Mutex::new(Some(Arc::new(move || {
         record(Arc::new(Mutex::new(Some({ let __arg_holder = __rf_arg_4_1_0_0_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(__rf_arg_4_1_0_1_closure_clone))));
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_1)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_1.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_arg_4_2_1 = Arc::new(Mutex::new(xs_closure_clone.lock().unwrap().clone()));
         let __rf_arg_4_2_1_closure_clone = __rf_arg_4_2_1.clone(); let mut __rf_call_4_2 = Arc::new(Mutex::new(Some(Arc::new(move || {
         show(Arc::new(Mutex::new(Some("xs".to_string()))), __rf_arg_4_2_1.clone());
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_2)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
-        let mut __rf_fn_4_3 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(act_closure_clone))));
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_2.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        let mut __rf_fn_4_3 = Arc::new(Mutex::new({ let __func_value = (*act_closure_clone.lock().unwrap()).clone(); __func_value }));
         let mut __rf_arg_4_3_0 = { let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         let __rf_arg_4_3_0_closure_clone = __rf_arg_4_3_0.clone(); let __rf_fn_4_3_closure_clone = __rf_fn_4_3.clone(); let mut __rf_call_4_3 = Arc::new(Mutex::new(Some(Arc::new(move || {
         {
@@ -1571,7 +1581,7 @@ pub fn h() {
             )
         };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_3)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_3.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         let mut __rf_fn_4_4 = picker(Arc::new(Mutex::new(Some("at".to_string()))));
 let mut __rf_fn_4_4 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&__rf_fn_4_4)));
         let mut __rf_arg_4_4_0 = { let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
@@ -1583,18 +1593,18 @@ let mut __rf_fn_4_4 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&__rf_fn_4_
             )
         };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_4)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_4.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         let mut __rf_call_4_5 = Arc::new(Mutex::new(Some(Arc::new(move || {
         println!("{}", format!("{}", "cleanup".to_string()));
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_5)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_5.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
         let mut __rf_call_4_6 = Arc::new(Mutex::new(Some(Arc::new(move || -> () {
         std::panic::panic_any(Box::new("boom".to_string()) as Box<dyn Any + Send + Sync>);
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_4_6)))); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_4_6.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_4_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_4_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
     }
         true
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
@@ -1695,7 +1705,7 @@ let __rf_defers_5_closure_clone = __rf_defers_5.clone(); let done_thread_closure
         done_thread_closure_clone_closure_clone_closure_clone.send((*i_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()));
     }) as Arc<dyn Fn() -> () + Send + Sync>))); let __f: Arc<dyn Fn() -> () + Send + Sync> = __f_holder.lock().unwrap().as_ref().unwrap().clone(); (__f)() };
     }) as Arc<dyn Fn() -> () + Send + Sync>)));
-        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new(GoFuncValue::go_func_value(&(__rf_call_5_1)))); let mut __appended = (*__rf_defers_5_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_5_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
+        { let __idx = (0) as usize; let __rhs = { let __append_idx = (0) as usize; let __append_value = Arc::new(Mutex::new({ let __func_value = (*__rf_call_5_1.lock().unwrap()).clone(); __func_value })); let mut __appended = (*__rf_defers_5_closure_clone.lock().unwrap().as_ref().unwrap())[__append_idx].clone(); __appended.push(__append_value); __appended }; (*__rf_defers_5_closure_clone.lock().unwrap().as_mut().unwrap())[__idx] = __rhs; };
         true
     }) as Arc<dyn Fn(Arc<Mutex<Option<i64>>>) -> bool + Send + Sync>))));
 if { let __v = (*__rf_done_5.lock().unwrap().as_ref().unwrap()).clone(); __v } {

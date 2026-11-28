@@ -3509,6 +3509,19 @@ func TranspileExpression(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, RValue)
 }
 
+// isChannelOperand reports whether expr is a channel, not nil.
+func isChannelOperand(expr ast.Expr) bool {
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(expr)).Underlying().(*types.Chan)
+	return ok
+}
+
 func writeChannelExpression(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok && isPackageGlobalIdent(ident) {
 		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsChannel(ident) {
@@ -16175,6 +16188,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			writeTempOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+				// A channel compares by identity, as the channel itself.
+				if isComparison && isChannelOperand(expr) && isChannelOperand(other) {
+					writeChannelExpression(out, expr)
+					if ident, ok := unwrapParens(expr).(*ast.Ident); ok && !isPackageGlobalIdent(ident) {
+						out.WriteString(".clone()")
+					}
+					return
+				}
 				if writeShiftCountPrimitiveOperand(out, expr, e) {
 					return
 				}
@@ -18774,10 +18795,14 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		var params []string
 		paramIndex := 0
 		for _, field := range funcLit.Type.Params.List {
+			_, interfaceRef := funcLitParamInterfaceRef(funcLit, field.Type)
 			for _, name := range field.Names {
 				paramType := funcLitParamTypeToRust(funcLit, field.Type, paramIndex)
 				paramName := RustLocalIdent(name.Name)
-				if blockIdentAssigned(funcLit.Body, name.Name) {
+				if interfaceRef && name.Name != "_" {
+					// The body rebinds the reference as the parameter.
+					paramName = RustLocalIdent(funcLitInterfaceRefParamName(name.Name))
+				} else if blockIdentAssigned(funcLit.Body, name.Name) {
 					paramName = "mut " + paramName
 				}
 				params = append(params, paramName+": "+paramType)
@@ -18888,6 +18913,7 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 
 	// Body
 	out.WriteString("{\n")
+	writeFuncLitInterfaceRefRebinds(out, funcLit)
 	writeFuncLitMutableCaptureShadows(out, funcLit, captured, captureRenames, assignedInlineCaptures)
 	if hasClosureDefer {
 		out.WriteString("        " + deferStackDecl() + "\n")
@@ -19010,7 +19036,144 @@ func funcLitParamTypeToRust(funcLit *ast.FuncLit, defaultType ast.Expr, paramInd
 		NeedSliceElemPtr()
 		return "GoPtr<" + goPtrResultElemRustType(info) + ">"
 	}
+	if ifaceName, ok := funcLitParamInterfaceRef(funcLit, defaultType); ok {
+		return rustLocalInterfaceParamBare(ifaceName)
+	}
 	return GoTypeToRustParam(defaultType)
+}
+
+// funcLitParamInterfaceRef reports whether a function literal's parameter of
+// type paramType is a reference to the trait object of an interface another
+// package translated, as context.Context: a func type takes such a parameter
+// by reference (goTypesFunctionParamTypeToRust), so the literal does too, and
+// its body rebinds the parameter to a copy of the interface value
+// (writeFuncLitInterfaceRefRebinds).
+func funcLitParamInterfaceRef(funcLit *ast.FuncLit, paramType ast.Expr) (string, bool) {
+	declPkg, ok := funcLitsOfImportedFuncTypes[funcLit]
+	if !ok {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || paramType == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(paramType)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == declPkg {
+		// The func type's own package takes its own interfaces as their
+		// handles.
+		return "", false
+	}
+	if _, isLocal := localNamedInterfaceTypeNameFromTypes(typ); isLocal {
+		return "", false
+	}
+	return transpiledNamedInterfaceTypeNameFromTypes(typ)
+}
+
+// funcLitsOfImportedFuncTypes are the function literals of the file being
+// written that become a value of a named func type another translated
+// package declares, such as event.Exporter for func(context.Context)
+// context.Context, with the package that declares it. That package writes
+// the type with go/types, taking an interface of a third package by
+// reference (goTypesFunctionParamTypeToRust).
+var funcLitsOfImportedFuncTypes = map[*ast.FuncLit]*types.Package{}
+
+// registerFuncLitsOfImportedFuncTypes finds them: a literal passed as an
+// argument, or assigned, where such a type is expected.
+func registerFuncLitsOfImportedFuncTypes(file *ast.File) {
+	funcLitsOfImportedFuncTypes = map[*ast.FuncLit]*types.Package{}
+	typeInfo := GetTypeInfo()
+	if file == nil || typeInfo == nil || typeInfo.pkg == nil {
+		return
+	}
+	record := func(expr ast.Expr, expected types.Type) {
+		funcLit, ok := unwrapParens(expr).(*ast.FuncLit)
+		if !ok || expected == nil {
+			return
+		}
+		named, ok := types.Unalias(expected).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == typeInfo.pkg {
+			return
+		}
+		if _, ok := named.Underlying().(*types.Signature); !ok {
+			return
+		}
+		if isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+			return
+		}
+		funcLitsOfImportedFuncTypes[funcLit] = named.Obj().Pkg()
+	}
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.CallExpr:
+			// A call into a stubbed external package has no type.
+			funType := typeInfo.GetType(n.Fun)
+			if funType == nil {
+				return true
+			}
+			sig, ok := funType.Underlying().(*types.Signature)
+			if !ok {
+				return true
+			}
+			for i, arg := range n.Args {
+				var param types.Type
+				switch {
+				case sig.Variadic() && i >= sig.Params().Len()-1:
+					if slice, ok := sig.Params().At(sig.Params().Len() - 1).Type().(*types.Slice); ok {
+						param = slice.Elem()
+					}
+				case i < sig.Params().Len():
+					param = sig.Params().At(i).Type()
+				}
+				record(arg, param)
+			}
+		case *ast.AssignStmt:
+			if len(n.Lhs) == len(n.Rhs) {
+				for i, rhs := range n.Rhs {
+					record(rhs, typeInfo.GetType(n.Lhs[i]))
+				}
+			}
+		}
+		return true
+	})
+}
+
+// funcLitInterfaceRefParamName is the name of the reference parameter that a
+// function literal's body rebinds as the parameter name.
+func funcLitInterfaceRefParamName(name string) string {
+	return "__go_ref_" + name
+}
+
+// writeFuncLitInterfaceRefRebinds rebinds each parameter of funcLit that it
+// takes by reference to a new interface value holding a copy of the value
+// the reference reaches, the parameter's own handle.
+func writeFuncLitInterfaceRefRebinds(out *strings.Builder, funcLit *ast.FuncLit) {
+	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
+		return
+	}
+	for _, field := range funcLit.Type.Params.List {
+		ifaceName, ok := funcLitParamInterfaceRef(funcLit, field.Type)
+		if !ok {
+			continue
+		}
+		for _, name := range field.Names {
+			if name.Name == "_" {
+				continue
+			}
+			rustName := RustLocalIdent(name.Name)
+			out.WriteString("        let mut ")
+			out.WriteString(rustName)
+			out.WriteString(" = ")
+			out.WriteString(GetOuterWrapperType())
+			out.WriteString("::new(")
+			out.WriteString(GetInnerWrapperType())
+			out.WriteString("::new(Some(")
+			out.WriteString(RustLocalIdent(funcLitInterfaceRefParamName(name.Name)))
+			out.WriteString(".__go_clone_box_")
+			out.WriteString(traitMethodSuffix(ifaceName))
+			out.WriteString("())));\n")
+		}
+	}
 }
 
 func funcLitReturnTypeForSlot(defaultType ast.Expr, slot int, overrides map[int]funcLitReturnOverride) string {
@@ -23832,11 +23995,42 @@ func writePointerHandleTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAss
 }
 
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
+// writeChannelTypeAssertionCommaOk writes v, ok := x.(chan T). A channel is
+// its own handle, held bare in a variable, so v is the channel x holds, or
+// a nil channel when x holds something else.
+func writeChannelTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || e.Type == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeInfo.GetType(e.Type)).(*types.Chan); !ok {
+		return false
+	}
+	if !isEmptyInterfaceType(typeInfo.GetType(e.X)) {
+		return false
+	}
+	rustType := goTypesTypeToRust(typeInfo.GetType(e.Type))
+	out.WriteString("({ let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString("; let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match guard.as_ref().and_then(|any_val| any_val.downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">()) { Some(typed_val) => (typed_val.clone(), true), None => (<")
+	out.WriteString(rustType)
+	out.WriteString(">::default(), false) } })")
+	return true
+}
+
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
 		return
 	}
 	defer enterTypeAssertionCopy(e.Type)()
+
+	if writeChannelTypeAssertionCommaOk(out, e) {
+		return
+	}
 
 	if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
 		writeStaticallyKnownInterfaceAssertionCommaOk(out, e, ifaceName)
@@ -25165,7 +25359,23 @@ func writeElemPtrPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr,
 	return true
 }
 
+// atomicValueLoadsCopied holds the atomic.Value Load calls being written
+// inside their copy, so the copy wraps each one once.
+var atomicValueLoadsCopied = map[*ast.CallExpr]bool{}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
+	// atomic.Value.Load gives the caller its own interface value, a copy of
+	// the one stored, as Go's does: assigning to it leaves the stored value
+	// alone.
+	if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Load" && !atomicValueLoadsCopied[call] && isAtomicValueMethodSelector(sel) {
+		NeedAnyHandleCopy()
+		atomicValueLoadsCopied[call] = true
+		out.WriteString("go_any_handle_copy(&")
+		TranspileCall(out, call)
+		out.WriteString(")")
+		delete(atomicValueLoadsCopied, call)
+		return
+	}
 	if sel, arity, ok := methodCallArgsReadReceiver(call); ok {
 		var inner strings.Builder
 		transpileCallInOrder(&inner, call)

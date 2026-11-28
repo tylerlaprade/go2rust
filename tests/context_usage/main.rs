@@ -242,6 +242,7 @@ fn go_runtime_error_text_of_string(__text: String) -> String {
 
 fn main() {
     go_install_panic_exit();
+    ::context::__go_init_all();
     ::internal_bisect::__go_init_all();
     ::internal_bytealg::__go_init_all();
     ::internal_godebug::__go_init_all();
@@ -254,7 +255,7 @@ fn main() {
 
     let __go_previous_panic_hook = go_silence_panic_hook();
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let (mut ctx, mut cancel) = GoContext::with_timeout(Arc::new(Mutex::new(Some(GoContext::background()))).clone(), std::time::Duration::from_secs(1));
+        let (mut ctx, mut cancel) = context::with_timeout(context::background().clone(), Arc::new(Mutex::new(Some(time::r#mod::Duration(Arc::new(Mutex::new(Some((1 as i64 * time::SECOND) as i64))))))));
         let mut cancel = Arc::new(Mutex::new(GoFuncValue::go_func_value(&cancel)));
         let cancel_defer_captured = Arc::new(Mutex::new((*cancel.lock().unwrap()).clone())); __defer_stack.push(Box::new(move || {
         {
@@ -280,7 +281,7 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     }
-        let (mut ctx2, mut cancel2) = GoContext::with_cancel_cause(Arc::new(Mutex::new(Some(GoContext::background()))).clone());
+        let (mut ctx2, mut cancel2) = context::with_cancel_cause(context::background().clone());
         let mut cancel2 = Arc::new(Mutex::new(GoFuncValue::go_func_value(&cancel2)));
         {
             let __f: GoCancelCauseFunc = cancel2.lock().unwrap().as_ref().unwrap().clone();

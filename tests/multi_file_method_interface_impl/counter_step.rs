@@ -85,13 +85,13 @@ impl std::fmt::Display for CounterPtr {
 
 impl Stepper for CounterPtr {
     fn step(&mut self) {
-        let mut __recv_guard = self.0.borrow_mut();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut Counter = { let mut __recv_guard = self.0.borrow_mut(); __recv_guard.as_mut().unwrap() as *mut Counter };
+        let __recv = unsafe { &mut *__recv_ptr };
         Counter::step(__recv)
     }
     fn value(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Counter = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const Counter };
+        let __recv = unsafe { &*__recv_ptr };
         Counter::value(__recv)
     }
     fn __go_clone_box_stepper(&self) -> Box<dyn Stepper> {

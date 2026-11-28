@@ -177,8 +177,8 @@ impl std::fmt::Display for userWriterPtr {
 
 impl io::r#mod::Writer for userWriterPtr {
     fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Arc<dyn StdError + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut userWriter = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut userWriter };
+        let __recv = unsafe { &mut *__recv_ptr };
         userWriter::write(__recv, p)
     }
     fn __go_clone_box_writer(&self) -> Box<dyn io::r#mod::Writer + Send + Sync> {

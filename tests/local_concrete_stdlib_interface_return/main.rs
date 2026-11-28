@@ -181,13 +181,13 @@ impl std::fmt::Display for localTypePtr {
 
 impl go_types::r#type::Type for localTypePtr {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const localType = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const localType };
+        let __recv = unsafe { &*__recv_ptr };
         localType::string(__recv)
     }
     fn underlying(&mut self) -> Arc<Mutex<Option<Box<dyn go_types::r#type::Type + Send + Sync>>>> {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut localType = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut localType };
+        let __recv = unsafe { &mut *__recv_ptr };
         localType::underlying(__recv)
     }
     fn __go_clone_box_type_(&self) -> Box<dyn go_types::r#type::Type + Send + Sync> {

@@ -820,8 +820,8 @@ impl std::fmt::Display for FuncDeclPtr {
 
 impl Decl for FuncDeclPtr {
     fn decl_name(&self) -> Rc<RefCell<Option<String>>> {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const FuncDecl = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const FuncDecl };
+        let __recv = unsafe { &*__recv_ptr };
         FuncDecl::decl_name(__recv)
     }
     fn __go_clone_box_decl(&self) -> Box<dyn Decl> {

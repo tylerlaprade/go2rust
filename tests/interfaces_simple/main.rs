@@ -886,13 +886,13 @@ impl std::fmt::Display for rectPtr {
 
 impl geometry for rectPtr {
     fn area(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const rect = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const rect };
+        let __recv = unsafe { &*__recv_ptr };
         rect::area(__recv)
     }
     fn perim(&self) -> f64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const rect = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const rect };
+        let __recv = unsafe { &*__recv_ptr };
         rect::perim(__recv)
     }
     fn __go_clone_box_geometry(&self) -> Box<dyn geometry> {

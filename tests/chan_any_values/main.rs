@@ -653,8 +653,8 @@ impl std::fmt::Display for squarePtr {
 
 impl shape for squarePtr {
     fn area(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const square = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const square };
+        let __recv = unsafe { &*__recv_ptr };
         square::area(__recv)
     }
     fn __go_clone_box_shape(&self) -> Box<dyn shape + Send + Sync> {

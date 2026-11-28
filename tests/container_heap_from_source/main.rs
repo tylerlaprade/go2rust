@@ -580,13 +580,13 @@ impl std::fmt::Display for IntHeapPtr {
 
 impl container_heap::r#mod::Interface for IntHeapPtr {
     fn pop(&mut self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut IntHeap = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut IntHeap };
+        let __recv = unsafe { &mut *__recv_ptr };
         IntHeap::pop(__recv)
     }
     fn push(&mut self, x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut IntHeap = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut IntHeap };
+        let __recv = unsafe { &mut *__recv_ptr };
         IntHeap::push(__recv, x)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn container_heap::r#mod::Interface + Send + Sync> {
@@ -603,18 +603,18 @@ impl container_heap::r#mod::Interface for IntHeapPtr {
 
 impl sort::r#mod::Interface for IntHeapPtr {
     fn len(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const IntHeap = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const IntHeap };
+        let __recv = unsafe { &*__recv_ptr };
         IntHeap::len(__recv)
     }
     fn less(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const IntHeap = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const IntHeap };
+        let __recv = unsafe { &*__recv_ptr };
         IntHeap::less(__recv, i, j)
     }
     fn swap(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const IntHeap = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const IntHeap };
+        let __recv = unsafe { &*__recv_ptr };
         IntHeap::swap(__recv, i, j)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {
@@ -746,13 +746,13 @@ impl std::fmt::Display for TaskQueuePtr {
 
 impl container_heap::r#mod::Interface for TaskQueuePtr {
     fn pop(&mut self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut TaskQueue = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut TaskQueue };
+        let __recv = unsafe { &mut *__recv_ptr };
         TaskQueue::pop(__recv)
     }
     fn push(&mut self, x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut TaskQueue = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut TaskQueue };
+        let __recv = unsafe { &mut *__recv_ptr };
         TaskQueue::push(__recv, x)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn container_heap::r#mod::Interface + Send + Sync> {
@@ -769,18 +769,18 @@ impl container_heap::r#mod::Interface for TaskQueuePtr {
 
 impl sort::r#mod::Interface for TaskQueuePtr {
     fn len(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const TaskQueue = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const TaskQueue };
+        let __recv = unsafe { &*__recv_ptr };
         TaskQueue::len(__recv)
     }
     fn less(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const TaskQueue = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const TaskQueue };
+        let __recv = unsafe { &*__recv_ptr };
         TaskQueue::less(__recv, i, j)
     }
     fn swap(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const TaskQueue = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const TaskQueue };
+        let __recv = unsafe { &*__recv_ptr };
         TaskQueue::swap(__recv, i, j)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {
@@ -897,13 +897,13 @@ impl std::fmt::Display for PQPtr {
 
 impl container_heap::r#mod::Interface for PQPtr {
     fn pop(&mut self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut PQ = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut PQ };
+        let __recv = unsafe { &mut *__recv_ptr };
         PQ::pop(__recv)
     }
     fn push(&mut self, x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
-        let mut __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_mut().unwrap();
+        let __recv_ptr: *mut PQ = { let mut __recv_guard = self.0.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut PQ };
+        let __recv = unsafe { &mut *__recv_ptr };
         PQ::push(__recv, x)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn container_heap::r#mod::Interface + Send + Sync> {
@@ -920,18 +920,18 @@ impl container_heap::r#mod::Interface for PQPtr {
 
 impl sort::r#mod::Interface for PQPtr {
     fn len(&self) -> i64 {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const PQ = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PQ };
+        let __recv = unsafe { &*__recv_ptr };
         PQ::len(__recv)
     }
     fn less(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) -> bool {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const PQ = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PQ };
+        let __recv = unsafe { &*__recv_ptr };
         PQ::less(__recv, i, j)
     }
     fn swap(&self, i: Arc<Mutex<Option<i64>>>, j: Arc<Mutex<Option<i64>>>) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const PQ = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PQ };
+        let __recv = unsafe { &*__recv_ptr };
         PQ::swap(__recv, i, j)
     }
     fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {

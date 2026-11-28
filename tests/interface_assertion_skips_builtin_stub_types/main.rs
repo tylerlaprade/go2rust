@@ -527,8 +527,8 @@ impl std::fmt::Display for PointPtr {
 
 impl Stringer for PointPtr {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Point = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Point };
+        let __recv = unsafe { &*__recv_ptr };
         Point::string(__recv)
     }
     fn __go_clone_box_stringer(&self) -> Box<dyn Stringer + Send + Sync> {
@@ -587,8 +587,8 @@ impl std::fmt::Display for TempPtr {
 
 impl Stringer for TempPtr {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const Temp = { let __recv_guard = self.0.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Temp };
+        let __recv = unsafe { &*__recv_ptr };
         Temp::string(__recv)
     }
     fn __go_clone_box_stringer(&self) -> Box<dyn Stringer + Send + Sync> {
@@ -612,7 +612,7 @@ impl Stringer for TempPtr {
 
 impl Stringer for strings::builder::Builder {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
-        self.string()
+        <strings::builder::Builder>::string(self)
     }
     fn __go_clone_box_stringer(&self) -> Box<dyn Stringer + Send + Sync> {
         Box::new(self.clone()) as Box<dyn Stringer + Send + Sync>

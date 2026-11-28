@@ -1186,8 +1186,8 @@ impl std::fmt::Display for int64ValPtr {
 
 impl Value for int64ValPtr {
     fn tag(&self) -> i64 {
-        let __recv_guard = self.0.borrow();
-        let __recv = __recv_guard.as_ref().unwrap();
+        let __recv_ptr: *const int64Val = { let __recv_guard = self.0.borrow(); __recv_guard.as_ref().unwrap() as *const int64Val };
+        let __recv = unsafe { &*__recv_ptr };
         int64Val::tag(__recv)
     }
     fn __go_clone_box_value(&self) -> Box<dyn Value> {
