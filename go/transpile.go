@@ -1186,13 +1186,21 @@ func markMapKeyStructType(result map[string]bool, typ types.Type, typeInfo *Type
 	}
 }
 
-// markNestedMapKeyStructFields marks the unnamed struct fields of the map key
-// struct st, as p in map[struct{ p struct{ x int } }]bool: the key's Ord
-// needs Ord on each of them.
+// markNestedMapKeyStructFields marks the struct fields of the map key struct
+// st, an unnamed one as p in map[struct{ p struct{ x int } }]bool or one of
+// the package's named structs as P in map[struct{ P Point }]bool: the key's
+// Ord needs Ord on each of them.
 func markNestedMapKeyStructFields(result map[string]bool, st *types.Struct, typeInfo *TypeInfo) {
 	for i := 0; i < st.NumFields(); i++ {
-		if nested, ok := types.Unalias(st.Field(i).Type()).(*types.Struct); ok {
-			markMapKeyStructType(result, nested, typeInfo)
+		fieldType := types.Unalias(st.Field(i).Type())
+		switch field := fieldType.(type) {
+		case *types.Struct:
+			markMapKeyStructType(result, field, typeInfo)
+		case *types.Named:
+			// One already marked has had its fields marked too.
+			if _, isStruct := field.Underlying().(*types.Struct); isStruct && field.Obj() != nil && !result[field.Obj().Name()] {
+				markMapKeyStructType(result, field, typeInfo)
+			}
 		}
 	}
 }

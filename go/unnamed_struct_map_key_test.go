@@ -124,3 +124,34 @@ func main() {
 		t.Fatalf("the struct should get the key's equality and order wherever it is written:\n%s", written)
 	}
 }
+
+// A named struct field of an unnamed struct map key, P in
+// map[struct{ P Point }]bool, gets the order the key's Ord needs.
+func TestUnnamedStructMapKeyNamedStructFieldIsOrdered(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "fmt"
+
+type Point struct{ X int }
+
+func main() {
+	m := map[struct{ P Point }]bool{}
+	m[struct{ P Point }{Point{1}}] = true
+	fmt.Println(len(m))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]\npub struct Point {") {
+		t.Fatalf("a named struct field of a map key should be ordered:\n%s", mainRS)
+	}
+}
